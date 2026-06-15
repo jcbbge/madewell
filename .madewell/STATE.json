@@ -1,0 +1,27 @@
+{
+  "project": "[Your project name, in your own words]",
+  "phase": "imagine",
+  "updated": "2026-05-21T00:00:00Z",
+
+  "context": {
+    "summary": "Just getting started. Haven't defined what we're building yet.",
+    "openThread": null,
+    "language": {}
+  },
+
+  "active": [
+    {
+      "id": "t001",
+      "task": "First conversation — what are we building?",
+      "scope": "discovery",
+      "status": "pending",
+      "brief": null
+    }
+  ],
+
+  "blocked": [],
+
+  "backlog": [],
+
+  "staged": []
+}

@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Made Well Skills Registry",
+  "description": "Registry of thinking skills with triggers and modes",
+  "type": "object",
+  "required": ["version", "skills"],
+  
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    
+    "skills": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/skill" }
+    },
+    
+    "powerPrompt": {
+      "type": "string",
+      "description": "The master prompt for invoking multiple skills"
+    }
+  },
+  
+  "definitions": {
+    "skill": {
+      "type": "object",
+      "required": ["name", "file", "trigger", "mode", "description"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Skill identifier"
+        },
+        "file": {
+          "type": "string",
+          "description": "Path to skill definition"
+        },
+        "trigger": {
+          "oneOf": [
+            { "type": "string", "enum": ["always", "continuous"] },
+            { 
+              "type": "array", 
+              "items": { "type": "string" },
+              "description": "Keywords that activate this skill"
+            }
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": ["lens", "workflow", "daemon"],
+          "description": "lens = perspective, workflow = protocol + artifacts, daemon = continuous monitoring"
+        },
+        "description": {
+          "type": "string"
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Files this skill produces (workflow mode only)"
+        },
+        "protocol": {
+          "type": "object",
+          "description": "Workflow configuration (workflow mode only)",
+          "properties": {
+            "steps": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "outputTo": { "type": "string" },
+            "outputFormat": { "type": "string" }
+          }
+        },
+        "signals": {
+          "type": "object",
+          "description": "Signal patterns for daemon mode",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

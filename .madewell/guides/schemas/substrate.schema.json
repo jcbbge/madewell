@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Work Substrate Events",
+  "description": "Append-only event log for execution state tracking.",
+  
+  "definitions": {
+    "sessionStart": {
+      "type": "object",
+      "required": ["ts", "type", "session", "mode"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "session_start" },
+        "session": { "type": "string", "pattern": "^s-\\d{4}-\\d{2}-\\d{2}-\\d{3}$" },
+        "mode": { "enum": ["single", "orchestrated"] }
+      }
+    },
+    
+    "sessionEnd": {
+      "type": "object",
+      "required": ["ts", "type", "session", "summary", "open_thread"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "session_end" },
+        "session": { "type": "string" },
+        "summary": { "type": "string" },
+        "open_thread": { "type": "string" }
+      }
+    },
+    
+    "taskStarted": {
+      "type": "object",
+      "required": ["ts", "type", "session", "task", "description"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "task_started" },
+        "session": { "type": "string" },
+        "task": { "type": "string" },
+        "scope": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    
+    "taskCompleted": {
+      "type": "object",
+      "required": ["ts", "type", "session", "task", "summary"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "task_completed" },
+        "session": { "type": "string" },
+        "task": { "type": "string" },
+        "summary": { "type": "string" }
+      }
+    },
+    
+    "taskBlocked": {
+      "type": "object",
+      "required": ["ts", "type", "session", "task", "reason"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "task_blocked" },
+        "session": { "type": "string" },
+        "task": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+    
+    "orchestrationInitialized": {
+      "type": "object",
+      "required": ["ts", "type", "session", "packages"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "orchestration_initialized" },
+        "session": { "type": "string" },
+        "packages": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    
+    "packageAssigned": {
+      "type": "object",
+      "required": ["ts", "type", "session", "package", "agent"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "package_assigned" },
+        "session": { "type": "string" },
+        "package": { "type": "string" },
+        "agent": { "type": "string" },
+        "chunks": { "type": "string" }
+      }
+    },
+    
+    "packageCompleted": {
+      "type": "object",
+      "required": ["ts", "type", "session", "package", "agent", "summary"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "package_completed" },
+        "session": { "type": "string" },
+        "package": { "type": "string" },
+        "agent": { "type": "string" },
+        "summary": { "type": "string" },
+        "files": { "type": "array", "items": { "type": "string" } },
+        "tests": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    
+    "orchestrationCompleted": {
+      "type": "object",
+      "required": ["ts", "type", "session", "summary"],
+      "properties": {
+        "ts": { "type": "string", "format": "date-time" },
+        "type": { "const": "orchestration_completed" },
+        "session": { "type": "string" },
+        "summary": { "type": "string" },
+        "packages_completed": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  
+  "oneOf": [
+    { "$ref": "#/definitions/sessionStart" },
+    { "$ref": "#/definitions/sessionEnd" },
+    { "$ref": "#/definitions/taskStarted" },
+    { "$ref": "#/definitions/taskCompleted" },
+    { "$ref": "#/definitions/taskBlocked" },
+    { "$ref": "#/definitions/orchestrationInitialized" },
+    { "$ref": "#/definitions/packageAssigned" },
+    { "$ref": "#/definitions/packageCompleted" },
+    { "$ref": "#/definitions/orchestrationCompleted" }
+  ]
+}

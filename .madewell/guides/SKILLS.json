@@ -1,0 +1,95 @@
+{
+  "version": "3.0",
+  "note": "Reference only — the guide reads skills directly from system/skills/. This file documents what exists and when each is used.",
+
+  "skills": [
+    {
+      "name": "luck",
+      "file": "system/skills/luck.md",
+      "mode": "lens",
+      "when": "Always include when stuck, when something feels off, when hidden patterns need surfacing"
+    },
+    {
+      "name": "criticality",
+      "file": "system/skills/criticality.md",
+      "mode": "lens",
+      "when": "Person seems overwhelmed (too many threads) or stuck (signal vanishing). Read the state, not the person."
+    },
+    {
+      "name": "discovery",
+      "file": "system/skills/discovery.md",
+      "mode": "workflow",
+      "when": "Brain dump, unstructured input, first session, 'I have a lot of thoughts'"
+    },
+    {
+      "name": "systems-thinking",
+      "file": "system/skills/systems-thinking.md",
+      "mode": "lens",
+      "when": "Recurring problems, fix-one-break-another, complex tradeoffs, many moving parts"
+    },
+    {
+      "name": "reframing",
+      "file": "system/skills/reframing.md",
+      "mode": "lens",
+      "when": "Stated problem feels like the wrong problem. Something keeps hitting walls."
+    },
+    {
+      "name": "blind-spots",
+      "file": "system/skills/blind-spots.md",
+      "mode": "lens",
+      "when": "Before major decisions. When something feels too smooth. 'What am I missing?'"
+    },
+    {
+      "name": "challenging-assumptions",
+      "file": "system/skills/challenging-assumptions.md",
+      "mode": "workflow",
+      "when": "Before committing to an approach. Stress-testing a plan. 'Poke holes in this.'"
+    },
+    {
+      "name": "exploring-possibilities",
+      "file": "system/skills/exploring-possibilities.md",
+      "mode": "lens",
+      "when": "Early brainstorm, creative block, 'what are our options here'"
+    },
+    {
+      "name": "debug-hypothesis",
+      "file": "system/skills/debug-hypothesis.md",
+      "mode": "workflow",
+      "when": "Something is broken. Error pasted. Unexpected behavior."
+    },
+    {
+      "name": "enforcer",
+      "file": "system/packs/dev/skills/enforcer.md",
+      "mode": "workflow",
+      "when": "After significant AI-assisted work. Before anything ships. 'Is this good?' Stateful — tracks progress in enforcer-state.json."
+    },
+    {
+      "name": "substrate-start",
+      "file": "system/skills/substrate-start.md",
+      "mode": "workflow",
+      "when": "Every session, after reading memory stack. Reconciles execution state from event log."
+    },
+    {
+      "name": "substrate-end",
+      "file": "system/skills/substrate-end.md",
+      "mode": "workflow",
+      "when": "Every session, before updating STATE.json. Logs completion events."
+    },
+    {
+      "name": "orchestrate",
+      "file": "system/skills/orchestrate.md",
+      "mode": "workflow",
+      "when": "Parallel execution. 'Fan this out', 'create a workflow'. Delegates to sub-agents."
+    }
+  ],
+
+  "packs": [
+    {
+      "name": "dev",
+      "file": "system/packs/dev/PACK.md",
+      "skills": "system/packs/dev/skills/",
+      "activate": "Add to start prompt: 'and system/packs/dev/PACK.md'",
+      "when": "Building software — any stack, any framework"
+    }
+  ]
+}

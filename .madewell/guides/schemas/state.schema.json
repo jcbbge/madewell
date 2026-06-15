@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Made Well State",
+  "description": "Project state maintained by the agent. Optimized for LLM attention mechanics.",
+  "type": "object",
+  "required": ["version", "project", "phase", "updated", "context", "active", "blocked", "backlog", "done", "staged"],
+  
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "project": {
+      "type": "string"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["ideate", "plan", "implement", "verify"]
+    },
+    "cognitiveEntropy": {
+      "type": "string",
+      "enum": ["low", "optimal", "high", "supercritical"],
+      "description": "Current cognitive load/chaos of the project. Signals agent when to invoke criticality skills."
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "context": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "type": "string"
+        },
+        "lastSession": {
+          "type": ["string", "null"]
+        },
+        "openThread": {
+          "type": ["string", "null"]
+        },
+        "nextMilestone": {
+          "type": "string"
+        },
+        "decisions": {
+          "type": "array",
+          "description": "Few-Shot Decision Ledger. Hijacks in-context learning so agent mimics past logic.",
+          "items": {
+            "type": "object",
+            "required": ["context", "decision", "rationale"],
+            "properties": {
+              "context": { "type": "string", "description": "What was the situation?" },
+              "decision": { "type": "string", "description": "What did we decide?" },
+              "rationale": { "type": "string", "description": "Why? (The invariant)" }
+            }
+          }
+        }
+      }
+    },
+    "active": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/task" }
+    },
+    "blocked": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/blockedTask" }
+    },
+    "backlog": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/task" }
+    },
+    "done": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/completedTask" }
+    },
+    "staged": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/stagedInsight" }
+    },
+    "sessionLog": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/sessionEntry" }
+    }
+  },
+  
+  "definitions": {
+    "task": {
+      "type": "object",
+      "required": ["id", "task", "status"],
+      "properties": {
+        "id": { "type": "string", "description": "Semantic anchor hash, e.g., AUTH-X9F2" },
+        "task": { "type": "string" },
+        "scope": { "type": "string" },
+        "status": { 
+          "type": "string",
+          "enum": ["pending", "in_progress"]
+        },
+        "created": { "type": "string", "format": "date" },
+        "context": { "type": ["string", "null"] },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of task IDs this depends on (Creates an implicit DAG)"
+        }
+      }
+    },
+    "blockedTask": {
+      "type": "object",
+      "required": ["id", "task", "reason"],
+      "properties": {
+        "id": { "type": "string" },
+        "task": { "type": "string" },
+        "scope": { "type": "string" },
+        "reason": { "type": "string" },
+        "unblocks": { "type": "string" },
+        "lossSurface": {
+          "type": "string",
+          "description": "Specific point of failure/friction. Agent uses this to auto-trigger debug skills."
+        }
+      }
+    },
+    "completedTask": {
+      "type": "object",
+      "required": ["id", "task", "completed"],
+      "properties": {
+        "id": { "type": "string" },
+        "task": { "type": "string" },
+        "scope": { "type": "string" },
+        "completed": { "type": "string", "format": "date" }
+      }
+    },
+    "stagedInsight": {
+      "type": "object",
+      "required": ["id", "insight", "route", "status"],
+      "properties": {
+        "id": { "type": "string" },
+        "source": { "type": "string" },
+        "lens": { "type": "string" },
+        "insight": { "type": "string" },
+        "route": {
+          "type": "string",
+          "enum": ["active", "backlog", "decision", "dismiss"]
+        },
+        "evidence": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["staged", "promoted", "dismissed", "pending_decision"]
+        }
+      }
+    },
+    "sessionEntry": {
+      "type": "object",
+      "required": ["date", "summary"],
+      "properties": {
+        "date": { "type": "string", "format": "date" },
+        "summary": { "type": "string" },
+        "tasksCompleted": { 
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
