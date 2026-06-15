@@ -1,6 +1,6 @@
 # Made Well
 
-**You made this. It's yours. And it works.**
+**You made this. It's yours. And it works. Madewell.**
 
 You don’t have to manage the system.  
 You don’t have to track context across sessions.  
