@@ -82,9 +82,17 @@ their restore window is known, and a destructive operation is never run against 
 out of the source, into the platform's secret store (shared law with CI/CD). A credential in a
 commit is a credential leaked.
 
-**12. The backend says what it's doing.** The paths that matter — especially the ones that fail —
-emit enough signal (structured logs, traces) that when something goes wrong, the answer is in the
-record, not in a guess. Observability is not an add-on; it's how the system stays debuggable.
+**12. The backend says what it's doing — to the agent that will debug it.** The paths that matter
+— especially the ones that fail — emit structured signal that names *where* it happened, *what*
+happened, *what likely caused it*, and *what to check next*. Keep it light: a few well-placed
+structured logs, traces, and counters on the real and the failing paths — not a metrics cathedral
+— but write every line for its true reader. When this app breaks in front of the person, they
+can't read a stack trace and the agent wasn't watching it happen; both are blind. A log that
+records only `"error"` forces the next session to reconstruct the world from nothing; a log that
+carries location, cause, and next step hands the agent the thread to pull. This is the CI/CD
+pillar's law — *failures carry their own fix* — applied to the running system instead of the
+pipeline. Observability is not an add-on; it's how a system the person can't read stays debuggable
+by the agent who can.
 
 ---
 
@@ -128,8 +136,9 @@ record, not in a guess. Observability is not an add-on; it's how the system stay
 
 11. Set up versioned migrations (Principle 9) and wire them into the deploy (CI/CD pillar).
 12. Confirm backups exist and the restore window is known (Principle 10) *before* there's data to
-    lose. Keep secrets in the secret store (Principle 11). Add observability on the paths that
-    matter (Principle 12).
+    lose. Keep secrets in the secret store (Principle 11). Add agent-forward observability on the
+    paths that matter (Principle 12) — every signal on a failing path names where, what, likely
+    cause, and the next check, so the agent who debugs it isn't starting from nothing.
 
 ---
 
@@ -146,7 +155,8 @@ record, not in a guess. Observability is not an add-on; it's how the system stay
       destructive-after.
 - [ ] Backups exist, the restore window is known, and no destructive op runs against an unknown one.
 - [ ] No secret lives in the source; all credentials are in the secret store.
-- [ ] The failing paths emit enough signal to debug from the record, not a guess.
+- [ ] The failing paths emit agent-forward signal — where, what, likely cause, next check —
+      debuggable from the record, not a guess.
 - [ ] The stack layer (below) is filled in for the chosen store.
 
 ---

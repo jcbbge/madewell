@@ -148,6 +148,21 @@ watched both branches behave correctly in real runs — these languages have no 
 values silently collapse, and the config reads as correct while doing the wrong thing. The run
 log, not the config file, is ground truth for what a conditional did.
 
+**11. The author never grades their own work.** The agent that writes an implementation does not
+write the tests that validate it, does not run them, and does not judge a failure it produced.
+This is structural, not stylistic. A single agent that owns both the code and its tests will, under
+the pull toward a green check, quietly bend one to fit the other — and the moment it does, three
+distinct failures collapse into one indistinguishable blur: **(a)** a pre-existing bug the change
+merely surfaced, **(b)** an implementation that doesn't satisfy the brief, **(c)** a test that
+doesn't correctly express the brief. You can no longer tell which one you have, so you can't fix the
+right thing. Keep the roles separate and each stays legible: a test-designer writes to the
+*contract*, never seeing the implementation while designing it; on failure an *independent* triage
+agent names the bucket — a, b, or c — before anyone touches a line; and the fix goes to a fresh
+agent, never the one whose work is in question. A gate the author can rig is not a trust machine
+(Principle 1) — it's theater with a green light. The mechanism that enforces this is the
+orchestration skill (`.madewell/skills/orchestrate.md`); this principle is *why* it refuses to let
+one agent close the loop on itself.
+
 ---
 
 ## Part 2 — The Protocol (execute in order)
@@ -253,6 +268,8 @@ Every box demonstrated, not asserted:
       builder's machine in seconds, with the fix printed.
 - [ ] A proposed change runs the full identical gate suite with isolated test infrastructure and
       zero production secrets.
+- [ ] No agent validates its own implementation — tests are authored to the contract by a separate
+      role, and a failure is triaged to bucket a/b/c by an independent verdict before any fix.
 - [ ] Merging to the main line deploys to production in single-digit minutes, ending with runtime
       proof (health + version echo).
 - [ ] A docs-only change triggers no pipeline at all.
