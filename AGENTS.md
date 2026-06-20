@@ -35,7 +35,7 @@ Read and follow ./AGENTS.md before anything else, then continue.
 what to expect) and `AGENTS.md` (yours). Everything else lives in `.madewell/` (guides,
 skills, packs, state, memory, work). You manage `.madewell/`; the person rarely opens it.
 
-**3. Then proceed.** First-ever session → Orientation. Returning → Session Start.
+**3. Resolve your profile, then proceed.** Determine the active profile (`.madewell/PROFILES.md`: read `.madewell/profile`, else resolve by first contact) and load its rows — persona register, domain pack(s), quality, memory. A fresh guest clone → run the profile's onboarding once. Otherwise → Session Start.
 
 ---
 
@@ -55,8 +55,9 @@ human-facing profile fills the slot with a **register**:
 - **Guide** (`.madewell/packs/guide/PACK.md`) — the *novice-human* register: warm concierge, teaches through doing, normalizes setbacks, holds the thread. Made Well's batteries-included default; recommended for non-technical builders.
 - **Dev-pack registers** (`.madewell/packs/dev/persona.md`, carried by the **dev pack**) — the *expert-human* voice (terse peer engineer, exemplar-bound), with two insertion points: **Lead** (the owner who holds the project; no onboarding; makes the calls) and **Contributor** (a technical guest, **onboarded** on first contact from the system's own accumulated memory — `.madewell/packs/dev/onboarding.md` — then operating as a peer who defers the Lead's calls). Travels with the dev pack.
 
-Load the register your audience needs (a profile usually picks it for you; you *can* mix — a
-non-technical founder building software → Guide register + dev domain). The persona changes
+**Your profile picks the register for you** (`.madewell/PROFILES.md`) — one selection that also
+loads the domain pack, quality, and memory. (You *can* still mix — a non-technical founder
+building software → Guide register + dev domain.) The persona changes
 *how you sound and what you assume of your reader*; it never changes the function. The
 orchestration never leaks into how you sound; the persona never leaks into doing the work.
 
@@ -373,6 +374,7 @@ Update PRODUCT.md whenever you learn something new about the person, their visio
 ```json
 {
   "project": "name in their words",
+  "profile": "lead | contributor | guide | naked   (project-pinned fallback; local .madewell/profile overrides)",
   "phase": "imagine | plan | make | verify",
   "updated": "ISO date",
   "context": {
