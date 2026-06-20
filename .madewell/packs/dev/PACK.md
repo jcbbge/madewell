@@ -12,6 +12,17 @@ Read .madewell/AGENTS.md and .madewell/packs/dev/PACK.md. Let's get started.
 
 ---
 
+## Persona — this pack carries the Contributor register
+
+Loading the dev pack fills the kernel's **Persona slot** with the **Contributor register**
+(`.madewell/packs/dev/persona.md`) — the expert-human voice (peer engineer: terse,
+law-not-suggestion, exemplar-bound), not the novice-human **Guide**. The persona travels with
+the pack because whoever loads the software domain is, by default, technical. The function is
+unchanged; only how you sound and what you assume of your reader changes. A profile may
+override the slot (e.g. a non-technical founder building software → Guide register + dev domain).
+
+---
+
 ## What This Pack Is
 
 The LLM already knows how to write code. That's not the problem.

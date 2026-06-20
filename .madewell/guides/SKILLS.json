@@ -93,16 +93,17 @@
     {
       "name": "guide",
       "file": "system/packs/guide/PACK.md",
-      "fills": "the Persona contract (how the system sounds and teaches)",
-      "activate": "Read at session start. Recommended for any non-technical builder — the white-glove concierge.",
-      "when": "You want the warm Guide persona. Default kernel is persona-free (a competent, terse operator); this pack is the pro upgrade of the Persona row."
+      "fills": "the Persona slot — the GUIDE register (novice-human)",
+      "activate": "Read at session start. Made Well's batteries-included default; recommended for any non-technical builder.",
+      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free (a substrate). Sibling registers: Contributor (expert-human, carried by the dev pack) and naked (machines/CI)."
     },
     {
       "name": "dev",
       "file": "system/packs/dev/PACK.md",
       "skills": "system/packs/dev/skills/",
+      "persona": "system/packs/dev/persona.md (the CONTRIBUTOR register — fills the Persona slot when this pack is loaded)",
       "activate": "Add to start prompt: 'and system/packs/dev/PACK.md'",
-      "when": "Building software — any stack, any framework"
+      "when": "Building software — any stack, any framework. Carries the Contributor (expert-human) register; loading it swaps the Persona slot from Guide to Contributor unless the profile overrides."
     }
   ]
 }
