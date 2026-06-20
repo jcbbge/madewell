@@ -4,7 +4,10 @@
 called **Land** (verb: *land the change*). It fires at **Verify → Land**, because that is the
 only moment the full return is knowable.
 **Kernel home:** Madewell (ratified 2026-06-19). **Name:** Land (ratified 2026-06-19).
-**Status:** Design crystallized. Build = file-only core now; runtime lights later.
+**Status:** File-only core BUILT (2026-06-20) — the `land` skill (`.madewell/skills/land.md`),
+the TAX ledger (`.madewell/work/tax.jsonl` + schema), and the file-decidable walls
+(`.madewell/bin/land-check.sh`, warn-only). Runtime warning-lights and hook-enforced blocking
+(the Rumen pro upgrade) come later.
 
 ---
 

@@ -80,6 +80,12 @@
       "file": "system/skills/orchestrate.md",
       "mode": "workflow",
       "when": "Parallel execution. 'Fan this out', 'create a workflow'. Delegates to sub-agents."
+    },
+    {
+      "name": "land",
+      "file": "system/skills/land.md",
+      "mode": "workflow",
+      "when": "At every Verify→Land — the moment a unit of work is done. The outlet: ship the brick, drain the queue, reflect the nutrient (LEARNED/PROPAGATED/TAX), record tax to work/tax.jsonl, check the file-decidable walls. Per-unit, not per-session. The system's catabolism."
     }
   ],
 

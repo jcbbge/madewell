@@ -237,7 +237,9 @@ intake is how Make drowns. Say no here so nothing floods later.
 **LAND** — The outlet (the unit's return value, emitted at Verify→Land — *not* a fifth
 phase; it's what the four phases hand back). Both faces must fire or the unit leaks:
 - **Ship** (outward) — the brick that shipped: the merged DELTA, the brief deleted, the queue drained, STATE.json advanced. The work leaves the system.
-- **Reflect** (inward) — the nutrient it returned: what building it revealed (LEARNED), the propagation reconciled or owed (PROPAGATED), the correction-cost (TAX → `.madewell/work/tax.jsonl`). This feeds back — single-loop to Discovery (what to build next), double-loop to the process itself (how to build better). Full record: `LAND-SPEC.md`.
+- **Reflect** (inward) — the nutrient it returned: what building it revealed (LEARNED), the propagation reconciled or owed (PROPAGATED), the correction-cost (TAX → `.madewell/work/tax.jsonl`). This feeds back — single-loop to Discovery (what to build next), double-loop to the process itself (how to build better).
+
+Run the **`land` skill** (`.madewell/skills/land.md`) at each Verify→Land: it ships, reflects, records TAX, and checks the file-decidable walls (`.madewell/bin/land-check.sh` — a warning gauge, not a halt). Design rationale: `LAND-SPEC.md`.
 
 Before moving on, ask: if someone encountered this right now, would it feel finished?
 
