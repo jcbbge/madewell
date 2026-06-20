@@ -1,1 +1,2 @@
 {"ts":"2026-06-20T00:00:00Z","unit":"land-file-decidable-core","kind":"feat","proposed":8,"accepted":6,"tax":2,"note":"Verify drove one correction: W2 wall must honor an explicit state:n/a marker, not only a file change."}
+{"ts":"2026-06-20T01:00:00Z","unit":"persona-extraction","kind":"feat","proposed":7,"accepted":4,"tax":3,"note":"Mid-flight correction: the extracted Guide pack was stale to the four-leg lattice; refreshed it to Discovery->Commit->Cycle->Land plus the Reflect face of Land."}

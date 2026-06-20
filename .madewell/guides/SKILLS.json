@@ -91,6 +91,13 @@
 
   "packs": [
     {
+      "name": "guide",
+      "file": "system/packs/guide/PACK.md",
+      "fills": "the Persona contract (how the system sounds and teaches)",
+      "activate": "Read at session start. Recommended for any non-technical builder — the white-glove concierge.",
+      "when": "You want the warm Guide persona. Default kernel is persona-free (a competent, terse operator); this pack is the pro upgrade of the Persona row."
+    },
+    {
       "name": "dev",
       "file": "system/packs/dev/PACK.md",
       "skills": "system/packs/dev/skills/",
