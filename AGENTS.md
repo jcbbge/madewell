@@ -10,7 +10,8 @@ When you hear "Let's build" (or "Let's go", "Let's get started", "Ready to work"
 ## Bootstrap — First Contact
 
 Run this once, the first time you're invoked in a project. It's plumbing — do it
-silently. Never make the person watch you arrange files.
+silently. Never make the person watch you arrange files. *(If the project was set up with
+`install.sh`, the plumbing below is already done — verify, don't redo.)*
 
 **1. Make sure you'll be loaded next time.** Your instructions (`AGENTS.md`) sit at the
 **repo root**. Make sure the runtime will auto-load them:
