@@ -30,6 +30,11 @@ Arc, concretely: a dev-pack + Rumen project that runs two profiles — **lead** 
 **contributor** (JW). "The contributor module is the upgraded Made Well" = the contributor
 profile over the same kernel.
 
+> **Reference instance:** Arc's `.collab/` is a *verified conformant* contributor-profile
+> instantiation (handshake docked 2026-06-20; vendor-with-provenance). It is the worked proof
+> that this contract is real — the framework names the seam; `.collab/` is the instance. See
+> DECISIONS.md 2026-06-20.
+
 ---
 
 ## How the active profile is resolved (session start)
