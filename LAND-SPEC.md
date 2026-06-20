@@ -2,7 +2,7 @@
 
 **What:** The output stage of one unit of work — the function's return value. The stage is
 called **Land** (verb: *land the change*). It fires at **Verify → Land**, because that is the
-only moment the full return is knowable. Guide-skin name: *aftercare*.
+only moment the full return is knowable.
 **Kernel home:** Madewell (ratified 2026-06-19). **Name:** Land (ratified 2026-06-19).
 **Status:** Design crystallized. Build = file-only core now; runtime lights later.
 
@@ -47,7 +47,7 @@ Each piece feeds a **different organ.** This is why it's structurally four, not 
 | **DELTA** | the brick that shipped (the merged diff) | the system | ✅ (git) |
 | **LEARNED** | the one thing building this revealed that wasn't written down | work-knowledge → memory / ADR · factory-knowledge → metabolism | ⚠️ self-reported |
 | **PROPAGATED** | existing surfaces reconciled to the new reality | docs/changelog/comments · state/queue · source STG→PROMOTED · lexicon | ✅ (file invariants) |
-| **TAX** | the acceptance differential: proposed (first pass) − accepted (what passed Verify) | Rumen's metabolism (the R3 sensor) | ✅ (git: first-pass vs landed) |
+| **TAX** | the acceptance differential: proposed (first pass) − accepted (what passed Verify) | Made Well's own tax stream (`.madewell/work/tax.jsonl`); Rumen grazes it as **cud** *if installed* | ✅ (git: first-pass vs landed) |
 
 ### LEARNED — two routes, one field
 - **About the work** → memory shard / ADR precipitate / lexicon entry. (Mirror of Discovery's required "One Thing": input distills what was *said*; Land distills what *doing it* taught.)
@@ -57,7 +57,7 @@ Each piece feeds a **different organ.** This is why it's structurally four, not 
 - A **number** the metabolism does arithmetic on (`Σ tax of recurrence > cost to build + maintain fence`). Do **not** fold warning events into it (see §3).
 - Captured at land because proposed−accepted only *exists* at land.
 - In a dark run, "accepted" = what passed Verify; all corrections are mechanical diffs (no verbal noise) — autonomy makes this sensor **cleaner**, not noisier.
-- Building this field **is** executing Rumen's logged risk **R3** ("prototype the tax sensor on real git history"). One build, two payoffs: Arc's valve + Rumen's starved metabolism.
+- **Land owns the measurement; Rumen only pulls it.** Land computes and writes the scalar to Made Well's own `.madewell/work/tax.jsonl` (sibling of `status.jsonl`). Rumen, *if installed*, grazes that stream as **cud** — Made Well never imports Rumen, never writes to `.rumen/`, and Land does not break when Rumen is absent (host↔organ; see `DECISIONS.md` 2026-06-20). Writing this field still discharges Rumen's logged risk **R3** ("prototype the tax sensor on real git history") — but as a *pulled contract, not a push*. One build, two payoffs: Made Well's valve + Rumen's starved metabolism.
 
 ---
 
@@ -71,7 +71,9 @@ Each piece feeds a **different organ.** This is why it's structurally four, not 
 | Halting? | no | **no** — a warning light, never a shutdown |
 
 **Causal, not additive.** Warnings *predict and explain* tax. When the gauge jumps, the panel
-says why. Both live on one dashboard (`.rumen/lab/dashboard.html`); never summed.
+says why. Both surface on one dashboard (Rumen-pro: `.rumen/lab/dashboard.html`); never summed.
+The *detection* — the Land walls firing pass/fail — is Made Well's own and works with no
+Rumen present; the dashboard is the pro **visualization** of that signal, not its mechanism.
 
 - **NOW (file-decidable → Land walls):** return record missing/incomplete · `STATE.json` didn't advance · docs didn't move when code did · source `STG-###` not PROMOTED · self-reported per-phase confidence read.
 - **LATER (runtime → needs the agent harness):** measured question count, tool-call thrash, mid-run confusion. The dashboard is identical; the harness only adds lamps.
@@ -103,7 +105,8 @@ PROPAGATED:  [ ] docs/changelog/comments match reality
              [ ] lexicon reconciled           (or n/a)
              each item is: [x] done · n/a · OWED→queued as <task>   (deferred propagation
              is debt, tracked as a queue item — it does not block the land)
-TAX:         proposed − accepted = <diff size / correction cost>   → .rumen/ledger.jsonl
+TAX:         proposed − accepted = <diff size / correction cost>   → .madewell/work/tax.jsonl
+             (Rumen grazes this as cud if installed; Made Well never writes to .rumen/)
              (warnings, if any: <which lights fired> → dashboard)
 ```
 

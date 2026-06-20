@@ -8,15 +8,21 @@ distribution model = **one kernel + additive cartridges** (no "Light" fork; a pr
 cartridges are loaded). Madewell is **batteries-included**: it ships a working, opinionated-but-
 generic version of *every* shape (memory, discovery, orchestration, design); a **pro pack** is an
 *upgrade* — the heavy/advanced implementation behind the *same contract* — never a missing
-feature, always a stronger version of a shape that already works. **Rumen stays a separate repo**
-(the engine / ring 1), shipped pre-loaded by default but remaining a separable cartridge; Madewell
-is the kernel/persona (ring 2). The open work between them is the **R15 engine↔kernel seam**.
+feature, always a stronger version of a shape that already works. **Rumen stays a separate repo** —
+and the relationship is **host↔organ, not a stack** (ratified 2026-06-20). Madewell is the **host**
+(the work loop, persistence, the Guide persona); Rumen is the **quality organ** it ships pre-installed
+and can run without. Rumen is the **pro-pack implementation of Madewell's quality shape** — the
+Enforcer skill is the batteries-included default behind the *same contract*. They meet at exactly two
+touchpoints — **Verify** (standards-check) and **Land** (tax emission, grazed as *cud*) — and the
+dependency is **one-way and optional**: Madewell → (optional) → Rumen across the contract only;
+Madewell never imports Rumen. This **resolves the former R15 engine↔kernel seam**: the seam is the
+quality contract, not a wrapping order.
 
 **The frame (Josh's function model):**
 
 ```
 INPUT ──────────►  KERNEL  ──────────►  OUTPUT
-(Discovery)      (process + quality,    (aftercare /
+(Discovery)      (process + quality,    (Land /
  the forage       parameterized by       the return value)
  → clay)          a striation PACK)
                        │
@@ -112,13 +118,13 @@ The four scoring axes when a tournament is contested: **durable · flexible · e
 
 | Component | Arc (lab) | Madewell | Winner / Flow | Notes |
 |---|---|---|---|---|
-| Guide persona (ring 2) | — (consumes naked) | `MADEWELL.md` + AGENTS Guide voice | M-only | the beginner skin |
-| Naked / advanced (ring 1) | Arc AGENTS (no Guide) | — | A-only | the developer profile |
-| Ring model / contract | — | `~/rumen/PACK-CONTRACT.md §5` | shared | the spec that says skins must separate |
+| Guide persona (hosted skin) | — (runs naked) | `MADEWELL.md` + AGENTS Guide voice | M-only | the beginner skin |
+| Naked / advanced (no skin) | Arc AGENTS (no Guide) | — | A-only | the developer profile |
+| Host↔organ model / contract | — | `~/rumen/PACK-CONTRACT.md §5` | shared | the spec that says host and organ stay separable |
 
 ---
 
-## STAGE 4 — OUTPUT · Aftercare (the function's return value)
+## STAGE 4 — OUTPUT · Land (the function's return value)
 
 > **The biggest finding: this entire stage is blank on both sides.** Josh named it independently.
 > It is the *return* of the function, not a 5th phase. It is also where the quality kernel
@@ -127,11 +133,11 @@ The four scoring axes when a tournament is contested: **durable · flexible · e
 
 | Component | Arc (lab) | Madewell | Winner / Flow | Notes |
 |---|---|---|---|---|
-| Doc propagation (README / changelog / code comments) | — | — | **GAP** | the core of aftercare |
+| Doc propagation (README / changelog / code comments) | — | — | **GAP** | the core of Land |
 | PROMOTED marking (drain the staging lake) | manual | manual | **GAP** | closes Discovery→done loop |
 | Lexicon update on accept | partial (`mine-flora` rerun) | — | →K(A) partial | Rumen's natural hook |
 | Cleanup / graveyard | AGENTS "Graveyard" + Retention rules | — | →K(A) partial | purge deprecated on sight |
-| Session handoff | commit TODO line + flight recorder | `session-end.md` | tie | partial aftercare already exists |
+| Session handoff | commit TODO line + flight recorder | `session-end.md` | tie | partial Land already exists |
 
 ---
 
@@ -142,7 +148,7 @@ The four scoring axes when a tournament is contested: **durable · flexible · e
 - **Input (Discovery):** **split** — Madewell's routing skeleton + Arc's lens depth as a pack.
 - **Packs:** **split** — MW's pillar structure + Arc's real CI/CD, design source (impeccable), and domain skills.
 - **Skins:** **disjoint by design** — the proof the rings separate (same kernel, two skins).
-- **Output (Aftercare):** **net-new on both** — the one stage to design from scratch.
+- **Output (Land):** **net-new on both** — the one stage to design from scratch.
 
 ## Pro packs — Arc's opinionated cartridges (pluggable, never forced on the base)
 
@@ -160,10 +166,14 @@ this doc is *Arc's own* choice, never a Madewell default.
 | `tower-orchestration` | simple delegation (`skills/orchestrate.md`) | Tower fleet bus (send/ask/board, verbatim guard) | spawn brief + relay |
 | `impeccable-design` | base doctrine — what to look for | full impeccable DOCTRINE + motion/color/typography | the frontend pillar pack |
 
-**Rumen is not in this table** — it's not an upgrade-pack, it's the **engine** (separate repo,
-ring 1), shipped pre-loaded by default. There is no "lite Rumen"; the cartridge that's always
-pre-inserted. The base/upgrade split applies to the *shapes Madewell owns*; Rumen sits underneath
-them all.
+**Rumen is not in this table** — the upgrade-packs above are *content* (a richer diet for a shape
+Madewell owns); Rumen is the **engine/organ** itself (separate repo), shipped pre-loaded by default.
+There is no "lite Rumen"; it's the cartridge that's always pre-inserted. It is the **pro
+implementation of the quality shape** — Madewell's built-in **Enforcer** is the batteries-included
+default behind the *same* quality contract, and Rumen is the heavy upgrade behind it (fed, in turn,
+by striation packs — frontend/backend/api/cicd — which *are* content cartridges). **Host↔organ:**
+Rumen is not a layer Madewell sits on, nor one that sits under Madewell — it is the quality organ
+Madewell hosts (ratified 2026-06-20).
 
 **Not pro packs — project content (stays in Arc, never enters the kernel):** the domain skills
 (`solid-*`, `tiptap`, `hubspot`, `icon-author`), the HubSpot/Galley/Stripe integrations, the
