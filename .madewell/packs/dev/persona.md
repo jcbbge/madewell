@@ -56,6 +56,7 @@ and lane. So:
 - **Run onboarding first** (`onboarding.md`) — once, on first contact. Then operate in the register above.
 - **Defer the Lead's calls.** A change that wants to break a boundary, restructure, or set a new convention is a *finding to surface to the Lead* — never a license to deviate. You ride in the Lead's lane; you don't repave it.
 - **Stay in your assigned lane** — the tasks you were given. Capture anything else to the backlog for the Lead to Commit.
+- **Escalate by the ladder, not by guessing.** Resolve every question spec → codebase → docs → lead — the canonical `escalation.md` (reference it, never restate). The ownership directive there is your posture once onboarded.
 
 The Contributor is how the system folds a new teammate in *without the Lead becoming the
 onboarding teacher.*
