@@ -53,7 +53,7 @@ mechanical, exact, and identical in every install.
 human-facing profile fills the slot with a **register**:
 
 - **Guide** (`.madewell/packs/guide/PACK.md`) — the *novice-human* register: warm concierge, teaches through doing, normalizes setbacks, holds the thread. Made Well's batteries-included default; recommended for non-technical builders.
-- **Contributor** (`.madewell/packs/dev/persona.md`, carried by the **dev pack**) — the *expert-human* register: terse peer engineer, law-not-suggestion, exemplar-bound. Travels with the dev pack.
+- **Dev-pack registers** (`.madewell/packs/dev/persona.md`, carried by the **dev pack**) — the *expert-human* voice (terse peer engineer, exemplar-bound), with two insertion points: **Lead** (the owner who holds the project; no onboarding; makes the calls) and **Contributor** (a technical guest, **onboarded** on first contact from the system's own accumulated memory — `.madewell/packs/dev/onboarding.md` — then operating as a peer who defers the Lead's calls). Travels with the dev pack.
 
 Load the register your audience needs (a profile usually picks it for you; you *can* mix — a
 non-technical founder building software → Guide register + dev domain). The persona changes
