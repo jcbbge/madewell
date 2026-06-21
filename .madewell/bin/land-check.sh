@@ -1,7 +1,7 @@
 #!/bin/sh
 # Made Well — Land walls (the file-decidable gauge).
 #
-# A WARNING gauge, never a halt (LAND-SPEC §3). Reads the HEAD commit (the Land record)
+# A WARNING gauge, never a halt. Reads the HEAD commit (the Land record)
 # + STATE.json + the tax ledger and reports which walls fired. Exit is ALWAYS 0: the walls
 # warn; turning them into a blocking fence (a pre-commit hook) is the quality organ's job
 # (Rumen) — the pro upgrade behind this same contract.

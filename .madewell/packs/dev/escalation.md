@@ -1,9 +1,7 @@
 # Dev Pack — Escalation Ladder & Ownership Directive
 **Status:** canonical, framework-owned. **Referenced, never paraphrased**, by
 `packs/dev/persona.md`, `packs/dev/onboarding.md`, and any project's contributor wiring
-(e.g. Arc's `CONTRIBUTOR.md` + `.collab/`).
-**Provenance:** adopted verbatim from the Arc contributor module (handshake, 2026-06-20) —
-battle-tested in a real contributor incident, then generalized.
+(e.g. a `CONTRIBUTOR.md` or a contributor cartridge).
 
 A behavioral **fence** for the Contributor (and the Lead): the fixed order for resolving any
 question or conflict. It is the anti-adversarial core. It must read **byte-identical** wherever

@@ -34,11 +34,16 @@ if [ "$MODE" = "uninstall" ]; then
 fi
 
 [ "$SRC" = "$DEST" ] && { echo "install: source and target are the same directory" >&2; exit 1; }
-echo "Installing Made Well → $DEST"
+
+# Detect an existing install (for the update-vs-install message + memory preservation).
+prev=""
+[ -f "$DEST/.madewell/VERSION" ] && prev=$(head -1 "$DEST/.madewell/VERSION" | awk '{print $2}')
+[ -n "$prev" ] && echo "Updating Made Well in $DEST (re-syncing framework; your memory is preserved)" \
+               || echo "Installing Made Well → $DEST"
 
 # 1. Framework files (allowlist) — ALWAYS overwritten; this is the re-sync / update path.
 mkdir -p "$DEST/.madewell"
-cp "$SRC/AGENTS.md"   "$DEST/.madewell/AGENTS.md"   # canonical instructions; never at root → never clobbers
+cp "$SRC/.madewell/AGENTS.md" "$DEST/.madewell/AGENTS.md"   # canonical instructions; never at root → never clobbers
 cp "$SRC/MADEWELL.md" "$DEST/MADEWELL.md"
 for d in guides skills packs templates bin; do
   rm -rf "$DEST/.madewell/$d"
@@ -81,6 +86,13 @@ ver=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo unversioned)
 when=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
 printf 'madewell %s\ninstalled %s\n' "$ver" "$when" > "$DEST/.madewell/VERSION"
 
-echo "Done. Made Well @ $ver."
-echo "Next: point your agent at this repo and say  ->  Let's build."
-echo "You start here: ./MADEWELL.md   ·   Remove anytime: sh <madewell>/install.sh --uninstall ."
+if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
+  echo "Done. Updated $prev -> $ver. Framework re-synced; STATE/DECISIONS/PRODUCT/tax preserved."
+  echo "Tell your agent: Made Well was updated — re-read .madewell/AGENTS.md, then continue."
+elif [ -n "$prev" ]; then
+  echo "Done. Already at $ver — framework re-synced; nothing else changed."
+else
+  echo "Done. Made Well @ $ver."
+  echo "Next: point your agent at this repo and say  ->  Let's build."
+  echo "You start here: ./MADEWELL.md   ·   Remove anytime: sh <madewell>/install.sh --uninstall ."
+fi

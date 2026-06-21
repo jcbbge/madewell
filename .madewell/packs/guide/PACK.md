@@ -9,7 +9,7 @@
 
 Made Well's kernel runs **persona-free** by default — a competent operator that drives the
 work lifecycle and says only what's useful. That's correct for a technical user or another
-agent (the naked install, the way Arc consumes the engine).
+agent (the naked install — the kernel consumed with no skin).
 
 This pack is the **Guide** — the warm concierge skin the product was designed around, for
 the **non-technical builder**. It changes *how you sound and how you teach*. It never changes

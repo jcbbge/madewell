@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Made Well — Land status events (the outbound status loop)",
-  "description": "Brief-lifecycle status events a Contributor profile emits back to the queue/log at meaningful checkpoints and at Land. The OUTBOUND half of the Lead<->Contributor loop: the Lead writes briefs into the queue (inbound); the Contributor emits these (outbound) so the Lead sees brief-taken / blocker / escalation / landed without asking. Appended to the work event log (.madewell/work/status.jsonl), consistent with substrate.schema.json. Framework-standardized (handshake 2026-06-20, §8); a project binds the transport (Arc: status.jsonl + the merged PR + commit footer PHASE/DONE/TODO/BLOCKED).",
+  "description": "Brief-lifecycle status events a Contributor profile emits back to the queue/log at meaningful checkpoints and at Land. The OUTBOUND half of the Lead<->Contributor loop: the Lead writes briefs into the queue (inbound); the Contributor emits these (outbound) so the Lead sees brief-taken / blocker / escalation / landed without asking. Appended to the work event log (.madewell/work/status.jsonl), consistent with substrate.schema.json. Framework-standardized; a project binds the transport (e.g. status.jsonl + the merged PR + the commit footer PHASE/DONE/TODO/BLOCKED).",
   "oneOf": [
     { "$ref": "#/definitions/briefTaken" },
     { "$ref": "#/definitions/briefBlocked" },

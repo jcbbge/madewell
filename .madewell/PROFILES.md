@@ -26,14 +26,10 @@ Manifest: `.madewell/profiles.json`. The contract rows it binds: **persona · do
 **persona** and **onboarding** — the two things the insertion-point axis controls. That is the
 whole Lead-vs-Contributor distinction, made selectable.
 
-Arc, concretely: a dev-pack + Rumen project that runs two profiles — **lead** (you) and
-**contributor** (JW). "The contributor module is the upgraded Made Well" = the contributor
-profile over the same kernel.
-
-> **Reference instance:** Arc's `.collab/` is a *verified conformant* contributor-profile
-> instantiation (handshake docked 2026-06-20; vendor-with-provenance). It is the worked proof
-> that this contract is real — the framework names the seam; `.collab/` is the instance. See
-> DECISIONS.md 2026-06-20.
+Concretely: a software project with the dev pack (and a quality organ) runs two profiles —
+**lead** (the maintainer) and **contributor** (a guest). They share the base loadout and differ
+only in persona + onboarding. The contributor profile is the same kernel with the guest's
+register and onboarding bound on top.
 
 ---
 

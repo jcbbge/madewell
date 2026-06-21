@@ -5,14 +5,15 @@
 Land is how a finished brick *leaves the system clean*: it ships, it drains the queue, and
 it feeds back what building it taught. A unit with no Land does not crash — it **leaks**:
 state accrues, the queue never empties, the lesson evaporates, the staging lake never
-drains. Land is the valve. It is the system's **catabolism** (see DECISIONS 2026-06-20) —
-not bookkeeping, but the controlled breakdown that frees capacity and returns nutrient.
+drains. Land is the valve. It is the system's **catabolism** — not bookkeeping, but the
+controlled breakdown that frees capacity and returns nutrient.
 
 **Granularity:** per *unit of work* (per brick), not per session. `session-end` runs once
 at session close; **Land runs once per completed unit** — there may be several Lands in one
 session, and `session-end` confirms every completed unit actually Landed.
 
-Full design rationale: `LAND-SPEC.md`.
+Land is the system's catabolism — the controlled breakdown that frees capacity and returns
+nutrient (see `DECISIONS.md` when present, and the four-leg lifecycle in `AGENTS.md`).
 
 ---
 
@@ -85,7 +86,7 @@ Run the file-decidable Land walls:
 sh .madewell/bin/land-check.sh
 ```
 
-Each wall that fires is a **check-engine light, never a shutdown** (LAND-SPEC §3). It tells
+Each wall that fires is a **check-engine light, never a shutdown**. It tells
 you the outlet didn't fully open: record incomplete · STATE didn't advance · docs didn't
 move when code did · no TAX recorded · a discovery source left un-PROMOTED. Either open it,
 or make the gap an explicit `n/a`/`OWED`. The walls **warn** here; wiring them to *block*

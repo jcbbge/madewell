@@ -1,9 +1,7 @@
 # Dev Pack — Canonical Software Brief
 **Status:** canonical, framework-owned. The dev-pack instantiation of the kernel **Brief Format**
-(`AGENTS.md`) for software work. A project's brief template (e.g. Arc's
-`docs/contracts-tasks/_TEMPLATE.md`) is an **instance** of this — same schema, project bindings.
-**Provenance:** reconciled from the kernel Brief Format + the dev-pack additions (Edge Cases /
-Craft Check) + the Arc contributor `_TEMPLATE.md` (handshake, 2026-06-20).
+(`AGENTS.md`) for software work. A project's brief template (e.g. `docs/<queue>/_TEMPLATE.md`) is
+an **instance** of this — same schema, project bindings.
 
 A brief is the deliverable of **Commit → Make**: a complete, self-contained spec an executor
 (a human + their agent, as one unit) can drive to a merged PR **without asking a single

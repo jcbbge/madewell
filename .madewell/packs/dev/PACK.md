@@ -169,10 +169,10 @@ The person doesn't need to invoke them.
 
 ## Brief Additions for Software
 
-The canonical software brief — the kernel Brief Format hardened for code, reconciled with the Arc
-contributor template — is **`brief-template.md`** (one clean PR, pre-verified facts, four-lane
-acceptance, no mocks, the shared "what is a task" rule, the draft→Commit gate). Use it. The two
-additions below are *why* it carries §3 (edge cases) and §8 (the ux lane):
+The canonical software brief — the kernel Brief Format hardened for code — is
+**`brief-template.md`** (one clean PR, pre-verified facts, four-lane acceptance, no mocks, the
+shared "what is a task" rule, the draft→Commit gate). Use it. The two additions below are *why*
+it carries §3 (edge cases) and §8 (the ux lane):
 
 **Edge Cases**
 What happens with empty input? What if the network fails?
