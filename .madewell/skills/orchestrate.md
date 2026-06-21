@@ -3,10 +3,10 @@
 **Parallel execution mode. Delegate work to sub-agents.**
 
 > **Scope:** inner-loop orchestration — a fan-out pattern per phase (`LIFECYCLE.md` →
-> "Orchestration — the recursive coordination layer"). Built: **Imagine**, **Plan** (below) and
-> **Make + Verify** (Steps 1–6 — fan planned work to parallel implementers + the 5-role
-> verification jump pack) — the full inner loop. WIP: the **outer-loop fleet**. The spawn
-> mechanism is Made Well's **baseline default**; a host harness may substitute its own,
+> "Orchestration — the recursive coordination layer"). Covers **both loops**: the **outer-loop
+> fleet** of Cycles and the full **inner loop** — Imagine, Plan, Make + Verify (Steps 1–6, the
+> 5-role verification jump pack). Baseline designs for all cells; the mechanisms deepen with use.
+> The spawn mechanism is Made Well's **baseline default**; a host harness may substitute its own,
 > preserving the invariants (isolation, cooperative pause).
 
 ---
@@ -39,6 +39,18 @@ When work can be parallelized:
 - Batch refactoring across modules
 - Codebase-wide audits, migrations, or searches
 - Any scope where sub-agents can work in isolation
+
+---
+
+## Outer loop — fleet of Cycles *(outer-loop orchestration)*
+
+When Commit green-lights more than one Discovery item at once, run them as a **fleet** of concurrent Cycles. Each committed item mints its own cycle store and runs its own inner loop independently. The outer orchestration coordinates the fleet:
+
+1. **Partition** — give each Cycle a non-overlapping scope (file claims / module boundaries) so they don't collide.
+2. **Board** — a shared place where Cycles post claims and findings, so a discovery in one informs the others *before* they collide.
+3. **Reconcile at Land** — each Cycle Lands on its own; the outer loop merges their results back into the project and resolves any overlap.
+
+Default to **one Cycle at a time** — the fleet is for genuinely independent, parallel work, and the Lead green-lights the width. Cooperative: the fleet's state surfaces to the person between iterations. Isolation holds per Cycle; the outer orchestrator coordinates, never executes.
 
 ---
 

@@ -157,10 +157,11 @@ distribute execution (build) → synthesize / merge (release).
 - **Cooperative pause** — every loop yields to the human between iterations; the recursion never runs away autonomously.
 
 **Built vs. WIP:**
-- ✅ Inner-loop fan-out — **Imagine**, **Plan**, **Make + Verify** (the 5-role jump pack) — `skills/orchestrate.md`. The full inner loop.
-- ⬜ Outer-loop / fleet orchestration (concurrent Cycles, collision avoidance, board, Land reconciliation).
+- ✅ Inner-loop fan-out — **Imagine**, **Plan**, **Make + Verify** (the 5-role jump pack).
+- ✅ Outer-loop / fleet — concurrent Cycles, partition, board, Land reconciliation.
 
-(Recursion is not a cell to build — it's just the loop repeating until its queue empties.)
+All cells have a baseline design in `skills/orchestrate.md`; the mechanisms deepen with use.
+(Recursion is not a cell — it's just the loop repeating until its queue empties.)
 
 ---
 
