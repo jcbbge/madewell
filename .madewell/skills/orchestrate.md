@@ -44,13 +44,31 @@ When work can be parallelized:
 
 ## Outer loop — fleet of Cycles *(outer-loop orchestration)*
 
-When Commit green-lights more than one Discovery item at once, run them as a **fleet** of concurrent Cycles. Each committed item mints its own cycle store and runs its own inner loop independently. The outer orchestration coordinates the fleet:
+When Commit green-lights more than one Discovery item at once, run them as a **fleet** of concurrent
+Cycles. Each committed item mints its own cycle store and runs its own inner loop independently.
+**Default to one Cycle at a time**; any width beyond one is the Lead's explicit call. The outer
+orchestrator coordinates the fleet and **never executes** — it partitions, watches the board, and
+reconciles. Run it as a protocol:
 
-1. **Partition** — give each Cycle a non-overlapping scope (file claims / module boundaries) so they don't collide.
-2. **Board** — a shared place where Cycles post claims and findings, so a discovery in one informs the others *before* they collide.
-3. **Reconcile at Land** — each Cycle Lands on its own; the outer loop merges their results back into the project and resolves any overlap.
+1. **Partition before dispatch.** You MUST assign each Cycle an explicit file/module claim, and you
+   MUST NOT dispatch two Cycles whose claims overlap. If two committed items cannot be partitioned
+   cleanly, they are not parallel — run them in sequence. State each claim in the cycle's brief.
+2. **Claim on the board.** The shared board is `.madewell/work/board.jsonl` (append-only). Before a
+   Cycle touches any file it MUST append a claim — `{"ts","cycle","claims":[paths],"kind":"claim"}` —
+   and MUST read the board first. A Cycle that finds its target already claimed MUST stop and surface
+   the conflict to the Lead; it MUST NOT proceed into contested files.
+3. **Share findings as they happen.** A discovery in one Cycle that changes another's plan MUST be
+   posted to the board immediately (`"kind":"finding"`), not held to the end. Cycles MUST read the
+   board between phases.
+4. **Reconcile at Land.** Each Cycle Lands on its own. The outer orchestrator MUST merge results in
+   claim order. If two Cycles touched the same file (the partition should make this impossible),
+   treat it as a defect: re-run Verify on that file before merging.
+5. **Pause for the Lead.** Between iterations the fleet's state surfaces to the Lead, who steers
+   width and priority. The fleet never widens itself.
 
-Default to **one Cycle at a time** — the fleet is for genuinely independent, parallel work, and the Lead green-lights the width. Cooperative: the fleet's state surfaces to the person between iterations. Isolation holds per Cycle; the outer orchestrator coordinates, never executes.
+Isolation holds per Cycle — each carries its own planner/implementer/verifier separation. The board
+schema and partition heuristics will tighten with real runs; the rules above are the floor, not the
+ceiling.
 
 ---
 
