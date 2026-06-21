@@ -2,6 +2,13 @@
 
 **Parallel execution mode. Delegate work to sub-agents.**
 
+> **Scope:** this skill is **one cell** of the orchestration map (`LIFECYCLE.md` →
+> "Orchestration — the recursive coordination layer"): the **Make phase** of the inner loop —
+> fanning planned work out to parallel implementers + the 5-role verification jump pack. It is
+> the one built cell; outer-loop/fleet orchestration, the other inner phases, and the recursion
+> contract are still WIP. The spawn mechanism below is Made Well's **baseline default**; a host
+> harness may substitute its own, preserving the invariants (isolation, cooperative pause).
+
 ---
 
 ## Provider-Agnostic Parallel Execution

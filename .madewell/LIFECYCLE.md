@@ -118,11 +118,55 @@ never represent that. The two-store rule **is** the fractal, expressed in the fi
 
 ---
 
+## Orchestration — the recursive coordination layer
+
+Orchestration is how the loops **coordinate distributed work**. Because the lifecycle is
+fractal, orchestration is fractal too: the *same* coordination beat recurs at every loop, and
+any node can recurse into a child loop. It is **not** a single layer bolted onto one phase — it
+is a pattern that lives wherever work can be split.
+
+> **This is the north-star, not a finished spec.** One cell is built (Make-phase fan-out); the
+> rest are work in progress. The map exists so no piece reads as "all there is."
+
+**Two coordinated layers, one pattern:**
+
+- **Outer-loop orchestration — a fleet of Cycles.** Commit can dispatch many Discovery items at
+  once; N Cycles run concurrently. Orchestration here partitions them so they don't collide
+  (scope / file claims), lets them share findings (a board), and reconciles their Lands back
+  into the project.
+
+- **Inner-loop orchestration — within one Cycle, every phase, not just Make.** Each phase has
+  its own fan-out shape:
+  - **Imagine** → parallel *understanding* (explore/research workers map the problem) → collect → shape the Imagine queue
+  - **Plan** → parallel *options* (a panel of approaches, scored) → synthesize the plan
+  - **Make** → parallel *execution* (implementers, partitioned, no collisions) — *the built cell*
+  - **Verify** → parallel *adversarial verification* (independent verifiers / failure triage)
+
+**Recursion.** Any single item — an Imagine item, a Make package — too big to do atomically
+**spawns its own Cycle**: it mints a child `cycles/<id>.json`, runs the same inner loop,
+orchestrated the same way. The result is a *tree of Cycles*. Leaves do atomic work; the tree
+**collapses upward through Land** — children Land into the parent's Verify.
+
+Even a single orchestration step is the four-beat: fan out (take-in) → collect (converge) →
+distribute execution (build) → synthesize / merge (release).
+
+**Invariants — true at every node, every scale (these never flex):**
+- **Isolation Mandate** — planner ≠ executor, builder ≠ verifier.
+- **Cooperative pause** — every loop yields to the human between iterations; the recursion never runs away autonomously.
+
+**Built vs. WIP:**
+- ✅ Make-phase fan-out + the 5-role verification jump pack — `skills/orchestrate.md`.
+- ⬜ Imagine / Plan / Verify inner-loop fan-out.
+- ⬜ Outer-loop / fleet orchestration (concurrent Cycles, collision avoidance, board, Land reconciliation).
+- ⬜ The recursion contract (spawn a child Cycle; collapse it back through Land).
+
+---
+
 ## What this file does not cover
 
-- **Orchestration mechanics** (how Cycles are dispatched to agents, the verification roles) —
-  the baseline default is Made Well's own; a host harness may override it. See AGENTS.md and
-  `skills/orchestrate.md`.
+- **Orchestration *mechanics*** — the per-cell spawn/dispatch protocols. The *model* is above;
+  the one built cell (Make) lives in `skills/orchestrate.md`. The baseline is Made Well's own; a
+  host harness may substitute the spawn mechanism, preserving the invariants.
 - **Persona / domain / quality / memory / onboarding** — selected per profile. See `PROFILES.md`.
 - **Skill layering** (foundational meta-flow vs. pack/striation skills) — see `guides/SKILLS.json`.
 
