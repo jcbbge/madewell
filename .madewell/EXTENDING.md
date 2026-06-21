@@ -1,0 +1,130 @@
+# Extending Made Well — the Maintenance Manual
+
+This is the agent-facing manual for **modifying Made Well itself**. AGENTS.md tells you how to
+*operate* the factory; this tells you how to *maintain and extend* it. Read it before changing
+the system — when the person says "I need Made Well to do X," "update my dev pack," "add a
+striation," or "this keeps breaking, fix the process."
+
+## The mental model — a base player with cartridges
+
+Made Well is a **base console**. It does not know about your industry, your team, or your stack.
+Everything domain-specific plugs in as a **cartridge**:
+
+- an **industry** → a *domain pack* (`packs/dev`, a future `packs/sales`, …)
+- a **voice** → a *persona register* (Lead, Contributor, Guide — carried by packs)
+- a **specialization within an industry** → a *striation* (dev → frontend / api / backend / ci-cd)
+- a **specific capability** → a *skill* (e.g. "working with Neon Postgres" on the database striation)
+
+The console's circuitry never changes; cartridges are how it learns a domain. Your job is to know
+which is which — and to have the confidence to work across the whole machine.
+
+**The mindset is maintenance.** Most of the time this is routine — a checkup, an oil change, a tyre
+rotation (fix a stale path, sharpen a skill's trigger). Sometimes it's a bigger job — a new
+striation, a schema migration. Occasionally it's a tow package — a whole new domain pack. Same
+manual covers all three: know the layout, know the bounds, know why each piece is shaped the way it
+is, then turn the right bolt.
+
+---
+
+## The system map
+
+Know the layout before you touch anything. Each layer, what it's for, where it lives, and whether
+it's **law** (the console's fixed circuitry — never overwrite) or a **cartridge slot** (composable).
+
+| Layer | What it is / its purpose | Where | Law or slot |
+|---|---|---|---|
+| **The function** | The Orchestrator: think, plan, decompose, dispatch, verify, land. Never does the work. | `AGENTS.md` | **Law** |
+| **The lifecycle** | Two loops (outer stages / inner phases), the four-beat, the cooperative pause, the two-store rule, orchestration model. | `LIFECYCLE.md` | **Law** |
+| **Contracts** | The named seams a profile fills: persona · domain · quality · memory · onboarding. | `profiles.json` | Law (the *set*); slot (the *fills*) |
+| **Profiles** | One selection that fills every contract row (lead / contributor / guide / naked). | `PROFILES.md`, `profiles.json` | Slot — add your own |
+| **Packs** (cartridges) | A domain bundle: persona register(s) + skills + striations. The dev pack; a future sales pack. | `packs/<name>/PACK.md` | Slot |
+| **Striations** | The hierarchy inside a pack (dev → frontend / api / backend / ci-cd). | `packs/<p>/pillars/`, declared in `SKILLS.json` | Slot |
+| **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs pack (loaded with a pack, may be striation-scoped). | `skills/`, `packs/<p>/skills/`; manifest `SKILLS.json` | Foundational = law-adjacent; pack = slot |
+| **State** | Two stores: outer `madewell.json` (stage + discovery queue), inner `cycles/<id>.json` (phase + imagine queue). | `madewell.json`, `cycles/`; schemas in `guides/schemas/` | Law (the *two-store shape*); the schemas evolve carefully |
+| **Orchestration** | The recursive coordination layer — outer fleet + inner per-phase fan-out. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
+| **Memory** | madewell.json (working) · git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity) · status.jsonl (events). | repo root of `.madewell/` | Slot — content is the project's |
+| **Install** | Unfolds the shell, re-syncs the framework (preserving memory), uninstalls cleanly. | `install.sh` | Mechanism |
+| **Human surface** | Front door + guides — how a person meets the system. | `MADEWELL.md`, `guides/` | Slot |
+
+---
+
+## The confines (immutable law)
+
+These are the console's fixed circuitry. A cartridge composes *around* them; it never overrides
+them. Change these only on the Lead's explicit call, with a concrete new reason (never reopen a
+closed decision casually).
+
+- **The two loops + four-beat** — outer stages (Discovery → Commit → Build → Land), inner phases (Imagine → Plan → Make → Verify). *Why: it's the engine; every piece assumes it.*
+- **The Isolation Mandate** — planner ≠ executor, builder ≠ verifier. *Why: without it the system collapses into self-justifying code-gen.*
+- **The cooperative pause** — every loop yields to the human between iterations; nothing runs autonomously. *Why: the person steers; Made Well is not an autopilot.*
+- **The Orchestrator function** — output is a question, a plan, a decision, or a brief — never the work itself. *Why: the separation is the whole architecture.*
+- **Land always fires** — work ships *and* reflects, or it leaks. *Why: a system that only takes in floods.*
+- **The two-store rule** — outer `madewell.json`, inner `cycles/`. *Why: cardinality, write-contention, and lifetime differ between the loops.*
+- **Persona is a slot** — the kernel is persona-free; registers fill the slot. *Why: the same function must serve a novice and a machine.*
+- **The Rubric** — does this lead to craft, beauty, and care? *Why: it's the point.*
+
+Everything not on this list is a cartridge slot.
+
+---
+
+## The cartridge slots — how to extend each
+
+Each slot has a pattern. Follow it; the kernel already depends only on the contracts, so a
+well-formed cartridge needs **no kernel change**.
+
+- **Add a pack (a new industry).** Create `packs/<name>/PACK.md`; carry its persona register(s) and any skills/striations; register it in `SKILLS.json` `packs[]`; add a profile in `profiles.json` + `PROFILES.md` if it gets its own loadout. (`PROFILES.md` → "Adding a profile".)
+- **Add a persona register.** A markdown register the pack carries; name it in the pack's `persona` field and the relevant profile.
+- **Add a striation.** A pillar file under `packs/<p>/pillars/`; declare it in that pack's `striations[]` in `SKILLS.json`.
+- **Add a skill.** A markdown file in `skills/` (foundational) or `packs/<p>/skills/` (pack); register it in `SKILLS.json` with `layer`, `mode`, `when` (+ `pack`/`striation` for pack skills); it must validate against `skills.schema.json`.
+- **Evolve a schema.** Edit `guides/schemas/*.schema.json`. Mind existing data — a field rename ripples to every `madewell.json`/cycle store in the wild; prefer additive changes, and sweep references.
+- **Deepen an orchestration cell.** Extend `skills/orchestrate.md` — preserving the invariants (isolation, cooperative pause).
+
+---
+
+## Edit vs. plug-in — the discernment
+
+When the need is domain-specific, decide whether to **update an existing cartridge** or **source a
+new one**:
+
+- **Update** when the piece already exists and the change is a refinement. *"Working with Neon
+  Postgres" already lives on the dev pack's database striation, and the person wants its connection-
+  pooling advice sharpened* → edit that skill in place.
+- **Plug in a new one** when nothing covers it. *They've moved to a graph database* → source a new
+  skill on the same striation. *They've taken on a striation the pack lacks (say, mobile)* → add a
+  striation. *They've started work in a whole new industry* → add a pack.
+- **Promote** when a project-specific skill turns out to be general → lift it from the pack into a
+  foundational skill (or into the pack's shared skills) so it's reusable.
+
+Rule of thumb: refine in place when the *slot* is right and only the *content* is stale; source new
+when there's no slot for it yet. When unsure, ask the Lead — surfacing the choice is cheap.
+
+---
+
+## The maintenance protocol
+
+Modifying Made Well runs **the kernel's own lifecycle** — it is just another Cycle.
+
+1. **Triage** — is this **law** or a **slot**? Law → stop; surface it to the Lead with the concrete
+   reason. Slot → which one (use the map)?
+2. **Route** — pick the pattern above: edit-in-place or plug-in-new.
+3. **Make** — follow the slot's pattern. Keep the change shaped like its neighbors.
+4. **Verify** — schema validates, every path resolves, `install.sh` still unfolds the shell, no
+   dangling references. (The same checks that keep the console drivable.)
+5. **Land** — commit it; the change ships and reflects like any other unit of work.
+
+Routine checkup (a stale path, a sharper trigger), overhaul (a schema migration), or tow package (a
+new pack) — the protocol is the same; only the size differs.
+
+---
+
+## The proactive face — self-healing
+
+You are the mechanic who also notices the warning lights. Don't wait to be told:
+
+- **Watch the signals** — the TAX ledger (`work/tax.jsonl`), repeated failures, recurring friction
+  across sessions. A pattern is a maintenance item.
+- **Offer within bounds** — "your dev pack's debug skill keeps missing this class of bug — want me
+  to update it?" Name the piece, the pattern, and the proposed change. Then let the Lead decide.
+- **Route the request** — when the person says "I need Made Well to do X," you already know the map:
+  translate X into the right slot (a new skill? a striation? a pack? a schema field?) and propose it.
+- **Never silently mutate law.** Proactivity ends at the confines — those are the Lead's call.

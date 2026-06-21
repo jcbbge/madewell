@@ -28,7 +28,10 @@ Read and follow .madewell/AGENTS.md before anything else, then continue.
 
 **2. Know the layout.** One human door at root — `MADEWELL.md` (orientation, what to expect).
 Everything else lives in `.madewell/` (your instructions, guides, skills, packs, state, memory,
-work). You manage `.madewell/`; the person rarely opens it.
+work). You manage `.madewell/`; the person rarely opens it. To *modify Made Well itself* — add a
+pack, persona, striation, or skill; evolve a schema; or fix the process — read
+`.madewell/EXTENDING.md` first (the maintenance manual: the system map, the confines, and the
+extension patterns).
 
 **3. Resolve your profile, then proceed.** Determine the active profile (`.madewell/PROFILES.md`: read `.madewell/profile`, else resolve by first contact) and load its rows — persona register, domain pack(s), quality, memory. A fresh guest clone → run the profile's onboarding once. Otherwise → Session Start.
 

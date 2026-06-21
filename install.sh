@@ -57,6 +57,7 @@ for d in guides skills packs templates bin; do
   cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
 done
 cp "$SRC/.madewell/LIFECYCLE.md"  "$DEST/.madewell/LIFECYCLE.md"   # canonical lifecycle model
+cp "$SRC/.madewell/EXTENDING.md"  "$DEST/.madewell/EXTENDING.md"   # maintenance/extension manual
 cp "$SRC/.madewell/profiles.json" "$DEST/.madewell/profiles.json"
 cp "$SRC/.madewell/PROFILES.md"   "$DEST/.madewell/PROFILES.md"
 
