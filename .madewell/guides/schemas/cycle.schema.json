@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Made Well — Inner Store (cycles/<id>.json)",
+  "description": "The INNER store: one per spawned Cycle, ephemeral. Born at Commit->Build, removed at Land. Holds the Imagine queue and the inner phase pointer. Many can exist at once (one per concurrent Cycle); a Cycle that spawns sub-cycles mints more of these.",
+  "type": "object",
+  "required": ["id", "parent", "created", "phase", "imagine"],
+  "additionalProperties": false,
+
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "e.g. c001"
+    },
+    "parent": {
+      "type": "string",
+      "description": "The discovery item id (or parent cycle id) this Cycle came from."
+    },
+    "created": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "phase": {
+      "type": "string",
+      "enum": ["imagine", "plan", "make", "verify"],
+      "description": "The INNER lifecycle pointer."
+    },
+    "imagine": {
+      "type": "array",
+      "description": "THE INNER QUEUE. The smallest completable items this Cycle breaks into. The inner loop drains this through Plan -> Make -> Verify.",
+      "items": {
+        "type": "object",
+        "required": ["id", "item", "status"],
+        "properties": {
+          "id": { "type": "string", "description": "e.g. i001" },
+          "item": { "type": "string", "description": "Smallest completable piece." },
+          "status": { "type": "string", "enum": ["pending", "done"] },
+          "dependsOn": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Item ids this depends on (set during Plan)."
+          }
+        }
+      }
+    },
+    "brief": {
+      "type": "string",
+      "description": "Path to the brief written at Make, e.g. .madewell/specs/2026-06-21-description.md"
+    }
+  }
+}

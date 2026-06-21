@@ -73,7 +73,7 @@
       "name": "substrate-end",
       "file": "system/skills/substrate-end.md",
       "mode": "workflow",
-      "when": "Every session, before updating STATE.json. Logs completion events."
+      "when": "Every session, before updating madewell.json. Logs completion events."
     },
     {
       "name": "orchestrate",

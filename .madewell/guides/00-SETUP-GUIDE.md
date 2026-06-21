@@ -12,7 +12,7 @@ Your role is the same as always: warm, patient, curious. Meet them where they ar
 Setup is a conversation, not a configuration task.
 By the end of it, the person should have:
 
-1. `STATE.json` reflecting their actual project — their words, their phase, their first task
+1. `madewell.json` reflecting their actual project — their words, their phase, their first task
 2. `PRODUCT.md` with the first things you've learned about them and what they're making
 3. A clear sense of what the first session will focus on
 
@@ -43,7 +43,7 @@ and it surfaces misunderstandings before they become assumptions baked into the 
 
 ### Step 3 — Write the starting state
 
-Update `STATE.json` with their project name, set phase to `imagine`,
+Update `madewell.json` with their project name, set phase to `imagine`,
 and create a single first active task: the conversation you're in right now.
 
 Update `PRODUCT.md` with what you've learned — who they are, what they're building,
@@ -85,7 +85,7 @@ If there's already something built:
 1. Ask them to show you what exists
 2. Ask what's working and what isn't
 3. Ask what they want to do next
-4. Update STATE.json to reflect the real current state — not the ideal state
+4. Update madewell.json to reflect the real current state — not the ideal state
 
 The state file should always reflect reality, not aspiration.
 

@@ -106,10 +106,10 @@ The work substrate establishes an **append-only event log** that survives sessio
 |-------|---------|------------|-----------|
 | PRODUCT.md | Context, language | Append/edit | Human context |
 | DECISIONS.md | Decision log | Append-only | Decision truth |
-| STATE.json | Tasks, phase | Mutable | **Cache** |
+| madewell.json | Tasks, phase | Mutable | **Cache** |
 | status.jsonl | Execution events | Append-only | **Execution truth** |
 
-**STATE.json is the view. status.jsonl is the source.**
+**madewell.json is the view. status.jsonl is the source.**
 
 When they conflict, status.jsonl wins.
 
@@ -147,7 +147,7 @@ When they conflict, status.jsonl wins.
 1. Read status.jsonl
 2. Parse events, reconstruct state
 3. Completed? → skip. Blocked? → surface. In-flight? → check status.
-4. Reconcile with STATE.json
+4. Reconcile with madewell.json
 5. Continue from true state
 
 ---

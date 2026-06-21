@@ -1,8 +1,8 @@
 # Discovery Workflow
 
-**Mode:** Workflow (produces artifacts, updates STATE.json)
+**Mode:** Workflow (produces artifacts, updates madewell.json)
 **Trigger:** Brain dump, transcript, meeting notes, thinking out loud
-**Artifacts:** Staged insights in STATE.json
+**Artifacts:** Staged insights in madewell.json
 
 ---
 
@@ -14,7 +14,7 @@ This is a **workflow**, not just a lens. It:
 1. Ingests raw input
 2. Applies five lenses
 3. Extracts insights with routes
-4. Writes to STATE.json `staged` array
+4. Writes to madewell.json `staged` array
 5. Proposes promotions for your approval
 
 ---
@@ -83,7 +83,7 @@ Answer in one sentence:
 
 > **What is the single most important thing this reveals that isn't written down anywhere else?**
 
-### Step 5: Update STATE.json
+### Step 5: Update madewell.json
 
 Add insights to `staged` array:
 
@@ -117,7 +117,7 @@ On approval, agent moves items from `staged` to appropriate array and updates `s
 
 ## Output Artifacts
 
-**STATE.json updates:**
+**madewell.json updates:**
 - New items in `staged` array
 - Items moved to `active`, `backlog`, or `decisions` on approval
 - `context.lastSession` updated
@@ -166,7 +166,7 @@ Approve staging these insights? (yes/no/modify)
 
 ---
 
-## Integration with STATE.json
+## Integration with madewell.json
 
 After approval:
 ```json

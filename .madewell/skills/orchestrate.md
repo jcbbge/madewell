@@ -248,7 +248,7 @@ lifecycle is now multi-stage; recovery checks each stage in order.
 
 **Rules of recovery:**
 
-1. **Event log wins** over STATE.json on any conflict.
+1. **Event log wins** over madewell.json on any conflict.
 2. **Never re-run completed stages.** A `test_results` event with `failed == 0`
    means the tests passed — do not re-run them.
 3. **Re-spawn, don't resume.** If a sub-agent stalled, spawn a fresh one with

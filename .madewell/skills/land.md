@@ -35,9 +35,9 @@ live in the commit (DELTA, handoff); three are the net-new valve.
 
 Drain the unit *out* of the system:
 
-- Remove the unit from `active` in `STATE.json`; advance `phase`; set `context.openThread`.
+- Remove the unit from `active` in `madewell.json`; delete its cycle store (`rm .madewell/cycles/<id>.json`); advance `stage`; set `context.openThread`.
 - Delete the unit's brief — `rm .madewell/specs/<unit>.md` — verified work needs no brief.
-- Anything the unit *surfaced* goes to `backlog` (never silently into `active` — that is the Commit gate's call, made deliberately later).
+- Anything the unit *surfaced* goes to `discovery` (never silently into `active` — that is the Commit gate's call, made deliberately later).
 
 ## Step 2 — Reflect (the inward face)
 
@@ -49,7 +49,7 @@ Feed the nutrient *back*:
   - nothing real surfaced → write `none`. Do not manufacture a lesson.
 - **PROPAGATED** — reconcile every surface the change touched. For each of docs/changelog/comments · STATE/queue · source `STG→PROMOTED` · lexicon, mark one of:
   - `[x]` done · `n/a` · `OWED→queued as <task>`
-  - Deferred propagation is **debt**: it becomes a real `backlog`/`active` task. Debt is allowed — it does **not** block the Land — but it is never silent.
+  - Deferred propagation is **debt**: it becomes a real `discovery`/`active` task. Debt is allowed — it does **not** block the Land — but it is never silent.
 - **TAX** — append one line to `.madewell/work/tax.jsonl` (schema: `.madewell/guides/schemas/tax.schema.json`):
 
   ```json

@@ -134,7 +134,7 @@ You don't need to touch these. Your assistant manages them.
 | File | What it holds |
 |------|---------------|
 | `PRODUCT.md` | Your project, your words, what matters |
-| `STATE.json` | What's active, blocked, or waiting |
+| `madewell.json` | What's active, blocked, or waiting |
 | `DECISIONS.md` | Every decision made |
 | `work/status.jsonl` | Proof of what's done |
 

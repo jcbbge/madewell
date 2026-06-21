@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile (a local, gitignored one-line file naming the active profile); else STATE.json 'profile'; else resolve by first contact — a human with no profile set → guide; a headless/CI/agent run → naked; a technical maintainer in a dev-pack project → lead; a fresh guest clone of a dev-pack project → contributor (and run its onboarding). The quality row is 'organ-if-present-else-default': use the installed quality organ (Rumen) if present, else the batteries-included Enforcer.",
+  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile (a local, gitignored one-line file naming the active profile); else madewell.json 'profile'; else resolve by first contact — a human with no profile set → guide; a headless/CI/agent run → naked; a technical maintainer in a dev-pack project → lead; a fresh guest clone of a dev-pack project → contributor (and run its onboarding). The quality row is 'organ-if-present-else-default': use the installed quality organ (Rumen) if present, else the batteries-included Enforcer.",
   "contracts": ["persona", "domain", "quality", "memory", "onboarding"],
   "profiles": {
     "lead": {

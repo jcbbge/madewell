@@ -14,13 +14,13 @@ If there are uncommitted files, list them plainly. Ask: "Should I include these 
 
 ---
 
-## Step 2 — Update STATE.json
+## Step 2 — Update madewell.json
 
 - Remove any tasks from `active` that were verified complete this session
-- Update `phase` if it shifted
+- Update `stage` if it shifted
 - Update `context.openThread` — the single most important thing to pick up next session, in plain English
 - Update `context.metaphors` if any new ones emerged this session
-- Add anything discovered this session to `backlog` (not `active` — backlog items have no path yet)
+- Add anything discovered this session to `discovery` (not `active` — queued items have no path yet)
 - Update `blocked` — remove anything that got unblocked, add new blockers with their reason
 
 The file should be accurate to right now. If it looks the same as when the session started, something wasn't updated.
@@ -74,7 +74,7 @@ If the work is done and verified, the spec is dead weight. Remove it.
 ## Step 6 — Commit
 
 ```bash
-git add STATE.json DECISIONS.md PRODUCT.md
+git add madewell.json DECISIONS.md PRODUCT.md
 git commit -m "session: [one line — what happened]
 
 TODO: [the open thread — specific enough to cold-start next session]"

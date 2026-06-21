@@ -64,7 +64,7 @@ Every session, in this order:
 
 **1. Read state**
 ```
-Read .madewell/STATE.json
+Read .madewell/madewell.json
 Read .madewell/DECISIONS.md
 Read .madewell/PRODUCT.md
 Read .madewell/work/status.jsonl (if exists)
@@ -73,9 +73,9 @@ Read .madewell/work/status.jsonl (if exists)
 **2. Reconcile execution state**
 
 If `status.jsonl` exists, check it. For each task:
-- If `task_completed` event exists → task is done, regardless of STATE.json
+- If `task_completed` event exists → task is done, regardless of madewell.json
 - If `task_started` with no completion → in-flight or orphaned
-- If STATE.json and event log conflict → **event log wins**
+- If madewell.json and event log conflict → **event log wins**
 
 Log the session start:
 ```jsonl
@@ -85,7 +85,7 @@ Log the session start:
 **3. Orient** — surface where the work stands and the next move. State the open thread plainly; don't narrate that you read the files.
 > *Guide persona (if loaded): orient by opening with a warm question in the person's own words and metaphors, not a status report — see `.madewell/packs/guide/PACK.md`.*
 
-**4. If STATE.json has an open thread, surface it.** Ask whether to continue or redirect.
+**4. If madewell.json has an open thread, surface it.** Ask whether to continue or redirect.
 
 **5. First-ever session:** set the frame before anything else — what this is, how work moves (Discovery → Commit → Build → Land), their role and yours — then move into discovery. *(With the Guide pack loaded this becomes the warm **Orientation**; persona-free, keep it to a few honest sentences.)*
 
@@ -132,7 +132,7 @@ four phases in order:
 
 **LAND** — The outlet (the unit's return value, emitted at Verify→Land — *not* a fifth
 phase; it's what the Cycle hands back). Both faces must fire or the unit leaks:
-- **Ship** (outward) — the brick that shipped: the merged DELTA, the brief deleted, the queue drained, STATE.json advanced. The work leaves the system.
+- **Ship** (outward) — the brick that shipped: the merged DELTA, the brief deleted, the queue drained, madewell.json advanced. The work leaves the system.
 - **Reflect** (inward) — the nutrient it returned: what building it revealed (LEARNED), the propagation reconciled or owed (PROPAGATED), the correction-cost (TAX → `.madewell/work/tax.jsonl`). This feeds back — single-loop to Discovery (what to build next), double-loop to the process itself (how to build better).
 
 Run the **`land` skill** (`.madewell/skills/land.md`) at each Verify→Land: it ships, reflects, records TAX, and checks the file-decidable walls (`.madewell/bin/land-check.sh` — a warning gauge, not a halt).
@@ -144,7 +144,7 @@ Before moving on, ask: if someone encountered this right now, would it feel fini
 - **Small fix** (a tweak): Discovery is light, Commit is quick, the Cycle drops Plan (Imagine → Make → Verify) — but **Land still fires**. Even a one-line fix ships and reflects, or it leaks.
 
 The lifecycle collapses forward. Finished work is acknowledged and released. Briefs are
-deleted at Land. STATE.json gets shorter as work gets done.
+deleted at Land. madewell.json gets shorter as work gets done.
 
 ---
 
@@ -159,9 +159,9 @@ When someone has something to say and needs help organizing it:
 5. Reflect back in plain language: "Here's what I heard..."
 6. Propose what becomes a task now and what goes in the backlog
 7. Ask: "Does that match what you meant?"
-8. On confirmation: update STATE.json, update PRODUCT.md with anything new you learned about them or their vision
+8. On confirmation: update madewell.json, update PRODUCT.md with anything new you learned about them or their vision
 
-**The One Thing:** After every discovery session, ask yourself: *what is the single most important thing this revealed that isn't written down anywhere?* Write it down — in PRODUCT.md, STATE.json, or DECISIONS.md.
+**The One Thing:** After every discovery session, ask yourself: *what is the single most important thing this revealed that isn't written down anywhere?* Write it down — in PRODUCT.md, madewell.json, or DECISIONS.md.
 
 ---
 
@@ -336,15 +336,23 @@ are in **What You Must Never Do**, below.
 
 ---
 
-## Tasks and Backlog — The Distinction That Matters
+## The Queue and Active — The Distinction That Matters
 
-**A task** is load-bearing right now. It's in flight. You're working it this session or it's next in line. It lives in `active` in STATE.json.
+**A queued item** lives in `discovery` in madewell.json — real and captured, but not yet
+picked up. It's the thing that came up mid-conversation — "oh, we should also..." — that you
+don't want to lose but aren't building right now. The `discovery` queue is the outer loop's
+backlog and its driver at once.
 
-**A backlog item** is real and captured but not yet scheduled. It's the thing that came up mid-conversation — "oh, we should also..." — that you don't want to lose but aren't doing right now. It lives in `backlog` in STATE.json.
+**An active item** is load-bearing right now. It's been Committed: it has a Cycle running in
+Build. It lives in `active` as a pointer to its cycle store.
 
-The move from backlog → active is a deliberate decision. It means: this has a path now, and we're picking it up. Not automatic. Not date-driven. A choice. **This move is the COMMIT stage** of the work lifecycle — the admission gate. Hold it: a short active list is the system's only protection against flooding. Pulling everything into active is how the queue drowns.
+The move from `discovery` → `active` is a deliberate decision. It means: this has a path now,
+and we're picking it up. Not automatic. Not date-driven. A choice. **This move is the COMMIT
+stage** of the work lifecycle — the admission gate. Hold it: a short `active` list is the
+system's only protection against flooding. Pulling everything into active is how the queue drowns.
 
-When something comes up mid-session that isn't the current work, add it to the backlog immediately, say "captured," and return to what you were doing. Don't let the thread pull you sideways.
+When something comes up mid-session that isn't the current work, add it to `discovery`
+immediately, say "captured," and return to what you were doing. Don't let the thread pull you sideways.
 
 ---
 
@@ -352,8 +360,10 @@ When something comes up mid-session that isn't the current work, add it to the b
 
 Four layers. Always current. No infrastructure required.
 
-**Working memory — STATE.json**
-The live picture of what's in flight. Updated immediately when anything changes. Gets shorter as work completes.
+**Working memory — `madewell.json` + `.madewell/cycles/<id>.json`**
+The live picture of what's in flight. `madewell.json` is the outer store (the Discovery queue +
+outer stage); each running Cycle has its own ephemeral cycle store (the Imagine queue + inner
+phase). Updated immediately when anything changes. Both get shorter as work completes.
 
 **History — git log**
 Read at session start. The note in each commit tells you what was left open last time.
@@ -371,50 +381,63 @@ Update PRODUCT.md whenever you learn something new about the person, their visio
 
 ---
 
-## STATE.json Shape
+## State Shape — Two Stores
+
+State lives in two stores, never one (see [`LIFECYCLE.md`](./LIFECYCLE.md) for why). Schemas:
+`guides/schemas/madewell.schema.json` (outer) and `guides/schemas/cycle.schema.json` (inner).
+
+**Outer store — `madewell.json`** (one per project, permanent). The Discovery queue + the
+outer **stage** pointer:
 
 ```json
 {
   "project": "name in their words",
-  "profile": "lead | contributor | guide | naked   (project-pinned fallback; local .madewell/profile overrides)",
-  "phase": "imagine | plan | make | verify",
+  "profile": "lead | contributor | guide | naked | null   (project-pinned fallback; local .madewell/profile overrides)",
+  "stage": "discovery | commit | build | land",
   "updated": "ISO date",
   "context": {
     "summary": "one sentence — what's happening right now",
     "openThread": "exactly where to pick up next session",
-    "language": {
-      "concept": "their word for it"
-    }
+    "language": { "concept": "their word for it" }
   },
+  "discovery": [
+    { "id": "d001", "item": "plain-language work item", "scope": "area of the project" }
+  ],
   "active": [
-    {
-      "id": "t001",
-      "task": "plain language task name",
-      "scope": "area of the project",
-      "status": "pending | in_progress | blocked",
-      "brief": ".madewell/specs/2026-05-21-description.md"
-    }
+    { "id": "d001", "cycle": ".madewell/cycles/c001.json" }
   ],
   "blocked": [
-    {
-      "id": "t002",
-      "task": "task name",
-      "reason": "why it's blocked",
-      "unblocks": "what resolves it"
-    }
-  ],
-  "backlog": [
-    "plain language description of future work"
-  ],
-  "staged": []
+    { "id": "d002", "reason": "why it's blocked", "unblocks": "what resolves it" }
+  ]
 }
 ```
 
+**Inner store — `.madewell/cycles/<id>.json`** (one per spawned Cycle, ephemeral — born at
+Commit→Build, deleted at Land). The Imagine queue + the inner **phase** pointer:
+
+```json
+{
+  "id": "c001",
+  "parent": "d001",
+  "created": "ISO date",
+  "phase": "imagine | plan | make | verify",
+  "imagine": [
+    { "id": "i001", "item": "smallest completable piece", "status": "pending | done" }
+  ],
+  "brief": ".madewell/specs/2026-06-21-description.md"
+}
+```
+
+`stage` (outer) and `phase` (inner) are different pointers at different scales — never collapse
+them into one field. `discovery` is the outer queue; `imagine` is the inner queue; each loop
+drains its own.
+
 **Rules:**
 - Update immediately when state changes. Never batch.
-- When a task completes: remove it from active, delete its brief, say what was accomplished.
-- The file gets shorter as work gets done. If it keeps growing, something is wrong.
-- `staged` holds unrouted insights from discovery. Propose routing. On confirmation, move and clear.
+- On Commit (`discovery` → `active`): mint the cycle store, add an `{id, cycle}` pointer to `active`.
+- On Land: delete the cycle store and its brief, remove the item from `active`, say what was accomplished.
+- The stores get shorter as work gets done. If `madewell.json` keeps growing, something is wrong.
+- New intake goes straight into `discovery`. Route it to a decision or release it — don't let it pile up unrouted.
 
 ---
 
@@ -431,14 +454,14 @@ When the Enforcer finds something, surface it plainly in language the person und
 ## What You Must Never Do
 
 1. Do the work yourself
-2. Let STATE.json drift from reality
+2. Let madewell.json drift from reality
 3. Front-load concepts before the person feels the problem
 4. Use unfamiliar language without a bridge to something they know
 5. Batch state updates
 6. Leave a brief alive after the work is verified complete
 7. Reopen a closed decision without a concrete new reason
 8. Claim something is done without verifying it
-9. Let a session end without updating STATE.json and writing the open thread
+9. Let a session end without updating madewell.json and writing the open thread
 10. Accept "it works" as done — done means the acceptance criteria pass and the work feels finished
 11. Let an Implementer write or run tests for its own code — separation of duties is structural, not optional
 12. Let a Test-Runner edit code or tests — the runner runs, period
@@ -451,14 +474,14 @@ When the Enforcer finds something, surface it plainly in language the person und
 
 Before closing:
 
-**1. Log completion events** (before touching STATE.json)
+**1. Log completion events** (before touching madewell.json)
 ```jsonl
 {"ts":"...","type":"task_completed","session":"SESSION_ID","task":"TASK_ID","summary":"..."}
 {"ts":"...","type":"session_end","session":"SESSION_ID","summary":"...","open_thread":"..."}
 ```
 
 **2. Update Madewell state**
-- Update STATE.json — especially `context.openThread`
+- Update madewell.json — especially `context.openThread`
 - Append new decisions to DECISIONS.md
 - Update PRODUCT.md if anything new was learned
 - Delete briefs for verified-complete work

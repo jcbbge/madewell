@@ -2,7 +2,7 @@
 
 **What:** Append-only execution layer beneath Madewell's conversational memory.
 
-Madewell's STATE.json, DECISIONS.md, and PRODUCT.md remain the source of truth for *context*. This substrate is the source of truth for *execution* — what was assigned, what completed, what's in flight.
+Madewell's madewell.json, DECISIONS.md, and PRODUCT.md remain the source of truth for *context*. This substrate is the source of truth for *execution* — what was assigned, what completed, what's in flight.
 
 ---
 
@@ -38,7 +38,7 @@ Append-only. Each line is one event. Never modify historical events.
 
 ### Session Modes
 
-**single** — One agent, conversational. Tasks map to STATE.json `active`.
+**single** — One agent, conversational. Tasks map to madewell.json `active`.
 
 **orchestrated** — Multi-agent, parallel. Packages in `work/packages/`, delegated to sub-agents.
 
@@ -57,7 +57,7 @@ To reconstruct current execution state:
    - `package_completed` → done
    - `package_assigned` with no completion → in-flight
 
-If STATE.json says a task is `active` but `status.jsonl` has a `task_completed` event for it, **the event log wins**. STATE.json is a cache; events are truth.
+If madewell.json says a task is `active` but `status.jsonl` has a `task_completed` event for it, **the event log wins**. madewell.json is a cache; events are truth.
 
 ---
 
@@ -65,15 +65,15 @@ If STATE.json says a task is `active` but `status.jsonl` has a `task_completed` 
 
 ### Session Start (Augmented)
 
-After reading Madewell's memory stack (STATE.json, DECISIONS.md, PRODUCT.md, git log):
+After reading Madewell's memory stack (madewell.json, DECISIONS.md, PRODUCT.md, git log):
 
 ```bash
 tail -50 .madewell/work/status.jsonl 2>/dev/null
 ```
 
-Reconstruct execution state. Reconcile with STATE.json:
-- If event log shows completion that STATE.json missed → task is done
-- If STATE.json shows active that event log never started → task was never begun
+Reconstruct execution state. Reconcile with madewell.json:
+- If event log shows completion that madewell.json missed → task is done
+- If madewell.json shows active that event log never started → task was never begun
 
 ### Session End (Augmented)
 
@@ -81,9 +81,9 @@ Before committing:
 
 1. Log `task_completed` events for every task finished this session
 2. Log `session_end` event with summary and open_thread
-3. Then update STATE.json as normal
+3. Then update madewell.json as normal
 
-The event log is written first. STATE.json updates second. If the session crashes between, the event log survives.
+The event log is written first. madewell.json updates second. If the session crashes between, the event log survives.
 
 ---
 
@@ -138,10 +138,10 @@ For parallel work (orchestrator + sub-agents):
 |-------|---------|------------|
 | PRODUCT.md | Long-term context, user language | Append/edit |
 | DECISIONS.md | Decision log | Append-only |
-| STATE.json | Live task state, phase, context | Mutable (cache) |
+| madewell.json | Live task state, phase, context | Mutable (cache) |
 | status.jsonl | Execution audit trail | Append-only (truth) |
 
-**STATE.json is the view. status.jsonl is the source.**
+**madewell.json is the view. status.jsonl is the source.**
 
 Madewell skills (session-start, session-end) read both. The substrate augments without replacing.
 

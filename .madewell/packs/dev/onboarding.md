@@ -24,7 +24,7 @@ plugged in, because the project carries its own instructions and memory.
 | The guest needs… | Read it from… |
 |---|---|
 | **Scope** — what this is, who it's for | `PRODUCT.md` |
-| **Roadmap** — done / in-flight / next | `STATE.json` (active + backlog) + the queue + recent git log handoffs (DONE/TODO) |
+| **Roadmap** — done / in-flight / next | `madewell.json` (active + backlog) + the queue + recent git log handoffs (DONE/TODO) |
 | **Conventions** — how we build, what's non-negotiable | `DECISIONS.md` + the quality organ's packs (fences / judges / signs / lexicon — `.rumen/` if installed) + the dev pack pillars |
 | **Workflow** — how work moves | the four-leg lifecycle: Discovery → Commit → Cycle → Land (`AGENTS.md`) |
 | **Environment / setup** — how to run it | the project's setup + CI files (the dev pack's ci-cd pillar knows where) |

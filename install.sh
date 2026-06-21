@@ -54,12 +54,12 @@ cp "$SRC/.madewell/profiles.json" "$DEST/.madewell/profiles.json"
 cp "$SRC/.madewell/PROFILES.md"   "$DEST/.madewell/PROFILES.md"
 
 # 2. Fresh memory — created ONLY on first install; never clobbered on re-sync.
-mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/specs" "$DEST/.madewell/decisions"
+mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/specs" "$DEST/.madewell/decisions" "$DEST/.madewell/cycles"
 [ -f "$DEST/.madewell/DECISIONS.md" ]    || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
 [ -f "$DEST/.madewell/PRODUCT.md" ]      || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
-[ -f "$DEST/.madewell/STATE.json" ]      || cp "$SRC/.madewell/STATE.json"             "$DEST/.madewell/STATE.json"
+[ -f "$DEST/.madewell/madewell.json" ]      || cp "$SRC/.madewell/madewell.json"             "$DEST/.madewell/madewell.json"
 [ -f "$DEST/.madewell/work/tax.jsonl" ]  || : > "$DEST/.madewell/work/tax.jsonl"
-for k in work/packages work/reports specs decisions; do
+for k in work/packages work/reports specs decisions cycles; do
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
 
@@ -87,7 +87,7 @@ when=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
 printf 'madewell %s\ninstalled %s\n' "$ver" "$when" > "$DEST/.madewell/VERSION"
 
 if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
-  echo "Done. Updated $prev -> $ver. Framework re-synced; STATE/DECISIONS/PRODUCT/tax preserved."
+  echo "Done. Updated $prev -> $ver. Framework re-synced; madewell.json/DECISIONS/PRODUCT/tax preserved."
   echo "Tell your agent: Made Well was updated — re-read .madewell/AGENTS.md, then continue."
 elif [ -n "$prev" ]; then
   echo "Done. Already at $ver — framework re-synced; nothing else changed."
