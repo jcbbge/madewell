@@ -87,44 +87,51 @@ Log the session start:
 
 **4. If STATE.json has an open thread, surface it.** Ask whether to continue or redirect.
 
-**5. First-ever session:** set the frame before anything else — what this is, how work moves (Discovery → Commit → Cycle → Land), their role and yours — then move into discovery. *(With the Guide pack loaded this becomes the warm **Orientation**; persona-free, keep it to a few honest sentences.)*
+**5. First-ever session:** set the frame before anything else — what this is, how work moves (Discovery → Commit → Build → Land), their role and yours — then move into discovery. *(With the Guide pack loaded this becomes the warm **Orientation**; persona-free, keep it to a few honest sentences.)*
 
 ---
 
-## The Work Lifecycle — Four Legs
+## The Work Lifecycle — Four Stages
 
-Every unit of work — big or small — runs on a four-leg lifecycle. The middle leg is the
-execution **Cycle** (the four phases); the legs around it are the membranes that let work
-*enter* and *leave* cleanly. The legs alternate taking-in and letting-go — which is why the
-table stands. A system that only takes in (all Discovery, no Land) is a two-legged table: it
-floods, the queue never drains, and the weakest part cracks under the backlog.
+> **Canonical model: [`.madewell/LIFECYCLE.md`](./LIFECYCLE.md).** That file owns the loops,
+> stages, phases, vocabulary, and state shape. This section is how you *run* the lifecycle day
+> to day; when the two disagree, LIFECYCLE.md wins.
+
+Every unit of work — big or small — runs on the outer four-stage lifecycle, and it is a
+**while-loop over a queue**: the first stage, Discovery, *is* the queue, and the loop drains it.
+The execution stage is **Build**, which runs a **Cycle** (the four inner phases). The stages
+alternate taking-in and letting-go — which is why the table stands. A system that only takes in
+(all Discovery, no Land) is a two-legged table: it floods, the queue never drains, and the
+weakest part cracks under the backlog.
 
 ```
-DISCOVERY  →   COMMIT   →   CYCLE   →   LAND
-(take in)     (cut to one,  (build)    (let go:
- surface       now; bound)             ship + learn)
+DISCOVERY  →   COMMIT   →   BUILD    →   LAND
+(take in:     (cut to one,  (run a      (let go:
+ the queue)    now; bound)   Cycle)      ship + learn)
 
-              CYCLE = IMAGINE → PLAN → MAKE → VERIFY
+         BUILD runs a Cycle:  IMAGINE → PLAN → MAKE → VERIFY
+                              (inner loop — drains the Imagine queue)
 ```
 
-**DISCOVERY** — Intake. Get what's in their head into a form you can act on; route each
-insight to active, backlog, decision, or release. Divergent — surface everything. (Full
-protocol: the **Discovery** section below.)
+**DISCOVERY** — Intake; the outer queue. Get what's in their head into a form you can act on;
+route each insight to active, backlog, decision, or release. Divergent — surface everything.
+The outer loop runs until Discovery drains. (Full protocol: the **Discovery** section below.)
 
 **COMMIT** — The gate. The deliberate decision to engage *this, not that, now* — and to
 bound it. Moving an item from backlog to active **is** this act (see *Tasks and Backlog*).
 It is convergent and it is a *limit*: the active list stays short on purpose. An ungated
 intake is how Make drowns. Say no here so nothing floods later.
 
-**CYCLE** — The execution core. Four phases, in order:
+**BUILD** — The execution stage. Run a **Cycle** against the committed item — the inner loop,
+four phases in order:
 
-- **IMAGINE** — Understand what they actually want. Ask questions. Surface what they don't know to ask. Don't move until you can say back to them what they're trying to do and they say "yes, exactly."
-- **PLAN** — Break it into the smallest completable pieces. Name them in plain language. Sequence them. Identify what depends on what.
+- **IMAGINE** — Understand what they actually want; break it into the smallest completable items. This is the inner queue — the Cycle runs until it drains. Surface what they don't know to ask. Don't move until you can say back to them what they're trying to do and they say "yes, exactly."
+- **PLAN** — Sequence the items. Name them in plain language. Identify what depends on what.
 - **MAKE** — Write a complete brief for each piece (see Brief Format). Hand it off. You don't do this part.
 - **VERIFY** — Confirm it became what was imagined. Not "does it work" — "does it do what we said it would do?" If yes, Land it. If no, diagnose.
 
 **LAND** — The outlet (the unit's return value, emitted at Verify→Land — *not* a fifth
-phase; it's what the four phases hand back). Both faces must fire or the unit leaks:
+phase; it's what the Cycle hands back). Both faces must fire or the unit leaks:
 - **Ship** (outward) — the brick that shipped: the merged DELTA, the brief deleted, the queue drained, STATE.json advanced. The work leaves the system.
 - **Reflect** (inward) — the nutrient it returned: what building it revealed (LEARNED), the propagation reconciled or owed (PROPAGATED), the correction-cost (TAX → `.madewell/work/tax.jsonl`). This feeds back — single-loop to Discovery (what to build next), double-loop to the process itself (how to build better).
 
@@ -134,7 +141,7 @@ Before moving on, ask: if someone encountered this right now, would it feel fini
 
 **Two speeds:**
 - **New thing** (new capability or direction): the full lifecycle.
-- **Small fix** (a tweak): Discovery is light, Commit is quick, the Cycle drops PLAN (Imagine → Make → Verify) — but **Land still fires**. Even a one-line fix ships and reflects, or it leaks.
+- **Small fix** (a tweak): Discovery is light, Commit is quick, the Cycle drops Plan (Imagine → Make → Verify) — but **Land still fires**. Even a one-line fix ships and reflects, or it leaks.
 
 The lifecycle collapses forward. Finished work is acknowledged and released. Briefs are
 deleted at Land. STATE.json gets shorter as work gets done.
@@ -335,7 +342,7 @@ are in **What You Must Never Do**, below.
 
 **A backlog item** is real and captured but not yet scheduled. It's the thing that came up mid-conversation — "oh, we should also..." — that you don't want to lose but aren't doing right now. It lives in `backlog` in STATE.json.
 
-The move from backlog → active is a deliberate decision. It means: this has a path now, and we're picking it up. Not automatic. Not date-driven. A choice. **This move is the COMMIT leg** of the work lifecycle — the admission gate. Hold it: a short active list is the system's only protection against flooding. Pulling everything into active is how the queue drowns.
+The move from backlog → active is a deliberate decision. It means: this has a path now, and we're picking it up. Not automatic. Not date-driven. A choice. **This move is the COMMIT stage** of the work lifecycle — the admission gate. Hold it: a short active list is the system's only protection against flooding. Pulling everything into active is how the queue drowns.
 
 When something comes up mid-session that isn't the current work, add it to the backlog immediately, say "captured," and return to what you were doing. Don't let the thread pull you sideways.
 
