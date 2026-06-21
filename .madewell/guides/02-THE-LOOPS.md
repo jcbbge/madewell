@@ -1,39 +1,46 @@
-# The Four Phases
+# The Two Loops
 
-**Every piece of work — a feature, a fix, a decision — moves through four phases.**
-You can't skip them. You can rush them, but you'll pay for it later.
+Made Well runs **two nested loops** — the same four-beat shape at two scales. (The canonical
+model is `.madewell/LIFECYCLE.md`; this guide is the human walk-through.)
 
 ```
-IMAGINE → PLAN → MAKE → VERIFY
+OUTER LOOP   DISCOVERY → COMMIT → BUILD → LAND          ← four STAGES
+                                   └── Build runs a Cycle:
+INNER LOOP                          IMAGINE → PLAN → MAKE → VERIFY   ← four PHASES
 ```
 
-This isn't a software concept. It's how all work gets done well.
-A chef imagines the dish, plans the prep, makes it, verifies it before it leaves the kitchen.
-A builder imagines the room, plans the build, makes it, verifies it holds.
-You imagine what you're making, plan how to make it, make it, verify it became what you imagined.
+- The **outer loop** is how the whole project moves: gather work, choose one, build it, ship it — then again.
+- The **inner loop** is how a single chosen piece gets built: a **Cycle** of four phases.
+- Same rhythm both times — *take in → converge → build → let go*. That repetition at two scales is the point.
+
+Both loops are **cooperative**: each runs one step, then **pauses for you** before the next. Nothing
+runs away on its own. And each loop is a queue that drains — it repeats until there's nothing left,
+then hands off (inner → back to outer; outer → done for now).
 
 ---
 
-## These four are the *Cycle* — the engine room
+## The outer loop — four STAGES
 
-The four phases are the core of a larger loop. Around them sit two membranes: work has to
-get *in*, and — just as important — it has to get *out*.
-
-```
-DISCOVERY → COMMIT → [ IMAGINE → PLAN → MAKE → VERIFY ] → LAND
- get it in   choose it      the four phases (this page)    ship it + learn from it
-```
-
-- **Discovery** — get what's in your head into a form you can act on. (See *Discovery*.)
+- **Discovery** — get what's in your head into a form you can act on. This is the queue. (See *Discovery*.)
 - **Commit** — the choice to do *this, not that, now*, and to keep the active list short.
+- **Build** — run a Cycle (the inner loop) against the chosen piece.
 - **Land** — how a finished piece leaves cleanly: it ships, and it feeds back what it taught.
 
-Without Land, work piles up — finished-but-never-closed — until the system clogs. The four
-phases build the thing; Land is how you set it down so you can pick up the next.
+Without Land, work piles up — finished-but-never-closed — until the system clogs. Build makes the
+thing; Land is how you set it down so you can pick up the next.
 
 ---
 
-## IMAGINE
+## The inner loop — four PHASES
+
+Inside Build, every chosen piece moves through four phases. You can't skip them. You can rush them,
+but you'll pay for it later.
+
+This isn't a software concept — it's how all work gets done well. A chef imagines the dish, plans the
+prep, makes it, verifies it before it leaves the kitchen. You imagine what you're making, plan how to
+make it, make it, verify it became what you imagined.
+
+### IMAGINE
 
 **Purpose:** Understand what you're making and why — before touching anything.
 **Done when:** You can explain it simply. You know what "done" looks like.
@@ -48,9 +55,7 @@ Questions to answer:
 
 Output: one sentence describing the thing, one sentence describing what done looks like, a short list of what's out of scope.
 
----
-
-## PLAN
+### PLAN
 
 **Purpose:** Figure out how to make it before you start making it.
 **Done when:** You have a sequence of steps small enough that each one can be completed and verified independently.
@@ -81,9 +86,7 @@ Steps:
 9. Verify: staying signed in across sessions works
 ```
 
----
-
-## MAKE
+### MAKE
 
 **Purpose:** Do the work. One step at a time.
 **Done when:** The thing works — happy path confirmed.
@@ -91,14 +94,12 @@ Steps:
 Rules:
 - Follow the plan. One step at a time.
 - Verify each piece before moving to the next.
-- When something comes up that wasn't in the plan — add it to the backlog. Don't pull the thread sideways.
+- When something comes up that wasn't in the plan — add it to the discovery queue. Don't pull the thread sideways.
 - If you're stuck for more than 20 minutes, stop and ask. Don't spin.
 
 Output: the thing works. The steps are done. The work is saved.
 
----
-
-## VERIFY
+### VERIFY
 
 **Purpose:** Prove it works — including when things go wrong.
 **Done when:** You'd be comfortable if a real person used this right now.
@@ -136,15 +137,13 @@ Output: the thing works correctly, including when things go wrong.
 
 ## The Fractal
 
-These four phases apply at every level of scale.
+The same four-beat repeats at every scale — that's why it holds:
 
-A single task has its own four phases.
-A feature has its own four phases.
-A product has its own four phases.
-A company has its own four phases.
+- the **outer loop** (Discovery → Commit → Build → Land), and
+- the **inner loop** (Imagine → Plan → Make → Verify),
 
-You can zoom in or zoom out. The pattern holds.
-Each level runs the same loop — just at a different altitude.
+are the same rhythm one zoom-level apart. And it keeps going: a single task, a feature, a product, a
+company — each runs the same loop, just at a different altitude. Zoom in or zoom out; the pattern holds.
 
 ---
 
@@ -155,5 +154,5 @@ Each level runs the same loop — just at a different altitude.
 | Jump straight to making | Spend time in Imagine first. 15 minutes saves hours. |
 | Plan in their head | Write it down. Plans that aren't written aren't plans. |
 | Skip Verify | Budget time for it. This is where trust is won or lost. |
-| Change scope mid-Make | Capture it in the backlog. Finish what's in flight first. |
+| Change scope mid-Make | Capture it on the discovery queue. Finish what's in flight first. |
 | Call it done when it runs | Ask: would I let a real person use this right now? |

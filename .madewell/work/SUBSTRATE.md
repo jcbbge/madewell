@@ -138,7 +138,7 @@ For parallel work (orchestrator + sub-agents):
 |-------|---------|------------|
 | PRODUCT.md | Long-term context, user language | Append/edit |
 | DECISIONS.md | Decision log | Append-only |
-| madewell.json | Live task state, phase, context | Mutable (cache) |
+| madewell.json | Live queue state, stage, context | Mutable (cache) |
 | status.jsonl | Execution audit trail | Append-only (truth) |
 
 **madewell.json is the view. status.jsonl is the source.**

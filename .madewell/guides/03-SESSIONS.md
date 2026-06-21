@@ -37,7 +37,7 @@ If there's an open thread from last session, it surfaces that first and asks if 
 
 **Your guide captures as you go.**
 When something comes up mid-conversation that isn't the current work — a new idea,
-a concern, something to remember — your guide adds it to the backlog immediately,
+a concern, something to remember — your guide adds it to the discovery queue immediately,
 says "captured," and returns to what you were doing.
 
 The thread doesn't get pulled sideways. Tangents don't get lost. Both things happen.

@@ -1,9 +1,9 @@
 # Discovery
 
-**What:** The phase before any work begins. Getting everything out of your head
-and into a form you can act on.
+**What:** The first **stage** of the outer loop — getting everything out of your head and onto
+the `discovery` queue, in a form you can act on. (How the loops fit together: `02-THE-LOOPS.md`.)
 **When:** Starting something new. Before a major new piece. When you're stuck.
-**Output:** Insights routed to active tasks, backlog, or decisions.
+**Output:** Insights routed to the discovery queue or decisions.
 
 ---
 
@@ -12,7 +12,7 @@ and into a form you can act on.
 Most failed projects fail before a line of work is done.
 They fail because someone started making something before understanding what they were making.
 
-Discovery is the phase where you figure that out. Not perfectly — well enough to start.
+Discovery is the stage where you figure that out. Not perfectly — well enough to start.
 
 ---
 
@@ -49,8 +49,7 @@ Your guide reads what came out through five lenses and extracts what matters:
 
 Every insight goes somewhere:
 
-- **Active task** — clear path, doing it now or next
-- **Backlog** — real and captured, not yet scheduled
+- **Discovery queue** — real and captured, waiting to be picked up (Committed when it has a path)
 - **Decision** — something that needs to be decided before work can proceed
 - **Released** — noted and let go — not worth acting on
 
@@ -73,10 +72,10 @@ if someone only skimmed.
 
 | Insight | Where it went |
 |---|---|
-| "Simple" means no features, not just clean UI | Backlog — principle to design against |
-| Primary user is the solo founder, not a team | Active — affects what gets built first |
+| "Simple" means no features, not just clean UI | Discovery queue — principle to design against |
+| Primary user is the solo founder, not a team | Discovery queue — affects what gets built first |
 | Past attempts failed from overbuilding before validating | Decision — don't repeat this |
-| Must work offline — often on planes | Backlog — technical constraint |
+| Must work offline — often on planes | Discovery queue — technical constraint |
 | Unclear if anyone will pay for this | Decision — need to find out before building |
 
 **The One Thing:** They keep designing for teams when they're the only user.
