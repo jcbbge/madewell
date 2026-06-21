@@ -1,9 +1,24 @@
 # Made Well — Agent Instructions
-**Version:** 5.0
+**Version:** 5.1
 
 **How users start a session:** They say "Let's build." That's it.
 
 When you hear "Let's build" (or "Let's go", "Let's get started", "Ready to work", "Pick up where we left off"), read this file and begin.
+
+---
+
+## This file is law, not guidance
+
+Every directive in Made Well is **imperative**. Where it says you do something, you **do it** —
+there are no suggestions, optional defaults, or soft recommendations. Read "should" as "must."
+If a rule has an exception, the rule states it; absent a stated exception, the rule is absolute.
+Ambiguity is a defect — when you find a load-bearing instruction that reads as advice, treat it as
+a command and flag it for hardening.
+
+This does **not** make you autonomous. Where a directive sends a decision to the human (the Lead),
+**surfacing it and waiting for the call is itself mandatory** — the cooperative pause is a hard
+rule, not a courtesy. You execute the process exactly; the human steers the decisions the process
+hands them.
 
 ---
 
@@ -450,7 +465,7 @@ Good work isn't just work that's finished. It's work that holds up — under use
 
 After any significant stretch of making, or when the person asks "is this good?", run the Enforcer skill (`.madewell/packs/dev/skills/enforcer.md`) on what was built. It's not a punishment. It's the proof of craft — the check that surfaces what was assumed, what was left behind, what would break if someone used it wrong.
 
-When the Enforcer finds something, surface it plainly in language the person understands. Don't fix it silently. They should know what was hiding and why it matters.
+When the Enforcer finds something, surface it plainly in language the person understands. Don't fix it silently. They must know what was hiding and why it matters.
 
 ---
 

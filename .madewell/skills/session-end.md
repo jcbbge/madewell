@@ -31,7 +31,7 @@ In each active cycle store (`.madewell/cycles/<id>.json`), if a Cycle is mid-fli
 - Set `phase` to where the inner loop paused
 - Mark finished `imagine` items `done`; the pending ones are where the inner loop resumes
 
-The stores should be accurate to right now. If they look the same as when the session started, something wasn't updated.
+The stores must be accurate to right now. If they look the same as when the session started, something wasn't updated.
 
 ---
 
@@ -88,7 +88,7 @@ git commit -m "session: [one line — what happened]
 TODO: [the open thread — specific enough to cold-start next session]"
 ```
 
-The `TODO:` line is the handoff. It should be specific. Not "continue the feature." Write the exact first move: "Wire the login form to the auth endpoint, then verify the redirect works."
+The `TODO:` line is the handoff. It must be specific. Not "continue the feature." Write the exact first move: "Wire the login form to the auth endpoint, then verify the redirect works."
 
 Confirm the commit went through:
 ```bash

@@ -76,7 +76,7 @@ well-formed cartridge needs **no kernel change**.
 - **Add a persona register.** A markdown register the pack carries; name it in the pack's `persona` field and the relevant profile.
 - **Add a striation.** A pillar file under `packs/<p>/pillars/`; declare it in that pack's `striations[]` in `SKILLS.json`.
 - **Add a skill.** A markdown file in `skills/` (foundational) or `packs/<p>/skills/` (pack); register it in `SKILLS.json` with `layer`, `mode`, `when` (+ `pack`/`striation` for pack skills); it must validate against `skills.schema.json`.
-- **Evolve a schema.** Edit `guides/schemas/*.schema.json`. Mind existing data — a field rename ripples to every `madewell.json`/cycle store in the wild; prefer additive changes, and sweep references.
+- **Evolve a schema.** Edit `guides/schemas/*.schema.json`. Mind existing data — a field rename ripples to every `madewell.json`/cycle store in the wild. Default to additive changes. A rename or removal **MUST** sweep every reference **and** ship a migration step (see `install.sh`'s migration block) — never change a shape and leave old stores to break.
 - **Deepen an orchestration cell.** Extend `skills/orchestrate.md` — preserving the invariants (isolation, cooperative pause).
 
 ---
@@ -95,8 +95,9 @@ new one**:
 - **Promote** when a project-specific skill turns out to be general → lift it from the pack into a
   foundational skill (or into the pack's shared skills) so it's reusable.
 
-Rule of thumb: refine in place when the *slot* is right and only the *content* is stale; source new
-when there's no slot for it yet. When unsure, ask the Lead — surfacing the choice is cheap.
+The rule: refine in place when the *slot* is right and only the *content* is stale; source new when
+there's no slot for it yet. If no existing slot fits, you **MUST** surface the choice to the Lead
+before creating one — never invent a slot silently.
 
 ---
 
@@ -123,8 +124,10 @@ You are the mechanic who also notices the warning lights. Don't wait to be told:
 
 - **Watch the signals** — the TAX ledger (`work/tax.jsonl`), repeated failures, recurring friction
   across sessions. A pattern is a maintenance item.
-- **Offer within bounds** — "your dev pack's debug skill keeps missing this class of bug — want me
-  to update it?" Name the piece, the pattern, and the proposed change. Then let the Lead decide.
-- **Route the request** — when the person says "I need Made Well to do X," you already know the map:
-  translate X into the right slot (a new skill? a striation? a pack? a schema field?) and propose it.
-- **Never silently mutate law.** Proactivity ends at the confines — those are the Lead's call.
+- **Surface, don't act.** When you spot a maintenance item you **MUST** surface it to the Lead —
+  name the piece, the pattern, and the proposed change ("your dev pack's debug skill keeps missing
+  this class of bug — update it?"). You **MUST NOT** apply it without explicit approval. The
+  cooperative pause is mandatory here, not a courtesy.
+- **Route the request.** When the person says "I need Made Well to do X," you already know the map:
+  translate X into the right slot (a new skill? a striation? a pack? a schema field?) and surface that.
+- **Never mutate law.** Proactivity ends at the confines — those are the Lead's call, always.

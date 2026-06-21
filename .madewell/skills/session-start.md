@@ -25,6 +25,21 @@ From git log, find the most recent commit with a `TODO:` line. That is the unfin
 
 ---
 
+## Step 1b — Migrate legacy state (mandatory)
+
+Before orienting, check `madewell.json` against the current schema (`guides/schemas/madewell.schema.json`).
+If it carries **legacy fields** (`phase`, `backlog`, `staged`) or **lacks** `stage`/`discovery`, you
+**MUST** migrate it in place before doing anything else — then validate it against the schema:
+
+- `phase` → `stage` (map the value: `imagine`-era states → `discovery`).
+- `backlog` + `staged` → fold into the `discovery` queue (`{id, item, scope}`).
+- `active` task-records → `{id, cycle}` pointers; mint a `cycles/<id>.json` for any genuinely in-flight item.
+
+(`install.sh` already renamed `STATE.json` → `madewell.json` on re-sync; this step fixes the shape.)
+This is not optional and not deferrable — a stale store breaks every read below.
+
+---
+
 ## Step 2 — Orient internally
 
 Before saying anything, answer these privately:

@@ -61,7 +61,15 @@ cp "$SRC/.madewell/EXTENDING.md"  "$DEST/.madewell/EXTENDING.md"   # maintenance
 cp "$SRC/.madewell/profiles.json" "$DEST/.madewell/profiles.json"
 cp "$SRC/.madewell/PROFILES.md"   "$DEST/.madewell/PROFILES.md"
 
-# 2. Fresh memory — created ONLY on first install; never clobbered on re-sync.
+# 2. Memory. First migrate an older install (file-level, zero-dep), then seed what's missing.
+#    Migration: legacy STATE.json -> madewell.json. The SHAPE migration (legacy fields
+#    phase/backlog/staged -> stage/discovery, active task-records -> cycle pointers) is ENFORCED
+#    at session start (skills/session-start.md), where JSON is native.
+if [ -f "$DEST/.madewell/STATE.json" ] && [ ! -f "$DEST/.madewell/madewell.json" ]; then
+  mv "$DEST/.madewell/STATE.json" "$DEST/.madewell/madewell.json"
+  echo "  migrated: STATE.json -> madewell.json (shape migration runs at next session start)"
+fi
+# Fresh memory — created ONLY on first install; never clobbered on re-sync.
 mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/work/test-results" "$DEST/.madewell/specs" "$DEST/.madewell/decisions" "$DEST/.madewell/cycles"
 [ -f "$DEST/.madewell/DECISIONS.md" ]    || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
 [ -f "$DEST/.madewell/PRODUCT.md" ]      || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
