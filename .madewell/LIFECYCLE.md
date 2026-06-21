@@ -110,11 +110,10 @@ status.jsonl                Append-only event log. Ties parent ↔ children acro
 
 Each store **leads with its queue**. Each loop drains the queue in its own store.
 
-**Concurrency & the fractal.** Cycles are not one-at-a-time. The outer loop can dispatch
-many committed items at once; each mints its own `cycles/<id>.json` and runs concurrently —
-no write-contention, because each Cycle owns its file. A Cycle that itself spawns sub-cycles
-just mints more inner stores: a tree of stores mirroring the spawn tree. One store could
-never represent that. The two-store rule **is** the fractal, expressed in the filesystem.
+**Concurrency.** Cycles are not one-at-a-time. The outer loop can dispatch many committed
+items at once; each mints its own `cycles/<id>.json` and runs concurrently — no
+write-contention, because each Cycle owns its file. One store could never represent many
+concurrent Cycles; the two-store rule is what makes the fleet possible.
 
 ---
 
@@ -142,10 +141,13 @@ is a pattern that lives wherever work can be split.
   - **Make** → parallel *execution* (implementers, partitioned, no collisions) — *the built cell*
   - **Verify** → parallel *adversarial verification* (independent verifiers / failure triage)
 
-**Recursion.** Any single item — an Imagine item, a Make package — too big to do atomically
-**spawns its own Cycle**: it mints a child `cycles/<id>.json`, runs the same inner loop,
-orchestrated the same way. The result is a *tree of Cycles*. Leaves do atomic work; the tree
-**collapses upward through Land** — children Land into the parent's Verify.
+**Recursion = forward motion, nothing fancier.** It's just the loop repeating until its queue
+is empty, so the plate drains and the work doesn't stall. The inner loop repeats until Imagine
+is empty; the Cycle then Lands and returns to the outer loop, which repeats until Discovery is
+empty. The outer loop *feeds* the inner: an item on the outer queue progresses down into a
+Cycle; when that Cycle's queue empties, control returns to the outer queue for the next item.
+Cooperative throughout — it pauses for the human each iteration; recursion only guarantees the
+queue keeps moving, never that it runs autonomously.
 
 Even a single orchestration step is the four-beat: fan out (take-in) → collect (converge) →
 distribute execution (build) → synthesize / merge (release).
@@ -158,7 +160,8 @@ distribute execution (build) → synthesize / merge (release).
 - ✅ Make-phase fan-out + the 5-role verification jump pack — `skills/orchestrate.md`.
 - ⬜ Imagine / Plan / Verify inner-loop fan-out.
 - ⬜ Outer-loop / fleet orchestration (concurrent Cycles, collision avoidance, board, Land reconciliation).
-- ⬜ The recursion contract (spawn a child Cycle; collapse it back through Land).
+
+(Recursion is not a cell to build — it's just the loop repeating until its queue empties.)
 
 ---
 
