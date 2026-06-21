@@ -1,109 +1,146 @@
 {
-  "version": "3.0",
-  "note": "Reference only — the guide reads skills directly from system/skills/. This file documents what exists and when each is used.",
+  "version": "4.0",
+  "note": "Reference manifest for the agent. Two layers. FOUNDATIONAL skills are Made Well's own and always available — the loop machinery (mode: workflow) that runs the lifecycle, plus the thinking lenses (mode: lens). PACK skills load only with a domain pack and may be scoped to a striation. Paths are relative to .madewell/.",
 
   "skills": [
     {
+      "name": "discovery",
+      "file": "skills/discovery.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Brain dump, unstructured input, first session. Shapes raw input into items on the discovery queue."
+    },
+    {
+      "name": "session-start",
+      "file": "skills/session-start.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Every session, first thing. Re-enter the paused loop — inner loop first (active Cycle), else the discovery queue, else fresh."
+    },
+    {
+      "name": "session-end",
+      "file": "skills/session-end.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Every session, before closing. Pause the loop; persist the outer store and any active cycle store; write the handoff."
+    },
+    {
+      "name": "land",
+      "file": "skills/land.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "At every Verify→Land — the moment a unit is done. Ship the brick, delete its cycle store + brief, drain the queue, reflect the nutrient (LEARNED/PROPAGATED/TAX → work/tax.jsonl), check the file-decidable walls. Per-unit, not per-session."
+    },
+    {
+      "name": "orchestrate",
+      "file": "skills/orchestrate.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Parallel execution. 'Fan this out', 'create a workflow'. Carves packages and delegates to independent sub-agents."
+    },
+    {
+      "name": "substrate-start",
+      "file": "skills/substrate-start.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Every session, after reading the memory stack. Reconciles execution state from the event log (the log wins over the store)."
+    },
+    {
+      "name": "substrate-end",
+      "file": "skills/substrate-end.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Every session, before updating madewell.json. Logs completion events first, so truth survives a crash."
+    },
+    {
       "name": "luck",
-      "file": "system/skills/luck.md",
+      "file": "skills/luck.md",
+      "layer": "foundational",
       "mode": "lens",
-      "when": "Always include when stuck, when something feels off, when hidden patterns need surfacing"
+      "when": "Always include when stuck, when something feels off, when hidden patterns need surfacing."
     },
     {
       "name": "criticality",
-      "file": "system/skills/criticality.md",
+      "file": "skills/criticality.md",
+      "layer": "foundational",
       "mode": "lens",
       "when": "Person seems overwhelmed (too many threads) or stuck (signal vanishing). Read the state, not the person."
     },
     {
-      "name": "discovery",
-      "file": "system/skills/discovery.md",
-      "mode": "workflow",
-      "when": "Brain dump, unstructured input, first session, 'I have a lot of thoughts'"
-    },
-    {
       "name": "systems-thinking",
-      "file": "system/skills/systems-thinking.md",
+      "file": "skills/systems-thinking.md",
+      "layer": "foundational",
       "mode": "lens",
-      "when": "Recurring problems, fix-one-break-another, complex tradeoffs, many moving parts"
+      "when": "Recurring problems, fix-one-break-another, complex tradeoffs, many moving parts."
     },
     {
       "name": "reframing",
-      "file": "system/skills/reframing.md",
+      "file": "skills/reframing.md",
+      "layer": "foundational",
       "mode": "lens",
       "when": "Stated problem feels like the wrong problem. Something keeps hitting walls."
     },
     {
       "name": "blind-spots",
-      "file": "system/skills/blind-spots.md",
+      "file": "skills/blind-spots.md",
+      "layer": "foundational",
       "mode": "lens",
       "when": "Before major decisions. When something feels too smooth. 'What am I missing?'"
     },
     {
       "name": "challenging-assumptions",
-      "file": "system/skills/challenging-assumptions.md",
+      "file": "skills/challenging-assumptions.md",
+      "layer": "foundational",
       "mode": "workflow",
       "when": "Before committing to an approach. Stress-testing a plan. 'Poke holes in this.'"
     },
     {
       "name": "exploring-possibilities",
-      "file": "system/skills/exploring-possibilities.md",
+      "file": "skills/exploring-possibilities.md",
+      "layer": "foundational",
       "mode": "lens",
-      "when": "Early brainstorm, creative block, 'what are our options here'"
+      "when": "Early brainstorm, creative block, 'what are our options here'."
     },
     {
       "name": "debug-hypothesis",
-      "file": "system/skills/debug-hypothesis.md",
+      "file": "skills/debug-hypothesis.md",
+      "layer": "foundational",
       "mode": "workflow",
-      "when": "Something is broken. Error pasted. Unexpected behavior."
+      "when": "Something is broken. Error pasted. Unexpected behavior. Observe → hypothesize → experiment → conclude; never bulldoze."
     },
     {
       "name": "enforcer",
-      "file": "system/packs/dev/skills/enforcer.md",
+      "file": "packs/dev/skills/enforcer.md",
+      "layer": "pack",
+      "pack": "dev",
+      "striation": null,
       "mode": "workflow",
-      "when": "After significant AI-assisted work. Before anything ships. 'Is this good?' Stateful — tracks progress in enforcer-state.json."
-    },
-    {
-      "name": "substrate-start",
-      "file": "system/skills/substrate-start.md",
-      "mode": "workflow",
-      "when": "Every session, after reading memory stack. Reconciles execution state from event log."
-    },
-    {
-      "name": "substrate-end",
-      "file": "system/skills/substrate-end.md",
-      "mode": "workflow",
-      "when": "Every session, before updating madewell.json. Logs completion events."
-    },
-    {
-      "name": "orchestrate",
-      "file": "system/skills/orchestrate.md",
-      "mode": "workflow",
-      "when": "Parallel execution. 'Fan this out', 'create a workflow'. Delegates to sub-agents."
-    },
-    {
-      "name": "land",
-      "file": "system/skills/land.md",
-      "mode": "workflow",
-      "when": "At every Verify→Land — the moment a unit of work is done. The outlet: ship the brick, drain the queue, reflect the nutrient (LEARNED/PROPAGATED/TAX), record tax to work/tax.jsonl, check the file-decidable walls. Per-unit, not per-session. The system's catabolism."
+      "when": "After significant work, before anything ships. 'Is this good?' The dev pack's quality jump pack. Stateful — tracks progress in enforcer-state.json."
     }
   ],
 
   "packs": [
     {
       "name": "guide",
-      "file": "system/packs/guide/PACK.md",
+      "file": "packs/guide/PACK.md",
       "fills": "the Persona slot — the GUIDE register (novice-human)",
       "activate": "Read at session start. Made Well's batteries-included default; recommended for any non-technical builder.",
-      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free (a substrate). Sibling registers: Contributor (expert-human, carried by the dev pack) and naked (machines/CI)."
+      "striations": [],
+      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: Contributor (carried by the dev pack) and naked (machines/CI)."
     },
     {
       "name": "dev",
-      "file": "system/packs/dev/PACK.md",
-      "skills": "system/packs/dev/skills/",
-      "persona": "system/packs/dev/persona.md (the CONTRIBUTOR register — fills the Persona slot when this pack is loaded)",
-      "activate": "Add to start prompt: 'and system/packs/dev/PACK.md'",
-      "when": "Building software — any stack, any framework. Carries the Contributor (expert-human) register; loading it swaps the Persona slot from Guide to Contributor unless the profile overrides."
+      "file": "packs/dev/PACK.md",
+      "skills": "packs/dev/skills/",
+      "persona": "packs/dev/persona.md (the Lead + Contributor registers — fills the Persona slot when loaded)",
+      "activate": "Add to start prompt: 'and .madewell/packs/dev/PACK.md'",
+      "striations": [
+        { "name": "frontend", "file": "packs/dev/pillars/frontend/frontend.md", "note": "+ design-system/ sub-pillar" },
+        { "name": "api", "file": "packs/dev/pillars/api.md" },
+        { "name": "backend", "file": "packs/dev/pillars/backend.md" },
+        { "name": "ci-cd", "file": "packs/dev/pillars/ci-cd.md" }
+      ],
+      "when": "Building software — any stack. Carries the Lead/Contributor (expert-human) registers and the coding jump pack (enforcer). Loading it swaps the Persona slot from Guide to a dev register unless the profile overrides."
     }
   ]
 }

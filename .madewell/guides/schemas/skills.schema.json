@@ -1,80 +1,79 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Made Well Skills Registry",
-  "description": "Registry of thinking skills with triggers and modes",
+  "title": "Made Well Skills Manifest",
+  "description": "Reference manifest of skills and packs. Two layers: foundational (Made Well's own — loop machinery + thinking lenses, always available) and pack (loaded with a domain pack, optionally scoped to a striation). Paths are relative to .madewell/.",
   "type": "object",
   "required": ["version", "skills"],
-  
+  "additionalProperties": false,
+
   "properties": {
-    "version": {
-      "type": "string"
-    },
-    
+    "version": { "type": "string" },
+    "note": { "type": "string" },
     "skills": {
       "type": "array",
       "items": { "$ref": "#/definitions/skill" }
     },
-    
-    "powerPrompt": {
-      "type": "string",
-      "description": "The master prompt for invoking multiple skills"
+    "packs": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/pack" }
     }
   },
-  
+
   "definitions": {
     "skill": {
       "type": "object",
-      "required": ["name", "file", "trigger", "mode", "description"],
+      "required": ["name", "file", "layer", "mode", "when"],
+      "additionalProperties": false,
       "properties": {
-        "name": {
+        "name": { "type": "string", "description": "Skill identifier." },
+        "file": { "type": "string", "description": "Path to the skill definition, relative to .madewell/." },
+        "layer": {
           "type": "string",
-          "description": "Skill identifier"
-        },
-        "file": {
-          "type": "string",
-          "description": "Path to skill definition"
-        },
-        "trigger": {
-          "oneOf": [
-            { "type": "string", "enum": ["always", "continuous"] },
-            { 
-              "type": "array", 
-              "items": { "type": "string" },
-              "description": "Keywords that activate this skill"
-            }
-          ]
+          "enum": ["foundational", "pack"],
+          "description": "foundational = Made Well's own (always available); pack = loaded with a domain pack."
         },
         "mode": {
           "type": "string",
           "enum": ["lens", "workflow", "daemon"],
-          "description": "lens = perspective, workflow = protocol + artifacts, daemon = continuous monitoring"
+          "description": "lens = perspective; workflow = protocol + artifacts; daemon = continuous monitoring."
         },
-        "description": {
-          "type": "string"
+        "when": { "type": "string", "description": "Plain-language trigger — when to reach for this skill." },
+        "pack": { "type": "string", "description": "Owning pack (pack layer only), e.g. 'dev'." },
+        "striation": {
+          "type": ["string", "null"],
+          "description": "Striation this skill is scoped to (e.g. 'frontend'), or null for pack-wide."
         },
         "artifacts": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Files this skill produces (workflow mode only)"
-        },
-        "protocol": {
-          "type": "object",
-          "description": "Workflow configuration (workflow mode only)",
-          "properties": {
-            "steps": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "outputTo": { "type": "string" },
-            "outputFormat": { "type": "string" }
-          }
-        },
-        "signals": {
-          "type": "object",
-          "description": "Signal patterns for daemon mode",
-          "additionalProperties": {
-            "type": "array",
-            "items": { "type": "string" }
+          "description": "Files this skill produces (workflow mode)."
+        }
+      }
+    },
+    "pack": {
+      "type": "object",
+      "required": ["name", "file"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "file": { "type": "string", "description": "Path to the pack's PACK.md, relative to .madewell/." },
+        "skills": { "type": "string", "description": "Directory of pack skills." },
+        "persona": { "type": "string", "description": "Persona register(s) this pack carries." },
+        "fills": { "type": "string" },
+        "activate": { "type": "string" },
+        "when": { "type": "string" },
+        "striations": {
+          "type": "array",
+          "description": "The pack's striation hierarchy (e.g. frontend, api, backend, ci-cd).",
+          "items": {
+            "type": "object",
+            "required": ["name", "file"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string" },
+              "file": { "type": "string" },
+              "note": { "type": "string" }
+            }
           }
         }
       }

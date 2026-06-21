@@ -2,20 +2,24 @@
 
 **Mode:** Workflow (produces artifacts, updates madewell.json)
 **Trigger:** Brain dump, transcript, meeting notes, thinking out loud
-**Artifacts:** Staged insights in madewell.json
+**Artifacts:** Items on the `discovery` queue in madewell.json
 
 ---
 
 ## What This Does
 
-Processes unstructured input (brain dumps, transcripts, meeting notes) into structured insights that flow into your task system.
+Processes unstructured input (brain dumps, transcripts, meeting notes) into shaped work-items
+on the **outer queue**. Discovery is the take-in beat of the outer loop: it fills `discovery`,
+which the loop later drains one item at a time through Commit → Build → Land.
 
 This is a **workflow**, not just a lens. It:
 1. Ingests raw input
 2. Applies five lenses
-3. Extracts insights with routes
-4. Writes to madewell.json `staged` array
-5. Proposes promotions for your approval
+3. Extracts insights and routes each one
+4. Proposes what enters the `discovery` queue, for your approval
+5. Routes the rest to a decision or releases it
+
+It never writes straight into `active` — that is the Commit gate's call, made deliberately later.
 
 ---
 
@@ -28,7 +32,6 @@ This is a **workflow**, not just a lens. It:
 | **Source** | [brain dump / transcript / meeting / client call] |
 | **Date** | [when] |
 | **Participants** | [who] |
-| **Phase** | [Imagine / Plan / Make / Verify] |
 
 ### Step 2: Apply the Five Lenses
 
@@ -62,18 +65,23 @@ What's missing?
 - Assumptions unvalidated
 - References unexplained
 
-### Step 3: Extract Insights
+### Step 3: Extract and Route Each Insight
 
-For each insight:
+Every insight gets exactly one route:
+
+| Route | Meaning | Where it goes |
+|-------|---------|---------------|
+| **discovery** | Real, captured work | onto the `discovery` queue |
+| **decision** | Needs a call before it can be queued | surfaced now; recorded in `DECISIONS.md` once decided |
+| **release** | Not worth keeping | let it go, name it so it isn't silently dropped |
+
 ```json
 {
-  "id": "stg-001",
   "source": "[which input]",
   "lens": "[which lens found this]",
   "insight": "[one sentence]",
-  "route": "active | backlog | decision | dismiss",
-  "evidence": "[what supports this]",
-  "status": "staged"
+  "route": "discovery | decision | release",
+  "evidence": "[what supports this]"
 }
 ```
 
@@ -83,47 +91,37 @@ Answer in one sentence:
 
 > **What is the single most important thing this reveals that isn't written down anywhere else?**
 
-### Step 5: Update madewell.json
+Write it down — in PRODUCT.md, madewell.json, or DECISIONS.md.
 
-Add insights to `staged` array:
-
-```json
-"staged": [
-  {
-    "id": "stg-001",
-    "source": "braindump-2026-05-10",
-    "insight": "Users expect autosave, not manual save",
-    "route": "backlog",
-    "status": "staged"
-  }
-]
-```
-
-### Step 6: Propose Promotions
+### Step 5: Propose the Queue
 
 ```
-Insights ready for promotion:
+Ready to queue (route: discovery):
+  [d-new] "Users expect autosave"            scope: ux
+  [d-new] "Must work offline — user travels" scope: technical
 
-[STG-001] "Users expect autosave" → backlog
-[STG-002] "Must work offline" → active (blocks MVP)
-[STG-003] "Consider subscription pricing" → decision needed
+Needs a decision before queueing:
+  "Pricing model: subscription vs one-time?"
 
-Approve? (yes/no/modify)
+Releasing (not kept):
+  "Tangent about a future mobile app"
+
+Approve? (yes / no / modify)
 ```
 
-On approval, agent moves items from `staged` to appropriate array and updates `status`.
+On approval, append the `discovery`-routed items to the `discovery` queue with fresh ids
+(`d001`, `d002`, …). Decisions get surfaced and, once made, recorded in `DECISIONS.md`.
 
 ---
 
 ## Output Artifacts
 
 **madewell.json updates:**
-- New items in `staged` array
-- Items moved to `active`, `backlog`, or `decisions` on approval
-- `context.lastSession` updated
+- New items appended to the `discovery` queue (`{id, item, scope}`)
+- `context.summary` / `context.openThread` refreshed if the session shifted
 
 **Optional transcript archive:**
-- `discovery/transcripts/YYYY-MM-DD-slug.md`
+- `decisions/transcripts/YYYY-MM-DD-slug.md`
 - Raw input preserved for reference
 
 ---
@@ -139,51 +137,41 @@ On approval, agent moves items from `staged` to appropriate array and updates `s
 
 ### Classification
 - Source: Brain dump
-- Phase: Imagine
 
 ### Lens Findings
-
 **Product:** Save mechanism is a core UX decision. Autosave vs manual affects architecture.
 **User:** You are the primary user. Travel context matters. Offline is a real constraint.
 **Technical:** Autosave implies state management, conflict resolution. Offline implies local-first.
 **Process:** Pricing decision is blocking — affects scope and timeline.
 **Gaps:** No user research yet. Assuming your preferences match others'.
 
-### Insights Staged
-
-[STG-001] Product: "Users expect autosave, not manual save" → backlog
-[STG-002] Technical: "Must work offline — user travels frequently" → active (constraint)
-[STG-003] Business: "Pricing model undecided: subscription vs one-time" → decision
-[STG-004] Gap: "No validation that your preferences match target users" → backlog
+### Routed
+  discovery → "Design for offline-first — user travels, can't lose work"   scope: technical
+  discovery → "Research autosave patterns"                                 scope: ux
+  discovery → "Validate assumptions with target users"                     scope: research
+  decision  → "Pricing model undecided: subscription vs one-time"
+  release   → (nothing this round)
 
 ### The One Thing
 You're building for yourself, but haven't validated that others share your constraints.
 
 ---
-
-Approve staging these insights? (yes/no/modify)
+Approve queueing these? (yes / no / modify)
 ```
 
----
-
-## Integration with madewell.json
-
-After approval:
+On approval:
 ```json
 {
-  "active": [
-    {"id": "t004", "task": "Design for offline-first", "scope": "technical", "status": "pending", "context": "From STG-002: user travels, can't lose work"}
-  ],
-  "backlog": [
-    {"id": "b001", "task": "Research autosave patterns", "scope": "ux", "context": "From STG-001"},
-    {"id": "b002", "task": "Validate assumptions with target users", "scope": "research", "context": "From STG-004"}
-  ],
-  "staged": [
-    {"id": "stg-003", "insight": "Pricing model undecided", "route": "decision", "status": "pending_decision"}
+  "discovery": [
+    { "id": "d001", "item": "Design for offline-first — user travels, can't lose work", "scope": "technical" },
+    { "id": "d002", "item": "Research autosave patterns", "scope": "ux" },
+    { "id": "d003", "item": "Validate assumptions with target users", "scope": "research" }
   ]
 }
 ```
+The pricing question is surfaced for a decision; once made it becomes a line in `DECISIONS.md`
+(and, if it implies work, its own `discovery` item).
 
 ---
 
-*Discovery isn't just thinking. It's thinking that flows into action.*
+*Discovery isn't just thinking. It's thinking that flows onto the queue — and into action.*
