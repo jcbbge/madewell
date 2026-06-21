@@ -3,9 +3,9 @@
 **Parallel execution mode. Delegate work to sub-agents.**
 
 > **Scope:** inner-loop orchestration — a fan-out pattern per phase (`LIFECYCLE.md` →
-> "Orchestration — the recursive coordination layer"). Built: **Imagine** (below) and
+> "Orchestration — the recursive coordination layer"). Built: **Imagine**, **Plan** (below) and
 > **Make + Verify** (Steps 1–6 — fan planned work to parallel implementers + the 5-role
-> verification jump pack). WIP: the **Plan** fan-out and the **outer-loop fleet**. The spawn
+> verification jump pack) — the full inner loop. WIP: the **outer-loop fleet**. The spawn
 > mechanism is Made Well's **baseline default**; a host harness may substitute its own,
 > preserving the invariants (isolation, cooperative pause).
 
@@ -52,6 +52,19 @@ When a committed item isn't fully understood, fan out **read-only** understander
 4. **Pause** — surface "here's what this is, and the pieces" to the person before moving to Plan.
 
 Skip the fan-out for a small or already-clear item — Imagine it inline. Isolation holds: the understanders are not the implementers.
+
+---
+
+## Plan — parallel options *(inner-loop converge)*
+
+When the *approach* isn't obvious (several viable designs), fan out options before committing to one:
+
+1. **Fan out** a small panel of approach-generators, each proposing a different way to structure and sequence the work — e.g. MVP-first, risk-first, simplest-first.
+2. **Score** them against the real constraints (effort, blast radius, reversibility).
+3. **Synthesize** the winner — graft the best ideas from the runners-up rather than picking one whole.
+4. **Output** the sequenced plan: order + dependencies over the Imagine items. **Pause** before Make.
+
+Skip the fan-out when the path is linear or obvious — Plan it inline.
 
 ---
 
