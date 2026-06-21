@@ -2,12 +2,12 @@
 
 **Parallel execution mode. Delegate work to sub-agents.**
 
-> **Scope:** this skill is **one cell** of the orchestration map (`LIFECYCLE.md` →
-> "Orchestration — the recursive coordination layer"): the **Make phase** of the inner loop —
-> fanning planned work out to parallel implementers + the 5-role verification jump pack. It is
-> the one built cell; outer-loop/fleet orchestration, the other inner phases, and the recursion
-> contract are still WIP. The spawn mechanism below is Made Well's **baseline default**; a host
-> harness may substitute its own, preserving the invariants (isolation, cooperative pause).
+> **Scope:** inner-loop orchestration — a fan-out pattern per phase (`LIFECYCLE.md` →
+> "Orchestration — the recursive coordination layer"). Built: **Imagine** (below) and
+> **Make + Verify** (Steps 1–6 — fan planned work to parallel implementers + the 5-role
+> verification jump pack). WIP: the **Plan** fan-out and the **outer-loop fleet**. The spawn
+> mechanism is Made Well's **baseline default**; a host harness may substitute its own,
+> preserving the invariants (isolation, cooperative pause).
 
 ---
 
@@ -42,7 +42,22 @@ When work can be parallelized:
 
 ---
 
-## Step 1 — Carve packages from backlog
+## Imagine — parallel understanding *(inner-loop take-in)*
+
+When a committed item isn't fully understood, fan out **read-only** understanders before shaping the Imagine queue:
+
+1. **Fan out** N explore/research workers, each mapping a different facet — the affected code, prior art, constraints, the real user need. They *understand*; they do not build.
+2. **Collect** their findings; dedup; resolve contradictions.
+3. **Shape** the result into the Imagine queue — the smallest completable items.
+4. **Pause** — surface "here's what this is, and the pieces" to the person before moving to Plan.
+
+Skip the fan-out for a small or already-clear item — Imagine it inline. Isolation holds: the understanders are not the implementers.
+
+---
+
+## Make + Verify — parallel execution
+
+## Step 1 — Carve packages from the plan
 
 Each package is a unit of work that:
 - Can be completed independently
