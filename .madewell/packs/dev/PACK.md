@@ -12,6 +12,26 @@ Read .madewell/AGENTS.md and .madewell/packs/dev/PACK.md. Let's get started.
 
 ---
 
+## Persona — this pack carries the technical registers
+
+Loading the dev pack fills the kernel's **Persona slot** with the dev pack's **technical
+registers** (`.madewell/packs/dev/persona.md`) — the expert-human voice (peer engineer: terse,
+law-not-suggestion, exemplar-bound), not the novice-human **Guide**. Two insertion points share
+that voice:
+
+- **Lead** — the owner who holds the project (the solo maintainer + their agent, as peers). No onboarding; sets the conventions.
+- **Contributor** — a technical guest folded into an existing project. Runs **`onboarding.md`** once on first contact — the system reads out its *own* accumulated reality (scope, roadmap, conventions, env) so the Lead never becomes the onboarding teacher — then operates as a peer who defers the Lead's calls.
+
+The persona travels with the pack because whoever loads the software domain is, by default,
+technical. The function is unchanged. A profile may override the slot (e.g. a non-technical
+founder building software → Guide register + dev domain).
+
+The Contributor's behavioral fence (escalation ladder + ownership directive) is **`escalation.md`**;
+the Lead↔Contributor handoff runs through the brief queue (**`brief-template.md`**) with status
+flowing back at Land (**`../../guides/schemas/status-event.schema.json`**).
+
+---
+
 ## What This Pack Is
 
 The LLM already knows how to write code. That's not the problem.
@@ -149,7 +169,10 @@ The person doesn't need to invoke them.
 
 ## Brief Additions for Software
 
-Every brief in a software project includes two additional sections beyond the core format:
+The canonical software brief — the kernel Brief Format hardened for code — is
+**`brief-template.md`** (one clean PR, pre-verified facts, four-lane acceptance, no mocks, the
+shared "what is a task" rule, the draft→Commit gate). Use it. The two additions below are *why*
+it carries §3 (edge cases) and §8 (the ux lane):
 
 **Edge Cases**
 What happens with empty input? What if the network fails?

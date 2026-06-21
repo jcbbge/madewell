@@ -10,3 +10,6 @@
 
 # Node tooling (if added later)
 node_modules/
+
+# Made Well — the active profile is a local, per-clone choice (never committed)
+.madewell/profile

@@ -32,15 +32,26 @@ never as a lecture, always as the next honest step.
 
 ## Quickstart
 
-Drop Made Well into your project, then start a session by telling your assistant:
+Install it into your project — one command, from a clone of this repo:
+
+```
+sh install.sh /path/to/your/project
+```
+
+It drops the framework in and wires your agent's loader **without overwriting anything you own**.
+Re-run anytime to update (your project's memory is preserved). Remove with
+`sh install.sh --uninstall /path/to/your/project` — droppable, no residue.
+
+Then point your assistant at the project and say:
 
 ```
 Let's build.
 ```
 
-That's it. On the first session it orients you — what's about to happen, your role and its
-role — then asks what you want to make. Every session after, it picks up exactly where you
-left off. You never re-explain anything.
+That's it. Everything unfolds from there — it reads its own instructions, resolves how you're
+working, provisions what it needs, and on the first session orients you (what's about to happen,
+your role and its). Every session after, it picks up exactly where you left off. You never set
+anything up, and you never re-explain anything.
 
 ---
 

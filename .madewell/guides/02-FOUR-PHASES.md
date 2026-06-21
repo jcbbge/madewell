@@ -14,6 +14,25 @@ You imagine what you're making, plan how to make it, make it, verify it became w
 
 ---
 
+## These four are the *Cycle* — the engine room
+
+The four phases are the core of a larger loop. Around them sit two membranes: work has to
+get *in*, and — just as important — it has to get *out*.
+
+```
+DISCOVERY → COMMIT → [ IMAGINE → PLAN → MAKE → VERIFY ] → LAND
+ get it in   choose it      the four phases (this page)    ship it + learn from it
+```
+
+- **Discovery** — get what's in your head into a form you can act on. (See *Discovery*.)
+- **Commit** — the choice to do *this, not that, now*, and to keep the active list short.
+- **Land** — how a finished piece leaves cleanly: it ships, and it feeds back what it taught.
+
+Without Land, work piles up — finished-but-never-closed — until the system clogs. The four
+phases build the thing; Land is how you set it down so you can pick up the next.
+
+---
+
 ## IMAGINE
 
 **Purpose:** Understand what you're making and why — before touching anything.
@@ -111,7 +130,7 @@ Output: the thing works correctly, including when things go wrong.
 
 **MAKE → VERIFY** when the thing works — happy path confirmed, work saved.
 
-**VERIFY → DONE** when you'd let a real person use it right now.
+**VERIFY → LAND** when you'd let a real person use it right now — then Land it: ship it, and capture what building it taught.
 
 ---
 
