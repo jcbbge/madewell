@@ -17,20 +17,30 @@ OUTER LOOP — the Made Well lifecycle
   while Discovery is not empty:
     pull one item → Commit → Build → Land
                             └── Build runs an INNER LOOP
+    ↳ pause: surface to the user, take feedback, then continue
 
 INNER LOOP — one Cycle (lives inside Build)
   while Imagine is not empty:
     pull one item → Plan → Make → Verify
+    ↳ pause: surface to the user, take feedback, then continue
 ```
 
-**The first beat of each loop is a queue. The loop drains that queue. The loop ends when
-the queue is empty.** Same rule at every scale.
+**The first beat of each loop is a queue. The loop drains that queue — but cooperatively:**
+after every iteration it **pauses**, surfaces the result, and takes the user's feedback before
+the next pull. It is a `while not empty` loop *with a human checkpoint each turn* — never an
+autonomous drain. It still terminates when its queue is empty; it just yields between iterations
+so the user can steer, redirect, or stop.
 
-- **Outer queue = Discovery.** The outer loop runs until Discovery drains.
-- **Inner queue = Imagine.** The inner loop runs until Imagine drains.
+- **Outer queue = Discovery.** Pull one item, run it, pause; repeat until Discovery drains.
+- **Inner queue = Imagine.** Pull one item, run it, pause; repeat until Imagine drains.
 - **Discovery feeds Imagine.** A committed Discovery item enters Build; Build seeds that
   Cycle's Imagine queue; the inner loop drains it through Plan → Make → Verify. When
   Imagine is empty, the Cycle Lands and the outer loop pulls the next Discovery item.
+
+**Where a session resumes — inner first.** Most work lives in the inner loop. A session picks
+up by checking it first: if there's an active Cycle with pending `imagine` items, resume there.
+Only if nothing is in flight does it drop to the outer loop (Commit the next `discovery` item).
+Only if both are empty is it a fresh discovery conversation.
 
 ---
 

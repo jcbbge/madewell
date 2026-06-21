@@ -30,12 +30,22 @@ From git log, find the most recent commit with a `TODO:` line. That is the unfin
 Before saying anything, answer these privately:
 
 - What stage is the project in? (`madewell.json → stage`)
-- What's on the active stack? (`madewell.json → active`)
+- Is a Cycle in flight? (`madewell.json → active` → read each cycle store for pending `imagine` items)
+- What's queued to Commit next if nothing's in flight? (`madewell.json → discovery`)
 - What's blocked and why? (`madewell.json → blocked`)
 - What was the open thread from last session? (`madewell.json → context.openThread`, confirmed by git TODO line)
-- What metaphors does this person use? (`madewell.json → context.metaphors`)
+- What metaphors does this person use? (`madewell.json → context.language`)
 - What have they already built and learned? (`PRODUCT.md → What You've Proven`)
 - Are there any decisions already made that are relevant? (`DECISIONS.md`)
+
+**Resolve where to resume — inner loop first.** Most work lives in the inner loop:
+
+1. **Active Cycle with pending `imagine` items** → resume the inner loop there. This is the default.
+2. **Else, items in `discovery`** → drop to the outer loop; surface the next one to Commit.
+3. **Else** → a fresh discovery conversation.
+
+Both loops are cooperative (see `LIFECYCLE.md`): you run one iteration, then pause for the
+person before the next. A session start is just re-entering a paused loop at the right scale.
 
 ---
 
