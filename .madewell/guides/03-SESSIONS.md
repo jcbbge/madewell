@@ -9,7 +9,7 @@
 Your guide maintains state. You steer direction.
 
 ```
-STATE.json    ← guide reads and writes this continuously
+madewell.json    ← guide reads and writes this continuously
 DECISIONS.md  ← append-only log of every decision made
 PRODUCT.md    ← living memory of you and your project
 ```
@@ -22,7 +22,7 @@ You don't need to update these. Your guide does. You review, redirect, and decid
 
 Every session, your guide:
 
-1. Reads `STATE.json`, `DECISIONS.md`, `PRODUCT.md`
+1. Reads `madewell.json`, `DECISIONS.md`, `PRODUCT.md`
 2. Reads the last few git commits to see what was left open
 3. Opens with a question — not a status report
 
@@ -37,7 +37,7 @@ If there's an open thread from last session, it surfaces that first and asks if 
 
 **Your guide captures as you go.**
 When something comes up mid-conversation that isn't the current work — a new idea,
-a concern, something to remember — your guide adds it to the backlog immediately,
+a concern, something to remember — your guide adds it to the discovery queue immediately,
 says "captured," and returns to what you were doing.
 
 The thread doesn't get pulled sideways. Tangents don't get lost. Both things happen.
@@ -55,7 +55,7 @@ The active list should be short. If it keeps growing, something isn't getting fi
 
 Before closing, your guide:
 
-1. Updates `STATE.json` — especially `context.openThread` (exactly where to pick up)
+1. Updates `madewell.json` — especially `context.openThread` (exactly where to pick up)
 2. Appends new decisions to `DECISIONS.md`
 3. Updates `PRODUCT.md` if anything new was learned
 4. Deletes brief files for work that's been verified complete
@@ -71,7 +71,7 @@ means the next session starts cold. A specific one means it starts running.
 
 The reason Made Well sessions feel continuous:
 
-- `STATE.json` has the live picture of what's in flight
+- `madewell.json` has the live picture of what's in flight
 - `DECISIONS.md` means no decision gets relitigated
 - `PRODUCT.md` means your guide remembers your language, your metaphors, what you've proven
 - Git commits carry the open thread forward as a note

@@ -9,7 +9,7 @@
 Run these in order:
 
 ```bash
-cat STATE.json
+cat madewell.json
 ```
 ```bash
 cat DECISIONS.md 2>/dev/null || echo "(no decisions yet)"
@@ -25,27 +25,52 @@ From git log, find the most recent commit with a `TODO:` line. That is the unfin
 
 ---
 
+## Step 1b — Migrate legacy state (mandatory)
+
+Before orienting, check `madewell.json` against the current schema (`guides/schemas/madewell.schema.json`).
+If it carries **legacy fields** (`phase`, `backlog`, `staged`) or **lacks** `stage`/`discovery`, you
+**MUST** migrate it in place before doing anything else — then validate it against the schema:
+
+- `phase` → `stage` (map the value: `imagine`-era states → `discovery`).
+- `backlog` + `staged` → fold into the `discovery` queue (`{id, item, scope}`).
+- `active` task-records → `{id, cycle}` pointers; mint a `cycles/<id>.json` for any genuinely in-flight item.
+
+(`install.sh` already renamed `STATE.json` → `madewell.json` on re-sync; this step fixes the shape.)
+This is not optional and not deferrable — a stale store breaks every read below.
+
+---
+
 ## Step 2 — Orient internally
 
 Before saying anything, answer these privately:
 
-- What phase is the project in? (`STATE.json → phase`)
-- What's on the active stack? (`STATE.json → active`)
-- What's blocked and why? (`STATE.json → blocked`)
-- What was the open thread from last session? (`STATE.json → context.openThread`, confirmed by git TODO line)
-- What metaphors does this person use? (`STATE.json → context.metaphors`)
+- What stage is the project in? (`madewell.json → stage`)
+- Is a Cycle in flight? (`madewell.json → active` → read each cycle store for pending `imagine` items)
+- What's queued to Commit next if nothing's in flight? (`madewell.json → discovery`)
+- What's blocked and why? (`madewell.json → blocked`)
+- What was the open thread from last session? (`madewell.json → context.openThread`, confirmed by git TODO line)
+- What metaphors does this person use? (`madewell.json → context.language`)
 - What have they already built and learned? (`PRODUCT.md → What You've Proven`)
 - Are there any decisions already made that are relevant? (`DECISIONS.md`)
+
+**Resolve where to resume — inner loop first.** Most work lives in the inner loop:
+
+1. **Active Cycle with pending `imagine` items** → resume the inner loop there. This is the default.
+2. **Else, items in `discovery`** → drop to the outer loop; surface the next one to Commit.
+3. **Else** → a fresh discovery conversation.
+
+Both loops are cooperative (see `LIFECYCLE.md`): you run one iteration, then pause for the
+person before the next. A session start is just re-entering a paused loop at the right scale.
 
 ---
 
 ## Step 3 — Open with a question, not a report
 
-Do NOT say: "I've read your STATE.json and here's what I found."
+Do NOT say: "I've read your madewell.json and here's what I found."
 
 DO say something like:
 - If there's an open thread: *"Welcome back. Last time we were working on [open thread in plain English]. Ready to pick that up, or is something else on your mind first?"*
-- If it's the first session ever (STATE.json is blank): *"Hey — tell me what you're trying to build. Don't worry about organizing it, just talk. What's the thing you want to exist?"*
+- If it's the first session ever (madewell.json is blank): *"Hey — tell me what you're trying to build. Don't worry about organizing it, just talk. What's the thing you want to exist?"*
 - If the stack is empty and there's no open thread: *"We finished everything from last session. What's next for you?"*
 
 Use their metaphors. Speak their language. If PRODUCT.md says they call authentication "the bouncer," you call it "the bouncer."

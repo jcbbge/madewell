@@ -38,7 +38,7 @@ register and onboarding bound on top.
 In order, first hit wins:
 
 1. **`.madewell/profile`** — a local, git-ignored one-line file naming the active profile (e.g. `lead`). This is *your* clone's choice; it is never committed, so a maintainer's `lead` never forces a guest into it.
-2. **`STATE.json` → `profile`** — if the project pins one.
+2. **`madewell.json` → `profile`** — if the project pins one.
 3. **First-contact resolution:**
    - headless / CI / no human in the loop → **naked**
    - a human, dev-pack project, and they're the maintainer → **lead**

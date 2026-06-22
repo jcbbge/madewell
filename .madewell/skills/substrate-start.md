@@ -6,7 +6,7 @@
 
 ## When to Use
 
-Every session. After reading STATE.json, DECISIONS.md, PRODUCT.md.
+Every session. After reading madewell.json, DECISIONS.md, PRODUCT.md.
 
 ---
 
@@ -35,16 +35,16 @@ Parse events. Build two maps:
 
 ---
 
-## Step 3 — Reconcile with STATE.json
+## Step 3 — Reconcile with madewell.json
 
-For each task in STATE.json `active`:
-- If event log has `task_completed` → task is done, STATE.json is stale
+For each task in madewell.json `active`:
+- If event log has `task_completed` → task is done, madewell.json is stale
 - If event log has no events → task was never started
 
-**The event log wins.** If completion is logged, the work is done regardless of what STATE.json says.
+**The event log wins.** If completion is logged, the work is done regardless of what madewell.json says.
 
 Report discrepancies plainly:
-> "The event log shows t001 completed on 2026-05-29, but STATE.json still has it active. Treating as complete."
+> "The event log shows t001 completed on 2026-05-29, but madewell.json still has it active. Treating as complete."
 
 ---
 

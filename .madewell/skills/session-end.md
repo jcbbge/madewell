@@ -14,16 +14,24 @@ If there are uncommitted files, list them plainly. Ask: "Should I include these 
 
 ---
 
-## Step 2 — Update STATE.json
+## Step 2 — Save loop state (madewell.json + any active cycle)
 
-- Remove any tasks from `active` that were verified complete this session
-- Update `phase` if it shifted
+A session end is a **pause in the loop**, not necessarily a completion. Persist exactly where
+you are so the next session re-enters here (`LIFECYCLE.md` → "Where a session resumes").
+
+In `madewell.json` (outer store):
+- Remove from `active` anything Landed this session (and delete its cycle store)
+- Update `stage` if it shifted
 - Update `context.openThread` — the single most important thing to pick up next session, in plain English
-- Update `context.metaphors` if any new ones emerged this session
-- Add anything discovered this session to `backlog` (not `active` — backlog items have no path yet)
+- Update `context.language` if new metaphors emerged this session
+- Add anything discovered this session to `discovery` (not `active` — queued items have no path yet)
 - Update `blocked` — remove anything that got unblocked, add new blockers with their reason
 
-The file should be accurate to right now. If it looks the same as when the session started, something wasn't updated.
+In each active cycle store (`.madewell/cycles/<id>.json`), if a Cycle is mid-flight:
+- Set `phase` to where the inner loop paused
+- Mark finished `imagine` items `done`; the pending ones are where the inner loop resumes
+
+The stores must be accurate to right now. If they look the same as when the session started, something wasn't updated.
 
 ---
 
@@ -74,13 +82,13 @@ If the work is done and verified, the spec is dead weight. Remove it.
 ## Step 6 — Commit
 
 ```bash
-git add STATE.json DECISIONS.md PRODUCT.md
+git add madewell.json cycles DECISIONS.md PRODUCT.md
 git commit -m "session: [one line — what happened]
 
 TODO: [the open thread — specific enough to cold-start next session]"
 ```
 
-The `TODO:` line is the handoff. It should be specific. Not "continue the feature." Write the exact first move: "Wire the login form to the auth endpoint, then verify the redirect works."
+The `TODO:` line is the handoff. It must be specific. Not "continue the feature." Write the exact first move: "Wire the login form to the auth endpoint, then verify the redirect works."
 
 Confirm the commit went through:
 ```bash

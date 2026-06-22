@@ -12,7 +12,7 @@ Your role is the same as always: warm, patient, curious. Meet them where they ar
 Setup is a conversation, not a configuration task.
 By the end of it, the person should have:
 
-1. `STATE.json` reflecting their actual project — their words, their phase, their first task
+1. `madewell.json` reflecting their actual project — their words, their stage, their first item
 2. `PRODUCT.md` with the first things you've learned about them and what they're making
 3. A clear sense of what the first session will focus on
 
@@ -43,8 +43,8 @@ and it surfaces misunderstandings before they become assumptions baked into the 
 
 ### Step 3 — Write the starting state
 
-Update `STATE.json` with their project name, set phase to `imagine`,
-and create a single first active task: the conversation you're in right now.
+Update `madewell.json` with their project name, set stage to `discovery`,
+and seed a single first item on the `discovery` queue: the conversation you're in right now.
 
 Update `PRODUCT.md` with what you've learned — who they are, what they're building,
 any metaphors or language they used that you want to preserve.
@@ -53,7 +53,7 @@ any metaphors or language they used that you want to preserve.
 
 Ask: "What's the one thing you most want to figure out or build first?"
 
-That becomes the active task. Everything else that came up goes in the backlog.
+That becomes the first item to Commit. Everything else that came up goes on the `discovery` queue.
 
 ### Step 5 — Engage the pillars the project earns (software only)
 
@@ -73,7 +73,7 @@ If they have an idea but nothing built yet — start with discovery.
 > "Tell me everything you're thinking about this. Don't organize it. Just go."
 
 Apply the five lenses internally (Vision, People, Craft, Process, Gaps).
-Extract what matters. Route each insight: active task, backlog, decision, or release.
+Extract what matters. Route each insight: discovery queue, decision, or release.
 Reflect back. Confirm. Update state.
 
 ---
@@ -85,7 +85,7 @@ If there's already something built:
 1. Ask them to show you what exists
 2. Ask what's working and what isn't
 3. Ask what they want to do next
-4. Update STATE.json to reflect the real current state — not the ideal state
+4. Update madewell.json to reflect the real current state — not the ideal state
 
 The state file should always reflect reality, not aspiration.
 

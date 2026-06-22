@@ -2,6 +2,13 @@
 
 **Parallel execution mode. Delegate work to sub-agents.**
 
+> **Scope:** inner-loop orchestration — a fan-out pattern per phase (`LIFECYCLE.md` →
+> "Orchestration — the recursive coordination layer"). Covers **both loops**: the **outer-loop
+> fleet** of Cycles and the full **inner loop** — Imagine, Plan, Make + Verify (Steps 1–6, the
+> 5-role verification jump pack). Baseline designs for all cells; the mechanisms deepen with use.
+> The spawn mechanism is Made Well's **baseline default**; a host harness may substitute its own,
+> preserving the invariants (isolation, cooperative pause).
+
 ---
 
 ## Provider-Agnostic Parallel Execution
@@ -35,7 +42,65 @@ When work can be parallelized:
 
 ---
 
-## Step 1 — Carve packages from backlog
+## Outer loop — fleet of Cycles *(outer-loop orchestration)*
+
+When Commit green-lights more than one Discovery item at once, run them as a **fleet** of concurrent
+Cycles. Each committed item mints its own cycle store and runs its own inner loop independently.
+**Default to one Cycle at a time**; any width beyond one is the Lead's explicit call. The outer
+orchestrator coordinates the fleet and **never executes** — it partitions, watches the board, and
+reconciles. Run it as a protocol:
+
+1. **Partition before dispatch.** You MUST assign each Cycle an explicit file/module claim, and you
+   MUST NOT dispatch two Cycles whose claims overlap. If two committed items cannot be partitioned
+   cleanly, they are not parallel — run them in sequence. State each claim in the cycle's brief.
+2. **Claim on the board.** The shared board is `.madewell/work/board.jsonl` (append-only). Before a
+   Cycle touches any file it MUST append a claim — `{"ts","cycle","claims":[paths],"kind":"claim"}` —
+   and MUST read the board first. A Cycle that finds its target already claimed MUST stop and surface
+   the conflict to the Lead; it MUST NOT proceed into contested files.
+3. **Share findings as they happen.** A discovery in one Cycle that changes another's plan MUST be
+   posted to the board immediately (`"kind":"finding"`), not held to the end. Cycles MUST read the
+   board between phases.
+4. **Reconcile at Land.** Each Cycle Lands on its own. The outer orchestrator MUST merge results in
+   claim order. If two Cycles touched the same file (the partition should make this impossible),
+   treat it as a defect: re-run Verify on that file before merging.
+5. **Pause for the Lead.** Between iterations the fleet's state surfaces to the Lead, who steers
+   width and priority. The fleet never widens itself.
+
+Isolation holds per Cycle — each carries its own planner/implementer/verifier separation. The board
+schema and partition heuristics will tighten with real runs; the rules above are the floor, not the
+ceiling.
+
+---
+
+## Imagine — parallel understanding *(inner-loop take-in)*
+
+When a committed item isn't fully understood, fan out **read-only** understanders before shaping the Imagine queue:
+
+1. **Fan out** N explore/research workers, each mapping a different facet — the affected code, prior art, constraints, the real user need. They *understand*; they do not build.
+2. **Collect** their findings; dedup; resolve contradictions.
+3. **Shape** the result into the Imagine queue — the smallest completable items.
+4. **Pause** — surface "here's what this is, and the pieces" to the person before moving to Plan.
+
+Skip the fan-out for a small or already-clear item — Imagine it inline. Isolation holds: the understanders are not the implementers.
+
+---
+
+## Plan — parallel options *(inner-loop converge)*
+
+When the *approach* isn't obvious (several viable designs), fan out options before committing to one:
+
+1. **Fan out** a small panel of approach-generators, each proposing a different way to structure and sequence the work — e.g. MVP-first, risk-first, simplest-first.
+2. **Score** them against the real constraints (effort, blast radius, reversibility).
+3. **Synthesize** the winner — graft the best ideas from the runners-up rather than picking one whole.
+4. **Output** the sequenced plan: order + dependencies over the Imagine items. **Pause** before Make.
+
+Skip the fan-out when the path is linear or obvious — Plan it inline.
+
+---
+
+## Make + Verify — parallel execution
+
+## Step 1 — Carve packages from the plan
 
 Each package is a unit of work that:
 - Can be completed independently
@@ -248,7 +313,7 @@ lifecycle is now multi-stage; recovery checks each stage in order.
 
 **Rules of recovery:**
 
-1. **Event log wins** over STATE.json on any conflict.
+1. **Event log wins** over madewell.json on any conflict.
 2. **Never re-run completed stages.** A `test_results` event with `failed == 0`
    means the tests passed — do not re-run them.
 3. **Re-spawn, don't resume.** If a sub-agent stalled, spawn a fresh one with

@@ -4,6 +4,12 @@
 
 **Provider-agnostic.** Works with any AI runtime that supports parallel or async execution.
 
+**Where it sits:** orchestration is Made Well's *recursive coordination layer* — it coordinates the
+**outer-loop fleet** (running several Cycles at once) and the **inner-loop** fan-out within each
+phase (Imagine/Plan/Make/Verify). The model is `.madewell/LIFECYCLE.md`; the mechanism for every
+cell is `.madewell/skills/orchestrate.md`. The baseline here is the default; a host harness may
+substitute its own, as long as it preserves the invariants (isolation, cooperative pause).
+
 ---
 
 ## For Users
@@ -27,7 +33,7 @@ Other ways to trigger it:
 
 ## Checks and Balances — The Verify Phase
 
-Every piece of work in Made Well runs four phases: **Imagine → Plan → Make
+Every Cycle (the inner loop) runs four phases: **Imagine → Plan → Make
 → Verify**. The Verify phase asks: *did this produce what we said it
 would produce?* Answering honestly requires an independent verifier — anyone
 checking their own work will, eventually, mark it passing because they want it
@@ -106,10 +112,10 @@ The work substrate establishes an **append-only event log** that survives sessio
 |-------|---------|------------|-----------|
 | PRODUCT.md | Context, language | Append/edit | Human context |
 | DECISIONS.md | Decision log | Append-only | Decision truth |
-| STATE.json | Tasks, phase | Mutable | **Cache** |
+| madewell.json | Queue, stage | Mutable | **Cache** |
 | status.jsonl | Execution events | Append-only | **Execution truth** |
 
-**STATE.json is the view. status.jsonl is the source.**
+**madewell.json is the view. status.jsonl is the source.**
 
 When they conflict, status.jsonl wins.
 
@@ -147,7 +153,7 @@ When they conflict, status.jsonl wins.
 1. Read status.jsonl
 2. Parse events, reconstruct state
 3. Completed? → skip. Blocked? → surface. In-flight? → check status.
-4. Reconcile with STATE.json
+4. Reconcile with madewell.json
 5. Continue from true state
 
 ---

@@ -1,19 +1,19 @@
 # Substrate End
 
-**Run before session-end. Logs execution events before STATE.json update.**
+**Run before session-end. Logs execution events before madewell.json update.**
 
 ---
 
 ## When to Use
 
-Every session. Before updating STATE.json.
+Every session. Before updating madewell.json.
 
 ---
 
 ## Step 1 — Identify completed tasks
 
 List every task completed this session:
-- Task ID (from STATE.json)
+- Task ID (from madewell.json)
 - Scope
 - One-line summary
 
@@ -50,6 +50,6 @@ For each completed task:
 
 ## Step 5 — Continue to normal session-end
 
-Now update STATE.json, DECISIONS.md, PRODUCT.md as usual.
+Now update madewell.json, DECISIONS.md, PRODUCT.md as usual.
 
 The event log was written first. Even if session-end fails, the execution truth survives.

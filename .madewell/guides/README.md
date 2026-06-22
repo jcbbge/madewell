@@ -45,18 +45,23 @@ When you come back, you pick up where you left off. No re-explaining.
 
 ---
 
-## The Four Phases
+## How Work Moves — Two Loops
 
-Every piece of work moves through four phases:
+Made Well runs two nested loops (full walk-through: `02-THE-LOOPS.md`):
 
 ```
-IMAGINE → PLAN → MAKE → VERIFY
+OUTER:  Discovery → Commit → Build → Land          the project moves: gather, choose, build, ship
+INNER:                        Imagine → Plan → Make → Verify     one chosen piece gets built
 ```
 
-1. **Imagine** — What are we making? Why? What does "done" look like?
-2. **Plan** — What are the steps? In what order?
-3. **Make** — Do the work. One step at a time.
-4. **Verify** — Does it actually work? What breaks it?
+The **outer loop** moves the whole project; the **inner loop** builds each chosen piece — and it's
+the same four-beat both times. Each loop runs one step, then pauses for you; nothing runs away on
+its own.
+
+- **Imagine** — What are we making? Why? What does "done" look like?
+- **Plan** — What are the steps? In what order?
+- **Make** — Do the work. One step at a time.
+- **Verify** — Does it actually work? What breaks it?
 
 ---
 
@@ -96,7 +101,7 @@ Works with any AI that supports parallel execution.
 - Never asks you to re-explain your project
 
 **During:**
-- Captures new ideas to the backlog immediately
+- Captures new ideas to the discovery queue immediately
 - Updates state in real time
 - Writes briefs for work that needs execution
 
@@ -134,7 +139,7 @@ You don't need to touch these. Your assistant manages them.
 | File | What it holds |
 |------|---------------|
 | `PRODUCT.md` | Your project, your words, what matters |
-| `STATE.json` | What's active, blocked, or waiting |
+| `madewell.json` | What's active, blocked, or waiting |
 | `DECISIONS.md` | Every decision made |
 | `work/status.jsonl` | Proof of what's done |
 

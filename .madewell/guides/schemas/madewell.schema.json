@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Made Well — Outer Store (madewell.json)",
+  "description": "The OUTER store: one per project, permanent. Holds the Discovery queue and the outer lifecycle pointer. The inner loop's per-cycle state lives in .madewell/cycles/<id>.json (see cycle.schema.json). The event log (status.jsonl) wins when a store disagrees with it.",
+  "type": "object",
+  "required": ["project", "stage", "updated", "context", "discovery", "active", "blocked"],
+  "additionalProperties": false,
+
+  "properties": {
+    "project": {
+      "type": "string",
+      "description": "The project name, in the person's own words."
+    },
+    "profile": {
+      "type": ["string", "null"],
+      "enum": ["lead", "contributor", "guide", "naked", null],
+      "description": "Project-pinned profile fallback. A local .madewell/profile file overrides this."
+    },
+    "stage": {
+      "type": "string",
+      "enum": ["discovery", "commit", "build", "land"],
+      "description": "The OUTER lifecycle pointer. (The inner phase lives in the cycle store.)"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "context": {
+      "type": "object",
+      "required": ["summary"],
+      "properties": {
+        "summary": { "type": "string", "description": "One sentence — what's happening right now." },
+        "openThread": { "type": ["string", "null"], "description": "Exactly where to pick up next session." },
+        "language": {
+          "type": "object",
+          "description": "The person's own words for things. concept -> their word.",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "discovery": {
+      "type": "array",
+      "description": "THE OUTER QUEUE. Shaped work-items waiting to be Committed. The outer loop drains this.",
+      "items": {
+        "type": "object",
+        "required": ["id", "item"],
+        "properties": {
+          "id": { "type": "string", "description": "e.g. d001" },
+          "item": { "type": "string", "description": "Plain-language work item." },
+          "scope": { "type": "string", "description": "Area of the project." }
+        }
+      }
+    },
+    "active": {
+      "type": "array",
+      "description": "Committed items currently in Build. Each is a lightweight pointer to its cycle store — the detail lives there, not here.",
+      "items": {
+        "type": "object",
+        "required": ["id", "cycle"],
+        "properties": {
+          "id": { "type": "string", "description": "The discovery item id this came from." },
+          "cycle": { "type": "string", "description": "Path to the cycle store, e.g. .madewell/cycles/c001.json" }
+        }
+      }
+    },
+    "blocked": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "reason"],
+        "properties": {
+          "id": { "type": "string" },
+          "reason": { "type": "string" },
+          "unblocks": { "type": "string", "description": "What resolves it." }
+        }
+      }
+    }
+  }
+}

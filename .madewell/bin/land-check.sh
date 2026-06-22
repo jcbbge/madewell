@@ -2,7 +2,7 @@
 # Made Well — Land walls (the file-decidable gauge).
 #
 # A WARNING gauge, never a halt. Reads the HEAD commit (the Land record)
-# + STATE.json + the tax ledger and reports which walls fired. Exit is ALWAYS 0: the walls
+# + madewell.json + the tax ledger and reports which walls fired. Exit is ALWAYS 0: the walls
 # warn; turning them into a blocking fence (a pre-commit hook) is the quality organ's job
 # (Rumen) — the pro upgrade behind this same contract.
 #
@@ -30,9 +30,9 @@ for face in LEARNED PROPAGATED TAX; do
 done
 
 # W2 — state advanced (or explicitly marked n/a / OWED): a unit that landed should move the queue.
-if printf '%s\n' "$changed" | grep -q "^$mw/STATE.json$"; then :; else
+if printf '%s\n' "$changed" | grep -q "^$mw/madewell.json$"; then :; else
   printf '%s\n' "$msg" | grep -Eq '^PROPAGATED:.*state:(n/a|OWED)' \
-    || fire "STATE.json did not advance in this commit (and PROPAGATED state not marked n/a or OWED)"
+    || fire "madewell.json did not advance in this commit (and PROPAGATED state not marked n/a or OWED)"
 fi
 
 # W3 — docs moved when code did.

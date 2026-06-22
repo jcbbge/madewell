@@ -29,6 +29,13 @@ if [ "$MODE" = "uninstall" ]; then
       $0==b{skip=1} skip&&$0==e{skip=0;next} !skip' "$DEST/$f" > "$DEST/$f.mw_tmp" && mv "$DEST/$f.mw_tmp" "$DEST/$f"
     [ -s "$DEST/$f" ] || rm -f "$DEST/$f"
   done
+  # Strip the Made Well lines from .gitignore (keep the project's own); drop it if now blank.
+  gi="$DEST/.gitignore"
+  if [ -f "$gi" ]; then
+    grep -v -e '^# Made Well — local per-clone profile marker' -e '^\.madewell/profile$' "$gi" \
+      > "$gi.mw_tmp" && mv "$gi.mw_tmp" "$gi"
+    grep -q '[^[:space:]]' "$gi" || rm -f "$gi"
+  fi
   echo "Made Well removed from $DEST (no residue)."
   exit 0
 fi
@@ -49,17 +56,26 @@ for d in guides skills packs templates bin; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
 done
-cp "$SRC/.madewell/internal.md"   "$DEST/.madewell/internal.md"
+cp "$SRC/.madewell/LIFECYCLE.md"  "$DEST/.madewell/LIFECYCLE.md"   # canonical lifecycle model
+cp "$SRC/.madewell/EXTENDING.md"  "$DEST/.madewell/EXTENDING.md"   # maintenance/extension manual
 cp "$SRC/.madewell/profiles.json" "$DEST/.madewell/profiles.json"
 cp "$SRC/.madewell/PROFILES.md"   "$DEST/.madewell/PROFILES.md"
 
-# 2. Fresh memory — created ONLY on first install; never clobbered on re-sync.
-mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/specs" "$DEST/.madewell/decisions"
+# 2. Memory. First migrate an older install (file-level, zero-dep), then seed what's missing.
+#    Migration: legacy STATE.json -> madewell.json. The SHAPE migration (legacy fields
+#    phase/backlog/staged -> stage/discovery, active task-records -> cycle pointers) is ENFORCED
+#    at session start (skills/session-start.md), where JSON is native.
+if [ -f "$DEST/.madewell/STATE.json" ] && [ ! -f "$DEST/.madewell/madewell.json" ]; then
+  mv "$DEST/.madewell/STATE.json" "$DEST/.madewell/madewell.json"
+  echo "  migrated: STATE.json -> madewell.json (shape migration runs at next session start)"
+fi
+# Fresh memory — created ONLY on first install; never clobbered on re-sync.
+mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/work/test-results" "$DEST/.madewell/specs" "$DEST/.madewell/decisions" "$DEST/.madewell/cycles"
 [ -f "$DEST/.madewell/DECISIONS.md" ]    || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
 [ -f "$DEST/.madewell/PRODUCT.md" ]      || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
-[ -f "$DEST/.madewell/STATE.json" ]      || cp "$SRC/.madewell/STATE.json"             "$DEST/.madewell/STATE.json"
+[ -f "$DEST/.madewell/madewell.json" ]      || cp "$SRC/.madewell/madewell.json"             "$DEST/.madewell/madewell.json"
 [ -f "$DEST/.madewell/work/tax.jsonl" ]  || : > "$DEST/.madewell/work/tax.jsonl"
-for k in work/packages work/reports specs decisions; do
+for k in work/packages work/reports work/test-results specs decisions cycles; do
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
 
@@ -87,7 +103,7 @@ when=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
 printf 'madewell %s\ninstalled %s\n' "$ver" "$when" > "$DEST/.madewell/VERSION"
 
 if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
-  echo "Done. Updated $prev -> $ver. Framework re-synced; STATE/DECISIONS/PRODUCT/tax preserved."
+  echo "Done. Updated $prev -> $ver. Framework re-synced; madewell.json/DECISIONS/PRODUCT/tax preserved."
   echo "Tell your agent: Made Well was updated — re-read .madewell/AGENTS.md, then continue."
 elif [ -n "$prev" ]; then
   echo "Done. Already at $ver — framework re-synced; nothing else changed."
