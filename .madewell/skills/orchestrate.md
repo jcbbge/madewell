@@ -92,9 +92,25 @@ When the *approach* isn't obvious (several viable designs), fan out options befo
 1. **Fan out** a small panel of approach-generators, each proposing a different way to structure and sequence the work — e.g. MVP-first, risk-first, simplest-first.
 2. **Score** them against the real constraints (effort, blast radius, reversibility).
 3. **Synthesize** the winner — graft the best ideas from the runners-up rather than picking one whole.
-4. **Output** the sequenced plan: order + dependencies over the Imagine items. **Pause** before Make.
+4. **Output** the dependency graph: set `dependsOn` on every Imagine item. Items with no deps are the starting frontier; items that share no dependency relationship can run concurrently. **Pause** before Make.
 
 Skip the fan-out when the path is linear or obvious — Plan it inline.
+
+### Frontier-based dispatch
+
+After Plan, dispatch uses the dependency graph, not a sequential queue.
+
+**Compute the frontier** before every dispatch wave:
+```
+frontier = items where status == "pending"
+           AND every id in dependsOn has status == "done"
+```
+
+**Dispatch the entire frontier concurrently.** When any item completes, recompute — new items may be unblocked. Repeat until the graph is empty.
+
+**If the frontier is empty and pending items remain**, a deadlock or missing dependency exists. Surface: "items [X, Y] are waiting on [Z] — is Z missing from the graph, or did it fail silently?"
+
+This replaces "dispatch the next item in the queue." The queue is a degenerate graph (every step depends on the previous). The graph is the general case.
 
 ---
 

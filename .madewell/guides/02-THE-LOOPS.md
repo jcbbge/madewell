@@ -58,15 +58,18 @@ Output: one sentence describing the thing, one sentence describing what done loo
 ### PLAN
 
 **Purpose:** Figure out how to make it before you start making it.
-**Done when:** You have a sequence of steps small enough that each one can be completed and verified independently.
+**Done when:** You have a dependency graph of steps — each step small enough to complete and verify independently, with its prerequisites declared.
 
 Questions to answer:
 - What are all the pieces?
-- What order do they need to happen?
-- What needs to exist before something else can be built?
+- Which pieces depend on other pieces being done first?
+- Which pieces have no dependencies and can start immediately?
+- Which pieces can run in parallel once their deps are done?
 - What's the first concrete action?
 
-Output: a numbered sequence of steps. Each step small enough to finish in one sitting. Clear enough that a fresh session could pick it up and continue.
+Output: a dependency graph over the Imagine items — each item with a `dependsOn` list. Items with empty `dependsOn` are the starting frontier. Items whose deps share no relationship can run concurrently once those deps are done. The critical path is the longest chain from start to finish.
+
+**A numbered list is a degenerate graph** (every step depends on the previous one). Most real work is not a chain — declare the actual shape.
 
 **Example:**
 ```
@@ -74,16 +77,19 @@ Making: Sign-in with email
 Done when: Someone can sign in, stay signed in, and sign out.
 Not making: Social login, password reset, account creation.
 
-Steps:
-1. Create the data store for accounts
-2. Build the sign-in endpoint
-3. Add session handling
-4. Build the sign-in form
-5. Connect form to endpoint
-6. Handle success and failure states
-7. Verify: correct password works
-8. Verify: wrong password shows a clear message
-9. Verify: staying signed in across sessions works
+Graph:
+i001 — Create the data store for accounts          dependsOn: []
+i002 — Build the sign-in endpoint                  dependsOn: [i001]
+i003 — Add session handling                        dependsOn: [i001]
+i004 — Build the sign-in form                      dependsOn: []
+i005 — Connect form to endpoint                    dependsOn: [i002, i004]
+i006 — Handle success and failure states           dependsOn: [i005]
+i007 — Verify: correct password works              dependsOn: [i006]
+i008 — Verify: wrong password shows clear message  dependsOn: [i006]
+i009 — Verify: staying signed in across sessions   dependsOn: [i003, i006]
+
+Frontier (start immediately, in parallel): i001, i004
+Critical path: i001 → i002 → i005 → i006 → i009 (5 steps)
 ```
 
 ### MAKE

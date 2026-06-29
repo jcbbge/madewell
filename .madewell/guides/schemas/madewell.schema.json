@@ -47,7 +47,13 @@
         "properties": {
           "id": { "type": "string", "description": "e.g. d001" },
           "item": { "type": "string", "description": "Plain-language work item." },
-          "scope": { "type": "string", "description": "Area of the project." }
+          "scope": { "type": "string", "description": "Area of the project." },
+          "dependsOn": {
+            "type": "array",
+            "default": [],
+            "description": "IDs of sibling discovery items that must reach Land before this item can be Committed. Empty or absent = no dependency = immediately eligible. Backward-compatible — existing items without this field are treated as having no dependencies.",
+            "items": { "type": "string" }
+          }
         }
       }
     },

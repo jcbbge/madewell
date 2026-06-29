@@ -419,7 +419,8 @@ outer **stage** pointer:
     "language": { "concept": "their word for it" }
   },
   "discovery": [
-    { "id": "d001", "item": "plain-language work item", "scope": "area of the project" }
+    { "id": "d001", "item": "plain-language work item", "scope": "area of the project", "dependsOn": [] },
+    { "id": "d002", "item": "work item that requires d001 first", "scope": "...", "dependsOn": ["d001"] }
   ],
   "active": [
     { "id": "d001", "cycle": ".madewell/cycles/c001.json" }
@@ -440,7 +441,9 @@ Commit→Build, deleted at Land). The Imagine queue + the inner **phase** pointe
   "created": "ISO date",
   "phase": "imagine | plan | make | verify",
   "imagine": [
-    { "id": "i001", "item": "smallest completable piece", "status": "pending | done" }
+    { "id": "i001", "item": "smallest completable piece", "status": "pending", "dependsOn": [] },
+    { "id": "i002", "item": "piece that needs i001 first", "status": "pending", "dependsOn": ["i001"] },
+    { "id": "i003", "item": "piece that can run alongside i002", "status": "pending", "dependsOn": ["i001"] }
   ],
   "brief": ".madewell/specs/2026-06-21-description.md"
 }
@@ -456,6 +459,14 @@ drains its own.
 - On Land: delete the cycle store and its brief, remove the item from `active`, say what was accomplished.
 - The stores get shorter as work gets done. If `madewell.json` keeps growing, something is wrong.
 - New intake goes straight into `discovery`. Route it to a decision or release it — don't let it pile up unrouted.
+
+**Dependency and dispatch rules (`dependsOn`):**
+- `dependsOn` is an optional array of sibling item IDs. Absent or empty = no dependencies = immediately eligible.
+- **Frontier** = all `pending` items whose every `dependsOn` ID has `status: "done"`. These are the items eligible to run right now.
+- Dispatch the entire frontier concurrently, not one item at a time.
+- After each item completes, recompute the frontier — newly unblocked items may now be eligible.
+- If the frontier is empty and pending items remain, a cycle is blocked. Surface which items are waiting on which, and why.
+- `dependsOn` is set during the **Plan phase** and does not change after that. It is not an event — do not log it to `status.jsonl`.
 
 ---
 
