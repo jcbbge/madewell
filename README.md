@@ -101,15 +101,14 @@ madewell/
 ├── MADEWELL.md         ← start here (for you)
 ├── AGENTS.md           ← the assistant's instructions
 ├── CLAUDE.md           ← loader for Claude Code
-└── .madewell/          ← the system (the assistant runs it; you don't touch it)
-    ├── guides/         ← how it works, in plain language
-    ├── skills/         ← the assistant's thinking tools
-    ├── packs/dev/      ← for building software
-    │   ├── foundation/ ← system design, decided before the pillars
-    │   ├── pillars/    ← backend · frontend (+ its design system) · api · ci-cd
-    │   └── skills/     ← quality enforcement
-    ├── work/ · specs/  ← the persistent record of what's done and in flight
-    └── STATE · DECISIONS · PRODUCT   ← memory
+├── .madewell/          ← the system (the assistant runs it; you don't touch it)
+│   ├── guides/         ← how it works, in plain language
+│   ├── skills/         ← the assistant's thinking tools
+│   ├── packs/guide/    ← the novice-human persona (batteries-included)
+│   ├── work/ · specs/  ← the persistent record of what's done and in flight
+│   └── STATE · DECISIONS · PRODUCT   ← memory
+└── cartridges/         ← domain cartridges (loaded by reference, not installed)
+    └── dev/            ← reference cartridge: building software
 ```
 
 You manage none of it. It's listed here so you can see there's nothing hidden — only nothing

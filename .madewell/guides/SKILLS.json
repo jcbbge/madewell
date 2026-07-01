@@ -108,15 +108,6 @@
       "mode": "workflow",
       "when": "Something is broken. Error pasted. Unexpected behavior. Observe → hypothesize → experiment → conclude; never bulldoze."
     },
-    {
-      "name": "enforcer",
-      "file": "packs/dev/skills/enforcer.md",
-      "layer": "pack",
-      "pack": "dev",
-      "striation": null,
-      "mode": "workflow",
-      "when": "After significant work, before anything ships. 'Is this good?' The dev pack's quality jump pack. Stateful — tracks progress in enforcer-state.json."
-    }
   ],
 
   "packs": [
@@ -126,21 +117,12 @@
       "fills": "the Persona slot — the GUIDE register (novice-human)",
       "activate": "Read at session start. Made Well's batteries-included default; recommended for any non-technical builder.",
       "striations": [],
-      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: Contributor (carried by the dev pack) and naked (machines/CI)."
-    },
-    {
-      "name": "dev",
-      "file": "packs/dev/PACK.md",
-      "skills": "packs/dev/skills/",
-      "persona": "packs/dev/persona.md (the Lead + Contributor registers — fills the Persona slot when loaded)",
-      "activate": "Add to start prompt: 'and .madewell/packs/dev/PACK.md'",
-      "striations": [
-        { "name": "frontend", "file": "packs/dev/pillars/frontend/frontend.md", "note": "+ design-system/ sub-pillar" },
-        { "name": "api", "file": "packs/dev/pillars/api.md" },
-        { "name": "backend", "file": "packs/dev/pillars/backend.md" },
-        { "name": "ci-cd", "file": "packs/dev/pillars/ci-cd.md" }
-      ],
-      "when": "Building software — any stack. Carries the Lead/Contributor (expert-human) registers and the coding jump pack (enforcer). Loading it swaps the Persona slot from Guide to a dev register unless the profile overrides."
+      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: cartridge-supplied expert-human registers (Lead / Contributor) and naked (machines/CI)."
     }
-  ]
+  ],
+
+  "cartridges": {
+    "note": "Domain cartridges live outside the kernel install. They are loaded into a project by explicit reference, not by the installer. Each cartridge carries its own PACK.md, persona register(s), skills, and striations. See the cartridge library.",
+    "library": "~/madewell/cartridges/ (reference library)"
+  }
 }

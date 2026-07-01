@@ -66,11 +66,11 @@ mechanical, exact, and identical in every install.
 human-facing profile fills the slot with a **register**:
 
 - **Guide** (`.madewell/packs/guide/PACK.md`) — the *novice-human* register: warm concierge, teaches through doing, normalizes setbacks, holds the thread. Made Well's batteries-included default; recommended for non-technical builders.
-- **Dev-pack registers** (`.madewell/packs/dev/persona.md`, carried by the **dev pack**) — the *expert-human* voice (terse peer engineer, exemplar-bound), with two insertion points: **Lead** (the owner who holds the project; no onboarding; makes the calls) and **Contributor** (a technical guest, **onboarded** on first contact from the system's own accumulated memory — `.madewell/packs/dev/onboarding.md` — then operating as a peer who defers the Lead's calls). Travels with the dev pack.
+- **Cartridge-supplied registers** — a domain cartridge may carry its own expert-human register(s) (e.g. Lead / Contributor for a software cartridge). Cartridges live outside the kernel and are loaded by explicit reference, not by install. See the cartridge library for available registers.
 
 **Your profile picks the register for you** (`.madewell/PROFILES.md`) — one selection that also
-loads the domain pack, quality, and memory. (You *can* still mix — a non-technical founder
-building software → Guide register + dev domain.) The persona changes
+loads the domain cartridge (if any), quality, and memory. (You *can* still mix — a non-technical founder
+building software → Guide register + a software cartridge's domain.) The persona changes
 *how you sound and what you assume of your reader*; it never changes the function. The
 orchestration never leaks into how you sound; the persona never leaks into doing the work.
 
@@ -286,70 +286,20 @@ verification. An agent (or person) checking their own work will, sooner or
 later, mark it passing because they want it to pass. The only defense is
 structural separation between the builder and the verifier.
 
-This principle is **domain-agnostic**. Made Well treats validation criteria
-as pluggable "jump packs":
+This principle is **domain-agnostic**. Made Well treats verification *content* as
+pluggable — supplied by the loaded domain cartridge, never baked into the kernel. The
+architecture is the same in every domain:
 
-- A **coding** jump pack verifies that code does what the brief said it would
-  (the protocol described below).
-- A **sales pipeline** jump pack would verify outreach quality, lead criteria,
-  conversion math.
-- A **marketing campaign** jump pack would verify message resonance, channel
-  fit, measurement integrity.
-- A **manufacturing** jump pack would verify spec tolerance, defect rate,
-  acceptance sampling.
+> Builder builds. An independent designer writes the verification criteria from the
+> brief. An independent runner executes them. An independent triage agent classifies
+> any failure. The roles stay the same; the *content* of verification swaps per domain.
 
-Same architecture every time: builder builds, an independent designer writes
-the verification criteria from the brief, an independent runner executes the
-verification, an independent triage agent classifies any failure. The roles
-stay the same. The *content* of verification swaps per domain.
-
-The kernel ships **no** default jump pack — verification *content* is always supplied by the
-loaded pack, never baked into the core; this is what keeps Made Well domain-agnostic. The
-**dev pack** supplies the **coding jump pack**; a project in another domain loads its own,
-and with none loaded Verify falls back to the trivial check (can you execute it; does it do
-what the brief said). Its scope is below; its operational detail — the five roles, their spawn
-prompts, dispatch order, status-log events, and mid-session recovery — is the canonical
-**`orchestrate` skill (`.madewell/skills/orchestrate.md`)**, loaded when you run parallel
-or code-verification work. This section is the *why* and *when*; that skill is the *how*.
-
-### The Coding Jump Pack
-
-**For code work, the builder does not test, the tester does not run, the runner does not judge.**
-
-This is the Isolation Mandate extended one layer deeper. The roles below are
-independent sub-agents. None of them can play more than one part.
-
-### Scope (Coding Jump Pack)
-
-The full five-role coding jump pack applies to **multi-step, code-heavy work**
-— briefs that build or substantially modify executable artifacts across more
-than one moving piece. A single trivial change (one-line fix, typo, comment)
-does not require five sub-agents; the orchestrator may verify it inline.
-
-**Code work** means anything whose output **executes and has dependencies**:
-source files, shell scripts, SQL migrations, infrastructure-as-code, CI
-configs, build scripts, deploy scripts. The test is the same for all of them
-and it is concrete:
-
-- Can you execute it?
-- Does it do what the brief said it would do?
-
-If yes to both, it passes. If no, it fails. That's the whole standard.
-
-Discovery, planning, brainstorming, documentation, decision capture, and
-research are not code work. They still pass through the Verify phase, but
-under a different (or trivial) jump pack — and the brief sets
-`Testing: Applies: no` with a reason.
-
-### The roles, in one line
-
-Five independent sub-agents, none playing two parts: **Orchestrator** (plans, never
-builds or tests), **Implementer** (builds, never tests its own work), **Test-Designer**
-(writes tests from the brief, never sees the build), **Test-Runner** (runs only, never
-edits), and **Failure-Triage** (a fresh agent that classifies any failure as
-pre-existing bug / wrong implementation / wrong test). Spawn prompts, dispatch order,
-event log, and recovery: **`.madewell/skills/orchestrate.md`**. The non-negotiable laws
-are in **What You Must Never Do**, below.
+The kernel ships **no** default verification content. With no cartridge loaded, Verify
+falls back to the trivial check: *can you execute it; does it do what the brief said?* A
+cartridge (software, sales, marketing, manufacturing, etc.) supplies its own verification
+protocol — the roles, the acceptance criteria, and how failure is triaged in its domain.
+Mechanics for parallel/independent verification live in `.madewell/skills/orchestrate.md`.
+The non-negotiable laws are in **What You Must Never Do**, below.
 
 
 ---
@@ -474,9 +424,9 @@ drains its own.
 
 Good work isn't just work that's finished. It's work that holds up — under use, under stress, under time.
 
-After any significant stretch of making, or when the person asks "is this good?", run the Enforcer skill (`.madewell/packs/dev/skills/enforcer.md`) on what was built. It's not a punishment. It's the proof of craft — the check that surfaces what was assumed, what was left behind, what would break if someone used it wrong.
+After any significant stretch of making, or when the person asks "is this good?", run the loaded cartridge's **quality skill** (if any) on what was built. It's not a punishment. It's the proof of craft — the check that surfaces what was assumed, what was left behind, what would break if someone used it wrong. With no cartridge loaded, ask the Rubric questions inline; a cartridge supplies its own domain-specific quality check.
 
-When the Enforcer finds something, surface it plainly in language the person understands. Don't fix it silently. They must know what was hiding and why it matters.
+When the quality check finds something, surface it plainly in language the person understands. Don't fix it silently. They must know what was hiding and why it matters.
 
 ---
 

@@ -2,15 +2,15 @@
 
 This is the agent-facing manual for **modifying Made Well itself**. AGENTS.md tells you how to
 *operate* the factory; this tells you how to *maintain and extend* it. Read it before changing
-the system — when the person says "I need Made Well to do X," "update my dev pack," "add a
-striation," or "this keeps breaking, fix the process."
+the system — when the person says "I need Made Well to do X," "update my domain cartridge,"
+"add a striation," or "this keeps breaking, fix the process."
 
 ## The mental model — a base player with cartridges
 
 Made Well is a **base console**. It does not know about your industry, your team, or your stack.
 Everything domain-specific plugs in as a **cartridge**:
 
-- an **industry** → a *domain pack* (`packs/dev`, a future `packs/sales`, …)
+- an **industry** → a *domain cartridge* (`cartridges/dev`, a future `cartridges/sales`, … — loaded by reference, not installed)
 - a **voice** → a *persona register* (Lead, Contributor, Guide — carried by packs)
 - a **specialization within an industry** → a *striation* (dev → frontend / api / backend / ci-cd)
 - a **specific capability** → a *skill* (e.g. "working with Neon Postgres" on the database striation)
@@ -37,9 +37,10 @@ it's **law** (the console's fixed circuitry — never overwrite) or a **cartridg
 | **The lifecycle** | Two loops (outer stages / inner phases), the four-beat, the cooperative pause, the two-store rule, orchestration model. | `LIFECYCLE.md` | **Law** |
 | **Contracts** | The named seams a profile fills: persona · domain · quality · memory · onboarding. | `profiles.json` | Law (the *set*); slot (the *fills*) |
 | **Profiles** | One selection that fills every contract row (lead / contributor / guide / naked). | `PROFILES.md`, `profiles.json` | Slot — add your own |
-| **Packs** (cartridges) | A domain bundle: persona register(s) + skills + striations. The dev pack; a future sales pack. | `packs/<name>/PACK.md` | Slot |
-| **Striations** | The hierarchy inside a pack (dev → frontend / api / backend / ci-cd). | `packs/<p>/pillars/`, declared in `SKILLS.json` | Slot |
-| **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs pack (loaded with a pack, may be striation-scoped). | `skills/`, `packs/<p>/skills/`; manifest `SKILLS.json` | Foundational = law-adjacent; pack = slot |
+| **Cartridges** | A domain bundle: persona register(s) + skills + striations. Lives outside the kernel; loaded by explicit reference. | `cartridges/<name>/PACK.md` | Slot |
+| **Persona pack** (kernel) | The Guide (novice-human register) ships with the kernel because it's the human-facing default. | `packs/guide/PACK.md` | Slot |
+| **Striations** | The hierarchy inside a cartridge (e.g. dev → frontend / api / backend / ci-cd). | `cartridges/<c>/pillars/`, declared in the cartridge's manifest | Slot |
+| **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs cartridge (loaded with a cartridge, may be striation-scoped). | `skills/` (foundational), `cartridges/<c>/skills/` | Foundational = law-adjacent; cartridge = slot |
 | **State** | Two stores: outer `madewell.json` (stage + discovery queue), inner `cycles/<id>.json` (phase + imagine queue). | `madewell.json`, `cycles/`; schemas in `guides/schemas/` | Law (the *two-store shape*); the schemas evolve carefully |
 | **Orchestration** | The recursive coordination layer — outer fleet + inner per-phase fan-out. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
 | **Memory** | madewell.json (working) · git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity) · status.jsonl (events). | repo root of `.madewell/` | Slot — content is the project's |
@@ -72,10 +73,10 @@ Everything not on this list is a cartridge slot.
 Each slot has a pattern. Follow it; the kernel already depends only on the contracts, so a
 well-formed cartridge needs **no kernel change**.
 
-- **Add a pack (a new industry).** Create `packs/<name>/PACK.md`; carry its persona register(s) and any skills/striations; register it in `SKILLS.json` `packs[]`; add a profile in `profiles.json` + `PROFILES.md` if it gets its own loadout. (`PROFILES.md` → "Adding a profile".)
-- **Add a persona register.** A markdown register the pack carries; name it in the pack's `persona` field and the relevant profile.
-- **Add a striation.** A pillar file under `packs/<p>/pillars/`; declare it in that pack's `striations[]` in `SKILLS.json`.
-- **Add a skill.** A markdown file in `skills/` (foundational) or `packs/<p>/skills/` (pack); register it in `SKILLS.json` with `layer`, `mode`, `when` (+ `pack`/`striation` for pack skills); it must validate against `skills.schema.json`.
+- **Add a cartridge (a new industry).** Create `cartridges/<name>/PACK.md`; carry its persona register(s) and any skills/striations. Cartridges live *outside* the kernel install; a project loads one by explicit reference. Add a profile in `profiles.json` + `PROFILES.md` if it deserves its own loadout.
+- **Add a persona register.** A markdown register the cartridge carries; name it in the cartridge's `persona` field and the relevant profile.
+- **Add a striation.** A pillar file under `cartridges/<c>/pillars/`; declare it in the cartridge's manifest.
+- **Add a skill.** A markdown file in `skills/` (foundational) or `cartridges/<c>/skills/` (cartridge); foundational skills register in `SKILLS.json` with `layer`, `mode`, `when`; cartridge skills register in the cartridge's own manifest.
 - **Evolve a schema.** Edit `guides/schemas/*.schema.json`. Mind existing data — a field rename ripples to every `madewell.json`/cycle store in the wild. Default to additive changes. A rename or removal **MUST** sweep every reference **and** ship a migration step (see `install.sh`'s migration block) — never change a shape and leave old stores to break.
 - **Deepen an orchestration cell.** Extend `skills/orchestrate.md` — preserving the invariants (isolation, cooperative pause).
 
@@ -87,13 +88,13 @@ When the need is domain-specific, decide whether to **update an existing cartrid
 new one**:
 
 - **Update** when the piece already exists and the change is a refinement. *"Working with Neon
-  Postgres" already lives on the dev pack's database striation, and the person wants its connection-
-  pooling advice sharpened* → edit that skill in place.
+  Postgres" already lives on the software cartridge's database striation, and the person wants its
+  connection-pooling advice sharpened* → edit that skill in place.
 - **Plug in a new one** when nothing covers it. *They've moved to a graph database* → source a new
-  skill on the same striation. *They've taken on a striation the pack lacks (say, mobile)* → add a
-  striation. *They've started work in a whole new industry* → add a pack.
-- **Promote** when a project-specific skill turns out to be general → lift it from the pack into a
-  foundational skill (or into the pack's shared skills) so it's reusable.
+  skill on the same striation. *They've taken on a striation the cartridge lacks (say, mobile)* →
+  add a striation. *They've started work in a whole new industry* → add a cartridge.
+- **Promote** when a project-specific skill turns out to be general → lift it from the cartridge
+  into a foundational skill (or into the cartridge's shared skills) so it's reusable.
 
 The rule: refine in place when the *slot* is right and only the *content* is stale; source new when
 there's no slot for it yet. If no existing slot fits, you **MUST** surface the choice to the Lead
@@ -125,7 +126,7 @@ You are the mechanic who also notices the warning lights. Don't wait to be told:
 - **Watch the signals** — the TAX ledger (`work/tax.jsonl`), repeated failures, recurring friction
   across sessions. A pattern is a maintenance item.
 - **Surface, don't act.** When you spot a maintenance item you **MUST** surface it to the Lead —
-  name the piece, the pattern, and the proposed change ("your dev pack's debug skill keeps missing
+  name the piece, the pattern, and the proposed change ("your software cartridge's debug skill keeps missing
   this class of bug — update it?"). You **MUST NOT** apply it without explicit approval. The
   cooperative pause is mandatory here, not a courtesy.
 - **Route the request.** When the person says "I need Made Well to do X," you already know the map:

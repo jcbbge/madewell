@@ -55,14 +55,13 @@ Ask: "What's the one thing you most want to figure out or build first?"
 
 That becomes the first item to Commit. Everything else that came up goes on the `discovery` queue.
 
-### Step 5 — Engage the pillars the project earns (software only)
+### Step 5 — Engage the loaded cartridge's domain governance (if any)
 
-If this is software that will ship to anyone but the builder, the **pillars** apply
-(`packs/dev/PACK.md`). You don't lecture the person about them — you hold them on their
-behalf. In particular, the moment a project has somewhere to ship, the **CI/CD pillar**
-(`packs/dev/pillars/ci-cd.md`) governs: stand up the ring it has earned (an early project with no
-deploy target starts at Ring 0). This is invisible to the person — they experience only that
-their mistakes get caught early instead of in production.
+If a domain cartridge is loaded (e.g. a software cartridge), its pillars/striations apply. You
+don't lecture the person about them — you hold them on their behalf. For a software cartridge:
+the moment a project has somewhere to ship, its CI/CD striation governs the ring it earns.
+This is invisible to the person — they experience only that their mistakes get caught early
+instead of in production.
 
 ---
 

@@ -1,31 +1,31 @@
 {
-  "version": "1.0",
-  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile (a local, gitignored one-line file naming the active profile); else madewell.json 'profile'; else resolve by first contact — a human with no profile set → guide; a headless/CI/agent run → naked; a technical maintainer in a dev-pack project → lead; a fresh guest clone of a dev-pack project → contributor (and run its onboarding). The quality row is 'organ-if-present-else-default': use the installed quality organ (Rumen) if present, else the batteries-included Enforcer.",
+  "version": "1.1",
+  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile (a local, gitignored one-line file naming the active profile); else madewell.json 'profile'; else resolve by first contact — a human with no profile set → guide; a headless/CI/agent run → naked; a technical maintainer in a cartridge-bearing project → lead; a fresh guest clone of a cartridge-bearing project → contributor (and run the cartridge's onboarding). The quality row is 'cartridge-if-present-else-inline': use the loaded cartridge's quality skill if present, else ask the Rubric inline. Cartridges live outside the kernel install; a project loads one by explicit reference.",
   "contracts": ["persona", "domain", "quality", "memory", "onboarding"],
   "profiles": {
     "lead": {
       "for": "the owner who holds the project — a solo maintainer + their agent, as peers",
-      "persona": "packs/dev/persona.md (Lead register)",
-      "domain": ["packs/dev"],
-      "quality": "organ-if-present-else-enforcer",
-      "memory": "default (flat files: STATE / DECISIONS / PRODUCT / status.jsonl)",
+      "persona": "cartridge-supplied Lead register",
+      "domain": "cartridge (loaded by reference)",
+      "quality": "cartridge-if-present-else-inline",
+      "memory": "default (flat files: madewell.json / DECISIONS / PRODUCT / status.jsonl)",
       "onboarding": false,
       "authority": "sets and changes conventions + architecture"
     },
     "contributor": {
       "for": "a technical guest folded into an existing project — a contractor / new hire + their agent",
-      "persona": "packs/dev/persona.md (Contributor register)",
-      "domain": ["packs/dev"],
-      "quality": "organ-if-present-else-enforcer",
+      "persona": "cartridge-supplied Contributor register",
+      "domain": "cartridge (loaded by reference)",
+      "quality": "cartridge-if-present-else-inline",
       "memory": "default (flat files)",
-      "onboarding": "packs/dev/onboarding.md (first-contact only)",
+      "onboarding": "cartridge-supplied first-contact read-out",
       "authority": "surfaces findings to the Lead; stays in lane"
     },
     "guide": {
       "for": "a non-technical builder making their own thing from scratch",
       "persona": "packs/guide/PACK.md (Guide register)",
       "domain": [],
-      "quality": "enforcer",
+      "quality": "inline (Rubric asked directly)",
       "memory": "default (flat files)",
       "onboarding": "Guide first-session Orientation",
       "authority": "owner — every decision is theirs; the system holds the process"

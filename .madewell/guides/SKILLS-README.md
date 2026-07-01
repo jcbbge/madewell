@@ -2,7 +2,7 @@
 
 **What:** The thinking tools and protocols the agent reaches for when the situation calls.
 **When:** They're not invoked by hand — the agent loads them when relevant. Manifest: `SKILLS.json`.
-**Two layers:** **foundational** (Made Well's own, always available) and **pack** (loaded with a domain pack).
+**Two layers:** **foundational** (Made Well's own, always available) and **cartridge** (loaded with a domain cartridge).
 
 ---
 
@@ -46,10 +46,10 @@ The insight almost always comes from the lens you didn't expect.
 
 ---
 
-## Pack skills
+## Cartridge skills
 
-Domain skills bolt on with a pack and may be scoped to a **striation**.
+Domain skills bolt on with a cartridge and may be scoped to a **striation**.
 
-**Dev pack** (`.madewell/packs/dev/`) — building software. Carries the `enforcer` quality skill
-and the striation hierarchy: **frontend** (+ design-system), **api**, **backend**, **ci-cd**.
-Activate by adding `.madewell/packs/dev/PACK.md` to your start prompt.
+Cartridges live outside the kernel install — they are loaded into a project by explicit
+reference, not by the installer. Each cartridge carries its own persona register(s), skills
+(including a quality skill), and striation hierarchy. See the cartridge library.
