@@ -63,6 +63,7 @@ closed decision casually).
 - **The two-store rule** — outer `madewell.json`, inner `cycles/`. *Why: cardinality, write-contention, and lifetime differ between the loops.*
 - **Persona is a slot** — the kernel is persona-free; registers fill the slot. *Why: the same function must serve a novice and a machine.*
 - **The Rubric** — does this lead to craft, beauty, and care? *Why: it's the point.*
+- **Contact points, not consultations** — Made Well's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See `~/.madewell-meta/contact-points.md` for the full law and its failing-mode vocabulary.*
 
 Everything not on this list is a cartridge slot.
 
