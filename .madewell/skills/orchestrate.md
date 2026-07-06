@@ -197,9 +197,18 @@ Instructions:
 1. Read ONLY the brief — do not look at any implementation
 2. Write the test suite against the brief's Finishing Point and
    How We'll Know It's Done sections — these are the contract
-3. Output test specifications and test code to:
+3. Every check must be side-effect-free, or restore all state on exit
+   EVEN ON FAIL — a destructive check that leaves the tree changed
+   silently invalidates other checks (order-dependence) and can break
+   the very build it is grading. Checks must not depend on run order.
+4. Do not pin volatile refs captured at authoring time (HEAD SHAs,
+   file hashes, timestamps) — the tree moves while you write, especially
+   mid-fleet. Express expectations as intent conditions ("no commits
+   touch implementation paths") or leave a slot the orchestrator fills
+   at dispatch time.
+5. Output test specifications and test code to:
    .madewell/specs/YYYY-MM-DD-[package-name].test.md
-4. DO NOT run the tests you write — a separate agent owns that
+6. DO NOT run the tests you write — a separate agent owns that
 
 ON COMPLETION, REPORT:
 - Test brief path
@@ -273,6 +282,10 @@ Instructions:
    (b) Implementation does not satisfy the brief
    (c) Test does not correctly express the brief
 3. Report the bucket and a one-paragraph root-cause explanation
+4. CROSS-IMPACT CLAUSE — if your verdict implies a fix, enumerate which
+   OTHER checks that fix will newly affect (any check that asserted the
+   pre-fix state). The fix and its test amendments must ship together,
+   or the fix invalidates green checks and costs an extra triage cycle.
 
 DO NOT fix anything. Verdict only.
 ```
@@ -344,8 +357,12 @@ lifecycle is now multi-stage; recovery checks each stage in order.
 1. **Event log wins** over madewell.json on any conflict.
 2. **Never re-run completed stages.** A `test_results` event with `failed == 0`
    means the tests passed — do not re-run them.
-3. **Re-spawn, don't resume.** If a sub-agent stalled, spawn a fresh one with
-   the same inputs. Sub-agents are stateless from Made Well's perspective.
+3. **Re-spawn, don't resume.** Whether a sub-agent stalled mid-work or you need
+   follow-up on one that finished, spawn a fresh agent with the same (or updated)
+   inputs — never depend on continuing a prior agent's context. Host harnesses
+   often cannot resume completed agents even when their docs suggest it.
+   Sub-agents are stateless from Made Well's perspective; fully self-contained
+   briefs are what make this safe.
 4. **For non-code packages** (`Testing: Applies: no`), the lifecycle collapses
    to: `impl_assigned` → `impl_completed` → `package_completed`. Skip the
    test design, run, and triage stages entirely.

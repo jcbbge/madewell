@@ -38,6 +38,8 @@ proposed work); the Lead makes the call. No new mechanism — the `_` exclusion 
 ## 1. Intent — the single outcome (2–4 sentences)                 ← kernel: What This Is
 ## 2. Pre-Verified Facts — current state, verified by the orchestrator ← kernel: Context / Starting Point
      every claim cites file:line / exact command+output / endpoint shape; the executor does NOT re-discover
+     library-BEHAVIOR claims state HOW they were verified (read the package's dist/source,
+     ran it, official docs) — inference from config wiring is not verification and misdirects briefs
 ## 3. Desired behavior — precise, testable, each bullet observable ← kernel: Finishing Point (+ Edge Cases)
 ## 4. Lanes & touchpoints — no collision                          ← dev: the contract between executors
      each lane's exact files; the contract between lanes (endpoint + request/response shape, or the data-write path)

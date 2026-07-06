@@ -62,6 +62,12 @@ Feed the nutrient *back*:
   between first pass and landed. Exact, low-noise capture arrives with the agent harness —
   this is Rumen's logged risk R3.)*
 
+  **Units:** pick one consistent unit per project (corrected lines, checks, or items) and
+  stick to it — the metabolism does arithmetic across Lands, so mixed units poison it.
+  When you can only measure the correction diff directly (no meaningful first-pass count),
+  record `proposed:<tax>, accepted:0` — the scalar stays honest; the note says how it was
+  measured.
+
 ## Step 3 — Write the Land record (commit)
 
 Commit the unit with all four faces in the message:
