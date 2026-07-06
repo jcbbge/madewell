@@ -36,7 +36,7 @@ proposed work); the Lead makes the call. No new mechanism — the `_` exclusion 
 <One paragraph: what this delivers, why it is ONE clean PR.>      ← kernel: What This Is
 
 ## 1. Intent — the single outcome (2–4 sentences)                 ← kernel: What This Is
-## 2. Current state — PRE-VERIFIED by the orchestrator            ← kernel: Context / Starting Point
+## 2. Pre-Verified Facts — current state, verified by the orchestrator ← kernel: Context / Starting Point
      every claim cites file:line / exact command+output / endpoint shape; the executor does NOT re-discover
 ## 3. Desired behavior — precise, testable, each bullet observable ← kernel: Finishing Point (+ Edge Cases)
 ## 4. Lanes & touchpoints — no collision                          ← dev: the contract between executors
@@ -48,6 +48,14 @@ proposed work); the Lead makes the call. No new mechanism — the `_` exclusion 
      logic · backend · ui (agent-driven browser) · ux (human-in-browser)
 ## 9. Test plan — NO MOCKS (real dependencies, real data)         ← kernel: Testing: Applies
 ## 10. Open questions — resolved spec→codebase→docs; truly-open flagged for the lead   ← escalation.md
+## 11. Report back with — the exact completion contract            ← kernel: the return value
+     what the executor's final report must contain: counts, paths, verdicts, done-when
+     conditions met (each task's "done when: <observable condition>")
+## 12. Host protocol — coordination wiring the host harness requires
+     some harnesses gate spawns on required brief sections (message bus / board topic /
+     send kinds — e.g. a Tower section on hosts that run one). Check the host's rules and
+     include what it demands, or waive explicitly (e.g. "TOWER-WAIVED: single-turn
+     report-back agent") — a waiver must be stated, never silent.
 ---
 Delegation contract: the executor unit drives this brief to a merged PR. On any question they
 escalate per the cartridge's escalation.md (spec → codebase → docs → lead). Never guess, never stall.
