@@ -8,7 +8,14 @@
       "file": "skills/discovery.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "Brain dump, unstructured input, first session. Shapes raw input into items on the discovery queue."
+      "when": "Brain dump, transcript, unstructured input, first session. The intake instrument: classify (phase is load-bearing), choose pass mode, apply the lens set (universal core + cartridge extensions), extract The One Thing, route findings onto the discovery queue."
+    },
+    {
+      "name": "commit",
+      "file": "skills/commit.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Inner loop empty, discovery non-empty; 'what's next?'. The gate: verdict each frontier candidate (COMMIT/HOLD/DISMISS/DECISION), bound the one item, mint its cycle store, move discovery → active. Keeps the active set short."
     },
     {
       "name": "session-start",
@@ -107,7 +114,7 @@
       "layer": "foundational",
       "mode": "workflow",
       "when": "Something is broken. Error pasted. Unexpected behavior. Observe → hypothesize → experiment → conclude; never bulldoze."
-    },
+    }
   ],
 
   "packs": [

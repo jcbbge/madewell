@@ -1,177 +1,194 @@
 # Discovery Workflow
 
 **Mode:** Workflow (produces artifacts, updates madewell.json)
-**Trigger:** Brain dump, transcript, meeting notes, thinking out loud
-**Artifacts:** Items on the `discovery` queue in madewell.json
+**Trigger:** Brain dump, transcript, meeting notes, AI-chat log, thinking out loud, first session
+**Artifacts:** Items on the `discovery` queue in madewell.json; decisions surfaced; The One Thing written down
 
 ---
 
 ## What This Does
 
-Processes unstructured input (brain dumps, transcripts, meeting notes) into shaped work-items
-on the **outer queue**. Discovery is the take-in beat of the outer loop: it fills `discovery`,
-which the loop later drains one item at a time through Commit → Build → Land.
+Discovery is the **intake instrument** of the outer loop — the take-in beat that fills the
+`discovery` queue. It turns raw input (a brain dump, a transcript, a meeting, an AI-chat)
+into shaped, queueable work-items.
 
-This is a **workflow**, not just a lens. It:
-1. Ingests raw input
-2. Applies five lenses
-3. Extracts insights and routes each one
-4. Proposes what enters the `discovery` queue, for your approval
-5. Routes the rest to a decision or releases it
+You are an **intelligence analyst for the work**, not a note-taker or summarizer: excavate
+the structure underneath what was said — the hidden logic, the friction people have
+normalized, the decisions made on thin information, the gaps nobody has named.
 
-It never writes straight into `active` — that is the Commit gate's call, made deliberately later.
+Discovery is **divergent** — surface everything, route each finding. It never writes
+straight into `active`: saying "no" is the Commit gate's job (`commit.md`), made
+deliberately later.
+
+This engine is domain-agnostic. It carries a **universal lens core**; a loaded cartridge
+may extend the lens set for its lane of work (see *The Lens Slot* below).
 
 ---
 
 ## The Protocol
 
-### Step 1: Classify the Input
+### Step 0: Load State (don't re-stage duplicates)
+
+- `madewell.json` — the existing `discovery` queue (what's already captured).
+- `DECISIONS.md` — so a finding isn't re-raised as new when it was already decided.
+- `PRODUCT.md` — the vision as understood so far; mis-fits get caught against it.
+- A paired artifact, if this run reads a new document against an existing one
+  (see *Cross-Artifact Synthesis*).
+
+### Step 1: Classify the Input (fill before analyzing)
 
 | Field | Value |
 |-------|-------|
-| **Source** | [brain dump / transcript / meeting / client call] |
-| **Date** | [when] |
-| **Participants** | [who] |
+| **Source** | brain dump / transcript / meeting / AI-chat / planning note / document |
+| **Date** | when it happened (not when you're reading it) |
+| **Participants** | who's in it — plus off-stage actors *named* in it |
+| **Maturity** | see below — the load-bearing field |
+| **Signal density** | HIGH / MED / LOW |
 
-### Step 2: Apply the Five Lenses
+**Maturity is the load-bearing classification.** It sets the evaluative lens — how mature
+was the *thinking* captured in this artifact:
 
-**1. Product Lens**
-What does this reveal about what we need to build?
-- Feature signals
-- Priority signals
-- Edge cases
+| Maturity | Success looks like |
+|---|---|
+| **SUBSTRATE** (pre-ideation, clay-blocking) | volume + looseness; acceptance is correct |
+| **IDEATION** | direction + tradeoffs visible; commitment not yet |
+| **PLANNING** | structure + commitment — what locked, what depends on what |
+| **EXECUTION** | fidelity to plan + where reality diverged |
+| **VERIFICATION** | claim → evidence |
 
-**2. User Lens**
-What does this reveal about who we're building for?
-- Who's involved?
-- What are they optimizing for?
-- What words do they use?
+*The category error to avoid:* reading a SUBSTRATE artifact with PLANNING rigor produces
+false negatives — a loose brainstorm judged as a bad plan. A grand vision is SUBSTRATE,
+not PLANNING: hold its choices as open clay, don't validate them as settled.
 
-**3. Technical Lens**
-What does this imply about how to build it?
-- Data model implications
-- Integration requirements
-- Constraints
+### Step 1.5: Choose Pass Mode
 
-**4. Process Lens**
-What does this reveal about how work gets done?
-- Current workflows
-- Decision-making patterns
-- Communication channels
+- **Single-pass** (default) — apply the lenses yourself, one analysis. LOW–MED density,
+  short, single-topic.
+- **Deep-comb (two-pass)** — decompose into 5–8 topic slices → fan out isolated parallel
+  readers, each scoped to its slice only → synthesize cross-cuts. Use when the artifact is
+  long AND HIGH density AND spans 5+ distinct topics. Confirm the topic map with the
+  person before fanning out (mechanics: `orchestrate.md`).
+- **Cross-artifact synthesis** — when paired with a prior artifact, run the procedure
+  below in place of a lens-only pass.
 
-**5. Gap Lens**
-What's missing?
-- Questions unanswered
-- Assumptions unvalidated
-- References unexplained
+### Step 2: Apply the Lenses (all of them; never force findings)
 
-### Step 3: Extract and Route Each Insight
+**The universal core — six lenses, any lane of work:**
 
-Every insight gets exactly one route:
+**1. Substance** — what must the work BE or DO?
+- What-to-make signals, priority signals, edge cases
+- For HIGH-density input: a Friction Inventory (# / friction / who feels it / root cause)
+
+**2. People** — who is this for, and who's involved?
+- What each person is optimizing for
+- Their real vocabulary — capture their words into `context.language`
+
+**3. Process** — how does work *actually* get done here?
+- Shadow workflows (the real process vs. the official one)
+- How decisions really get made; communication channels
+
+**4. Gap** — what's missing?
+- Questions unanswered, assumptions unvalidated, references unexplained
+
+**5. ★ Subtext** (load-bearing — different rubric per artifact type)
+- *Human conversations/meetings:* naming flinches · deflections (highest charge) · stances
+  revealed by what someone accepts without protest · mid-thought revisions (the
+  unreconciled spot is where the real decision lives) · constraints accepted in silence
+- *AI-chats:* what the human stopped asking about · vocabulary the AI introduced and the
+  human adopted untested · the human's own mid-conversation reconceptualizations · their
+  idea vs. the AI's rephrasing of it · pushback (rare — worth flagging; acceptance is the
+  default mode)
+
+**6. Meta** — what does this artifact reveal about the discovery process itself?
+- What should update this skill, the queue, or how intake is run
+
+#### The Lens Slot
+
+A loaded cartridge may **extend** this set with lenses for its lane of work (e.g. a
+software cartridge adds Technical / Integration lenses; a sales cartridge adds deal-stage
+and objection lenses). Cartridge lenses live in the cartridge
+(`<cartridge>/discovery-lenses.md`) and run *after* the core. With no cartridge loaded,
+the universal core is complete on its own.
+
+### Step 2.5: The One Thing (required)
+
+> **What is the single most important thing this reveals that isn't written down anywhere?**
+
+No hedging. This is the finding that would be lost if someone only read the summary.
+Write it down — in PRODUCT.md, madewell.json, or DECISIONS.md.
+
+### Step 3: Route Every Finding
+
+Every meaningful finding appears once, with exactly one route:
 
 | Route | Meaning | Where it goes |
 |-------|---------|---------------|
 | **discovery** | Real, captured work | onto the `discovery` queue |
-| **decision** | Needs a call before it can be queued | surfaced now; recorded in `DECISIONS.md` once decided |
-| **release** | Not worth keeping | let it go, name it so it isn't silently dropped |
+| **decision** | Needs a call before it can be queued | surfaced now; one line in `DECISIONS.md` once decided |
+| **release** | Not worth keeping | let it go — *named*, never silently dropped |
 
-```json
-{
-  "source": "[which input]",
-  "lens": "[which lens found this]",
-  "insight": "[one sentence]",
-  "route": "discovery | decision | release",
-  "evidence": "[what supports this]"
-}
+```
+ID | Lens | Finding (one sentence) | Route | Evidence
 ```
 
-### Step 4: The One Thing
+### Step 4: Name Things
 
-Answer in one sentence:
+Name every pattern, gap, and shadow workflow — short, precise, memorable. Named things
+can be designed against; unnamed things stay invisible.
 
-> **What is the single most important thing this reveals that isn't written down anywhere else?**
+### Step 5: Propose the Queue (approval gate)
 
-Write it down — in PRODUCT.md, madewell.json, or DECISIONS.md.
-
-### Step 5: Propose the Queue
+Reflect back in plain language — "here's what I heard" — then propose:
 
 ```
 Ready to queue (route: discovery):
-  [d-new] "Users expect autosave"            scope: ux
-  [d-new] "Must work offline — user travels" scope: technical
-
+  [d-new] "…"   scope: …
 Needs a decision before queueing:
-  "Pricing model: subscription vs one-time?"
-
+  "…"
 Releasing (not kept):
-  "Tangent about a future mobile app"
-
-Approve? (yes / no / modify)
+  "…"
 ```
 
-On approval, append the `discovery`-routed items to the `discovery` queue with fresh ids
-(`d001`, `d002`, …). Decisions get surfaced and, once made, recorded in `DECISIONS.md`.
+Ask: **"Does that match what you meant?"** On confirmation:
+- Append `discovery`-routed items to the queue (`{id, item, scope, dependsOn?}`, fresh ids)
+- Record made decisions in `DECISIONS.md`; carry unmade ones as open threads
+- Update `PRODUCT.md` with anything new about the person or their vision
+- Refresh `context.summary` / `context.openThread` / `context.language`
+
+Findings never skip to `active` — promotion is the Commit gate's call.
 
 ---
 
-## Output Artifacts
+## Cross-Artifact Synthesis (procedure)
 
-**madewell.json updates:**
-- New items appended to the `discovery` queue (`{id, item, scope}`)
-- `context.summary` / `context.openThread` refreshed if the session shifted
+A new artifact read against an existing one — a proposal vs. meeting notes, a vendor doc
+vs. your current direction. Don't just list findings; produce a three-part discrepancy map:
 
-**Optional transcript archive:**
-- `decisions/transcripts/YYYY-MM-DD-slug.md`
-- Raw input preserved for reference
+1. **ALIGNMENTS** — what already agrees. State them, mark *do not reopen*, so settled
+   ground isn't relitigated.
+2. **DISCREPANCY MAP** — each divergence as: what the new artifact ASSUMES · what the
+   prior artifact / known state SHOWS · why it matters · the decision needed. Order by
+   leverage — this list *is* the agenda.
+3. **THE THROUGH-LINE** — the single root most discrepancies collapse to. Name it.
 
----
-
-## Example Run
-
-**Input:** "I keep thinking about how users will save their work. Right now I'm imagining a save button but that feels old. Everyone expects autosave now. Also worried about offline — I travel a lot and hate losing work when wifi drops. Oh and pricing... should this be subscription or one-time? I don't know yet."
-
-**Output:**
-
-```
-## Discovery Analysis — 2026-05-10
-
-### Classification
-- Source: Brain dump
-
-### Lens Findings
-**Product:** Save mechanism is a core UX decision. Autosave vs manual affects architecture.
-**User:** You are the primary user. Travel context matters. Offline is a real constraint.
-**Technical:** Autosave implies state management, conflict resolution. Offline implies local-first.
-**Process:** Pricing decision is blocking — affects scope and timeline.
-**Gaps:** No user research yet. Assuming your preferences match others'.
-
-### Routed
-  discovery → "Design for offline-first — user travels, can't lose work"   scope: technical
-  discovery → "Research autosave patterns"                                 scope: ux
-  discovery → "Validate assumptions with target users"                     scope: research
-  decision  → "Pricing model undecided: subscription vs one-time"
-  release   → (nothing this round)
-
-### The One Thing
-You're building for yourself, but haven't validated that others share your constraints.
-
----
-Approve queueing these? (yes / no / modify)
-```
-
-On approval:
-```json
-{
-  "discovery": [
-    { "id": "d001", "item": "Design for offline-first — user travels, can't lose work", "scope": "technical" },
-    { "id": "d002", "item": "Research autosave patterns", "scope": "ux" },
-    { "id": "d003", "item": "Validate assumptions with target users", "scope": "research" }
-  ]
-}
-```
-The pricing question is surfaced for a decision; once made it becomes a line in `DECISIONS.md`
-(and, if it implies work, its own `discovery` item).
+*Pre-requisite (Step 0):* load the current design/direction docs, or you'll judge the
+incoming artifact only against memory and miss its mis-assignments.
 
 ---
 
-*Discovery isn't just thinking. It's thinking that flows onto the queue — and into action.*
+## Live Conversation Mode
+
+When the input is the person talking to you right now (not a document):
+
+1. "Tell me everything — don't organize it, just go."
+2. Listen. Don't interrupt.
+3. Apply the lenses internally; classify Maturity as you listen.
+4. Then run Steps 2.5–5 as above, out loud.
+
+Mid-session capture: when something comes up that isn't the current work, add it to
+`discovery` immediately, say "captured," and return to what you were doing.
+
+---
+
+*Discovery isn't just thinking. It's thinking that flows onto the queue — surface
+everything here, so Commit has something real to say no to.*

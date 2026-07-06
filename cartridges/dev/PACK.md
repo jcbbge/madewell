@@ -161,6 +161,7 @@ The person doesn't need to invoke them.
 | Skill | File | When |
 |---|---|---|
 | **Enforcer** | `skills/enforcer.md` | After significant AI-assisted work. Before anything ships. Stateful code-quality protocol. |
+| **Discovery lenses** | `discovery-lenses.md` | Every discovery pass. Fills the kernel discovery skill's **Lens Slot** with the software lane's four lenses — Technical, Integration, UX/Interaction, Initiative→Irreducible Units — run after the universal core. |
 
 **Technical companions:**
 - **Impeccable** (impeccable.style) — 7 reference files + 23 steering commands for frontend craft. The execution layer for the Frontend pillar (`pillars/frontend/frontend.md`). Pull it in when implementation detail matters.

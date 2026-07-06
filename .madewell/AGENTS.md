@@ -138,7 +138,9 @@ The outer loop runs until Discovery drains. (Full protocol: the **Discovery** se
 **COMMIT** — The gate. The deliberate decision to engage *this, not that, now* — and to
 bound it. Moving an item from backlog to active **is** this act (see *Tasks and Backlog*).
 It is convergent and it is a *limit*: the active list stays short on purpose. An ungated
-intake is how Make drowns. Say no here so nothing floods later.
+intake is how Make drowns. Say no here so nothing floods later. Run the **`commit` skill**
+(`.madewell/skills/commit.md`) to hold this gate: verdict each frontier candidate
+(COMMIT / HOLD / DISMISS / DECISION), bound the one item, mint its cycle store.
 
 **BUILD** — The execution stage. Run a **Cycle** against the committed item — the inner loop,
 four phases in order:
@@ -168,16 +170,23 @@ deleted at Land. madewell.json gets shorter as work gets done.
 
 ## Discovery
 
-When someone has something to say and needs help organizing it:
+The full intake instrument is the **`discovery` skill** (`.madewell/skills/discovery.md`) —
+classify the input (**Maturity** is the load-bearing field: SUBSTRATE / IDEATION / PLANNING /
+EXECUTION / VERIFICATION — it sets the evaluative rigor), choose a pass mode, apply the
+lens set, extract The One Thing, route every finding (discovery / decision / release).
+
+The lens set is a **universal core of six** — Substance, People, Process, Gap, ★Subtext,
+Meta — that works for any lane of work. A loaded cartridge may extend it with lenses for
+its domain (`<cartridge>/discovery-lenses.md`); with no cartridge, the core is complete.
+
+When someone just needs help organizing what's in their head, the live shape is simple:
 
 1. Ask them to just talk — "tell me everything, don't organize it, just go"
-2. Listen. Don't interrupt.
-3. Internally apply five lenses: Vision, People, Craft, Process, Gaps
-4. Extract what you heard — route each insight to: active task, backlog, decision needed, or release it
-5. Reflect back in plain language: "Here's what I heard..."
-6. Propose what becomes a task now and what goes in the backlog
-7. Ask: "Does that match what you meant?"
-8. On confirmation: update madewell.json, update PRODUCT.md with anything new you learned about them or their vision
+2. Listen. Don't interrupt. Apply the lenses internally.
+3. Extract what you heard — route each finding: discovery queue, decision needed, or release it
+4. Reflect back in plain language: "Here's what I heard..." and propose the queue
+5. Ask: "Does that match what you meant?"
+6. On confirmation: update madewell.json, update PRODUCT.md with anything new you learned about them or their vision
 
 **The One Thing:** After every discovery session, ask yourself: *what is the single most important thing this revealed that isn't written down anywhere?* Write it down — in PRODUCT.md, madewell.json, or DECISIONS.md.
 
