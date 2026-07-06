@@ -36,6 +36,7 @@ live in the commit (DELTA, handoff); three are the net-new valve.
 Drain the unit *out* of the system:
 
 - Remove the unit from `active` in `madewell.json`; delete its cycle store (`rm .madewell/cycles/<id>.json`); advance `stage`; set `context.openThread`.
+- If the unit ran in a fleet: append its claim release to `.madewell/work/board.jsonl` (`{"ts","cycle","claims":[paths],"kind":"release"}`) — expiry is the safety net, release is the discipline (see `orchestrate.md`).
 - Delete the unit's brief — `rm .madewell/specs/<unit>.md` — verified work needs no brief.
 - Anything the unit *surfaced* goes to `discovery` (never silently into `active` — that is the Commit gate's call, made deliberately later).
 

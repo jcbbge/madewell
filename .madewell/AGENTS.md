@@ -414,6 +414,10 @@ drains its own.
 
 **Rules:**
 - Update immediately when state changes. Never batch.
+- **Write stores atomically.** Never edit `madewell.json` or a cycle store in place — write the
+  full new content to `<file>.tmp`, then `mv <file>.tmp <file>` (rename is atomic on POSIX). A
+  death mid-write must never leave a store unparseable. Append-only files (`status.jsonl`,
+  `board.jsonl`, `tax.jsonl`) are exempt — appending a whole line is the atomic unit there.
 - On Commit (`discovery` → `active`): mint the cycle store, add an `{id, cycle}` pointer to `active`.
 - On Land: delete the cycle store and its brief, remove the item from `active`, say what was accomplished.
 - The stores get shorter as work gets done. If `madewell.json` keeps growing, something is wrong.

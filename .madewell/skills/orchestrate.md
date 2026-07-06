@@ -54,9 +54,21 @@ reconciles. Run it as a protocol:
    MUST NOT dispatch two Cycles whose claims overlap. If two committed items cannot be partitioned
    cleanly, they are not parallel — run them in sequence. State each claim in the cycle's brief.
 2. **Claim on the board.** The shared board is `.madewell/work/board.jsonl` (append-only). Before a
-   Cycle touches any file it MUST append a claim — `{"ts","cycle","claims":[paths],"kind":"claim"}` —
+   Cycle touches any file it MUST append a claim — `{"ts","cycle","claims":[paths],"kind":"claim","expires":"<ISO>"}` —
    and MUST read the board first. A Cycle that finds its target already claimed MUST stop and surface
    the conflict to the Lead; it MUST NOT proceed into contested files.
+   **Claims expire — a crashed Cycle must not hold its files forever:**
+   - Every claim carries `expires` (default: now + 30 minutes). A Cycle still working past its
+     expiry MUST renew by appending a fresh claim line before the old one lapses.
+   - A claim is **live** only if its `expires` is in the future and no later `release`/`takeover`
+     line supersedes it. An expired claim blocks nobody.
+   - Taking over an expired claim is explicit, never silent: append
+     `{"ts","cycle","claims":[paths],"kind":"takeover","from":"<dead-cycle>"}`, then proceed.
+     Before building on the dead Cycle's partial work, Verify it — a takeover inherits files,
+     never trust.
+   - On Land (or on abandoning a target), a Cycle MUST append
+     `{"ts","cycle","claims":[paths],"kind":"release"}`. Expiry is the safety net, release is
+     the discipline.
 3. **Share findings as they happen.** A discovery in one Cycle that changes another's plan MUST be
    posted to the board immediately (`"kind":"finding"`), not held to the end. Cycles MUST read the
    board between phases.
