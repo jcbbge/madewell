@@ -60,6 +60,12 @@ was the *thinking* captured in this artifact:
 false negatives — a loose brainstorm judged as a bad plan. A grand vision is SUBSTRATE,
 not PLANNING: hold its choices as open clay, don't validate them as settled.
 
+**Mixed-maturity artifacts** (work trackers, status docs, multi-part transcripts) get
+**per-section Maturity**, not one value for the whole artifact — a tracker's DONE section
+is an EXECUTION record, its ACTIVE section PLANNING, its wishlist IDEATION. Classify each
+section and judge it by its own maturity; never read a wishlist with PLANNING rigor just
+because it shares a file with a plan.
+
 ### Step 1.5: Choose Pass Mode
 
 - **Single-pass** (default) — apply the lenses yourself, one analysis. LOW–MED density,
@@ -130,6 +136,13 @@ Every meaningful finding appears once, with exactly one route:
 ```
 ID | Lens | Finding (one sentence) | Route | Evidence
 ```
+
+**Adoption — in-flight work is its own case.** When discovery runs on a project with work
+already half-built (adopting Made Well mid-stream, migrating an existing tracker), work
+found mid-execution is neither an idea nor releasable: route it to `discovery` **flagged
+`in-flight`**. The flag means: this already holds work-in-progress and gets verdicted
+*first* at the Commit gate — bound what's mid-stream before queueing anything new. It
+must still pass the gate; being half-built is a claim on attention, not a bypass.
 
 ### Step 4: Name Things
 

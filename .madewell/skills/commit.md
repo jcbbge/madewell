@@ -40,6 +40,11 @@ A choice — made here, one item at a time.
 A finding that keeps getting held but never dismissed is the sign of an unmade
 decision — name the decision instead of deferring a fourth time.
 
+**In-flight items go first.** Queue items flagged `in-flight` (from an adoption/migration
+discovery pass) are verdicted before all other candidates — they already hold
+work-in-progress. Either COMMIT them (bound what's mid-stream) or make stopping that work
+an explicit, named call. Never verdict fresh ideas while half-built work sits unbounded.
+
 ### Step 3: Bound the Item
 
 Before it enters Build, the committed item must be **bounded** — restated as:
