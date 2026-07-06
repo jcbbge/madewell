@@ -105,6 +105,13 @@ because it shares a file with a plan.
   idea vs. the AI's rephrasing of it · pushback (rare — worth flagging; acceptance is the
   default mode)
 
+  **Weight AI-chat subtext by Maturity.** In a SUBSTRATE/IDEATION brainstorm, non-pushback
+  is the *intended* mode — the human is farming ideas, not making commitments. There,
+  adopted-untested vocabulary is a **translation task to queue, named once** — never a
+  repeated observation about the human's conduct. Silent adoption is high-charge only at
+  PLANNING+, where acceptance reads as commitment. State findings about the artifact, not
+  verdicts about the person.
+
 **6. Meta** — what does this artifact reveal about the discovery process itself?
 - What should update this skill, the queue, or how intake is run
 
@@ -169,6 +176,12 @@ Ask: **"Does that match what you meant?"** On confirmation:
 - Refresh `context.summary` / `context.openThread` / `context.language`
 
 Findings never skip to `active` — promotion is the Commit gate's call.
+
+**Preserve the source — the intake record.** Queue lines are deliberately lossy. When the
+artifact carries nuance the one-liners can't hold (a rich transcript, a table, a sketched
+user journey), copy it to `.madewell/work/intake/YYYY-MM-DD-<slug>.md` and have the queue
+items cite it — Imagine reads the intake record when the item is committed, so nothing
+sharp is flattened into a headline and lost.
 
 ---
 
