@@ -7,15 +7,19 @@
 ## How to Activate
 
 ```
-Read .madewell/AGENTS.md and .madewell/packs/dev/PACK.md. Let's get started.
+Read .madewell/AGENTS.md and <cartridge-library>/dev/PACK.md. Let's get started.
 ```
+
+Cartridges are **loaded by reference from the cartridge library** (e.g.
+`~/madewell/cartridges/dev/`) — they are not copied into the project by the installer.
+All paths below are relative to this cartridge's directory.
 
 ---
 
 ## Persona — this pack carries the technical registers
 
 Loading the dev pack fills the kernel's **Persona slot** with the dev pack's **technical
-registers** (`.madewell/packs/dev/persona.md`) — the expert-human voice (peer engineer: terse,
+registers** (`persona.md`, this cartridge) — the expert-human voice (peer engineer: terse,
 law-not-suggestion, exemplar-bound), not the novice-human **Guide**. Two insertion points share
 that voice:
 

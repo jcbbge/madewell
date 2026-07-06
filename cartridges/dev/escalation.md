@@ -1,6 +1,6 @@
 # Dev Pack — Decision Cascade & Ownership Directive
 **Status:** canonical, framework-owned. **Referenced, never paraphrased**, by
-`packs/dev/persona.md`, `packs/dev/onboarding.md`, and any project's contributor wiring
+`persona.md`, `onboarding.md` (this cartridge), and any project's contributor wiring
 (e.g. a `CONTRIBUTOR.md` or a contributor cartridge).
 
 A behavioral **fence** for the executor (the Contributor — or the Lead doing the work): the

@@ -50,7 +50,7 @@ proposed work); the Lead makes the call. No new mechanism — the `_` exclusion 
 ## 10. Open questions — resolved spec→codebase→docs; truly-open flagged for the lead   ← escalation.md
 ---
 Delegation contract: the executor unit drives this brief to a merged PR. On any question they
-escalate per packs/dev/escalation.md (spec → codebase → docs → lead). Never guess, never stall.
+escalate per the cartridge's escalation.md (spec → codebase → docs → lead). Never guess, never stall.
 ````
 
 The **four-lane acceptance**, **no-mock testing**, **one-PR sizing**, and **pre-verified facts**
