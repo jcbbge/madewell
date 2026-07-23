@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Common Lisp build artifacts
+*.fasl
+
+# ocicl vendored systems — commit ocicl.csv, never this directory (ocicl README)
+/ocicl/
