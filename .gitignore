@@ -6,3 +6,6 @@
 
 # ocicl vendored systems — commit ocicl.csv, never this directory (ocicl README)
 /ocicl/
+
+# the dumped executable (`make build`) — 37MB, rebuildable
+/constellation
