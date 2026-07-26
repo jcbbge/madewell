@@ -69,4 +69,9 @@
    #:supervisor-children
    #:start-supervisor
    #:supervise
-   #:shutdown-supervisor))
+   #:shutdown-supervisor
+
+   ;; dictionary — the live image describes itself
+   #:dictionary-entries
+   #:dictionary-json
+   #:write-dictionary))

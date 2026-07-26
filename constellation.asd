@@ -20,7 +20,8 @@
                (:file "spine")
                (:file "claim")
                (:file "escalate")
-               (:file "supervisor"))
+               (:file "supervisor")
+               (:file "dictionary"))
   :in-order-to ((asdf:test-op (asdf:test-op "constellation/tests"))))
 
 (asdf:defsystem "constellation/tests"
@@ -33,6 +34,7 @@
                (:file "test-spine")
                (:file "test-claim")
                (:file "test-escalate")
-               (:file "test-supervisor"))
+               (:file "test-supervisor")
+               (:file "test-dictionary"))
   :perform (asdf:test-op (op system)
              (uiop:symbol-call :fiveam :run! :constellation)))
