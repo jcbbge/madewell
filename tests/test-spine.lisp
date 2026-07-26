@@ -58,6 +58,65 @@ than passed as an argument. INNER knows nothing about telemetry."
     (is (= 2 (length events)))
     (is (eq :end (constellation:envelope-phase (second events))))))
 
+(test the-ring-evicts-the-oldest-and-keeps-the-order
+  "The spine is bounded. Past capacity the oldest envelopes are evicted, the
+newest is retained, and SPINE-EVENTS still reads oldest-first across the wrap —
+the place where storage order and logical order come apart."
+  (unwind-protect
+       (let ((constellation::*spine-capacity* 4))
+         (constellation:spine-reset)
+         (dolist (name '("e1" "e2" "e3" "e4" "e5" "e6"))
+           (constellation:emit name))
+         (let* ((events (constellation:spine-events))
+                (names (mapcar #'constellation:envelope-name events)))
+           ;; bounded
+           (is (= 4 (length events)))
+           ;; oldest evicted
+           (is (not (member "e1" names :test #'string=)))
+           (is (not (member "e2" names :test #'string=)))
+           ;; newest retained
+           (is (string= "e6" (car (last names))))
+           ;; order preserved, oldest first, across the wrap
+           (is (equal '("e3" "e4" "e5" "e6") names))
+           (is (equal '(3 4 5 6) (mapcar #'constellation:envelope-id events)))))
+    ;; back to the default capacity for every test after this one
+    (constellation:spine-reset)))
+
+(test spine-reset-empties-a-wrapped-ring
+  "SPINE-RESET works whatever lap the ring is on, and resizes it."
+  (unwind-protect
+       (progn
+         (let ((constellation::*spine-capacity* 2))
+           (constellation:spine-reset)
+           (constellation:emit "x")
+           (constellation:emit "y")
+           (constellation:emit "z")
+           (constellation:spine-reset)
+           (is (null (constellation:spine-events)))
+           (is (= 1 (constellation:envelope-id (constellation:emit "fresh")))))
+         ;; capacity is back at its default, so the ring is too, after a reset
+         (constellation:spine-reset)
+         (is (= constellation::*spine-capacity*
+                (length constellation::*spine*))))
+    (constellation:spine-reset)))
+
+(test ndjson-follows-the-ring-not-the-slots
+  "The wire output reads the ring through the same door SPINE-EVENTS does:
+evicted envelopes are absent, survivors are oldest-first, no NIL slots leak."
+  (unwind-protect
+       (let ((constellation::*spine-capacity* 2))
+         (constellation:spine-reset)
+         (constellation:emit "a")
+         (constellation:emit "b")
+         (constellation:emit "c")
+         (let ((out (with-output-to-string (s)
+                      (constellation:spine-write-ndjson s))))
+           (is (= 2 (count #\Newline out)))
+           (is (null (search "\"name\":\"a\"" out)))
+           (is (< (search "\"name\":\"b\"" out)
+                  (search "\"name\":\"c\"" out)))))
+    (constellation:spine-reset)))
+
 (test ndjson-emits-the-v5-contract-keys
   "Field names on the wire are v5's, so any reader written against v5 works."
   (constellation:spine-reset)

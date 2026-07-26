@@ -27,8 +27,24 @@
   (actor-id "constellation" :type string)
   (name "" :type string))
 
-(defvar *spine* (make-array 0 :adjustable t :fill-pointer 0)
-  "The ring of emitted envelopes. A vector, because that is what a ring buffer is.")
+(defvar *spine-capacity* 10000
+  "How many envelopes the spine keeps. The spine is a RING: once it is full the
+oldest envelope is evicted to make room for the newest, so a process that runs
+all day costs the same memory as one that runs for a second. 10,000 envelopes is
+a couple of megabytes and a deep enough recent window to debug from — and the
+recent window is the part of a trace anyone ever reads. Rebind this and call
+SPINE-RESET to resize.")
+
+(defvar *spine* (make-array *spine-capacity* :initial-element nil)
+  "The ring of emitted envelopes. A vector, because that is what a ring buffer is.
+Its LENGTH — not *SPINE-CAPACITY* — is the live capacity; the variable is the
+setting, the array is the fact. Slot order stops being emission order the moment
+the ring wraps; SPINE-EVENTS is the only thing that knows the difference.")
+
+(defvar *spine-writes* 0
+  "Envelopes written since the last reset. Doubles as the write cursor: the next
+envelope lands at (mod *spine-writes* capacity), and once it exceeds the capacity
+the ring has wrapped.")
 
 (defvar *envelope-counter* 0
   "Monotonic id source. Deterministic on purpose — tests assert on ids.")
@@ -41,15 +57,28 @@ extent; this is what makes the call tree free.")
   "Who is emitting. Rebind per star/worker once those exist.")
 
 (defun spine-reset ()
-  "Clear the spine and reset the id counter. For tests and fresh sessions."
-  (setf (fill-pointer *spine*) 0
+  "Clear the spine and reset the id counter. For tests and fresh sessions.
+Also the resize door: if *SPINE-CAPACITY* no longer matches the live ring, the
+ring is reallocated at the new capacity here and nowhere else."
+  (check-type *spine-capacity* (integer 1))
+  (if (= (length *spine*) *spine-capacity*)
+      (fill *spine* nil)
+      (setf *spine* (make-array *spine-capacity* :initial-element nil)))
+  (setf *spine-writes* 0
         *envelope-counter* 0
         *current-parent* nil)
   (values))
 
 (defun spine-events ()
-  "Every envelope emitted so far, in emission order, as a list."
-  (coerce *spine* 'list))
+  "Every envelope still on the spine, oldest first, as a list.
+Once the ring has wrapped, oldest-first is NOT slot order: the walk starts at
+the oldest surviving slot and steps forward modulo the capacity. Envelopes
+evicted by the wrap are gone — this is the retained window, not the history."
+  (let* ((capacity (length *spine*))
+         (kept (min *spine-writes* capacity))
+         (oldest (mod (- *spine-writes* kept) capacity)))
+    (loop for i from 0 below kept
+          collect (aref *spine* (mod (+ oldest i) capacity)))))
 
 (defun emit (name &key (phase :point) (parent *current-parent*) duration-ns)
   "Emit one envelope and return it. The primitive every other emit is built on."
@@ -60,7 +89,10 @@ extent; this is what makes the call tree free.")
                           :duration-ns duration-ns
                           :actor-id *actor*
                           :name (string name))))
-    (vector-push-extend e *spine*)
+    ;; The write is the eviction: whatever sat in this slot a lap ago is the
+    ;; oldest envelope, and overwriting it is how the ring stays bounded.
+    (setf (aref *spine* (mod *spine-writes* (length *spine*))) e)
+    (incf *spine-writes*)
     e))
 
 (defmacro with-envelope ((name) &body body)
@@ -120,7 +152,9 @@ broke, and losing it is how you don't."
 
 (defun spine-write-ndjson (&optional (stream *standard-output*))
   "Write the spine as newline-delimited JSON. Key names are the v5 contract."
-  (loop for e across *spine*
+  ;; Through SPINE-EVENTS, not across the raw vector: after a wrap the slots are
+  ;; out of order and hold evicted NILs. One door onto the ring, one order.
+  (loop for e in (spine-events)
         do (format stream
                    "{\"id\":~a,\"parent_id\":~a,\"phase\":~a,\"ts\":~a,~
                     \"duration_ns\":~a,\"actor_id\":~a,\"name\":~a}~%"
