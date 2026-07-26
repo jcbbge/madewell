@@ -1,20 +1,35 @@
 {
-  "project": "[Your project name, in your own words]",
-  "profile": null,
-  "stage": "discovery",
-  "updated": "2026-05-21T00:00:00Z",
+  "project": "Constellation v6 — the Level-0 Harness, in its native language",
+  "profile": "lead",
+  "stage": "build",
+  "updated": "2026-07-25T20:15:00Z",
 
   "context": {
-    "summary": "Just getting started. Haven't defined what we're building yet.",
-    "openThread": null,
-    "language": {}
+    "summary": "Grounding, escalate/resume, supervision, the dictionary emitter and a bounded spine are all merged and green (41 tests, 0 warnings). But the fan-out that built them bypassed Made Well: every implementer wrote its own tests, which is the one wall this project holds sacred.",
+    "openThread": "d001 — independent verification of the five merged packages. Their tests were written by the agents that wrote the code, so the suite currently proves self-consistency, not correctness. Nothing new gets built until that wall is restored.",
+    "language": {
+      "context window": "context pane — stained glass, each shard a different artifact",
+      "abandoned at 40%": "the descent — going down a layer, not failing at one",
+      "exploration": "digging holes to see what comes up",
+      "phase": "house — Dawn, Meridian, Descent, Night",
+      "agent": "star",
+      "coordination signal": "pheromone, written to the Nebula"
+    }
   },
 
   "discovery": [
-    { "id": "d001", "item": "First conversation — what are we building?", "scope": "discovery" }
+    { "id": "d002", "item": "Push this repo to a remote — five iterations shipped zero pushes and today's work exists in exactly one place", "scope": "infrastructure", "dependsOn": [] },
+    { "id": "d003", "item": "Decide Topic 1 naming: fractal-renamed vs role-axis vs both", "scope": "identity", "dependsOn": [] },
+    { "id": "d004", "item": "Decide whether the Latent Workspace earns a place in v6 or stays deferred — the only idea the project's own rubric ever scored 10X, unbuilt across five iterations", "scope": "architecture", "dependsOn": [] },
+    { "id": "d005", "item": "Bring the orbiting organs into Constellation and rename them celestially (Rumen, Strudel, Tower, Circadian)", "scope": "convergence", "dependsOn": ["d003"] },
+    { "id": "d006", "item": "Wire the REPL-over-MCP bridge", "scope": "tooling", "dependsOn": [] }
   ],
 
-  "active": [],
+  "active": [
+    { "id": "d001", "cycle": ".madewell/cycles/c001.json" }
+  ],
 
-  "blocked": []
+  "blocked": [
+    { "id": "d006", "reason": "jsulmont/mcp-lisp has no license file — GitHub API .license = null, contradicting its README. Taking it into the harness/runtime seam is an operator call.", "unblocks": "the author adds license files (ask via issue), or we vendor stdio-only under a resolved license" }
+  ]
 }

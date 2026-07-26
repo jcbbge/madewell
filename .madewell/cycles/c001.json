@@ -1,0 +1,16 @@
+{
+  "id": "c001",
+  "parent": "d001",
+  "created": "2026-07-25T20:15:00Z",
+  "phase": "plan",
+  "note": "Restore the Isolation Wall retroactively. Five packages merged with implementer-written tests (AGENTS.md 'What You Must Never Do' #11). The suite is green, but green currently means self-consistent, not correct. Each item below spawns an INDEPENDENT Test-Designer that reads only the package's brief and public contract — never its tests, never its implementation — writes verification criteria from intent, then a separate runner executes them.",
+  "imagine": [
+    { "id": "i001", "item": "Independently verify src/claim.lisp — the grounding door. Written by the coordinator itself, so it is the worst offender: planner, implementer and test-designer were one agent.", "status": "pending", "dependsOn": [] },
+    { "id": "i002", "item": "Independently verify src/spine.lisp — envelope contract, dynamic-binding nesting, and the ring's eviction/order across the wrap", "status": "pending", "dependsOn": [] },
+    { "id": "i003", "item": "Independently verify src/escalate.lisp — especially that resume-in-place is genuinely proven and not merely asserted by a counter the same agent wrote", "status": "pending", "dependsOn": [] },
+    { "id": "i004", "item": "Independently verify src/supervisor.lisp — real child death, real restart, real orphan-freedom under failure, not just the happy path", "status": "pending", "dependsOn": [] },
+    { "id": "i005", "item": "Independently verify src/dictionary.lisp — that it reports kinds correctly and its JSON is actually parseable by a third-party parser", "status": "pending", "dependsOn": [] },
+    { "id": "i006", "item": "Close the coordination gap structurally: a worker contract where the Tower CLAIM is a verified gate, not an instruction — the orchestrator confirms the claim landed on the board before the worker is allowed to proceed", "status": "pending", "dependsOn": [] }
+  ],
+  "brief": ".madewell/work/packages/"
+}
