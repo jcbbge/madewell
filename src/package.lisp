@@ -55,4 +55,18 @@
    #:answer
    #:use-default
    #:abandon
-   #:*work-unit*))
+   #:*work-unit*
+
+   ;; supervisor — one-for-one supervision at the OS-process boundary
+   #:child
+   #:child-p
+   #:child-pid
+   #:child-alive-p
+   #:child-command
+   #:child-restarts
+   #:supervisor
+   #:supervisor-p
+   #:supervisor-children
+   #:start-supervisor
+   #:supervise
+   #:shutdown-supervisor))
