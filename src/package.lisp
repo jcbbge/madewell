@@ -42,4 +42,17 @@
    #:acquire
    #:mark-unknown
    #:refuse
-   #:with-grounding-policy))
+   #:with-grounding-policy
+
+   ;; escalate — the decision contact point
+   #:escalation
+   #:escalation-question
+   #:escalation-actor
+   #:escalation-default
+   #:escalate
+   #:with-work-unit
+   #:with-escalation-policy
+   #:answer
+   #:use-default
+   #:abandon
+   #:*work-unit*))

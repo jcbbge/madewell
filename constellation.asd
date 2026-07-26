@@ -18,7 +18,8 @@
   :components ((:file "package")
                (:file "hello")
                (:file "spine")
-               (:file "claim"))
+               (:file "claim")
+               (:file "escalate"))
   :in-order-to ((asdf:test-op (asdf:test-op "constellation/tests"))))
 
 (asdf:defsystem "constellation/tests"
@@ -29,6 +30,7 @@
   :components ((:file "package")
                (:file "test-hello")
                (:file "test-spine")
-               (:file "test-claim"))
+               (:file "test-claim")
+               (:file "test-escalate"))
   :perform (asdf:test-op (op system)
              (uiop:symbol-call :fiveam :run! :constellation)))
