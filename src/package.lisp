@@ -23,6 +23,7 @@
    #:spine-write-ndjson
    #:*actor*
    #:*current-parent*
+   #:*spine-capacity*
 
    ;; claim — the grounding contact point
    #:acquisition
