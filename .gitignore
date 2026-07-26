@@ -9,3 +9,6 @@
 
 # the dumped executable (`make build`) — 37MB, rebuildable
 /constellation
+
+# Made Well — local per-clone profile marker (never committed)
+.madewell/profile
