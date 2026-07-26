@@ -7,9 +7,29 @@ obey stop being prose in a document and become primitives in a language. Groundi
 verification, the ratchet, the cooperative pause — expressed as forms, not as a
 framework asking to be followed.
 
-Status: **day one.** The toolchain is standing, the loop builds and tests, and the
-first slice is not yet cut. See `docs/CONSTELLATION-V6-CONVERGENCE.md` for the plan
-and `docs/excavation/` for what the previous five iterations crystallized.
+Status: **first slice cut.** The toolchain is standing and grounding works. See
+`docs/CONSTELLATION-V6-CONVERGENCE.md` for the plan and `docs/excavation/` for what the
+previous five iterations crystallized.
+
+## The first slice: grounding
+
+An agent that states a fact it did not acquire is not making a small error — the caveat
+dies with the session and the fabricated value persists looking verified. So grounding
+is not a rule an agent is asked to follow. It is a property of the values.
+
+- **`acquisition`** — evidence something actually happened this session. No constructor
+  takes your word for it; the only way to get one is to run the command, read the file,
+  or ask the operator.
+- **`claim`** — a subject, a value, and the acquisition behind it. Not a value with a
+  source attached; a value that cannot be built without one.
+- **`ground`** — the door. A value with nothing behind it does not pass. It *signals*,
+  and the stack stays alive while a coordinator picks a restart: `acquire` (supply what
+  was missing and resume in place), `mark-unknown` (record the absence, honestly), or
+  `refuse`.
+
+The worker names its recovery options and keeps going. It never learns which policy was
+in force. Every acquisition and every door-crossing emits a telemetry Envelope, with the
+call tree carried by dynamic binding rather than threaded by hand.
 
 ## Lineage
 

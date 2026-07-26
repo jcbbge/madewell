@@ -14,8 +14,11 @@
   :version "0.0.1"
   :serial t
   :pathname "src"
+  :depends-on ("uiop")
   :components ((:file "package")
-               (:file "hello"))
+               (:file "hello")
+               (:file "spine")
+               (:file "claim"))
   :in-order-to ((asdf:test-op (asdf:test-op "constellation/tests"))))
 
 (asdf:defsystem "constellation/tests"
@@ -24,6 +27,8 @@
   :serial t
   :pathname "tests"
   :components ((:file "package")
-               (:file "test-hello"))
+               (:file "test-hello")
+               (:file "test-spine")
+               (:file "test-claim"))
   :perform (asdf:test-op (op system)
              (uiop:symbol-call :fiveam :run! :constellation)))
