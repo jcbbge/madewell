@@ -20,3 +20,4 @@ Format: `YYYY-MM-DD | decision | reason`
 2026-07-25 | Do not wire the mcp-lisp REPL bridge yet | verified: repository has NO license file (GitHub API `.license` = null) despite README claiming MIT/Apache-2.0; ask the author before taking a dependency into the harness/runtime seam
 2026-07-25 | Made Well governs orchestration in this repo — no more ad-hoc coordinator briefs | the first fan-out bypassed it and reproduced the exact failure Made Well exists to prevent: every implementer wrote its own tests
 
+2026-07-27 | The Pane Compiler PRD lands in constellation, not circadian | it is compile-time context assembly, not digest-time memory; the pane is Constellation's to own
