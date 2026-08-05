@@ -35,6 +35,15 @@ appeared within 2 minutes is treated as not-started — investigate the pane dir
 let work proceed on an unconfirmed claim. This is what the first fan-out skipped, and it is
 why five succeeding workers would have looked dead if the board had been trusted.
 
+**Enforcement — the gate is an executable, not a prose clause.** After spawning a worker, the
+orchestrator runs `bin/claim-gate.sh <worker-name> <topic> [timeout-seconds]` (default 120)
+from the repo root. It polls `~/.tower/board.jsonl` for the worker's `type:"claim"` line
+matching `from`, `topic`, and `cwd` exactly; exit 0 prints the claim and opens the gate, exit
+1 is a timeout with diagnostics (wait duration, match criteria, last claims for the topic),
+exit 3 means the board itself is missing. Any non-zero exit is the 2-minute rule made
+mechanical: the worker is not-started — investigate the pane, and never send further
+instruction. The script is read-only; it never writes to the board.
+
 ---
 
 ## 2. You do not test your own code
