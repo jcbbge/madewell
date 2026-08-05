@@ -21,3 +21,5 @@ Format: `YYYY-MM-DD | decision | reason`
 2026-07-25 | Made Well governs orchestration in this repo — no more ad-hoc coordinator briefs | the first fan-out bypassed it and reproduced the exact failure Made Well exists to prevent: every implementer wrote its own tests
 
 2026-07-27 | The Pane Compiler PRD lands in constellation, not circadian | it is compile-time context assembly, not digest-time memory; the pane is Constellation's to own
+2026-08-05 | Remote is private jcbbge/constellation-v6, not bare "constellation" | the bare name belongs to a PUBLIC April snapshot (created+pushed 2026-04-10, 543KB); v6 is unpublished work and stays private until the Lead says otherwise; renaming/archiving the old repo is an operator call
+2026-08-05 | Neo-report recommendations land as ONE discovery item (d010), not 19 | Lead's call: the queue holds pointers, cycles pull items when their surface gets built; keeps the discovery queue from flooding — the stores get shorter as work gets done

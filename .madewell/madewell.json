@@ -2,11 +2,11 @@
   "project": "Constellation v6 — the Level-0 Harness, in its native language",
   "profile": "lead",
   "stage": "build",
-  "updated": "2026-07-27T00:00:00Z",
+  "updated": "2026-08-05T03:55:00Z",
 
   "context": {
-    "summary": "Grounding, escalate/resume, supervision, the dictionary emitter and a bounded spine are all merged and green (41 tests, 0 warnings). But the fan-out that built them bypassed Made Well: every implementer wrote its own tests, which is the one wall this project holds sacred. A Pane Compiler PRD also arrived from a separate conversation — the context-pane thesis turned into a blueprint for Constellation's context layer.",
-    "openThread": "d001 — independent verification of the five merged packages plus claim.lisp and spine.lisp. Their tests were written by the agents that wrote the code, so the suite proves self-consistency, not correctness. Cycle c001 is planned and awaits the Lead's commit to dispatch.",
+    "summary": "Two lands this session: d002 (private remote jcbbge/constellation-v6, pushed) and d009 (neo ergonomics research — report at docs/research/2026-08-05-neo-ergonomics.md: 4 harnesses, 19 verdicted recommendations; verdicts routed to d010). c001 independent verification is the standing open work: six Test-Designer briefs must be written before dispatch — the original fan-out briefs never left the 2026-07-25 scratchpad.",
+    "openThread": "Write c001's six verification briefs (one per package: claim, spine, escalate, supervisor, dictionary, + coordination-gate fix) into .madewell/work/packages/, then dispatch the Test-Designer fan-out on the Lead's commit.",
     "language": {
       "context window": "context pane — stained glass, each shard a different artifact",
       "abandoned at 40%": "the descent — going down a layer, not failing at one",
@@ -18,13 +18,13 @@
   },
 
   "discovery": [
-    { "id": "d002", "item": "Push this repo to a remote — five iterations shipped zero pushes and all of this exists in exactly one place", "scope": "infrastructure", "dependsOn": [] },
     { "id": "d003", "item": "Decide Topic 1 naming: fractal-renamed vs role-axis vs both", "scope": "identity", "dependsOn": [] },
     { "id": "d004", "item": "Decide whether the Latent Workspace earns a place in v6 or stays deferred — the only idea the project's own rubric ever scored 10X, unbuilt across five iterations", "scope": "architecture", "dependsOn": [] },
     { "id": "d005", "item": "Bring the orbiting organs into Constellation and rename them celestially (Rumen, Strudel, Tower, Circadian)", "scope": "convergence", "dependsOn": ["d003"] },
     { "id": "d006", "item": "Wire the REPL-over-MCP bridge", "scope": "tooling", "dependsOn": [] },
     { "id": "d007", "item": "Resolve the five open questions in docs/PANE-COMPILER-PRD.md (pane token budget, pi.dev hook surfaces, Alembic's fate, fold executor, seam-view home) before the PRD becomes a working blueprint", "scope": "context-layer", "dependsOn": [] },
-    { "id": "d008", "item": "Decide the relationship between the Pane Compiler and Circadian/Alembic — fold into the substrate, leave parallel, or decommission", "scope": "convergence", "dependsOn": ["d007"] }
+    { "id": "d008", "item": "Decide the relationship between the Pane Compiler and Circadian/Alembic — fold into the substrate, leave parallel, or decommission", "scope": "convergence", "dependsOn": ["d007"] },
+    { "id": "d010", "item": "Ergonomics surface decisions from docs/research/2026-08-05-neo-ergonomics.md — 10 adopt + 3 adapt items (doctor subcommand, first-hit annotated config, session env vars, transcript invariants, calm TUI rules, charter-carried tool sets, subprocess extension filters, named phases). Pull items into cycles as each v6 surface gets built.", "scope": "ergonomics", "dependsOn": [] }
   ],
 
   "active": [
