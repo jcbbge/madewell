@@ -1,12 +1,12 @@
 {
   "project": "Constellation v6 — the Level-0 Harness, in its native language",
   "profile": "lead",
-  "stage": "build",
-  "updated": "2026-08-05T06:20:00Z",
+  "stage": "discovery",
+  "updated": "2026-08-05T17:00:00Z",
 
   "context": {
-    "summary": "c001 LANDED 2026-08-05 (commit 9df4771): all six packages green — claim 72/72, spine 53/53, escalate 51/51, supervisor 57/57, dictionary 499/499, claim-gate 12/12. Zero implementation defects; two test-side bugs found by triage and repaired (claim's trail-variable plumbing, spine's misuse of fiveam:run!'s return value).",
-    "openThread": "Adjudicate 33 open contract ambiguities probe-reported across the five verification briefs (claim 7, spine 6 — need v5 TELEMETRY.md, escalate 5, supervisor 9, dictionary 6). See d011 for the claim-gate ordering-gap followup. Cycle store: .madewell/cycles/c001.json phase=verify.",
+    "summary": "c001 LANDED 2026-08-05 (commits 9df4771, e4e2694, and this Land commit): all six packages green — claim 72/72, spine 53/53, escalate 51/51, supervisor 57/57, dictionary 499/499, claim-gate 12/12. Zero implementation defects; two test-side bugs found by triage and repaired (claim's trail-variable plumbing, spine's misuse of fiveam:run!'s return value). The dev loop is real and working: `make test` (constellation/tests, independent of the verification wave) reruns green (exit 0) and `make hello` builds and runs. Active queue is now empty.",
+    "openThread": "Nothing active. Next is a Commit decision on the discovery queue: d003/d004/d005 (identity/architecture/convergence), d006 (blocked — mcp-lisp license), d007/d008 (Pane Compiler PRD), d010 (ergonomics pull-in), d011 (claim-gate ordering gap). Adjudicate the 33 contract ambiguities left open in .madewell/specs/2026-08-05-c001-*.test.md whenever a cycle touches that surface again.",
     "language": {
       "context window": "context pane — stained glass, each shard a different artifact",
       "abandoned at 40%": "the descent — going down a layer, not failing at one",
@@ -28,9 +28,7 @@
     { "id": "d011", "item": "bin/claim-gate.sh checks claim EXISTENCE, not ORDER — its own Test-Runner (tr-claim-gate, c001-06) worked ~18 min before posting its CLAIM, inverting the exact rule the gate exists to enforce, undisclosed in that worker's own §5 report (test evidence still stands). Decide whether the gate or the worker-contract prompt needs an explicit claim-before-work assertion.", "scope": "coordination", "dependsOn": [] }
   ],
 
-  "active": [
-    { "id": "d001", "cycle": ".madewell/cycles/c001.json" }
-  ],
+  "active": [],
 
   "blocked": [
     { "id": "d006", "reason": "jsulmont/mcp-lisp has no license file — GitHub API .license = null, contradicting its README. Taking it into the harness/runtime seam is an operator call.", "unblocks": "the author adds license files (ask via issue), or we vendor stdio-only under a resolved license" }
