@@ -2,11 +2,11 @@
   "project": "Constellation v6 — the Level-0 Harness, in its native language",
   "profile": "lead",
   "stage": "build",
-  "updated": "2026-08-05T03:55:00Z",
+  "updated": "2026-08-05T06:05:00Z",
 
   "context": {
-    "summary": "Two lands this session: d002 (private remote jcbbge/constellation-v6, pushed) and d009 (neo ergonomics research — report at docs/research/2026-08-05-neo-ergonomics.md: 4 harnesses, 19 verdicted recommendations; verdicts routed to d010). c001 independent verification is the standing open work: six Test-Designer briefs must be written before dispatch — the original fan-out briefs never left the 2026-07-25 scratchpad.",
-    "openThread": "Write c001's six verification briefs (one per package: claim, spine, escalate, supervisor, dictionary, + coordination-gate fix) into .madewell/work/packages/, then dispatch the Test-Designer fan-out on the Lead's commit.",
+    "summary": "Two lands this session: d002 (private remote jcbbge/constellation-v6, pushed) and d009 (neo ergonomics research → docs/research/2026-08-05-neo-ergonomics.md, verdicts routed to d010). c001's Plan phase is complete: six briefs carved into .madewell/work/packages/ — i001-i005 verification-only (Test-Designer + Runner), i006 a build package (Implementer + Test-Designer) for the CLAIM gate as an executable.",
+    "openThread": "c001 awaits the Lead's commit to dispatch: wave 1 = 7 workers (5 Test-Designers + i006's Implementer/Test-Designer pair), wave 2 = Test-Runners, triage on any failure. Frontier is all six items concurrently.",
     "language": {
       "context window": "context pane — stained glass, each shard a different artifact",
       "abandoned at 40%": "the descent — going down a layer, not failing at one",
