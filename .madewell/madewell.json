@@ -2,11 +2,11 @@
   "project": "Constellation v6 — the Level-0 Harness, in its native language",
   "profile": "lead",
   "stage": "discovery",
-  "updated": "2026-08-05T17:00:00Z",
+  "updated": "2026-08-05T20:30:00Z",
 
   "context": {
-    "summary": "c001 LANDED 2026-08-05 (commits 9df4771, e4e2694, and this Land commit): all six packages green — claim 72/72, spine 53/53, escalate 51/51, supervisor 57/57, dictionary 499/499, claim-gate 12/12. Zero implementation defects; two test-side bugs found by triage and repaired (claim's trail-variable plumbing, spine's misuse of fiveam:run!'s return value). The dev loop is real and working: `make test` (constellation/tests, independent of the verification wave) reruns green (exit 0) and `make hello` builds and runs. Active queue is now empty.",
-    "openThread": "Nothing active. Next is a Commit decision on the discovery queue: d003/d004/d005 (identity/architecture/convergence), d006 (blocked — mcp-lisp license), d007/d008 (Pane Compiler PRD), d010 (ergonomics pull-in), d011 (claim-gate ordering gap). Adjudicate the 33 contract ambiguities left open in .madewell/specs/2026-08-05-c001-*.test.md whenever a cycle touches that surface again.",
+    "summary": "c001 LANDED 2026-08-05 (commits 9df4771, e4e2694, and this Land commit): all six packages green — claim 72/72, spine 53/53, escalate 51/51, supervisor 57/57, dictionary 499/499, claim-gate 12/12. Zero implementation defects; two test-side bugs found by triage and repaired (claim's trail-variable plumbing, spine's misuse of fiveam:run!'s return value). The dev loop is real and working: `make test` (constellation/tests, independent of the verification wave) reruns green (exit 0) and `make hello` builds and runs. Active queue is now empty. 2026-08-05 evening: evaluated manthanguptaa/water; borrowings captured as d012 (brief ready) + d013 (blocked).",
+    "openThread": "Nothing active. Next is a Commit decision on the discovery queue: d003/d004/d005 (identity/architecture/convergence), d006 (blocked — mcp-lisp license), d007/d008 (Pane Compiler PRD), d010 (ergonomics pull-in), d011 (claim-gate ordering gap), d012 (water borrowings — brief already written, ready to dispatch), d013 (blocked — temporal escalation policy). Adjudicate the 33 contract ambiguities left open in .madewell/specs/2026-08-05-c001-*.test.md whenever a cycle touches that surface again.",
     "language": {
       "context window": "context pane — stained glass, each shard a different artifact",
       "abandoned at 40%": "the descent — going down a layer, not failing at one",
@@ -25,12 +25,15 @@
     { "id": "d007", "item": "Resolve the five open questions in docs/PANE-COMPILER-PRD.md (pane token budget, pi.dev hook surfaces, Alembic's fate, fold executor, seam-view home) before the PRD becomes a working blueprint", "scope": "context-layer", "dependsOn": [] },
     { "id": "d008", "item": "Decide the relationship between the Pane Compiler and Circadian/Alembic — fold into the substrate, leave parallel, or decommission", "scope": "convergence", "dependsOn": ["d007"] },
     { "id": "d010", "item": "Ergonomics surface decisions from docs/research/2026-08-05-neo-ergonomics.md — 10 adopt + 3 adapt items (doctor subcommand, first-hit annotated config, session env vars, transcript invariants, calm TUI rules, charter-carried tool sets, subprocess extension filters, named phases). Pull items into cycles as each v6 surface gets built.", "scope": "ergonomics", "dependsOn": [] },
-    { "id": "d011", "item": "bin/claim-gate.sh checks claim EXISTENCE, not ORDER — its own Test-Runner (tr-claim-gate, c001-06) worked ~18 min before posting its CLAIM, inverting the exact rule the gate exists to enforce, undisclosed in that worker's own §5 report (test evidence still stands). Decide whether the gate or the worker-contract prompt needs an explicit claim-before-work assertion.", "scope": "coordination", "dependsOn": [] }
+    { "id": "d011", "item": "bin/claim-gate.sh checks claim EXISTENCE, not ORDER — its own Test-Runner (tr-claim-gate, c001-06) worked ~18 min before posting its CLAIM, inverting the exact rule the gate exists to enforce, undisclosed in that worker's own §5 report (test evidence still stands). Decide whether the gate or the worker-contract prompt needs an explicit claim-before-work assertion.", "scope": "coordination", "dependsOn": [] },
+    { "id": "d012", "item": "Escalation hardening — the water borrowings: grounded rulings (ANSWER restart routes through ground; the ruling is the one value that currently bypasses grounding), severity slot on the escalation condition, budgeted-policy combinator. Brief is READY at .madewell/specs/2026-08-05-water-borrowings.md (Lead-directed 2026-08-05, written ahead of Commit for later delegation).", "scope": "kernel", "dependsOn": [] },
+    { "id": "d013", "item": "Temporal escalation policy — a deadline racing the coordinator, expiring into use-default/refuse (water's timeout + timeout_action idea). Deliberately split out of d012: v6 handlers run synchronously in-stack, so a deadline has nothing to race yet.", "scope": "coordination", "dependsOn": [] }
   ],
 
   "active": [],
 
   "blocked": [
-    { "id": "d006", "reason": "jsulmont/mcp-lisp has no license file — GitHub API .license = null, contradicting its README. Taking it into the harness/runtime seam is an operator call.", "unblocks": "the author adds license files (ask via issue), or we vendor stdio-only under a resolved license" }
+    { "id": "d006", "reason": "jsulmont/mcp-lisp has no license file — GitHub API .license = null, contradicting its README. Taking it into the harness/runtime seam is an operator call.", "unblocks": "the author adds license files (ask via issue), or we vendor stdio-only under a resolved license" },
+    { "id": "d013", "reason": "no async operator/coordinator ask channel exists in v6 — escalation handlers run synchronously in-stack, so a timeout has nothing to race", "unblocks": "an async coordinator channel (multi-star coordination), at which point the deadline becomes a policy combinator like budgeted-policy" }
   ]
 }
