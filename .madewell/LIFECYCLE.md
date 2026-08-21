@@ -14,14 +14,14 @@ scales — this self-similarity is the point, not a coincidence:
 
 ```
 OUTER LOOP — the Made Well lifecycle
-  while Discovery is not empty:
+  while QUEUE is not empty:            (Discovery fills the pool; Commit admits to the queue)
     pull one item → Commit → Build → Land
                             └── Build runs an INNER LOOP
     ↳ pause: surface to the user, take feedback, then continue
 
 INNER LOOP — one Cycle (lives inside Build)
-  while Imagine is not empty:
-    pull one item → Plan → Make → Verify
+  while inner work remains:
+    [Imagine if shape is still open] → Plan → Make → Verify
     ↳ pause: surface to the user, take feedback, then continue
 ```
 
@@ -31,16 +31,19 @@ the next pull. It is a `while not empty` loop *with a human checkpoint each turn
 autonomous drain. It still terminates when its queue is empty; it just yields between iterations
 so the user can steer, redirect, or stop.
 
-- **Outer queue = Discovery.** Pull one item, run it, pause; repeat until Discovery drains.
-- **Inner queue = Imagine.** Pull one item, run it, pause; repeat until Imagine drains.
-- **Discovery feeds Imagine.** A committed Discovery item enters Build; Build seeds that
-  Cycle's Imagine queue; the inner loop drains it through Plan → Make → Verify. When
-  Imagine is empty, the Cycle Lands and the outer loop pulls the next Discovery item.
+- **Outer queue = what Commit admitted.** Discovery fills the pool; Commit admits; pull one
+  admitted item, run it, pause; repeat until the QUEUE drains (not the pool).
+- **Inner queue = the Cycle's work list.** Default: Imagine items. Locked-spec Commit
+  (below): Plan items — Imagine is already done.
+- **Discovery feeds Commit, not Build.** Intake fills the **pool**. Commit admits one
+  item to the **queue** and mints a Cycle. Build runs that Cycle. When the Cycle Lands,
+  the outer loop may pull the next **admitted** item (not the next raw transcript).
 
 **Where a session resumes — inner first.** Most work lives in the inner loop. A session picks
-up by checking it first: if there's an active Cycle with pending `imagine` items, resume there.
-Only if nothing is in flight does it drop to the outer loop (Commit the next `discovery` item).
-Only if both are empty is it a fresh discovery conversation.
+up by checking it first: if there's an active Cycle with pending inner items (`imagine` or
+`phase: plan` after a locked-spec Commit), resume there. Only if nothing is in flight does it
+drop to the outer loop (Commit the next pool item). Only if both are empty is it a fresh
+discovery conversation.
 
 ---
 
@@ -50,12 +53,28 @@ A *stage* is a position in a linear progression: you pass through it once, in or
 
 | Stage | Beat | What happens |
 |---|---|---|
-| **Discovery** | take in | Intake. Raw input becomes shaped, queueable work-items. This is the outer queue. |
-| **Commit** | converge | The gate. Pull one item, bound it. Say no here so nothing floods downstream. |
+| **Discovery** | take in | Intake. Raw input becomes shaped, **queueABLE** work-items — candidates, not queue members. |
+| **Commit** | converge | The gate. Pull one item, bound it. Say no here so nothing floods downstream. **Admission to the queue happens HERE.** |
 | **Build** | build | Run a Cycle (the inner loop) against the committed item. |
 | **Land** | release | Ship + reflect. Drain the item from the queue; record what was learned. |
 
-The outer loop is the engine that runs the whole project: `while Discovery not empty`.
+The outer loop is the engine that runs the whole project: **`while queue not empty`**.
+
+> **Two reservoirs, not one** (operator ruling 2026-08-13, from a real project at scale).
+> Earlier wording made this `while Discovery not empty`, which conflates the intake pool with
+> the queue. Discovery is a **feeder**; it fills a **staging pool of candidates**. Commit is
+> the **valve** that admits a candidate to the **queue**. The loop drains the queue, not the
+> pool.
+>
+> Why it matters, from the case that surfaced it: one discovery session produced 11 staged
+> items and the project's staging pool held 166. Reading Discovery as the queue makes the
+> loop appear to have 166 pending iterations, when the true queue held three. A `while`
+> condition over the pool never terminates and cannot be planned against — the pool is
+> *supposed* to accumulate faster than it drains, because saying "not now" is Commit's whole
+> job. See the `land` skill: an undrained staging lake is the diagnostic, not the disease.
+>
+> Small installs may keep pool and queue in one list; at scale they separate, and the schema
+> already anticipates it — `discovery[]` is the pool, `active[]` is what Commit admitted.
 
 ---
 
@@ -66,12 +85,28 @@ a **Cycle**.
 
 | Phase | Beat | What happens |
 |---|---|---|
-| **Imagine** | take in | Understand what's wanted; break it into the smallest completable items. This is the inner queue. |
-| **Plan** | converge | Sequence the items; name dependencies; cut to what's next. |
-| **Make** | build | Produce the artifact (the brief is handed off; the work is executed). |
-| **Verify** | release | Confirm it became what was imagined. Pass → Land. Fail → diagnose. |
+| **Imagine** | take in | Understand what's wanted; break it into the smallest completable items. Default inner queue. |
+| **Plan** | converge | Sequence the items; name dependencies; cut to what's next. Orchestrator. No new product votes. |
+| **Make** | build | Produce the artifact. Implementer — not the orchestrator, not the verifier. |
+| **Verify** | release | Confirm it became what was imagined. A **different** agent than Make. Pass → Land. Fail → diagnose. |
 
-The inner loop runs inside Build: `while Imagine not empty`.
+The inner loop runs inside Build.
+
+### Locked-spec Commit — Imagine already done (operator 2026-08-20)
+
+Product shape is settled **before** Promote/Commit when the item is bounded: what's in,
+what's out, done-when, written (a spec, a locked finding). That sitting **is** Imagine.
+Promote is the Commit valve: no further product decisions in the Cycle.
+
+Then Build **starts at Plan**. Mint the Cycle `phase: "plan"`. The orchestrator decomposes
+into parallel tasks and briefs; it does **not** re-ideate. Make = coder. Verify = a
+separate agent. Tests green and merged to the project's main line → outer **Land**.
+
+If a product fork appears mid-Make, it returns to the Discovery **pool**. It is not
+decided in Build.
+
+When shape is still open (no spec, cannot bound in a sentence), Commit is refused or the
+Cycle starts at Imagine as before. Do not fake a locked spec to skip Imagine.
 
 ---
 
@@ -84,7 +119,8 @@ The inner loop runs inside Build: `while Imagine not empty`.
 | **Cycle** | One complete run through the four phases. The thing you spawn N of. ("We ran 10 cycles.") |
 | **Step** | An atomic action inside a phase (e.g. a brief's numbered steps). |
 | **Loop** | The while-construct that drains a queue. Outer loop / inner loop. |
-| **Queue** | The take-in beat that drives a loop. Discovery (outer) / Imagine (inner). |
+| **Pool** | The staging reservoir the take-in beat fills. Discovery (outer). Candidates, not queue members. |
+| **Queue** | What the loop drains. Outer: what Commit admitted (`active[]`). Inner: Imagine items, or Plan items after a locked-spec Commit. |
 
 Do not reuse these words for other things. "Cycle" is never a stage; "Build" is the stage,
 "Make" is the phase where you produce.
@@ -98,11 +134,13 @@ lives in **two kinds of store**, never one.
 
 ```
 madewell.json               OUTER store. One per project. Permanent.
-                            Holds the Discovery queue + outer lifecycle state.
+                            Holds the Discovery pool (`discovery[]`) + admitted
+                            queue (`active[]`) + outer lifecycle state.
 
 .madewell/cycles/<id>.json  INNER store. One per spawned Cycle. Ephemeral.
-                            Holds that Cycle's Imagine queue + phase state.
+                            Holds that Cycle's inner queue + phase state.
                             Born at Commit→Build, removed at Land.
+                            Locked-spec Commit: `phase: "plan"` (Imagine skipped).
 
 status.jsonl                Append-only event log. Ties parent ↔ children across both
                             stores. The event log wins when a store disagrees with it.

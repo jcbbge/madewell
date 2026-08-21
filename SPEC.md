@@ -38,6 +38,10 @@ provider, any tool — including none.
 git. Git is the durability, replication, and history layer. Databases, hosted services,
 and network dependencies are host-territory, below the doors, never load-bearing.
 
+Rules 1–2 generalize into the **Host ABI** — the five ontological commitments any
+runtime must offer to host Made Well, the enforcement-tier honesty rule, and the
+port-hosts-never-packs invariant — specified in `PORTABILITY.md` (normative companion).
+
 ---
 
 ## 2. Files
@@ -161,9 +165,21 @@ file uses the literal string `"genesis"`.
 The lifecycle is LIFECYCLE.md's, restated here as data:
 
 ```
-OUTER   while Discovery not empty:  pull d-item → Commit → Build → Land → pause
-INNER   (inside Build, one Cycle)   while Imagine not empty:  pull i-item → Plan → Make → Verify → pause
+OUTER   while QUEUE not empty:      pull d-item → Commit → Build → Land → pause
+INNER   (inside Build, one Cycle)   while work remains:  [Imagine if open] → Plan → Make → Verify → pause
 ```
+
+**The outer condition is the QUEUE, not Discovery** (operator ruling 2026-08-13; see
+LIFECYCLE.md "Two reservoirs"). Discovery is a feeder that fills a **staging pool of
+candidates**; **Commit is the valve that admits a candidate to the queue**. The pool is
+expected to grow faster than it drains — refusing is Commit's function — so a `while` over
+the pool never terminates. `discovery[]` is the pool; what Commit admits is the queue
+(`active[]`).
+
+**Locked-spec Commit (2026-08-20):** when the admitted item is already bounded (spec /
+done-when / out-of-scope written), Imagine is complete. The Cycle mints at `phase: "plan"`.
+The orchestrator does not re-ideate. Make ≠ Verify. Merge to main with tests green is outer
+Land. Product forks return to the pool.
 
 **Position** is fully derived from the ledger plus the queues:
 

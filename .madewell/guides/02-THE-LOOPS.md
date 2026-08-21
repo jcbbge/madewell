@@ -21,10 +21,14 @@ then hands off (inner → back to outer; outer → done for now).
 
 ## The outer loop — four STAGES
 
-- **Discovery** — get what's in your head into a form you can act on. This is the queue. (See *Discovery*.)
-- **Commit** — the choice to do *this, not that, now*, and to keep the active list short.
-- **Build** — run a Cycle (the inner loop) against the chosen piece.
-- **Land** — how a finished piece leaves cleanly: it ships, and it feeds back what it taught.
+- **Discovery** — get what's in your head (or a transcript) into candidates. This fills the
+  **pool**, not the drainable queue. (See *Discovery*.)
+- **Commit** — the choice to do *this, not that, now*, bound it, **admit it to the queue**.
+  Promote. If the item already has a locked spec, Imagine is done.
+- **Build** — run a Cycle (the inner loop) against the admitted piece. Locked spec → Plan
+  first (orchestrator: tasks, parallel briefs). Make = coder. Verify = a different agent.
+- **Land** — how a finished piece leaves cleanly: it ships (green on main) and feeds back
+  what it taught.
 
 Without Land, work piles up — finished-but-never-closed — until the system clogs. Build makes the
 thing; Land is how you set it down so you can pick up the next.
@@ -133,11 +137,15 @@ Output: the thing works correctly, including when things go wrong.
 
 **IMAGINE → PLAN** when you can say what you're making, why, and what done looks like.
 
-**PLAN → MAKE** when you have a clear sequence and a clear first step.
+**Skip IMAGINE (locked-spec Commit):** when Promote already carries that — spec, done-when,
+what's out — start at Plan. Do not re-ideate.
 
-**MAKE → VERIFY** when the thing works — happy path confirmed, work saved.
+**PLAN → MAKE** when you have a dependency graph and a clear first frontier.
 
-**VERIFY → LAND** when you'd let a real person use it right now — then Land it: ship it, and capture what building it taught.
+**MAKE → VERIFY** when the happy path works — and a **different** agent runs Verify.
+
+**VERIFY → LAND** when you'd let a real person use it right now — then Land it: ship it
+(green on main), and capture what building it taught.
 
 ---
 

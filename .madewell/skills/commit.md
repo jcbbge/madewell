@@ -64,8 +64,10 @@ everything is promoted, nothing is committed.
 
 ### Step 5: The Mechanics (per committed item)
 
-1. Mint the cycle store — `.madewell/cycles/<id>.json` with `parent`, `phase: "imagine"`,
-   an empty `imagine` queue (Build seeds it).
+1. Mint the cycle store — `.madewell/cycles/<id>.json` with `parent`, and:
+   - **Locked spec** (item is bounded: in/out/done-when written): `phase: "plan"`. Imagine is
+     complete. Do not seed an Imagine queue to re-hash product.
+   - **Open shape:** `phase: "imagine"`, empty `imagine` queue (Build seeds it).
 2. Move the pointer — remove the item from `discovery`, append `{ "id", "cycle" }` to `active`.
 3. Advance `stage` to `build`; refresh `context.summary` / `context.openThread`.
 4. Log the event — append to `.madewell/work/status.jsonl`:
@@ -79,9 +81,18 @@ everything is promoted, nothing is committed.
 
 ### Step 6: Hand Off to Build
 
-The committed, bounded item is exactly the input to the inner loop: Build seeds the
-Cycle's Imagine queue from it. The outer loop's output is the inner loop's input —
-this is the seam where the two loops meet.
+**Open shape:** Build seeds the Cycle's Imagine queue from the committed item. Inner loop
+starts at Imagine.
+
+**Locked-spec Commit (2026-08-20):** Imagine already happened in the sitting that bounded
+the item. Build **starts at Plan**. The orchestrator decomposes into the smallest tasks,
+declares `dependsOn`, dispatches the parallel frontier as briefs. It does **not** re-ideate
+and does **not** make product decisions. Make = implementer. Verify = a different agent.
+Green on the project's main line → outer Land. Product forks mid-Make return to the
+Discovery pool.
+
+The outer loop's output is the inner loop's input — this is the seam where the two loops
+meet.
 
 ---
 

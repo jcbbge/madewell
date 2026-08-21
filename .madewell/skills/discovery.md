@@ -2,23 +2,19 @@
 
 **Mode:** Workflow (produces artifacts, updates madewell.json)
 **Trigger:** Brain dump, transcript, meeting notes, AI-chat log, thinking out loud, first session
-**Artifacts:** Items on the `discovery` queue in madewell.json; decisions surfaced; The One Thing written down
+**Artifacts:** Items on the `discovery` **pool** in madewell.json; decisions surfaced; The One Thing written down
 
 ---
 
 ## What This Does
 
 Discovery is the **intake instrument** of the outer loop — the take-in beat that fills the
-`discovery` queue. It turns raw input (a brain dump, a transcript, a meeting, an AI-chat)
-into shaped, queueable work-items.
+`discovery` **pool**. It turns raw input (a brain dump, a transcript, a meeting, an AI-chat)
+into shaped, queueable **candidates**.
 
-You are an **intelligence analyst for the work**, not a note-taker or summarizer: excavate
-the structure underneath what was said — the hidden logic, the friction people have
-normalized, the decisions made on thin information, the gaps nobody has named.
-
-Discovery is **divergent** — surface everything, route each finding. It never writes
-straight into `active`: saying "no" is the Commit gate's job (`commit.md`), made
-deliberately later.
+It **never** starts a Cycle and **never** writes into `active`. Saying "no" / "not now" /
+"promote" is the Commit gate (`commit.md`), made deliberately later. A pipeline that
+classifies, lenses, and routes into staging is **Discovery only** — not Commit, not Build.
 
 This engine is domain-agnostic. It carries a **universal lens core**; a loaded cartridge
 may extend the lens set for its lane of work (see *The Lens Slot* below).

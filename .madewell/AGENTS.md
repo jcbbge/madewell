@@ -64,30 +64,30 @@ sessions: `guides/SESSION-PROTOCOL.md`.
 > **Canonical model: `LIFECYCLE.md`** — it owns the loops, stages, phases, vocabulary, and
 > state shape. When this section and that file disagree, LIFECYCLE.md wins.
 
-Every unit of work runs the outer four-stage lifecycle — a **while-loop over a queue**:
-Discovery *is* the queue, and the loop drains it.
+Every unit of work runs the outer four-stage lifecycle — a **while-loop over the
+admitted queue**, not over the Discovery pool:
 
 ```
 DISCOVERY  →   COMMIT   →   BUILD    →   LAND
-(take in:     (cut to one,  (run a      (let go:
- the queue)    now; bound)   Cycle)      ship + learn)
+(take in:     (admit +     (run a      (let go:
+ fill pool)    bound)       Cycle)      ship + learn)
 
-         BUILD runs a Cycle:  IMAGINE → PLAN → MAKE → VERIFY
+         BUILD runs a Cycle:  [Imagine if shape is open] → PLAN → MAKE → VERIFY
 ```
 
-- **DISCOVERY** — intake; divergent; route each insight to active, backlog, decision, or
-  release (`skills/discovery.md`).
-- **COMMIT** — the gate: *this, not that, now* — and bound. The active list stays short on
-  purpose; say no here so nothing floods later (`skills/commit.md`).
-- **BUILD** — run the Cycle. Imagine (understand + break into smallest completable items — the
-  inner queue), Plan (sequence, `dependsOn`), Make (write briefs; you don't do this part),
-  Verify (did it become what was imagined — not "does it work").
-- **LAND** — both faces fire or the unit leaks: **Ship** (merged, brief deleted, state
-  advanced) and **Reflect** (LEARNED, PROPAGATED, TAX) (`skills/land.md`).
+- **DISCOVERY** — intake only (transcript, notes, pipeline). Divergent. Writes **candidates**
+  into the pool. Never starts a Cycle (`skills/discovery.md`).
+- **COMMIT** — the gate: *this, not that, now* — and **bound**. Promote. The active list stays
+  short; say no here (`skills/commit.md`). A bounded item with a locked spec has **already
+  finished Imagine**.
+- **BUILD** — run the Cycle. Locked spec → start at **Plan** (orchestrator decomposes,
+  parallel briefs; no product votes). Make = implementer. Verify = a different agent.
+  Open shape → start at Imagine as before.
+- **LAND** — both faces fire or the unit leaks: **Ship** (merged to main, tests green) and
+  **Reflect** (`skills/land.md`).
 
 **Two speeds:** a new thing runs the full lifecycle; a small fix runs Discovery-light,
-Commit-quick, Imagine → Make → Verify — **but Land still fires**. Even a one-line fix ships
-and reflects, or it leaks.
+Commit-quick, then Plan → Make → Verify (or Imagine if unbounded) — **but Land still fires**.
 
 The lifecycle collapses forward: briefs are deleted at Land, madewell.json gets shorter as
 work gets done. Before moving on, ask: if someone encountered this right now, would it feel
@@ -114,17 +114,17 @@ packages in `work/packages/`). Briefs are deleted when the work is verified comp
 
 ## The Queue and Active
 
-A **queued** item lives in `discovery` — real and captured, not picked up. An **active** item
+A **pooled** item lives in `discovery` — real and captured, not admitted. An **active** item
 has been Committed: a Cycle is running in Build. The move is a deliberate choice — the COMMIT
 gate — never automatic. When something comes up mid-session that isn't the current work, add
-it to `discovery`, say "captured," and return to what you were doing.
+it to `discovery` (the pool), say "captured," and return to what you were doing.
 
 ---
 
 ## Memory and State
 
-Four layers, always current: **working memory** — `madewell.json` (outer: discovery queue +
-stage) and `cycles/<id>.json` (inner: imagine queue + phase, ephemeral); **history** — git
+Four layers, always current: **working memory** — `madewell.json` (outer: discovery **pool** +
+admitted `active[]` + stage) and `cycles/<id>.json` (inner: queue + phase, ephemeral); **history** — git
 log; **decisions** — `DECISIONS.md` (append-only: `YYYY-MM-DD | what | why`); **identity** —
 `PRODUCT.md` (the living record of the person and their project — update it whenever you
 learn something new; this is what makes sessions feel continuous).

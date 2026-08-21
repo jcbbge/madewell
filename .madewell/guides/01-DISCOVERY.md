@@ -1,9 +1,10 @@
 # Discovery
 
-**What:** The first **stage** of the outer loop — getting everything out of your head and onto
-the `discovery` queue, in a form you can act on. (How the loops fit together: `02-THE-LOOPS.md`.)
+**What:** The first **stage** of the outer loop — getting everything out of your head (or a
+transcript, a pipeline) and onto the `discovery` **pool**, as candidates. (How the loops fit
+together: `02-THE-LOOPS.md`, `LIFECYCLE.md`.)
 **When:** Starting something new. Before a major new piece. When you're stuck.
-**Output:** Insights routed to the discovery queue or decisions.
+**Output:** Insights routed to the pool, or decisions. Not a Cycle. Not `active`.
 
 ---
 
@@ -49,7 +50,7 @@ Your guide reads what came out through five lenses and extracts what matters:
 
 Every insight goes somewhere:
 
-- **Discovery queue** — real and captured, waiting to be picked up (Committed when it has a path)
+- **Discovery queue** — real and captured, waiting to be Committed (pool, not `active`)
 - **Decision** — something that needs to be decided before work can proceed
 - **Released** — noted and let go — not worth acting on
 

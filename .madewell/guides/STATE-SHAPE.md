@@ -3,8 +3,8 @@
 State lives in two stores, never one (see `LIFECYCLE.md` for why). Schemas:
 `guides/schemas/madewell.schema.json` (outer) and `guides/schemas/cycle.schema.json` (inner).
 
-**Outer store — `madewell.json`** (one per project, permanent). The Discovery queue + the
-outer **stage** pointer:
+**Outer store — `madewell.json`** (one per project, permanent). The Discovery **pool** + the
+admitted **queue** (`active[]`) + the outer **stage** pointer:
 
 ```json
 {
@@ -31,7 +31,8 @@ outer **stage** pointer:
 ```
 
 **Inner store — `.madewell/cycles/<id>.json`** (one per spawned Cycle, ephemeral — born at
-Commit→Build, deleted at Land). The Imagine queue + the inner **phase** pointer:
+Commit→Build, deleted at Land). The inner queue + **phase** pointer. Locked-spec Commit
+mints `phase: "plan"` (Imagine skipped). Open shape mints `phase: "imagine"`.
 
 ```json
 {
@@ -49,8 +50,9 @@ Commit→Build, deleted at Land). The Imagine queue + the inner **phase** pointe
 ```
 
 `stage` (outer) and `phase` (inner) are different pointers at different scales — never collapse
-them into one field. `discovery` is the outer queue; `imagine` is the inner queue; each loop
-drains its own.
+them into one field. `discovery[]` is the **pool**; `active[]` is the outer **queue**; the
+Cycle's inner queue is `imagine` items unless a locked-spec Commit started at Plan. Each
+loop drains its own queue, not the pool.
 
 **Rules:**
 - Update immediately when state changes. Never batch.
@@ -58,7 +60,8 @@ drains its own.
   full new content to `<file>.tmp`, then `mv <file>.tmp <file>` (rename is atomic on POSIX). A
   death mid-write must never leave a store unparseable. Append-only files (`status.jsonl`,
   `board.jsonl`, `tax.jsonl`) are exempt — appending a whole line is the atomic unit there.
-- On Commit (`discovery` → `active`): mint the cycle store, add an `{id, cycle}` pointer to `active`.
+- On Commit (`discovery` → `active`): mint the cycle store (`phase: "plan"` if locked spec,
+  else `phase: "imagine"`), add an `{id, cycle}` pointer to `active`.
 - On Land: delete the cycle store and its brief, remove the item from `active`, say what was accomplished.
 - The stores get shorter as work gets done. If `madewell.json` keeps growing, something is wrong.
 - New intake goes straight into `discovery`. Route it to a decision or release it — don't let it pile up unrouted.
