@@ -1,112 +1,149 @@
 # The Made Well Lifecycle — Canonical Model
 
-This file is the **single source of truth** for how work moves through Made Well:
-the loops, the stages, the phases, the vocabulary, and where state lives. Everything
-else — AGENTS.md, the skills, the packs — implements *this*. When another document
-disagrees with this one, this one wins.
+**Version:** 2 · **Ruling:** 2026-08-25 (operator)
+
+This file is the **model**: the loops, the beats, the vocabulary. It names no files and no
+commands. Where the model is *stored* is `SPEC.md`'s subject, and `SPEC.md` says nothing
+about semantics. The two documents cannot disagree, because they no longer overlap.
+
+Nothing else in Made Well gets to redefine what is here.
 
 ---
 
-## Two loops, one shape
+## One shape, twice
 
-Made Well runs **two nested while-loops**. They are the *same four-beat pattern* at two
-scales — this self-similarity is the point, not a coincidence:
+Made Well is **one four-beat pattern applied at two scales**. The pattern:
+
+| Beat | What it does |
+|---|---|
+| **take in** | fills a **pool** with candidates |
+| **converge** | a **valve** — admits one candidate from the pool to the **queue** |
+| **build** | drains the **queue** |
+| **release** | the item leaves, and what it taught flows back |
+
+Applied twice:
 
 ```
-OUTER LOOP — the Made Well lifecycle
-  while QUEUE is not empty:            (Discovery fills the pool; Commit admits to the queue)
-    pull one item → Commit → Build → Land
-                            └── Build runs an INNER LOOP
-    ↳ pause: surface to the user, take feedback, then continue
-
-INNER LOOP — one Cycle (lives inside Build)
-  while inner work remains:
-    [Imagine if shape is still open] → Plan → Make → Verify
-    ↳ pause: surface to the user, take feedback, then continue
+raw input (transcripts, sessions, requests)
+      │  intake — OUTSIDE the loop; the pipeline's job, not the lifecycle's
+      ▼
+  OUTER POOL ····························· candidates
+      │
+      ├─▶ DISCOVERY   take in    clay-block a candidate's rough edges
+      │
+      ├─▶ COMMIT      converge   THE VALVE. Bound it. Admit to the OUTER QUEUE.
+      │
+      ├─▶ BUILD       build      open a Cycle — the inner loop runs here
+      │        │
+      │        ├─▶ IMAGINE  take in    decompose the item → INNER POOL
+      │        │
+      │        ├─▶ PLAN     converge   THE VALVE. Sequence, name deps.
+      │        │                       Admit to the INNER QUEUE.
+      │        │
+      │        ├─▶ MAKE     build      produce the artifact
+      │        │
+      │        └─▶ VERIFY   release    a DIFFERENT agent. Done-when:
+      │                                tests pass, green on main.
+      │
+      │        the Cycle stays open while the inner pool or inner queue holds anything
+      │
+      └─▶ LAND        release    close the unit: reflect, harvest, drain it.
+                                 Learnings return to the OUTER POOL.
 ```
 
-**The first beat of each loop is a queue. The loop drains that queue — but cooperatively:**
-after every iteration it **pauses**, surfaces the result, and takes the user's feedback before
-the next pull. It is a `while not empty` loop *with a human checkpoint each turn* — never an
-autonomous drain. It still terminates when its queue is empty; it just yields between iterations
-so the user can steer, redirect, or stop.
+### Two reservoirs, at both scales
 
-- **Outer queue = what Commit admitted.** Discovery fills the pool; Commit admits; pull one
-  admitted item, run it, pause; repeat until the QUEUE drains (not the pool).
-- **Inner queue = the Cycle's work list.** Default: Imagine items. Locked-spec Commit
-  (below): Plan items — Imagine is already done.
-- **Discovery feeds Commit, not Build.** Intake fills the **pool**. Commit admits one
-  item to the **queue** and mints a Cycle. Build runs that Cycle. When the Cycle Lands,
-  the outer loop may pull the next **admitted** item (not the next raw transcript).
+A pool is not a queue. This was ruled for the outer loop on 2026-08-13 and is **now true
+of the inner loop too** — that symmetry is the 2026-08-25 correction.
 
-**Where a session resumes — inner first.** Most work lives in the inner loop. A session picks
-up by checking it first: if there's an active Cycle with pending inner items (`imagine` or
-`phase: plan` after a locked-spec Commit), resume there. Only if nothing is in flight does it
-drop to the outer loop (Commit the next pool item). Only if both are empty is it a fresh
-discovery conversation.
+|  | fills the pool | the valve | drains the queue |
+|---|---|---|---|
+| **outer** | Discovery | **Commit** | Build |
+| **inner** | Imagine | **Plan** | Make |
 
----
+A pool is *supposed* to outgrow its drain. Saying "not now" is the valve's entire job. A
+`while` condition over a pool never terminates and cannot be planned against. **The loop
+drains the queue, never the pool.**
 
-## The outer loop — four **stages**
+Before 2026-08-25 the inner loop had a pool and no valve: "the inner queue is the Imagine
+items" made every imagined thing automatically admitted. Plan is the valve. Imagining a
+piece of work does not commit you to building it.
 
-A *stage* is a position in a linear progression: you pass through it once, in order.
+### What each valve may demand
 
-| Stage | Beat | What happens |
-|---|---|---|
-| **Discovery** | take in | Intake. Raw input becomes shaped, **queueABLE** work-items — candidates, not queue members. |
-| **Commit** | converge | The gate. Pull one item, bound it. Say no here so nothing floods downstream. **Admission to the queue happens HERE.** |
-| **Build** | build | Run a Cycle (the inner loop) against the committed item. |
-| **Land** | release | Ship + reflect. Drain the item from the queue; record what was learned. |
+A valve checks **bounding**, never **decomposition**. Decomposition belongs to the beat
+*after* the valve.
 
-The outer loop is the engine that runs the whole project: **`while queue not empty`**.
-
-> **Two reservoirs, not one** (operator ruling 2026-08-13, from a real project at scale).
-> Earlier wording made this `while Discovery not empty`, which conflates the intake pool with
-> the queue. Discovery is a **feeder**; it fills a **staging pool of candidates**. Commit is
-> the **valve** that admits a candidate to the **queue**. The loop drains the queue, not the
-> pool.
->
-> Why it matters, from the case that surfaced it: one discovery session produced 11 staged
-> items and the project's staging pool held 166. Reading Discovery as the queue makes the
-> loop appear to have 166 pending iterations, when the true queue held three. A `while`
-> condition over the pool never terminates and cannot be planned against — the pool is
-> *supposed* to accumulate faster than it drains, because saying "not now" is Commit's whole
-> job. See the `land` skill: an undrained staging lake is the diagnostic, not the disease.
->
-> Small installs may keep pool and queue in one list; at scale they separate, and the schema
-> already anticipates it — `discovery[]` is the pool, `active[]` is what Commit admitted.
+- **Commit** may demand: what's in, what's out, done-when. That sitting **is** Imagine —
+  when it has already happened, the Cycle opens at Plan and no one re-imagines it.
+- **Commit may NOT demand:** a file partition, a task breakdown, verified line numbers, a
+  dependency graph. Those are Plan artifacts and do not exist yet. Demanding them at
+  Commit is *premature binding* — one requirement carrying two beats' duties, which is
+  how a brief comes to fail a bar nobody can name.
+- **Plan** may demand: the dependency graph, the frontier, the partition, the exemplars.
 
 ---
 
-## The inner loop — four **phases**
+## Concurrency is the default
 
-A *phase* is a recurring mode within one unit of work. One full pass through all four is
-a **Cycle**.
+**The loop is one item's trajectory. It is not the project's scheduler.**
 
-| Phase | Beat | What happens |
-|---|---|---|
-| **Imagine** | take in | Understand what's wanted; break it into the smallest completable items. Default inner queue. |
-| **Plan** | converge | Sequence the items; name dependencies; cut to what's next. Orchestrator. No new product votes. |
-| **Make** | build | Produce the artifact. Implementer — not the orchestrator, not the verifier. |
-| **Verify** | release | Confirm it became what was imagined. A **different** agent than Make. Pass → Land. Fail → diagnose. |
+A stage is a **position**, not a timeslot. Any number of items may occupy the same
+position at once, moving at their own rates. The project is N items on N trajectories —
+not one cursor walking a list.
 
-The inner loop runs inside Build.
+- Many candidates sit in the outer pool.
+- Many items sit in the outer queue.
+- **Many Cycles are open at once.** Each owns its own inner pool, queue, and workers.
+- Inside one Cycle, every inner-queue item whose dependencies are met runs concurrently.
 
-### Locked-spec Commit — Imagine already done (operator 2026-08-20)
+The `while` in "while the queue is not empty" is scoped to **one item's remaining work**,
+never to a global cursor. Serial execution is just the N=1 case. Nothing in the model
+requires, implies, or rewards single-threading, and a description that reads as
+single-threaded is describing the degenerate case.
 
-Product shape is settled **before** Promote/Commit when the item is bounded: what's in,
-what's out, done-when, written (a spec, a locked finding). That sitting **is** Imagine.
-Promote is the Commit valve: no further product decisions in the Cycle.
+What is *not* concurrent: **one writer per item.** An item is owned by exactly one agent
+at a time. That is what makes N-way parallelism safe without locks.
 
-Then Build **starts at Plan**. Mint the Cycle `phase: "plan"`. The orchestrator decomposes
-into parallel tasks and briefs; it does **not** re-ideate. Make = coder. Verify = a
-separate agent. Tests green and merged to the project's main line → outer **Land**.
+---
 
-If a product fork appears mid-Make, it returns to the Discovery **pool**. It is not
-decided in Build.
+## The pause
 
-When shape is still open (no spec, cannot bound in a sentence), Commit is refused or the
-Cycle starts at Imagine as before. Do not fake a locked spec to skip Imagine.
+Every loop yields to the human. With concurrency, the pause is **per item at its own
+release beat** — not one global checkpoint per turn.
+
+- An item pauses at **Verify** (its result is surfaced) and at **Land** (its close is
+  surfaced).
+- Several pauses may be pending at once. That is normal, not a backlog.
+- **No pause may be answered on the human's behalf, auto-approved, scheduled away, or
+  treated as latency to optimize.** An implementation that does is non-conforming.
+
+Custodial work — advancing, dispatching, bookkeeping, respawning — is the machine's and
+should trend to zero human effort. Generative contact — intent, taste, the judgment given
+at a pause — is the human's and is never automated.
+
+---
+
+## Motion is forward only
+
+- **No rewind.** An item never moves backward. That a walked-through beat is behind you
+  is the property everything else rests on.
+- **Failure is an outcome, not a rollback.** A failed Verify does not send the item back
+  to Make. The item stays where it is; the next attempt is new motion through the same
+  beat. History accumulates attempts.
+- **Abandon is a recorded outcome, not an undo.** An abandoned item releases without
+  landing. What it consumed stays consumed.
+- **A fork discovered mid-Make returns to the outer pool.** It is not decided inside the
+  Cycle. Build has no product votes.
+
+---
+
+## Isolation
+
+True at every node, every scale, no exceptions:
+
+- **planner ≠ executor** — whoever sequenced the work does not do it.
+- **builder ≠ verifier** — whoever made it does not judge it.
 
 ---
 
@@ -114,101 +151,45 @@ Cycle starts at Imagine as before. Do not fake a locked spec to skip Imagine.
 
 | Term | Meaning |
 |---|---|
-| **Stage** | One of the four outer positions: Discovery, Commit, Build, Land. |
-| **Phase** | One of the four inner modes: Imagine, Plan, Make, Verify. |
-| **Cycle** | One complete run through the four phases. The thing you spawn N of. ("We ran 10 cycles.") |
-| **Step** | An atomic action inside a phase (e.g. a brief's numbered steps). |
-| **Loop** | The while-construct that drains a queue. Outer loop / inner loop. |
-| **Pool** | The staging reservoir the take-in beat fills. Discovery (outer). Candidates, not queue members. |
-| **Queue** | What the loop drains. Outer: what Commit admitted (`active[]`). Inner: Imagine items, or Plan items after a locked-spec Commit. |
+| **Stage** | An outer position: Discovery, Commit, Build, Land. |
+| **Phase** | An inner position: Imagine, Plan, Make, Verify. |
+| **Cycle** | One item's pass through the four phases. Opened at Build, closed at Land. |
+| **Pool** | What a take-in beat fills. Candidates. Not drainable, not planned against. |
+| **Queue** | What a valve admitted. What the build beat drains. |
+| **Valve** | Commit (outer), Plan (inner). Where "no" is said. |
+| **Item** | One unit of work. Outer items live in the outer pool/queue; inner items belong to one Cycle. |
+| **Step** | An atomic action inside a phase. |
 
-Do not reuse these words for other things. "Cycle" is never a stage; "Build" is the stage,
-"Make" is the phase where you produce.
-
----
-
-## State — two stores
-
-Because cardinality, write-contention, and lifetime all differ between the loops, state
-lives in **two kinds of store**, never one.
-
-```
-madewell.json               OUTER store. One per project. Permanent.
-                            Holds the Discovery pool (`discovery[]`) + admitted
-                            queue (`active[]`) + outer lifecycle state.
-
-.madewell/cycles/<id>.json  INNER store. One per spawned Cycle. Ephemeral.
-                            Holds that Cycle's inner queue + phase state.
-                            Born at Commit→Build, removed at Land.
-                            Locked-spec Commit: `phase: "plan"` (Imagine skipped).
-
-status.jsonl                Append-only event log. Ties parent ↔ children across both
-                            stores. The event log wins when a store disagrees with it.
-```
-
-Each store **leads with its queue**. Each loop drains the queue in its own store.
-
-**Concurrency.** Cycles are not one-at-a-time. The outer loop can dispatch many committed
-items at once; each mints its own `cycles/<id>.json` and runs concurrently — no
-write-contention, because each Cycle owns its file. One store could never represent many
-concurrent Cycles; the two-store rule is what makes the fleet possible.
+The four inner phases are **Imagine, Plan, Make, Verify**. Not Ideate. Not Implement.
+These words are reserved: "Cycle" is never a stage, "Build" is the stage, "Make" is the
+phase where you produce.
 
 ---
 
-## Orchestration — the recursive coordination layer
+## Where the beats end
 
-Orchestration is how the loops **coordinate distributed work**. Because the lifecycle is
-fractal, orchestration is fractal too: the *same* coordination beat recurs at every loop, and
-any node can recurse into a child loop. It is **not** a single layer bolted onto one phase — it
-is a pattern that lives wherever work can be split.
+Each beat has exactly one done-when. These are the only ones.
 
-> **This is the north-star, not a finished spec.** One cell is built (Make-phase fan-out); the
-> rest are work in progress. The map exists so no piece reads as "all there is."
+| Beat | Done when |
+|---|---|
+| **Discovery** | the candidate states what it is and what it's asking. It is *shaped*, not bounded. |
+| **Commit** | in / out / done-when are written. The item is admitted. |
+| **Build** | the Cycle's inner pool and inner queue are both empty. |
+| **Land** | the unit is closed, its artifacts filed, and what it taught is back in the outer pool. |
+| **Imagine** | the item is decomposed into independently completable pieces. |
+| **Plan** | the admitted pieces have a dependency graph with a non-empty frontier. |
+| **Make** | the artifact exists and the happy path works. |
+| **Verify** | **tests pass and it is green on main** — judged by an agent that did not build it. |
 
-**Two coordinated layers, one pattern:**
-
-- **Outer-loop orchestration — a fleet of Cycles.** Commit can dispatch many Discovery items at
-  once; N Cycles run concurrently. Orchestration here partitions them so they don't collide
-  (scope / file claims), lets them share findings (a board), and reconciles their Lands back
-  into the project.
-
-- **Inner-loop orchestration — within one Cycle, every phase, not just Make.** Each phase has
-  its own fan-out shape:
-  - **Imagine** → parallel *understanding* (explore/research workers map the problem) → collect → shape the Imagine queue
-  - **Plan** → parallel *options* (a panel of approaches, scored) → synthesize the plan
-  - **Make** → parallel *execution* (implementers, partitioned, no collisions) — *the built cell*
-  - **Verify** → parallel *adversarial verification* (independent verifiers / failure triage)
-
-**Recursion = forward motion, nothing fancier.** It's just the loop repeating until its queue
-is empty, so the plate drains and the work doesn't stall. The inner loop repeats until Imagine
-is empty; the Cycle then Lands and returns to the outer loop, which repeats until Discovery is
-empty. The outer loop *feeds* the inner: an item on the outer queue progresses down into a
-Cycle; when that Cycle's queue empties, control returns to the outer queue for the next item.
-Cooperative throughout — it pauses for the human each iteration; recursion only guarantees the
-queue keeps moving, never that it runs autonomously.
-
-Even a single orchestration step is the four-beat: fan out (take-in) → collect (converge) →
-distribute execution (build) → synthesize / merge (release).
-
-**Invariants — true at every node, every scale (these never flex):**
-- **Isolation Mandate** — planner ≠ executor, builder ≠ verifier.
-- **Cooperative pause** — every loop yields to the human between iterations; the recursion never runs away autonomously.
-
-**Built vs. WIP:**
-- ✅ Inner-loop fan-out — **Imagine**, **Plan**, **Make + Verify** (the 5-role jump pack).
-- ✅ Outer-loop / fleet — concurrent Cycles, partition, board, Land reconciliation.
-
-All cells have a baseline design in `skills/orchestrate.md`; the mechanisms deepen with use.
-(Recursion is not a cell — it's just the loop repeating until its queue empties.)
+**Green on main is Verify's done-when, per inner item — not Land's.** Code reaching main
+is how one piece proves itself. Land closes the whole committed unit: reflection,
+harvesting, filing, draining. Conflating them is why "did we land it?" has been an
+ambiguous question.
 
 ---
 
 ## What this file does not cover
 
-- **Orchestration *mechanics*** — the per-cell spawn/dispatch protocols. The *model* is above;
-  the one built cell (Make) lives in `skills/orchestrate.md`. The baseline is Made Well's own; a
-  host harness may substitute the spawn mechanism, preserving the invariants.
-- **Persona / domain / quality / memory / onboarding** — selected per profile. See `PROFILES.md`.
-- **Skill layering** (foundational meta-flow vs. pack/striation skills) — see `guides/SKILLS.json`.
-
-Those compose *around* this lifecycle. They never change it.
+Storage, paths, and enforcement (`SPEC.md`). Spawn and dispatch mechanics. Persona,
+domain, quality, and memory selection (`PROFILES.md`). Those compose *around* this
+lifecycle. They never change it.
