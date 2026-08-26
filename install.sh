@@ -71,13 +71,13 @@ if [ -f "$DEST/.madewell/STATE.json" ] && [ ! -f "$DEST/.madewell/madewell.json"
 fi
 # Fresh memory — created ONLY on first install; never clobbered on re-sync.
 mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/work/test-results" "$DEST/.madewell/work/intake" "$DEST/.madewell/specs" "$DEST/.madewell/decisions" "$DEST/.madewell/cycles"
-# The lifecycle store (SPEC.md v2): position IS the directory an item sits in.
-mkdir -p "$DEST/.madewell/pool" "$DEST/.madewell/queue" "$DEST/.madewell/build" "$DEST/.madewell/landed"
+# The lifecycle store (SPEC.md v3): four names, and position IS the directory.
+mkdir -p "$DEST/.madewell/shaping" "$DEST/.madewell/committed" "$DEST/.madewell/making" "$DEST/.madewell/landed"
 [ -f "$DEST/.madewell/DECISIONS.md" ]    || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
 [ -f "$DEST/.madewell/PRODUCT.md" ]      || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
 [ -f "$DEST/.madewell/madewell.json" ]      || cp "$SRC/.madewell/madewell.json"             "$DEST/.madewell/madewell.json"
 [ -f "$DEST/.madewell/work/tax.jsonl" ]  || : > "$DEST/.madewell/work/tax.jsonl"
-for k in work/packages work/reports work/test-results work/intake specs decisions cycles pool queue build landed; do
+for k in work/packages work/reports work/test-results work/intake specs decisions cycles shaping committed making landed; do
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
 
