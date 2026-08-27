@@ -16,7 +16,7 @@ two briefs — split before delegating.
 - This **one** rule is imported by every lane (authoring *and* reading) — never re-implemented,
   or the lanes silently drift.
 
-## Authoring & the Commit gate (ruling — open authoring, lead-gated admission)
+## Authoring & taking it to the bench (ruling — open authoring, lead-gated admission)
 
 Authoring is **open**: anyone (Lead or Contributor) may draft a brief. A Contributor's draft
 lands as a `_`-prefixed proposal (excluded from the live queue by the rule above). **Promoting it

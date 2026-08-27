@@ -130,17 +130,21 @@ cut it.
 
 One real thing. Something already on their plate today.
 
-```sh
-# put it on the rack
-$EDITOR .madewell/stock/<their-thing>.md
+**You do the filing. They do the thinking.** Do not show them commands, do not ask them to
+move files, do not explain the folders. Ask them the four questions and write down what they
+say:
 
-# take it to the bench when they can answer all four
-git mv .madewell/stock/<their-thing>.md .madewell/bench/<their-thing>.md
-```
+> *What are you making?*
+> *What are you deliberately not making?*
+> *How will you know it's done?*
+> *Is anything holding it up?*
 
-Sit with them while they write the floor — Making, Not making, Done when, Waits on. **That
-first floor is where adoption actually happens**, because it is the first time the framework
-asks them for something and gives something back.
+Then put it on the rack and take it to the bench yourself, and tell them plainly: *"That's on
+your bench now."*
+
+**Those four answers are where adoption actually happens** — it is the first time the thing
+asks them for something and gives something back. If they struggle with *done when*, that is
+not them failing the exercise; it is the exercise working. Sit in it with them.
 
 Then stop. One piece is enough for a first sitting. They will be tempted to rack twenty
 things; the rack growing is fine, but the bench staying short is the discipline, and it is
@@ -154,8 +158,8 @@ easier learned with one.
 - Their four acts are written in **their** vocabulary.
 - A trade exists that they watched get written.
 - One real piece is on the bench with a floor they wrote.
-- They know the three commands: `ls` the three directories, `git mv` to move, and that
-  nothing ever moves backward.
+- They know the three places work can be — waiting, in hand, done — and that nothing ever
+  moves backward.
 
 **Not done when** you have explained the framework well. Explaining is not adopting. They have
 adopted it when one real piece of their own work is sitting on the bench.

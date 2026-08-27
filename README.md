@@ -1,162 +1,172 @@
 # Made Well
 
-**An ontology of work, and a way to run it with agents.**
+**A way of working that keeps good work from quietly going missing.**
 
-Work has four acts: think it through, decide the next cut, make it, check it against what you
-expected. They recur at every scale. Everything else here exists to keep you honest about them.
+You already know how to do your job. What's hard is that when things get busy, the same parts
+always get dropped — the thinking at the start, and the checking at the end — and nobody
+notices until it's expensive.
 
-Made Well is **files in your repository**. No CLI, no service, no database, no account. Delete
-the tooling and the work is still there, still legible.
+Made Well is four steps, written down, with something to stop you skipping them.
 
-```
-ideate  →  plan  →  implement  →  verify
-└─ Ground ────────┘  └─ the Jig ─────────┘
-```
+> **Think it through. Decide the next thing. Do it. Check it against what you expected.**
+
+That's it. Every trade already does this. A baker proofs the dough and tastes the crumb. A
+lawyer researches and gets a second read. You didn't have to be taught the shape — what you
+lack is somewhere to put it.
 
 ---
 
 ## Start here
 
-```
-Read .madewell/AGENTS.md. I want to adopt Made Well. Run adopt.
-```
+Open your AI assistant in a folder and say:
 
-Your agent will ask what you actually do all day, have you walk through one job start to
-finish, and name the four acts back to you **in your own words** before it uses any of its
-own. Then it builds you a trade from your answers and puts one real piece of your work on
-the bench. One sitting.
+> **I want to adopt Made Well. Run adopt.**
 
-Already know the shape? `Let's build.`
+It'll ask what you actually do all day, have you walk through one job start to finish, and
+then show you those four steps **in your own words** before it uses any of its own. By the end
+of one sitting you'll have a version tuned to your line of work, and one real thing from your
+plate set up in it.
 
----
-
-## The contract
-
-**What Made Well gives you**
-
-- One place where every piece of work sits, and its position is where it is — no status field
-  to keep in sync, no dashboard, no dual entry.
-- Work that only moves forward. Nothing silently reverts, nothing gets re-litigated.
-- A stop between *I made it* and *it's done*, so nothing grades its own homework.
-- A record of why, in `git log`, written as the work happened rather than reconstructed after.
-- Domain expertise that plugs in and out without touching the core.
-
-**What Made Well asks of you**
-
-- **Four lines before work starts.** Making, Not making, Done when, Waits on. If you can't
-  write them, the work isn't understood yet — that is information, not an obstacle.
-- **Someone other than the maker proofs it.** This is the rule people skip and it is the one
-  the whole thing rests on.
-- **A short bench.** The rack can hold hundreds. What you are actively working cannot.
-- **Judgment.** Bookkeeping should cost you nothing; the decisions are still yours, and the
-  system will stop and wait for them.
-
-**What it does not do**
-
-Estimates. Burndown. Velocity. Autonomy. It will not run your work while you sleep and it will
-not tell you how long anything takes.
+You don't need to read the rest of this page first. It'll be here afterwards.
 
 ---
 
-## Install
+## What you get, and what it asks
 
-```sh
-git clone https://github.com/jcbbge/madewell
-sh madewell/install.sh /path/to/your/project
-```
+**What it gives you**
 
-It drops `.madewell/` in, appends one loader line to `CLAUDE.md` / `AGENTS.md`, and touches
-nothing else. Re-running re-syncs the framework and leaves your work alone. Remove it with
-`--uninstall` — no residue.
+- One place where everything lives, and *where a thing is* tells you *how far along it is*.
+  Nothing to keep in sync, no second list, no status to update.
+- Work that only moves forwards. Nothing quietly slides back, nothing gets re-argued.
+- A stop between *I made it* and *it's done*, so nothing marks its own homework.
+- A record of why you did what you did, written as it happened instead of remembered later.
+- Knowledge about **your** line of work that plugs in, without changing anything underneath.
 
-Requirements: git, and a POSIX shell. You could also just copy the files by hand; the
-installer isn't doing anything clever.
+**What it asks of you**
 
----
+- **Four sentences before you start.** What you're making, what you're deliberately not
+  making, how you'll know it's done, and whether anything's holding it up. If you can't answer
+  them yet, that's worth knowing — it means the job isn't understood, and that's information,
+  not a hurdle.
+- **Someone other than the maker checks it.** This is the one people skip and the one
+  everything else rests on.
+- **Not much on the go at once.** The waiting list can be enormous. What you're *actively
+  working* can't be.
+- **Your judgment.** The filing should cost you nothing. The decisions are still yours, and it
+  will stop and wait for you.
 
-## How a piece moves
+**What it won't do**
 
-```
-.madewell/
-├── stock/       on the rack. Grows without limit — that's correct, not a backlog.
-├── bench/       in hand. One pair of hands per piece.
-└── finished/    proofed and done.
-```
-
-To leave the rack, a piece says four things:
-
-```markdown
-**Making:** a page where someone changes their email
-**Not making:** account deletion
-**Done when:** the change persists and survives a reload
-**Waits on:**
-```
-
-Then `git mv` it to the bench. That's the whole interface — `ls` to see where things are,
-`git mv` to move them, and nothing ever moves backward. A pre-commit stop
-(`.madewell/bin/mw-gate.sh`, optional) refuses illegal moves.
-
-Something on the bench either breaks down or it doesn't. A leaf is `bench/thing.md`. Something
-that breaks down is `bench/thing/` with its own `stock/ bench/ finished/` inside, running the
-same four acts one depth down.
+Estimates. Deadlines. Progress percentages. It won't work while you sleep and it won't tell
+you how long anything will take.
 
 ---
 
-## Ground and the Jig
+## Three places work can be
 
-Two practices, and they exist for **one** failure — which isn't getting things wrong. It's
-**re-deciding something that was already decided.**
+```
+waiting     things you might do. Grows without limit — that's fine, that's correct.
+in hand     what you're working on now. One person per thing.
+done        checked, and finished.
+```
 
-**Ground** covers ideate and plan. In etching, the ground is the acid-resist laid on the plate
-before you cut a single line — no mark before the ground is laid. Here: make the existing
-decisions present before designing anything. The dominant failure in agent-assisted work is
-not choosing wrong; it's never thinking to look.
+To move something from *waiting* to *in hand*, you answer four questions:
 
-**The Jig** covers implement and verify. A jig makes the wrong cut physically impossible — not
-advice, a stop. Tests tell you whether a thing *works*. A jig tells you whether you
-*re-decided* something. Perfect code that reinvents a design system you already built passes
-every test and is still wrong; no correctness gate can see that, and a jig can.
+> **Making:** a page where someone can change their email
+> **Not making:** deleting your account
+> **Done when:** the change sticks after you reload
+> **Waits on:** nothing
 
-You build a jig after making the same mistake twice. Every shop fills up with them, and each
-one is a fossilised correction.
+Your assistant handles the filing. You answer the questions.
 
----
-
-## Four agents, and no more than six
-
-Four minimum, because the acts must not collapse into each other. **You don't proof your own
-plate.** One agent doing all four grades its own work, and when that fails the failure gets
-blamed on the model.
-
-Six at most, because past that the coordination costs more than the work.
+Something in hand either breaks into smaller parts or it doesn't. If it does, those parts run
+the same four steps inside it. It goes as deep as the work goes and no deeper.
 
 ---
 
-## Trades
+## The two habits
 
-The kernel doesn't know your industry. That plugs in.
+Both exist for one failure, and it isn't *getting things wrong*. It's **deciding something
+that was already decided.**
 
-| Trade | Foundation | Pillars |
+**Ground** — before planning anything, find out what's already been settled. What exists,
+what's already named, what was already ruled on. The most common failure when working with an
+assistant isn't that it chooses badly; it's that **it never thought to look**, and cheerfully
+rebuilds something you already have.
+
+**The jig** — a woodworker's jig is a block clamped to the bench that makes the wrong cut
+physically impossible. Not a reminder. A stop. Checking that something *works* is a different
+question from checking you didn't **redo a decision** — and only the second one catches a
+beautifully built thing that ignores everything you'd already settled.
+
+You make a jig after you've made the same mistake twice. Every workshop fills up with them.
+
+---
+
+## Four helpers, at most six
+
+Four at minimum, because the steps mustn't collapse into each other. **You don't check your
+own work.** One assistant doing all four marks its own homework, and when that goes wrong the
+blame lands on the tool instead of on the missing step.
+
+Six at most. Past that, keeping everyone straight costs more than the work does.
+
+---
+
+## Lines of work
+
+Made Well doesn't know your industry. That part plugs in — a **trade**.
+
+| Trade | What has to be right first | The areas every job touches |
 |---|---|---|
-| [dev](trades/dev/) | System boundaries | Backend · Frontend · API · CI/CD |
-| [marketing](trades/marketing/) | Positioning | Audience · Message · Channel · Measurement |
-| [sales](trades/sales/) | Qualification | Discovery · Proposal · Close · Handoff |
+| [Software](trades/dev/) | System boundaries | Backend · Frontend · Interfaces · Shipping |
+| [Marketing](trades/marketing/) | Positioning | Audience · Message · Channel · Measurement |
+| [Sales](trades/sales/) | Qualification | Discovery · Proposal · Close · Handoff |
 
-Same shape, three trades. Yours isn't there? See [`trades/README.md`](trades/README.md)
-— the concierge builds it with you rather than handing you a template.
+The workshop is the same whether you're a joiner or a bookbinder — same bench, same shelf,
+same rule about not checking your own work. What differs is the trade.
+
+**Yours isn't listed?** That's expected, and it's the normal case. See
+[`trades/README.md`](trades/README.md) — your assistant builds it with you from a
+conversation, rather than handing you a form.
 
 ---
 
-## The rubric
+## The question
 
-One question, asked of anything before it finishes:
+One question, asked of anything before it's finished:
 
 > **Does this lead to craft, beauty, and care?**
 
 If no, it's the wrong move — and it doesn't matter that it works, that it was faster, or that
 nobody will notice. People notice everything; they just can't always say what they noticed.
 
-That question is what *made well* means, and it's why the framework is called that.
+That question is what *made well* means, and it's why the thing is called that.
+
+---
+
+## For developers
+
+It's plain text files in a git repository. No command-line tool, no service, no database, no
+account. Delete the tooling and the work is still there and still readable.
+
+```sh
+git clone https://github.com/jcbbge/madewell
+sh madewell/install.sh /path/to/your/project
+```
+
+It adds a `.madewell/` folder, appends one line to `CLAUDE.md` / `AGENTS.md`, and touches
+nothing else. Re-running re-syncs the framework and leaves your work alone. `--uninstall`
+removes it with no residue. You can also copy the files in by hand — the installer isn't doing
+anything clever.
+
+The three places are directories: `stock/`, `bench/`, `finished/`. A piece's state **is** the
+directory it's in; nothing else records it. Work moves with `git mv`, one move per commit, and
+an optional pre-commit hook (`.madewell/bin/mw-gate.sh`, POSIX sh, no dependencies) refuses
+any move that isn't one of the four legal ones.
+
+Full storage contract in [`SPEC.md`](SPEC.md). How to extend any part:
+[`.madewell/EXTENDING.md`](.madewell/EXTENDING.md).
 
 ---
 
@@ -164,28 +174,27 @@ That question is what *made well* means, and it's why the framework is called th
 
 | Path | What it is |
 |---|---|
-| `MADEWELL.md` | **The model.** ~130 lines. Read this first. |
-| `SPEC.md` | Where work lives and how it moves. |
-| `.madewell/AGENTS.md` | Instructions to the agent. |
-| `.madewell/skills/adopt.md` | The first conversation. The concierge. |
-| `.madewell/skills/` | Workflow skills + thinking lenses. |
-| `.madewell/EXTENDING.md` | The slot contract — how to extend any part. |
-| `trades/` | Trades. |
-| `madewell-deck.html` | A 15-slide walkthrough. Open in a browser. |
+| `MADEWELL.md` | **The whole model.** About 130 lines. Read this first. |
+| `SPEC.md` | Where work lives and how it moves. For developers. |
+| `.madewell/skills/adopt.md` | The first conversation. |
+| `.madewell/AGENTS.md` | Instructions to your assistant. |
+| `.madewell/EXTENDING.md` | How to extend any part. |
+| `trades/` | Lines of work. |
+| `madewell-deck.html` | A 15-slide walkthrough. Open it in a browser. |
 
-`MADEWELL.md` and `SPEC.md` are the only normative documents. If anything else disagrees with
-them, they win. If anything else restates them, that's a bug — delete it.
+`MADEWELL.md` and `SPEC.md` are the only documents that decide anything. If something else
+disagrees with them, they win. If something else *repeats* them, that's a bug — delete it.
 
 ---
 
 ## Contributing
 
 The bar for adding a document is high: **if it restates the model, it doesn't go in.** This
-framework once carried sixteen terms across six metaphor systems to describe a process with
-four positions. That was the bug, and it's the one most likely to come back.
+once carried sixteen different terms to describe a process with four steps. That was the bug,
+and it's the one most likely to come back.
 
-New trades are very welcome. Run `adopt` on your own trade and send the result.
+New trades are very welcome. Run `adopt` on your own line of work and send the result.
 
 ## Licence
 
-MIT.
+MIT — see [LICENSE](LICENSE).

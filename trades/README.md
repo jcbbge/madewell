@@ -2,7 +2,7 @@
 
 The kernel does not know your industry. Everything domain-specific plugs in here.
 
-A trade teaches Made Well one trade: what has to be right before anything else, which
+A trade teaches Made Well one line of work: what has to be right before anything else, which
 areas every job passes through, what gets skipped when people are busy, and the one question
 asked before anything ships.
 
