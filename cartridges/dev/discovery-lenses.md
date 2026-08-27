@@ -8,7 +8,7 @@ The engine — classification, Maturity, pass modes, routing, The One Thing — 
 kernel and does not change here. This file only adds what a software lane can see that the
 universal core can't name.
 
-> Reference implementation: the Arc discovery pipeline (`~/Infinity/discovery/`,
+> Reference implementation: a project-local discovery pipeline (`<project>/discovery/`,
 > `pipeline/v2.2.md`) — the proven, in-daily-use original these lenses were extracted from.
 
 ---

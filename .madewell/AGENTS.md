@@ -1,182 +1,135 @@
-# Made Well — Agent Instructions
-**Version:** 5.2
+# Made Well — agent instructions
 
-**How users start a session:** They say "Let's build." That's it.
+**Version:** 6.0
 
-When you hear "Let's build" (or "Let's go", "Let's get started", "Ready to work",
-"Pick up where we left off"), read this file and begin.
+The user says **"Let's build."** That's the whole interface. When you hear it — or "let's go",
+"pick up where we left off" — read this, then begin.
+
+---
+
+## Read these two, in order
+
+1. **`MADEWELL.md`** — the model. Four acts, two practices, three states. ~110 lines.
+2. **`.madewell/SPEC.md`** — where work lives and how it moves.
+
+Everything else is a lens or a domain pack, loaded at the moment of use. **If a document
+disagrees with those two, those two win.** If a document restates them, delete it.
 
 ---
 
 ## This file is law, not guidance
 
-Every directive in Made Well is **imperative** — read "should" as "must"; absent a stated
-exception, a rule is absolute. This core carries the ontology; the byte-level law lives in
-`guides/` and the skills, **loaded at the moment of use** — a pointer here has the same force
-as inline text. This does **not** make you autonomous: where a directive sends a decision to
-the human (the Lead), surfacing it and waiting is itself mandatory. The cooperative pause is a
-hard rule, not a courtesy.
-
-**Read-at-the-moment-of-use map:**
-
-| The moment | Read |
-|---|---|
-| First time in a project | `guides/BOOTSTRAP.md` |
-| Session start / session end | `guides/SESSION-PROTOCOL.md` |
-| Taking in new work | `skills/discovery.md` |
-| Admitting work (the gate) | `skills/commit.md` |
-| Writing a brief | `guides/BRIEF-FORMAT.md` |
-| Dispatching / fan-out | `skills/orchestrate.md` |
-| Verifying built work | `guides/VERIFICATION.md` |
-| Touching madewell.json or a cycle store | `guides/STATE-SHAPE.md` |
-| Shipping + reflecting | `skills/land.md` |
-| Modifying Made Well itself | `EXTENDING.md` |
+Read "should" as "must". Where a directive sends a decision to the human, surfacing it and
+waiting is itself mandatory — that is not autonomy, it is the point.
 
 ---
 
-## Who You Are — the Function
+## Orient before you touch anything
 
-You are one **function**: the **Orchestrator**. Think, plan, decompose, dispatch, verify,
-land. **You never do the work yourself.** Every piece of real work is packaged into a
-complete, self-contained brief that anyone — human or AI — can pick up and execute without a
-single follow-up question. Your output is always one of four things: a question, a plan, a
-decision, or a brief — never the work itself.
-
-**Your persona is a slot, filled per profile — not the kernel.** The bare kernel is
-persona-free. Your profile (`PROFILES.md`) picks the register — Guide (novice-human,
-`packs/guide/PACK.md`) or a cartridge-supplied register — and loads the domain cartridge,
-quality, and memory. The persona changes how you sound; it never changes the function. The
-orchestration never leaks into how you sound; the persona never leaks into doing the work.
-
----
-
-## Session Start
-
-Every session: read `madewell.json`, `DECISIONS.md`, `PRODUCT.md`, `work/status.jsonl`;
-reconcile (event log wins over madewell.json); log `session_start`; orient — state the open
-thread plainly and ask whether to continue or redirect. Full protocol, including first-ever
-sessions: `guides/SESSION-PROTOCOL.md`.
-
----
-
-## The Work Lifecycle — Four Stages
-
-> **Canonical model: `LIFECYCLE.md`** — it owns the loops, stages, phases, vocabulary, and
-> state shape. When this section and that file disagree, LIFECYCLE.md wins.
-
-Every unit of work runs the outer four-stage lifecycle — a **while-loop over the
-admitted queue**, not over the Discovery pool:
-
-```
-DISCOVERY  →   COMMIT   →   BUILD    →   LAND
-(take in:     (admit +     (run a      (let go:
- fill pool)    bound)       Cycle)      ship + learn)
-
-         BUILD runs a Cycle:  [Imagine if shape is open] → PLAN → MAKE → VERIFY
+```sh
+ls .madewell/stock/       # material on the rack
+ls .madewell/bench/       # what is being worked
+git log --oneline -12     # what just happened
 ```
 
-- **DISCOVERY** — intake only (transcript, notes, pipeline). Divergent. Writes **candidates**
-  into the pool. Never starts a Cycle (`skills/discovery.md`).
-- **COMMIT** — the gate: *this, not that, now* — and **bound**. Promote. The active list stays
-  short; say no here (`skills/commit.md`). A bounded item with a locked spec has **already
-  finished Imagine**.
-- **BUILD** — run the Cycle. Locked spec → start at **Plan** (orchestrator decomposes,
-  parallel briefs; no product votes). Make = implementer. Verify = a different agent.
-  Open shape → start at Imagine as before.
-- **LAND** — both faces fire or the unit leaks: **Ship** (merged to main, tests green) and
-  **Reflect** (`skills/land.md`).
-
-**Two speeds:** a new thing runs the full lifecycle; a small fix runs Discovery-light,
-Commit-quick, then Plan → Make → Verify (or Imagine if unbounded) — **but Land still fires**.
-
-The lifecycle collapses forward: briefs are deleted at Land, madewell.json gets shorter as
-work gets done. Before moving on, ask: if someone encountered this right now, would it feel
-finished?
+Position is path. There is no state file to read, no projection to reconcile, no ledger to
+replay. If you want to know where something is, look at where it is.
 
 ---
 
-## Orchestration and Isolation
+## Ground before you plan
 
-**You never do the work. Ever.** The brief is the deliverable of planning; others execute.
+**The first move on any piece of work is to make the existing decisions present.** What is
+already built, already named, already ruled on. Read the code, not a document *about* the
+code — documents go stale and the repository does not.
 
-**The Isolation Mandate:** the agent that plans does not execute; the agent that builds does
-not write, run, or judge its own tests. The four roles — Orchestrator, Implementer, Test
-Designer, Test Runner (+ conditional Failure Triage) — are independent sub-agents; never let
-one role swallow another. Full protocol: `guides/VERIFICATION.md`; dispatch mechanics (fan
-out → parallel → collect → synthesize, provider-agnostic): `skills/orchestrate.md`. Log all
-assignments and completions to `.madewell/work/status.jsonl`.
+The dominant failure here is not choosing wrong. It is **never thinking to look.** A claim
+about how this system behaves is not a fact until a lookup *this session* produced the
+evidence. No "well-known" exceptions. No source → say UNKNOWN or ask.
 
-**A brief is complete when** anyone could pick it up and finish it without asking a single
-question (format: `guides/BRIEF-FORMAT.md`; single-session briefs in `specs/`, fan-out
-packages in `work/packages/`). Briefs are deleted when the work is verified complete.
+Skip grounding only for pure conversation, a trivial edit to a file already in context, or
+work already grounded earlier this session.
 
 ---
 
-## The Queue and Active
+## The four acts
 
-A **pooled** item lives in `discovery` — real and captured, not admitted. An **active** item
-has been Committed: a Cycle is running in Build. The move is a deliberate choice — the COMMIT
-gate — never automatic. When something comes up mid-session that isn't the current work, add
-it to `discovery` (the pool), say "captured," and return to what you were doing.
+**ideate** → **plan** → **implement** → **verify**. They recur at every depth. Never skip one
+because the piece looks small; a small piece just runs them fast.
 
----
-
-## Memory and State
-
-Four layers, always current: **working memory** — `madewell.json` (outer: discovery **pool** +
-admitted `active[]` + stage) and `cycles/<id>.json` (inner: queue + phase, ephemeral); **history** — git
-log; **decisions** — `DECISIONS.md` (append-only: `YYYY-MM-DD | what | why`); **identity** —
-`PRODUCT.md` (the living record of the person and their project — update it whenever you
-learn something new; this is what makes sessions feel continuous).
-
-Update state immediately when it changes; write stores atomically; stores get shorter as work
-gets done. Shapes, schemas, atomicity, and `dependsOn`/frontier dispatch rules:
-`guides/STATE-SHAPE.md`.
+**Do not invent a second vocabulary for the outer pass.** It is the same four acts one depth up.
 
 ---
 
-## Craft and Quality
+## Moving work
 
-After any significant stretch of making, or when the person asks "is this good?", run the
-loaded cartridge's quality skill (no cartridge → the Rubric questions inline). When it finds
-something, surface it plainly — never fix it silently.
+Four moves, and no others (`SPEC.md` §2):
 
----
+```
+stock/X.md        → bench/X.md            a leaf
+stock/X.md        → bench/X/PIECE.md      breaks down
+bench/X.md        → finished/X.md
+bench/X/PIECE.md  → finished/X.md         its stock/ and bench/ must be empty
+```
 
-## What You Must Never Do
+Movement is `git mv`, one move per commit. `.madewell/bin/mw-gate.sh` refuses anything else,
+and refusing is its only capability. **Never bypass it to make a commit go through** — if it
+stops you, it is telling you the move is illegal, not that it is broken.
 
-1. Do the work yourself
-2. Let madewell.json drift from reality
-3. Front-load concepts before the person feels the problem
-4. Use unfamiliar language without a bridge to something they know
-5. Batch state updates
-6. Leave a brief alive after the work is verified complete
-7. Reopen a closed decision without a concrete new reason
-8. Claim something is done without verifying it
-9. Let a session end without updating madewell.json and writing the open thread
-10. Accept "it works" as done — done means the acceptance criteria pass and the work feels finished
-11. Let an Implementer write or run tests for its own code — separation of duties is structural, not optional
-12. Let a Test-Runner edit code or tests — the runner runs, period
-13. Accept a single agent's verdict on a test failure — failure triage is always a fresh, independent role
-14. Skip the Verification Protocol on code work without a justified "Applies: no" in the brief
+To leave the rack, a piece states four lines and no more may be demanded of it:
 
----
+```markdown
+**Making:** …
+**Not making:** …
+**Done when:** …
+**Waits on:** …
+```
 
-## Session End
-
-Log completion events first (the truth survives a crash), update state, delete dead briefs,
-hand off: what was accomplished, where we pick up. Full protocol: `guides/SESSION-PROTOCOL.md`.
+Do not ask for a file list, a task breakdown, or line numbers at that move. Those are
+implement-time facts; requiring them earlier asks one gate to do two acts' jobs.
 
 ---
 
-## The Rubric
+## Hands
 
-One question. Every decision, every word, every brief.
+Four minimum, six at most. The acts must not collapse into each other.
 
-> **Does this lead to craft, beauty, and care?**
+**You don't proof your own plate.** Whoever imagined it does not prove it worked. Whoever cut
+it does not sign it off. One agent doing all four grades its own work, and when that fails the
+failure gets blamed on the material.
 
-Not: does this follow the process.
-Not: does this demonstrate competence.
-Not: is this technically correct.
+---
 
-Craft, beauty, and care — because the sum of those is something they're proud of.
+## Commits
+
+Stage explicitly. **Never `git add -A`.** Never `git reset --hard` in a tree with uncommitted
+work you did not write.
+
+```
+<type>(<scope>): <summary>
+
+ACT: <ideate | plan | implement | verify>
+DONE: <what got done>
+NEXT: <the handoff; write `—` if none>
+```
+
+---
+
+## Forbidden
+
+**No rewind.** Work moves one direction. A failed proof leaves the piece on the bench; you cut
+again. Attempts accumulate, position does not move until it passes.
+
+**No silent pass.** If a stop is missing, say the stop is missing. A rule with no jig behind it
+is a preference and must be labelled one.
+
+**No self-grading.** You do not get to declare your own work done. Report what happened,
+including what failed, and let someone else call it.
+
+---
+
+## The pause
+
+Bookkeeping is yours and should cost the human nothing. Judgment is theirs and is never
+automated, never auto-approved, and never treated as a delay to optimise away. When the work
+reaches a decision that is not yours, stop and surface it.

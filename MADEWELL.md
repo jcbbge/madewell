@@ -1,22 +1,130 @@
 # Made Well
 
-**You made this. It's yours. And it works. Madewell.**
-
-You don’t have to manage the system.  
-You don’t have to track context across sessions.  
-You don’t have to remember what happened last time.  
-You don’t have to re-explain anything.
-
-Just talk to me naturally about what you want to make next. That’s it.
-
-I will maintain perfect state, break work into small isolated pieces, run the right thinking workflows at the right time, track every decision, enforce craft and quality, and keep the entire factory running as a persistent flywheel—so you only need to give high-level direction when you choose to.
-
-This is an agent-first development workflow built from two years of real use. It is highly opinionated by design. The agent does the heavy lifting. You steer.
-
-**The core promise:** No cold starts. No lost context. No vibe code. Just real software that compounds cleanly over thousands of incremental sessions.
-
-**Made. Not vibed.**
+Work has four acts. They recur at every scale. Everything else in this document
+exists to keep you honest about them.
 
 ---
 
-_To begin, tell your AI assistant: **"Let's build."**_
+## The four acts
+
+Think it through. Decide the next cut. Make it. Check it against what you expected.
+
+| | | done when |
+|---|---|---|
+| **ideate** | understand what you're making, and why | you can say it in a sentence — and say what's *not* in it |
+| **plan** | decide the next actionable cut | there is a next cut, and you know what it waits on |
+| **implement** | make the thing | it exists and the happy path works |
+| **verify** | check that it became what you imagined | someone who didn't make it says so |
+
+These are plain verbs on purpose. **No metaphor lives here.** Everything below is
+scaffolding, and scaffolding is allowed to be metaphorical, because you can throw
+scaffolding away without losing the building.
+
+---
+
+## They recur
+
+A chair needs legs. A leg needs a tenon. Each is its own pass through the four acts.
+
+The **outer** pass is the whole piece — understand the commission, decide what to make
+first, make it, confirm it's what was wanted. The **inner** pass is one component. Same
+four acts, one depth down. It nests as deep as the work goes, and no deeper.
+
+**There is no second vocabulary for the outer pass.** Discovery, commit, build, land were
+only ever the four acts at the top wearing different clothes. Four words, not eight.
+
+---
+
+## Ground and the Jig
+
+Two practices. Both exist for one failure, and it isn't getting things wrong. It is
+**re-deciding something that was already decided.**
+
+### Ground — covers ideate and plan
+
+In etching, the *ground* is the acid-resist you lay on the plate before you cut a single
+line. No mark before the ground is laid.
+
+Here it means: make the existing decisions present before you design anything. What is
+already built, already named, already ruled on. The dominant failure in this work is not
+choosing wrong — it is **never thinking to look.**
+
+### The Jig — covers implement and verify
+
+A jig makes the wrong cut physically impossible. Not advice. Not a warning. A stop.
+
+Tests tell you whether a thing *works*. A jig tells you whether you **re-decided**
+something. Perfect CSS that reinvents a design system you already built passes every
+test and is still wrong. No correctness gate can see that failure; a jig can.
+
+**Shop-made jigs.** You build a jig after making the same mistake twice. Every shop fills
+up with them, and each one is a fossilized correction. That is how the wall gets built:
+corrections accumulate, the recurring expensive ones become stops, and stops that stop
+earning their place come down.
+
+---
+
+## Three states
+
+Material has three states and no others.
+
+- **stock** — what you have, uncut. Grows without limit. That is correct, not a backlog.
+- **on the bench** — what you are working. One pair of hands per piece.
+- **finished** — proofed, and off the bench.
+
+There is no admission gate. You take stock to the bench. **Nothing is rejected** — it is
+just still on the rack.
+
+---
+
+## The shop
+
+**Four hands minimum. Six at most.**
+
+Four, because the acts must not collapse into each other. Whoever imagined it should not
+be the one who proves it worked. Whoever cut it should not be the one who signs it off.
+**You don't proof your own plate.** One pair of hands doing all four grades its own work,
+and when that fails, the failure gets blamed on the material.
+
+Six at most, because past that the coordination costs more than the work.
+
+---
+
+## The grain
+
+You plan the cut. Then the material tells you what it will and won't do, and you adjust.
+
+You have a destination. You do not have a route. The next cut is chosen by whoever is
+steering, whatever is most urgent, and what the material turns out to be. **That is not a
+planning failure. It is the condition.**
+
+So this is built for **cheap correction**, not for plan adherence — short cuts, small
+pieces, nothing half-made for six weeks. You can read grain on a short cut and recover.
+You cannot on a long one.
+
+The hand on the work is yours. Bookkeeping should cost you nothing; judgment is never
+automated, never auto-approved, and never treated as a delay.
+
+---
+
+## Patterns
+
+A pattern is a set of grounds and jigs for a kind of work. A pattern for web front-ends. A
+pattern for data pipelines. You load the one for the work in front of you.
+
+A pattern may **add** operations at any edge — before ideate, between plan and implement,
+after verify. It may never **replace** one of the four. Adding is composition. Replacing
+is a different framework wearing this one's name.
+
+---
+
+## Forbidden
+
+**No rewind.** Work moves one direction. A failed proof does not send the piece
+backward — it stays on the bench and you cut again. Attempts accumulate; position does
+not move until it passes.
+
+**No self-proofing.** Restated, because it is the one people skip.
+
+**No silent pass.** If a stop is missing, say the stop is missing. A rule with no jig
+behind it is a preference, and it should be labelled one.

@@ -1,64 +1,7 @@
 {
-  "version": "4.0",
-  "note": "Reference manifest for the agent. Two layers. FOUNDATIONAL skills are Made Well's own and always available — the loop machinery (mode: workflow) that runs the lifecycle, plus the thinking lenses (mode: lens). PACK skills load only with a domain pack and may be scoped to a striation. Paths are relative to .madewell/.",
-
+  "version": "5.0",
+  "note": "Reference manifest. The model is MADEWELL.md; where work lives is SPEC.md. These are thinking lenses \u2014 domain-neutral tools, not loop machinery. The four acts need no skill to run them. Paths are relative to .madewell/.",
   "skills": [
-    {
-      "name": "discovery",
-      "file": "skills/discovery.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Brain dump, transcript, unstructured input, first session. The intake instrument: classify (phase is load-bearing), choose pass mode, apply the lens set (universal core + cartridge extensions), extract The One Thing, route findings onto the discovery queue."
-    },
-    {
-      "name": "commit",
-      "file": "skills/commit.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Inner loop empty, discovery non-empty; 'what's next?'. The gate: verdict each frontier candidate (COMMIT/HOLD/DISMISS/DECISION), bound the one item, mint its cycle store, move discovery → active. Keeps the active set short."
-    },
-    {
-      "name": "session-start",
-      "file": "skills/session-start.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Every session, first thing. Re-enter the paused loop — inner loop first (active Cycle), else the discovery queue, else fresh."
-    },
-    {
-      "name": "session-end",
-      "file": "skills/session-end.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Every session, before closing. Pause the loop; persist the outer store and any active cycle store; write the handoff."
-    },
-    {
-      "name": "land",
-      "file": "skills/land.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "At every Verify→Land — the moment a unit is done. Ship the brick, delete its cycle store + brief, drain the queue, reflect the nutrient (LEARNED/PROPAGATED/TAX → work/tax.jsonl), check the file-decidable walls. Per-unit, not per-session."
-    },
-    {
-      "name": "orchestrate",
-      "file": "skills/orchestrate.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Parallel execution. 'Fan this out', 'create a workflow'. Carves packages and delegates to independent sub-agents."
-    },
-    {
-      "name": "substrate-start",
-      "file": "skills/substrate-start.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Every session, after reading the memory stack. Reconciles execution state from the event log (the log wins over the store)."
-    },
-    {
-      "name": "substrate-end",
-      "file": "skills/substrate-end.md",
-      "layer": "foundational",
-      "mode": "workflow",
-      "when": "Every session, before updating madewell.json. Logs completion events first, so truth survives a crash."
-    },
     {
       "name": "luck",
       "file": "skills/luck.md",
@@ -113,21 +56,19 @@
       "file": "skills/debug-hypothesis.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "Something is broken. Error pasted. Unexpected behavior. Observe → hypothesize → experiment → conclude; never bulldoze."
+      "when": "Something is broken. Error pasted. Unexpected behavior. Observe \u2192 hypothesize \u2192 experiment \u2192 conclude; never bulldoze."
     }
   ],
-
   "packs": [
     {
       "name": "guide",
       "file": "packs/guide/PACK.md",
-      "fills": "the Persona slot — the GUIDE register (novice-human)",
+      "fills": "the Persona slot \u2014 the GUIDE register (novice-human)",
       "activate": "Read at session start. Made Well's batteries-included default; recommended for any non-technical builder.",
       "striations": [],
       "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: cartridge-supplied expert-human registers (Lead / Contributor) and naked (machines/CI)."
     }
   ],
-
   "cartridges": {
     "note": "Domain cartridges live outside the kernel install. They are loaded into a project by explicit reference, not by the installer. Each cartridge carries its own PACK.md, persona register(s), skills, and striations. See the cartridge library.",
     "library": "~/madewell/cartridges/ (reference library)"

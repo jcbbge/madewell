@@ -56,28 +56,21 @@ for d in guides skills packs templates bin; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
 done
-cp "$SRC/.madewell/LIFECYCLE.md"  "$DEST/.madewell/LIFECYCLE.md"   # canonical lifecycle model
+cp "$SRC/MADEWELL.md"             "$DEST/MADEWELL.md"              # the model
+cp "$SRC/SPEC.md"                 "$DEST/.madewell/SPEC.md"        # where work lives
 cp "$SRC/.madewell/EXTENDING.md"  "$DEST/.madewell/EXTENDING.md"   # maintenance/extension manual
 cp "$SRC/.madewell/profiles.json" "$DEST/.madewell/profiles.json"
 cp "$SRC/.madewell/PROFILES.md"   "$DEST/.madewell/PROFILES.md"
 
-# 2. Memory. First migrate an older install (file-level, zero-dep), then seed what's missing.
-#    Migration: legacy STATE.json -> madewell.json. The SHAPE migration (legacy fields
-#    phase/backlog/staged -> stage/discovery, active task-records -> cycle pointers) is ENFORCED
-#    at session start (skills/session-start.md), where JSON is native.
-if [ -f "$DEST/.madewell/STATE.json" ] && [ ! -f "$DEST/.madewell/madewell.json" ]; then
-  mv "$DEST/.madewell/STATE.json" "$DEST/.madewell/madewell.json"
-  echo "  migrated: STATE.json -> madewell.json (shape migration runs at next session start)"
-fi
+# 2. Memory. Seeded on first install only; never clobbered on re-sync.
 # Fresh memory — created ONLY on first install; never clobbered on re-sync.
-mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/work/test-results" "$DEST/.madewell/work/intake" "$DEST/.madewell/specs" "$DEST/.madewell/decisions" "$DEST/.madewell/cycles"
-# The lifecycle store (SPEC.md v3): four names, and position IS the directory.
-mkdir -p "$DEST/.madewell/shaping" "$DEST/.madewell/committed" "$DEST/.madewell/making" "$DEST/.madewell/landed"
+mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/work/test-results" "$DEST/.madewell/work/intake" "$DEST/.madewell/specs" "$DEST/.madewell/decisions"
+# Three states. Position IS the directory a piece sits in (SPEC.md).
+mkdir -p "$DEST/.madewell/stock" "$DEST/.madewell/bench" "$DEST/.madewell/finished"
 [ -f "$DEST/.madewell/DECISIONS.md" ]    || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
 [ -f "$DEST/.madewell/PRODUCT.md" ]      || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
-[ -f "$DEST/.madewell/madewell.json" ]      || cp "$SRC/.madewell/madewell.json"             "$DEST/.madewell/madewell.json"
 [ -f "$DEST/.madewell/work/tax.jsonl" ]  || : > "$DEST/.madewell/work/tax.jsonl"
-for k in work/packages work/reports work/test-results work/intake specs decisions cycles shaping committed making landed; do
+for k in work/packages work/reports work/test-results work/intake specs decisions stock bench finished; do
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
 
@@ -105,7 +98,7 @@ when=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
 printf 'madewell %s\ninstalled %s\n' "$ver" "$when" > "$DEST/.madewell/VERSION"
 
 if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
-  echo "Done. Updated $prev -> $ver. Framework re-synced; madewell.json/DECISIONS/PRODUCT/tax preserved."
+  echo "Done. Updated $prev -> $ver. Framework re-synced; stock/bench/finished, DECISIONS, PRODUCT, tax preserved."
   echo "Tell your agent: Made Well was updated — re-read .madewell/AGENTS.md, then continue."
 elif [ -n "$prev" ]; then
   echo "Done. Already at $ver — framework re-synced; nothing else changed."

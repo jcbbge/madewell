@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Made Well — an ontology of work</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* === PALETTE — paper stock, ink, oxblood === */
+:root{
+--bg-primary:#f4f1ea; --bg-alt:#efeae0;
+--ink:#1c1b19; --muted:#6f6a61; --faint:#b9b2a5;
+--accent:#8c2f22; --rule:#d8d2c5;
+--stage-bg:#1c1b19; --slide-bg:var(--bg-primary);
+--display:'Fraunces',serif; --body:'Literata',serif; --mono:'Fira Code',monospace;
+}
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+
+/* box-sizing: the base stage sets fixed width/height; without this, padding adds
+   on top and every slide is 1080+padding tall and clips. */
+*,*::before,*::after{box-sizing:border-box;}
+
+/* === STAGE === */
+.slide{background:var(--bg-primary);color:var(--ink);font-family:var(--body);
+ padding:70px 128px;display:flex;flex-direction:column;justify-content:center;}
+.slide.dark{background:#1c1b19;color:#efeae0;--ink:#efeae0;--muted:#9a9288;--rule:#33312e;--faint:#6a6560;}
+.slide.tone{background:var(--bg-alt);}
+
+/* grain — faint long curves, craft ghost */
+.grain{position:absolute;inset:0;pointer-events:none;opacity:.5;}
+.grain path{fill:none;stroke:var(--ink);stroke-width:1;opacity:.05;}
+
+/* === COMPONENTS === */
+.kicker{font-family:var(--mono);font-size:17px;letter-spacing:.26em;text-transform:uppercase;
+ color:var(--accent);display:flex;align-items:center;gap:22px;margin-bottom:34px;}
+.kicker::after{content:'';height:1px;background:currentColor;width:180px;opacity:.45;}
+h1{font-family:var(--display);font-weight:900;font-size:158px;line-height:.9;
+ letter-spacing:-.038em;margin:0 0 28px;}
+h2{font-family:var(--display);font-weight:700;font-size:66px;line-height:1.06;
+ letter-spacing:-.028em;margin:0 0 22px;max-width:1400px;}
+h3{font-family:var(--display);font-weight:700;font-size:38px;line-height:1.12;
+ letter-spacing:-.02em;margin:0 0 16px;}
+.lede{font-size:33px;line-height:1.42;color:var(--muted);max-width:1160px;}
+.lede strong{color:var(--ink);font-weight:600;}
+.body{font-size:24px;line-height:1.52;color:var(--muted);max-width:1080px;}
+.body strong{color:var(--ink);font-weight:600;}
+.body em{color:var(--accent);font-style:italic;}
+.mono{font-family:var(--mono);font-size:20px;letter-spacing:.02em;}
+
+.map{display:grid;grid-template-columns:230px 1fr 1fr;gap:0;margin-top:14px;max-width:1580px;}
+.map>div{padding:14px 24px 14px 0;border-bottom:1px solid var(--rule);font-size:22px;line-height:1.4;color:var(--muted);}
+.map>div.h{font-family:var(--mono);font-size:15px;letter-spacing:.2em;text-transform:uppercase;
+ color:var(--faint);border-bottom:1px solid var(--ink);padding-bottom:12px;}
+.map>div.t{font-family:var(--display);font-weight:700;font-size:29px;color:var(--ink);letter-spacing:-.01em;}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 82px;margin-top:10px;}
+.two .col{border-top:2px solid var(--ink);padding-top:26px;}
+.two .col.b{border-top-color:var(--accent);}
+
+.callout{border-left:4px solid var(--accent);background:rgba(140,47,34,.055);
+ padding:20px 28px;margin-top:24px;font-size:23px;line-height:1.46;color:var(--ink);max-width:1300px;}
+.slide.dark .callout{background:rgba(140,47,34,.16);}
+
+.strike{color:var(--faint);text-decoration:line-through;text-decoration-thickness:1px;}
+.chips{display:flex;flex-wrap:wrap;gap:14px;margin-top:8px;max-width:1500px;}
+.chips span{font-family:var(--mono);font-size:22px;padding:11px 20px;border:1px solid var(--rule);
+ color:var(--faint);text-decoration:line-through;}
+.chips span.keep{border-color:var(--accent);color:var(--accent);text-decoration:none;}
+
+.stack{display:flex;align-items:center;gap:0;margin-top:26px;}
+.stack .box{border:1.5px solid var(--ink);padding:20px 24px;min-width:196px;}
+.stack .box .n{font-family:var(--mono);font-size:14px;letter-spacing:.18em;color:var(--accent);margin-bottom:9px;}
+.stack .box .v{font-family:var(--display);font-weight:700;font-size:27px;}
+.stack .arr{flex:0 0 58px;height:1.5px;background:var(--ink);position:relative;}
+.stack .arr::after{content:'';position:absolute;right:0;top:-4px;border-left:9px solid var(--ink);
+ border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;}
+
+.nest{margin-top:18px;font-family:var(--mono);font-size:23px;line-height:1.9;color:var(--muted);}
+.nest .d1{padding-left:0;} .nest .d2{padding-left:76px;} .nest .d3{padding-left:152px;}
+.nest b{color:var(--ink);font-weight:500;}
+.nest .acts{color:var(--accent);}
+
+.foot{position:absolute;left:132px;right:132px;bottom:52px;display:flex;justify-content:space-between;
+ font-family:var(--mono);font-size:15px;color:var(--faint);letter-spacing:.14em;
+ border-top:1px solid var(--rule);padding-top:16px;}
+
+
+/* === ANIMATION === */
+.slide.active .anim{opacity:0;animation:fadeUp .72s cubic-bezier(.2,.7,.3,1) forwards;}
+.slide.active .anim:nth-child(1){animation-delay:.06s}
+.slide.active .anim:nth-child(2){animation-delay:.16s}
+.slide.active .anim:nth-child(3){animation-delay:.26s}
+.slide.active .anim:nth-child(4){animation-delay:.36s}
+.slide.active .anim:nth-child(5){animation-delay:.46s}
+.slide.active .anim:nth-child(6){animation-delay:.56s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.slide.active .anim{animation:none;opacity:1}}
+
+.chrome{position:fixed;right:26px;bottom:20px;font-family:var(--mono);font-size:13px;
+ letter-spacing:.16em;color:#8a857c;z-index:1000;}
+</style>
+</head>
+<body>
+<div class="deck-viewport"><div class="deck-stage" id="stage">
+
+<!-- 1 COVER -->
+<section class="slide active">
+  <svg class="grain" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+    <path d="M-50,180 C420,120 900,240 1400,170 S1900,120 1990,190"/>
+    <path d="M-50,300 C400,250 880,370 1420,290 S1900,250 1990,320"/>
+    <path d="M-50,760 C440,700 920,830 1430,750 S1900,710 1990,790"/>
+    <path d="M-50,880 C420,830 900,950 1410,870 S1900,830 1990,910"/>
+  </svg>
+  <div class="kicker anim">An ontology of work</div>
+  <h1 class="anim">Made Well</h1>
+  <p class="lede anim">Work has <strong>four acts</strong>. They recur at every scale.<br>Everything else is scaffolding.</p>
+  <div class="foot"><span>Made Well</span><span>an ontology of work</span><span>open source</span></div>
+</section>
+
+<!-- 2 THE PROBLEM -->
+<section class="slide tone">
+  <div class="kicker anim">The problem</div>
+  <h2 class="anim">Sixteen words for four&nbsp;positions.</h2>
+  <div class="chips anim">
+    <span>pool</span><span>queue</span><span>valve</span><span>stage</span><span>phase</span><span>cycle</span>
+    <span>outer</span><span>inner</span><span>discovery</span><span>commit</span><span>build</span><span>land</span>
+    <span>rumen</span><span>cartridge</span><span>striation</span><span>wall</span>
+  </div>
+  <p class="body anim" style="margin-top:38px">Six metaphor systems — plumbing, gaming, biology, geology, computing, construction —
+  describing a process with <strong>four positions</strong>. Every one of them had to be memorised, and none of them
+  taught you anything you didn't already know.</p>
+</section>
+
+<!-- 3 THE FOUR ACTS -->
+<section class="slide">
+  <div class="kicker anim">The invariant</div>
+  <h2 class="anim">Think it through. Decide the next cut.<br>Make it. Check it.</h2>
+  <div class="map anim">
+    <div class="h">act</div><div class="h">what it is</div><div class="h">done when</div>
+    <div class="t">ideate</div><div>understand what you're making, and why</div><div>you can say it in a sentence — and say what's <em>not</em> in it</div>
+    <div class="t">plan</div><div>decide the next actionable cut</div><div>there is a next cut, and you know what it waits on</div>
+    <div class="t">implement</div><div>make the thing</div><div>it exists and the happy path works</div>
+    <div class="t">verify</div><div>check it became what you imagined</div><div>someone who didn't make it says so</div>
+  </div>
+  <div class="callout anim"><strong>No metaphor lives here.</strong> These are plain verbs, which is exactly why this part
+  never confused anyone — and everything else did.</div>
+</section>
+
+<!-- 4 THEY RECUR -->
+<section class="slide tone">
+  <div class="kicker anim">Depth</div>
+  <h2 class="anim">A chair needs legs. A leg needs a tenon.</h2>
+  <div class="nest anim">
+    <div class="d1"><b>the chair</b> &nbsp;<span class="acts">ideate → plan → implement → verify</span></div>
+    <div class="d2">└ <b>a leg</b> &nbsp;<span class="acts">ideate → plan → implement → verify</span></div>
+    <div class="d3">└ <b>its tenon</b> &nbsp;<span class="acts">ideate → plan → implement → verify</span></div>
+  </div>
+  <p class="body anim" style="margin-top:34px">The outer pass is the whole piece. The inner pass is one component. Same four acts,
+  one depth down — as deep as the work goes and no deeper.</p>
+  <div class="callout anim"><strong>There is no second vocabulary for the outer pass.</strong>
+  <span class="strike">discovery · commit · build · land</span> — those were the four acts at the top,
+  wearing different clothes. Four words, not eight.</div>
+</section>
+
+<!-- 5 THE KERNEL -->
+<section class="slide dark">
+  <div class="kicker anim">The kernel</div>
+  <h2 class="anim">Two practices, one failure —<br>and it isn't <em style="font-style:italic;color:#c98070">getting things wrong.</em></h2>
+  <p class="lede anim" style="margin-top:18px">It's <strong style="color:#f4f1ea">re-deciding something that was already decided.</strong></p>
+  <p class="body anim" style="margin-top:36px;color:#9a9288">Tests cannot see this failure. Code that reinvents a design system you already built
+  is correct, well-written, and passes everything. The defect isn't in the work — it's in what the work <strong style="color:#efeae0">didn't know.</strong></p>
+</section>
+
+<!-- 6 GROUND -->
+<section class="slide">
+  <div class="kicker anim">Practice one · covers ideate + plan</div>
+  <h2 class="anim">Ground</h2>
+  <p class="lede anim">In etching, the <strong>ground</strong> is the acid-resist laid on the plate before you cut a single line.
+  <strong>No mark before the ground is laid.</strong></p>
+  <p class="body anim" style="margin-top:32px">Here: make the existing decisions present before you design anything. What is already built,
+  already named, already ruled on.</p>
+  <div class="callout anim">The dominant failure in this work is not choosing wrong.
+  It is <strong>never thinking to look.</strong></div>
+</section>
+
+<!-- 7 THE JIG -->
+<section class="slide">
+  <div class="kicker anim">Practice two · covers implement + verify</div>
+  <h2 class="anim">The Jig</h2>
+  <p class="lede anim">A jig makes the wrong cut <strong>physically impossible</strong>. Not advice. Not a warning. A stop.</p>
+  <div class="two anim" style="margin-top:44px">
+    <div class="col"><h3>A test asks</h3><p class="body">Does it work?</p></div>
+    <div class="col b"><h3>A jig asks</h3><p class="body">Did you re-decide something?</p></div>
+  </div>
+  <div class="callout anim">Perfect CSS that reinvents your design system passes every test and is still wrong.
+  No correctness gate can see that. A jig can.</div>
+</section>
+
+<!-- 8 SHOP-MADE JIGS -->
+<section class="slide tone">
+  <div class="kicker anim">How the wall gets built</div>
+  <h2 class="anim">You build a jig after making<br>the same mistake twice.</h2>
+  <div class="stack anim">
+    <div class="box"><div class="n">01</div><div class="v">correction</div></div><div class="arr"></div>
+    <div class="box"><div class="n">02</div><div class="v">recurs</div></div><div class="arr"></div>
+    <div class="box"><div class="n">03</div><div class="v">becomes a stop</div></div><div class="arr"></div>
+    <div class="box"><div class="n">04</div><div class="v">comes down</div></div>
+  </div>
+  <p class="body anim" style="margin-top:40px">Every shop fills up with them, and each one is a <strong>fossilised correction</strong>.
+  Corrections accumulate; the recurring expensive ones become stops; stops that stop earning their place come off the wall.</p>
+  <p class="body anim mono" style="margin-top:26px;color:var(--faint)">A stop starts as a warning and graduates to a block once the existing violations are cleared.</p>
+</section>
+
+<!-- 9 THREE STATES -->
+<section class="slide">
+  <div class="kicker anim">Material</div>
+  <h2 class="anim">Three states, and no others.</h2>
+  <div class="map anim" style="grid-template-columns:290px 1fr">
+    <div class="h">state</div><div class="h">what it means</div>
+    <div class="t">stock</div><div>what you have, uncut. <strong>Grows without limit — that is correct, not a backlog.</strong></div>
+    <div class="t">on the bench</div><div>what you are working. One pair of hands per piece.</div>
+    <div class="t">finished</div><div>proofed, and off the bench.</div>
+  </div>
+  <div class="callout anim"><strong>There is no admission gate.</strong> You take stock to the bench.
+  Nothing is rejected — it is just still on the rack.</div>
+</section>
+
+<!-- 10 THE SHOP -->
+<section class="slide dark">
+  <div class="kicker anim">The shop</div>
+  <h2 class="anim">Four hands minimum.<br>Six at most.</h2>
+  <p class="body anim" style="margin-top:24px;color:#9a9288">Four, because the acts must not collapse into each other. Whoever imagined it should not be
+  the one who proves it worked. Whoever cut it should not be the one who signs it off.</p>
+  <div class="callout anim" style="font-size:30px"><strong style="color:#f4f1ea">You don't proof your own plate.</strong></div>
+  <p class="body anim" style="margin-top:32px;color:#9a9288">One pair of hands doing all four grades its own work — and when that fails,
+  the failure gets blamed on <strong style="color:#efeae0">the material</strong>. Six at most, because past that the coordination costs more than the work.</p>
+</section>
+
+<!-- 11 THE GRAIN -->
+<section class="slide">
+  <svg class="grain" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+    <path d="M-50,120 C500,60 980,200 1460,110 S1900,70 1990,140"/>
+    <path d="M-50,240 C480,190 940,320 1450,230 S1900,190 1990,260"/>
+    <path d="M-50,840 C500,780 980,910 1460,830 S1900,790 1990,870"/>
+    <path d="M-50,960 C480,910 940,1030 1450,950 S1900,910 1990,990"/>
+  </svg>
+  <div class="kicker anim">Why plans bend</div>
+  <h2 class="anim">You have a destination.<br>You do not have a route.</h2>
+  <p class="body anim">You plan the cut. Then the material tells you what it will and won't do, and you adjust.
+  The next cut is chosen by whoever is steering, whatever is most urgent, and what the material turns out to be.</p>
+  <div class="callout anim"><strong>That is not a planning failure. It is the condition.</strong></div>
+  <p class="body anim" style="margin-top:30px">So this is built for <strong>cheap correction</strong>, not plan adherence —
+  short cuts, small pieces, nothing half-made for six weeks. You can read grain on a short cut and recover. You cannot on a long one.</p>
+</section>
+
+<!-- 12 PATTERNS -->
+<section class="slide tone">
+  <div class="kicker anim">Composition</div>
+  <h2 class="anim">A pattern is a set of grounds and jigs<br>for a kind of work.</h2>
+  <p class="body anim">A frontend pattern. A catering pattern. You load the one for the work in front of you.</p>
+  <div class="two anim" style="margin-top:44px">
+    <div class="col"><h3>May add</h3><p class="body">an operation at any edge — before ideate, between plan and implement, after verify.</p></div>
+    <div class="col b"><h3>May never replace</h3><p class="body">one of the four. Adding is composition. Replacing is a different framework wearing this one's name.</p></div>
+  </div>
+</section>
+
+<!-- 13 FORBIDDEN -->
+<section class="slide">
+  <div class="kicker anim">Forbidden</div>
+  <h2 class="anim">Three rules that do not flex.</h2>
+  <div class="map anim" style="grid-template-columns:340px 1fr">
+    <div class="h">rule</div><div class="h">why</div>
+    <div class="t">no rewind</div><div>Work moves one direction. A failed proof doesn't send the piece backward — it stays on the bench and you cut again. Attempts accumulate; position doesn't move until it passes.</div>
+    <div class="t">no self-proofing</div><div>Restated, because it is the one people skip.</div>
+    <div class="t">no silent pass</div><div>If a stop is missing, say the stop is missing. A rule with no jig behind it is a preference, and should be labelled one.</div>
+  </div>
+</section>
+
+<!-- 14 WORKED EXAMPLE -->
+<section class="slide tone">
+  <div class="kicker anim">One pass, end to end</div>
+  <h2 class="anim">A settings page</h2>
+  <p class="body anim" style="margin-bottom:8px">Ordinary work. Nothing clever. Watch where each practice earns its place.</p>
+  <div class="map anim" style="grid-template-columns:230px 1fr;margin-top:22px">
+    <div class="h">act</div><div class="h">what happens</div>
+    <div class="t">ideate</div><div><strong>Making:</strong> a page where someone changes their email. <strong>Not making:</strong> account deletion. <strong>Done when:</strong> the change persists and survives a reload.</div>
+    <div class="t">plan</div><div><strong>Ground first:</strong> the repo already has a form primitive, a token set, and a mutation helper. Don't design a form — compose one. <em>Three files, not eleven.</em></div>
+    <div class="t">implement</div><div>One component built from what exists. No new CSS.</div>
+    <div class="t">verify</div><div>A second pair of hands runs it. The jig confirms <strong>zero raw hex</strong> — proving the token set was actually used, which no test would have caught.</div>
+  </div>
+</section>
+
+<!-- 15 CODA -->
+<section class="slide dark">
+  <div class="kicker anim">Coda</div>
+  <h2 class="anim">Four verbs, two practices,<br>three states, one shop.</h2>
+  <p class="lede anim" style="margin-top:26px;color:#9a9288">Everything that was confusing turned out to be scaffolding —
+  and scaffolding can come down without touching the building.</p>
+  <p class="lede anim" style="margin-top:44px;font-family:var(--display);font-size:56px;color:#f4f1ea;font-weight:700;letter-spacing:-.02em">Made. Not vibed.</p>
+</section>
+
+</div></div>
+<div class="chrome" id="chrome">1 / 15 &nbsp;·&nbsp; ← →</div>
+<script>
+/* === STAGE FIT === */
+(function(){
+  var st=document.getElementById('stage');
+  function fit(){var k=Math.min(innerWidth/1920,innerHeight/1080);
+    st.style.transform='translate('+((innerWidth-1920*k)/2)+'px,'+((innerHeight-1080*k)/2)+'px) scale('+k+')';}
+  addEventListener('resize',fit);fit();
+})();
+/* === NAVIGATION === */
+(function(){
+  var s=[].slice.call(document.querySelectorAll('.slide')),i=0,ch=document.getElementById('chrome');
+  function go(n){i=Math.max(0,Math.min(s.length-1,n));
+    s.forEach(function(el,x){el.classList.toggle('active',x===i);});
+    ch.textContent=(i+1)+' / '+s.length+'  ·  ← →';}
+  addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){e.preventDefault();go(i+1);}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1);}
+    if(e.key==='Home')go(0); if(e.key==='End')go(s.length-1);
+  });
+  var x0=null;
+  addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  addEventListener('touchend',function(e){if(x0===null)return;
+    var d=e.changedTouches[0].clientX-x0; if(Math.abs(d)>50)go(i+(d<0?1:-1)); x0=null;},{passive:true});
+  addEventListener('click',function(e){ if(e.clientX>innerWidth*0.5)go(i+1); else go(i-1); });
+  go(0);
+})();
+</script>
+</body>
+</html>

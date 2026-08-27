@@ -17,7 +17,6 @@
 | `session-end` | Pauses the loop; persists the outer store and any active cycle store. |
 | `land` | At each Verify→Land: ship the brick, drain the queue, reflect the nutrient (LEARNED/PROPAGATED/TAX). |
 | `orchestrate` | Fans work out to independent sub-agents. |
-| `substrate-start` / `substrate-end` | Reconcile / log execution state via the event log. |
 
 **Thinking lenses** (`mode: lens`) — different ways of seeing the same thing:
 

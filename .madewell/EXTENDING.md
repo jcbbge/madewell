@@ -34,16 +34,16 @@ it's **law** (the console's fixed circuitry — never overwrite) or a **cartridg
 | Layer | What it is / its purpose | Where | Law or slot |
 |---|---|---|---|
 | **The function** | The Orchestrator: think, plan, decompose, dispatch, verify, land. Never does the work. | `AGENTS.md` | **Law** |
-| **The lifecycle** | Two loops (outer stages / inner phases), the four-beat, the cooperative pause, the two-store rule, orchestration model. | `LIFECYCLE.md` | **Law** |
+| **The model** | Four acts, Ground and the Jig, three states, the pause. | `MADEWELL.md` | **Law** |
 | **Contracts** | The named seams a profile fills: persona · domain · quality · memory · onboarding. | `profiles.json` | Law (the *set*); slot (the *fills*) |
 | **Profiles** | One selection that fills every contract row (lead / contributor / guide / naked). | `PROFILES.md`, `profiles.json` | Slot — add your own |
 | **Cartridges** | A domain bundle: persona register(s) + skills + striations. Lives outside the kernel; loaded by explicit reference. | `cartridges/<name>/PACK.md` | Slot |
 | **Persona pack** (kernel) | The Guide (novice-human register) ships with the kernel because it's the human-facing default. | `packs/guide/PACK.md` | Slot |
 | **Striations** | The hierarchy inside a cartridge (e.g. dev → frontend / api / backend / ci-cd). | `cartridges/<c>/pillars/`, declared in the cartridge's manifest | Slot |
 | **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs cartridge (loaded with a cartridge, may be striation-scoped). | `skills/` (foundational), `cartridges/<c>/skills/` | Foundational = law-adjacent; cartridge = slot |
-| **State** | Two stores: outer `madewell.json` (stage + discovery queue), inner `cycles/<id>.json` (phase + imagine queue). | `madewell.json`, `cycles/`; schemas in `guides/schemas/` | Law (the *two-store shape*); the schemas evolve carefully |
+| **State** | Three directories: `stock/`, `bench/`, `finished/`. Position is path. | `SPEC.md` | **Law** |
 | **Orchestration** | The recursive coordination layer — outer fleet + inner per-phase fan-out. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
-| **Memory** | madewell.json (working) · git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity) · status.jsonl (events). | repo root of `.madewell/` | Slot — content is the project's |
+| **Memory** | git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity). | repo root of `.madewell/` | Slot |
 | **Install** | Unfolds the shell, re-syncs the framework (preserving memory), uninstalls cleanly. | `install.sh` | Mechanism |
 | **Human surface** | Front door + guides — how a person meets the system. | `MADEWELL.md`, `guides/` | Slot |
 
@@ -60,7 +60,7 @@ closed decision casually).
 - **The cooperative pause** — every loop yields to the human between iterations; nothing runs autonomously. *Why: the person steers; Made Well is not an autopilot.*
 - **The Orchestrator function** — output is a question, a plan, a decision, or a brief — never the work itself. *Why: the separation is the whole architecture.*
 - **Land always fires** — work ships *and* reflects, or it leaks. *Why: a system that only takes in floods.*
-- **The two-store rule** — outer `madewell.json`, inner `cycles/`. *Why: cardinality, write-contention, and lifetime differ between the loops.*
+- **Position is path.** *Why: a status field can lie about where something is; a directory cannot.*
 - **Persona is a slot** — the kernel is persona-free; registers fill the slot. *Why: the same function must serve a novice and a machine.*
 - **The Rubric** — does this lead to craft, beauty, and care? *Why: it's the point.*
 - **Contact points, not consultations** — Made Well's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See `~/.madewell-meta/contact-points.md` for the full law and its failing-mode vocabulary.*
@@ -78,7 +78,6 @@ well-formed cartridge needs **no kernel change**.
 - **Add a persona register.** A markdown register the cartridge carries; name it in the cartridge's `persona` field and the relevant profile.
 - **Add a striation.** A pillar file under `cartridges/<c>/pillars/`; declare it in the cartridge's manifest.
 - **Add a skill.** A markdown file in `skills/` (foundational) or `cartridges/<c>/skills/` (cartridge); foundational skills register in `SKILLS.json` with `layer`, `mode`, `when`; cartridge skills register in the cartridge's own manifest.
-- **Evolve a schema.** Edit `guides/schemas/*.schema.json`. Mind existing data — a field rename ripples to every `madewell.json`/cycle store in the wild. Default to additive changes. A rename or removal **MUST** sweep every reference **and** ship a migration step (see `install.sh`'s migration block) — never change a shape and leave old stores to break.
 - **Deepen an orchestration cell.** Extend `skills/orchestrate.md` — preserving the invariants (isolation, cooperative pause).
 
 ---
