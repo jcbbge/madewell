@@ -163,8 +163,9 @@ Software cuts have a way they are *made*, not only a way they *move*. That sitti
 trade's contact point at each act — engaged by act, not on request. File: `skills/sitting.md`.
 
 It does not replace the four acts or the floor. It fills how a software sitting looks:
-look then name (ideate), settle the shape (plan), smallest proved cut (implement),
-other eyes on the real artifact (verify), one lesson encoded after finish.
+look then name, including reconstruct purpose (ideate), settle the shape in those terms (plan),
+smallest proved cut with no junior cleanup the floor did not name (implement),
+other eyes on the reconstruction then the real artifact (verify), one lesson encoded after finish.
 
 The runtime judge (`verify-principles.md`) and the Enforcer stay the gates they already are.
 
