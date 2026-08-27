@@ -107,14 +107,18 @@ automated, never auto-approved, and never treated as a delay.
 
 ---
 
-## Patterns
+## Trades
 
-A pattern is a set of grounds and jigs for a kind of work. A pattern for web front-ends. A
-pattern for data pipelines. You load the one for the work in front of you.
+The shop is the same whether you are a joiner or a bookbinder — the same bench, the same
+rack, the same rule about not proofing your own work. What differs is the **trade**.
 
-A pattern may **add** operations at any edge — before ideate, between plan and implement,
-after verify. It may never **replace** one of the four. Adding is composition. Replacing
-is a different framework wearing this one's name.
+A trade is a set of grounds and jigs for a kind of work: what has to be right before anything
+else, the areas every job passes through, what gets skipped when people are busy, and the one
+question asked before anything ships. You load the one for the work in front of you.
+
+A trade may **add** operations at any edge — before ideate, between plan and implement, after
+verify. It may never **replace** one of the four. Adding is composition. Replacing is a
+different framework wearing this one's name.
 
 ---
 

@@ -1,4 +1,4 @@
-# Made Well — Sales Pack
+# Made Well — The Sales Trade
 **Version:** 1.0
 **Domain:** Sales — qualification, discovery, proposal, close, handoff
 
@@ -7,17 +7,17 @@
 ## How to activate
 
 ```
-Read .madewell/AGENTS.md and <cartridge-library>/sales/PACK.md. Let's get started.
+Read .madewell/AGENTS.md and <trade-library>/sales/TRADE.md. Let's get started.
 ```
 
-Cartridges are loaded **by reference**. They are not copied into the project by the
-installer. All paths below are relative to this cartridge's directory.
+Trades are loaded **by reference**. They are not copied into the project by the
+installer. All paths below are relative to this trade's directory.
 
 ---
 
-## Persona — this pack carries the sales registers
+## Persona — this trade carries the sales registers
 
-Loading this pack fills the kernel's **Persona slot** with `persona.md`:
+Loading this trade fills the kernel's **Persona slot** with `persona.md`:
 
 - **Owner** — carries the number and the relationships. Sets what we will and will not sell.
 - **Contributor** — a rep, an SE, or a partner working deals inside someone else's book. Runs
@@ -25,7 +25,7 @@ Loading this pack fills the kernel's **Persona slot** with `persona.md`:
 
 ---
 
-## What this pack is
+## What this trade is
 
 An LLM can write a follow-up email. That was never the hard part.
 
@@ -34,7 +34,7 @@ signs, and what happens after they say yes. Skip that and you get a fluent, resp
 well-organised pipeline full of deals that will never close, and nobody can tell which ones
 until the quarter ends.
 
-This pack makes those things non-skippable. Not as a CRM field to fill in — as questions
+This trade makes those things non-skippable. Not as a CRM field to fill in — as questions
 asked at the moment they are cheapest to ask, which is early.
 
 **The goal is a pipeline you can believe.** Fewer deals, correctly understood, beats more

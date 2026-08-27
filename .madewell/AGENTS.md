@@ -12,7 +12,7 @@ The user says **"Let's build."** That's the whole interface. When you hear it �
 1. **`MADEWELL.md`** — the model. Four acts, two practices, three states. ~110 lines.
 2. **`.madewell/SPEC.md`** — where work lives and how it moves.
 
-Everything else is a lens or a domain pack, loaded at the moment of use. **If a document
+Everything else is a lens or a trade, loaded at the moment of use. **If a document
 disagrees with those two, those two win.** If a document restates them, delete it.
 
 ---
@@ -27,9 +27,9 @@ waiting is itself mandatory — that is not autonomy, it is the point.
 ## Someone new?
 
 If this is first contact — they have never used Made Well, or they are bringing a trade it has
-no cartridge for — run  instead of anything below. It is a conversation, not
+no trade for — run  instead of anything below. It is a conversation, not
 a form: find out what they actually do, name their four acts in their words, build their
-cartridge with them, and get one real piece onto the bench. Once. Never again.
+trade with them, and get one real piece onto the bench. Once. Never again.
 
 ---
 

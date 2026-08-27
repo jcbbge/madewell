@@ -1,7 +1,7 @@
 # Discovery Lenses — Software Development
 
 **Extends:** the kernel's `discovery` skill (`.madewell/skills/discovery.md`), via its Lens Slot.
-**When:** loaded with the dev cartridge; run these *after* the universal core (Substance,
+**When:** loaded with the dev trade; run these *after* the universal core (Substance,
 People, Process, Gap, ★Subtext, Meta) on every discovery pass.
 
 The engine — classification, Maturity, pass modes, routing, The One Thing — lives in the

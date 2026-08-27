@@ -1,7 +1,7 @@
-# Dev Pack — Decision Cascade & Ownership Directive
+# The Dev Trade — Decision Cascade & Ownership Directive
 **Status:** canonical, framework-owned. **Referenced, never paraphrased**, by
-`persona.md`, `onboarding.md` (this cartridge), and any project's contributor wiring
-(e.g. a `CONTRIBUTOR.md` or a contributor cartridge).
+`persona.md`, `onboarding.md` (this trade), and any project's contributor wiring
+(e.g. a `CONTRIBUTOR.md` or a contributor trade).
 
 A behavioral **fence** for the executor (the Contributor — or the Lead doing the work): the
 fixed order for resolving any question or conflict. It is the anti-adversarial, anti-stall

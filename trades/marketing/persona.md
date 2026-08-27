@@ -1,4 +1,4 @@
-# Marketing Pack — Registers (Owner · Contributor)
+# The Marketing Trade — Registers (Owner · Contributor)
 **Version:** 1.0
 **Fills:** the Persona slot for the two marketing insertion points
 
@@ -15,7 +15,7 @@
 | **Contributor** | expert | guest | **yes** — `onboarding.md` first | works inside the positioning; surfaces conflicts, does not relitigate |
 
 A novice owner — a founder doing their own marketing — takes the **Guide** register from
-`packs/guide/` with this domain loaded.
+`registers/guide/` with this domain loaded.
 
 ---
 

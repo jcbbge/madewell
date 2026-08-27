@@ -1,7 +1,7 @@
 # Profiles — one switch fills every row
 
 A **profile** is a named bundle that selects an implementation for *every* contract row at
-once — persona, domain pack(s), quality, memory, onboarding. It is the layer above the
+once — persona, trade(s), quality, memory, onboarding. It is the layer above the
 contract lattice: instead of choosing each row by hand, you declare *who you are and how you're
 inserting*, and the profile fills the rest.
 
@@ -17,20 +17,20 @@ Manifest: `.madewell/profiles.json`. The contract rows it binds: **persona · do
 
 | Profile | Who | Persona | Domain | Quality | Onboarding |
 |---|---|---|---|---|---|
-| **lead** | the owner who holds the project (solo maintainer + agent, as peers) | cartridge-supplied Lead register | domain cartridge (loaded) | cartridge-supplied, if any | none — they define the reality |
-| **contributor** | a technical guest folded into an existing project | cartridge-supplied Contributor register | domain cartridge (loaded) | cartridge-supplied, if any | cartridge-supplied first-contact read-out |
+| **lead** | the owner who holds the project (solo maintainer + agent, as peers) | trade-supplied Lead register | trade (loaded) | trade-supplied, if any | none — they define the reality |
+| **contributor** | a technical guest folded into an existing project | trade-supplied Contributor register | trade (loaded) | trade-supplied, if any | trade-supplied first-contact read-out |
 | **guide** | a non-technical builder making their own thing | Guide register | none (generic) | Rubric-inline | first-session Orientation |
 | **naked** | machines, CI, headless agents | none (substrate) | per-task | per-task | none |
 
-`lead` and `contributor` share a base loadout (same cartridge + quality) and differ only in
+`lead` and `contributor` share a base loadout (same trade + quality) and differ only in
 **persona** and **onboarding** — the two things the insertion-point axis controls. That is the
 whole Lead-vs-Contributor distinction, made selectable.
 
-Concretely: a project running a software cartridge with these two profiles — **lead** (the
+Concretely: a project running a software trade with these two profiles — **lead** (the
 maintainer) and **contributor** (a guest) — shares the base loadout and differs only in
 persona + onboarding. The contributor profile is the same kernel with the guest's register and
-onboarding bound on top. Cartridges are not part of the kernel install; a project loads a
-cartridge by explicit reference (see the cartridge library).
+onboarding bound on top. Trades are not part of the kernel install; a project loads a
+trade by explicit reference (see the trade library).
 
 ---
 
@@ -42,9 +42,9 @@ In order, first hit wins:
 2. **`.madewell/profile`** — if the project pins one.
 3. **First-contact resolution:**
    - headless / CI / no human in the loop → **naked**
-   - a human, cartridge-bearing project, and they're the maintainer → **lead**
-   - a human on a *fresh clone* of a cartridge-bearing project (no prior state authored by them) → **contributor** → run the cartridge's onboarding
-   - a human, no cartridge, building their own thing → **guide**
+   - a human, trade-bearing project, and they're the maintainer → **lead**
+   - a human on a *fresh clone* of a trade-bearing project (no prior state authored by them) → **contributor** → run the trade's onboarding
+   - a human, no trade, building their own thing → **guide**
    - genuinely ambiguous → ask, once, plainly: *"Are you the owner of this project, joining it, or starting something new?"*
 
 Write the resolved choice to `.madewell/profile` so it's silent next time.
@@ -57,7 +57,7 @@ Once resolved, the kernel loads the profile's rows:
 
 - **persona** → read that register (or none, for naked)
 - **domain** → load the listed pack(s)
-- **quality** → if the loaded cartridge supplies a quality skill, use it; else fall back to the Rubric asked inline
+- **quality** → if the loaded trade supplies a quality skill, use it; else fall back to the Rubric asked inline
 - **memory** → the memory substrate (default: flat files)
 - **onboarding** → if set, run it **once** on first contact, then never again
 

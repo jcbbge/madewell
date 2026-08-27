@@ -1,20 +1,20 @@
 {
   "version": "6.0",
-  "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. CARTRIDGE skills load only with a domain cartridge and may be striation-scoped; they register in the cartridge's own manifest, not here. Paths are relative to .madewell/.",
+  "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. CARTRIDGE skills load only with a trade and may be pillar-scoped; they register in the trade's own manifest, not here. Paths are relative to .madewell/.",
   "skills": [
     {
       "name": "adopt",
       "file": "skills/adopt.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "Someone new arrives. First contact, before any work. A conversation that names their existing four acts in their own vocabulary, builds their cartridge from their answers, and puts one real piece on the bench. Runs once."
+      "when": "Someone new arrives. First contact, before any work. A conversation that names their existing four acts in their own vocabulary, builds their trade from their answers, and puts one real piece on the bench. Runs once."
     },
     {
       "name": "discovery",
       "file": "skills/discovery.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "Raw input \u2014 a transcript, a brain dump, a meeting. Runs ideate on it and puts pieces on the rack. Hosts the Lens Slot a cartridge extends. Never takes a piece to the bench."
+      "when": "Raw input \u2014 a transcript, a brain dump, a meeting. Runs ideate on it and puts pieces on the rack. Hosts the Lens Slot a trade extends. Never takes a piece to the bench."
     },
     {
       "name": "bench",
@@ -111,15 +111,15 @@
   "packs": [
     {
       "name": "guide",
-      "file": "packs/guide/PACK.md",
+      "file": "registers/guide/REGISTER.md",
       "fills": "the Persona slot \u2014 the GUIDE register (novice-human)",
       "activate": "Read at session start. Made Well's batteries-included default; recommended for any non-technical builder.",
-      "striations": [],
-      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: cartridge-supplied expert-human registers (Lead / Contributor) and naked (machines/CI)."
+      "pillars": [],
+      "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: trade-supplied expert-human registers (Lead / Contributor) and naked (machines/CI)."
     }
   ],
-  "cartridges": {
-    "note": "Domain cartridges live outside the kernel install. They are loaded into a project by explicit reference, not by the installer. Each cartridge carries its own PACK.md, persona register(s), skills, and striations. See the cartridge library.",
-    "library": "~/madewell/cartridges/ (reference library)"
+  "trades": {
+    "note": "Trades live outside the kernel install. They are loaded into a project by explicit reference, not by the installer. Each trade carries its own PACK.md, persona register(s), skills, and pillars. See the trade library.",
+    "library": "~/madewell/trades/ (reference library)"
   }
 }

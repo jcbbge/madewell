@@ -1,4 +1,4 @@
-# Made Well — Dev Pack
+# Made Well — The Dev Trade
 **Version:** 1.0
 **Domain:** Software Development
 
@@ -7,26 +7,26 @@
 ## How to Activate
 
 ```
-Read .madewell/AGENTS.md and <cartridge-library>/dev/PACK.md. Let's get started.
+Read .madewell/AGENTS.md and <trade-library>/dev/TRADE.md. Let's get started.
 ```
 
-Cartridges are **loaded by reference from the cartridge library** (e.g.
-`~/madewell/cartridges/dev/`) — they are not copied into the project by the installer.
-All paths below are relative to this cartridge's directory.
+Trades are **loaded by reference from the trade library** (e.g.
+`~/madewell/trades/dev/`) — they are not copied into the project by the installer.
+All paths below are relative to this trade's directory.
 
 ---
 
-## Persona — this pack carries the technical registers
+## Persona — this trade carries the technical registers
 
-Loading the dev pack fills the kernel's **Persona slot** with the dev pack's **technical
-registers** (`persona.md`, this cartridge) — the expert-human voice (peer engineer: terse,
+Loading the dev trade fills the kernel's **Persona slot** with the dev trade's **technical
+registers** (`persona.md`, this trade) — the expert-human voice (peer engineer: terse,
 law-not-suggestion, exemplar-bound), not the novice-human **Guide**. Two insertion points share
 that voice:
 
 - **Lead** — the owner who holds the project (the solo maintainer + their agent, as peers). No onboarding; sets the conventions.
 - **Contributor** — a technical guest folded into an existing project. Runs **`onboarding.md`** once on first contact — the system reads out its *own* accumulated reality (scope, roadmap, conventions, env) so the Lead never becomes the onboarding teacher — then operates as a peer who defers the Lead's calls.
 
-The persona travels with the pack because whoever loads the software domain is, by default,
+The persona travels with the trade because whoever loads the software domain is, by default,
 technical. The function is unchanged. A profile may override the slot (e.g. a non-technical
 founder building software → Guide register + dev domain).
 
@@ -47,7 +47,7 @@ designed — empty, loading, error — because the happy path was working and th
 like enough. The API that made sense in the moment and now fights the frontend every
 time something changes.
 
-This pack makes those things non-skippable. Not as checklists to comply with — as
+This trade makes those things non-skippable. Not as checklists to comply with — as
 questions woven into the work at the moment they're cheapest to answer.
 
 The goal is software that feels made. Not generated. Not assembled. Made — with taste,
@@ -210,7 +210,7 @@ The best interfaces feel inevitable. Not clever.
 
 ---
 
-## The Dev Pack Rubric
+## The The Dev Trade Rubric
 
 Two questions. Both must be answerable before anything ships:
 

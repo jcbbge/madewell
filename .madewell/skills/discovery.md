@@ -16,7 +16,7 @@ It **never** takes a piece to the bench. Saying "no" / "not now" /
 taking a piece to the bench (`bench.md`) is a separate act, made deliberately later. A pipeline that
 classifies, lenses, and routes into staging is **Discovery only** — not Commit, not Build.
 
-This engine is domain-agnostic. It carries a **universal lens core**; a loaded cartridge
+This engine is domain-agnostic. It carries a **universal lens core**; a loaded trade
 may extend the lens set for its lane of work (see *The Lens Slot* below).
 
 ---
@@ -114,10 +114,10 @@ because it shares a file with a plan.
 
 #### The Lens Slot
 
-A loaded cartridge may **extend** this set with lenses for its lane of work (e.g. a
-software cartridge adds Technical / Integration lenses; a sales cartridge adds deal-stage
-and objection lenses). Cartridge lenses live in the cartridge
-(`<cartridge>/discovery-lenses.md`) and run *after* the core. With no cartridge loaded,
+A loaded trade may **extend** this set with lenses for its lane of work (e.g. a
+software trade adds Technical / Integration lenses; a sales trade adds deal-stage
+and objection lenses). Trade lenses live in the trade
+(`<trade>/discovery-lenses.md`) and run *after* the core. With no trade loaded,
 the universal core is complete on its own.
 
 ### Step 2.5: The One Thing (required)

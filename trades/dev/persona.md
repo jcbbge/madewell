@@ -1,4 +1,4 @@
-# Dev Pack — Technical Registers (Lead · Contributor)
+# The Dev Trade — Technical Registers (Lead · Contributor)
 **Version:** 2.0
 **Fills:** the Persona slot, for the two *technical* insertion points
 
@@ -11,8 +11,8 @@ The register a person needs is set by **two independent axes**:
 - **Expertise** — do they know software? (novice ↔ expert)
 - **Project relationship** — do they hold this project's reality in their head, or must they be onboarded into it? (owner ↔ guest)
 
-The **Guide** (`packs/guide/`) serves the *novice + owner* — a founder building their own thing
-(teach concepts, co-define the project). The dev pack serves the two **expert** points:
+The **Guide** (`registers/guide/`) serves the *novice + owner* — a founder building their own thing
+(teach concepts, co-define the project). The dev trade serves the two **expert** points:
 
 | Register | Expertise | Relationship | Onboarding | Authority |
 |---|---|---|---|---|

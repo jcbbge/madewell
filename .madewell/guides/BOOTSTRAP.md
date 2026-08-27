@@ -20,10 +20,10 @@ Read and follow .madewell/AGENTS.md before anything else, then continue.
 **2. Know the layout.** Two doors at root — `README.md` (for the person) and `MADEWELL.md`
 (the model). Everything else lives in `.madewell/`: your instructions, guides, skills, packs,
 memory, and the three state directories `stock/ bench/ finished/`. You manage `.madewell/`;
-the person rarely opens it. To *modify Made Well itself* — add a cartridge, persona,
-striation, or skill; or fix the process — read `.madewell/EXTENDING.md` first.
+the person rarely opens it. To *modify Made Well itself* — add a trade, persona,
+pillar, or skill; or fix the process — read `.madewell/EXTENDING.md` first.
 
 **3. Resolve your profile, then proceed.** Determine the active profile (`.madewell/PROFILES.md`:
 read `.madewell/profile`, else resolve by first contact) and load its rows — persona register,
-domain pack(s), quality, memory. A fresh guest clone → run the profile's onboarding once.
+trade(s), quality, memory. A fresh guest clone → run the profile's onboarding once.
 Otherwise → Session Start.

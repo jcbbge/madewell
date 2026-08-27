@@ -1,4 +1,4 @@
-# Made Well — Marketing Pack
+# Made Well — The Marketing Trade
 **Version:** 1.0
 **Domain:** Marketing — positioning, message, channel, measurement
 
@@ -7,17 +7,17 @@
 ## How to activate
 
 ```
-Read .madewell/AGENTS.md and <cartridge-library>/marketing/PACK.md. Let's get started.
+Read .madewell/AGENTS.md and <trade-library>/marketing/TRADE.md. Let's get started.
 ```
 
-Cartridges are loaded **by reference**. They are not copied into the project by the
-installer. All paths below are relative to this cartridge's directory.
+Trades are loaded **by reference**. They are not copied into the project by the
+installer. All paths below are relative to this trade's directory.
 
 ---
 
-## Persona — this pack carries the marketing registers
+## Persona — this trade carries the marketing registers
 
-Loading this pack fills the kernel's **Persona slot** with `persona.md`. Two insertion points:
+Loading this trade fills the kernel's **Persona slot** with `persona.md`. Two insertion points:
 
 - **Owner** — holds the brand and the positioning. Sets the line; the agent argues with them.
 - **Contributor** — a writer, designer or agency folded in. Runs `onboarding.md` once, then
@@ -25,7 +25,7 @@ Loading this pack fills the kernel's **Persona slot** with `persona.md`. Two ins
 
 ---
 
-## What this pack is
+## What this trade is
 
 An LLM can write copy. That was never the hard part.
 
@@ -33,7 +33,7 @@ The hard part is everything upstream of the copy: who this is actually for, what
 believe today, what would have to change, and what proof would change it. Skip that and you
 get fluent, confident, well-formatted words that argue a case nobody asked about.
 
-This pack makes those things non-skippable — not as a checklist, as questions asked at the
+This trade makes those things non-skippable — not as a checklist, as questions asked at the
 moment they are cheapest to answer.
 
 **The goal is marketing that is true.** Not clever. True — a claim you can source, made to a

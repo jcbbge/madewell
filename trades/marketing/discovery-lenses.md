@@ -1,7 +1,7 @@
 # Discovery Lenses — Marketing
 
 **Extends:** the kernel's `discovery` skill (`.madewell/skills/discovery.md`), via its Lens Slot.
-**When:** loaded with the marketing cartridge; run *after* the universal core on every pass.
+**When:** loaded with the marketing trade; run *after* the universal core on every pass.
 
 The engine — classification, pass modes, routing, The One Thing — lives in the kernel and does
 not change here. This adds what a marketing lane can see that the universal core cannot name.

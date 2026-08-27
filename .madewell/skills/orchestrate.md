@@ -330,7 +330,7 @@ When tests pass and all packages complete:
 ## Recovery
 
 If a session ends mid-orchestration, next session reads `ls bench/` plus the last commit's `NEXT:` and
-reconstructs the state of each package using the event sequence. The package
+reconstructs the state of each package using the event sequence. The tradeage
 lifepiece is now multi-stage; recovery checks each stage in order.
 
 **Per-package state machine** (events evaluated newest-relevant first):

@@ -1,4 +1,4 @@
-# Sales Pack — Registers (Owner · Contributor)
+# The Sales Trade — Registers (Owner · Contributor)
 **Version:** 1.0
 **Fills:** the Persona slot for the two sales insertion points
 

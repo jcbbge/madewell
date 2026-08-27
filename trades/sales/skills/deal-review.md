@@ -1,6 +1,6 @@
 # Deal Review
-**Layer:** cartridge (sales) · **Mode:** quality
-**When:** before forecasting, and before any proposal is sent. This is the sales pack's jig.
+**Layer:** trade (sales) · **Mode:** quality
+**When:** before forecasting, and before any proposal is sent. This is the sales trade's jig.
 
 ---
 

@@ -1,4 +1,4 @@
-# Dev Pack — Canonical Software Brief
+# The Dev Trade — Canonical Software Brief
 **Status:** canonical, framework-owned. The dev-pack instantiation of the kernel **Brief Format**
 (`AGENTS.md`) for software work. A project's brief template (e.g. `docs/<queue>/_TEMPLATE.md`) is
 an **instance** of this — same schema, project bindings.
@@ -38,7 +38,7 @@ proposed work); the Lead makes the call. No new mechanism — the `_` exclusion 
 ## 1. Intent — the single outcome (2–4 sentences)                 ← kernel: What This Is
 ## 2. Pre-Verified Facts — current state, verified by the orchestrator ← kernel: Context / Starting Point
      every claim cites file:line / exact command+output / endpoint shape; the executor does NOT re-discover
-     library-BEHAVIOR claims state HOW they were verified (read the package's dist/source,
+     library-BEHAVIOR claims state HOW they were verified (read the tradeage's dist/source,
      ran it, official docs) — inference from config wiring is not verification and misdirects briefs
 ## 3. Desired behavior — precise, testable, each bullet observable ← kernel: Finishing Point (+ Edge Cases)
 ## 4. Lanes & touchpoints — no collision                          ← dev: the contract between executors
@@ -60,10 +60,10 @@ proposed work); the Lead makes the call. No new mechanism — the `_` exclusion 
      report-back agent") — a waiver must be stated, never silent.
 ---
 Delegation contract: the executor unit drives this brief to a merged PR. On any question they
-escalate per the cartridge's escalation.md (spec → codebase → docs → lead). Never guess, never stall.
+escalate per the trade's escalation.md (spec → codebase → docs → lead). Never guess, never stall.
 ````
 
 The **four-lane acceptance**, **no-mock testing**, **one-PR sizing**, and **pre-verified facts**
-(§2) are the dev pack's hardening of the kernel's Verification Protocol + Isolation Mandate —
+(§2) are the dev trade's hardening of the kernel's Verification Protocol + Isolation Mandate —
 non-negotiable for code work. A project keeps the schema and binds the specifics (its env command,
 its DB, its lane names).

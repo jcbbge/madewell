@@ -1,6 +1,6 @@
 # Message Test
-**Layer:** cartridge (marketing) · **Mode:** quality
-**When:** before any claim ships. This is the marketing pack's jig.
+**Layer:** trade (marketing) · **Mode:** quality
+**When:** before any claim ships. This is the marketing trade's jig.
 
 ---
 

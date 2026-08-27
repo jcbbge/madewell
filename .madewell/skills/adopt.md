@@ -7,7 +7,7 @@
 ## What this is
 
 Somebody has turned up with work they already do. Your job is to find out what that work is,
-show them it already has the four acts in it, and leave them with a cartridge of their own
+show them it already has the four acts in it, and leave them with a trade of their own
 and one real piece on the rack.
 
 **You are not selling them a process. You are naming the one they already have.**
@@ -89,7 +89,7 @@ say the jurisdiction. Whatever they say, that is the file.
 > *"What are the three to five areas that every job passes through, no matter what kind it
 > is?"*
 
-Those are their **pillars** — the striations of their domain. Push for three to five. Fewer
+Those are their **pillars** — the pillars of their domain. Push for three to five. Fewer
 means they are describing stages, not areas; more means they are listing tasks.
 
 ### 6 — What gets skipped?
@@ -99,7 +99,7 @@ The heart of it. Ask directly, then wait.
 > *"When it's busy and something has to give — what gives? And what does it cost you three
 > weeks later?"*
 
-Every answer is a future jig. Write them verbatim. This list is what makes their cartridge
+Every answer is a future jig. Write them verbatim. This list is what makes their trade
 theirs rather than a template with their logo on it.
 
 ### 7 — The one question
@@ -114,7 +114,7 @@ sits on top of it and is usually sharper and more specific.
 Do not send them away to write it. Write it in front of them, from what they just said:
 
 ```
-cartridges/<theirs>/
+trades/<theirs>/
   PACK.md              foundation + pillars table, the skips, the rubric
   foundation/<x>.md    principles → protocol → definition of done
   pillars/*.md         one per pillar, same three parts
@@ -122,7 +122,7 @@ cartridges/<theirs>/
 ```
 
 Read `.madewell/EXTENDING.md` for the slot contract, and copy the shape of
-`cartridges/marketing/` — it is the shortest complete example. **Every line in their cartridge
+`trades/marketing/` — it is the shortest complete example. **Every line in their trade
 must be traceable to something they said.** If you cannot point at the sentence it came from,
 cut it.
 
@@ -152,7 +152,7 @@ easier learned with one.
 
 - They have named their unit of work.
 - Their four acts are written in **their** vocabulary.
-- A cartridge exists that they watched get written.
+- A trade exists that they watched get written.
 - One real piece is on the bench with a floor they wrote.
 - They know the three commands: `ls` the three directories, `git mv` to move, and that
   nothing ever moves backward.

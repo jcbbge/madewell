@@ -1,29 +1,29 @@
 {
   "version": "1.1",
-  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. The quality row is 'cartridge-if-present-else-inline': use the loaded cartridge's quality skill if present, else ask the Rubric inline. Cartridges live outside the kernel install; a project loads one by explicit reference.",
+  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. The quality row is 'trade-if-present-else-inline': use the loaded trade's quality skill if present, else ask the Rubric inline. Trades live outside the kernel install; a project loads one by explicit reference.",
   "contracts": ["persona", "domain", "quality", "memory", "onboarding"],
   "profiles": {
     "lead": {
       "for": "the owner who holds the project — a solo maintainer + their agent, as peers",
-      "persona": "cartridge-supplied Lead register",
-      "domain": "cartridge (loaded by reference)",
-      "quality": "cartridge-if-present-else-inline",
+      "persona": "trade-supplied Lead register",
+      "domain": "trade (loaded by reference)",
+      "quality": "trade-if-present-else-inline",
       "memory": "default (flat files: DECISIONS / PRODUCT + git log)",
       "onboarding": false,
       "authority": "sets and changes conventions + architecture"
     },
     "contributor": {
       "for": "a technical guest folded into an existing project — a contractor / new hire + their agent",
-      "persona": "cartridge-supplied Contributor register",
-      "domain": "cartridge (loaded by reference)",
-      "quality": "cartridge-if-present-else-inline",
+      "persona": "trade-supplied Contributor register",
+      "domain": "trade (loaded by reference)",
+      "quality": "trade-if-present-else-inline",
       "memory": "default (flat files)",
-      "onboarding": "cartridge-supplied first-contact read-out",
+      "onboarding": "trade-supplied first-contact read-out",
       "authority": "surfaces findings to the Lead; stays in lane"
     },
     "guide": {
       "for": "a non-technical builder making their own thing from scratch",
-      "persona": "packs/guide/PACK.md (Guide register)",
+      "persona": "registers/guide/REGISTER.md (Guide register)",
       "domain": [],
       "quality": "inline (Rubric asked directly)",
       "memory": "default (flat files)",

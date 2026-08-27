@@ -23,7 +23,7 @@ Read .madewell/AGENTS.md. I want to adopt Made Well. Run adopt.
 
 Your agent will ask what you actually do all day, have you walk through one job start to
 finish, and name the four acts back to you **in your own words** before it uses any of its
-own. Then it builds you a cartridge from your answers and puts one real piece of your work on
+own. Then it builds you a trade from your answers and puts one real piece of your work on
 the bench. One sitting.
 
 Already know the shape? `Let's build.`
@@ -132,17 +132,17 @@ Six at most, because past that the coordination costs more than the work.
 
 ---
 
-## Cartridges
+## Trades
 
 The kernel doesn't know your industry. That plugs in.
 
-| Cartridge | Foundation | Pillars |
+| Trade | Foundation | Pillars |
 |---|---|---|
-| [dev](cartridges/dev/) | System boundaries | Backend · Frontend · API · CI/CD |
-| [marketing](cartridges/marketing/) | Positioning | Audience · Message · Channel · Measurement |
-| [sales](cartridges/sales/) | Qualification | Discovery · Proposal · Close · Handoff |
+| [dev](trades/dev/) | System boundaries | Backend · Frontend · API · CI/CD |
+| [marketing](trades/marketing/) | Positioning | Audience · Message · Channel · Measurement |
+| [sales](trades/sales/) | Qualification | Discovery · Proposal · Close · Handoff |
 
-Same shape, three trades. Yours isn't there? See [`cartridges/README.md`](cartridges/README.md)
+Same shape, three trades. Yours isn't there? See [`trades/README.md`](trades/README.md)
 — the concierge builds it with you rather than handing you a template.
 
 ---
@@ -170,7 +170,7 @@ That question is what *made well* means, and it's why the framework is called th
 | `.madewell/skills/adopt.md` | The first conversation. The concierge. |
 | `.madewell/skills/` | Workflow skills + thinking lenses. |
 | `.madewell/EXTENDING.md` | The slot contract — how to extend any part. |
-| `cartridges/` | Domain packs. |
+| `trades/` | Trades. |
 | `madewell-deck.html` | A 15-slide walkthrough. Open in a browser. |
 
 `MADEWELL.md` and `SPEC.md` are the only normative documents. If anything else disagrees with
@@ -184,7 +184,7 @@ The bar for adding a document is high: **if it restates the model, it doesn't go
 framework once carried sixteen terms across six metaphor systems to describe a process with
 four positions. That was the bug, and it's the one most likely to come back.
 
-New cartridges are very welcome. Run `adopt` on your own trade and send the result.
+New trades are very welcome. Run `adopt` on your own trade and send the result.
 
 ## Licence
 
