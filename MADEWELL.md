@@ -135,6 +135,38 @@ called that.
 
 ---
 
+## The three questions
+
+The rubric asks whether a finished thing is good. These ask whether a **decision** is
+pointing the right way, and they are asked at every fork — which design, which word, which of
+two ways to build it.
+
+**1 · Does this lead toward something ten times better to use?**
+
+Not a bit better. Ten times. Something marginally better rarely repays what it costs in
+complication, and that cost is always paid later, by someone who did not make the choice.
+
+**2 · Does this point toward something someone would remember, or love?**
+
+Forgettable is a failure state. Correct and joyless is still a miss. If nobody would mention
+it to another person, it did not land — and *why* it would not land is almost always knowable
+before you build it.
+
+**3 · Does this get us closer to being as easy for an agent as it is for a person?**
+
+There are always two users. Something a person loves and an agent stumbles over is half
+built, and so is the reverse. Ask both, every time.
+
+**These are directions, not measurements.** You cannot score them, and you should not try —
+a number here would be invented, and an invented number is worse than an honest judgement.
+What you can always do is say which of two options points further along each one. That is
+enough to decide with, and it is harder to game than a metric.
+
+When none of the options points anywhere good, that is the finding. Say so rather than
+picking the least bad one quietly.
+
+---
+
 ## Forbidden
 
 **No rewind.** Work moves one direction. A failed proof does not send the piece

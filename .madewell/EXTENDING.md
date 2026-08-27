@@ -64,6 +64,7 @@ closed decision casually).
 - **Position is path.** *Why: a status field can lie about where something is; a directory cannot.*
 - **Persona is a slot** — the kernel is persona-free; registers fill the slot. *Why: the same function must serve a novice and a machine.*
 - **The Rubric** — does this lead to craft, beauty, and care? *Why: it's the point.*
+- **The three questions** — does it *lead toward* ten times better to use? *point toward* something remembered or loved? *get closer to* being as easy for an agent as for a person? Directions, not scores, asked of every decision rather than only the finished thing. *Why: a framework that cannot say why it chose one way over another accumulates arbitrary choices, and arbitrary choices are what make a system feel like paperwork.*
 - **Contact points, not consultations** — Made Well's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See the Jig in `MADEWELL.md` — a mechanism you may skip is a mechanism you will skip.*
 
 Everything not on this list is a slot a trade can fill.

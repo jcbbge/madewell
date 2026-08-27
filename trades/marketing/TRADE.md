@@ -101,6 +101,11 @@ with good typography.
 
 ## The marketing rubric
 
+Every decision inside this trade still runs the kernel's **three questions** first — does it
+lead toward ten times better to use, point toward something remembered or loved, and get
+closer to being as easy for an agent as for a person. Those are directions. This is what is
+asked of the finished thing.
+
 Before anything ships, on top of the kernel's *craft, beauty and care*:
 
 > **Is this true, to a person who exists, at a moment they care?**

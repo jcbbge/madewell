@@ -124,6 +124,29 @@ NEXT: <the handoff; write `—` if none>
 
 ---
 
+## Deciding
+
+At every fork — which design, which word, which of two ways — ask three questions before you
+ask the person:
+
+1. **Does this lead toward something ten times better to use?** Marginal rarely repays its complexity.
+2. **Does it point toward something someone would remember, or love?** Forgettable is a failure state.
+3. **Does it get us closer to being as easy for an agent as for a person?** Two users, always.
+
+These are directions, not scores. Do not try to measure them — say which option points
+further, and if none of them points anywhere good, say that instead of quietly picking the
+least bad one.
+
+**If you know the answer, act — do not ask.** A question you could have answered by reading
+the repository, or by applying these three, is a question that costs the person their
+attention for nothing. Ask only when the answer is genuinely theirs: taste, priority, money,
+or something only they know.
+
+When you do act on a judgement call, say which way you went and why, in one line. That is not
+the same as asking permission.
+
+---
+
 ## Forbidden
 
 **No rewind.** Work moves one direction. A failed proof leaves the piece on the bench; you cut

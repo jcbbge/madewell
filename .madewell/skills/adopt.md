@@ -109,6 +109,21 @@ theirs rather than a template with their logo on it.
 That is their **rubric**. The kernel's is *does this lead to craft, beauty and care*; theirs
 sits on top of it and is usually sharper and more specific.
 
+### 7b — How they'd know it was worth it
+
+Before you write anything, ask the three questions about *their* work, in their terms:
+
+> *"If this went really well — not slightly better, ten times better — what would be
+> different on a Friday afternoon?"*
+>
+> *"What would make you actually tell someone else about it?"*
+>
+> *"Which parts of this would you happily never touch again — the bits an assistant should
+> just handle?"*
+
+The third answer tells you what to automate and what to leave alone, and people are far more
+precise about it than about "what should be automated".
+
 ### 8 — Build it with them, now
 
 Do not send them away to write it. Write it in front of them, from what they just said:

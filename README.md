@@ -132,9 +132,30 @@ conversation, rather than handing you a form.
 
 ---
 
+## How decisions get made
+
+At every fork, three questions come before anyone asks you:
+
+1. **Does this lead toward something ten times better to use?** Not a bit better. Marginal
+   improvements rarely repay what they cost in complication, and that cost lands on whoever
+   comes next.
+2. **Does it point toward something anyone would remember, or love?** Forgettable is a
+   failure. Correct and joyless is still a miss.
+3. **Does it get us closer to being as easy for an assistant as for a person?** There are
+   always two of you using this. Something you love and it stumbles over is only half built.
+
+You can't measure these, and nobody should pretend to. What you can always say is which of
+two options points further along each one — which is harder to fool than a score.
+
+Your assistant is meant to answer these itself and get on with it — and tell you which way it
+went. It should only bring you a question when the answer is genuinely yours: taste,
+priority, money, or something only you know.
+
+---
+
 ## The question
 
-One question, asked of anything before it's finished:
+And one more, asked of anything before it's finished:
 
 > **Does this lead to craft, beauty, and care?**
 

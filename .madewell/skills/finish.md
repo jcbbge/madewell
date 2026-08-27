@@ -24,6 +24,14 @@ If you made it, hand it to another pair of hands. If you are proofing, you did n
 Tests answer *does it work*. They do not answer *is it what was imagined*. That second
 question is this act's whole job, and no CI run will do it for you.
 
+## Then the rubric
+
+Before it comes off the bench: **does this lead to craft, beauty, and care?**
+
+If no, it is the wrong thing to finish — and it does not matter that it works, that it was
+faster, or that nobody will notice. That is not a style note; it is the standard the whole
+thing is named after.
+
 ## A breakdown finishes last
 
 A piece with its own rack can only finish when its `stock/` and `bench/` are both empty.

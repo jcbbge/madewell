@@ -32,6 +32,18 @@ Four lines. **Nothing else may be demanded here.**
 Do not ask for a file list, a task breakdown, or line numbers. Those are implement-time
 facts and they do not exist yet. Requiring them here asks one gate to do two acts' jobs.
 
+## Run the three questions
+
+Planning is where the forks are, so this is where they earn the most:
+
+1. Does it lead toward ten times better to use, or only a bit? If only a bit, say what the
+   complication costs and reconsider.
+2. Does it point toward something anyone would remember or love? You can usually tell now.
+3. Does it get us closer to being as easy for an agent as for a person?
+
+Directions, not scores. Where an option points the wrong way, that is a cost — write it into
+the piece so the next pair of hands can see what was traded and why.
+
 ## Leaf or breakdown?
 
 - **Leaf** — one pair of hands can do it. `git mv stock/X.md bench/X.md`.
