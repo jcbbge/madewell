@@ -3,6 +3,13 @@
   "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. CARTRIDGE skills load only with a domain cartridge and may be striation-scoped; they register in the cartridge's own manifest, not here. Paths are relative to .madewell/.",
   "skills": [
     {
+      "name": "adopt",
+      "file": "skills/adopt.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Someone new arrives. First contact, before any work. A conversation that names their existing four acts in their own vocabulary, builds their cartridge from their answers, and puts one real piece on the bench. Runs once."
+    },
+    {
       "name": "discovery",
       "file": "skills/discovery.md",
       "layer": "foundational",

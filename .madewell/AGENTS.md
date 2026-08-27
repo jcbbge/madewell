@@ -24,6 +24,15 @@ waiting is itself mandatory — that is not autonomy, it is the point.
 
 ---
 
+## Someone new?
+
+If this is first contact — they have never used Made Well, or they are bringing a trade it has
+no cartridge for — run  instead of anything below. It is a conversation, not
+a form: find out what they actually do, name their four acts in their words, build their
+cartridge with them, and get one real piece onto the bench. Once. Never again.
+
+---
+
 ## Orient before you touch anything
 
 ```sh
