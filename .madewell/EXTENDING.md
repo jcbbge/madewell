@@ -42,10 +42,10 @@ it's **law** (the console's fixed circuitry — never overwrite) or a **cartridg
 | **Striations** | The hierarchy inside a cartridge (e.g. dev → frontend / api / backend / ci-cd). | `cartridges/<c>/pillars/`, declared in the cartridge's manifest | Slot |
 | **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs cartridge (loaded with a cartridge, may be striation-scoped). | `skills/` (foundational), `cartridges/<c>/skills/` | Foundational = law-adjacent; cartridge = slot |
 | **State** | Three directories: `stock/`, `bench/`, `finished/`. Position is path. | `SPEC.md` | **Law** |
-| **Orchestration** | The recursive coordination layer — outer fleet + inner per-phase fan-out. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
-| **Memory** | git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity). | repo root of `.madewell/` | Slot |
+| **Orchestration** | The shop: fan-out across hands, per act. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
+| **Memory** | git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity). No ledger, no projection. | repo root of `.madewell/` | Slot |
 | **Install** | Unfolds the shell, re-syncs the framework (preserving memory), uninstalls cleanly. | `install.sh` | Mechanism |
-| **Human surface** | Front door + guides — how a person meets the system. | `MADEWELL.md`, `guides/` | Slot |
+| **Human surface** | Front door + guides — how a person meets the system. | `README.md`, `MADEWELL.md`, `guides/` | Slot |
 
 ---
 
@@ -123,7 +123,7 @@ new pack) — the protocol is the same; only the size differs.
 
 You are the mechanic who also notices the warning lights. Don't wait to be told:
 
-- **Watch the signals** — the TAX ledger (`work/tax.jsonl`), repeated failures, recurring friction
+- **Watch the signals** — repeated corrections, repeated failures, recurring friction
   across sessions. A pattern is a maintenance item.
 - **Surface, don't act.** When you spot a maintenance item you **MUST** surface it to the Lead —
   name the piece, the pattern, and the proposed change ("your software cartridge's debug skill keeps missing

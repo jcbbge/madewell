@@ -36,7 +36,7 @@ two engines, and you choose by whether the user can interrupt it mid-flight.**
   use the full `transform` string for hardware acceleration.
 - **Transform & opacity only. Never animate layout.** GPU path; honors Law 7.
 - **Springs ≠ bounce.** Near-critically-damped (`bounce: 0`) reads crisp and
-  physical — _not_ the elastic 04-DESIGN warns against. A small `bounce: 0.1–0.2`
+  physical — _not_ the elastic design-first warns against. A small `bounce: 0.1–0.2`
   is allowed **only at primary magnitude**. (Emil: avoid bounce in most UI;
   0.1–0.3 when used.)
 

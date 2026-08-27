@@ -1,12 +1,15 @@
 #!/bin/sh
-# Made Well — installer. Drop the framework into a target repo; the agent does the rest.
+# Made Well — installer. Drops the framework into a target repo. That's all it does.
 #
-#   sh install.sh [TARGET_DIR]           install / re-sync into TARGET_DIR (default: cwd)
-#   sh install.sh --uninstall [TARGET]   remove Made Well (droppable — no residue)
+#   sh install.sh [TARGET]             install, or re-sync an existing install
+#   sh install.sh --uninstall [TARGET] remove it — no residue
 #
 # Zero deps: POSIX sh + cp/mkdir/grep/awk (+ git, optional, for the version stamp).
-# Non-clobbering: never overwrites a file the project owns; appends a guarded loader block.
-# Idempotent: re-running RE-SYNCS the framework (drift-gate) and PRESERVES project memory.
+# Non-clobbering: never overwrites a file the project owns.
+# Idempotent: re-running re-syncs the framework and preserves your work.
+#
+# You do not need this. It copies files and appends one line to CLAUDE.md/AGENTS.md.
+# Doing that by hand is a completely reasonable way to adopt Made Well.
 
 set -eu
 
@@ -21,6 +24,7 @@ LOADER_BEGIN="<!-- MADE WELL — loader -->"
 LOADER_LINE="Read and follow .madewell/AGENTS.md before anything else, then continue."
 LOADER_END="<!-- /MADE WELL -->"
 
+# ── uninstall ────────────────────────────────────────────────────────────────
 if [ "$MODE" = "uninstall" ]; then
   rm -rf "$DEST/.madewell" "$DEST/MADEWELL.md"
   for f in CLAUDE.md AGENTS.md; do
@@ -29,7 +33,6 @@ if [ "$MODE" = "uninstall" ]; then
       $0==b{skip=1} skip&&$0==e{skip=0;next} !skip' "$DEST/$f" > "$DEST/$f.mw_tmp" && mv "$DEST/$f.mw_tmp" "$DEST/$f"
     [ -s "$DEST/$f" ] || rm -f "$DEST/$f"
   done
-  # Strip the Made Well lines from .gitignore (keep the project's own); drop it if now blank.
   gi="$DEST/.gitignore"
   if [ -f "$gi" ]; then
     grep -v -e '^# Made Well — local per-clone profile marker' -e '^\.madewell/profile$' "$gi" \
@@ -42,39 +45,31 @@ fi
 
 [ "$SRC" = "$DEST" ] && { echo "install: source and target are the same directory" >&2; exit 1; }
 
-# Detect an existing install (for the update-vs-install message + memory preservation).
 prev=""
 [ -f "$DEST/.madewell/VERSION" ] && prev=$(head -1 "$DEST/.madewell/VERSION" | awk '{print $2}')
-[ -n "$prev" ] && echo "Updating Made Well in $DEST (re-syncing framework; your memory is preserved)" \
-               || echo "Installing Made Well → $DEST"
+[ -n "$prev" ] && echo "Updating Made Well in $DEST" || echo "Installing Made Well → $DEST"
 
-# 1. Framework files (allowlist) — ALWAYS overwritten; this is the re-sync / update path.
+# ── 1. framework — always overwritten; this is the re-sync path ──────────────
 mkdir -p "$DEST/.madewell"
-cp "$SRC/.madewell/AGENTS.md" "$DEST/.madewell/AGENTS.md"   # canonical instructions; never at root → never clobbers
-cp "$SRC/MADEWELL.md" "$DEST/MADEWELL.md"
+cp "$SRC/MADEWELL.md" "$DEST/MADEWELL.md"                       # the model, at root, for the person
+cp "$SRC/SPEC.md"     "$DEST/.madewell/SPEC.md"                 # where work lives
+for f in AGENTS.md EXTENDING.md PROFILES.md profiles.json; do
+  cp "$SRC/.madewell/$f" "$DEST/.madewell/$f"
+done
 for d in guides skills packs templates bin; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
 done
-cp "$SRC/MADEWELL.md"             "$DEST/MADEWELL.md"              # the model
-cp "$SRC/SPEC.md"                 "$DEST/.madewell/SPEC.md"        # where work lives
-cp "$SRC/.madewell/EXTENDING.md"  "$DEST/.madewell/EXTENDING.md"   # maintenance/extension manual
-cp "$SRC/.madewell/profiles.json" "$DEST/.madewell/profiles.json"
-cp "$SRC/.madewell/PROFILES.md"   "$DEST/.madewell/PROFILES.md"
 
-# 2. Memory. Seeded on first install only; never clobbered on re-sync.
-# Fresh memory — created ONLY on first install; never clobbered on re-sync.
-mkdir -p "$DEST/.madewell/work/packages" "$DEST/.madewell/work/reports" "$DEST/.madewell/work/test-results" "$DEST/.madewell/work/intake" "$DEST/.madewell/specs" "$DEST/.madewell/decisions"
-# Three states. Position IS the directory a piece sits in (SPEC.md).
-mkdir -p "$DEST/.madewell/stock" "$DEST/.madewell/bench" "$DEST/.madewell/finished"
-[ -f "$DEST/.madewell/DECISIONS.md" ]    || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
-[ -f "$DEST/.madewell/PRODUCT.md" ]      || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
-[ -f "$DEST/.madewell/work/tax.jsonl" ]  || : > "$DEST/.madewell/work/tax.jsonl"
-for k in work/packages work/reports work/test-results work/intake specs decisions stock bench finished; do
+# ── 2. the three states + memory — seeded once, never clobbered ──────────────
+for k in stock bench finished; do
+  mkdir -p "$DEST/.madewell/$k"
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
+[ -f "$DEST/.madewell/DECISIONS.md" ] || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
+[ -f "$DEST/.madewell/PRODUCT.md" ]   || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
 
-# 3. Wire the loader (non-clobbering): root CLAUDE.md + AGENTS.md point at .madewell/AGENTS.md.
+# ── 3. loader — appended, never replacing the project's own root files ───────
 wire() {
   f="$DEST/$1"
   if [ ! -f "$f" ]; then
@@ -86,24 +81,34 @@ wire() {
 wire CLAUDE.md
 wire AGENTS.md
 
-# 4. Git-ignore the local, per-clone profile marker.
+# ── 4. the per-clone profile marker is local, never committed ────────────────
 gi="$DEST/.gitignore"
 if [ ! -f "$gi" ] || ! grep -qF ".madewell/profile" "$gi"; then
   printf '\n# Made Well — local per-clone profile marker (never committed)\n.madewell/profile\n' >> "$gi"
 fi
 
-# 5. Provenance stamp (answers the cross-repo drift question: re-run install to re-sync).
+# ── 5. provenance — so you can tell whether a project has drifted ────────────
 ver=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo unversioned)
-when=$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)
-printf 'madewell %s\ninstalled %s\n' "$ver" "$when" > "$DEST/.madewell/VERSION"
+printf 'madewell %s\ninstalled %s\n' "$ver" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" \
+  > "$DEST/.madewell/VERSION"
 
+# ── 6. the jig is optional — offer it, never force it ────────────────────────
+hook="$DEST/.git/hooks/pre-commit"
+if [ -d "$DEST/.git" ] && [ ! -e "$hook" ]; then
+  echo
+  echo "  Optional — the jig refuses illegal moves between stock/, bench/ and finished/."
+  echo "  To install it, make .git/hooks/pre-commit executable containing:"
+  echo "      exec sh .madewell/bin/mw-gate.sh"
+fi
+
+echo
 if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
-  echo "Done. Updated $prev -> $ver. Framework re-synced; stock/bench/finished, DECISIONS, PRODUCT, tax preserved."
+  echo "Done. Updated $prev -> $ver. Framework re-synced; stock/bench/finished, DECISIONS and PRODUCT untouched."
   echo "Tell your agent: Made Well was updated — re-read .madewell/AGENTS.md, then continue."
 elif [ -n "$prev" ]; then
-  echo "Done. Already at $ver — framework re-synced; nothing else changed."
+  echo "Done. Already at $ver — framework re-synced, nothing else changed."
 else
   echo "Done. Made Well @ $ver."
-  echo "Next: point your agent at this repo and say  ->  Let's build."
-  echo "You start here: ./MADEWELL.md   ·   Remove anytime: sh <madewell>/install.sh --uninstall ."
+  echo "Read ./MADEWELL.md, then tell your agent:  Let's build."
+  echo "Remove anytime: sh <madewell>/install.sh --uninstall ."
 fi

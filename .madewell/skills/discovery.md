@@ -176,7 +176,7 @@ Findings never skip to `active` — promotion is the Commit gate's call.
 
 **Preserve the source — the intake record.** Queue lines are deliberately lossy. When the
 artifact carries nuance the one-liners can't hold (a rich transcript, a table, a sketched
-user journey), copy it to `.madewell/work/intake/YYYY-MM-DD-<slug>.md` and have the queue
+user journey), keep it beside the piece it produced and have the rack
 pieces cite it — ideate reads the intake record when the piece goes to the bench, so nothing
 sharp is flattened into a headline and lost.
 

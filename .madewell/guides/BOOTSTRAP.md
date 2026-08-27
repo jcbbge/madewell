@@ -17,12 +17,11 @@ Read and follow .madewell/AGENTS.md before anything else, then continue.
 <!-- /MADE WELL -->
 ```
 
-**2. Know the layout.** One human door at root — `MADEWELL.md` (orientation, what to expect).
-Everything else lives in `.madewell/` (your instructions, guides, skills, packs, state, memory,
-work). You manage `.madewell/`; the person rarely opens it. To *modify Made Well itself* — add a
-pack, persona, striation, or skill; evolve a schema; or fix the process — read
-`.madewell/EXTENDING.md` first (the maintenance manual: the system map, the confines, and the
-extension patterns).
+**2. Know the layout.** Two doors at root — `README.md` (for the person) and `MADEWELL.md`
+(the model). Everything else lives in `.madewell/`: your instructions, guides, skills, packs,
+memory, and the three state directories `stock/ bench/ finished/`. You manage `.madewell/`;
+the person rarely opens it. To *modify Made Well itself* — add a cartridge, persona,
+striation, or skill; or fix the process — read `.madewell/EXTENDING.md` first.
 
 **3. Resolve your profile, then proceed.** Determine the active profile (`.madewell/PROFILES.md`:
 read `.madewell/profile`, else resolve by first contact) and load its rows — persona register,

@@ -41,6 +41,28 @@ facts and they do not exist yet. Requiring them here asks one gate to do two act
 
 If you cannot tell, it is a leaf. You will find out.
 
+## Handing it to someone else
+
+The floor is the minimum to move. A piece you are handing to another pair of hands needs
+enough that they never have to ask you a question. Add to the same file — **there is no
+separate brief document, and no `specs/` directory; the piece file is the brief:**
+
+```markdown
+## Context
+What already exists. What decisions shaped this. What constraints apply.
+
+## Steps
+Concrete, ordered, unambiguous.
+
+## What could go wrong
+One to three things to watch for — especially anything that could lose data,
+grant the wrong access, or fail silently.
+```
+
+**A piece is ready to hand off when someone could pick it up and finish it without asking a
+single question.** If it would need clarification, it isn't ready — and that is a plan
+failure, not theirs.
+
 ## Done when
 
 The piece is in `bench/`, the floor is written, and the jig accepted the commit.

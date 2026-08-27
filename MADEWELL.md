@@ -118,6 +118,19 @@ is a different framework wearing this one's name.
 
 ---
 
+## The rubric
+
+One question, asked of anything before it finishes:
+
+> **Does this lead to craft, beauty, and care?**
+
+If the answer is no, it is the wrong move — and it does not matter that it works, that it was
+faster, or that nobody will notice. People notice everything; they just cannot always say
+what they noticed. That question is what "made well" means, and it is why the framework is
+called that.
+
+---
+
 ## Forbidden
 
 **No rewind.** Work moves one direction. A failed proof does not send the piece

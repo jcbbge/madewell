@@ -41,7 +41,7 @@ quietly carries comprehension on its own.
   WCAG 3 lands (the `ui/` accessibility mandate still governs). Harmonizer's
   `APCACH` blends both — use it.
 - **No pure black, no pure white.** Neutrals are **tinted toward the brand hue**
-  with chroma reduced at the extremes (04-DESIGN.md). Light bg ≈ `oklch(98% 0.004 H)`,
+  with chroma reduced at the extremes (design-first.md). Light bg ≈ `oklch(98% 0.004 H)`,
   dark bg ≈ `oklch(20% 0.01 H)` — never `#fff` / `#000`.
 - **Light + dark are first-class and mirror by construction** (see §2).
 - **Color is never the only carrier of meaning** (Law 7 — color-blindness). Every

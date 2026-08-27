@@ -53,7 +53,9 @@ reconciles. Run it as a protocol:
 1. **Partition before dispatch.** You MUST assign each piece an explicit file/module claim, and you
    MUST NOT dispatch two pieces whose claims overlap. If two piece taken to the benchs cannot be partitioned
    cleanly, they are not parallel — run them in sequence. State each claim in the piece's brief.
-2. **Claim on the board.** The shared board is `.madewell/work/board.jsonl` (append-only). Before a
+2. **Claim by structure, not by a side-file.** A piece on the bench has exactly one pair of
+   hands, so the bench *is* the claim. Declare the files a piece touches in its own file
+   (`**Touches:**`), and never bench two pieces whose claims overlap. Before a
    piece touches any file it MUST append a claim — `{"ts","piece","claims":[paths],"kind":"claim","expires":"<ISO>"}` —
    and MUST read the board first. A piece that finds its target already claimed MUST stop and surface
    the conflict to the Lead; it MUST NOT proceed into contested files.
@@ -136,10 +138,10 @@ Each package is a unit of work that:
 - Has defined acceptance criteria
 - Can be picked up by any agent without context
 
-Create briefs in `.madewell/work/packages/`:
+A parent that breaks down holds its children on its own rack. Create them there:
 ```
-.madewell/work/packages/01-auth-flow.md
-.madewell/work/packages/02-api-routes.md
+bench/<parent>/stock/01-auth-flow.md
+bench/<parent>/stock/02-api-routes.md
 ```
 
 ---
@@ -168,7 +170,7 @@ SPAWN PARALLEL SUB-AGENT — IMPLEMENTATION
 
 Task: [package-name]
 Role: Implementer
-Brief: .madewell/work/packages/[NN-package-name.md]
+Piece: bench/<parent>/stock/[NN-name.md]
 Mode: Independent execution, async, report on completion
 
 Instructions:
@@ -190,7 +192,7 @@ SPAWN PARALLEL SUB-AGENT — TEST DESIGN
 
 Task: [package-name]
 Role: Test Designer
-Brief: .madewell/work/packages/[NN-package-name.md]
+Piece: bench/<parent>/stock/[NN-name.md]
 Mode: Independent execution, async, report on completion
 
 Instructions:
@@ -207,7 +209,7 @@ Instructions:
    touch implementation paths") or leave a slot the orchestrator fills
    at dispatch time.
 5. Output test specifications and test code to:
-   .madewell/specs/YYYY-MM-DD-[package-name].test.md
+   the piece's own file — how it will be proved goes under `Done when:`
 6. DO NOT run the tests you write — a separate agent owns that
 
 ON COMPLETION, REPORT:
@@ -234,15 +236,14 @@ SPAWN SUB-AGENT — TEST RUNNER
 
 Task: [package-name]
 Role: Test Runner
-Brief: .madewell/work/packages/[NN-package-name.md]
-Test brief: .madewell/specs/YYYY-MM-DD-[package-name].test.md
+Piece: bench/<parent>/stock/[NN-name.md]
 Mode: READ-ONLY on code and tests
 
 Instructions:
 1. Read the implementation and the test brief
 2. Run the test suite as specified
 3. Write a results file to:
-   .madewell/work/test-results/YYYY-MM-DD-[package-name].md
+   the commit that finishes it — what was proved, and by whom
 4. May write diagnostic logs alongside the results file
 5. NEVER edit code. NEVER edit tests. NEVER write implementation files.
 
@@ -270,9 +271,7 @@ SPAWN SUB-AGENT — FAILURE TRIAGE
 
 Task: [package-name]
 Role: Failure Triage
-Brief: .madewell/work/packages/[NN-package-name.md]
-Test brief: .madewell/specs/YYYY-MM-DD-[package-name].test.md
-Results: .madewell/work/test-results/YYYY-MM-DD-[package-name].md
+Piece: bench/<parent>/stock/[NN-name.md]
 Mode: READ-ONLY, independent verdict
 
 Instructions:
@@ -330,7 +329,7 @@ When tests pass and all packages complete:
 
 ## Recovery
 
-If a session ends mid-orchestration, next session reads `status.jsonl` and
+If a session ends mid-orchestration, next session reads `ls bench/` plus the last commit's `NEXT:` and
 reconstructs the state of each package using the event sequence. The package
 lifepiece is now multi-stage; recovery checks each stage in order.
 
