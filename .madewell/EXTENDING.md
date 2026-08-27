@@ -55,15 +55,15 @@ These are the console's fixed circuitry. A cartridge composes *around* them; it 
 them. Change these only on the Lead's explicit call, with a concrete new reason (never reopen a
 closed decision casually).
 
-- **The two loops + four-beat** — outer stages (Discovery → Commit → Build → Land), inner phases (Imagine → Plan → Make → Verify). *Why: it's the engine; every piece assumes it.*
-- **The Isolation Mandate** — planner ≠ executor, builder ≠ verifier. *Why: without it the system collapses into self-justifying code-gen.*
+- **The four acts** — ideate → plan → implement → verify, recurring at every depth. There is no second vocabulary for the outer pass. *Why: it's the engine; every piece assumes it.*
+- **You don't proof your own plate** — planner ≠ executor, maker ≠ proofer. *Why: without it the system collapses into self-justifying code-gen.*
 - **The cooperative pause** — every loop yields to the human between iterations; nothing runs autonomously. *Why: the person steers; Made Well is not an autopilot.*
 - **The Orchestrator function** — output is a question, a plan, a decision, or a brief — never the work itself. *Why: the separation is the whole architecture.*
-- **Land always fires** — work ships *and* reflects, or it leaks. *Why: a system that only takes in floods.*
+- **Finish always fires** — work ships *and* reflects, or it leaks. *Why: a system that only takes in floods.*
 - **Position is path.** *Why: a status field can lie about where something is; a directory cannot.*
 - **Persona is a slot** — the kernel is persona-free; registers fill the slot. *Why: the same function must serve a novice and a machine.*
 - **The Rubric** — does this lead to craft, beauty, and care? *Why: it's the point.*
-- **Contact points, not consultations** — Made Well's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See `~/.madewell-meta/contact-points.md` for the full law and its failing-mode vocabulary.*
+- **Contact points, not consultations** — Made Well's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See the Jig in `MADEWELL.md` — a mechanism you may skip is a mechanism you will skip.*
 
 Everything not on this list is a cartridge slot.
 

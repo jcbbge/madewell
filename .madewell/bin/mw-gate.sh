@@ -80,10 +80,15 @@ while IFS='	' read -r st a b; do
   [ -n "${st:-}" ] || continue
   case "$st" in R*) o=$a; n=$b ;; D*) o=$a; n="" ;; A*) o=""; n=$a ;; *) continue ;; esac
   for f in $o $n; do
-    case "$f" in "$MW"/*) ;; *) continue ;; esac
+    # Only the three state directories are governed. Everything else under .madewell/
+    # — skills/, guides/, packs/, bin/, templates/ — is ordinary repo content and free.
+    case "$f" in
+      "$MW"/stock/*|"$MW"/bench/*|"$MW"/finished/*) ;;
+      *) continue ;;
+    esac
     case "$f" in *.gitkeep) continue ;; esac
-    parse "$f" || { say "not a state path: $f"
-                    note "Everything under $MW/ sits in stock/, bench/ or finished/."; continue; }
+    parse "$f" || { say "malformed state path: $f"
+                    note "Inside a state directory, a piece is <name>.md or <slug>/PIECE.md."; continue; }
     [ "$f" = "$o" ] && printf '%s\n' "$f" >>"$work/dels"
     [ "$f" = "$n" ] && printf '%s\n' "$f" >>"$work/adds"
   done

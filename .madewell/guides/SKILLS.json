@@ -1,7 +1,49 @@
 {
-  "version": "5.0",
-  "note": "Reference manifest. The model is MADEWELL.md; where work lives is SPEC.md. These are thinking lenses \u2014 domain-neutral tools, not loop machinery. The four acts need no skill to run them. Paths are relative to .madewell/.",
+  "version": "6.0",
+  "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. CARTRIDGE skills load only with a domain cartridge and may be striation-scoped; they register in the cartridge's own manifest, not here. Paths are relative to .madewell/.",
   "skills": [
+    {
+      "name": "discovery",
+      "file": "skills/discovery.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Raw input \u2014 a transcript, a brain dump, a meeting. Runs ideate on it and puts pieces on the rack. Hosts the Lens Slot a cartridge extends. Never takes a piece to the bench."
+    },
+    {
+      "name": "bench",
+      "file": "skills/bench.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "A piece is being taken from the rack. Runs plan: ground first, then write the floor (Making / Not making / Done when / Waits on). Decides leaf vs breakdown."
+    },
+    {
+      "name": "orchestrate",
+      "file": "skills/orchestrate.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Work needs more than one pair of hands. Partition, dispatch, share findings, reconcile. Four hands minimum, six at most."
+    },
+    {
+      "name": "finish",
+      "file": "skills/finish.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "A piece is ready to come off the bench. Runs verify against the floor \u2014 by someone who did not make it."
+    },
+    {
+      "name": "session-start",
+      "file": "skills/session-start.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "First move of any session. Orient from the directories and the last handoff."
+    },
+    {
+      "name": "session-end",
+      "file": "skills/session-end.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Last move of any session. Commit what moved, write the NEXT handoff, report honestly."
+    },
     {
       "name": "luck",
       "file": "skills/luck.md",

@@ -9,7 +9,7 @@ kernel and does not change here. This file only adds what a software lane can se
 universal core can't name.
 
 > Reference implementation: a project-local discovery pipeline (`<project>/discovery/`,
-> `pipeline/v2.2.md`) — the proven, in-daily-use original these lenses were extracted from.
+> the proven, in-daily-use original these lenses were extracted from.
 
 ---
 

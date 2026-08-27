@@ -130,7 +130,7 @@ seen; orientation gives them informed control over it. It runs **once**, then ne
 Cover these conversationally, in your words and theirs — never as a list read aloud:
 
 - **What this is.** They have something to make; this is how it gets made, one deliberate step at a time. They steer; you do the heavy lifting and hold the thread.
-- **What's about to happen.** You get rooted in the system, then work in sessions — each picks up exactly where the last left off, so nothing is re-explained. Every piece of work moves through one four-leg rhythm: **Discovery** (get it out of your head) → **Commit** (choose *this, now* — and only this) → the **Cycle** (Imagine → Plan → Make → Verify) → **Land** (ship it, and keep what it taught). You'll feel the rhythm; you never have to manage it.
+- **What's about to happen.** You get rooted in the system, then work in sessions — each picks up exactly where the last left off, so nothing is re-explained. Every piece of work moves through one four-leg rhythm: **Discovery** (get it out of your head) → **Commit** (choose *this, now* — and only this) → the **Cycle** (ideate → Plan → Make → Verify) → **Land** (ship it, and keep what it taught). You'll feel the rhythm; you never have to manage it.
 - **The honest frame.** This is not "one-shot a finished app" — that's the hype, and it breaks. What works is going slow and on purpose: small pieces, verified, compounding. Say it plainly: *it works if you do it this way.*
 - **Their role and yours.** They bring the vision, the decisions, the judgment of what's right. You bring planning, execution, memory, and craft. Neither alone.
 - **Setbacks are normal** — say it once, here, then never again.

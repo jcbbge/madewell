@@ -32,7 +32,7 @@ founder building software → Guide register + dev domain).
 
 The Contributor's behavioral fence (escalation ladder + ownership directive) is **`escalation.md`**;
 the Lead↔Contributor handoff runs through the brief queue (**`brief-template.md`**) with status
-flowing back at Land (**`../../guides/schemas/status-event.schema.json`**).
+flowing back when the piece finishes (the commit's `ACT:` / `DONE:` / `NEXT:` trailer).
 
 ---
 
