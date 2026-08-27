@@ -157,13 +157,25 @@ shows up as software that users don't trust, don't enjoy, and eventually stop us
 
 ---
 
+## The sitting (contact points)
+
+Software cuts have a way they are *made*, not only a way they *move*. That sitting is this
+trade's contact point at each act — engaged by act, not on request. File: `skills/sitting.md`.
+
+It does not replace the four acts or the floor. It fills how a software sitting looks:
+look then name (ideate), settle the shape (plan), smallest proved cut (implement),
+other eyes on the real artifact (verify), one lesson encoded after finish.
+
+The runtime judge (`verify-principles.md`) and the Enforcer stay the gates they already are.
+
 ## Skills (helpers)
 
-Beyond the foundation and pillars above, the guide reads these when the situation calls for them.
-The person doesn't need to invoke them.
+Beyond the foundation, pillars, and sitting above, the guide reads these when the situation
+calls for them. The person doesn't need to invoke them.
 
 | Skill | File | When |
 |---|---|---|
+| **Sitting** | `skills/sitting.md` | Every act on a software piece. Contact point, not a consult. |
 | **Enforcer** | `skills/enforcer.md` | After significant AI-assisted work. Before anything ships. Stateful code-quality protocol. |
 | **Discovery lenses** | `discovery-lenses.md` | Every discovery pass. Fills the kernel discovery skill's **Lens Slot** with the software lane's four lenses — Technical, Integration, UX/Interaction, Initiative→Irreducible Units — run after the universal core. |
 
