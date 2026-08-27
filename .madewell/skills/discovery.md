@@ -2,22 +2,30 @@
 
 **Mode:** Workflow — runs **ideate** on raw input. Hosts the Lens Slot.
 **Trigger:** Brain dump, transcript, meeting notes, AI-chat log, thinking out loud, first session
-**Artifacts:** Pieces on the rack (`.madewell/stock/`); decisions surfaced; The One Thing written down
+**Artifacts:** Pieces on the rack (`P/stock/`); decisions surfaced; The One Thing written down
 
 ---
 
 ## What This Does
 
-Discovery is the **intake instrument** — it runs **ideate** on raw input and fills the
-`discovery` **pool**. It turns raw input (a brain dump, a transcript, a meeting, an AI-chat)
-into shaped, queueable **candidates**.
+Discovery is the **intake instrument** — it runs **ideate** on raw input and fills
+**`P/stock/`** (the rack at current depth). It turns raw input (a brain dump, a transcript, a
+meeting, an AI-chat) into shaped **pieces on the rack**.
 
 It **never** takes a piece to the bench. Saying "no" / "not now" /
-taking a piece to the bench (`bench.md`) is a separate act, made deliberately later. A pipeline that
-classifies, lenses, and routes into staging is **Discovery only** — not Commit, not Build.
+taking a piece to the bench (`bench.md`) is a separate act, made deliberately later — **ideate
+only; never takes a piece to the bench**. A pipeline that classifies, lenses, and writes to
+`P/stock/` is discovery — not plan, not implement.
 
 This engine is domain-agnostic. It carries a **universal lens core**; a loaded trade
 may extend the lens set for its lane of work (see *The Lens Slot* below).
+
+**Fractal depth:** `P` is `.madewell` or any `bench/<slug>/` at the current depth. Discovery
+at inner depth writes that depth's `stock/` — same protocol, nested rack. **Maturity** (aka
+Phase in the legacy pipeline) tags the run; do not rename the field.
+
+**Corpus boundary:** Never copy transcript bodies into the dist. Never write `STAGING.md` or
+`STG-*` ids. Substance stays in the read-only corpus; the dist tracks **position** only.
 
 ---
 
@@ -25,7 +33,9 @@ may extend the lens set for its lane of work (see *The Lens Slot* below).
 
 ### Step 0: Look before you add (don't re-rack duplicates)
 
-- `ls .madewell/stock/` — what is already on the rack. Grep it per candidate at write
+At current depth `P`:
+
+- `ls P/stock/` — what is already on the rack. Grep it per candidate at write
   time rather than trying to hold it all in memory.
 - `DECISIONS.md` — so a finding isn't re-raised as new when it was already decided.
 - `PRODUCT.md` — the vision as understood so far; mis-fits get caught against it.
@@ -104,10 +114,10 @@ because it shares a file with a plan.
 
   **Weight AI-chat subtext by Maturity.** In a SUBSTRATE/IDEATION brainstorm, non-pushback
   is the *intended* mode — the human is farming ideas, not making commitments. There,
-  adopted-untested vocabulary is a **translation task to queue, named once** — never a
-  repeated observation about the human's conduct. Silent adoption is high-charge only at
-  PLANNING+, where acceptance reads as commitment. State findings about the artifact, not
-  verdicts about the person.
+  adopted-untested vocabulary is a **translation task to rack, named once** (one stock line)
+  — never a repeated observation about the human's conduct. Silent adoption is high-charge
+  only at PLANNING+, where acceptance reads as commitment. State findings about the
+  artifact, not verdicts about the person.
 
 **6. Meta** — what does this artifact reveal about the discovery process itself?
 - What should update this skill, the rack, or how intake is run
@@ -127,58 +137,103 @@ the universal core is complete on its own.
 No hedging. This is the finding that would be lost if someone only read the summary.
 Write it down — in PRODUCT.md, on the rack, or DECISIONS.md.
 
+### Step 2.6: Compression Analysis (PRD-shaped artifacts only)
+
+If the artifact contains a PRD or other compression document, run this additional
+sub-rubric (domain-agnostic):
+
+- **What survived** the conversation → PRD compression?
+- **What got dropped** that was discussed earlier?
+- **What got added** in the PRD that wasn't discussed?
+- **Quantification check:** flag every metric (`<200ms`, `>40% conversion`, `1000+ items`,
+  `depth=3`, etc.). For each, is an instrument named? Was a baseline measured? If not —
+  flag as ungrounded.
+- **"Complete blueprint" claim test:** if the PRD claims comprehensiveness, list the
+  structural gaps. (Persistence layer? Versioning? Migration plan? Failure modes? Auth
+  model? Override propagation? Observability? Asset pipeline if visual?)
+
+Output feeds Step 3 routing; no separate store.
+
 ### Step 3: Route Every Finding
 
-Every meaningful finding appears once, with exactly one route:
+Every meaningful finding appears once, with exactly one disposition:
 
-| Route | Meaning | Where it goes |
-|-------|---------|---------------|
-| **discovery** | Real, captured work | onto the `discovery` queue |
-| **decision** | Needs a call before it can be queued | surfaced now; one line in `DECISIONS.md` once decided |
+| Disposition | Meaning | Where it goes |
+|-------------|---------|---------------|
+| **rack** | Real, captured work | `P/stock/<slug>.md` |
+| **decision** | Needs a call before it can be racked | one line in `DECISIONS.md` (or open thread in `PRODUCT.md`) |
 | **release** | Not worth keeping | let it go — *named*, never silently dropped |
 
 ```
-ID | Lens | Finding (one sentence) | Route | Evidence
+ID | Lens | Finding (one sentence) | Disposition | Evidence
 ```
+
+**Pointer pattern (transcript sources):** When substance lives in the read-only corpus, the
+stock piece is a title plus path — never both. For transcripts under
+`~/infinity/discovery/transcripts/`:
+
+```markdown
+# Retry policy for the upload queue
+**Source:** ~/infinity/discovery/transcripts/2026-03-outage-review.md
+**Making:** … **Not making:** … **Done when:** … **Waits on:** …
+```
+
+The dist tracks position; the corpus holds content.
 
 **Adoption — in-flight work is its own case.** When discovery runs on a project with work
 already half-built (adopting Made Well mid-stream, migrating an existing tracker), work
-found mid-execution is neither an idea nor releasable: route it to `discovery` **flagged
+found mid-execution is neither an idea nor releasable: route to **`P/stock/` flagged
 `in-flight`**. The flag means: this already holds work-in-progress and gets verdicted
-*first* before taking anything to the bench — bound what is mid-stream before racking more. It
+*first* before racking more — bound what is mid-stream before adding new pieces. It
 must still pass the gate; being half-built is a claim on attention, not a bypass.
 
-### Step 4: Name Things
+### Step 4: Name Things and Track Open Questions
+
+#### Name Things
 
 Name every pattern, gap, and shadow workflow — short, precise, memorable. Named things
 can be designed against; unnamed things stay invisible.
 
-### Step 5: Propose the Queue (approval gate)
+#### Cross-Artifact Open Questions
+
+Maintain an open-questions tracker in `DECISIONS.md` or `PRODUCT.md`. Add new ones this
+artifact raises; close ones it answers:
+
+```
+- [ ] [Question] — first seen in [source slug or path]
+- [x] [Question] — answered in [source]: [brief answer]
+```
+
+Do not cache `NEEDS DECISION` on the rack without a reader — open threads live where
+decisions and product vision are read.
+
+### Step 5: Reflect and rack
 
 Reflect back in plain language — "here's what I heard" — then propose:
 
 ```
-Ready to queue (route: discovery):
+Ready to rack:
   [d-new] "…"   scope: …
-Needs a decision before queueing:
+Needs a decision first:
   "…"
 Releasing (not kept):
   "…"
 ```
 
 Ask: **"Does that match what you meant?"** On confirmation:
-- Write `discovery`-routed findings onto the rack as pieces (`.madewell/stock/<slug>.md`)
+- Write findings to `P/stock/<slug>.md`
 - Record made decisions in `DECISIONS.md`; carry unmade ones as open threads
 - Update `PRODUCT.md` with anything new about the person or their vision
 - Refresh `context.summary` / `context.openThread` / `context.language`
 
-Findings never skip to the bench — taking a piece in hand is a separate act, made later.
+Findings never skip to the bench — taking a piece in hand is a separate act (**plan**), made
+later.
 
-**Preserve the source — the intake record.** Queue lines are deliberately lossy. When the
+**Preserve the source — the intake record.** Rack lines are deliberately lossy. When the
 artifact carries nuance the one-liners can't hold (a rich transcript, a table, a sketched
-user journey), keep it beside the piece it produced and have the rack
-pieces cite it — ideate reads the intake record when the piece goes to the bench, so nothing
-sharp is flattened into a headline and lost.
+user journey), cite the corpus path on the stock piece — ideate reads the intake record
+when the piece goes to the bench, so nothing sharp is flattened into a headline and lost.
+Never copy the body into the dist.
 
 ---
 
@@ -194,6 +249,19 @@ vs. your current direction. Don't just list findings; produce a three-part discr
    leverage — this list *is* the agenda.
 3. **THE THROUGH-LINE** — the single root most discrepancies collapse to. Name it.
 
+When comparing paired artifacts, optionally classify each cross-cut:
+
+- **Independent convergence** — both arrive at the same finding from different paths
+- **Direct divergence** — artifacts contradict on a load-bearing decision
+- **Vocabulary mismatch** — same concept, different terms
+- **Composition (not competition)** — each models part of the same lifecycle
+- **Shared gap** — both fail to surface the same thing
+- **Compression bias** — one preserved what the other dropped
+- **Domain-grounded vs generic** — one operationally grounded, one corpus-grounded
+
+Only cross-cuts become stock at synthesis; per-slice findings stay beside their slice until
+racked individually.
+
 *Pre-requisite (Step 0):* load the current design/direction docs, or you'll judge the
 incoming artifact only against memory and miss its mis-assignments.
 
@@ -208,10 +276,11 @@ When the input is the person talking to you right now (not a document):
 3. Apply the lenses internally; classify Maturity as you listen.
 4. Then run Steps 2.5–5 as above, out loud.
 
-Mid-session capture: when something comes up that isn't the current work, add it to
-`discovery` immediately, say "captured," and return to what you were doing.
+Mid-session capture: when something comes up that isn't the current work, **capture on the
+rack immediately** (`P/stock/<slug>.md`), say "captured," and return to what you were doing.
 
 ---
 
 *Discovery isn't just thinking. It's thinking that flows onto the rack — surface
-everything here, so Commit has something real to say no to.*
+everything here, so the bench move has something real to take. Nothing is rejected on the
+rack; Promote is **plan**, not ideate.*

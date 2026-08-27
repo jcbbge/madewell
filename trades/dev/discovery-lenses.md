@@ -8,8 +8,21 @@ The engine — classification, Maturity, pass modes, routing, The One Thing — 
 kernel and does not change here. This file only adds what a software lane can see that the
 universal core can't name.
 
-> Reference implementation: a project-local discovery pipeline (`<project>/discovery/`,
-> the proven, in-daily-use original these lenses were extracted from.
+> **Corpus feeder:** `~/infinity/discovery/` holds transcripts, analyses, and the legacy
+> V2.2 pipeline — a read-only feeder, not a second framework. Raw sitting goes through
+> Made Well discovery and lands on `P/stock/`; the corpus is cited, not copied.
+
+**Lens map (legacy V2.2 → this trade):**
+
+| V2.2 lens | Made Well home |
+|-----------|----------------|
+| Lens 1 — Product | kernel **Substance** + **D4** for grand visions |
+| Lens 2 — UX | **D3** below |
+| Lens 3 — Technical | **D1** below |
+| Lens 4 — Integration | **D2** below |
+
+Event-sales, Arc-lovable, Galley-HubSpot seam language belongs here and in project
+`PRODUCT.md` — not in the kernel skill.
 
 ---
 
@@ -30,6 +43,7 @@ Where are the **seams** with external systems?
   each one is an integration waiting to be named
 - External vendors/services mentioned in passing — what do they own, what do we own?
 - Data that crosses a boundary and changes shape or ownership on the way
+- Galley ↔ HubSpot and other named integration seams (event-sales context)
 
 ## Lens D3 — UX / Interaction
 
