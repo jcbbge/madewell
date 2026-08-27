@@ -1,8 +1,7 @@
 # Verify Principles — the Runtime Judge
 **Slot:** fills the kernel Verify engine's **Principle Slot** for the software lane.
 **Pattern:** the Outcome Judge — outcome-stated principles, judged by a fresh agent over
-collected evidence, in a find → fix → re-verify loop. (Lab source:
-`~/.madewell-meta/inner-loop/verify/outcome-judge-pattern.md`.)
+collected evidence, in a find → fix → re-verify loop.
 
 The Enforcer (`skills/enforcer.md`) judges **source text**, file by file, with machine
 gates. This judges the **running product**, flow by flow, with evidence. A codebase can
@@ -20,7 +19,7 @@ catches it.
    and opinions don't gate ships. (Runtime analog of the pre-verified-facts rule.)
 3. **The judge never replaces a gate.** Tests, lint, types, land-check, no-mocks, and the
    four-lane acceptance stay deterministic and machine-verified. The judge covers what
-   rules can't encode. Both must pass. Judged fixes land behind the draft→Commit gate —
+   rules can't encode. Both must pass. Judged fixes land behind the draft→bench move —
    never auto-merged.
 
 ---

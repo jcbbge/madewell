@@ -1,6 +1,6 @@
 {
   "version": "6.0",
-  "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. CARTRIDGE skills load only with a trade and may be pillar-scoped; they register in the trade's own manifest, not here. Paths are relative to .madewell/.",
+  "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. TRADE skills load only with a trade and may be pillar-scoped; they register in the trade's own manifest, not here. Paths are relative to .madewell/.",
   "skills": [
     {
       "name": "adopt",
@@ -108,7 +108,11 @@
       "when": "Something is broken. Error pasted. Unexpected behavior. Observe \u2192 hypothesize \u2192 experiment \u2192 conclude; never bulldoze."
     }
   ],
-  "packs": [
+  "trades": {
+    "note": "Trades live outside the kernel install. They are loaded into a project by explicit reference, not by the installer. Each trade carries its own TRADE.md, persona register(s), skills, and pillars. See the trade library.",
+    "library": "<path-to>/trades/ (reference library)"
+  },
+  "registers": [
     {
       "name": "guide",
       "file": "registers/guide/REGISTER.md",
@@ -117,9 +121,5 @@
       "pillars": [],
       "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: trade-supplied expert-human registers (Lead / Contributor) and naked (machines/CI)."
     }
-  ],
-  "trades": {
-    "note": "Trades live outside the kernel install. They are loaded into a project by explicit reference, not by the installer. Each trade carries its own PACK.md, persona register(s), skills, and pillars. See the trade library.",
-    "library": "~/madewell/trades/ (reference library)"
-  }
+  ]
 }

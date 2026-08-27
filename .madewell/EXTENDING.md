@@ -105,7 +105,7 @@ before creating one — never invent a slot silently.
 
 ## The maintenance protocol
 
-Modifying Made Well runs **the kernel's own lifecycle** — it is just another Cycle.
+Modifying Made Well runs **the kernel's own four acts** — it is just another piece of work.
 
 1. **Triage** — is this **law** or a **slot**? Law → stop; surface it to the Lead with the concrete
    reason. Slot → which one (use the map)?
@@ -113,7 +113,7 @@ Modifying Made Well runs **the kernel's own lifecycle** — it is just another C
 3. **Make** — follow the slot's pattern. Keep the change shaped like its neighbors.
 4. **Verify** — schema validates, every path resolves, `install.sh` still unfolds the shell, no
    dangling references. (The same checks that keep the shop working.)
-5. **Land** — commit it; the change ships and reflects like any other unit of work.
+5. **Finish** — commit it; the change ships and is proofed like any other piece.
 
 Routine checkup (a stale path, a sharper trigger), overhaul (a schema migration), or tow package (a
 new pack) — the protocol is the same; only the size differs.

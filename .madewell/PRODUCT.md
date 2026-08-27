@@ -1,41 +1,58 @@
 # Product
 
-*This file is written and maintained by your guide. It remembers who you are,
-what you're building, and how you think about it. It grows as you do.*
+*Made Well's own product file. The framework describing itself — which is also the shortest
+worked example of what this file is for.*
 
 ---
 
-## What We're Building
+## What we're making
 
-[Your guide fills this in during the first conversation]
+An ontology of work, and a way to run it with agents. Four acts that recur at every scale,
+two practices that stop prior decisions being re-made, three states a piece can be in, and a
+trade you slot in for your domain.
 
-## Who It's For
+Files in a git repository. No CLI, no service, no account. Delete the tooling and the work is
+still there and still legible.
 
-[Real people, described as real people — not "users"]
+## Who it's for
 
-## Their Language
+Someone doing real work with an agent who has noticed that the agent will confidently rebuild
+something that already exists, grade its own output, and produce fluent results that miss the
+point — and who wants that to be structurally impossible rather than a thing they have to
+catch every time.
 
-*The words and comparisons that clicked — preserved so every session speaks your language.*
+Not for people who want estimates, burndown, or autonomy. It does none of those and says so.
 
-| Concept | Your word for it |
-|---------|-----------------|
-| | |
+## Their language
 
-## Their Understanding
+| Concept | The word we use |
+|---|---|
+| a unit of work | a **piece** |
+| where work waits | the **rack** (`stock/`) |
+| what's in hand | the **bench** |
+| making prior decisions present | **Ground** |
+| a stop that makes the wrong move impossible | a **jig** |
+| a domain's accumulated knowledge | a **trade** |
+| the crew | the **shop** — four hands minimum, six at most |
 
-*A running picture of what you've shown you grasp, where the edges of your map are,
-and what bridges have worked. Not a grade — a portrait. Updated as we work.*
+The four acts — **ideate, plan, implement, verify** — are plain verbs on purpose. No metaphor
+lives in the core.
 
-[Your guide fills this in as you work together]
+## What matters
 
-## What You've Made
+**One metaphor.** This framework once carried sixteen terms across six metaphor systems to
+describe a process with four positions. That was the bug. Craft is the only metaphor now, and
+the bar for a new document is that it must not restate the model.
 
-*Specific things that exist now that didn't before — updated as work ships.*
+**The rubric.** *Does this lead to craft, beauty, and care?* It is the reason the framework is
+called what it is, and it outranks working, faster, and nobody-will-notice.
 
-[Your guide fills this in as things get built]
+**Honesty about enforcement.** Every rule names what backs it. A rule with no jig behind it is
+a preference and must be labelled one.
 
-## What Matters
+## What's been made
 
-*Things about your vision that aren't captured in the work itself.*
-
-[Your guide fills this in from your conversations]
+- The kernel: the model, the storage contract, the four moves, and one jig that enforces them.
+- Three trades — dev, marketing, sales — proving the acts are not software-shaped.
+- The concierge (`skills/adopt.md`): the conversation that names someone's existing four acts
+  in their own vocabulary and builds them a trade in one sitting.

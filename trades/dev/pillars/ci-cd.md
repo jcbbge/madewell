@@ -299,7 +299,7 @@ Every box demonstrated, not asserted:
 ## How this pillar is followed
 
 This pillar is **not** invoked by the person — they will never ask for "CI/CD." It is engaged by the
-agent, by phase:
+agent, by act:
 
 - During project **setup** (00-SETUP), when the work will ship to anyone but the builder, the
   agent names that this pillar applies and stands up the ring the project has earned.

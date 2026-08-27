@@ -198,7 +198,7 @@ is law until deliberately changed and re-logged.
 
 ## How this pillar is followed
 
-The person never asks for "the backend." The agent engages this pillar by phase: at setup, the
+The person never asks for "the backend." The agent engages this pillar by act: at setup, the
 moment the project needs to remember anything (Phase 0); whenever data is modeled, stored, or
 accessed; and whenever the schema changes (in concert with the CI/CD pillar). It works
 autonomously, asking the person only for the decisions that are genuinely theirs — paying for a

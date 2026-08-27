@@ -124,7 +124,7 @@ frontier = items where status == "pending"
 
 **If the frontier is empty and pending items remain**, a deadlock or missing dependency exists. Surface: "items [X, Y] are waiting on [Z] — is Z missing from the graph, or did it fail silently?"
 
-This replaces "dispatch the next item in the queue." The queue is a degenerate graph (every step depends on the previous). The graph is the general case.
+This replaces "dispatch the next item on the list." A list is a degenerate graph (every step depends on the previous). The graph is the general case.
 
 ---
 

@@ -8,7 +8,7 @@
 
 ## What This Does
 
-Discovery is the **intake instrument** of the outer loop — the take-in beat that fills the
+Discovery is the **intake instrument** — it runs **ideate** on raw input and fills the
 `discovery` **pool**. It turns raw input (a brain dump, a transcript, a meeting, an AI-chat)
 into shaped, queueable **candidates**.
 
@@ -110,7 +110,7 @@ because it shares a file with a plan.
   verdicts about the person.
 
 **6. Meta** — what does this artifact reveal about the discovery process itself?
-- What should update this skill, the queue, or how intake is run
+- What should update this skill, the rack, or how intake is run
 
 #### The Lens Slot
 
@@ -145,7 +145,7 @@ ID | Lens | Finding (one sentence) | Route | Evidence
 already half-built (adopting Made Well mid-stream, migrating an existing tracker), work
 found mid-execution is neither an idea nor releasable: route it to `discovery` **flagged
 `in-flight`**. The flag means: this already holds work-in-progress and gets verdicted
-*first* at the Commit gate — bound what's mid-stream before queueing anything new. It
+*first* before taking anything to the bench — bound what is mid-stream before racking more. It
 must still pass the gate; being half-built is a claim on attention, not a bypass.
 
 ### Step 4: Name Things
@@ -167,12 +167,12 @@ Releasing (not kept):
 ```
 
 Ask: **"Does that match what you meant?"** On confirmation:
-- Append `discovery`-routed items to the queue (`{id, item, scope, dependsOn?}`, fresh ids)
+- Write `discovery`-routed findings onto the rack as pieces (`.madewell/stock/<slug>.md`)
 - Record made decisions in `DECISIONS.md`; carry unmade ones as open threads
 - Update `PRODUCT.md` with anything new about the person or their vision
 - Refresh `context.summary` / `context.openThread` / `context.language`
 
-Findings never skip to `active` — promotion is the Commit gate's call.
+Findings never skip to the bench — taking a piece in hand is a separate act, made later.
 
 **Preserve the source — the intake record.** Queue lines are deliberately lossy. When the
 artifact carries nuance the one-liners can't hold (a rich transcript, a table, a sketched
@@ -213,5 +213,5 @@ Mid-session capture: when something comes up that isn't the current work, add it
 
 ---
 
-*Discovery isn't just thinking. It's thinking that flows onto the queue — surface
+*Discovery isn't just thinking. It's thinking that flows onto the rack — surface
 everything here, so Commit has something real to say no to.*

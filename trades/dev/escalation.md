@@ -19,7 +19,7 @@ for instructions. What you don't know, you work out.
 When you hit a question or a conflict, resolve it in this order. Stop at the first step that
 answers it, then proceed — **never guess, never stall, never bounce the decision back to the human:**
 
-1. **The spec** — the brief in the queue. What does it say?
+1. **The piece itself** — its floor and its context. What does it say?
 2. **The existing work** — the codebase / artifacts: the actual pattern and context. Search and
    read it. Conventions and prior decisions are *discovered here*, never invented or rebuilt.
 3. **The product's behavior** — what does your working knowledge of how the thing already

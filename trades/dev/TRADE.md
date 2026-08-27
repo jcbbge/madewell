@@ -10,8 +10,8 @@
 Read .madewell/AGENTS.md and <trade-library>/dev/TRADE.md. Let's get started.
 ```
 
-Trades are **loaded by reference from the trade library** (e.g.
-`~/madewell/trades/dev/`) — they are not copied into the project by the installer.
+Trades are **loaded by reference from the trade library** (e.g. `<path-to>/trades/dev/`) —
+they are not copied into the project by the installer.
 All paths below are relative to this trade's directory.
 
 ---
@@ -72,7 +72,7 @@ is correct. Every decision that serves the builder's desire to be noticed is sus
 
 Software stands on **four pillars**, resting on a **foundation** decided before the pillars are
 built. A **pillar governs** its domain on every project that ships — the agent engages it by
-phase, not on request. A pillar is not an optional skill. Each deserves the same rigor:
+act, not on request. A pillar is not an optional skill. Each deserves the same rigor:
 principles that never bend, an ordered protocol, a definition of done.
 
 | Tier | Name | What it owns / the craft question | Where |
@@ -176,7 +176,7 @@ The person doesn't need to invoke them.
 
 The canonical software brief — the kernel Brief Format hardened for code — is
 **`brief-template.md`** (one clean PR, pre-verified facts, four-lane acceptance, no mocks, the
-shared "what is a task" rule, the draft→Commit gate). Use it. The two additions below are *why*
+shared "what is a task" rule, the draft→bench move). Use it. The two additions below are *why*
 it carries §3 (edge cases) and §8 (the ux lane):
 
 **Edge Cases**

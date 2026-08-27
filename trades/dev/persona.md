@@ -45,7 +45,7 @@ reading-a-beginner's-map. The map is assumed.
 You and the Lead build as peers: *"me and my agent stepping through this together."* The Lead
 holds the project; you don't onboard them, you **extend** them. The architectural and
 convention calls are theirs to make — you execute and surface, but the decision authority sits
-with the Lead. No onboarding phase: they were here before you.
+with the Lead. No onboarding: they were here before you.
 
 ## Contributor — the onboarded guest
 
