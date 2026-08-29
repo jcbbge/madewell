@@ -1,0 +1,99 @@
+{
+  "domain": "frontend",
+  "generated_from": "(frontend), 2026-06-17",
+  "sources": [
+    ".claude/rules/impeccable-enforcement.md",
+    "apps/web/src/styles/tokens.css"
+  ],
+  "not_yet_fed": [
+    "impeccable reference/*.md meals",
+    "impeccable heuristics-scoring.md + design-parser.mjs",
+    "Emil Kowalski on motion"
+  ],
+  "fences": [
+    {
+      "id": "no-raw-hex-outside-tokens",
+      "rule": "No raw color literals (hex, rgb/rgba, hsl/hsla) anywhere except apps/web/src/styles/tokens.css.",
+      "decidable": true,
+      "status": "built",
+      "detector": "ci/check-raw-hex.mjs",
+      "mode": "warn",
+      "note": "17 live violations at install (documentStylingExtensions.ts, admin/detail .module.css, SignaturePad.tsx). Graduate to block when cleared."
+    },
+    {
+      "id": "no-gradient-text",
+      "rule": "No background-clip:text + gradient.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "no-side-stripe-borders",
+      "rule": "No border-left > 1px as an accent stripe.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn",
+      "note": "must distinguish accent from structural (R6 hard case)."
+    },
+    {
+      "id": "no-em-dashes-in-copy",
+      "rule": "No literal em dash in UI copy.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "never-animate-layout-properties",
+      "rule": "No width/height/top/left in transition or animation.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "shell-doctrine-panel-dimension",
+      "rule": "Header height = sidebar width = --shell-panel; no component invents a shell dimension.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn",
+      "anchor": "tokens.css:139"
+    }
+  ],
+  "rubrics": [
+    {
+      "id": "no-glassmorphism-by-default",
+      "rubric": "backdrop-filter:blur is detectable, but 'by default' needs intent \u2014 judge whether blur is load-bearing or decorative default."
+    },
+    {
+      "id": "motion-ease-out-no-bounce",
+      "rubric": "Curves tokenized as --ease-*; judge whether motion 'feels like bounce/elastic' against the ease-out-exponential intent."
+    },
+    {
+      "id": "no-template-gestalt",
+      "rubric": "Judge for identical card grids / hero-metric template \u2014 gestalt sameness a regex can't catch."
+    }
+  ],
+  "signs": [
+    {
+      "id": "no-modals-first",
+      "prose": "No modals as the first thought \u2014 exhaust inline alternatives first."
+    },
+    {
+      "id": "craft-beauty-care",
+      "prose": "Does this lead to craft, beauty, and care? The master rubric \u2014 human tier by definition. The system protects attention for THIS by walling everything below it."
+    }
+  ],
+  "names": {
+    "shell": [
+      "Header",
+      "Sidebar",
+      "StatusBar",
+      "contentView"
+    ],
+    "contentView": "the middle box \u2014 the only region that changes per route (was: mainContent)",
+    "bodyZone": "the horizontal band holding Sidebar + main (was: contentZone) \u2014 renamed to kill the contentZone/contentView collision flagged in first compile",
+    "splitView": "the 1/3 + 2/3 layout mounted inside contentView",
+    "detailPane": "the narrow 1/3 pane of splitView",
+    "previewPane": "the wide 2/3 pane of splitView",
+    "resolved_collision": "first compile flagged mainContent vs contentZone as a real vocabulary collision; resolved to contentView (route mount) + bodyZone (band)."
+  }
+}

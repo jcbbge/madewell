@@ -1,0 +1,60 @@
+{
+  "comment": "Software-trade jigs as compiled from Arc (historical). Bind detectors to this host. Mode warn \u2192 block when violations clear.",
+  "jigs": [
+    {
+      "id": "no-raw-hex-outside-tokens",
+      "detector": "ci/check-raw-hex.mjs",
+      "run": "node ci/check-raw-hex.mjs",
+      "status": "built",
+      "mode": "warn",
+      "wired_into_check": false,
+      "violations_at_install": 17,
+      "graduate_to_block_when": "violations == 0",
+      "domain": "frontend"
+    },
+    {
+      "id": "snake-case-column-keys",
+      "detector": null,
+      "status": "enforcing-via-migration",
+      "mode": "block",
+      "note": "Enforced structurally by branch rumen/schema-money (universal snake_case). A standalone detector is a proposed follow-up.",
+      "domain": "schema"
+    },
+    {
+      "id": "money-integer-cents",
+      "detector": null,
+      "status": "enforcing-via-migration",
+      "mode": "block",
+      "note": "Enforced structurally by branch rumen/schema-money (all money = bigint cents). A 'no numeric on money-named columns' detector is a proposed follow-up.",
+      "domain": "schema"
+    },
+    {
+      "id": "no-mock-primitives",
+      "detector": "ci/verify-no-mocks.mjs",
+      "run": "node ci/verify-no-mocks.mjs",
+      "status": "built",
+      "mode": "block",
+      "wired_into_check": true,
+      "note": "AGENTS.md 'No Mocks. Ever.' Fails on mock.module/mock(/spyOn/vi.mock/jest.mock, the .mock* stub-result API, fake clocks (setSystemTime/useFakeTimers), and aliased stub imports. Grandfathered debt lives in the ALLOWLIST.",
+      "domain": "testing"
+    },
+    {
+      "id": "no-mocks-allowlist-only-shrinks",
+      "detector": "ci/verify-no-mocks.mjs",
+      "run": "node ci/verify-no-mocks.mjs",
+      "status": "built",
+      "mode": "block",
+      "wired_into_check": true,
+      "note": "Ratchet: ci/no-mocks-allowlist-ceiling caps the allowlist size (down-only, like ci/coverage-floor). A new mock cannot be shipped green by allowlisting it.",
+      "domain": "testing"
+    },
+    {
+      "id": "real-db-or-pure",
+      "detector": null,
+      "status": "proposed",
+      "mode": "warn",
+      "note": "Every data-touching test must prove it hit real Neon (real db import + real cleanup); pure tests may not reference the DB machinery. Detector spec'd in docs/specs/SPEC-no-mocks-enforcement.md (WS-2) \u2014 honor it now, mechanization is a follow-up.",
+      "domain": "testing"
+    }
+  ]
+}

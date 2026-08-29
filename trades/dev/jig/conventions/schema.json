@@ -1,0 +1,171 @@
+{
+  "domain": "schema",
+  "generated_from": "(schema, cold reproducibility run), 2026-06-18",
+  "sources": [
+    "packages/db/src/schema/{deals,payments,contracts}.ts (self-bolus \u2014 mined from Arc's own code)"
+  ],
+  "reproducibility_note": "compile vs compile: the tier router reproduced (5/6 shared candidates same tier) but candidate mining did NOT (6 vs 21 regularities). Enforce extraction against a fixed regularity-class checklist before trusting reproducibility. See (lab notes)2026-06-18_compile_schema.md.",
+  "fences": [
+    {
+      "id": "pk-text-id",
+      "rule": "Every root table: id = text('id').primaryKey() as first column.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "snake-case-column-keys",
+      "rule": "All Drizzle column PROPERTY KEYS are snake_case, universally (the standard). DB column-name string args were already snake_case.",
+      "decidable": true,
+      "status": "enforcing",
+      "mode": "block",
+      "note": "Landed via branch schema-money. Boundary mappers removed; snake_case is end-to-end (DB \u2192 API \u2192 web)."
+    },
+    {
+      "id": "money-integer-cents",
+      "rule": "All money columns are bigint(mode:'number') integer cents \u2014 never numeric/float. Display \u00f7100; input \u00d7100; Stripe boundary needs no conversion (payments.amount IS cents).",
+      "decidable": true,
+      "status": "enforcing",
+      "mode": "block",
+      "note": "Landed via branch schema-money (migration 0044+). amount_value is dual-unit: cents when amount_type='flat', basis-points when 'percent'."
+    },
+    {
+      "id": "sync-guard-lww",
+      "rule": "HubSpot-mirror tables declare last_event_at NOT NULL default '-infinity'::timestamptz (H2 LWW guard).",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn",
+      "note": "first compile placed this in assay (scope=intent); second compile placed it in wall \u2014 a wall/assay drift to pin."
+    },
+    {
+      "id": "enum-bound-status",
+      "rule": "status/type/kind columns use text(..., {enum:[...]}), not free text. Exception: contract_events.type (open taxonomy \u2014 see judge).",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "enum-default-sentinel",
+      "rule": "Enum columns carry a .default() that is a member of the enum.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "audit-timestamps",
+      "rule": "created_at/updated_at use .notNull().defaultNow(); the H2 guard col is the withTimezone exception.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "junction-composite-pk",
+      "rule": "Pure join tables: 2 FK cols, composite primaryKey([a,b]), both cascade, no payload.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    },
+    {
+      "id": "portal-token-unguessable",
+      "rule": "Portal access uses an unguessable token column (NOT NULL UNIQUE), never the PK, never sequential.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn",
+      "note": "core security invariant."
+    },
+    {
+      "id": "esm-js-imports",
+      "rule": "Relative imports end in .js (NodeNext/ESM).",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn"
+    }
+  ],
+  "rubrics": [
+    {
+      "id": "append-only-write-paths",
+      "rubric": "Is this an audit/event table that no code path may UPDATE? (e.g. contract_events)."
+    },
+    {
+      "id": "free-vs-enum-type",
+      "rubric": "Should a new type column be open (free text) or closed (enum)? contract_events.type is deliberately open."
+    },
+    {
+      "id": "fk-ondelete-correctness",
+      "rubric": "Should this child survive parent deletion? cascade vs set null vs none (payments deliberately omit cascade to preserve financial records)."
+    },
+    {
+      "id": "version-immutability",
+      "rubric": "Does any path mutate a contract version after sent_to_client_at? (must not \u2014 contracts immutable once generated)."
+    },
+    {
+      "id": "versioning-pattern",
+      "rubric": "Anchor table + immutable version table with version_number per parent \u2014 never mutate, always new version."
+    },
+    {
+      "id": "file-privacy",
+      "rubric": "Is any file_key/artifact exposed via a public URL? (signatures must stay private)."
+    },
+    {
+      "id": "actor-provenance",
+      "rubric": "Does this lifecycle table record WHO on each transition (actor_kind + created_by/updated_by)?"
+    },
+    {
+      "id": "conditional-union-columns",
+      "rubric": "Is a discriminated-union column populated consistently with its tag? (e.g. days_before_event \u21d4 due_date_type='days_before_event')."
+    }
+  ],
+  "signs": [
+    {
+      "id": "lifecycle-as-timestamps",
+      "prose": "Lifecycle recorded as discrete nullable *_at timestamps vs a single status field \u2014 a modeling-taste choice."
+    },
+    {
+      "id": "comment-discipline",
+      "prose": "Every table/column carries an explaining comment; deliberate divergences annotated inline. Presence is checkable; usefulness is not."
+    }
+  ],
+  "names": {
+    "domain_terms": [
+      "deal",
+      "dealstage",
+      "pipeline",
+      "contact",
+      "company",
+      "lineItem",
+      "contractVersion",
+      "signatureRecord",
+      "paymentSchedule",
+      "milestone",
+      "portal_token",
+      "last_event_at (H2 guard)",
+      "{{merge:tag}}"
+    ],
+    "enums": {
+      "document_type": [
+        "contract",
+        "tasting_menu",
+        "pack_list"
+      ],
+      "actor_kind": [
+        "staff",
+        "client",
+        "system"
+      ],
+      "amount_type": [
+        "percent",
+        "flat"
+      ],
+      "due_date_type": [
+        "on_signing",
+        "days_before_event",
+        "fixed_date"
+      ],
+      "scope": [
+        "global",
+        "event",
+        "contact"
+      ]
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "domain": "testing",
+  "generated_from": "Arc AGENTS.md \u2192 Testing Policy ('No Mocks. Ever.', Josh 2026-06-10, reaffirmed 2026-06-22) + docs/specs/SPEC-no-mocks-enforcement.md",
+  "sources": [
+    "AGENTS.md \u2192 Testing Policy",
+    "ci/verify-no-mocks.mjs (the fence)",
+    "docs/onboarding/testing-no-mocks.md (the agent how-to + decision table)",
+    "docs/specs/SPEC-no-mocks-enforcement.md (the enforcement design)"
+  ],
+  "fences": [
+    {
+      "id": "no-mock-primitives",
+      "rule": "No test file may use a mock primitive: mock.module(, mock(, spyOn(, vi.mock(, jest.mock(, the stub-result fn API (.mockReturnValue/.mockResolvedValue/.mockRejectedValue/.mockImplementation), fake clocks (setSystemTime/useFakeTimers), or aliased stub imports (import { mock as \u2026 } / { spyOn as \u2026 }).",
+      "decidable": true,
+      "status": "enforcing",
+      "mode": "block",
+      "detector": "ci/verify-no-mocks.mjs",
+      "note": "Grandfathered debt is enumerated in the detector's ALLOWLIST."
+    },
+    {
+      "id": "no-mocks-allowlist-only-shrinks",
+      "rule": "The no-mocks ALLOWLIST only shrinks. ci/no-mocks-allowlist-ceiling pins its size; growth fails the gate. De-mocking a file strikes its entry AND lowers the ceiling in the same PR.",
+      "decidable": true,
+      "status": "enforcing",
+      "mode": "block",
+      "detector": "ci/verify-no-mocks.mjs",
+      "note": "Single-integer ratchet, like ci/coverage-floor and ci/file-size-limit."
+    },
+    {
+      "id": "real-db-or-pure",
+      "rule": "A test has exactly two honest shapes: pure-logic (no DB, plain function inputs) or real-Neon integration (*.integration.test.ts with a real db import, real seed, real assertions, and real db.delete cleanup). There is no third 'mock the database' shape. A test that touches data must prove it connected to real Neon and cleaned up.",
+      "decidable": true,
+      "status": "proposed",
+      "mode": "warn",
+      "detector": null,
+      "note": "Mechanized detector spec'd in docs/specs/SPEC-no-mocks-enforcement.md (WS-2). Honor it now; the wall is a follow-up. Plain-object arguments to a pure function are NOT mock data and are explicitly permitted."
+    }
+  ],
+  "rubrics": [
+    {
+      "id": "proof-of-reality",
+      "intent": "Does each assertion verify behavior produced by REAL rows on the Neon branch, or could it pass against a fabricated object? If the latter, the test proves the fake works \u2014 nothing more. Rewrite it against real rows."
+    }
+  ],
+  "signs": [
+    {
+      "id": "missing-seam",
+      "taste": "A test that needs elaborate setup to AVOID the database is a design smell: the code under test is missing a seam. Surface that to the human; do not paper over it with a fake."
+    }
+  ],
+  "names": [
+    {
+      "term": "real-Neon test",
+      "means": "a *.integration.test.ts that seeds and asserts on real rows in the session/PR Neon branch, then cleans up."
+    },
+    {
+      "term": "the fence",
+      "means": "ci/verify-no-mocks.mjs \u2014 the pre-push + CI gate that fails on mock primitives."
+    },
+    {
+      "term": "the allowlist (shrinks only)",
+      "means": "the enumerated grandfathered mock-debt files in the fence; capped down-only by ci/no-mocks-allowlist-ceiling."
+    },
+    {
+      "term": "test our side of the boundary",
+      "means": "for external APIs (HubSpot/Galley/email/R2), assert the real sync_outbox / write-ledger / mirror rows our code writes \u2014 never stub the transport, never call the live API in the suite."
+    },
+    {
+      "term": "proof-of-reality",
+      "means": "the requirement that a data-touching test demonstrably connects to real Neon and cleans up, rather than fabricating data."
+    }
+  ]
+}
