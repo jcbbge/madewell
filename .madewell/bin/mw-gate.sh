@@ -145,4 +145,11 @@ while IFS= read -r new; do
 done <"$work/adds"
 
 [ "$fail" -eq 0 ] || printf 'mw-gate: refused. MW_GATE=off bypasses, for an adoption commit only.\n' >&2
+# Take-down substrate: record refusals only. Success every commit would look like silence.
+if [ "$fail" -ne 0 ] && [ -d "$MW/jig" ]; then
+  _sha=$(git rev-parse HEAD 2>/dev/null || echo unknown)
+  _ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+  printf '{"ts":"%s","sha":"%s","jig":"mw-gate","mode":"block","exit":%s,"violations_caught":%s}\n' \
+    "$_ts" "$_sha" "$fail" "$fail" >> "$MW/jig/firings.jsonl"
+fi
 exit "$fail"

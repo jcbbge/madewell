@@ -9,16 +9,21 @@ with a trade, may be scoped to a pillar).
 
 ## Foundational — Made Well's own
 
-**Workflow** (`mode: workflow`) — the protocols that run the four acts:
+**Workflow** (`mode: workflow`) — the protocols that run the four acts.
+
+**Ground and the Jig are not skills.** They are kernel instruments: `.madewell/ground/`
+and `.madewell/jig/`. They arrive with Made Well. They are not added to a harness and
+not listed here.
 
 | Skill | Act | What it does |
 |---|---|---|
 | `discovery` | ideate | Turns raw input — a transcript, a brain dump — into pieces on the rack. Hosts the **Lens Slot** a trade extends. |
-| `bench` | plan | Grounds against what already exists, writes the floor, takes a piece from the rack to the bench. |
+| `bench` | plan | Writes the floor after Ground, takes a piece from the rack to the bench. |
 | `orchestrate` | implement | Fans work out to independent hands. Partition, dispatch, share findings, reconcile. |
-| `finish` | verify | Proofs a piece against its floor — by someone who did not make it — and takes it off the bench. |
+| `finish` | verify | Proofs a piece against its floor — by someone who did not make it — then the Jig, then off the bench. |
 | `session-start` | — | Orients from the directories and the last handoff. |
 | `session-end` | — | Commits what moved, writes the `NEXT:` handoff, reports honestly. |
+| `abstraction-builder` | — | Feeds a new convention into the Jig. Profile → tier filter → recommender → place. |
 
 **Lenses** (`mode: lens`) — different ways of seeing the same thing:
 

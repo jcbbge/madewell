@@ -49,6 +49,9 @@ Here it means: make the existing decisions present before you design anything. W
 already built, already named, already ruled on. The dominant failure in this work is not
 choosing wrong — it is **never thinking to look.**
 
+**The protocol is `.madewell/ground/`.** Protocol, picture, roots. A paragraph is not a
+substitute for it.
+
 ### The Jig — covers implement and verify
 
 A jig makes the wrong cut physically impossible. Not advice. Not a warning. A stop.
@@ -61,6 +64,11 @@ test and is still wrong. No correctness gate can see that failure; a jig can.
 up with them, and each one is a fossilized correction. That is how the wall gets built:
 corrections accumulate, the recurring expensive ones become stops, and stops that stop
 earning their place come down.
+
+**The instrument is `.madewell/jig/`.** Compiled conventions, a registry of wired jigs,
+honesty tiers (FENCE / SIGN / DOCTRINE). Install wires `mw-gate.sh` and `mw-jigs.sh` on
+pre-commit, `mw-record.sh` on post-commit. Whether to promote or drop is
+`bin/mw-tax.sh` on the live ledgers — not the synthetic harness.
 
 ---
 

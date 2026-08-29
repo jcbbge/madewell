@@ -13,3 +13,7 @@ node_modules/
 
 # Made Well — the active profile is a local, per-clone choice (never committed)
 .madewell/profile
+
+# Scaffolding binary (source is bin/mw-move.c)
+.madewell/bin/mw-move
+.madewell/bin/mw-move.dSYM/

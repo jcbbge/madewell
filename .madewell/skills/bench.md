@@ -12,8 +12,8 @@ on the rack was rejected, it was just still on the rack.
 
 ## Ground first
 
-Before you write a word of the floor, make the existing decisions present. What is already
-built, already named, already ruled on — read the repository, not a document *about* it.
+**Contact:** `.madewell/ground/PROTOCOL.md` — run it in full before you write a word of the
+floor. The picture shape is `ground/PICTURE.md`. This section does not replace that.
 
 The most common failure of this act is proposing work that already exists. It looks like
 productivity and it is not.

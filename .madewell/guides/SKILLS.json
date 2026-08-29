@@ -21,7 +21,7 @@
       "file": "skills/bench.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "A piece is being taken from the rack. Runs plan: ground first, then write the floor (Making / Not making / Done when / Waits on). Decides leaf vs breakdown."
+      "when": "A piece is being taken from the rack. Runs plan: ground first (see .madewell/ground/), then write the floor (Making / Not making / Done when / Waits on). Decides leaf vs breakdown."
     },
     {
       "name": "orchestrate",
@@ -106,6 +106,13 @@
       "layer": "foundational",
       "mode": "workflow",
       "when": "Something is broken. Error pasted. Unexpected behavior. Observe \u2192 hypothesize \u2192 experiment \u2192 conclude; never bulldoze."
+    },
+    {
+      "name": "abstraction-builder",
+      "file": "skills/abstraction-builder.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Feeding a new convention, organ remnant, lint, skill, or pack into Made Well. Profile \u2192 tier filter \u2192 recommender \u2192 place. Gate before EXTENDING. Never silent delete/install."
     }
   ],
   "trades": {

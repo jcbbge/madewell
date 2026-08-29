@@ -3,7 +3,12 @@
 The model is `MADEWELL.md`. This file says only **where things sit and how they move**.
 It defines no meanings; that file names no paths. They cannot disagree.
 
-Made Well is files. There is no CLI and there will not be one.
+Made Well is files. There is no product CLI — no status command, no dashboard,
+no second ledger of piece position.
+
+`bin/mw-move` is scaffolding for §2. It is `git mv` that refuses everything else.
+Delete it and the shop still runs: `git mv` plus `mw-gate` on pre-commit. The
+binary is not the work.
 
 ---
 
@@ -11,7 +16,9 @@ Made Well is files. There is no CLI and there will not be one.
 
 > **A piece's state is the directory it is in. Nothing else records it.**
 
-No status field, no projection, no ledger. To ask where something is, look at where it is.
+No status field, no projection, no ledger **of piece position**. To ask where something is,
+look at where it is. The Jig's `corrections.jsonl` is a different file: proposed − accepted
+for shop-made jigs (`jig/CORRECTIONS.md`). It does not say where a piece sits.
 
 ```
 .madewell/
@@ -72,8 +79,9 @@ outcome, not an undo.
 a new commit against the same file. Attempts accumulate in `git log`; position does not move
 until it passes.
 
-**The commit message is the record.** Git already supplies the timestamp, the author, the
-chain, and the transition itself. Do not add a ledger file.
+**The commit message is the record of the move.** Git supplies timestamp, author, chain,
+and the transition. Do not add a *position* ledger. The Jig still records proposed −
+accepted in `jig/corrections.jsonl` (gitignored) — that is tax, not location.
 
 ```
 <type>(<scope>): <summary>
@@ -131,17 +139,22 @@ One rule: **a piece on the bench has exactly one pair of hands.**
 
 | Rule | Enforcer |
 |---|---|
-| Only the four moves (§2) | **JIG** — `.madewell/bin/mw-gate.sh`, pre-commit |
+| Only the four moves (§2) | **JIG** — `bin/mw-gate.sh` on pre-commit (`bin/mw-hooks.sh` wires it). Optional scaffolding: `bin/mw-move` performs them and stages; it is not the product. |
 | Nothing deleted from a state directory | **JIG** |
 | Arrival only into `stock/` | **JIG** |
 | The floor (§3) | **JIG** |
 | Finish requires the inner states drained | **JIG** |
+| Wired convention detectors | **JIG** — `bin/mw-jigs.sh` on pre-commit, from `jig/registry.json` |
+| Proposed − accepted (shop-made substrate) | **JIG** — `bin/mw-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
+| Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `bin/mw-tax.sh` at verify and session-end. Never auto-builds. |
 | You don't proof your own plate | **UNJIGGED** — not machine-checkable here |
 | No silent pass | **UNJIGGED** |
+| Ground (did you look) | **UNJIGGED** — protocol is law; no detector can see a thought |
 
 `mw-gate.sh` is a stop, not a tool: nobody invokes it, it takes no arguments, it can only
-refuse. POSIX sh, git plus POSIX userland, reads nothing outside the repo. Wire it into
-whatever the project already runs.
+refuse. POSIX sh, git plus POSIX userland, reads nothing outside the repo. `mw-hooks.sh`
+wires it (and `mw-jigs.sh` / `mw-record.sh`) into this clone. Do not leave it as a comment
+in README.
 
 **UNJIGGED is stated on purpose.** A rule with no jig behind it is a preference, and it says
 so rather than pretending.

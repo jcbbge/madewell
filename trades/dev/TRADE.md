@@ -168,6 +168,8 @@ smallest proved cut with no junior cleanup the floor did not name (implement),
 other eyes on the reconstruction then the real artifact (verify), one lesson encoded after finish.
 
 The runtime judge (`verify-principles.md`) and the Enforcer stay the gates they already are.
+Kernel Ground and the Jig are the stops they already are — sitting does not replace them.
+This trade's compiled conventions live in `jig/conventions/` (frontend, schema, testing).
 
 ## Skills (helpers)
 
@@ -176,7 +178,8 @@ calls for them. The person doesn't need to invoke them.
 
 | Skill | File | When |
 |---|---|---|
-| **Sitting** | `skills/sitting.md` | Every act on a software piece. Contact point, not a consult. |
+| **Sitting** | `skills/sitting.md` | Every act on a software piece. Contact point, not a consult. Kernel Ground first. |
+| **Jig conventions** | `jig/conventions/` | Frontend / schema / testing. Honor via kernel `.madewell/jig/`. |
 | **Enforcer** | `skills/enforcer.md` | After significant AI-assisted work. Before anything ships. Stateful code-quality protocol. |
 | **Discovery lenses** | `discovery-lenses.md` | Every discovery pass. Fills the kernel discovery skill's **Lens Slot** with the software lane's four lenses — Technical, Integration, UX/Interaction, Initiative→Irreducible Units — run after the universal core. |
 

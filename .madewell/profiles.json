@@ -1,13 +1,13 @@
 {
   "version": "1.1",
-  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. The quality row is 'trade-if-present-else-inline': use the loaded trade's quality skill if present, else ask the Rubric inline. Trades live outside the kernel install; a project loads one by explicit reference.",
+  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. Quality is the Jig (`.madewell/jig/`) plus trade conventions if a trade is loaded, else the Rubric asked inline. Trades live outside the kernel install; a project loads one by explicit reference.",
   "contracts": ["persona", "domain", "quality", "memory", "onboarding"],
   "profiles": {
     "lead": {
       "for": "the owner who holds the project — a solo maintainer + their agent, as peers",
       "persona": "trade-supplied Lead register",
       "domain": "trade (loaded by reference)",
-      "quality": "trade-if-present-else-inline",
+      "quality": "jig + trade conventions if present, else Rubric inline",
       "memory": "default (flat files: DECISIONS / PRODUCT + git log)",
       "onboarding": false,
       "authority": "sets and changes conventions + architecture"
@@ -16,7 +16,7 @@
       "for": "a technical guest folded into an existing project — a contractor / new hire + their agent",
       "persona": "trade-supplied Contributor register",
       "domain": "trade (loaded by reference)",
-      "quality": "trade-if-present-else-inline",
+      "quality": "jig + trade conventions if present, else Rubric inline",
       "memory": "default (flat files)",
       "onboarding": "trade-supplied first-contact read-out",
       "authority": "surfaces findings to the Lead; stays in lane"

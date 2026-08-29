@@ -24,6 +24,15 @@ If you made it, hand it to another pair of hands. If you are proofing, you did n
 Tests answer *does it work*. They do not answer *is it what was imagined*. That second
 question is this act's whole job, and no CI run will do it for you.
 
+## Then the jig
+
+**Contact:** `.madewell/jig/`. Honor compiled conventions. Run wired jigs in
+`registry.json`. Report warn-mode. Assess rubrics. Surface signs. Use house names.
+A green test run that re-decided a fence is not verify.
+
+Then the tax — `sh .madewell/bin/mw-tax.sh`. That is the promote / drop reading.
+Fixture 6/6 is not it. RATIFY is a tap for the human, never an auto-build.
+
 ## Then the rubric
 
 Before it comes off the bench: **does this lead to craft, beauty, and care?**

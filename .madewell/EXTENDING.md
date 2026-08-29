@@ -36,6 +36,8 @@ it's **law** (the shop itself — never overwrite) or a **slot** a trade fills (
 |---|---|---|---|
 | **The function** | The Orchestrator: think, plan, decompose, dispatch, verify, land. Never does the work. | `AGENTS.md` | **Law** |
 | **The model** | Four acts, Ground and the Jig, three states, the pause. | `MADEWELL.md` | **Law** |
+| **Ground** | Corpus + material before ideate/plan. Protocol, picture, roots. | `.madewell/ground/` | **Law** (the stop); slot (`ROOTS.md` this project adds) |
+| **The Jig** | Compiled conventions, wired stops, FENCE/SIGN/DOCTRINE. | `.madewell/jig/` | **Law** (the stop); slot (conventions a trade/project feeds) |
 | **Contracts** | The named seams a profile fills: persona · domain · quality · memory · onboarding. | `profiles.json` | Law (the *set*); slot (the *fills*) |
 | **Profiles** | One selection that fills every contract row (lead / contributor / guide / naked). | `PROFILES.md`, `profiles.json` | Slot — add your own |
 | **Trades** | A domain bundle: persona register(s) + skills + pillars. Lives outside the kernel; loaded by explicit reference. | `trades/<name>/TRADE.md` | Slot |
@@ -44,7 +46,7 @@ it's **law** (the shop itself — never overwrite) or a **slot** a trade fills (
 | **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs trade (loaded with a trade, may be pillar-scoped). | `skills/` (foundational), `trades/<c>/skills/` | Foundational = law-adjacent; trade = slot |
 | **State** | Three directories: `stock/`, `bench/`, `finished/`. Position is path. | `SPEC.md` | **Law** |
 | **Orchestration** | The shop: fan-out across hands, per act. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
-| **Memory** | git log (history) · DECISIONS.md (decisions) · PRODUCT.md (identity). No ledger, no projection. | repo root of `.madewell/` | Slot |
+| **Memory** | git log (moves) · DECISIONS.md · PRODUCT.md. Jig tax: `jig/corrections.jsonl` + `mw-tax.sh` (gitignored ledgers, not piece position). | repo root of `.madewell/` | Slot |
 | **Install** | Unfolds the shell, re-syncs the framework (preserving memory), uninstalls cleanly. | `install.sh` | Mechanism |
 | **Human surface** | Front door + guides — how a person meets the system. | `README.md`, `MADEWELL.md`, `guides/` | Slot |
 
@@ -107,6 +109,12 @@ before creating one — never invent a slot silently.
 ## The maintenance protocol
 
 Modifying Made Well runs **the kernel's own four acts** — it is just another piece of work.
+
+**Intake gate:** when the change is a *new artifact being absorbed* (a lint set, a blog's
+rules, a deleted convention to fold, a recurring correction), run
+**`skills/abstraction-builder.md` first** — profile → FENCE/SIGN/DOCTRINE/names →
+recommender → place. That skill is the feeder; this section is what you do *after*
+placement is chosen. Silent delete or silent install without that gate is a process defect.
 
 1. **Triage** — is this **law** or a **slot**? Law → stop; surface it to the Lead with the concrete
    reason. Slot → which one (use the map)?

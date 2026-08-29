@@ -182,9 +182,10 @@ removes it with no residue. You can also copy the files in by hand — the insta
 anything clever.
 
 The three places are directories: `stock/`, `bench/`, `finished/`. A piece's state **is** the
-directory it's in; nothing else records it. Work moves with `git mv`, one move per commit, and
-an optional pre-commit hook (`.madewell/bin/mw-gate.sh`, POSIX sh, no dependencies) refuses
-any move that isn't one of the four legal ones.
+directory it's in; nothing else records it. Work moves with `git mv`, one move per commit. Install wires a pre-commit hook that
+runs `.madewell/bin/mw-gate.sh` (illegal moves refused) and `.madewell/bin/mw-jigs.sh`
+(wired jigs). Post-commit appends the accepted side of a correction line. Bypass the
+move-gate only for an adoption commit: `MW_GATE=off`.
 
 Full storage contract in [`SPEC.md`](SPEC.md). How to extend any part:
 [`.madewell/EXTENDING.md`](.madewell/EXTENDING.md).

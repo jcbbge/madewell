@@ -19,6 +19,16 @@ NEXT: <the handoff; be specific, or write `—`>
 `NEXT:` is the whole point of the commit message. The next session reads it cold. "Continue
 the work" is not a handoff; "the jig refuses cross-depth moves — see the parse() case" is.
 
+## Read the tax
+
+```
+sh .madewell/bin/mw-tax.sh
+```
+
+Say whether anything crossed the price (RATIFY) or a wired jig should come down (DROP /
+SUNSET). Do not treat a green fixture harness as that answer. If the human overrode
+you this session and `proposed.json` was not written, Σ(tax) for that miss is a lie.
+
 ## Report honestly
 
 Say what failed, what you skipped, and what you are unsure of. A session summary that only

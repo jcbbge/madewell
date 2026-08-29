@@ -41,23 +41,32 @@ ls .madewell/bench/       # what is being worked
 git log --oneline -12     # what just happened
 ```
 
-Position is path. There is no state file to read, no projection to reconcile, no ledger to
-replay. If you want to know where something is, look at where it is.
+Position is path. There is no *position* file to read. The Jig's `corrections.jsonl` is
+local tax data, not where a piece sits.
 
 ---
 
 ## Ground before you plan
 
-**The first move on any piece of work is to make the existing decisions present.** What is
-already built, already named, already ruled on. Read the code, not a document *about* the
-code — documents go stale and the repository does not.
-
-The dominant failure here is not choosing wrong. It is **never thinking to look.** A claim
-about how this system behaves is not a fact until a lookup *this session* produced the
-evidence. No "well-known" exceptions. No source → say UNKNOWN or ask.
+**Contact:** `.madewell/ground/PROTOCOL.md` in full. The picture shape is
+`.madewell/ground/PICTURE.md`. Where to look *here* is `.madewell/ground/ROOTS.md`.
+This is kernel law, not a skill.
 
 Skip grounding only for pure conversation, a trivial edit to a file already in context, or
-work already grounded earlier this session.
+work already grounded earlier this session. A plan whose task was never grounded is a
+process defect.
+
+## The Jig before you implement, and at verify
+
+**Contact:** `.madewell/jig/README.md` and `CONTRACT.md`. Honor compiled conventions.
+Run wired jigs in `jig/registry.json`. Never bypass `bin/mw-gate.sh`. A rule with no
+detector is UNJIGGED — say so.
+
+**Tax:** When the human overrode you, write `.madewell/jig/proposed.json` before the
+commit that lands their version (`CORRECTIONS.md`). Run `sh .madewell/bin/mw-tax.sh`
+at verify and session-end. **RATIFY** → ask them to compile a shop-made jig (never
+auto-build). **HOLD** → not yet. **DROP** / **SUNSET** → take-down is theirs. The
+fixture harness is not this reading.
 
 ---
 
@@ -81,7 +90,9 @@ bench/X.md        → finished/X.md
 bench/X/PIECE.md  → finished/X.md         its stock/ and bench/ must be empty
 ```
 
-Movement is `git mv`, one move per commit. `.madewell/bin/mw-gate.sh` refuses anything else,
+Movement is `git mv`, one move per commit. `bin/mw-move` is scaffolding that
+will only perform those four moves and then stage; it does not commit. Delete
+it and `git mv` still works. `.madewell/bin/mw-gate.sh` refuses anything else,
 and refusing is its only capability. **Never bypass it to make a commit go through** — if it
 stops you, it is telling you the move is illegal, not that it is broken.
 

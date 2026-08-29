@@ -56,18 +56,31 @@ cp "$SRC/SPEC.md"     "$DEST/.madewell/SPEC.md"                 # where work liv
 for f in AGENTS.md EXTENDING.md PROFILES.md profiles.json; do
   cp "$SRC/.madewell/$f" "$DEST/.madewell/$f"
 done
-for d in guides skills packs templates bin; do
+for d in guides skills templates bin; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
 done
 
-# ── 2. the three states + memory — seeded once, never clobbered ──────────────
+# ground + jig (framework docs) — instance roots/conventions/registry seeded once
+mkdir -p "$DEST/.madewell/ground" "$DEST/.madewell/jig"
+for f in README.md PROTOCOL.md PICTURE.md; do
+  cp "$SRC/.madewell/ground/$f" "$DEST/.madewell/ground/$f"
+done
+cp "$SRC/.madewell/jig/README.md" "$DEST/.madewell/jig/README.md"
+cp "$SRC/.madewell/jig/CONTRACT.md" "$DEST/.madewell/jig/CONTRACT.md"
+
+# ── 2. the three states + memory + instance instruments — seeded once ────────
 for k in stock bench finished; do
   mkdir -p "$DEST/.madewell/$k"
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
 [ -f "$DEST/.madewell/DECISIONS.md" ] || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
 [ -f "$DEST/.madewell/PRODUCT.md" ]   || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
+[ -f "$DEST/.madewell/ground/ROOTS.md" ] || cp "$SRC/.madewell/templates/ground-ROOTS.md" "$DEST/.madewell/ground/ROOTS.md"
+mkdir -p "$DEST/.madewell/jig/conventions"
+[ -e "$DEST/.madewell/jig/conventions/.gitkeep" ] || : > "$DEST/.madewell/jig/conventions/.gitkeep"
+[ -f "$DEST/.madewell/jig/registry.json" ] || \
+  cp "$SRC/.madewell/templates/jig-registry.json" "$DEST/.madewell/jig/registry.json"
 
 # ── 3. loader — appended, never replacing the project's own root files ───────
 wire() {
@@ -92,13 +105,9 @@ ver=$(cd "$SRC" && git rev-parse --short HEAD 2>/dev/null || echo unversioned)
 printf 'madewell %s\ninstalled %s\n' "$ver" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo unknown)" \
   > "$DEST/.madewell/VERSION"
 
-# ── 6. the jig is optional — offer it, never force it ────────────────────────
-hook="$DEST/.git/hooks/pre-commit"
-if [ -d "$DEST/.git" ] && [ ! -e "$hook" ]; then
-  echo
-  echo "  Optional — the jig refuses illegal moves between stock/, bench/ and finished/."
-  echo "  To install it, make .git/hooks/pre-commit executable containing:"
-  echo "      exec sh .madewell/bin/mw-gate.sh"
+# ── 6. wire the stops — gate + jigs on pre-commit, correction record on post-commit
+if [ -d "$DEST/.git" ]; then
+  ( cd "$DEST" && sh .madewell/bin/mw-hooks.sh )
 fi
 
 echo
