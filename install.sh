@@ -76,7 +76,7 @@ mkdir -p "$DEST/.madewell/ground" "$DEST/.madewell/jig"
 for f in README.md PROTOCOL.md PICTURE.md; do
   cp "$SRC/.madewell/ground/$f" "$DEST/.madewell/ground/$f"
 done
-for f in README.md CONTRACT.md CORRECTIONS.md; do
+for f in README.md CONTRACT.md CORRECTIONS.md .gitignore; do
   cp "$SRC/.madewell/jig/$f" "$DEST/.madewell/jig/$f"
 done
 # metabolism is kernel code, not instance data — mw-tax.sh execs tax.mjs from here
