@@ -31,7 +31,25 @@ Phase in the legacy pipeline) tags the run; do not rename the field.
 
 ## The Protocol
 
-### Step 0: Look before you add (don't re-rack duplicates)
+### Step 0: Declare the run
+
+Write this before reading the artifact. A run that does not declare its mode cannot be
+interpreted later, and its findings are **not admissible to the rack**.
+
+```
+Mode:     live | blind
+Ground:   on | skipped (blind)
+Rack:     loaded | not loaded (+ why)
+```
+
+- **`live`** — the normal case. Ground runs (`ground/PROTOCOL.md`), the rack is loaded.
+- **`blind`** — evaluation only. Ground is **skipped and recorded as skipped**, and the rack,
+  prior analyses of this artifact, and the built material are all withheld.
+
+Grounding and evaluating are in direct opposition: Ground reads what already exists, and for a
+retrospective evaluation what already exists *is* the answer key. Declare the mode; never infer it.
+
+### Step 0.5: Look before you add (don't re-rack duplicates)
 
 At current depth `P`:
 
@@ -62,6 +80,11 @@ was the *thinking* captured in this artifact:
 | **PLANNING** | structure + commitment — what locked, what depends on what |
 | **EXECUTION** | fidelity to plan + where reality diverged |
 | **VERIFICATION** | claim → evidence |
+| **FIELD** — *a recording of the customer's own work, with none of our process in it* | there is no success criterion, because this is not our process. Read the domain **as practised**, not our plan for it |
+
+**FIELD is the maturity people forget, and it inverts the Subtext rubric.** In a recording of
+someone else's work, a deflection is a **tooling gap**, not a stance — they are not dodging you,
+the information does not exist where they are standing. Same observation, opposite meaning.
 
 *The category error to avoid:* reading a SUBSTRATE artifact with PLANNING rigor produces
 false negatives — a loose brainstorm judged as a bad plan. A grand vision is SUBSTRATE,
@@ -79,8 +102,20 @@ because it shares a file with a plan.
   short, single-topic.
 - **Deep-comb (two-pass)** — decompose into 5–8 topic slices → fan out isolated parallel
   readers, each scoped to its slice only → synthesize cross-cuts. Use when the artifact is
-  long AND HIGH density AND spans 5+ distinct topics. Confirm the topic map with the
+  HIGH density AND spans 5+ distinct topics. Confirm the topic map with the
   person before fanning out (mechanics: `orchestrate.md`).
+
+  **Count topics, never lines.** Line count measures how verbosely something was transcribed,
+  not how much is in it — a 1,100-line dump of one subject is single-pass; a 300-line meeting
+  that moved through seven decisions is deep-comb. A block is a span the participants themselves
+  treat as one subject. And breadth is not enough on its own: if the blocks are serial sections
+  of one walkthrough and every high-value finding is a cross-cut, slicing destroys the result —
+  override the trigger and say why.
+
+  **Slicing needs a stable address space.** Transcription often arrives as one unbroken line, and
+  a slice cannot be assigned a line range that does not exist. Fold the source into numbered
+  segments, **commit that folded copy beside the original**, and cite segments. A citation into a
+  scratch file is a citation into nothing.
 - **Cross-artifact synthesis** — when paired with a prior artifact, run the procedure
   below in place of a lens-only pass.
 
@@ -118,6 +153,14 @@ because it shares a file with a plan.
   — never a repeated observation about the human's conduct. Silent adoption is high-charge
   only at PLANNING+, where acceptance reads as commitment. State findings about the
   artifact, not verdicts about the person.
+
+- *Solo artifacts — a voice note, a journal, thinking out loud with no audience:* neither rubric
+  above fits. There is no second party to deflect and no assistant whose vocabulary could be
+  inherited. The physics are **revision over time, not interaction**: the speaker contradicts
+  themselves across minutes, circles a word until it sharpens, and abandons a line mid-sentence.
+  Read for what they keep returning to, what they talk themselves out of, and the vocabulary that
+  changes between the start and the end. Acceptance and pushback do not exist here; **self-
+  correction is the whole signal.**
 
 **6. Meta** — what does this artifact reveal about the discovery process itself?
 - What should update this skill, the rack, or how intake is run
@@ -165,8 +208,13 @@ Every meaningful finding appears once, with exactly one disposition:
 | **release** | Not worth keeping | let it go — *named*, never silently dropped |
 
 ```
-ID | Lens | Finding (one sentence) | Disposition | Evidence
+ID | Lens | Finding (one sentence) | Disposition | Evidence | Attribution
 ```
+
+**Attribution is a field, not a footnote.** Where the source carries no speaker labels — most raw
+transcription — *every* assignment is inferred. Mark each finding `stated` or `inferred`, and where
+the reading changes the finding, say so. An inferred attribution presented as fact is a citation
+that cannot be checked.
 
 **Pointer pattern (transcript sources):** When substance lives in the read-only corpus, the
 stock piece is a title plus path — never both. For transcripts under
@@ -220,7 +268,25 @@ Releasing (not kept):
   "…"
 ```
 
-Ask: **"Does that match what you meant?"** On confirmation:
+Ask: **"Does that match what you meant?"**
+
+**Their answer is a second artifact, and usually the denser one.** What comes back is not feedback
+on your reading — it is primary material, in the vocabulary of the person who owns the domain. By
+default it arrives in conversation and dies there. So:
+
+- **Draft first, ask second.** A finding they have not seen is not eligible for the rack. The
+  ordering is the mechanism, not a courtesy.
+- **Capture rulings verbatim, with a timestamp.** Paraphrase destroys the thing that made them
+  valuable — their words *are* the domain's vocabulary (`context.language`).
+- **Cite the ruling inline** in the finding it changed, naming them and the time.
+- **Record confirmations too.** An unrecorded confirmation is a rumour.
+- **A ruling that contradicts a finding wins, and the original stays struck through, not deleted.**
+  The wrong first reading is how the next person learns the domain — and the only way to tell later
+  whether the intake is getting better.
+- If they are unavailable, rack the finding and carry the open question. Never rack past silence
+  as though it were agreement.
+
+On confirmation:
 - Write findings to `P/stock/<slug>.md`
 - Record made decisions in `DECISIONS.md`; carry unmade ones as open threads
 - Update `PRODUCT.md` with anything new about the person or their vision
@@ -262,7 +328,7 @@ When comparing paired artifacts, optionally classify each cross-cut:
 Only cross-cuts become stock at synthesis; per-slice findings stay beside their slice until
 racked individually.
 
-*Pre-requisite (Step 0):* load the current design/direction docs, or you'll judge the
+*Pre-requisite (Step 0.5):* load the current design/direction docs, or you'll judge the
 incoming artifact only against memory and miss its mis-assignments.
 
 ---
@@ -284,3 +350,30 @@ rack immediately** (`P/stock/<slug>.md`), say "captured," and return to what you
 *Discovery isn't just thinking. It's thinking that flows onto the rack — surface
 everything here, so the bench move has something real to take. Nothing is rejected on the
 rack; Promote is **plan**, not ideate.*
+
+---
+
+## Why these rules exist
+
+Each one is a fossilised correction, not a preference. Kept short on purpose — the evidence is the
+argument, and without it the rules read as ceremony and get skipped.
+
+- **Ground, all three sources.** For five months there was no Ground step. One careful reader
+  invented it, recorded it in a status line, and never made it a step — so six weeks later nobody
+  ran it, and a single pass came within one review of racking **six already-shipped designs**.
+  Later, with the step in place, two independent readings of one artifact *both* built a headline
+  on an enum whose values live in an external CRM. Both were grounded — against the wrong source.
+  Hence `ground/PROTOCOL.md`: name the owner before you read the mirror.
+- **The operator pass, written down.** One session's five most valuable items existed only in a
+  chat log and survived because somebody hand-transcribed a dead session.
+- **Position is path, and no second list.** A pool file accumulated twelve status values against
+  three documented ones, because the field was free text and nothing read it.
+- **Meta findings edit this file.** Findings about the intake were once written into a log, where
+  nothing read them, and sat until someone audited the process by hand. A log is not an address.
+- **Count topics, not lines.** The old trigger keyed on line count, which measures transcription
+  verbosity and nothing else.
+- **Subtext earns its place.** A six-lens version of this workflow produced **zero** subtext
+  findings on an artifact where the seven-lens version produced **fourteen** — a quarter of its
+  output, in a category the earlier one could not represent at all.
+- **Name the mode.** Grounding reads what exists; evaluating must not. Without a declared mode,
+  no past run can be interpreted and the intake cannot be measured at all.
