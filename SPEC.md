@@ -6,7 +6,7 @@ It defines no meanings; that file names no paths. They cannot disagree.
 Made Well is files. There is no product CLI — no status command, no dashboard,
 no second ledger of piece position.
 
-`bin/mw-move` is scaffolding for §2. It is `git mv` that refuses everything else.
+`.madewell/bin/mw-move` is scaffolding for §2. It is `git mv` that refuses everything else.
 Delete it and the shop still runs: `git mv` plus `mw-gate` on pre-commit. The
 binary is not the work.
 
@@ -139,14 +139,14 @@ One rule: **a piece on the bench has exactly one pair of hands.**
 
 | Rule | Enforcer |
 |---|---|
-| Only the four moves (§2) | **JIG** — `bin/mw-gate.sh` on pre-commit (`bin/mw-hooks.sh` wires it). Optional scaffolding: `bin/mw-move` performs them and stages; it is not the product. |
+| Only the four moves (§2) | **JIG** — `.madewell/bin/mw-gate.sh` on pre-commit (`.madewell/bin/mw-hooks.sh` wires it). Optional scaffolding: `.madewell/bin/mw-move` performs them and stages; it is not the product. |
 | Nothing deleted from a state directory | **JIG** |
 | Arrival only into `stock/` | **JIG** |
 | The floor (§3) | **JIG** |
 | Finish requires the inner states drained | **JIG** |
-| Wired convention detectors | **JIG** — `bin/mw-jigs.sh` on pre-commit, from `jig/registry.json` |
-| Proposed − accepted (shop-made substrate) | **JIG** — `bin/mw-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
-| Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `bin/mw-tax.sh` at verify and session-end. Never auto-builds. |
+| Wired convention detectors | **JIG** — `.madewell/bin/mw-jigs.sh` on pre-commit, from `jig/registry.json` |
+| Proposed − accepted (shop-made substrate) | **JIG** — `.madewell/bin/mw-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
+| Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `.madewell/bin/mw-tax.sh` at verify and session-end. Never auto-builds. |
 | You don't proof your own plate | **UNJIGGED** — not machine-checkable here |
 | No silent pass | **UNJIGGED** |
 | Ground (did you look) | **UNJIGGED** — protocol is law; no detector can see a thought |
@@ -158,3 +158,10 @@ in README.
 
 **UNJIGGED is stated on purpose.** A rule with no jig behind it is a preference, and it says
 so rather than pretending.
+
+**Two labels, two questions — they compose, they do not compete.**
+`FENCE` / `SIGN` / `DOCTRINE` (`PORTABILITY.md` §4, `jig/CONTRACT.md`) answers *what kind of
+rule is this* — decidable, surfaced, or stated only. `JIG` / `UNJIGGED` answers *is this fence
+wired on this host*. So: a fence with a detector is a **JIG**; a fence with no detector is
+**UNJIGGED**; a sign or a doctrine was never a candidate for either. The table above reports
+wiring, which is why it uses the second pair.

@@ -56,7 +56,7 @@ at the sentence it came from, cut it.
 
 ```
 trades/<name>/
-  PACK.md               the manifest — activation, foundation + pillars, the skips, the rubric
+  TRADE.md              the manifest — activation, foundation + pillars, the skips, the rubric
   persona.md            the registers this trade carries (fills the kernel's Persona slot)
   foundation/<x>.md     what is settled before anything is made
   pillars/*.md          the pillars — each: principles → protocol → definition of done
