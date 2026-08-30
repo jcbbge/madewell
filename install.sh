@@ -26,6 +26,16 @@ LOADER_END="<!-- /MADE WELL -->"
 
 # ── uninstall ────────────────────────────────────────────────────────────────
 if [ "$MODE" = "uninstall" ]; then
+  # unwire first — a hook calling a deleted script breaks every commit in the host repo
+  for h in pre-commit post-commit; do
+    hook="$DEST/.git/hooks/$h"
+    [ -f "$hook" ] || continue
+    awk '/^# MADE WELL — begin$/{skip=1} !skip{print} /^# MADE WELL — end$/{skip=0}' \
+      "$hook" > "$hook.mw_tmp" && mv "$hook.mw_tmp" "$hook"
+    chmod +x "$hook"
+    # nothing left but a shebang and blank lines → the hook was ours alone
+    if ! grep -qvE '^#!|^[[:space:]]*$' "$hook"; then rm -f "$hook"; fi
+  done
   rm -rf "$DEST/.madewell" "$DEST/MADEWELL.md"
   for f in CLAUDE.md AGENTS.md; do
     [ -f "$DEST/$f" ] || continue
@@ -56,7 +66,7 @@ cp "$SRC/SPEC.md"     "$DEST/.madewell/SPEC.md"                 # where work liv
 for f in AGENTS.md EXTENDING.md PROFILES.md profiles.json; do
   cp "$SRC/.madewell/$f" "$DEST/.madewell/$f"
 done
-for d in guides skills templates bin; do
+for d in guides skills templates bin registers; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
 done
@@ -66,8 +76,24 @@ mkdir -p "$DEST/.madewell/ground" "$DEST/.madewell/jig"
 for f in README.md PROTOCOL.md PICTURE.md; do
   cp "$SRC/.madewell/ground/$f" "$DEST/.madewell/ground/$f"
 done
-cp "$SRC/.madewell/jig/README.md" "$DEST/.madewell/jig/README.md"
-cp "$SRC/.madewell/jig/CONTRACT.md" "$DEST/.madewell/jig/CONTRACT.md"
+for f in README.md CONTRACT.md CORRECTIONS.md; do
+  cp "$SRC/.madewell/jig/$f" "$DEST/.madewell/jig/$f"
+done
+# metabolism is kernel code, not instance data — mw-tax.sh execs tax.mjs from here
+rm -rf "$DEST/.madewell/jig/metabolism"
+cp -R "$SRC/.madewell/jig/metabolism" "$DEST/.madewell/jig/metabolism"
+
+# retired layout — directories a previous Made Well created and no longer uses.
+# A package that cannot remove its own leftovers is not installable, only addable.
+for d in decisions specs work packs cycles queue; do
+  [ -d "$DEST/.madewell/$d" ] || continue
+  if find "$DEST/.madewell/$d" -type f ! -name '.gitkeep' | grep -q .; then
+    echo "  kept .madewell/$d (retired layout, holds files — move them yourself, then delete)" >&2
+  else
+    rm -rf "$DEST/.madewell/$d"
+    echo "  removed .madewell/$d (retired layout)"
+  fi
+done
 
 # ── 2. the three states + memory + instance instruments — seeded once ────────
 for k in stock bench finished; do
