@@ -20,6 +20,8 @@ if [ "${1:-}" = "--uninstall" ]; then MODE=uninstall; shift; fi
 DEST_ARG=${1:-.}
 DEST=$(cd "$DEST_ARG" 2>/dev/null && pwd) || { echo "install: target '$DEST_ARG' not found" >&2; exit 1; }
 
+GI_BEGIN="# MADE WELL — begin (managed; \`install.sh --uninstall\` removes this block)"
+GI_END="# MADE WELL — end"
 LOADER_BEGIN="<!-- MADE WELL — loader -->"
 LOADER_LINE="Read and follow .madewell/AGENTS.md before anything else, then continue."
 LOADER_END="<!-- /MADE WELL -->"
@@ -45,8 +47,8 @@ if [ "$MODE" = "uninstall" ]; then
   done
   gi="$DEST/.gitignore"
   if [ -f "$gi" ]; then
-    grep -v -e '^# Made Well — local per-clone profile marker' -e '^\.madewell/profile$' "$gi" \
-      > "$gi.mw_tmp" && mv "$gi.mw_tmp" "$gi"
+    awk -v b="$GI_BEGIN" -v e="$GI_END" '
+      $0==b{skip=1} !skip{print} $0==e{skip=0}' "$gi" > "$gi.mw_tmp" && mv "$gi.mw_tmp" "$gi"
     grep -q '[^[:space:]]' "$gi" || rm -f "$gi"
   fi
   echo "Made Well removed from $DEST (no residue)."
@@ -64,24 +66,24 @@ mkdir -p "$DEST/.madewell"
 cp "$SRC/MADEWELL.md" "$DEST/MADEWELL.md"                       # the model, at root, for the person
 cp "$SRC/SPEC.md"     "$DEST/.madewell/SPEC.md"                 # where work lives
 for f in AGENTS.md EXTENDING.md PROFILES.md profiles.json; do
-  cp "$SRC/.madewell/$f" "$DEST/.madewell/$f"
+  cp "$SRC/kernel/$f" "$DEST/.madewell/$f"
 done
 for d in guides skills templates bin registers; do
   rm -rf "$DEST/.madewell/$d"
-  cp -R "$SRC/.madewell/$d" "$DEST/.madewell/$d"
+  cp -R "$SRC/kernel/$d" "$DEST/.madewell/$d"
 done
 
 # ground + jig (framework docs) — instance roots/conventions/registry seeded once
 mkdir -p "$DEST/.madewell/ground" "$DEST/.madewell/jig"
 for f in README.md PROTOCOL.md PICTURE.md; do
-  cp "$SRC/.madewell/ground/$f" "$DEST/.madewell/ground/$f"
+  cp "$SRC/kernel/ground/$f" "$DEST/.madewell/ground/$f"
 done
 for f in README.md CONTRACT.md CORRECTIONS.md .gitignore; do
-  cp "$SRC/.madewell/jig/$f" "$DEST/.madewell/jig/$f"
+  cp "$SRC/kernel/jig/$f" "$DEST/.madewell/jig/$f"
 done
 # metabolism is kernel code, not instance data — mw-tax.sh execs tax.mjs from here
 rm -rf "$DEST/.madewell/jig/metabolism"
-cp -R "$SRC/.madewell/jig/metabolism" "$DEST/.madewell/jig/metabolism"
+cp -R "$SRC/kernel/jig/metabolism" "$DEST/.madewell/jig/metabolism"
 
 # retired layout — directories a previous Made Well created and no longer uses.
 # A package that cannot remove its own leftovers is not installable, only addable.
@@ -100,13 +102,13 @@ for k in stock bench finished; do
   mkdir -p "$DEST/.madewell/$k"
   [ -e "$DEST/.madewell/$k/.gitkeep" ] || : > "$DEST/.madewell/$k/.gitkeep"
 done
-[ -f "$DEST/.madewell/DECISIONS.md" ] || cp "$SRC/.madewell/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
-[ -f "$DEST/.madewell/PRODUCT.md" ]   || cp "$SRC/.madewell/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
-[ -f "$DEST/.madewell/ground/ROOTS.md" ] || cp "$SRC/.madewell/templates/ground-ROOTS.md" "$DEST/.madewell/ground/ROOTS.md"
+[ -f "$DEST/.madewell/DECISIONS.md" ] || cp "$SRC/kernel/templates/DECISIONS.md" "$DEST/.madewell/DECISIONS.md"
+[ -f "$DEST/.madewell/PRODUCT.md" ]   || cp "$SRC/kernel/templates/PRODUCT.md"   "$DEST/.madewell/PRODUCT.md"
+[ -f "$DEST/.madewell/ground/ROOTS.md" ] || cp "$SRC/kernel/templates/ground-ROOTS.md" "$DEST/.madewell/ground/ROOTS.md"
 mkdir -p "$DEST/.madewell/jig/conventions"
 [ -e "$DEST/.madewell/jig/conventions/.gitkeep" ] || : > "$DEST/.madewell/jig/conventions/.gitkeep"
 [ -f "$DEST/.madewell/jig/registry.json" ] || \
-  cp "$SRC/.madewell/templates/jig-registry.json" "$DEST/.madewell/jig/registry.json"
+  cp "$SRC/kernel/templates/jig-registry.json" "$DEST/.madewell/jig/registry.json"
 
 # ── 3. loader — appended, never replacing the project's own root files ───────
 wire() {
@@ -120,10 +122,34 @@ wire() {
 wire CLAUDE.md
 wire AGENTS.md
 
-# ── 4. the per-clone profile marker is local, never committed ────────────────
+# ── 4. gitignore the vendored framework; never the work ─────────────────────
+# One .madewell/ in a repo. The framework inside it is a package — reinstallable,
+# so it does not belong in the host's history. The WORK inside it is not ignored:
+# a piece's state is the directory it is in, so stock/bench/finished must be in git
+# or Made Well has no ledger at all.
 gi="$DEST/.gitignore"
-if [ ! -f "$gi" ] || ! grep -qF ".madewell/profile" "$gi"; then
-  printf '\n# Made Well — local per-clone profile marker (never committed)\n.madewell/profile\n' >> "$gi"
+if [ ! -f "$gi" ] || ! grep -qF "$GI_BEGIN" "$gi"; then
+  cat >> "$gi" <<'MWGI'
+
+# MADE WELL — begin (managed; `install.sh --uninstall` removes this block)
+# Vendored framework — reinstall with: sh <madewell>/install.sh .
+.madewell/*
+MADEWELL.md
+# …but the work, and this project's own files, stay in git:
+!.madewell/stock/
+!.madewell/bench/
+!.madewell/finished/
+!.madewell/DECISIONS.md
+!.madewell/PRODUCT.md
+!.madewell/ground/
+.madewell/ground/*
+!.madewell/ground/ROOTS.md
+!.madewell/jig/
+.madewell/jig/*
+!.madewell/jig/registry.json
+!.madewell/jig/conventions/
+# MADE WELL — end
+MWGI
 fi
 
 # ── 5. provenance — so you can tell whether a project has drifted ────────────

@@ -181,6 +181,13 @@ nothing else. Re-running re-syncs the framework and leaves your work alone. `--u
 removes it with no residue. You can also copy the files in by hand — the installer isn't doing
 anything clever.
 
+> **Two shapes, one system.** In *this* repo — the package — every functional component
+> lives in plain sight under **`kernel/`**, and `.madewell/` holds only this repo's own work.
+> `install.sh` assembles `kernel/` into **exactly one `.madewell/`** in your project, and
+> appends a managed `.gitignore` block so the vendored framework stays out of your history
+> while your work stays in it. Paths written as `.madewell/…` throughout the docs describe
+> the installed shape, because those docs ship with the install.
+
 The three places are directories: `stock/`, `bench/`, `finished/`. A piece's state **is** the
 directory it's in; nothing else records it. Work moves with `git mv`, one move per commit. Install wires a pre-commit hook that
 runs `.madewell/bin/mw-gate.sh` (illegal moves refused) and `.madewell/bin/mw-jigs.sh`

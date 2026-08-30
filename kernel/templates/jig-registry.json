@@ -1,0 +1,4 @@
+{
+  "comment": "Wired jigs for this project. Mode: warn (reports) \u2192 block (refuses) once live violations are cleared. A jig is a fence with a detector. Proposed fences are honored by agents but not yet mechanized \u2014 UNJIGGED until wired. mw-gate.sh is always a jig on stock/bench/finished moves. Run commands must work in both shapes: kernel/bin in the Made Well package repo, .madewell/bin once installed.",
+  "jigs": []
+}

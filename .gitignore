@@ -17,3 +17,10 @@ node_modules/
 # Scaffolding binary (source is bin/mw-move.c)
 .madewell/bin/mw-move
 .madewell/bin/mw-move.dSYM/
+
+# Made Well — this repo's own instance ledgers (local, never committed).
+# A consumer gets the same protection from kernel/jig/.gitignore, seeded by install.
+.madewell/jig/corrections.jsonl
+.madewell/jig/firings.jsonl
+.madewell/jig/proposed.json
+.madewell/profile

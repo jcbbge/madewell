@@ -1,11 +1,11 @@
 {
-  "comment": "Wired jigs for this project. Mode: warn (reports) \u2192 block (refuses) once live violations are cleared. A jig is a fence with a detector. Proposed fences are honored by agents but not yet mechanized \u2014 UNJIGGED until wired. mw-gate.sh is always a jig on stock/bench/finished moves.",
+  "comment": "Wired jigs for this project. Mode: warn (reports) \u2192 block (refuses) once live violations are cleared. A jig is a fence with a detector. Proposed fences are honored by agents but not yet mechanized \u2014 UNJIGGED until wired. mw-gate.sh is always a jig on stock/bench/finished moves. Run commands must work in both shapes: kernel/bin in the Made Well package repo, .madewell/bin once installed.",
   "jigs": [
     {
       "id": "section-refs",
       "domain": "docs",
       "fence": "Every '<FILE>.md \u00a7N' reference resolves to a numbered heading N in that file.",
-      "run": "sh .madewell/bin/mw-jig-sections.sh",
+      "run": "MW_BIN=.madewell/bin; [ -d kernel/bin ] && MW_BIN=kernel/bin; sh \"$MW_BIN/mw-jig-sections.sh\"",
       "mode": "block",
       "wired": "2026-08-28",
       "why": "Shop-made. PORTABILITY.md conditioned host conformance on 'SPEC.md \u00a79'; SPEC.md has five sections. The criterion was unresolvable and had survived at least one rewrite.",

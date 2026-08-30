@@ -1,4 +1,0 @@
-{
-  "comment": "Wired jigs for this project. Mode: warn (reports) → block (refuses) once live violations are cleared. A jig is a fence with a detector. Proposed fences are honored by agents but not yet mechanized — UNJIGGED until wired. mw-gate.sh is always a jig on stock/bench/finished moves.",
-  "jigs": []
-}
