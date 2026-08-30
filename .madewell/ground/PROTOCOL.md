@@ -72,7 +72,9 @@ ls .madewell/ground .madewell/jig 2>/dev/null
 Then confirm each path named in `ROOTS.md`.
 
 Pull the nouns from the task (entities, files, surfaces it names). Those nouns are the
-search terms for both halves below.
+search terms for both halves below. For each noun that is a *value* rather than a
+surface, name the system that owns it — ours, or someone else's (`ROOTS.md`
+§ *Systems of record we do not own*).
 
 ---
 
@@ -105,6 +107,19 @@ Every decision cited file:line. Not from memory.
 Ground the task in what actually exists (code, or the trade's artifacts). Locate
 surfaces with exact search (`rg`) or meaning-search (`colgrep`); confirm top hits
 with a direct read.
+
+**The truth is not always ours.** For every value the task names, say which system
+owns it before you ground it. Some values are authoritative in a system we do not
+control — a CRM property definition, a vendor's schema, a payment processor's enum.
+For those, our code is a *mirror*, and reading the mirror answers a different
+question than the one asked. Read the owner, or record `OWNER: <system> — NOT READ`
+and treat every claim about that value as unverified.
+
+The failure this prevents is specific and observed: two independent readings of one
+artifact each built a headline finding on an enum whose values live in an external
+CRM. Neither looked. Both were grounded — against the wrong source. This is the
+premature-binding law at ground level: the transcript is a bound value, the owning
+system's property is the pointer.
 
 Produce the material half of the picture — shape in `PICTURE.md`.
 
@@ -141,7 +156,10 @@ work. It does not write the floor. `skills/bench.md` is next, after.
 3. **Pre-flight the paths first.** An unverified path makes absence silent.
 4. **Make misses loud.** `NO EXISTING IMPLEMENTATION — net new`.
 5. **Every behavioral claim carries a file:line.** This sitting, not prior.
-6. **End at the gap, not at a plan.** Planning is the next act.
+6. **Name the owner before reading the mirror.** A value authoritative in a system we
+   do not control is grounded only by reading that system, or by recording
+   `OWNER: <system> — NOT READ`.
+7. **End at the gap, not at a plan.** Planning is the next act.
 
 ---
 

@@ -17,8 +17,8 @@ declaration, none of which names a runtime:
 
 | Kind | Examples |
 |---|---|
-| **vocabulary** | the lexicon: loop names, beats, stage/phase/Cycle/queue/door/wall |
-| **state machines** | the loops — states and legal transitions (discover→commit→build→land; imagine→plan→make→verify) |
+| **vocabulary** | the lexicon: the four acts · stock · bench · finished · ground · jig · floor · trade |
+| **state machines** | the four acts, recurring at every scale (ideate → plan → implement → verify); three states and the four legal moves (SPEC.md §2) |
 | **predicates** | the laws — `author(criteria) ≠ author(implementation)` · `partial ≠ success` · `no stop while holding a live claim` |
 | **roles** | profiles with obligations, never providers or models |
 | **rubrics** | judgment procedures with stated tie-breaks |
@@ -37,7 +37,7 @@ over any particular table. So here.
    are how Made Well *travels*, not what it *is* — a score is not the music.
 3. **Binding** — per-host compilation. A digestion step (in tup terms: the
    mint) compiles the declarations into whatever enforcement forms *this*
-   host offers: repo doors, CI checks, branch protections, hooks, or a
+   host offers: repo jigs, CI checks, branch protections, hooks, or a
    laminated checklist on a shop wall.
 
 **You port hosts, never Made Well itself.** No future rewrite (Rust or otherwise)
@@ -51,12 +51,12 @@ A host CAN run Made Well iff it offers:
 2. **Typed transitions** — state changes by legal moves, not free edits.
 3. **Authorship identity** — who wrote the criteria vs who wrote the
    implementation is knowable.
-4. **A pre-action refusal point** — somewhere a door can say no *before*,
+4. **A pre-action refusal point** — somewhere a jig can say no *before*,
    not audit after.
 5. **An append-only record** — done work is history, not opinion.
 
-A git repository alone satisfies 1, 2 (via doors), 3, 5, and hosts 4 in the
-door scripts — which is why the reference instance needs nothing else, and
+A git repository alone satisfies 1, 2 (via the jig), 3, 5, and hosts 4 in the
+jig scripts — which is why the reference instance needs nothing else, and
 why **file-based convention is the distribution, as-is**.
 
 ## 4. Enforcement tiers and the honesty rule
@@ -76,10 +76,10 @@ named enforcer wears its tier label explicitly.
 
 ## 5. Worked ports (informative)
 
-- **Bare git repo + `mw` (reference):** all five commitments; doors = FENCE.
+- **Bare git repo + `mw-gate` (reference):** all five commitments; the jig = FENCE.
 - **GitHub alone:** issues/PR states (1, 2) · CODEOWNERS + review identity
   (3) · protected branches + required checks (4 → criteria-before-code as
-  review rules, the verify beat as CI, the commit gate as branch
+  review rules, the verify act as CI, the commit gate as branch
   protection) · git log (5). Weaker fences, same law.
 - **A human team with index cards:** 1, 2, 3, 5 on paper; 4 is social →
   Made Well runs at SIGN tier, honestly labelled.
@@ -93,4 +93,4 @@ named enforcer wears its tier label explicitly.
 A claimed host implementation passes when: (a) it satisfies the five
 commitments or explicitly declares which it lacks; (b) every compiled law
 carries its tier label; (c) an instance authored on the reference host runs
-on it, and vice versa, with identical ledger semantics per SPEC.md §9.
+on it, and vice versa, with identical position and movement semantics per SPEC.md §1–§2.

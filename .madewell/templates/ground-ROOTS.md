@@ -19,3 +19,11 @@ Do not list trees that do not exist.
 
 - `docs/` — if present
 - loaded trade — if this project named one
+
+## Systems of record we do not own
+
+Values that are authoritative *outside* this repo. Our code mirrors them; the mirror
+is not the source. Name each system, what it owns, and how to read it. An empty
+section is a claim that this project owns every value it uses — say so deliberately.
+
+- `<system>` — owns `<which values>` — read via `<API / property definition / console>`
