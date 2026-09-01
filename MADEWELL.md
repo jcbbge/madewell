@@ -65,6 +65,22 @@ up with them, and each one is a fossilized correction. That is how the wall gets
 corrections accumulate, the recurring expensive ones become stops, and stops that stop
 earning their place come down.
 
+**A claim of enforcement ships its own falsifier.** Every jig carrying a `run` —
+FENCE at mode block, SIGN at mode warn — must also carry a `probe`: a command that
+exits 0 only when that jig's machinery is actually reachable. `mw-enforcers.sh` runs
+every probe on pre-commit and refuses the commit when one fails or is missing.
+
+This is the jig on the ledger itself, and it is the one worth having first. A row
+reading FENCE while the thing it names is absent is worse than no row at all: every
+reader below believes that class of mistake is already impossible and stops watching
+for it. Fossilized 2026-09-01 after three in one day — a CLI built but never installed
+while four wired hooks called it and every gate silently no-opped; a sync registry
+pointed at files its generator had stopped writing, reporting green; a multi-argument
+sync honouring only its last argument. None was caught by a test. All three would have
+been caught by a probe.
+
+A jig with no `run` is DOCTRINE and is exempt. It never claimed to be a stop.
+
 **The instrument is `.madewell/jig/`.** Compiled conventions, a registry of wired jigs,
 honesty tiers (FENCE / SIGN / DOCTRINE). Install wires `mw-gate.sh` and `mw-jigs.sh` on
 pre-commit, `mw-record.sh` on post-commit. Whether to promote or drop is

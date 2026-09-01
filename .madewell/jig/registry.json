@@ -1,6 +1,13 @@
 {
-  "comment": "Wired jigs for this project. Mode: warn (reports) \u2192 block (refuses) once live violations are cleared. A jig is a fence with a detector. Proposed fences are honored by agents but not yet mechanized \u2014 UNJIGGED until wired. mw-gate.sh is always a jig on stock/bench/finished moves. Run commands must work in both shapes: kernel/bin in the Made Well package repo, .madewell/bin once installed.",
+  "comment": "Wired jigs for this project. Mode: warn (reports) -> block (refuses) once live violations are cleared. A jig is a fence with a detector. Tiers: FENCE = run + mode block; SIGN = run + mode warn; DOCTRINE = no run (honoured by agents, not mechanized). EVERY jig carrying a `run` MUST also carry a `probe`: a command exiting 0 only when that jig's machinery is actually reachable. A claim of enforcement ships its own falsifier, or it is not a claim. mw-enforcers.sh checks that and is itself registered below. mw-gate.sh is always a jig on stock/bench/finished moves. Run commands must work in both shapes: kernel/bin in the Made Well package repo, .madewell/bin once installed.",
   "jigs": [
+    {
+      "id": "enforcers-are-real",
+      "why": "A row claiming FENCE while its machinery is absent is worse than no row: every reader below believes the mistake is already impossible and stops watching for it. Fossilized 2026-09-01 after three instances in one day.",
+      "run": "sh .madewell/bin/mw-enforcers.sh 2>/dev/null || sh kernel/bin/mw-enforcers.sh",
+      "probe": "test -x .madewell/bin/mw-enforcers.sh || test -x kernel/bin/mw-enforcers.sh",
+      "mode": "block"
+    },
     {
       "id": "section-refs",
       "domain": "docs",
@@ -9,7 +16,8 @@
       "mode": "block",
       "wired": "2026-08-28",
       "why": "Shop-made. PORTABILITY.md conditioned host conformance on 'SPEC.md \u00a79'; SPEC.md has five sections. The criterion was unresolvable and had survived at least one rewrite.",
-      "not": "Deliberately not a path checker: a naive one returns ~43 hits on this corpus of which ~2 are real (schematic placeholders, 'if present' trees, ignore-list examples, gitignored ledgers, prohibitions). That stays a SIGN until a placeholder marker exists."
+      "not": "Deliberately not a path checker: a naive one returns ~43 hits on this corpus of which ~2 are real (schematic placeholders, 'if present' trees, ignore-list examples, gitignored ledgers, prohibitions). That stays a SIGN until a placeholder marker exists.",
+      "probe": "test -x .madewell/bin/mw-jig-sections.sh || test -x kernel/bin/mw-jig-sections.sh"
     }
   ]
 }
