@@ -28,6 +28,7 @@
 
 static char root[PATH_MAX];
 static char mw[PATH_MAX];
+static char execution_door[PATH_MAX];
 
 static void die(int code, const char *fmt, ...) {
     va_list ap;
@@ -89,7 +90,7 @@ static int git(char *const argv[]) {
     pid_t pid = fork();
     if (pid < 0) die(5, "fork: %s", strerror(errno));
     if (pid == 0) {
-        execvp("git", argv);
+        execvp(argv[0], argv);
         _exit(127);
     }
     int st = 0;
@@ -100,7 +101,17 @@ static int git(char *const argv[]) {
 
 static int git_mv(const char *from, const char *to) {
     char *argv[] = { "git", "-C", root, "mv", (char *)from, (char *)to, NULL };
-    int rc = git(argv);
+    int rc;
+    if (exists(execution_door)) {
+        char *command[] = { "python3", execution_door, "--root", root, "--move",
+                            (char *)from, (char *)to, NULL };
+        rc = git(command);
+    } else {
+        char sessions[PATH_MAX];
+        snprintf(sessions, sizeof sessions, "%s/sessions", mw);
+        if (exists(sessions)) die(5, "execution door missing; cannot inspect bound pieces");
+        rc = git(argv);
+    }
     if (rc != 0) {
         if (!exists(from)) return 4;
         return 5;
@@ -284,6 +295,15 @@ static const char USAGE[] =
 int main(int argc, char **argv) {
     if (argc < 2) { fputs(USAGE, stdout); return 2; }
     find_root();
+    snprintf(execution_door, sizeof execution_door, "%s/bin/mw-session.py", mw);
+    if (!exists(execution_door)) {
+        char executable[PATH_MAX];
+        if (realpath(argv[0], executable)) {
+            char *slash = strrchr(executable, '/');
+            if (slash) *slash = 0;
+            snprintf(execution_door, sizeof execution_door, "%s/mw-session.py", executable);
+        }
+    }
     const char *cmd = argv[1];
     if (strcmp(cmd, "arrive") == 0) {
         if (argc < 3 || bad_slug(argv[2])) die(5, "arrive needs a slug (no . @ /)");

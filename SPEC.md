@@ -147,7 +147,7 @@ One rule: **a piece on the bench has exactly one pair of hands.**
 | Wired convention detectors | **JIG** — `.madewell/bin/mw-jigs.sh` on pre-commit, from `jig/registry.json` |
 | Proposed − accepted (shop-made substrate) | **JIG** — `.madewell/bin/mw-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
 | Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `.madewell/bin/mw-tax.sh` at verify and session-end. Never auto-builds. |
-| You don't proof your own plate | **UNJIGGED** — not machine-checkable here |
+| You don't proof your own plate | **JIG for execution-bound pieces** — current independent acceptance and fresh retained proof at legal finish; **UNJIGGED for legacy unbound pieces**, intentionally (§6) |
 | No silent pass | **UNJIGGED** |
 | Ground (did you look) | **UNJIGGED** — protocol is law; no detector can see a thought |
 
@@ -165,3 +165,40 @@ rule is this* — decidable, surfaced, or stated only. `JIG` / `UNJIGGED` answer
 wired on this host*. So: a fence with a detector is a **JIG**; a fence with no detector is
 **UNJIGGED**; a sign or a doctrine was never a candidate for either. The table above reports
 wiring, which is why it uses the second pair.
+
+## 6. Execution within a session
+
+Piece position (§1) and execution progress are different facts. A host may persist a
+session's current act, proposed checklist, dependencies, actor, expected results,
+command attempts, evidence and acceptances under `.madewell/sessions/`. Such a record
+must never override stock/bench/finished position or move a piece implicitly.
+
+A bound execution proceeds ideate → plan → implement → verify. Planning declares the
+implementation and verification steps before execution opens. Completion requires the
+checklist and evidence, not a narrated status. Verification is performed by an actor
+other than the maker. Failure preserves the attempt and repeats the necessary acts;
+this does not rewind the piece's position. Changed evidence cannot inherit old approval. The entire current retained proof
+closure is rechecked at execution, acceptance and finish, not only final artifacts.
+All contributing makers, including failed implementation attempts, remain excluded
+from verification across retries. Historical done and current proof validity are
+separate visible facts. A stale done execution may explicitly reopen while its
+piece is open; finished pieces never rewind.
+
+Execution adoption is optional for **legacy unbound pieces**. Once bound, both
+`mw-move` and `mw-gate.sh` require fresh independent completion for legal finish.
+They rebind the existing execution reference on legal moves, including unit
+expansion, under the same lock used by claim acquisition. No position ledger is
+added: the actual file path still decides where the piece is. A missing claimed
+piece requires explicit reconciliation, not a new claim that forgets its maker.
+The host exposes a separate legal move after done; passing verification never
+performs it implicitly. Execution-aware movement requires Python in addition
+to the existing Git/POSIX machinery.
+
+A session has a start, a time bound, and a stop. An interrupted or stopped session is
+not a completed task. Ownership and unfinished obligations survive; takeover is explicit.
+
+Reference door: `bin/mw-session.py` (package: `kernel/bin/mw-session.py`). Contract and
+host activation: `bindings/SESSION.md` (package: `kernel/bindings/SESSION.md`). The
+optional host binding refuses alternate execution tools and renders the same persisted
+state. Until that binding is actually loaded, the CLI alone is not a host-wide fence.
+No provider, model, or particular agent runtime is required by the execution records.

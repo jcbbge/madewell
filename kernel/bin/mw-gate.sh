@@ -126,6 +126,14 @@ while IFS= read -r old; do
   fi
 
   printf '%s\n' "$got" >>"$work/used"
+  # A bound piece cannot silently fall back to the legacy finish policy.
+  execution_door=$(CDPATH= cd -- "$(dirname "$0")" && pwd)/mw-session.py
+  if [ -f "$execution_door" ]; then
+    python3 "$execution_door" --root "$(git rev-parse --show-toplevel)" --check-move "$old" "$got" >/dev/null ||
+      say "$old — execution acceptance/rebinding refused"
+  elif [ -d "$MW/sessions" ]; then
+    say "$old — execution door missing for existing session records"
+  fi
   case "$S" in
     stock) check_floor "$got" ;;
     PIECE) check_drained "$P/bench/$N" ;;
