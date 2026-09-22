@@ -5,11 +5,13 @@ import json
 import os
 import select
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 
 MODULE = Path(__file__).with_name("mw-session.py")
 spec = importlib.util.spec_from_file_location("mw_session", MODULE)
@@ -382,6 +384,135 @@ class ExecutionTests(unittest.TestCase):
             self.assertEqual(session.request('observer', {'op':'show'})['piece'], target)
             with self.assertRaises(mw.Refused):
                 mw.Session(self.root, slug + '-duplicate').request('other', {'op':'start','piece':target,'goal':'Duplicate'})
+
+    def test_new_piece_floor_through_execution_door(self):
+        self.git_fixture()
+        self.session = mw.Session(self.root, 'fresh')
+        piece = '.madewell/stock/fresh.md'
+        self.call('start', piece=piece, goal='Fresh restricted-host work', create_piece=True)
+        floor = dict(making='An output file', not_making='Product changes',
+                     done_when='Exact content verified', waits_on='')
+        self.call('floor', **floor)
+        self.propose()
+        self.call('record', step='step', result='Understand the output')
+        self.call('advance', reason='Understood')
+        self.call('floor', **{**floor, 'making': 'One output file'})
+        content = (self.root / piece).read_text()
+        self.assertTrue(content.startswith('# Fresh restricted-host work\n'))
+        self.assertEqual(content.count('**Making:**'), 1)
+        self.assertIn('**Making:** One output file\n', content)
+        self.propose()
+        for name in ('stock-commit', 'bench-commit', 'write'):
+            self.propose(name, phase='implement')
+        self.propose('check', phase='verify')
+        self.call('record', step='step', result='Commit each move separately, then write and check')
+        self.call('advance', reason='Declared lifecycle')
+        for step, path in [('stock-commit', piece), ('bench-commit', '.madewell/bench/fresh.md')]:
+            # The restricted host permits these commands only through a planned run.
+            script = ("import subprocess; subprocess.run(['git','add','--'," + repr(path) + "],check=True); "
+                      "subprocess.run(['git','-c','user.name=Fixture','-c','user.email=fixture@example.invalid',"
+                      "'commit','-qm','one position transition'],check=True)")
+            state = self.call('run', step=step, argv=[sys.executable, '-c', script])
+            self.assertEqual(state['phases']['implement']['steps'][step]['status'], 'done')
+            if step == 'stock-commit':
+                self.call('move', action='bench')
+        self.call('run', step='write', argv=[sys.executable, '-c', "open('output','w').write('correct')"])
+        self.call('advance', reason='Written', artifacts=['output'])
+        self.verifier()
+        self.call('run', step='check', argv=[sys.executable, '-c', "assert open('output').read() == 'correct'"])
+        self.call('advance', reason='Independently checked')
+        state = self.call('move', action='finish')
+        self.assertEqual(state['piece'], '.madewell/finished/fresh.md')
+        self.assertTrue(state['proof']['valid'])
+        self.assertEqual(self.gate().returncode, 0)
+
+    def test_floor_refuses_wrong_phase_owner_target_and_invalid_fields(self):
+        fields = dict(making='x', not_making='y', done_when='z', waits_on='')
+        with self.assertRaisesRegex(mw.Refused, 'stock piece'):
+            self.call('floor', **fields)
+        piece = '.madewell/stock/floor.md'
+        self.session = mw.Session(self.root, 'floor')
+        self.call('start', piece=piece, goal='Floor validation', create_piece=True)
+        original = (self.root / piece).read_bytes()
+        with self.assertRaisesRegex(mw.Refused, 'another actor'):
+            self.session.request('stranger', {'op': 'floor', **fields})
+        for key, value in [('making', ''), ('not_making', 'a\nb'), ('done_when', None), ('waits_on', 'a\rb')]:
+            with self.subTest(key=key), self.assertRaises(mw.Refused):
+                self.call('floor', **{**fields, key: value})
+            self.assertEqual((self.root / piece).read_bytes(), original)
+        self.planned()
+        with self.assertRaisesRegex(mw.Refused, 'ideation or planning'):
+            self.call('floor', **fields)
+        self.assertEqual((self.root / piece).read_bytes(), original)
+
+    def test_floor_atomic_replacement_preserves_content_and_mode(self):
+        self.session = mw.Session(self.root, 'durable-floor')
+        self.call('start', piece='.madewell/stock/durable.md', goal='Durable floor', create_piece=True)
+        piece = self.root / '.madewell/stock/durable.md'
+        piece.write_text('# Durable floor\n\nKeep this prose.\n**Making:** old\n')
+        piece.chmod(0o640)
+        inode = piece.stat().st_ino
+        self.call('floor', making='new', not_making='extras', done_when='proved', waits_on='')
+        self.assertEqual(piece.read_text(), '# Durable floor\n\nKeep this prose.\n\n'
+                         '**Making:** new\n**Not making:** extras\n**Done when:** proved\n**Waits on:**\n')
+        self.assertEqual(piece.stat().st_mode & 0o7777, 0o640)
+        self.assertNotEqual(piece.stat().st_ino, inode)
+        self.assertEqual(list(piece.parent.iterdir()), [piece])
+        self.assertEqual(self.session.load()['events'][-1]['event'], 'floor')
+
+    def test_floor_write_and_replace_failures_preserve_original_and_record(self):
+        self.session = mw.Session(self.root, 'failed-floor')
+        self.call('start', piece='.madewell/stock/durable.md', goal='Original floor', create_piece=True)
+        piece = self.root / '.madewell/stock/durable.md'
+        piece.chmod(0o640)
+        original, record = piece.read_bytes(), self.session.path.read_bytes()
+        inode = piece.stat().st_ino
+        real_fdopen = os.fdopen
+
+        @contextmanager
+        def partial_write(fd, mode):
+            with real_fdopen(fd, mode) as stream:
+                def fail_write(value):
+                    stream.write(value[:len(value) // 2])
+                    stream.flush()
+                    raise OSError('injected partial write failure')
+                writer = Mock(wraps=stream)
+                writer.write.side_effect = fail_write
+                yield writer
+
+        # Inject only the failing syscall/write boundary; all files and locks are real.
+        failures = [('fdopen', partial_write),
+                    ('replace', OSError('injected replace failure')),
+                    ('fsync', OSError('injected file fsync failure'))]
+        for seam, failure in failures:
+            with self.subTest(seam=seam), patch.object(mw.os, seam, side_effect=failure):
+                with self.assertRaisesRegex(OSError, 'injected'):
+                    self.call('floor', making='new', not_making='extras', done_when='proved', waits_on='')
+            self.assertEqual(piece.read_bytes(), original)
+            self.assertEqual(piece.stat().st_mode & 0o7777, 0o640)
+            self.assertEqual(piece.stat().st_ino, inode)
+            self.assertEqual(self.session.path.read_bytes(), record, 'failed floor cannot save an event')
+            self.assertEqual(list(piece.parent.iterdir()), [piece], 'temporary file must be removed')
+
+    def test_host_finish_requires_committed_bench_arrival(self):
+        old, new = self.stock_commit_fixture()
+        self.call('move', action='bench')
+        self.call('run', step='step', argv=[sys.executable, '-c', "open('output','w').write('correct')"])
+        self.call('advance', reason='Made', artifacts=['output'])
+        self.verifier()
+        self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
+        self.call('advance', reason='Independent acceptance')
+        staged = self.git('diff', '--cached', '--name-status').stdout
+        with self.assertRaisesRegex(mw.Refused, 'commit the stock-to-bench position transition'):
+            self.call('move', action='finish')
+        self.assertEqual(self.git('diff', '--cached', '--name-status').stdout, staged)
+        self.assertEqual(self.session.load()['piece'], new)
+        self.assertTrue((self.root / new).is_file())
+        self.git('commit', '-qm', 'legal bench arrival')
+        self.call('move', action='finish')
+        self.assertEqual(self.gate().returncode, 0)
+        self.assertIn(new, self.git('diff', '--cached', '--name-status').stdout)
+        self.assertNotIn(old, self.git('diff', '--cached', '--name-status').stdout)
 
     def stock_commit_fixture(self):
         self.git_fixture()

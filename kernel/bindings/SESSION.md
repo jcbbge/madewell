@@ -46,8 +46,40 @@ itself and does not expose an actor override to the model.
 For new work, `start` may include `create_piece: true` with a new
 `.madewell/stock/<slug>.md` path. This creates only stock material, not code;
 existing files are never overwritten. Existing pieces need no creation flag.
+During ideate/plan, `floor` writes the four SPEC lines on that bound stock piece:
 
-Request examples, in sequence (one invocation per request):
+```json
+{"op":"start","piece":".madewell/stock/example.md","goal":"Write and verify an output file","create_piece":true}
+{"op":"floor","making":"output.txt containing hello","not_making":"Other product changes","done_when":"Independent exact-content assertion passes","waits_on":""}
+```
+
+`floor` is owner-only and stock-only, not a general file editor. All four fields
+are required single-line strings; only `waits_on` may be empty. It replaces the
+four canonical floor lines, preserving the title and other prose. It neither
+stages nor moves the piece, advances an act, nor refreshes previously captured
+proof. Revise stale proof through the existing retry/record path.
+
+For fresh work, declare implementation steps to stage/commit the stock arrival,
+commit the bench arrival, and make the artifact, plus independent verification
+steps. After planning, use `run` for the stock arrival commit, then the separate
+`move` with `action: "bench"`, then `run` for the bench arrival commit. Stage only
+the piece path and commit each position transition separately. Never call `move`
+inside `run`. If commit authority is unavailable, stop and hand off that obligation;
+do not combine staged moves or bypass the commit gate.
+
+For example, the planned stock-arrival step may run:
+
+```json
+{"op":"run","step":"stock-commit","argv":["sh","-c","git add -- .madewell/stock/example.md && git commit -m 'chore(example): stock arrival' -m 'ACT: implement\nDONE: Record stock arrival\nNEXT: Move to bench'"]}
+{"op":"move","action":"bench"}
+{"op":"run","step":"bench-commit","argv":["git","commit","-m","chore(example): bench arrival","-m","ACT: implement\nDONE: Record bench arrival\nNEXT: Make the artifact"]}
+```
+
+These commit examples assume no unrelated paths are staged. Include both steps
+in the plan before advancing to implement; execution does not invent steps.
+
+Request examples for an **already committed bench piece**, in sequence
+(one invocation per request):
 
 ```json
 {"op":"start","piece":".madewell/bench/example.md","goal":"Write and verify an output file","minutes":60}
@@ -126,7 +158,10 @@ Other operations:
   optional boolean `break` for unit expansion at the bench. Uses the existing
   C movement door, stages only that move, never commits. Allowed after planning
   in implement and after done, under the session owner. Supports top-level
-  pieces; nested moves use Git plus the commit gate. Never run a move inside an
+  pieces; nested moves use Git plus the commit gate. Finish requires the bound
+  bench path to exist in HEAD: commit its stock-to-bench transition first, rather
+  than collapsing two staged moves into an illegal stock-to-finished commit.
+  Never run a move inside an
   executing step of the same bound piece: running commands fence movement.
 
 The C door uses the Python `--move OLD NEW` seam; the commit gate uses

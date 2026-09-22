@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -311,7 +312,41 @@ class Session:
                 state.update(status='active', actor=actor, deadline=time.time() + minutes * 60, supervisor=supervisor)
             self.active(state, actor)
             phase = self.current(state)
-            if op == "propose":
+            if op == 'floor':
+                require(state['phase'] in ('ideate', 'plan'), 'floor requires ideation or planning')
+                piece = self.root / state['piece']
+                require(piece.parent.name == 'stock' and not piece.is_symlink() and
+                        piece.resolve().is_relative_to(self.root), 'floor edits only the bound stock piece')
+                fields = [('making', 'Making'), ('not_making', 'Not making'),
+                          ('done_when', 'Done when'), ('waits_on', 'Waits on')]
+                lines = []
+                for key, label in fields:
+                    value = request.get(key)
+                    require(isinstance(value, str) and not any(c in value for c in '\r\n\0'),
+                            'floor fields must be single-line strings: ' + key)
+                    require(key == 'waits_on' or value.strip(), 'nonempty floor field required: ' + key)
+                    lines.append('**' + label + ':**' + (' ' + value.strip() if value.strip() else ''))
+                prefixes = tuple('**' + label + ':**' for _, label in fields)
+                content = '\n'.join(line for line in piece.read_text().splitlines()
+                                    if not line.startswith(prefixes)).rstrip()
+                mode = stat.S_IMODE(piece.stat().st_mode)
+                fd, temp = tempfile.mkstemp(prefix='.' + piece.name + '.', dir=piece.parent)
+                try:
+                    with os.fdopen(fd, 'w') as stream:
+                        stream.write(content + '\n\n' + '\n'.join(lines) + '\n')
+                        stream.flush()
+                        os.fchmod(stream.fileno(), mode)
+                        os.fsync(stream.fileno())
+                    os.replace(temp, piece)
+                    directory_fd = os.open(piece.parent, os.O_RDONLY)
+                    try:
+                        os.fsync(directory_fd)
+                    finally:
+                        os.close(directory_fd)
+                finally:
+                    if os.path.exists(temp):
+                        os.unlink(temp)
+            elif op == "propose":
                 target = request.get("phase", state["phase"])
                 require(state["phase"] in ("ideate", "plan"), "new work requires planning; return to plan to change the checklist")
                 require(target == state["phase"] or (state["phase"] == "plan" and target in ("implement", "verify")), "cannot propose into that phase")
@@ -413,6 +448,11 @@ class Session:
             slug = piece.parent.name if piece.name == 'PIECE.md' else piece.stem
             require((piece.parent.name == 'stock') if action == 'bench' else
                     (piece.parent.name == 'bench' or piece.name == 'PIECE.md'), 'piece is not at move source')
+            if action == 'finish':
+                committed = subprocess.run(['git', 'cat-file', '-e', 'HEAD:' + state['piece']],
+                                           cwd=self.root, capture_output=True)
+                require(committed.returncode == 0,
+                        'commit the stock-to-bench position transition before finish; one move per commit')
             require(isinstance(request.get('break', False), bool), 'break must be boolean')
             argv = [str(Path(__file__).resolve().with_name('mw-move')), action, slug]
             if request.get('break', False):
