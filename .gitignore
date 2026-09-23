@@ -24,3 +24,10 @@ node_modules/
 .madewell/jig/firings.jsonl
 .madewell/jig/proposed.json
 .madewell/profile
+
+# Local execution evidence and harness telemetry. The durable conclusion belongs
+# in docs; raw session/review records remain available in this clone for audit.
+.madewell/sessions/
+.madewell/reviews/
+.pi/pispine-ledger.json
+.coraline/
