@@ -115,4 +115,13 @@ check "landed: the whole run is in main's history" sh -c "git log --format=%B | 
 check "landed: the worktree and branch are gone" sh -c "test ! -d '$WT' && ! git rev-parse --verify -q piece/greet"
 check "status shows the finished piece's run" sh -c "'$C' status | grep -q 'nothing on the bench'"
 
+# --- one interface: the kernel's own tools answer through the same door
+check "constellation move stages a legal move (arrive)" sh -c "printf '# Later\n' | '$C' move arrive later && test -f .madewell/stock/later.md"
+git reset -q -- .madewell/stock/later.md; rm -f .madewell/stock/later.md
+check "constellation move refuses the floorless bench move" sh -c "printf '# X\n' >.madewell/stock/nofloor.md; ! '$C' move bench nofloor; rm -f .madewell/stock/nofloor.md"
+check "constellation enforcers lists every claim and its falsifier" sh -c "'$C' enforcers | grep -q enforcers-are-real"
+check "constellation tax gives the reading" "$C" tax
+check "constellation session answers (the door is reachable)" sh -c "'$C' session --help >/dev/null 2>&1 || '$C' session --root . --session x <<<'{\"op\":\"show\"}' 2>&1 | grep -qiE 'refused|no such|not found|session'"
+check "help names the one interface" sh -c "'$C' help | grep -q 'The one interface'"
+
 [ $fails -eq 0 ] && echo "constellation: all tests passed" || { echo "constellation: $fails failure(s)"; exit 1; }

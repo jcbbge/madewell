@@ -19,6 +19,14 @@
 #   constellation land <slug>                  after a passing verify: fast-forward, bench → finished
 #   constellation discover <notes-file>        the outer loop: digest notes into pieces on the rack
 #
+# The one interface: people and agents act through `constellation <verb>` only. The kernel's
+# own tools sit behind it and are never called by name:
+#   constellation move arrive|bench|finish <slug>   the four legal moves, staged (mw-move)
+#   constellation session …                    the durable execution door (mw-session)
+#   constellation tax | jigs | enforcers       the jig tax reading · run the jigs · every claim + falsifier
+#   constellation hooks                        wire the commit gate and jigs into this clone
+#   constellation install <project> [--uninstall]   put the kernel into a project (package only)
+#
 # Inside a step, the relay comes first: the star reviews what it was handed, then
 #   constellation clear                        nothing ambiguous; now it may work
 #   constellation clarify "<questions>"        to whoever handed it the work, who answers with
@@ -43,7 +51,7 @@
 #   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests).
 # Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
 set -euo pipefail
-case "${1:-}" in -h|--help|help|"") sed -n '2,44p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
+case "${1:-}" in -h|--help|help|"") sed -n '2,53p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
 
 SELF=$(readlink -f "$0")
 KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
@@ -442,5 +450,13 @@ case "$1" in
   land) shift; cmd_land "$@" ;;
   status) shift; cmd_status "$@" ;;
   discover) shift; cmd_discover "$@" ;;
+  # the kernel, behind the same door: nothing tells an agent or a person to run these directly
+  move) shift; exec "$KERNEL/bin/mw-move" "$@" ;;                      # arrive | bench [--break] | finish <slug>
+  session) shift; exec python3 "$KERNEL/bin/mw-session.py" "$@" ;;    # the durable execution door (bindings/SESSION.md)
+  tax) shift; exec sh "$KERNEL/bin/mw-tax.sh" "$@" ;;                  # the jig tax reading: promote / hold / drop
+  jigs) shift; exec sh "$KERNEL/bin/mw-jigs.sh" "$@" ;;                # run the wired jigs now
+  enforcers) shift; exec sh "$KERNEL/bin/mw-enforcers.sh" "${@:---list}" ;;  # every enforcement claim and its falsifier
+  hooks) shift; exec sh "$KERNEL/bin/mw-hooks.sh" "$@" ;;              # wire the commit gate and jigs into this clone
+  install) shift; [ -f "$KERNEL/../install.sh" ] || die "install runs from the package checkout"; exec sh "$KERNEL/../install.sh" "$@" ;;
   *) die "unknown command '$1' (constellation help)" ;;
 esac

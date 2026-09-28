@@ -5,7 +5,7 @@ The Jig says whether you **re-decided** something already settled.
 
 ## What is enforced (not hoped)
 
-Install runs `bin/mw-hooks.sh`. After that:
+Install runs `constellation hooks`. After that:
 
 | Hook | Script | What happens if you skip it |
 |---|---|---|
@@ -20,7 +20,7 @@ A convention with no `run` in the registry is **UNJIGGED** — agents honor it; 
 
 ## Tax — promote or drop
 
-See `CORRECTIONS.md`. The reading is `sh .madewell/bin/mw-tax.sh` (verify and session-end).
+See `CORRECTIONS.md`. The reading is `constellation tax` (verify and session-end).
 Fixture 6/6 is not that reading. `proposed.json` is the override; without it Σ(tax) is zero
 and nothing ratifies. Ratify never auto-builds.
 

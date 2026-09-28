@@ -70,5 +70,5 @@ positives, churn). Relax, watch. If the violation comes back, restore it. If not
 comes back, it comes down. Making jigs without taking them down is a pile.
 
 The substrate is `corrections.jsonl` (proposed − accepted) and `firings.jsonl` (jig
-runs). Schema: `CORRECTIONS.md`. The reading: `bin/mw-tax.sh`. Math: `metabolism/`.
+runs). Schema: `CORRECTIONS.md`. The reading: `constellation tax`. Math: `metabolism/`.
 Git log is the commit, not the differential. Fixture 6/6 is not a reading of this shop.

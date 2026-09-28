@@ -84,7 +84,7 @@ A jig with no `run` is DOCTRINE and is exempt. It never claimed to be a stop.
 **The instrument is `.madewell/jig/`.** Compiled conventions, a registry of wired jigs,
 honesty tiers (FENCE / SIGN / DOCTRINE). Install wires `mw-gate.sh` and `mw-jigs.sh` on
 pre-commit, `mw-record.sh` on post-commit. Whether to promote or drop is
-`bin/mw-tax.sh` on the live ledgers — not the synthetic harness.
+`constellation tax` on the live ledgers — not the synthetic harness.
 
 ---
 

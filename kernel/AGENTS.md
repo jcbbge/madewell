@@ -63,7 +63,7 @@ Run wired jigs in `jig/registry.json`. Never bypass `bin/mw-gate.sh`. A rule wit
 detector is UNJIGGED — say so.
 
 **Tax:** When the human overrode you, write `.madewell/jig/proposed.json` before the
-commit that lands their version (`CORRECTIONS.md`). Run `sh .madewell/bin/mw-tax.sh`
+commit that lands their version (`CORRECTIONS.md`). Run `constellation tax`
 at verify and session-end. **RATIFY** → ask them to compile a shop-made jig (never
 auto-build). **HOLD** → not yet. **DROP** / **SUNSET** → take-down is theirs. The
 fixture harness is not this reading.
@@ -90,7 +90,7 @@ bench/X.md        → finished/X.md
 bench/X/PIECE.md  → finished/X.md         its stock/ and bench/ must be empty
 ```
 
-Movement is `git mv`, one move per commit. `bin/mw-move` is scaffolding that
+Movement is `git mv`, one move per commit. `constellation move` is scaffolding that
 will only perform those four moves and then stage; it does not commit. Delete
 it and `git mv` still works. `.madewell/bin/mw-gate.sh` refuses anything else,
 and refusing is its only capability. **Never bypass it to make a commit go through** — if it

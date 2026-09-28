@@ -12,7 +12,7 @@ ls .madewell/bench/       # what is in hand
 ls .madewell/finished/    # what is done
 git log --oneline -12     # what just happened
 git status --porcelain    # what is uncommitted, and whose it is
-sh .madewell/bin/mw-tax.sh  # promote / drop from the live ledger, not fixtures
+constellation tax  # promote / drop from the live ledger, not fixtures
 ```
 
 Position is path. There is no *position* file. If you want to know where something is,

@@ -16,7 +16,7 @@ that is the proven API. Made Well names:
 The tax is the live ledgers, not this table:
 
 ```
-sh .madewell/bin/mw-tax.sh
+constellation tax
 node .madewell/jig/metabolism/live-feed.mjs   # jsonl → RATIFY/HOLD/DROP/SUNSET/KEEP
 node .madewell/jig/metabolism/harness.mjs     # function-rot (synthetic 6/6) + live-feed
 ```

@@ -117,7 +117,7 @@ Lab quality stop folded into Made Well names:
 - The Jig → `.madewell/jig/`
 - Software diet → `trades/dev/jig/conventions/`
 - This skill = feeder
-- `corrections.jsonl` = proposed − accepted. Contact: `proposed.json` before commit. Reading: `bin/mw-tax.sh`. Git log is not a substitute. Fixture 6/6 is not the tax.
+- `corrections.jsonl` = proposed − accepted. Contact: `proposed.json` before commit. Reading: `constellation tax`. Git log is not a substitute. Fixture 6/6 is not the tax.
 
 ---
 

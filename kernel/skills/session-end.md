@@ -22,7 +22,7 @@ the work" is not a handoff; "the jig refuses cross-depth moves — see the parse
 ## Read the tax
 
 ```
-sh .madewell/bin/mw-tax.sh
+constellation tax
 ```
 
 Say whether anything crossed the price (RATIFY) or a wired jig should come down (DROP /

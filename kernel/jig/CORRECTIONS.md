@@ -5,7 +5,7 @@ The fixture harness (`metabolism/harness.mjs`) only proves the functions still c
 It is not a reading of this shop.
 
 ```
-sh .madewell/bin/mw-tax.sh
+constellation tax
 ```
 
 | Printed | Meaning | What you do |

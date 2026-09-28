@@ -27,6 +27,11 @@ constellation status [<slug>]                 # where every piece is, and its la
 constellation resume <slug> --harness pi      # after a drop or a cap: same record, new hands
 ```
 
+**One interface.** People and agents act through `constellation <verb>` and nothing else:
+`constellation move`, `session`, `tax`, `jigs`, `enforcers`, `hooks` and `install` put the
+kernel's own tools behind the same door, so no brief, skill or doc tells anyone to run a script
+by name. What sits behind a verb may change language (a Lisp runtime later); the verbs do not.
+
 The stars are `kernel/stars/*.md`; the driver is `kernel/bin/constellation`, with its test
 beside it. Everything below is the Made Well kernel.
 

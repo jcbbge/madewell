@@ -30,7 +30,7 @@ question is this act's whole job, and no CI run will do it for you.
 `registry.json`. Report warn-mode. Assess rubrics. Surface signs. Use house names.
 A green test run that re-decided a fence is not verify.
 
-Then the tax — `sh .madewell/bin/mw-tax.sh`. That is the promote / drop reading.
+Then the tax — `constellation tax`. That is the promote / drop reading.
 Fixture 6/6 is not it. RATIFY is a tap for the human, never an auto-build.
 
 ## Then the rubric
