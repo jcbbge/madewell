@@ -60,20 +60,6 @@ record() { # record <slug> <step> <event> <harness> <done-text> <next> : one emp
     "$slug" "$step" "$ev" "$(act_of "$step")" "$(star_of "$step")" "$step" "$ev" "${h:--}" "$(tr '\n' ' ' <<<"${done:--}" | sed 's/[[:space:]]*$//')" "${next:--}")
   git -C "$wt" -c core.hooksPath=/dev/null commit -q --allow-empty -m "$msg" || die "could not record $ev for $slug"
 }
-main_commit() { # main_commit <subject> <body> [git-commit args…] : commit on R's branch; a project whose own
-  # law refuses direct commits there (Arc's branch law) gets the same commit through a short
-  # chore/ branch merged straight back, which is how its law says work reaches main
-  local subj=$1 body=$2 cur br; shift 2
-  git -C "$R" commit -q -m "$subj" -m "$body" "$@" >/dev/null 2>&1 && return 0
-  git -C "$R" diff --cached --quiet && return 1        # the hook took nothing staged: a refusal of the change itself
-  cur=$(git -C "$R" branch --show-current); br="chore/constellation-$(date +%s)-$$"
-  git -C "$R" switch -q -c "$br" 2>/dev/null || return 1
-  if git -C "$R" commit -q -m "$subj" -m "$body" "$@" >/dev/null 2>&1 &&
-     git -C "$R" switch -q "$cur" && git -C "$R" merge -q --no-ff "$br" -m "merge: $subj" >/dev/null 2>&1; then
-    git -C "$R" branch -q -d "$br" 2>/dev/null || true; return 0
-  fi
-  git -C "$R" switch -q "$cur" 2>/dev/null; git -C "$R" branch -q -D "$br" 2>/dev/null || true; return 1
-}
 next_step() { # next_step <slug> : the step to run next, or land / wait / operator / running:<step>; for a piece
   local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d  # that broke down, parts (its parts are made) or finish
   if broken_down "$slug"; then

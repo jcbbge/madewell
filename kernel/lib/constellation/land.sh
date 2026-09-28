@@ -15,7 +15,7 @@ cmd_land() {
   local rc; rc=$(receipt_compose "$slug" HEAD) || rc=""
   git -C "$R" mv "$MW/bench/$slug.md" "$MW/finished/$slug.md"
   if [ -n "$rc" ]; then printf '\n%s\n' "$rc" >>"$R/$MW/finished/$slug.md"; git -C "$R" add "$MW/finished/$slug.md"; fi
-  main_commit "finish $slug" "ACT: verify
+  git -C "$R" commit -q -m "finish $slug" -m "ACT: verify
 DONE: $slug verified by a star that did not build it; landed from $br
 NEXT: —" || die "the finish move was refused (mw-gate); the code is landed, the piece is still on the bench"
   git -C "$R" worktree remove --force "$wt" 2>/dev/null || true

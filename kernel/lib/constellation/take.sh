@@ -41,7 +41,7 @@ cmd_take() {
   for i in 0 1 2 3; do [ "${given[i]}" = 1 ] && floor_write "$src" "${FLOOR_KEYS[i]}" "${value[i]}"; done
   git -C "$R" mv "$src" "$dst"
   git -C "$R" add -- "$dst"
-  main_commit "take $slug to the bench" "ACT: plan
+  git -C "$R" commit -q -m "take $slug to the bench" -m "ACT: plan
 DONE: $slug is in hand (its floor is stated)
 NEXT: constellation run $slug (vega, ideate)" || {
     git -C "$R" reset -q -- "$src" "$dst" 2>/dev/null; mv "$dst" "$src"

@@ -148,7 +148,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
   [ ${#changed[@]} -gt 0 ] || die "no Made Well loader in AGENTS.md or CLAUDE.md to name the trade in (constellation install <project> first)"
   for f in "${changed[@]}"; do git -C "$R" ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && tracked+=("$f"); done
   if [ ${#tracked[@]} -gt 0 ] && ! git -C "$R" diff --quiet -- "${tracked[@]}"; then
-    main_commit "chore(trade): the project works in $name" "ACT: plan
+    git -C "$R" commit -q -m "chore(trade): the project works in $name" -m "ACT: plan
 DONE: the loader names the $name trade by reference ($ref)
 NEXT: —" -- "${tracked[@]}" || die "$name is named in ${changed[*]}, but the commit was refused; commit those files, then continue"
   fi

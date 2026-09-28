@@ -76,9 +76,9 @@ inbox_file_away() { # inbox_file_away <ideas/x> : move it into ideas/read/ under
   to=$IDEAS/read/$base
   while [ -e "$R/$to" ]; do to=$IDEAS/read/$stem.$n$ext; n=$((n + 1)); done
   if git -C "$R" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then # the person keeps ideas/ in git: the move is a commit
-    git -C "$R" mv -- "$rel" "$to" && main_commit "chore(ideas): read $base" "ACT: ideate
+    git -C "$R" mv -- "$rel" "$to" && git -C "$R" commit -q -m "chore(ideas): read $base" -m "ACT: ideate
 DONE: $rel is in hand for discovery, at $to
-NEXT: —" -- "$rel" "$to" || printf 'constellation: the move of %s is staged but not committed\n' "$rel" >&2
+NEXT: —" -- "$rel" "$to" >/dev/null || printf 'constellation: the move of %s is staged but not committed\n' "$rel" >&2
   else
     mv -- "$R/$rel" "$R/$to" 2>/dev/null || return 1
   fi
