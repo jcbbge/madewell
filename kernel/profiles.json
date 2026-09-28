@@ -1,10 +1,36 @@
 {
-  "version": "1.1",
-  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. Quality is the Jig (`.madewell/jig/`) plus trade conventions if a trade is loaded, else the Rubric asked inline. Trades live outside the kernel install; a project loads one by explicit reference.",
-  "contracts": ["persona", "domain", "quality", "memory", "onboarding"],
+  "version": "1.2",
+  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. Quality is the Jig (`.madewell/jig/`) plus trade conventions if a trade is loaded, else the Rubric asked inline. Trades live outside the kernel install; a project loads one by explicit reference. The door is chosen once at adoption (just talk = guide, show me the engine = lead) and decides only which surfaces the person sees; the work, the one voice and the glossary are the same behind both (AGENTS.md § Host, PROFILES.md § The two doors).",
+  "contracts": ["persona", "domain", "quality", "memory", "onboarding", "door"],
+  "doors": {
+    "just talk": {
+      "profile": "guide",
+      "shows": ["conversation", "brief", "line", "questions", "save-line", "notices", "receipt"]
+    },
+    "show me the engine": {
+      "profile": "lead",
+      "shows": ["conversation", "brief", "line", "questions", "save-line", "notices", "receipt", "engine-names", "commands", "status", "windows", "files", "tax"]
+    }
+  },
+  "surfaces": {
+    "conversation": "the host's one voice, in the glossary's words",
+    "brief": "the front page: constellation brief, told in the host's words",
+    "line": "the status line: constellation line",
+    "questions": "a question with a recommendation, answerable in one word",
+    "save-line": "the plain save line after each step",
+    "notices": "night-shift notices, relayed by the host",
+    "receipt": "the receipt when something is done",
+    "engine-names": "the engine's own name after the plain word, e.g. 'a second look (polaris)'",
+    "commands": "the constellation commands the host runs, shown as it runs them",
+    "status": "constellation status: where every piece is, and its whole run",
+    "windows": "the helpers' own windows, live",
+    "files": "the files under .madewell/ and the commit history",
+    "tax": "the jig reading: constellation tax"
+  },
   "profiles": {
     "lead": {
       "for": "the owner who holds the project — a solo maintainer + their agent, as peers",
+      "door": "show me the engine",
       "persona": "trade-supplied Lead register",
       "domain": "trade (loaded by reference)",
       "quality": "jig + trade conventions if present, else Rubric inline",
@@ -14,6 +40,7 @@
     },
     "contributor": {
       "for": "a technical guest folded into an existing project — a contractor / new hire + their agent",
+      "door": "show me the engine",
       "persona": "trade-supplied Contributor register",
       "domain": "trade (loaded by reference)",
       "quality": "jig + trade conventions if present, else Rubric inline",
@@ -22,16 +49,18 @@
       "authority": "surfaces findings to the Lead; stays in lane"
     },
     "guide": {
-      "for": "a non-technical builder making their own thing from scratch",
+      "for": "a person who would rather just talk — often a non-technical builder making their own thing",
+      "door": "just talk",
       "persona": "registers/guide/REGISTER.md (Guide register)",
-      "domain": [],
-      "quality": "inline (Rubric asked directly)",
+      "domain": "trade (loaded by reference), if any",
+      "quality": "jig + trade conventions if present, else Rubric inline",
       "memory": "default (flat files)",
       "onboarding": "Guide first-session Orientation",
       "authority": "owner — every decision is theirs; the system holds the process"
     },
     "naked": {
       "for": "machines, CI, headless agents — no human present",
+      "door": null,
       "persona": null,
       "domain": "per-task",
       "quality": "per-task",
