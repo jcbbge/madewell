@@ -77,7 +77,7 @@ floor_write() { # floor_write <piece> <key> <value> : replace the piece's **Key:
 
 seed_framework() { # the vendored Made Well framework is gitignored; a worktree needs it for the commit gate
   local wt=$1 d
-  for d in bin lib guides skills templates registers bindings stars; do
+  for d in bin lib guides skills templates registers bindings stars trades; do
     [ -d "$R/$MW/$d" ] && [ ! -e "$wt/$MW/$d" ] && cp -a "$R/$MW/$d" "$wt/$MW/$d"
   done; return 0
 }

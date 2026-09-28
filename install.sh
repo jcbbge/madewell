@@ -77,6 +77,8 @@ for d in guides skills templates bin lib registers bindings stars; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/kernel/$d" "$DEST/.madewell/$d"
 done
+rm -rf "$DEST/.madewell/trades"                                  # the cartridges: dev, marketing, sales
+cp -R "$SRC/trades" "$DEST/.madewell/trades"
 
 # ground + jig (framework docs) — instance roots/conventions/registry seeded once
 mkdir -p "$DEST/.madewell/ground" "$DEST/.madewell/jig"
