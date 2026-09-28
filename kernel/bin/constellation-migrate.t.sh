@@ -46,6 +46,7 @@ printf '# Work\n\n**Making:** a thing\n**Not making:** another\n**Done when:** i
 git add -A; git commit -qm "rack: idea, work"
 git mv ".$OLD/stock/work.md" ".$OLD/bench/work.md"; git commit -qm "bench: work"
 printf '{"ts":"t","sha":"s","jig":"mw-gate","mode":"block","exit":1,"violations_caught":1}\n' >".$OLD/jig/firings.jsonl"   # an ignored ledger
+mkdir -p ".$OLD/sessions"; printf '{"schema": "%s.session/v1", "id": "s1", "piece": ".%s/stock/idea.md"}\n' "$OLD" "$OLD" >".$OLD/sessions/s1.json"   # an ignored session record
 work_sum=$(sha1sum <".$OLD/bench/work.md")
 before=$(git rev-parse HEAD)
 check "fixture: the old install is what the old installer made" sh -c "test -f '.$OLD/VERSION' && grep -qF '<!-- $OLD_MARK — loader -->' CLAUDE.md && grep -qF '# $OLD_MARK — begin' .gitignore && grep -qxF '# $OLD_MARK — begin' .githooks/pre-commit && grep -qF '.$OLD/trades/marketing/TRADE.md' AGENTS.md && git ls-files --error-unmatch '.$OLD/bench/work.md'"
@@ -60,6 +61,7 @@ check "the move is staged as renames, not committed" sh -c "test \"\$(git rev-pa
 check "a path to the old folder inside a piece now points at the new one" grep -qF 'See .constellation/stock/idea.md' .constellation/stock/idea.md
 check "the project's own setup moved, points at the new folder, and still runs" sh -c "test -x .constellation/setup && grep -qF 'cp .constellation/PRODUCT.md' .constellation/setup"
 check "an ignored ledger moved with it and names the new gate" grep -qF '"jig":"cst-gate"' .constellation/jig/firings.jsonl
+check "a session record moved and carries the new schema and path" grep -qF '{"schema": "constellation.session/v1", "id": "s1", "piece": ".constellation/stock/idea.md"}' .constellation/sessions/s1.json
 check "the root document has the new name" sh -c "test -f CONSTELLATION.md && test ! -e $OLD_UP.md"
 check "loader: the new markers, the new folder, the trade kept, the project's own words kept" sh -c "grep -qxF '<!-- CONSTELLATION — loader -->' CLAUDE.md && grep -qxF '<!-- /CONSTELLATION -->' CLAUDE.md && grep -qF '.constellation/HOST.md and .constellation/trades/marketing/TRADE.md' CLAUDE.md && grep -qF 'Be kind.' CLAUDE.md && grep -qF '.constellation/trades/marketing/TRADE.md' AGENTS.md"
 check "the trade is still marketing" sh -c "'$C' trade | grep -q marketing"
