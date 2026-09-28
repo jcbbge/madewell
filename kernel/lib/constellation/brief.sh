@@ -10,9 +10,9 @@ doing_of() { case "$1" in vega) echo "thinking it through";; polaris-*) echo "ge
 did_of() { case "$1" in vega) echo "thought through";; polaris-*) echo "given a second look";; cassiopeia) echo "planned";;
   sirius) echo "made";; orion) echo "given its checks";; aldebaran) echo "checked";; *) echo "$1";; esac; }
 
-title_of() { # title_of <piece file> : its first heading, else its slug
+title_of() { # title_of <piece file> : its first heading (a PIECE.md's too), else its slug
   local t; t=$(sed -n '1,/^# /s/^# //p' "$1" 2>/dev/null | head -1)
-  printf '%s' "${t:-$(basename "$1" .md)}"
+  printf '%s' "${t:-$(piece_slug "$1")}"
 }
 at() { date -d "@$1" "+$2" 2>/dev/null || date -r "$1" "+$2"; }  # at <epoch> <format> : GNU date, else BSD
 clock() { # clock <epoch> : 14:02 today, else Sep 27 14:02
@@ -47,14 +47,21 @@ recommendation_in() { # recommendation_in <recommend-trailer> <text> : the trail
 }
 
 # One pass over the bench. Fills WAITING (TIME US what it asks US recommendation US other choices, one per
-# piece that needs the person) and MAKING (TIME<TAB>"title — act, since …"), and DID (bench pieces'
-# latest done act since $SINCE).
+# piece that needs the person) and MAKING (TIME<TAB>"title — act, since …"; a piece that broke down is one
+# piece, with how far along its parts are), and DID (bench pieces' latest done act since $SINCE).
 survey() {
   WAITING=""; MAKING=""; DID=()
   local f slug title nx t st e d rec op lt ld lrec lop started dones
-  for f in "$R/$MW"/bench/*.md; do
-    [ -e "$f" ] || continue; slug=$(basename "$f" .md); title=$(title_of "$f")
+  local pieces=(); mapfile -t pieces < <(bench_pieces)
+  for f in ${pieces[@]+"${pieces[@]}"}; do
+    slug=$(piece_slug "$f"); title=$(title_of "$f")
     nx=$(next_step "$slug" 2>/dev/null || echo operator)
+    if broken_down "$slug"; then  # its parts are made one by one; it has no record of its own, only their progress
+      lt=$(git -C "$R" log -1 --format=%ct -- "$MW/bench/$slug" 2>/dev/null)
+      if [ "$nx" = finish ]; then MAKING+="${lt:-0}"$'\t'"$title — $(parts_said "$slug"), ready to finish"$'\n'
+      else MAKING+="${lt:-0}"$'\t'"$title — $(parts_said "$slug")"$'\n'; fi
+      continue
+    fi
     lt=""; ld=""; lrec=""; lop=""; started=""; dones=""
     while IFS=$US read -r t st e d rec op; do  # the latest handoff, the latest start, the latest act done since
       [ -n "$st" ] || continue

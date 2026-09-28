@@ -25,9 +25,10 @@ tend_projects() { # the main checkout behind every piece worktree in $STATE, onc
 tend_bench() { # one pass over R's bench: only a running step can have lost its agent
   local f slug nx why
   ! paused || return 0   # paused: a quiet step is meant to be quiet
-  for f in "$R/$MW"/bench/*.md; do
-    [ -e "$f" ] || continue; slug=$(basename "$f" .md)
-    nx=$(next_step "$slug" 2>/dev/null) || continue
+  local pieces=(); mapfile -t pieces < <(bench_pieces)
+  for f in ${pieces[@]+"${pieces[@]}"}; do
+    slug=$(piece_slug "$f")
+    nx=$(next_step "$slug" 2>/dev/null) || continue   # one that broke down is parts or finish: never running
     [[ "$nx" == running:* ]] || continue
     why=$(tend_trouble "$slug" "${nx#running:}") || continue
     ( tend_restart "$slug" "${nx#running:}" "$why" ) || say "$slug: could not start ${nx#running:} again; see constellation status $slug"

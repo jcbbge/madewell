@@ -15,6 +15,29 @@ R=""; work_of() { printf '%s/%s/%s' "$STATE" "$(basename "$R")" "$1"; }
 branch_of() { printf 'piece/%s' "$1"; }
 star_of() { case "$1" in polaris-*) echo polaris;; *) echo "$1";; esac; }
 act_of() { case "$1" in vega|polaris-peer) echo ideate;; cassiopeia) echo plan;; sirius) echo implement;; *) echo verify;; esac; }
+bench_pieces() { # every piece being made, one file per line: a leaf's bench/<slug>.md, or the PIECE.md of one that broke
+  local f                  # down (a bench/<slug>/ without PIECE.md is a finished breakdown, or an empty scaffold: not listed)
+  for f in "$R/$MW"/bench/*.md "$R/$MW"/bench/*/PIECE.md; do
+    [ -f "$f" ] || continue
+    case "$f" in */PIECE.md) [ ! -f "${f%/PIECE.md}.md" ] || continue ;; esac
+    printf '%s\n' "$f"
+  done
+}
+piece_slug() { case "$1" in */PIECE.md) basename "$(dirname "$1")" ;; *) basename "$1" .md ;; esac; }
+broken_down() { [ ! -f "$R/$MW/bench/$1.md" ] && [ -f "$R/$MW/bench/$1/PIECE.md" ]; }
+parts_of() { # parts_of <slug> : DONE<TAB>BEING-MADE<TAB>ON-THE-RACK, the parts of a piece that broke down
+  local d="$R/$MW/bench/$1" f done=0 made=0 rack=0
+  for f in "$d"/finished/*.md; do [ -f "$f" ] || continue; done=$((done + 1)); done
+  for f in "$d"/bench/*.md "$d"/bench/*/PIECE.md; do [ -f "$f" ] || continue; made=$((made + 1)); done
+  for f in "$d"/stock/*.md; do [ -f "$f" ] || continue; rack=$((rack + 1)); done
+  printf '%s\t%s\t%s\n' "$done" "$made" "$rack"
+}
+parts_said() { # parts_said <slug> : how far along its parts are, in plain words ("3 of 8 parts done, 1 being made")
+  local pd pm pr n; IFS=$'\t' read -r pd pm pr < <(parts_of "$1"); n=$((pd + pm + pr))
+  if [ "$n" -eq 0 ]; then printf 'not broken into parts yet'; return; fi
+  printf '%s of %s part%s done' "$pd" "$n" "$([ "$n" -eq 1 ] || echo s)"
+  [ "$pm" -eq 0 ] || printf ', %s being made' "$pm"
+}
 star_field() { sed -n "s/^$2:[[:space:]]*//p" "$STARS/$1.md" | head -1; }
 star_body() { sed '1,/^---$/d' "$STARS/$1.md"; }
 
@@ -37,8 +60,13 @@ record() { # record <slug> <step> <event> <harness> <done-text> <next> : one emp
     "$slug" "$step" "$ev" "$(act_of "$step")" "$(star_of "$step")" "$step" "$ev" "${h:--}" "$(tr '\n' ' ' <<<"${done:--}" | sed 's/[[:space:]]*$//')" "${next:--}")
   git -C "$wt" -c core.hooksPath=/dev/null commit -q --allow-empty -m "$msg" || die "could not record $ev for $slug"
 }
-next_step() { # next_step <slug> : the step to run next, or land / wait / operator / running:<step>
-  local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d
+next_step() { # next_step <slug> : the step to run next, or land / wait / operator / running:<step>; for a piece
+  local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d  # that broke down, parts (its parts are made) or finish
+  if broken_down "$slug"; then
+    local pd pm pr; IFS=$'\t' read -r pd pm pr < <(parts_of "$slug")
+    if [ "$pm" -eq 0 ] && [ "$pr" -eq 0 ] && [ "$pd" -gt 0 ]; then echo finish; else echo parts; fi
+    return
+  fi
   while IFS=$'\t' read -r step ev h d; do
     last=$step; lev=$ev
     [ "$step" = orion ] && [ "$ev" = done ] && orion_done=1
