@@ -55,6 +55,14 @@ for i in 1 2 3 4 5 6 7 8; do rack "$O" "part$i" "Part $i"; done
 for i in 1 2 3 4; do move "$O/stock/part$i.md" "$O/bench/part$i.md"; done
 for i in 1 2 3; do move "$O/bench/part$i.md" "$O/finished/part$i.md"; done
 check "the parts moved legally (the gate let every one through)" sh -c "test -f $O/finished/part3.md && test -f $O/bench/part4.md && test -f $O/stock/part8.md && test -z \"\$(git status --porcelain -- .madewell)\""
+# one depth in: a part that itself broke down (bench/obs/bench/part5/PIECE.md), and an empty scaffold beside it
+mkdir -p "$O/bench/part5/stock" "$O/bench/part5/bench" "$O/bench/part5/finished" "$O/bench/gone/stock"
+for s in stock bench finished; do touch "$O/bench/part5/$s/.gitkeep"; done; touch "$O/bench/gone/stock/.gitkeep"
+git mv "$O/stock/part5.md" "$O/bench/part5/PIECE.md"; git add -f "$O/bench/part5"
+check "a part breaks down, one depth in, through the gate" git commit -qm "part5 breaks down" -m "ACT: plan
+DONE: part5 breaks down
+NEXT: —"
+git add -f "$O/bench/gone"; MW_GATE=off git commit -qm "an empty scaffold inside a breakdown"
 
 # --- a piece that broke down and is drained: every part done
 broken docs "Write the handbook"
@@ -75,11 +83,11 @@ check "a finished breakdown leaves its directory and its record" sh -c "test -f 
 # --- status and next_step
 S=$("$C" status 2>&1); printf '%s\n' "$S" | sed 's/^/     | /'
 check "status: the leaf is listed" has "$S" "greet"
-check "status: the piece that broke down is listed, with its progress" bash -c 'grep -E "^obs +parts +3 of 8 parts done, 1 being made$" <<<"$1"' _ "$S"
+check "status: the piece that broke down is listed, with its progress" bash -c 'grep -E "^obs +parts +3 of 8 parts done, 2 being made$" <<<"$1"' _ "$S"
 check "status (next_step): a drained breakdown is ready to finish" bash -c 'grep -E "^docs +finish +2 of 2 parts done$" <<<"$1"' _ "$S"
 check "status: an empty scaffold is not listed" lacks "$S" "stale"
 check "status: a finished breakdown's leftover directory is not listed" bash -c '! grep -qE "^old " <<<"$1"' _ "$S"
-check "status <slug>: where it is, in parts" has "$("$C" status obs 2>&1)" "obs — on the bench, in parts: 3 of 8 parts done, 1 being made"
+check "status <slug>: where it is, in parts" has "$("$C" status obs 2>&1)" "obs — on the bench, in parts: 3 of 8 parts done, 2 being made"
 check "status <slug>: its next is its parts" has "$("$C" status obs 2>&1)" "next: parts"
 check "status <slug>: a drained one's next is finish" has "$("$C" status docs 2>&1)" "next: finish"
 check "status <slug>: a finished breakdown is finished" has "$("$C" status old 2>&1)" "old — finished"
@@ -87,7 +95,7 @@ check "status <slug>: an empty scaffold is not on the bench" has "$("$C" status 
 
 # --- brief and line
 B=$("$C" brief 2>&1); printf '%s\n' "$B" | sed 's/^/     | /'
-check "brief: titled from PIECE.md's first heading, with how far along its parts are" has "$B" "See everything: one console — 3 of 8 parts done, 1 being made"
+check "brief: titled from PIECE.md's first heading, with how far along its parts are" has "$B" "See everything: one console — 3 of 8 parts done, 2 being made"
 check "brief: a drained breakdown reads as ready to finish" has "$B" "Write the handbook — 2 of 2 parts done, ready to finish"
 check "brief: the leaf is still being made beside them" has "$B" "Greet the user — thinking it through"
 check "brief: an empty scaffold is not being made" bash -c '! grep -qiE "stale|An old breakdown —" <<<"$1"' _ "$B"
@@ -102,7 +110,7 @@ check "tend: a piece that broke down is never restarted" bash -c '! grep -qE "^(
 check "tend: nothing else to say about the breakdowns on a second pass" test -z "$("$C" tend 2>&1)"
 
 # --- finishing the drained breakdown: it leaves the bench and is done
-"$C" move finish docs >/dev/null && git commit -qm "finish docs" -m "ACT: verify
+sleep 1; "$C" move finish docs >/dev/null && git commit -qm "finish docs" -m "ACT: verify
 DONE: docs
 NEXT: —"
 check "finish: the drained breakdown's move is legal" test -f .madewell/finished/docs.md
