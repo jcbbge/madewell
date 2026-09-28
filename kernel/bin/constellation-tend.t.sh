@@ -82,6 +82,11 @@ tmux kill-window -t "=workers:=bye·sirius"
 tend >/dev/null
 check "and then down the list: claude" test "$(harness bye)" = claude
 
+# --- one door: tend is a verb like any other, and help still reaches the end of the header
+check "help names tend" sh -c "'$C' help | grep -q 'constellation tend \\[--all\\]'"
+check "help names the quiet knob and still prints the whole header" sh -c "'$C' help | grep -q CONSTELLATION_STUCK_SECONDS && '$C' help | grep -q '^Requires:'"
+check "tend refuses what it does not know" sh -c "! '$C' tend --bogus"
+
 # --- the timer: a user unit, every five minutes, one pass over every project
 U=$ROOT/kernel/bindings
 check "the service runs one pass of tend --all" grep -qx 'ExecStart=/usr/bin/env constellation tend --all' "$U/constellation-tend.service"
