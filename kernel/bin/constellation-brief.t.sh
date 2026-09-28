@@ -88,6 +88,9 @@ check "line: two questions for you" test "$(line)" = "2 being made · 2 question
 B=$(brief)
 check "brief (done): only what is new since the last brief" bash -c "grep -qF 'Greet the user was thought through' <<<\"\$0\" && ! grep -qE 'Wave goodbye was|Old piece' <<<\"\$0\"" "$B"
 check "brief (waiting): the oldest question first, and how many more" has "$B" "Waiting on you: Say hi asks: run the e2e suite too? (and 1 more after this)"
+rec bye polaris-peer started "-"; rec bye polaris-peer clarify "which module?"
+check "a question from one act to the one before is not the person's" test "$(line)" = "2 being made · 2 questions for you"
+rec bye vega reply:vega "the greet module"
 rec hi vega answer "unit tests are enough"
 B=$(brief)
 check "brief (waiting): an answered question leaves; the next one comes up" has "$B" "Waiting on you: Ping the server asks before it starts: Situation: the name is unclear."
@@ -104,6 +107,8 @@ check "line: silent outside a git repository" test -z "$(cd "$T" && "$C" line)"
 # --- the bindings show the same line
 check "statusline: Claude Code's JSON in, the line out" test "$(cd / && printf '{"session_id":"s","workspace":{"current_dir":"%s","project_dir":"%s"}}' "$P" "$P" | sh "$ROOT/kernel/bindings/statusline.sh")" = "3 being made · 1 question for you"
 check "statusline: the installed copy finds its own constellation" test "$(cd "$P" && echo '{}' | sh .madewell/bindings/statusline.sh)" = "3 being made · 1 question for you"
+mkdir -p "$T/a, b"; git clone -q "$P" "$T/a, b/proj" 2>/dev/null
+check "statusline: a path with a comma in it" test "$(cd / && printf '{"workspace":{"current_dir":"%s"}}' "$T/a, b/proj" | sh "$ROOT/kernel/bindings/statusline.sh")" = "4 being made"
 check "statusline: silent without Made Well" test -z "$(printf '{"workspace":{"current_dir":"%s"}}' "$T/plain" | sh "$ROOT/kernel/bindings/statusline.sh")"
 pihost=/; command -v pi >/dev/null && pihost=$(dirname "$(readlink -f "$(command -v pi)")")
 while [ "$pihost" != / ] && [ ! -f "$pihost/dist/core/extensions/loader.js" ]; do pihost=$(dirname "$pihost"); done

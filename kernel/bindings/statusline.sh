@@ -5,9 +5,11 @@
 #
 #   "statusLine": { "type": "command", "command": "sh .madewell/bindings/statusline.sh" }
 #
-# Claude Code sends the session as JSON on stdin; its workspace.current_dir is where to look.
+# Claude Code sends the session as JSON on stdin; its workspace.current_dir is where to look
+# (read with python3 when there is one, else a plain match that suits paths without commas).
 in=$(cat 2>/dev/null || true)
-dir=$(printf '%s' "$in" | tr ',{}' '\n\n\n' | sed -n 's/^[[:space:]]*"current_dir"[[:space:]]*:[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' | head -1)
+dir=$(printf '%s' "$in" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("workspace") or {}).get("current_dir") or d.get("cwd") or "")' 2>/dev/null)
+[ -n "$dir" ] || dir=$(printf '%s' "$in" | tr ',{}' '\n\n\n' | sed -n 's/^[[:space:]]*"current_dir"[[:space:]]*:[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' | head -1)
 [ -n "$dir" ] || dir=$(printf '%s' "$in" | tr ',{}' '\n\n\n' | sed -n 's/^[[:space:]]*"cwd"[[:space:]]*:[[:space:]]*"\(.*\)"[[:space:]]*$/\1/p' | head -1)
 [ -n "$dir" ] && [ -d "$dir" ] || dir=$PWD
 c=$(cd "$(dirname "$0")/../bin" 2>/dev/null && pwd)/constellation
