@@ -137,6 +137,12 @@ as greet polaris-triage; "$C" clear >/dev/null
 check "a route nowhere is still refused" says "route to sirius, orion or person" "$C" done --route nobody "x"
 check "the arbiter routes to the person" "$C" done --route person "pre-existing: the runner was never installed"
 check "the piece now waits for the person" test "$(next greet)" = operator
+check "the record keeps the operator route" sh -c "'$C' status greet | grep -q 'route:operator'"
+unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE CONSTELLATION_REPO
+rack older; to_aldebaran older
+"$C" done --fail "the check failed" >/dev/null; as older polaris-triage; "$C" clear >/dev/null
+check "the older spelling, --route operator, still routes to the person" "$C" done --route operator "out of scope"
+check "and the piece waits for the person the same way" test "$(next older)" = operator
 
 # an install that lost its law says so in the brief, instead of briefing a star without it
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE CONSTELLATION_REPO
