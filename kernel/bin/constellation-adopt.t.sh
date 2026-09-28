@@ -95,6 +95,18 @@ U=$T/un; mkdir -p "$U"; git init -q -b main "$U"; echo x >"$U/x"; git -C "$U" ad
 "$C" adopt "$U" >/dev/null 2>&1
 check "uninstall after adopt leaves no residue, ideas/ included" sh -c "sh '$ROOT/install.sh' --uninstall '$U' >/dev/null && test -z \"\$(git -C '$U' status --porcelain)\" && test ! -e '$U/ideas'"
 
+V=$T/kept; mkdir -p "$V"; git init -q -b main "$V"; echo x >"$V/x"; git -C "$V" add -A; git -C "$V" commit -qm init
+"$C" adopt "$V" >/dev/null 2>&1; echo 'a voice memo' >"$V/ideas/memo.txt"
+check "uninstall keeps an ideas/ the person dropped something in" sh -c "sh '$ROOT/install.sh' --uninstall '$V' >/dev/null && test -f '$V/ideas/memo.txt'"
+
+# --- with no name and email for git, the first commit is reported, and the setup still stands
+N=$T/noid; mkdir -p "$N"; printf '[user]\n\tuseConfigOnly = true\n' >"$T/noid.gitconfig"
+out4=$(env -u GIT_AUTHOR_NAME -u GIT_AUTHOR_EMAIL -u GIT_COMMITTER_NAME -u GIT_COMMITTER_EMAIL -u EMAIL GIT_CONFIG_GLOBAL="$T/noid.gitconfig" "$C" adopt "$N" 2>&1); rc=$?
+check "no git identity: adopt still sets the project up" sh -c "test $rc = 0 && test -x '$N/.madewell/bin/constellation' && test -f '$N/ideas/.gitkeep'"
+check "no git identity: it says the first commit could not be made" has "the first commit could not be made" "$out4"
+check "no git identity: and still welcomes" has "Constellation is set up in noid." "$out4"
+check "adopt refuses more than one project" sh -c "! '$C' adopt '$P' '$F'"
+
 # --- a linked worktree (its .git is a file) still gets its hooks from install ------------------
 git -C "$U" worktree add -q "$T/wt" -b side 2>/dev/null
 check "install wires the hooks in a linked worktree" sh -c "sh '$ROOT/install.sh' '$T/wt' | grep -qF 'Made Well hooks:'"
