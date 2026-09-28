@@ -153,4 +153,21 @@ check "discovery starts" env CONSTELLATION_DISCOVER=headless "$C" discover "$T/n
 db=$(ls "$T"/state/proj/discover.notes.*.brief.md 2>/dev/null | head -1)
 check "the discovery brief says, near the top, it is not the host" sh -c "test -n '$db' && head -4 '$db' | grep -qF '$HOSTLINE'"
 
+# a discovery session runs in its own memory lane, in both modes. Headless: a stub harness, first on a
+# PATH no shell rc touches, records what it was given. Window: dry, so the pane runs sleep, never a
+# harness; the lane is read from that process's environment.
+mkdir -p "$T/stub"; printf '#!/bin/sh\necho "role=$CIRCADIAN_ROLE lane=$CIRCADIAN_LANE tasks=$TASKS_FILE" >>"%s"\n' "$T/pi.env" >"$T/stub/pi"; chmod +x "$T/stub/pi"
+printf 'alpha\n' >"$T/alpha.md"; printf 'beta\n' >"$T/beta.md"
+env -u CONSTELLATION_DRY -u BASH_ENV PATH="$T/stub:$PATH" CONSTELLATION_DISCOVER_HARNESS=pi CONSTELLATION_DISCOVER=headless "$C" discover "$T/alpha.md" >/dev/null 2>&1
+for _ in $(seq 50); do [ -s "$T/pi.env" ] && break; sleep 0.2; done
+check "headless discovery runs as an agent in its own lane" grep -qE '^role=AGNT lane=discover-alpha tasks=.*/discover\.alpha\..*\.TASKS\.md$' "$T/pi.env"
+CONSTELLATION_DISCOVER=window "$C" discover "$T/beta.md" >/dev/null 2>&1
+pane_env() { # the environment the discovery window's command runs in
+  local pp kid; pp=$(tmux list-panes -a -F '#{window_name} #{pane_pid}' | awk '$1 == "discover·beta" { print $2 }')
+  [ -n "$pp" ] || return 1; kid=$(pgrep -P "$pp" sleep | head -1); [ -n "$kid" ] || return 1
+  tr '\0' '\n' <"/proc/$kid/environ"
+}
+for _ in $(seq 50); do pane_env >/dev/null 2>&1 && break; sleep 0.2; done
+check "windowed discovery runs as an agent in its own lane" bash -c "$(declare -f pane_env); pane_env | grep -qx CIRCADIAN_ROLE=AGNT && pane_env | grep -qx CIRCADIAN_LANE=discover-beta && pane_env | grep -qE '^TASKS_FILE=.*/discover\.beta\..*\.TASKS\.md$'"
+
 [ "$fails" = 0 ] && echo "constellation-starlaw: all tests passed" || { echo "constellation-starlaw: $fails failed"; exit 1; }

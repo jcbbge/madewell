@@ -50,13 +50,14 @@ discover_start() { # discover_start <notes-path> : start the act on one file; sa
       [ "$h" = claude ] && trust "$R"   # a project the person never opened in claude would sit at its folder-trust question
       tmux has-session -t "=$SESSION" 2>/dev/null || tmux new-session -d -s "$SESSION" -n _ -c "$R" || return 1
       local wid; wid=$(tmux new-window -d -P -F '#{window_id}' -t "=$SESSION:" -n "discover·$name" -c "$R") || return 1
-      tmux send-keys -t "$wid" "export AGENT_ROLE=vega CONSTELLATION_DISCOVERING=1 TASKS_FILE='$tl' CONSTELLATION_HARNESS='$h'; clear; $run" Enter || return 1
+      tmux send-keys -t "$wid" "export AGENT_ROLE=vega CONSTELLATION_DISCOVERING=1 TASKS_FILE='$tl' CIRCADIAN_ROLE=AGNT CIRCADIAN_LANE='discover-$name' CONSTELLATION_HARNESS='$h'; clear; $run" Enter || return 1
       say "discovery started on $notes, on $h, in $SESSION:discover·$name" ;;
     headless)
       local log=${brief%.brief.md}.log
       run=$(discover_cmd "$h" "$brief" headless) || return 1
       [ "${CONSTELLATION_DRY:-}" = 1 ] && run=true
-      ( cd "$R" && AGENT_ROLE=vega CONSTELLATION_DISCOVERING=1 TASKS_FILE="$tl" nohup bash -c "$run" >"$log" 2>&1 </dev/null & ) || return 1
+      # its own lane, like a star's: a session with none would end by rewriting every session's next move
+      ( cd "$R" && AGENT_ROLE=vega CONSTELLATION_DISCOVERING=1 TASKS_FILE="$tl" CIRCADIAN_ROLE=AGNT CIRCADIAN_LANE="discover-$name" nohup bash -c "$run" >"$log" 2>&1 </dev/null & ) || return 1
       say "discovery started on $notes, on $h, headless (its log: $log)" ;;
   esac
 }
