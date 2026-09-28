@@ -1,5 +1,17 @@
 # Constellation
 
+Paste this to your AI assistant: **Set up Constellation in this project.**
+
+1. Your assistant sets everything up, then asks what you do and has you walk through one job.
+2. From then on you just talk — ideas, notes, call transcripts, voice memos — or drop files in `ideas/`.
+3. It keeps track of what's an idea, what's being made and what's done, and gets a second look before anything is called done.
+
+*For the assistant:* get this repository (`git clone https://github.com/jcbbge/madewell`), run
+`<clone>/kernel/bin/constellation adopt` from the project, then follow
+`.madewell/skills/adopt.md`.
+
+---
+
 **Made Well is the playbook. Constellation drives it.** One project: the Made Well kernel
 (below, unchanged) and the six stars that carry a piece through its four acts. A Lisp
 runtime that will host all of it lives in `runtime/lisp/` and is not needed today.
@@ -20,6 +32,7 @@ handoff. A dropped connection, a capped plan or a new provider loses nothing.
 | verify | Polaris | on a failure, rules: bad test, bad code, or the operator's | nothing |
 
 ```sh
+constellation adopt [<project>]               # set a project up: kernel, hooks, ideas/, checks, a welcome
 constellation discover notes/client-call.md   # the outer loop: notes → pieces on the rack
 constellation take <slug>                     # rack → bench; the floor is required
 constellation run <slug>                      # the stars take turns; each hands to the next

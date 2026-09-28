@@ -9,6 +9,8 @@
 # `constellation resume <slug>` starts the current step again, on any harness, and the
 # new agent reads every handoff before it.
 #
+#   constellation adopt [<project>]            set a project up (default: here): the kernel, the hooks,
+#                                              ideas/ (the drop box), the checks, and a welcome
 #   constellation take <slug>                  stock → bench (the floor is required); makes the
 #                                              piece's branch piece/<slug> and its worktree
 #   constellation run <slug> [launch flags]    start the piece's next step (or land it)
@@ -53,7 +55,7 @@
 #   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests).
 # Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
 set -euo pipefail
-case "${1:-}" in -h|--help|help|"") sed -n '2,55p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
+case "${1:-}" in -h|--help|help|"") sed -n '2,57p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
 
 SELF=$(readlink -f "$0")
 KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
@@ -66,6 +68,7 @@ LIB=$KERNEL/lib/constellation
 for f in "$LIB"/*.sh; do . "$f"; done  # one file per concern; each verb's code lives in one of them
 
 case "$1" in
+  adopt) shift; cmd_adopt "$@" ;;
   take) shift; cmd_take "$@" ;;
   run) shift; cmd_run "$@" ;;
   resume) shift; RESUME=1 cmd_run "$@" ;;

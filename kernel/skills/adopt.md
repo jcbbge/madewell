@@ -1,6 +1,38 @@
 # Adopt — the first conversation
 **Layer:** foundational · **Mode:** workflow
-**When:** someone new arrives. First contact, before any work. Runs **once**, then never again.
+**When:** someone new arrives — often with one sentence: *"Set up Constellation in this project."*
+First contact, before any work. The conversation runs **once**; the setup is harmless to repeat.
+
+---
+
+## First, set it up
+
+The person asked for setup, so do all of it. They run nothing and read nothing.
+
+1. **Run adopt**, from the project, with the Constellation package's own copy of the driver:
+
+   ```sh
+   <package>/kernel/bin/constellation adopt            # this project; or: … adopt <project>
+   ```
+
+   No package on this machine? Clone it anywhere first (`git clone
+   https://github.com/jcbbge/madewell`). Once a project is adopted, its own copy
+   (`.madewell/bin/constellation adopt`) re-runs the setup without the package.
+
+   Adopt installs the kernel, wires the commit hooks, makes `ideas/` (the drop box), runs the
+   enforcer checks and prints a welcome. Running it twice changes nothing of theirs.
+
+2. **If it fails, stop and say so plainly.** A failed check is not a detail to route around;
+   the welcome is only true once adopt exits 0.
+
+3. **Commit the adoption** when the project already had history (adopt makes the first commit
+   itself in a repository that had none): stage only what adopt added — `.gitignore`,
+   `CLAUDE.md`, `AGENTS.md`, `.madewell/`, `ideas/.gitkeep` — and commit with `MW_GATE=off`,
+   the one sanctioned bypass.
+
+4. **Give them the welcome in your own voice**: what it says they can do next, not the output
+   pasted. Then hold the conversation below. If adopt said it was *already set up* and they
+   have work in hand, skip the conversation: they have adopted it already.
 
 ---
 
@@ -154,16 +186,16 @@ say:
 > *How will you know it's done?*
 > *Is anything holding it up?*
 
-Then put it on the rack and take it to the bench yourself, and tell them plainly: *"That's on
-your bench now."*
+Then put it with the ideas (`.madewell/stock/<slug>.md`) and start it yourself (`constellation
+take <slug>`), and tell them plainly: *"That's being made now."*
 
 **Those four answers are where adoption actually happens** — it is the first time the thing
 asks them for something and gives something back. If they struggle with *done when*, that is
 not them failing the exercise; it is the exercise working. Sit in it with them.
 
-Then stop. One piece is enough for a first sitting. They will be tempted to rack twenty
-things; the rack growing is fine, but the bench staying short is the discipline, and it is
-easier learned with one.
+Then stop. One piece is enough for a first sitting. They will be tempted to add twenty
+ideas; the ideas growing is fine, but what is being made staying short is the discipline, and
+it is easier learned with one.
 
 ---
 
@@ -172,9 +204,9 @@ easier learned with one.
 - They have named their unit of work.
 - Their four acts are written in **their** vocabulary.
 - A trade exists that they watched get written.
-- One real piece is on the bench with a floor they wrote.
-- They know the three places work can be — waiting, in hand, done — and that nothing ever
+- One real piece is being made, with the four questions answered in their words.
+- They know the three places work can be — ideas, being made, done — and that nothing ever
   moves backward.
 
 **Not done when** you have explained the framework well. Explaining is not adopting. They have
-adopted it when one real piece of their own work is sitting on the bench.
+adopted it when one real piece of their own work is being made.

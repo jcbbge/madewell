@@ -10,6 +10,7 @@
 #
 # You do not need this. It copies files and appends one line to CLAUDE.md/AGENTS.md.
 # Doing that by hand is a completely reasonable way to adopt Made Well.
+# `constellation adopt` runs it for you, then wires the rest and says what's next.
 
 set -eu
 
@@ -39,6 +40,10 @@ if [ "$MODE" = "uninstall" ]; then
     if ! grep -qvE '^#!|^[[:space:]]*$' "$hook"; then rm -f "$hook"; fi
   done
   rm -rf "$DEST/.madewell" "$DEST/MADEWELL.md"
+  # ideas/ is the drop box `constellation adopt` made; it goes only when nothing was ever dropped in it
+  if [ -d "$DEST/ideas" ] && [ -z "$(ls -A "$DEST/ideas" | grep -vx .gitkeep)" ]; then
+    rm -f "$DEST/ideas/.gitkeep"; rmdir "$DEST/ideas"
+  fi
   for f in CLAUDE.md AGENTS.md; do
     [ -f "$DEST/$f" ] || continue
     awk -v b="$LOADER_BEGIN" -v e="$LOADER_END" '
@@ -158,7 +163,7 @@ printf 'madewell %s\ninstalled %s\n' "$ver" "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/de
   > "$DEST/.madewell/VERSION"
 
 # ── 6. wire the stops — gate + jigs on pre-commit, correction record on post-commit
-if [ -d "$DEST/.git" ]; then
+if [ -e "$DEST/.git" ]; then   # a directory, or a file in a linked worktree
   ( cd "$DEST" && sh .madewell/bin/mw-hooks.sh )
 fi
 
