@@ -86,6 +86,9 @@ for t in "$ROOT"/trades/*/; do t=${t%/}
     for n in $(skills_of "$f"); do check "$(basename "$t")/$(basename "$f" .md)'s skill $n is real" skill_real "$n" "$t"; done
   done
 done
+sp() { (KERNEL=$ROOT/kernel; R=$ROOT; MW=.madewell; . "$ROOT/kernel/lib/constellation/trade.sh"; skill_paths "$@"); }
+check "a brief names a skill the install lacks as MISSING, beside the ones it has" \
+  test "$(sp "$ROOT/trades/dev/skills" "sitting, no-such-skill")" = "\`$ROOT/trades/dev/skills/sitting.md\`, MISSING: no-such-skill (not in $ROOT/trades/dev/skills)"
 check "a made-up skill does not resolve" sh -c "! ( ROOT='$ROOT'; $(declare -f skill_real); skill_real no-such-skill-here '$ROOT/trades/dev' )"
 check "a skill only a harness has does not resolve for a kernel star" sh -c "! ( ROOT='$ROOT'; $(declare -f skill_real); skill_real detecting-blind-spots '' )"
 
@@ -169,6 +172,7 @@ git add .madewell/stock/lawless.md; git commit -qm "rack: lawless"
 (C=$P/.madewell/bin/constellation; op take lawless >/dev/null; op run lawless >/dev/null)
 check "an install without LAW.md: the brief says the law is missing" sh -c "grep -qF 'MISSING:' '$(brief lawless vega)' && grep -qF 'LAW.md is not in this install' '$(brief lawless vega)'"
 check "an install without LAW.md: the brief still says it is not the host" host_line_top "$(brief lawless vega)"
+check "an install without LAW.md: the brief still puts the relay first" sh -c "grep -qF 'Before any work: \`constellation clear\`, or \`constellation clarify' '$(brief lawless vega)' && grep -qF 'is refused until you have cleared' '$(brief lawless vega)'"
 
 # --- the discovery brief -------------------------------------------------------------------------
 printf 'we should greet people by name\n' >"$T/notes.md"
@@ -195,5 +199,12 @@ pane_env() { # the environment the discovery window's command runs in
 }
 for _ in $(seq 50); do pane_env >/dev/null 2>&1 && break; sleep 0.2; done
 check "windowed discovery runs as an agent in its own lane" bash -c "$(declare -f pane_env); pane_env | grep -qx CIRCADIAN_ROLE=AGNT && pane_env | grep -qx CIRCADIAN_LANE=discover-beta && pane_env | grep -qE '^TASKS_FILE=.*/discover\.beta\..*\.TASKS\.md$'"
+
+# a trade with no discovery lenses: the discovery brief names none
+mkdir -p "$P/trades/plain"; printf '# Plain\n' >"$P/trades/plain/TRADE.md"
+op trade plain >/dev/null 2>&1
+printf 'gamma\n' >"$T/gamma.md"; CONSTELLATION_DISCOVER=headless "$C" discover "$T/gamma.md" >/dev/null 2>&1
+gb=$(ls "$T"/state/proj/discover.gamma.*.brief.md 2>/dev/null | head -1)
+check "a trade without discovery lenses: the discovery brief names none" sh -c "test -n '$gb' && ! grep -qF 'discovery-lenses.md' '$gb' && grep -qF 'Ground first' '$gb'"
 
 [ "$fails" = 0 ] && echo "constellation-starlaw: all tests passed" || { echo "constellation-starlaw: $fails failed"; exit 1; }

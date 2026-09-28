@@ -76,6 +76,8 @@ rm -f "$S/CLAUDE.md"; ln -s AGENTS.md "$S/CLAUDE.md"
 sh "$ROOT/install.sh" "$S" >/dev/null 2>&1
 check "re-sync: a CLAUDE.md linked to AGENTS.md stays a link, and both read the new loader" sh -c "test -L '$S/CLAUDE.md' && test \"\$(awk '/^<!-- MADE WELL — loader -->\$/{getline; print; exit}' '$S/CLAUDE.md')\" = '$LOADER'"
 check "setting a trade, as the host does, keeps the guard" sh -c "cd '$P' && git add -A && MW_GATE=off git commit -qm adopt && .madewell/bin/constellation trade marketing >/dev/null && awk '/^<!-- MADE WELL — loader -->\$/{getline; print; exit}' AGENTS.md | grep -qF '$GUARD Otherwise, read and follow .madewell/HOST.md and .madewell/trades/marketing/TRADE.md before'"
+G=$T/noguard; fresh "$G"; sh "$ROOT/install.sh" "$G" >/dev/null 2>&1; rm -f "$G/.madewell/templates/loader-guard.txt"
+check "an install that lost the guard refuses to name a trade, rather than drop it" sh -c "cd '$G' && ! .madewell/bin/constellation trade sales >/dev/null 2>&1 && .madewell/bin/constellation trade sales 2>&1 | grep -qF 'loader-guard.txt' && grep -qxF '$LOADER' AGENTS.md"
 check "switching trades keeps the guard" sh -c "cd '$P' && .madewell/bin/constellation trade sales >/dev/null && awk '/^<!-- MADE WELL — loader -->\$/{getline; print; exit}' CLAUDE.md | grep -qF '$GUARD Otherwise, read and follow .madewell/HOST.md and .madewell/trades/sales/TRADE.md before'"
 
 # --- a piece's worktree: the stars' law and the docs, never the host's law
