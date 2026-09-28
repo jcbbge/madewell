@@ -169,8 +169,12 @@ MADEWELL.md
 .madewell/jig/*
 !.madewell/jig/registry.json
 !.madewell/jig/conventions/
+!.madewell/setup
+!.madewell/teardown
 # MADE WELL — end
 MWGI
+elif ! grep -qxF '!.madewell/setup' "$gi"; then   # an older block: let the project's own setup/teardown into git
+  awk -v e="$GI_END" '$0==e{print "!.madewell/setup"; print "!.madewell/teardown"} {print}' "$gi" > "$gi.mw_tmp" && cat "$gi.mw_tmp" > "$gi" && rm -f "$gi.mw_tmp"
 fi
 
 # ── 5. provenance — so you can tell whether a project has drifted ────────────

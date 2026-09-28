@@ -49,6 +49,7 @@ NEXT: constellation run $slug (vega, ideate)" || {
   local wt; wt=$(work_of "$slug"); mkdir -p "$(dirname "$wt")"
   git -C "$R" worktree add -q -b "$(branch_of "$slug")" "$wt" HEAD || die "could not make the worktree for $slug"
   seed_framework "$wt"
+  project_hook setup "$slug" "$wt" || die "$slug is on the bench, but the project's own setup for its worktree failed (above); fix it, then run $MW/setup $wt $R by hand"
   say "took $slug to the bench — branch $(branch_of "$slug"), worktree $wt
 next: constellation run $slug"
 }
@@ -75,6 +76,16 @@ floor_write() { # floor_write <piece> <key> <value> : replace the piece's **Key:
     cat "$tmp" >"$f"; rm -f "$tmp"
 }
 
+project_hook() { # project_hook <setup|teardown> <slug> <worktree> : the project's own step for a piece's worktree
+  # A project may ship .madewell/setup and .madewell/teardown (tracked, executable): setup runs in
+  # a new piece's worktree (its dependencies, its environment, its own database), teardown before
+  # the worktree is removed at land. Each gets <worktree> <main checkout>. No file, nothing to do.
+  local f="$R/$MW/$1" out
+  [ -x "$f" ] || return 0
+  [ "${CONSTELLATION_DRY:-}" = 1 ] && [ -z "${CONSTELLATION_HOOKS:-}" ] && return 0
+  out=$(cd "$3" && "$f" "$3" "$R" 2>&1) && return 0
+  printf '%s\n' "$out" | tail -n 15 >&2; return 1
+}
 seed_framework() { # the vendored framework is gitignored; a worktree needs it for the commit gate and the stars' law
   local wt=$1 d f
   for d in bin lib guides skills templates registers bindings stars trades; do

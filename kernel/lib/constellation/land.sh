@@ -18,6 +18,7 @@ cmd_land() {
   git -C "$R" commit -q -m "finish $slug" -m "ACT: verify
 DONE: $slug verified by a star that did not build it; landed from $br
 NEXT: —" || die "the finish move was refused (mw-gate); the code is landed, the piece is still on the bench"
+  project_hook teardown "$slug" "$wt" || say "$slug landed; the project's teardown for its worktree failed (above): run $MW/teardown $wt $R by hand"
   git -C "$R" worktree remove --force "$wt" 2>/dev/null || true
   git -C "$R" branch -D "$br" >/dev/null 2>&1 || true
   notify "$slug landed and finished"
