@@ -2,7 +2,7 @@
 act: ideate
 harness: claude
 effort: high
-skills: synthesizing-insights, challenging-assumptions, detecting-blind-spots, reframing-problems
+skills: synthesizing-insights, challenging-assumptions, blind-spots, reframing
 writes: nothing
 ---
 Keep your steps on your own task list (`task now`, `task done`), as the law says.
@@ -15,11 +15,7 @@ You are the first to hold this piece. Understand it before anyone plans or makes
   already exist that this would duplicate or contradict? Say so.
 - Break it into the smallest completable steps, in plain words.
 - Name what is unknown. Settle what reading can settle. What only the person can settle, ask
-  with your recommendation and the choices, one command, answerable in one word:
-
-      constellation ask "<question>" --situation "<what is happening>" \
-        --background "<what led here>" --assessment "<what you make of it>" \
-        --recommend "<what you would do>" --option "<another choice>"
+  with the law's `constellation ask`: your recommendation and the choices, answerable in one word.
 
 - Change nothing. No edits, no commits.
 

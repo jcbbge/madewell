@@ -127,7 +127,7 @@ cmd_clarify() { # to the operator it carries SBAR and choices like ask (a bare q
   if [ "${rounds:-0}" -ge 3 ]; then
     record "$slug" "$step" flag "${CONSTELLATION_HARNESS:-}" "still unclear after three rounds: $q" "the operator fixes the brief, then constellation resume $slug"
     notify "$slug ($step): three rounds of questions and still unclear — the brief needs you. constellation status $slug"
-    say "flagged for the operator: three rounds and still unclear means the brief is wrong. Stop here."
+    say "flagged for the host: three rounds and still unclear means the brief is wrong. Stop here."
     saved "$slug" "$step"; return 0
   fi
   local orig; orig=$(originator "$slug" "$step")
@@ -135,7 +135,7 @@ cmd_clarify() { # to the operator it carries SBAR and choices like ask (a bare q
   if [ "$orig" = operator ]; then
     [ -z "$REC" ] || attach_choices "$slug"
     notify "$slug ($step) asks before starting: $q — constellation answer $slug \"…\""
-    say "your questions went to the operator; wait for the answer in this pane"
+    say "your questions went to the host; wait for the answer in this pane"
   else
     advance "$slug"
     say "your questions went to $(star_of "$orig"), who handed you this; wait for the answer in this pane"
@@ -149,7 +149,7 @@ launch_reply() { # launch_reply <slug> <waiting-step> <originator-step> <questio
   { printf '# %s — answering for %s\n\n' "$(sed -n '1s/^# //p' "$STARS/$ostar.md")" "$slug"
     printf 'You are wearing the %s profile again. You (this profile) handed this piece to %s, and\n' "$ostar" "$(star_of "$step")"
     printf '%s has questions before it starts. Answer every one, from the piece, the run and the code.\n' "$(star_of "$step")"
-    printf 'Change nothing. When the answer is genuinely the operator'"'"'s, say so in your answer.\n'
+    printf 'Change nothing. When the answer is genuinely the person'"'"'s, say so in your answer.\n'
     printf 'The write rules are fixed and no answer overrides them: sirius builds and never writes tests;\n'
     printf 'orion writes the tests from the plan; aldebaran runs them; the rest change nothing.\n\n'
     printf '## The questions\n\n%s\n\n## The piece\n\n' "$q"; cat "$R/$MW/bench/$slug.md"
@@ -170,7 +170,8 @@ launch_reply() { # launch_reply <slug> <waiting-step> <originator-step> <questio
 deliver_answer() { # deliver_answer <slug> <step> <from> <text> : record it and type it into the waiting star's pane
   local slug=$1 step=$2 from=$3 text=$4
   record "$slug" "$step" "reply:$from" "" "$text" "$step reviews the answer"
-  local msg="Answers from $from: $text — If anything is still ambiguous: constellation clarify \"…\". Otherwise: constellation clear, then do the work."
+  local who=$from; [ "$from" = operator ] && who="the host"
+  local msg="Answers from $who: $text — If anything is still ambiguous: constellation clarify \"…\". Otherwise: constellation clear, then do the work."
   tmux send-keys -t "=$SESSION:=$slug·$step" -l -- "$msg" 2>/dev/null && tmux send-keys -t "=$SESSION:=$slug·$step" Enter \
     || say "(its pane is gone: constellation resume $slug carries the answer in the brief)"
 }
@@ -229,7 +230,7 @@ cmd_answer() { # yes takes the recommendation, a number takes that choice, anyth
   text=$(resolve_answer "$slug" "$text") || exit 2
   if [[ "$nx" == clarifying:* ]]; then deliver_answer "$slug" "${nx#clarifying:}" operator "$text"; say "answered $slug (${nx#clarifying:}): $text"; return; fi
   local step=${nx#wait:}; record "$slug" "$step" answer "" "$text" "$step continues"
-  tmux send-keys -t "=$SESSION:=$slug·$step" -l -- "The operator answered: $text" 2>/dev/null && tmux send-keys -t "=$SESSION:=$slug·$step" Enter \
+  tmux send-keys -t "=$SESSION:=$slug·$step" -l -- "The person answered: $text" 2>/dev/null && tmux send-keys -t "=$SESSION:=$slug·$step" Enter \
     || say "(its pane is gone: constellation resume $slug carries the answer in the brief)"
   say "answered $slug ($step): $text"
 }

@@ -1,0 +1,1 @@
+If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: skip HOST.md and follow your brief; the rules of this project still bind.

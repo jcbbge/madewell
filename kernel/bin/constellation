@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# constellation — drives one Made Well piece through the inner loop with the six stars.
+# constellation — drives one piece of work through the inner loop with the six stars.
 #
 # The piece is the actor. An agent is a profile the piece borrows for one step, and any
-# harness can wear it. Everything durable is Made Well's own: position is the piece's
+# harness can wear it. Everything durable lives in the project: position is the piece's
 # directory (stock/ bench/ finished/), and the run is the git log of the piece's branch,
 # one commit per event, each with the SPEC trailer (ACT/DONE/NEXT) plus STAR/STEP/EVENT.
 # A dropped connection, a capped subscription or a switched provider loses nothing:
@@ -77,7 +77,7 @@
 #   CONSTELLATION_STUCK_SECONDS (default 1800: how long a step may go quiet before tend restarts it),
 #   CONSTELLATION_DISCOVER=window|headless (how discovery runs; default a window when tmux is here),
 #   CONSTELLATION_DISCOVER_HARNESS (what it runs on; default vega's harness, then claude, then pi).
-# Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
+# Requires: bash, git, tmux; the Constellation kernel beside this file (../stars).
 set -euo pipefail
 case "${1:-}" in -h|--help|help|"") sed -n '2,/^# Requires:/p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
 

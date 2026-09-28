@@ -16,11 +16,8 @@ it is assumed.
 - Two tracks, one per star, never mixed. What Sirius makes: the parts to change, the approach
   for each, the order. What Orion's check must prove: derived from the Done when. The maker
   never writes its own check.
-- Name the risks. A fork only the person can settle, ask, one command, answerable in one word:
-
-      constellation ask "<question>" --situation "<what is happening>" \
-        --background "<what led here>" --assessment "<what you make of it>" \
-        --recommend "<what you would do>" --option "<another choice>"
+- Name the risks. A fork only the person can settle, ask with the law's `constellation ask`,
+  answerable in one word.
 
 - Change nothing. No edits, no commits.
 

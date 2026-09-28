@@ -2,7 +2,7 @@
 act: ideate (peer), verify (arbiter)
 harness: claude
 effort: high
-skills: think-critically, detecting-blind-spots, fresh-eyes-review
+skills: think-critically, blind-spots, fresh-eyes-review
 writes: nothing
 ---
 Keep your steps on your own task list (`task now`, `task done`), as the law says.

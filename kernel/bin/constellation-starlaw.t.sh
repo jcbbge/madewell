@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # constellation-starlaw.t.sh — the star law against a scratch project with the kernel installed:
-# kernel/stars/LAW.md says what every star must do and is inlined into every composed brief after
-# the relay; star and discovery briefs open by refusing the host's role; the ask examples in the
-# stars are one command the driver accepts; every skills: name in a star or trade overlay header
-# is a real skill; each star stays at or under 200 words and says "the person"; the arbiter routes
-# to the person, and a check that cannot run goes to the person as a question, not as a failure.
+# kernel/stars/LAW.md says what every star must do and is inlined whole, once, into every composed
+# brief, which repeats neither its relay nor its not-the-host line; star and discovery briefs refuse
+# the host's role before the star's own words; the ask example lives in the law alone and is one
+# command the driver accepts; every skills: name in a star or trade overlay header is a file this
+# package ships (the kernel's, or the trade's), and the brief names that file; each star stays at or
+# under 220 words and says "the person"; the arbiter routes to the person, and a check that cannot
+# run goes first to whoever wrote it, and to the person only for access or a tool.
 set -uo pipefail
 KB=$(cd "$(dirname "$0")" && pwd); ROOT=$(cd "$KB/../.." && pwd); C=$KB/constellation
 T=$(mktemp -d "${TMPDIR:-/tmp}/constellation-starlaw-test.XXXXXX")
@@ -47,7 +49,9 @@ check "polaris as arbiter routes to the person" grep -qF -- "--route person" "$R
 check "sirius takes a wrong plan back through clarify" sh -c "grep -qF 'proves the plan wrong, do not quietly work around it' '$ROOT/kernel/stars/sirius.md' && grep -qF 'constellation clarify' '$ROOT/kernel/stars/sirius.md'"
 check "sirius commits in the law's format" sh -c "grep -qF \"in the law's format (\\\`ACT: implement\\\`)\" '$ROOT/kernel/stars/sirius.md' && ! grep -qi 'plain messages' '$ROOT/kernel/stars/sirius.md'"
 check "orion clarifies a Done when that cannot be checked" sh -c "grep -qF 'cannot be checked as written' '$ROOT/kernel/stars/orion.md' && grep -qF 'constellation clarify' '$ROOT/kernel/stars/orion.md'"
-check "aldebaran sends a check that cannot run to the person, not the arbiter" sh -c "grep -qF 'cannot run at all' '$ROOT/kernel/stars/aldebaran.md' && grep -qF 'not the arbiter' '$ROOT/kernel/stars/aldebaran.md' && grep -qF 'Ask the person' '$ROOT/kernel/stars/aldebaran.md'"
+check "aldebaran takes a check that cannot run to orion first, not the arbiter" sh -c "grep -qF 'cannot run at all' '$ROOT/kernel/stars/aldebaran.md' && grep -qF 'not the arbiter' '$ROOT/kernel/stars/aldebaran.md' && grep -qF 'First ask Orion' '$ROOT/kernel/stars/aldebaran.md' && grep -qF 'constellation clarify' '$ROOT/kernel/stars/aldebaran.md'"
+check "aldebaran asks the person only for access or a tool" grep -qF 'Only access or a tool goes to the' "$ROOT/kernel/stars/aldebaran.md"
+check "dev polaris checks vega's citations and never redoes vega's work" sh -c "grep -qF 'cites where it looked' '$ROOT/trades/dev/stars/polaris.md' && grep -qF 'never redo' '$ROOT/trades/dev/stars/polaris.md'"
 
 # the ask examples: every one is a single command, with all its flags, that the stub sees once
 ask_examples() { # ask_examples <file> : each `constellation ask` example, continuation lines joined, NUL-separated
@@ -59,19 +63,19 @@ one_command() { # one_command <example> : it parses, and runs `constellation` ex
   grep -qx 'calls=1' <<<"$out" || return 1
   local f; for f in --situation --background --assessment --recommend --option; do grep -qx -- "$f" <<<"$out" || return 1; done
 }
-for f in vega cassiopeia LAW; do
-  n=0; while IFS= read -r -d '' ex; do n=$((n + 1)); check "$f.md's ask example $n is one runnable command" one_command "$ex"; done < <(ask_examples "$ROOT/kernel/stars/$f.md")
-  check "$f.md carries an ask example" test "$n" -ge 1
+n=0; while IFS= read -r -d '' ex; do n=$((n + 1)); check "LAW.md's ask example $n is one runnable command" one_command "$ex"; done < <(ask_examples "$LAW")
+check "LAW.md carries the ask example" test "$n" -ge 1
+for f in vega cassiopeia; do
+  check "$f.md points at the law's ask instead of repeating it" sh -c "grep -qF \"the law's \\\`constellation ask\\\`\" '$ROOT/kernel/stars/$f.md' && ! grep -qF -- '--situation' '$ROOT/kernel/stars/$f.md'"
 done
 split='constellation ask "q" --situation "s"
   --background "b" --assessment "a" --recommend "r" --option "o"'
 check "a split ask example is caught" bash -c "$(declare -f one_command); ! one_command \"\$1\"" _ "$split"
 
-# every skills: name is a real skill: the kernel's, the trade's, or installed in a harness
+# every skills: name is a file the package ships, so a star on any machine can read it: a kernel
+# star's is in kernel/skills, a trade overlay's in that trade's skills/ (never only in a harness)
 skill_real() { # skill_real <name> <trade dir or ''>
-  [ -f "$ROOT/kernel/skills/$1.md" ] && return 0
-  [ -n "$2" ] && [ -f "$2/skills/$1.md" ] && return 0
-  [ -f "$HOME/.claude/skills/$1/SKILL.md" ] || [ -f "$HOME/.pi/agent/skills/$1/SKILL.md" ]
+  if [ -n "$2" ]; then [ -f "$2/skills/$1.md" ]; else [ -f "$ROOT/kernel/skills/$1.md" ]; fi
 }
 skills_of() { sed -n '1,/^---$/s/^skills:[[:space:]]*//p' "$1" | head -1 | tr ',' '\n' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; /^$/d'; }
 for s in $STARS; do
@@ -82,7 +86,8 @@ for t in "$ROOT"/trades/*/; do t=${t%/}
     for n in $(skills_of "$f"); do check "$(basename "$t")/$(basename "$f" .md)'s skill $n is real" skill_real "$n" "$t"; done
   done
 done
-check "a made-up skill does not resolve" sh -c "! ( ROOT='$ROOT'; HOME='$HOME'; $(declare -f skill_real); skill_real no-such-skill-here '$ROOT/trades/dev' )"
+check "a made-up skill does not resolve" sh -c "! ( ROOT='$ROOT'; $(declare -f skill_real); skill_real no-such-skill-here '$ROOT/trades/dev' )"
+check "a skill only a harness has does not resolve for a kernel star" sh -c "! ( ROOT='$ROOT'; $(declare -f skill_real); skill_real detecting-blind-spots '' )"
 
 # --- the composed briefs -----------------------------------------------------------------------
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
@@ -109,26 +114,38 @@ to_aldebaran() { # to_aldebaran <slug> : every star before aldebaran hands off, 
   as "$1" orion; "$C" clear >/dev/null; put "$1" "tests/$1.test.js"; "$C" done "the check: tests/$1.test.js" >/dev/null
   as "$1" aldebaran; "$C" clear >/dev/null
 }
-law_in() { # law_in <brief> : the law is there whole, after the relay and before the star's own words
-  local b=$1 relay law star
-  relay=$(grep -n '^## First, the relay' "$b" | cut -d: -f1); law=$(grep -n '^## The star law' "$b" | cut -d: -f1)
-  [ -n "$relay" ] && [ -n "$law" ] && [ "$law" -gt "$relay" ] || return 1
+law_in() { # law_in <brief> : the law is there whole, once, before the piece
+  local b=$1 law star
+  law=$(grep -n '^## The star law' "$b" | cut -d: -f1); [ -n "$law" ] || return 1
   star=$(grep -n '^## The piece' "$b" | cut -d: -f1); [ -n "$star" ] && [ "$law" -lt "$star" ] || return 1
   local line; while IFS= read -r line; do
     [ -n "$line" ] || continue; grep -qxF -- "$(sed 's/^#/##/' <<<"$line")" "$b" || return 1
   done <"$ROOT/kernel/stars/LAW.md"
 }
-host_line_top() { head -6 "$1" | grep -qxF "$HOSTLINE"; }
+relay_once() { # relay_once <brief> : the relay is said once (the law's), and done is refused until cleared
+  [ "$(grep -c 'constellation clarify \"<questions>\"' "$1")" = 1 ] && [ "$(grep -cF 'Three rounds at most' "$1")" = 1 ] &&
+    grep -qF '`constellation done` is refused until you have cleared' "$1"
+}
+host_line_top() { # host_line_top <brief> : it refuses the host's role once, before the star's own words
+  local at star; at=$(grep -nxF "$HOSTLINE" "$1" | cut -d: -f1)
+  star=$(grep -n '^## The piece' "$1" | cut -d: -f1)
+  [ "$(grep -cxF "$HOSTLINE" "$1")" = 1 ] && [ -n "$star" ] && [ "$at" -lt "$star" ] && [ "$at" -le 20 ]
+}
 
 rack greet; to_aldebaran greet
 for s in vega polaris-peer cassiopeia sirius orion aldebaran; do
   b=$(brief greet "$s")
-  check "$s's brief inlines LAW.md after the relay" law_in "$b"
-  check "$s's brief says, near the top, it is not the host" host_line_top "$b"
+  check "$s's brief inlines LAW.md" law_in "$b"
+  check "$s's brief says the relay once" relay_once "$b"
+  check "$s's brief says, near the top and once, it is not the host" host_line_top "$b"
 done
-check "the brief names skills from the star's header" has "Load these skills if your harness has them: synthesizing-insights" "$(brief greet vega)"
+check "the brief names the file of each skill in the star's header" has "Read these skills before you start: \`$ROOT/kernel/skills/synthesizing-insights.md\`" "$(brief greet vega)"
+check "an overlay's skills are named as the trade's files" has "\`$ROOT/trades/dev/skills/sitting.md\`" "$(brief greet sirius)"
 
-# aldebaran: a check that cannot run goes to the person as a question, and nowhere near the arbiter
+# aldebaran: a check that cannot run goes first to orion, who wrote it; then, for access or a tool,
+# to the person as a question; and nowhere near the arbiter
+check "aldebaran's question about running the check goes to orion" says "went to orion" "$C" clarify "the check cannot run: which runner does it need?"
+as greet aldebaran
 check "aldebaran asks the person when the check cannot run" "$C" ask "the check cannot run: the runner is missing" --situation "running the check" --background "the plan names a runner" --assessment "neither a pass nor a fail" --recommend "install the runner, then I run it" --option "land it unchecked"
 check "the piece waits for the person, not the arbiter" test "$(next greet)" = wait:aldebaran
 op answer greet yes >/dev/null
@@ -158,6 +175,9 @@ printf 'we should greet people by name\n' >"$T/notes.md"
 check "discovery starts" env CONSTELLATION_DISCOVER=headless "$C" discover "$T/notes.md"
 db=$(ls "$T"/state/proj/discover.notes.*.brief.md 2>/dev/null | head -1)
 check "the discovery brief says, near the top, it is not the host" sh -c "test -n '$db' && head -4 '$db' | grep -qF '$HOSTLINE'"
+check "the discovery brief grounds first" grep -qF 'Ground first: before you write a piece, read what exists' "$db"
+check "the discovery brief gives the commit format" sh -c "grep -qF 'ACT: ideate' '$db' && grep -qF 'DONE:' '$db' && grep -qF 'NEXT:' '$db'"
+check "the discovery brief names the trade's own lenses" grep -qF '/trades/dev/discovery-lenses.md`' "$db"
 
 # a discovery session runs in its own memory lane, in both modes. Headless: a stub harness, first on a
 # PATH no shell rc touches, records what it was given. Window: dry, so the pane runs sleep, never a

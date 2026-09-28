@@ -1,4 +1,4 @@
-# Made Well — The Dev Trade
+# The Dev Trade
 **Version:** 1.0
 **Domain:** Software Development
 
@@ -10,7 +10,7 @@ The installer ships every trade in `.madewell/trades/`. The host sets this one w
 `constellation trade dev`, which names it in the project's loader, by reference:
 
 ```
-… read and follow .madewell/HOST.md and .madewell/trades/dev/TRADE.md before anything else …
+If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: … Otherwise, read and follow .madewell/HOST.md and .madewell/trades/dev/TRADE.md before anything else, then continue.
 ```
 
 All paths below are relative to this trade's directory.
@@ -21,23 +21,23 @@ All paths below are relative to this trade's directory.
 
 Loading the dev trade fills the kernel's **Persona slot** with the dev trade's **technical
 registers** (`persona.md`, this trade) — the expert-human voice (peer engineer: terse,
-law-not-suggestion, exemplar-bound), not the novice-human **Guide**. Two insertion points share
+law-not-suggestion, exemplar-bound), not the novice-human `guide` register (the just-talk door). Two insertion points share
 that voice:
 
-- **Lead** — the owner who holds the project (the solo maintainer + their agent, as peers). No onboarding; sets the conventions.
-- **Contributor** — a technical guest folded into an existing project. Runs **`onboarding.md`** once on first contact — the system reads out its *own* accumulated reality (scope, roadmap, conventions, env) so the Lead never becomes the onboarding teacher — then operates as a peer who defers the Lead's calls.
+- **Owner** — the one who holds the project (the solo maintainer + their agent, as peers). No onboarding; sets the conventions.
+- **Contributor** — a technical guest folded into an existing project. Runs **`onboarding.md`** once on first contact — the system reads out its *own* accumulated reality (scope, roadmap, conventions, env) so the Owner never becomes the onboarding teacher — then operates as a peer who defers the Owner's calls.
 
 The persona travels with the trade because whoever loads the software domain is, by default,
 technical. The function is unchanged. A profile may override the slot (e.g. a non-technical
-founder building software → Guide register + dev domain).
+founder building software → the `guide` register + dev domain).
 
 The Contributor's behavioral fence (escalation ladder + ownership directive) is **`escalation.md`**;
-the Lead↔Contributor handoff runs through the brief queue (**`brief-template.md`**) with status
+the Owner↔Contributor handoff runs through the brief queue (**`brief-template.md`**) with status
 flowing back when the piece finishes (the commit's `ACT:` / `DONE:` / `NEXT:` trailer).
 
 ---
 
-## What This Pack Is
+## What This Trade Is
 
 The LLM already knows how to write code. That's not the problem.
 
@@ -99,7 +99,7 @@ the place where decisions happen under pressure at the end.
 These are the skips. The shortcuts. The "we'll come back to this."
 They accumulate into software that functions but doesn't feel loved.
 
-The guide surfaces each one at the moment it's relevant — not as a lecture, as a question.
+The host surfaces each one at the moment it's relevant — not as a lecture, as a question.
 
 ### In system design
 - Boundaries undefined → two features fight over the same data six months later
@@ -174,7 +174,7 @@ This trade's compiled conventions live in `jig/conventions/` (frontend, schema, 
 
 ## Skills (helpers)
 
-Beyond the foundation, pillars, and sitting above, the guide reads these when the situation
+Beyond the foundation, pillars, and sitting above, the agent reads these when the situation
 calls for them. The person doesn't need to invoke them.
 
 | Skill | File | When |

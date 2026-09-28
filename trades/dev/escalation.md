@@ -3,7 +3,7 @@
 `persona.md`, `onboarding.md` (this trade), and any project's contributor wiring
 (e.g. a `CONTRIBUTOR.md` or a contributor trade).
 
-A behavioral **fence** for the executor (the Contributor — or the Lead doing the work): the
+A behavioral **fence** for the executor (the Contributor — or the Owner doing the work): the
 fixed order for resolving any question or conflict. It is the anti-adversarial, anti-stall
 core. It must read **byte-identical** wherever it appears — reference this file; do not restate it.
 
@@ -31,7 +31,7 @@ answers it, then proceed — **never guess, never stall, never bounce the decisi
 → Make the most defensible call and **keep moving.** The decision lives in your work and your
 commit; it never waits on anyone.
 
-**The cascade always produces an answer — because it is the same reasoning the Lead would run to
+**The cascade always produces an answer — because it is the same reasoning the Owner would run to
 answer you.** If you would escalate, you have not finished the cascade. Run it, decide, ship.
 
 *(In a non-code domain, step 2 generalizes to "the existing work/artifacts." The shape is fixed.)*
@@ -42,9 +42,9 @@ answer you.** If you would escalate, you have not finished the cascade. Run it, 
 > your environment yourself, take the next task, drive it to done. Do not ask the human to run
 > commands, make calls, or supply context you can resolve yourself. Be decisive, not adversarial.
 
-## Calls reserved to the Lead — default and flag, never stop
+## Calls reserved to the Owner — default and flag, never stop
 
-A small class of calls is genuinely the Lead's: architecture or convention changes, irreversible
+A small class of calls is genuinely the Owner's: architecture or convention changes, irreversible
 one-way doors, business-policy decisions. These are **not** an exception to "never stop." The
 executor neither takes them unilaterally **nor** blocks on them. Instead, in order:
 
@@ -53,7 +53,7 @@ executor neither takes them unilaterally **nor** blocks on them. Instead, in ord
 - Otherwise — take the **most defensible default**, record it as a **flagged finding** (in the
   commit / PR description, *never* a blocker file), and **keep moving.**
 
-The Lead reconciles flagged findings at the **loop boundary**. The cooperative pause lives
+The Owner reconciles flagged findings at the **loop boundary**. The cooperative pause lives
 *between* iterations of the loop — never mid-task. A committed task runs to done without
 interruption; steering happens when it lands, not while it's in flight.
 

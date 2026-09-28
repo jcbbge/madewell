@@ -44,6 +44,12 @@ H=$ROOT/kernel/HOST.md L=$ROOT/kernel/stars/LAW.md
 words=$(sed 's/[|*`#>-]//g' "$H" | wc -w)
 check "HOST.md is short: about 700 words ($words)" test "$words" -ge 550 -a "$words" -le 800
 check "HOST.md tells the host how to run the driver" grep -qF '.madewell/bin/constellation <verb>' "$H"
+check "HOST.md never sends the host to constellation ask (it refuses outside a step)" sh -c "! grep -qF 'constellation ask' '$H'"
+check "HOST.md: the host asks the person itself, in decision form" sh -c "grep -qF 'in decision form' '$H' && grep -qF 'your recommendation, the options' '$H'"
+check "HOST.md: the host answers a star's questions, three rounds at most" sh -c "grep -qx '## The relay' '$H' && grep -qF 'constellation answer <slug> \"…\"' '$H' && grep -qF 'three rounds at most' '$H'"
+check "HOST.md: the host relays, and never re-runs or redoes a star's work" grep -qF "never re-run or redo a star's work" "$H"
+check "HOST.md: the host grounds first and commits in the ACT/DONE/NEXT form" sh -c "grep -qF 'read what exists' '$H' && grep -qF '\`ACT:\`, \`DONE:\`, \`NEXT:\`' '$H'"
+check "HOST.md: first contact adopts with the package's driver" grep -qF "the package's \`kernel/bin/constellation adopt\`" "$H"
 for s in "## Voice" "## The glossary" "## Their words, your verbs" "## The four questions" "## The two doors" "## Deciding" "## The pause"; do
   check "HOST.md has '$s'" grep -qx "$s" "$H"
 done
@@ -98,10 +104,17 @@ check "no reference to .madewell/AGENTS.md or kernel/AGENTS.md remains" test -z 
 [ -n "$hits" ] && sed 's/^/     /' <<<"$hits"
 check "the package's own loaders open with the guard and name kernel/HOST.md" sh -c "for f in CLAUDE.md AGENTS.md; do grep -qxF '$GUARD Otherwise, read and follow \`kernel/HOST.md\` before anything else, then continue.' '$ROOT/'\$f || exit 1; done"
 check "kernel/AGENTS.md is gone" test ! -e "$ROOT/kernel/AGENTS.md"
+check "the package's loaders say where 'Let's build' starts" sh -c "for f in CLAUDE.md AGENTS.md; do grep -qF 'start with \`constellation brief\`' '$ROOT/'\$f || exit 1; done"
+check "the guard is spelled once, in kernel/templates/loader-guard.txt" test "$(cat "$ROOT/kernel/templates/loader-guard.txt")" = "$GUARD"
+hits=$(cd "$ROOT" && git grep -lF 'you are not the host: skip HOST.md' -- '*.sh' ':!*.t.sh')
+check "no script carries its own copy of the guard" test -z "$hits"
 check "SPEC.md no longer says there is no CLI" sh -c "! grep -qi 'no product CLI' '$ROOT/SPEC.md'"
 check "trades no longer say they are not copied" sh -c "! grep -qi 'not copied' '$ROOT/trades/README.md' '$ROOT/trades/dev/TRADE.md' '$ROOT/trades/marketing/TRADE.md' '$ROOT/trades/sales/TRADE.md'"
 A=$ROOT/kernel/skills/adopt.md
-check "adopt asks the door question and stores it in .madewell/profile" sh -c "grep -qF 'show you the engine as we go' '$A' && grep -qF '.madewell/profile' '$A'"
+check "adopt asks the door question from HOST.md instead of restating it" sh -c "grep -qF '.madewell/HOST.md\` (The two doors)' '$A' && grep -qF '.madewell/profile' '$A' && ! grep -qF 'show you the engine as we go' '$A'"
+check "adopt names no path on this machine" sh -c "! grep -qE '~/|/home/' '$A'"
+check "adopt speaks the glossary, not the four acts' engine names" sh -c "! grep -qiE '\\b(ideate|implement)\\b' '$A' && ! grep -qF 'craft, beauty and care' '$A'"
+check "adopt waits for discovery's commit and reads the slug from stock before take" sh -c "grep -qF 'wait for that commit' '$A' && grep -qF 'slug from' '$A' && grep -qF '.madewell/stock/' '$A'"
 check "adopt uses a shipped trade when one fits" grep -qF 'If a shipped trade fits, use it.' "$A"
 check "adopt files the first piece through ideas/, then takes and runs it" sh -c "grep -qF 'ideas/<slug>.md' '$A' && grep -qF 'constellation inbox' '$A' && grep -qF 'constellation run <slug>' '$A'"
 check "adopt names TRADE.md, not PACK.md" sh -c "grep -qF 'TRADE.md' '$A' && ! grep -qF 'PACK.md' '$A'"

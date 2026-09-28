@@ -42,7 +42,7 @@ as vega
 check "clarify to the operator: half an SBAR is refused, naming what is missing" \
   refuses_saying "your recommendation (--recommend)" "$C" clarify "does greet take a name?" --situation "no name in the piece"
 check "clarify to the operator carries SBAR, the recommendation and the choices" \
-  says "went to the operator" "$C" clarify "does greet take a name?" "${SBAR[@]}" --recommend "no name: greet() alone" --option "greet(name)"
+  says "went to the host" "$C" clarify "does greet take a name?" "${SBAR[@]}" --recommend "no name: greet() alone" --option "greet(name)"
 check "the question on the record reads as SBAR with numbered choices" \
   sh -c "'$C' status greet | grep -F 'Situation: the page has no greeting' | grep -F 'Background: the piece asks for one' | grep -F 'Assessment: a plain hello fits' | grep -qF '1. no name: greet() alone (recommended) · 2. greet(name)'"
 check "a number beyond the choices is refused" refuses_saying "a number from 1 to 2" op answer greet 3
@@ -50,7 +50,7 @@ check "the operator answers the clarify with yes: the recommendation is delivere
   says "yes — the recommendation: no name: greet() alone" op answer greet yes
 check "the reply on the record is the recommendation, from the operator" \
   sh -c "'$C' status greet | grep 'reply:operator' | grep -qF 'the recommendation: no name: greet() alone'"
-check "a bare clarify to the operator still goes (a free answer)" says "went to the operator" "$C" clarify "anything else?"
+check "a bare clarify to the operator still goes (a free answer)" says "went to the host" "$C" clarify "anything else?"
 check "and a bare clarify takes no stale choices: yes stays yes" says "(vega): yes" op answer greet yes
 "$C" clear >/dev/null
 
@@ -76,6 +76,9 @@ check "vega carries on" test "$(next)" = running:vega
 check "answer yes takes the recommendation (any case)" says "yes — the recommendation: lower case" op answer greet YES
 "$C" ask "which case?" "${SBAR[@]}" --recommend "lower case" --option "Title Case" >/dev/null
 check "answer in words goes as written" says "(vega): shout it" op answer greet "shout it"
+pane() { tmux capture-pane -pJ -S - -t '=workers:=greet·vega'; }
+check "the star's pane hears who answered in its own words: the host, the person" \
+  sh -c "$(declare -f pane); pane | grep -qF 'Answers from the host:' && pane | grep -qF 'The person answered: shout it' && ! pane | grep -qi operator"
 check "answer with no open question is refused" refuses_saying "no open question" op answer greet yes
 
 # --- every handoff prints the save line -----------------------------------------------------

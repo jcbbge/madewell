@@ -117,7 +117,7 @@ bad status = backend/contract; 2xx + no UI change = frontend state).
 4. **Judge**: each principle, verdict + cited evidence. Every red lane is a finding:
    *principle violated, evidence, suspected lane (frontend / backend / contract).*
 5. **Fix and re-verify.** Findings go back through the loop until zero remain or the
-   remainder is explicitly accepted by the Lead. Fixes are commits behind the normal
+   remainder is explicitly accepted by the Owner. Fixes are commits behind the normal
    gate; the judge re-runs the affected flows after each.
 6. **File the report** — flows run, verdicts per principle, evidence paths, findings and
    their fates. An escape discovered later gets a `## Correction` on this report.

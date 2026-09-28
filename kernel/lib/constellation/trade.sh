@@ -18,7 +18,7 @@
 
 TRADE_DEFAULT=dev
 TRADE_REF="[^[:space:]\`'\"()<>]*trades/[A-Za-z0-9._-]+/TRADE\\.md"      # a reference to a trade
-TRADE_GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: skip HOST.md and follow your brief; the rules of this project still bind."
+TRADE_GUARD=$(cat "$KERNEL/templates/loader-guard.txt" 2>/dev/null || true)   # the one copy of the guard, install.sh's too
 TRADE_LOADER="$TRADE_GUARD Otherwise, read and follow .madewell/HOST.md before anything else, then continue."  # install.sh's LOADER_LINE
 TRADE_NAME=$TRADE_DEFAULT TRADE_DIR="" TRADE_FROM=""
 
@@ -69,6 +69,14 @@ trade_active() { # sets TRADE_NAME, TRADE_DIR (empty when it is not on this mach
   fi
   [ -n "$TRADE_DIR" ]
 }
+skill_paths() { # skill_paths <dir> <a, b> : each skill as the file to read, or MISSING when this install lacks it
+  local n sep="" IFS=,
+  for n in $2; do
+    n=${n#"${n%%[![:space:]]*}"}; n=${n%"${n##*[![:space:]]}"}; [ -n "$n" ] || continue
+    if [ -f "$1/$n.md" ]; then printf '%s`%s`' "$sep" "$1/$n.md"; else printf '%sMISSING: %s (not in %s)' "$sep" "$n" "$1"; fi
+    sep=", "
+  done
+}
 overlay_field() { sed -n "1,/^---\$/s/^$2:[[:space:]]*//p" "$1" | head -1; }
 overlay_body() { if grep -qx -- '---' "$1"; then sed '1,/^---$/d' "$1"; else cat "$1"; fi; }
 
@@ -115,7 +123,7 @@ star_overlay() { # star_overlay <star> : what the active trade adds to that star
   printf 'The trade'\''s own files (its foundation, pillars and skills) are in %s.\n\n' "$TRADE_DIR"
   overlay_body "$f"
   skills=$(overlay_field "$f" skills)
-  [ -z "$skills" ] || printf '\nThis trade'\''s skills, if your harness has them: %s.\n' "$skills"
+  [ -z "$skills" ] || printf '\nThis trade'\''s skills, read them too: %s.\n' "$(skill_paths "$TRADE_DIR/skills" "$skills")"
   return 0
 }
 
@@ -128,6 +136,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
     return 0
   fi
   local want=$1 dir name ref new f tmp esc changed=() tracked=()
+  [ -n "$TRADE_GUARD" ] || die "the loader's guard ($KERNEL/templates/loader-guard.txt) is missing from this install; install the kernel again"
   case "$want" in
     */*|.|..) dir=$([ -f "$want/TRADE.md" ] && cd "$want" && pwd) || die "no trade at $want (a trade is a folder with a TRADE.md)" ;;
     *) dir=$(trade_find "$want") || die "no trade named $want here; these are: $(trade_names)" ;;

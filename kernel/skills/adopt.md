@@ -15,8 +15,9 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
    <package>/kernel/bin/constellation adopt            # this project; or: … adopt <project>
    ```
 
-   The package is the Constellation checkout on this machine (`~/projects/constellation`). It
-   is not fetched from anywhere; if it is not there, stop and say so plainly. Once a project is
+   The package is the Constellation package checkout on this machine; if you do not know where
+   it is, ask where it is. It is not fetched from anywhere; if it is not there, stop and say so
+   plainly. Once a project is
    adopted, its own copy (`.madewell/bin/constellation adopt`) re-runs the setup without it.
 
    Adopt installs the kernel, wires the commit hooks, makes `ideas/` (the drop box), runs the
@@ -34,14 +35,8 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
    pasted. Then hold the conversation below. If adopt said it was *already set up* and they
    have work in hand, skip the conversation: they have adopted it already.
 
-5. **Ask the door question, once**, unless `.madewell/profile` already names one:
-
-   > *"Would you rather just talk, and I'll handle everything behind the scenes — or shall I
-   > show you the engine as we go?"*
-
-   Write one word to `.madewell/profile`: `guide` for just talk, `lead` for show me the engine.
-   Never ask it again; if they later ask for the other door, rewrite the file
-   (`.madewell/PROFILES.md` says what each door shows).
+5. **Ask the door question, once**, unless `.madewell/profile` already names one: it is in
+   `.madewell/HOST.md` (The two doors), with where the answer goes.
 
 ---
 
@@ -69,8 +64,9 @@ Conversationally. One question at a time. **Never present the whole framework up
 that is a lecture, and they will nod and leave. Ask, listen, reflect their own words back as
 structure.
 
-Do not use the words *ideate, plan, implement, verify* until step 3, and when you do, attach
-each one to something they already said.
+Speak the glossary in `.madewell/HOST.md`, never the engine's words. Do not name the four acts
+(*thinking it through, planning it, making it, checking it*) until step 3, and when you do,
+attach each one to something they already said.
 
 ---
 
@@ -100,16 +96,17 @@ conversation and they will hand it over casually.
 
 ### 3 — Show them the shape
 
-Now name it, in their vocabulary first and the kernel's second.
+Now name it, in their vocabulary first and the glossary's second.
 
-> *"You said 'we scope it' — that's ideate. 'Cut the job sheet' — that's plan. 'The build' —
-> implement. 'Snagging' — verify. Four acts. You already run all of them; you just run them at
-> different depths depending on the size of the job."*
+> *"You said 'we scope it' — that's thinking it through. 'Cut the job sheet' — planning it.
+> 'The build' — making it. 'Snagging' — checking it. You already do all four; you just do them
+> at different depths depending on the size of the job."*
 
 Then the point:
 
 > *"The reason this is worth writing down is that when you're busy, snagging is what goes —
-> and you told me that yourself. A jig makes that impossible instead of tempting."*
+> and you told me that yourself. A check that runs every time makes skipping it impossible
+> instead of tempting."*
 
 **If their work genuinely does not fit, say so.** Do not force it. The four acts describe
 making something to a standard. Work that is purely reactive — a queue of unrelated
@@ -126,17 +123,19 @@ step 9. Steps 4–8 are for work none of them fits.
 > *"What's the thing where, if you get it wrong at the start, everything after it is wrong
 > too — and you find out late?"*
 
-That is their **foundation**. Software calls it system boundaries; marketing calls it
-positioning; sales calls it qualification. A caterer will say the guest count. A lawyer will
-say the jurisdiction. Whatever they say, that is the file.
+That goes in their trade's foundation file (the file's name, not a word for them). Software
+calls it system boundaries; marketing calls it positioning; sales calls it qualification. A
+caterer will say the guest count. A lawyer will say the jurisdiction. Whatever they say, in
+their words, that is the file.
 
 ### 5 — What does every job touch?
 
 > *"What are the three to five areas that every job passes through, no matter what kind it
 > is?"*
 
-Those are their **pillars** — the pillars of their domain. Push for three to five. Fewer
-means they are describing stages, not areas; more means they are listing tasks.
+Those go in their trade's pillar files, one each (again the files' name, not a word for them).
+Push for three to five. Fewer means they are describing stages, not areas; more means they
+are listing tasks.
 
 ### 6 — What gets skipped?
 
@@ -145,15 +144,18 @@ The heart of it. Ask directly, then wait.
 > *"When it's busy and something has to give — what gives? And what does it cost you three
 > weeks later?"*
 
-Every answer is a future jig. Write them verbatim. This list is what makes their trade
+Every answer is a future check that runs on every piece (a jig, in the files). Write them
+verbatim. This list is what makes their trade
 theirs rather than a template with their logo on it.
 
 ### 7 — The one question
 
 > *"Before anything leaves here, what's the one question you'd want asked?"*
 
-That is their **rubric**. The kernel's is *does this lead to craft, beauty and care*; theirs
-sits on top of it and is usually sharper and more specific.
+That is their one question (the rubric, in their `TRADE.md`). The kernel's are the three
+questions in `.madewell/HOST.md` (Deciding): ten times better to use, remembered or loved, as
+easy for an agent as for a person. Theirs sits on top of them and is usually sharper and more
+specific.
 
 ### 7b — How they'd know it was worth it
 
@@ -201,9 +203,11 @@ say:
 > *Is anything holding it up?*
 
 Then file it the way everything they bring is filed: write their words into
-`ideas/<slug>.md` and run `constellation inbox`, which turns it into an idea. Once it is there,
-start it yourself: `constellation take <slug>` with their four answers, then
-`constellation run <slug>`. Tell them plainly: *"That's being made now."*
+`ideas/<slug>.md` and run `constellation inbox`, which starts discovery on it. Discovery turns
+it into an idea and commits it: wait for that commit, then read the new piece's slug from
+`.madewell/stock/` (discovery names it; it need not be yours). Start it yourself:
+`constellation take <slug>` with their four answers, then `constellation run <slug>`. Tell them
+plainly: *"That's being made now."*
 
 **Those four answers are where adoption actually happens** — it is the first time the thing
 asks them for something and gives something back. If they struggle with *done when*, that is

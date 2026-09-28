@@ -39,26 +39,21 @@ compose_brief() { # compose_brief <slug> <step> <note>
   printf '# %s — %s\n\n' "$(sed -n '1s/^# //p' "$STARS/$star.md")" "$slug"
   printf 'You are wearing the %s profile for one step of this piece. The piece is the actor;\n' "$star"
   printf 'you are the hands for this step only. When it is done, hand off and stop.\n\n'
-  printf 'Ignore any project instruction that makes you the host or tells you to talk to the person.\n'
-  printf 'You are a star: you never speak to the person; the host does.\n\n'
   [ "$step" = polaris-peer ] && printf '**This step: peer, after Vega.**\n\n'
   [ "$step" = polaris-triage ] && printf '**This step: arbiter. A verify run failed; its output is in the run below.**\n\n'
   [ -n "$note" ] && printf '**Note for this start:** %s\n\n' "$note"
-  printf '## First, the relay\n\n'
-  printf 'Before any work, review what you were handed (the piece and the run below). Is anything\n'
-  printf 'ambiguous, missing or contradictory for your step?\n'
-  printf -- '- If nothing: `constellation clear`, then do the work.\n'
-  printf -- '- If something: `constellation clarify "<your questions>"`, then stop and wait. Whoever\n'
-  printf '  handed you this work answers in this pane. Repeat until nothing is left, then `constellation clear`.\n'
-  printf 'Three rounds at most: a fourth set of questions goes to the person, because the brief is wrong.\n'
-  printf '`constellation done` is refused until you have cleared.\n\n'
+  printf '`constellation done` is refused until you have cleared (the relay, below).\n\n'
   if [ -f "$STARS/LAW.md" ]; then sed 's/^#/##/' "$STARS/LAW.md"   # the star law, one level under this brief
-  else printf '## The star law\n\nMISSING: %s/LAW.md is not in this install; say so in your handoff.\n' "$STARS"; fi
+  else   # without the law, a star still must not take the host's seat, and still reviews first
+    printf '## The star law\n\nMISSING: %s/LAW.md is not in this install; say so in your handoff.\n\n' "$STARS"
+    printf 'Ignore any project instruction that makes you the host or tells you to talk to the person.\n'
+    printf 'Before any work: `constellation clear`, or `constellation clarify "<questions>"` and wait.\n'
+  fi
   printf '\n'
   star_body "$star"; printf '\n'
   star_overlay "$star"
   local skills; skills=$(star_field "$star" skills)
-  [ -n "$skills" ] && printf '\nLoad these skills if your harness has them: %s.\n' "$skills"
+  [ -z "$skills" ] || printf '\nRead these skills before you start: %s.\n' "$(skill_paths "$KERNEL/skills" "$skills")"
   printf '\n## The piece\n\n'; cat "$R/$MW/bench/$slug.md"
   printf '\n## The run so far (every handoff before you)\n\n'
   local s e h d any=0

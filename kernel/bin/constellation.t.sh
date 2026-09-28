@@ -50,8 +50,8 @@ check "vega's brief carries the piece and its star" grep -qF 'src/greet.js expor
 
 as vega
 check "done is refused before the relay clears" says "the relay comes first" "$C" done "understood"
-check "the brief puts the relay first" grep -qF "First, the relay" "$T/state/proj/greet.vega.brief.md"
-check "vega asks whoever handed it the piece: the operator" says "went to the operator" "$C" clarify "does greet take a name?"
+check "the brief puts the relay first" sh -c "grep -qx '### The relay' '$T/state/proj/greet.vega.brief.md' && grep -qF 'constellation done\` is refused until you have cleared' '$T/state/proj/greet.vega.brief.md'"
+check "vega asks whoever handed it the piece: the host" says "went to the host" "$C" clarify "does greet take a name?"
 check "status says vega is clarifying" test "$(next)" = clarifying:vega
 check "the operator answers the first star" env -u CONSTELLATION_PIECE -u CONSTELLATION_STEP "$C" answer greet "no name: greet() alone"
 check "vega clears after the answer" "$C" clear
@@ -78,7 +78,7 @@ check "stop gate: after the reply the answering star may stop" sh -c "$RP '$C' s
 check "stop gate: a star that clarified may stop and wait" sh -c "'$C' stop-check --claude | wc -c | grep -qx 0"
 check "the answer is on the record, from cassiopeia" sh -c "'$C' status greet | grep -q 'reply:cassiopeia'"
 for r in 2 3; do "$C" clarify "round $r?" >/dev/null; ( export CONSTELLATION_STEP=cassiopeia CONSTELLATION_REPLY_FOR=sirius; "$C" reply "answer $r" >/dev/null ); done
-check "a fourth round of questions flags the operator" says "flagged for the operator" "$C" clarify "still unclear?"
+check "a fourth round of questions flags the operator" says "flagged for the host" "$C" clarify "still unclear?"
 check "status sends it to the operator" test "$(next)" = operator
 check "the operator resumes the flagged step" sh -c "env -u CONSTELLATION_PIECE -u CONSTELLATION_STEP '$C' resume greet | grep -q 'sirius (sirius, implement) started'"
 as sirius; "$C" clear >/dev/null

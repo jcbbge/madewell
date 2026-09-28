@@ -18,11 +18,11 @@ two briefs — split before delegating.
 
 ## Authoring & taking it to the bench (ruling — open authoring, lead-gated admission)
 
-Authoring is **open**: anyone (Lead or Contributor) may draft a brief. A Contributor's draft
+Authoring is **open**: anyone (Owner or Contributor) may draft a brief. A Contributor's draft
 lands as a `_`-prefixed proposal (excluded from the live queue by the rule above). **Promoting it
-— dropping the `_` — is the COMMIT leg, and Commit is the Lead's authority.** So the verb is
+— dropping the `_` — is the COMMIT leg, and Commit is the Owner's authority.** So the verb is
 ungated; *admission* is lead-gated. Draft-to-propose is encouraged (it surfaces a finding as
-proposed work); the Lead makes the call. No new mechanism — the `_` exclusion **is** the gate.
+proposed work); the Owner makes the call. No new mechanism — the `_` exclusion **is** the gate.
 
 ## The schema (each field maps to the kernel Brief Format)
 

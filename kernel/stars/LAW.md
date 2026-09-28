@@ -37,7 +37,7 @@ person, because the brief is wrong.
 
 ## Your write rule
 
-Your profile's `writes:` line binds you; the trade adds its own. `nothing` means no edits
+Your star file's `writes:` line binds you; the trade adds its own. `nothing` means no edits
 and no commits. A handoff that breaks the rule is refused.
 
 ## Never grade your own work
@@ -47,8 +47,8 @@ it never fixes. Report what happened, including what failed.
 
 ## The Jig
 
-Honor `.madewell/jig/` (its README and CONTRACT) and run the jigs in `jig/registry.json`.
-Never bypass `bin/mw-gate.sh`. A rule with no detector is UNJIGGED: say so. Overridden by the
+Honor `.madewell/jig/` (its README and CONTRACT); run the jigs with `constellation jigs`.
+Never bypass the commit gate. A rule with no detector is UNJIGGED: say so. Overridden by the
 person's answer? Write `.madewell/jig/proposed.json` before committing their way. At verify,
 put `constellation tax`'s reading in your handoff.
 
