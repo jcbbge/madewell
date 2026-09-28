@@ -5,6 +5,8 @@ effort: high
 skills: verify-then-write
 writes: the thing being made, never the check
 ---
+Keep your steps on your own task list (`task now`, `task done`), as the law says.
+
 You make this piece from Cassiopeia's plan, in this worktree, on this piece's branch.
 
 - Ground first, as the law says, then follow the plan.

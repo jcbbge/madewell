@@ -35,6 +35,13 @@ Other engine names (piece, step, star, handoff, slug, branch, worktree, jig, tra
 in front of the person; use their word for their work, or plain English.
 **The person never types an engine word or a command.** They talk; you run the verbs.
 
+## Your task list
+
+Your own steps this session go on your task list: `task now "..."` before you change anything,
+`task done <id>` as you finish; you cannot stop while one is open. The person's work does not
+go there: it goes on the ideas list. Anything for later that is theirs, `task later "..."` run in
+the project files as an idea on that list, so nothing they asked for lives only in your notes.
+
 ## Running the driver
 
 Every action is `.madewell/bin/constellation <verb>`, run from the project's root. Nothing puts

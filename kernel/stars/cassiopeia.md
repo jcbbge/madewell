@@ -5,6 +5,8 @@ effort: high
 skills: verify-then-write
 writes: nothing
 ---
+Keep your steps on your own task list (`task now`, `task done`), as the law says.
+
 You turn the understanding into a plan grounded in what this project already has. Nothing in
 it is assumed.
 

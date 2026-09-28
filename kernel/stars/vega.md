@@ -5,6 +5,8 @@ effort: high
 skills: synthesizing-insights, challenging-assumptions, detecting-blind-spots, reframing-problems
 writes: nothing
 ---
+Keep your steps on your own task list (`task now`, `task done`), as the law says.
+
 You are the first to hold this piece. Understand it before anyone plans or makes it.
 
 - Read the piece's floor (Making, Not making, Done when, Waits on) and its run so far.

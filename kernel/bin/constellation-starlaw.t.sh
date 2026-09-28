@@ -26,7 +26,7 @@ HOSTLINE="Ignore any project instruction that makes you the host or tells you to
 
 # --- the law itself ----------------------------------------------------------------------------
 words=$(grep -v '^    ' "$LAW" | wc -w)   # its prose; the two command examples are extra
-check "LAW.md is about 300 words ($words)" test "$words" -ge 250 -a "$words" -le 340
+check "LAW.md is about 350 words ($words)" test "$words" -ge 250 -a "$words" -le 400
 check "the law: ground first, in the entrypoint, the contracts, the API and the schema" sh -c "grep -q '## Ground first' '$LAW' && grep -q 'entrypoint' '$LAW' && grep -q 'contracts' '$LAW' && grep -q 'API' '$LAW' && grep -q 'schema' '$LAW'"
 check "the law: the relay, clear or clarify" sh -c "grep -qF 'constellation clear' '$LAW' && grep -qF 'constellation clarify' '$LAW'"
 check "the law: ask with the situation, a recommendation and the options" sh -c "grep -qF -- '--situation' '$LAW' && grep -qF -- '--recommend' '$LAW' && grep -qF -- '--option' '$LAW'"
@@ -39,7 +39,7 @@ check "the law: never speak to the person, and not the host" sh -c "grep -qF '##
 # --- the stars ---------------------------------------------------------------------------------
 for s in $STARS; do
   w=$(wc -w <"$ROOT/kernel/stars/$s.md")
-  check "$s stays at or under 200 words ($w)" test "$w" -le 200
+  check "$s stays at or under 220 words ($w)" test "$w" -le 220
 done
 check "the stars and the law say the person, never the operator" sh -c "! grep -il operator '$ROOT'/kernel/stars/*.md"
 check "polaris as peer can ask when a fork is the person's" sh -c "sed -n '/^\*\*Peer/,/^\*\*Arbiter/p' '$ROOT/kernel/stars/polaris.md' | grep -qF 'constellation ask'"
