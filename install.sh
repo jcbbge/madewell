@@ -131,7 +131,8 @@ wire() {
     awk -v b="$LOADER_BEGIN" -v e="$LOADER_END" -v old="$LOADER_OLD" \
         -v new="$LOADER_GUARD Otherwise, read and follow .madewell/HOST.md" '
       $0==b{on=1} $0==e{on=0}
-      on && index($0, old)==1 { $0 = new substr($0, length(old) + 1) } 1' "$f" > "$f.mw_tmp" && mv "$f.mw_tmp" "$f"
+      on && index($0, old)==1 { $0 = new substr($0, length(old) + 1) } 1' "$f" > "$f.mw_tmp" &&
+      cat "$f.mw_tmp" > "$f" && rm -f "$f.mw_tmp"   # in place: a symlinked CLAUDE.md stays a symlink
   fi
 }
 wire CLAUDE.md
