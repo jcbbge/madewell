@@ -21,15 +21,18 @@ cmd_pause() {
   say "Paused. Whatever is being worked on finishes the step it is on and saves; nothing new starts. Say go to pick up."
 }
 
+drain_held() { # start everything held; the list is claimed by a rename, so go and a late hold never both start a piece
+  local claim slug; claim="$(held_file).$$.$RANDOM"; DRAINED=()
+  mv "$(held_file)" "$claim" 2>/dev/null || return 0
+  while IFS= read -r slug; do [ -n "$slug" ] && DRAINED+=("$slug"); done < <(awk '!seen[$0]++' "$claim")
+  rm -f "$claim"
+  for slug in ${DRAINED[@]+"${DRAINED[@]}"}; do ( advance "$slug" ) || say "$slug: could not start again (constellation status $slug)"; done
+}
+
 cmd_go() {
-  R=$(main_repo); local was=0 slug held=()
+  R=$(main_repo); local was=0
   paused && was=1; rm -f "$(pause_file)"
-  if [ -f "$(held_file)" ]; then
-    while IFS= read -r slug; do [ -n "$slug" ] && held+=("$slug"); done < <(awk '!seen[$0]++' "$(held_file)")
-    rm -f "$(held_file)"
-  fi
-  [ $was = 1 ] || [ ${#held[@]} -gt 0 ] || { say "Nothing is paused."; return 0; }
-  notify "going again"
-  for slug in ${held[@]+"${held[@]}"}; do ( advance "$slug" ) || say "$slug: could not start again (constellation status $slug)"; done
-  say "Going again.${held[0]:+ Picked up: ${held[*]}.}"
+  [ $was = 1 ] || [ -f "$(held_file)" ] || { say "Nothing is paused."; return 0; }
+  notify "going again"; drain_held
+  say "Going again.${DRAINED[0]:+ Picked up: ${DRAINED[*]}.}"
 }

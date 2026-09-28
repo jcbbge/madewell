@@ -36,7 +36,10 @@ advance() { # advance <slug> : start what comes after a handoff — the next sta
   local slug=$1 nx; nx=$(next_step "$slug")
   case "$nx" in operator|wait:*|running:*) notify "$slug needs the operator: constellation status $slug"; return 0;; esac
   if [[ "$nx" == clarifying:* ]] && [ "$(originator "$slug" "${nx#clarifying:}")" = operator ]; then return 0; fi
-  if paused; then hold "$slug"; say "Paused: $slug waits here; nothing new starts until go."; return 0; fi
+  if paused; then # a go that ran between the check and the hold has missed it: claim the list back
+    hold "$slug"; paused || { drain_held; return 0; }
+    say "Paused: $slug waits here; nothing new starts until go."; return 0
+  fi
   case "$nx" in
     land) cmd_land "$slug" ;;
     clarifying:*) local st=${nx#clarifying:}
