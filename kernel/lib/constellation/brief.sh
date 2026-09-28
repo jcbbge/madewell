@@ -84,7 +84,7 @@ survey() {
   WAITING=$(sort -t "$US" -k1,1n <<<"$WAITING" | sed '/^$/d'); MAKING=$(sort -n <<<"$MAKING" | sed '/^$/d')
 }
 finished_since() { # finished_since <epoch|""> : the title of every piece that reached finished/ on main since then
-  git -C "$R" log -n 500 --diff-filter=A --name-only --format='%x1e%ct' -- "$MW/finished/" 2>/dev/null | awk -v RS='\x1e' -v s="$1" '
+  git -C "$R" log -n 500 --no-renames --diff-filter=A --name-only --format='%x1e%ct' -- "$MW/finished/" 2>/dev/null | awk -v RS='\x1e' -v s="$1" '
     { n = split($0, L, "\n"); t = ""
       for (i = 1; i <= n; i++) { if (L[i] == "") continue; if (t == "") { t = L[i]; continue }
         if ((s == "" || t + 0 > s + 0) && L[i] ~ /\.md$/) print L[i] } }' | while read -r p; do

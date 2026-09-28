@@ -55,7 +55,7 @@ check "brief remembers its time in the state dir" test -s "$T/state/proj/brief.l
 sleep 1
 
 # --- a finished piece, two being made, one question
-printf '# Old piece\n\nIt was done.\n' >.madewell/finished/old.md; git add .madewell/finished/old.md; MW_GATE=off git commit -qm "finish old"
+piece old "Old piece"; git mv .madewell/bench/old.md .madewell/finished/old.md; MW_GATE=off git commit -qm "finish old"  # as land moves it
 piece greet "Greet the user"; "$C" run greet >/dev/null
 piece bye "Wave goodbye"; "$C" run bye >/dev/null; rec bye vega clear "no open questions"; rec bye vega done "a one-function module"
 piece hi "Say hi"; "$C" run hi >/dev/null
