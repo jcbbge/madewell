@@ -1,3 +1,37 @@
+# Constellation
+
+**Made Well is the playbook. Constellation drives it.** One project: the Made Well kernel
+(below, unchanged) and the six stars that carry a piece through its four acts. A Lisp
+runtime that will host all of it lives in `runtime/lisp/` and is not needed today.
+
+**The piece is the actor.** An agent is a profile the piece borrows for one step: any
+harness, any model, swapped freely. Everything durable is Made Well's own. Position is the
+piece's directory, and the run is the git log of the piece's branch, one commit per
+handoff. A dropped connection, a capped plan or a new provider loses nothing.
+
+| Act | Star | Does | Writes |
+|---|---|---|---|
+| ideate | Vega | understands it and breaks it down | nothing |
+| ideate | Polaris | challenges that, as a peer | nothing |
+| plan | Cassiopeia | a plan grounded in this code base | nothing |
+| implement | Sirius | builds it from the plan | code, never tests |
+| verify | Orion | writes the tests, from the plan only | tests only |
+| verify | Aldebaran | runs them; pass lands the piece | nothing |
+| verify | Polaris | on a failure, rules: bad test, bad code, or the operator's | nothing |
+
+```sh
+constellation discover notes/client-call.md   # the outer loop: notes → pieces on the rack
+constellation take <slug>                     # rack → bench; the floor is required
+constellation run <slug>                      # the stars take turns; each hands to the next
+constellation status [<slug>]                 # where every piece is, and its last handoff
+constellation resume <slug> --harness pi      # after a drop or a cap: same record, new hands
+```
+
+The stars are `kernel/stars/*.md`; the driver is `kernel/bin/constellation`, with its test
+beside it. Everything below is the Made Well kernel.
+
+---
+
 # Made Well
 
 **A way of working that keeps good work from quietly going missing.**

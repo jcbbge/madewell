@@ -68,7 +68,7 @@ cp "$SRC/SPEC.md"     "$DEST/.madewell/SPEC.md"                 # where work liv
 for f in AGENTS.md EXTENDING.md PROFILES.md profiles.json; do
   cp "$SRC/kernel/$f" "$DEST/.madewell/$f"
 done
-for d in guides skills templates bin registers bindings; do
+for d in guides skills templates bin registers bindings stars; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/kernel/$d" "$DEST/.madewell/$d"
 done

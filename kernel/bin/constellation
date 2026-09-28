@@ -1,0 +1,345 @@
+#!/usr/bin/env bash
+# constellation — drives one Made Well piece through the inner loop with the six stars.
+#
+# The piece is the actor. An agent is a profile the piece borrows for one step, and any
+# harness can wear it. Everything durable is Made Well's own: position is the piece's
+# directory (stock/ bench/ finished/), and the run is the git log of the piece's branch,
+# one commit per event, each with the SPEC trailer (ACT/DONE/NEXT) plus STAR/STEP/EVENT.
+# A dropped connection, a capped subscription or a switched provider loses nothing:
+# `constellation resume <slug>` starts the current step again, on any harness, and the
+# new agent reads every handoff before it.
+#
+#   constellation take <slug>                  stock → bench (the floor is required); makes the
+#                                              piece's branch piece/<slug> and its worktree
+#   constellation run <slug> [launch flags]    start the piece's next step (or land it)
+#   constellation resume <slug> [launch flags] start the current step again (new agent, same record)
+#   constellation status [<slug>]              every piece on the bench: its step and last handoff;
+#                                              with a slug, its whole run
+#   constellation answer <slug> "<text>"       reply to a star that asked; typed into its pane
+#   constellation land <slug>                  after a passing verify: fast-forward, bench → finished
+#   constellation discover <notes-file>        the outer loop: digest notes into pieces on the rack
+#
+# Inside a step (the brief says so), the star finishes with one of:
+#   constellation done "<handoff>"             constellation done --fail "<output>"   (aldebaran)
+#   constellation done --route sirius|orion|operator "<why>"                        (polaris, arbiter)
+#   constellation ask "<question>"             for what only the operator can settle
+#
+# Launch flags: --harness claude|pi (default: the star's), --model M, --effort E,
+#   --cmd '<command with {brief} in it>' for any other harness.
+# The steps: vega (ideate) → polaris (peer) → cassiopeia (plan) → sirius (implement) →
+#   orion (verify: tests) → aldebaran (verify: run) → land; a failed run goes to polaris
+#   (arbiter), who routes it to sirius, orion or the operator; three routes, then the operator.
+# Write rules, checked at each handoff: orion commits only test files; sirius never touches a
+#   test file; every other star changes nothing and commits nothing.
+#
+# Knobs: CONSTELLATION_STATE (default ~/.local/state/constellation: worktrees, briefs, step
+#   ledgers), CONSTELLATION_TMUX_SESSION (default workers), CONSTELLATION_AUTO=0 (do not start
+#   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests).
+# Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
+set -euo pipefail
+case "${1:-}" in -h|--help|help|"") sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
+
+SELF=$(readlink -f "$0")
+KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
+STARS=$KERNEL/stars
+STATE=${CONSTELLATION_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/constellation}
+SESSION=${CONSTELLATION_TMUX_SESSION:-workers}
+MW=.madewell
+STEPS="vega polaris-peer cassiopeia sirius orion aldebaran polaris-triage"
+TESTPATH='(^|/)(tests?|__tests__|spec|specs)/|[._-](test|spec)s?\.[A-Za-z0-9]+$|_test\.[A-Za-z0-9]+$'
+
+die() { printf 'constellation: %s\n' "$*" >&2; exit 2; }
+say() { printf '%s\n' "$*"; }
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+
+# --- where things are --------------------------------------------------------------------
+main_repo() { # the main checkout: CONSTELLATION_REPO inside a step, else the cwd's (a worktree's main)
+  if [ -n "${CONSTELLATION_REPO:-}" ]; then printf '%s' "$CONSTELLATION_REPO"; return; fi
+  local common; common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || die "not in a git repository"
+  dirname "$common"
+}
+R=""; work_of() { printf '%s/%s/%s' "$STATE" "$(basename "$R")" "$1"; }
+branch_of() { printf 'piece/%s' "$1"; }
+star_of() { case "$1" in polaris-*) echo polaris;; *) echo "$1";; esac; }
+act_of() { case "$1" in vega|polaris-peer) echo ideate;; cassiopeia) echo plan;; sirius) echo implement;; *) echo verify;; esac; }
+star_field() { sed -n "s/^$2:[[:space:]]*//p" "$STARS/$1.md" | head -1; }
+star_body() { sed '1,/^---$/d' "$STARS/$1.md"; }
+
+# --- the record: the piece branch's log -------------------------------------------------
+events() { # events <slug> : one line per event, oldest first: STEP<TAB>EVENT<TAB>HARNESS<TAB>DONE
+  git -C "$R" log --reverse --grep='^STEP: ' --format='%x1e%B' "$(branch_of "$1")" 2>/dev/null | awk -v RS='\x1e' '
+    { step = ev = h = d = ""
+      n = split($0, L, "\n")
+      for (i = 1; i <= n; i++) {
+        if (L[i] ~ /^STEP: /) step = substr(L[i], 7)
+        else if (L[i] ~ /^EVENT: /) ev = substr(L[i], 8)
+        else if (L[i] ~ /^HARNESS: /) h = substr(L[i], 10)
+        else if (L[i] ~ /^DONE: /) d = substr(L[i], 7)
+      }
+      if (step != "") printf "%s\t%s\t%s\t%s\n", step, ev, h, d }'
+}
+record() { # record <slug> <step> <event> <harness> <done-text> <next> : one empty commit on the piece branch
+  local slug=$1 step=$2 ev=$3 h=$4 done=$5 next=$6 wt; wt=$(work_of "$slug")
+  local msg; msg=$(printf 'run(%s): %s %s\n\nACT: %s\nSTAR: %s\nSTEP: %s\nEVENT: %s\nHARNESS: %s\nDONE: %s\nNEXT: %s\n' \
+    "$slug" "$step" "$ev" "$(act_of "$step")" "$(star_of "$step")" "$step" "$ev" "${h:--}" "$(tr '\n' ' ' <<<"${done:--}" | sed 's/[[:space:]]*$//')" "${next:--}")
+  git -C "$wt" -c core.hooksPath=/dev/null commit -q --allow-empty -m "$msg" || die "could not record $ev for $slug"
+}
+next_step() { # next_step <slug> : the step to run next, or land / wait / operator / running:<step>
+  local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d
+  while IFS=$'\t' read -r step ev h d; do
+    last=$step; lev=$ev
+    [ "$step" = orion ] && [ "$ev" = done ] && orion_done=1
+    [[ "$ev" == route:* ]] && routes=$((routes + 1))
+  done < <(events "$slug")
+  case "$lev" in
+    "") echo vega ;;
+    started) echo "running:$last" ;;
+    ask) echo "wait:$last" ;;
+    answer) echo "running:$last" ;;
+    fail) if [ "$routes" -ge 3 ]; then echo operator; else echo polaris-triage; fi ;;
+    route:sirius) echo sirius ;;
+    route:orion) echo orion ;;
+    route:operator) echo operator ;;
+    done)
+      case "$last" in
+        vega) echo polaris-peer ;; polaris-peer) echo cassiopeia ;; cassiopeia) echo sirius ;;
+        sirius) [ $orion_done = 1 ] && echo aldebaran || echo orion ;;
+        orion) echo aldebaran ;; aldebaran) echo land ;; *) echo operator ;;
+      esac ;;
+    *) echo operator ;;
+  esac
+}
+# --- the floor ----------------------------------------------------------------------------
+floor_gaps() { local f=$1 m=(); for k in Making 'Not making' 'Done when' 'Waits on'; do grep -qi "^\*\*$k:\*\*" "$f" || m+=("$k"); done; local IFS=,; printf '%s' "${m[*]}" | sed 's/,/, /g'; }
+
+# --- commands -------------------------------------------------------------------------------
+cmd_take() {
+  local slug=${1:-}; [ -n "$slug" ] || die "usage: constellation take <slug>"
+  R=$(main_repo); local src="$R/$MW/stock/$slug.md" dst="$R/$MW/bench/$slug.md"
+  [ -f "$src" ] || die "no piece $MW/stock/$slug.md on the rack"
+  local gaps; gaps=$(floor_gaps "$src")
+  [ -z "$gaps" ] || die "$slug cannot reach the bench without its floor: missing $gaps. Add, in the piece:
+  **Making:** …   **Not making:** …   **Done when:** …   **Waits on:** …   (Waits on may be empty)"
+  [ -z "$(git -C "$R" diff --cached --name-only)" ] || die "the index already holds staged changes; commit or unstage them first"
+  git -C "$R" mv "$src" "$dst"
+  git -C "$R" commit -q -m "take $slug to the bench" -m "ACT: plan
+DONE: $slug is in hand (its floor is stated)
+NEXT: constellation run $slug (vega, ideate)" || die "the move was refused (mw-gate); nothing changed"
+  local wt; wt=$(work_of "$slug"); mkdir -p "$(dirname "$wt")"
+  git -C "$R" worktree add -q -b "$(branch_of "$slug")" "$wt" HEAD || die "could not make the worktree for $slug"
+  seed_framework "$wt"
+  say "took $slug to the bench — branch $(branch_of "$slug"), worktree $wt
+next: constellation run $slug"
+}
+seed_framework() { # the vendored Made Well framework is gitignored; a worktree needs it for the commit gate
+  local wt=$1 d
+  for d in bin guides skills templates registers bindings stars; do
+    [ -d "$R/$MW/$d" ] && [ ! -e "$wt/$MW/$d" ] && cp -a "$R/$MW/$d" "$wt/$MW/$d"
+  done; return 0
+}
+
+launch() { # launch <slug> <step> <harness> <model> <effort> <cmd> <note>
+  local slug=$1 step=$2 h=$3 model=$4 effort=$5 cmd=$6 note=$7 star wt dir brief tl win
+  star=$(star_of "$step"); wt=$(work_of "$slug")
+  [ -d "$wt" ] || die "no worktree for $slug at $wt (constellation take $slug first)"
+  h=${h:-$(star_field "$star" harness)}; h=${h:-claude}; effort=${effort:-$(star_field "$star" effort)}; effort=${effort:-high}
+  dir="$STATE/$(basename "$R")"; brief="$dir/$slug.$step.brief.md"; tl="$dir/$slug.$step.TASKS.md"
+  compose_brief "$slug" "$step" "$note" >"$brief"
+  [ -f "$tl" ] || printf '# Tasks\n\n## NOW\n\n## LATER\n\n## DONE\n' >"$tl"
+  record "$slug" "$step" started "$h" "${note:-}" "constellation done, in the pane"
+  local base; base=$(git -C "$wt" rev-parse HEAD)
+  local run
+  if [ -n "$cmd" ]; then run=${cmd//\{brief\}/$brief}
+  else case "$h" in
+    claude) run="claude --dangerously-skip-permissions --effort '$effort'${model:+ --model '$model'} \"\$(cat '$brief')\""
+            trust "$wt" ;;
+    pi)     run="pi --approve${model:+ --model '$model'} --thinking '$effort' \"\$(cat '$brief')\"" ;;
+    *) die "harness $h: pass --cmd '<command with {brief}>' to run it" ;;
+  esac; fi
+  [ "${CONSTELLATION_DRY:-}" = 1 ] && run="sleep 3600"
+  win="$slug·$step"
+  tmux has-session -t "=$SESSION" 2>/dev/null || tmux new-session -d -s "$SESSION" -n _ -c "$wt"
+  tmux kill-window -t "=$SESSION:=$win" 2>/dev/null || true
+  tmux new-window -d -t "=$SESSION:" -n "$win" -c "$wt"
+  tmux send-keys -t "=$SESSION:=$win" "export CONSTELLATION_PIECE='$slug' CONSTELLATION_STEP='$step' CONSTELLATION_REPO='$R' CONSTELLATION_BASE='$base' CONSTELLATION_HARNESS='$h' TASKS_FILE='$tl' AGENT_ROLE='$star' WORKER_ID='$slug' CIRCADIAN_ROLE=AGNT CIRCADIAN_LANE='$slug' PATH='$(dirname "$SELF")':\"\$PATH\"; clear; $run" Enter
+  say "$slug: $step ($star, $(act_of "$step")) started on $h in $SESSION:$win"
+}
+trust() { # pre-accept Claude Code's folder-trust dialog for a worktree
+  [ "${CONSTELLATION_DRY:-}" = 1 ] && return 0
+  command -v jq >/dev/null && [ -f "$HOME/.claude.json" ] || return 0
+  jq --arg p "$1" '.projects[$p] = ((.projects[$p] // {}) + {hasTrustDialogAccepted:true, hasClaudeMdExternalIncludesApproved:true})' \
+    "$HOME/.claude.json" >"$HOME/.claude.json.tmp" && mv "$HOME/.claude.json.tmp" "$HOME/.claude.json"
+}
+compose_brief() { # compose_brief <slug> <step> <note>
+  local slug=$1 step=$2 note=$3 star; star=$(star_of "$step")
+  printf '# %s — %s\n\n' "$(sed -n '1s/^# //p' "$STARS/$star.md")" "$slug"
+  printf 'You are wearing the %s profile for one step of this piece. The piece is the actor;\n' "$star"
+  printf 'you are the hands for this step only. When it is done, hand off and stop.\n\n'
+  [ "$step" = polaris-peer ] && printf '**This step: peer, after Vega.**\n\n'
+  [ "$step" = polaris-triage ] && printf '**This step: arbiter. A verify run failed; its output is in the run below.**\n\n'
+  [ -n "$note" ] && printf '**Note for this start:** %s\n\n' "$note"
+  star_body "$star"; printf '\n'
+  local skills; skills=$(star_field "$star" skills)
+  [ -n "$skills" ] && printf '\nLoad these skills if your harness has them: %s.\n' "$skills"
+  printf '\n## The piece\n\n'; cat "$R/$MW/bench/$slug.md"
+  printf '\n## The run so far (every handoff before you)\n\n'
+  local s e h d any=0
+  while IFS=$'\t' read -r s e h d; do
+    [ "$e" = started ] && continue; any=1
+    printf -- '- **%s** %s (%s): %s\n' "$s" "$e" "$h" "$d"
+  done < <(events "$slug")
+  [ $any = 1 ] || printf 'Nothing yet: you are first.\n'
+  printf '\n## Where you are\n\n'
+  printf -- '- Worktree: %s, branch %s. The main checkout is %s; do not work there.\n' "$(work_of "$slug")" "$(branch_of "$slug")" "$R"
+  printf -- '- If an earlier start of this step was interrupted, read `git log` and `git status` here and continue from what is already done.\n'
+  printf -- '- Finish with `constellation done …` as your last act (it is on your PATH). Nothing else hands off.\n'
+}
+
+cmd_run() { # cmd_run <slug> [flags] [resume]
+  local slug=${1:-}; shift || true; [ -n "$slug" ] || die "usage: constellation run <slug> [--harness H] [--model M] [--effort E] [--cmd C]"
+  local h="" model="" effort="" cmd="" resume=${RESUME:-0}
+  while [ $# -gt 0 ]; do case "$1" in
+    --harness) h=$2; shift;; --model) model=$2; shift;; --effort) effort=$2; shift;; --cmd) cmd=$2; shift;;
+    *) die "unknown flag $1";; esac; shift; done
+  R=$(main_repo); [ -f "$R/$MW/bench/$slug.md" ] || die "$slug is not on the bench (constellation take $slug)"
+  local nx; nx=$(next_step "$slug")
+  case "$nx" in
+    running:*) if [ "$resume" = 1 ]; then launch "$slug" "${nx#running:}" "$h" "$model" "$effort" "$cmd" "resumed: the previous start of this step did not finish"
+               else die "$slug: ${nx#running:} is already running (constellation resume $slug to start it again)"; fi ;;
+    wait:*) die "$slug: ${nx#wait:} asked a question; answer it: constellation answer $slug \"…\"" ;;
+    operator) die "$slug needs the operator: see constellation status $slug (the last handoff says why)" ;;
+    land) cmd_land "$slug" ;;
+    *) if [ "$resume" = 1 ]; then launch "$slug" "$nx" "$h" "$model" "$effort" "$cmd" ""
+       else launch "$slug" "$nx" "$h" "$model" "$effort" "$cmd" ""; fi ;;
+  esac
+}
+
+changed_since() { git -C "$1" diff --name-only "$2" HEAD --; }
+commits_since() { git -C "$1" log --format='%H %s' "$2..HEAD" | grep -v ' run(' || true; }
+cmd_done() {
+  local mode=done route="" text
+  while [ $# -gt 0 ]; do case "$1" in
+    --fail) mode=fail;; --route) mode=route; route=$2; shift;; *) break;; esac; shift; done
+  text=${1:-}; [ -n "$text" ] || die 'usage: constellation done [--fail | --route sirius|orion|operator] "<handoff>"'
+  local slug=${CONSTELLATION_PIECE:-} step=${CONSTELLATION_STEP:-} base=${CONSTELLATION_BASE:-}
+  [ -n "$slug" ] && [ -n "$step" ] || die "not inside a constellation step (no CONSTELLATION_PIECE/STEP)"
+  R=$(main_repo); local wt; wt=$(work_of "$slug")
+  [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ] || die "uncommitted changes in the worktree: commit what belongs to this step, or undo it, then hand off"
+  local changed; changed=$(changed_since "$wt" "$base")
+  case "$step" in
+    orion)
+      local bad; bad=$(grep -vE "$TESTPATH" <<<"$changed" | sed '/^$/d' || true)
+      [ -z "$bad" ] || die "orion changes only test files; these are not: $(tr '\n' ' ' <<<"$bad")" ;;
+    sirius)
+      local bad; bad=$(grep -E "$TESTPATH" <<<"$changed" | sed '/^$/d' || true)
+      [ -z "$bad" ] || die "sirius never touches tests; these are tests: $(tr '\n' ' ' <<<"$bad")" ;;
+    *)
+      [ -z "$(commits_since "$wt" "$base")" ] || die "$step changes nothing, but it committed: $(commits_since "$wt" "$base" | cut -c1-60 | tr '\n' ';')" ;;
+  esac
+  case "$mode" in
+    fail) [ "$step" = aldebaran ] || die "only aldebaran fails a run"; record "$slug" "$step" fail "${CONSTELLATION_HARNESS:-}" "$text" "polaris (arbiter)" ;;
+    route) [ "$step" = polaris-triage ] || die "only the arbiter routes"
+           case "$route" in sirius|orion|operator) ;; *) die "route to sirius, orion or operator";; esac
+           record "$slug" "$step" "route:$route" "${CONSTELLATION_HARNESS:-}" "$text" "$route" ;;
+    done) [ "$step" != polaris-triage ] || die "the arbiter rules with --route"; local n; n=$(next_step_after "$slug" "$step")
+          record "$slug" "$step" done "${CONSTELLATION_HARNESS:-}" "$text" "$n" ;;
+  esac
+  say "$slug: $step handed off"
+  notify "$slug: $step $mode — $(cut -c1-80 <<<"$text")"
+  if [ "${CONSTELLATION_AUTO:-1}" != 0 ]; then
+    local nx; nx=$(next_step "$slug")
+    case "$nx" in
+      land) cmd_land "$slug" ;;
+      operator|wait:*|running:*) notify "$slug needs the operator: constellation status $slug" ;;
+      *) ( CONSTELLATION_PIECE= CONSTELLATION_STEP= CONSTELLATION_BASE= launch "$slug" "$nx" "" "" "" "" "" ) ;;
+    esac
+    [ "${CONSTELLATION_DRY:-}" = 1 ] || ( sleep 5; tmux kill-window -t "=$SESSION:=$slug·$step" 2>/dev/null ) >/dev/null 2>&1 &
+  fi
+}
+next_step_after() { case "$2" in vega) echo polaris-peer;; polaris-peer) echo cassiopeia;; cassiopeia) echo sirius;; sirius) echo "orion or aldebaran";; orion) echo aldebaran;; aldebaran) echo land;; *) echo -;; esac; }
+
+cmd_ask() {
+  local q=${1:-}; [ -n "$q" ] || die 'usage: constellation ask "<question>"'
+  local slug=${CONSTELLATION_PIECE:-} step=${CONSTELLATION_STEP:-}; [ -n "$slug" ] || die "not inside a constellation step"
+  R=$(main_repo); record "$slug" "$step" ask "${CONSTELLATION_HARNESS:-}" "$q" "the operator answers: constellation answer $slug \"…\""
+  notify "$slug ($step) asks: $q"
+  say "asked; wait for the answer in this pane"
+}
+cmd_answer() {
+  local slug=${1:-} text=${2:-}; [ -n "$slug" ] && [ -n "$text" ] || die 'usage: constellation answer <slug> "<text>"'
+  R=$(main_repo); local nx; nx=$(next_step "$slug"); [[ "$nx" == wait:* ]] || die "$slug has no open question"
+  local step=${nx#wait:}; record "$slug" "$step" answer "" "$text" "$step continues"
+  tmux send-keys -t "=$SESSION:=$slug·$step" -l -- "The operator answered: $text" 2>/dev/null && tmux send-keys -t "=$SESSION:=$slug·$step" Enter \
+    || say "(its pane is gone: constellation resume $slug carries the answer in the brief)"
+  say "answered $slug ($step)"
+}
+
+cmd_land() {
+  local slug=${1:-}; [ -n "$slug" ] || die "usage: constellation land <slug>"
+  R=$(main_repo); local wt br def; wt=$(work_of "$slug"); br=$(branch_of "$slug")
+  [ "$(next_step "$slug")" = land ] || die "$slug has not passed verify (constellation status $slug)"
+  def=$(git -C "$R" branch --show-current)
+  [ -z "$(git -C "$R" status --porcelain --untracked-files=no)" ] || die "the main checkout has uncommitted changes; clean it, then constellation land $slug"
+  [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ] || die "the worktree has uncommitted changes"
+  if ! git -C "$R" merge-base --is-ancestor "$def" "$br"; then
+    git -C "$wt" -c core.hooksPath=/dev/null rebase -q "$def" || { git -C "$wt" rebase --abort 2>/dev/null; die "$br does not rebase cleanly onto $def; resolve it in $wt, then constellation land $slug"; }
+  fi
+  git -C "$R" merge --ff-only -q "$br" || die "the fast-forward failed; nothing landed"
+  git -C "$R" mv "$MW/bench/$slug.md" "$MW/finished/$slug.md"
+  git -C "$R" commit -q -m "finish $slug" -m "ACT: verify
+DONE: $slug verified by a star that did not build it; landed from $br
+NEXT: —" || die "the finish move was refused (mw-gate); the code is landed, the piece is still on the bench"
+  git -C "$R" worktree remove --force "$wt" 2>/dev/null || true
+  git -C "$R" branch -D "$br" >/dev/null 2>&1 || true
+  notify "$slug landed and finished"
+  say "landed $slug into $def; $MW/finished/$slug.md"
+}
+
+cmd_status() {
+  R=$(main_repo)
+  if [ -n "${1:-}" ]; then
+    local slug=$1 s e h d; say "$slug — $( [ -f "$R/$MW/bench/$slug.md" ] && echo 'on the bench' || { [ -f "$R/$MW/finished/$slug.md" ] && echo finished || echo 'not on the bench'; })"
+    while IFS=$'\t' read -r s e h d; do printf '  %-15s %-14s %-7s %s\n' "$s" "$e" "$h" "$d"; done < <(events "$slug")
+    say "  next: $(next_step "$slug")"; return
+  fi
+  local f slug nx any=0
+  for f in "$R/$MW"/bench/*.md; do
+    [ -e "$f" ] || continue; slug=$(basename "$f" .md); any=1
+    nx=$(next_step "$slug" 2>/dev/null || echo "?")
+    local lastd; lastd=$(events "$slug" | grep -v $'\tstarted\t' | tail -1 | cut -f4 | cut -c1-70)
+    printf '%-28s %-22s %s\n' "$slug" "$nx" "${lastd:-—}"
+  done
+  [ $any = 1 ] || say "nothing on the bench (constellation take <slug>)"
+}
+
+cmd_discover() {
+  local notes=${1:-}; [ -f "$notes" ] || die "usage: constellation discover <notes-file>"
+  R=$(main_repo); notes=$(readlink -f "$notes")
+  local dir="$STATE/$(basename "$R")"; mkdir -p "$dir"; local brief="$dir/discover.$(date +%s).brief.md"
+  { printf '# Discovery — the outer loop\n\nDigest these notes into pieces on the rack. Follow `%s/%s/skills/discovery.md` (the discovery skill) exactly: pieces go to `%s/stock/<slug>.md`, one per actionable item, each with a title and what it is about; write the floor (**Making:** / **Not making:** / **Done when:** / **Waits on:**) where the notes already settle it. Never move anything to the bench. Commit the new stock pieces in one commit.\n\nThe notes: %s\n' "$R" "$MW" "$MW" "$notes"; } >"$brief"
+  local run="claude --dangerously-skip-permissions --effort high \"\$(cat '$brief')\""
+  [ "${CONSTELLATION_DRY:-}" = 1 ] && run="sleep 3600"
+  tmux has-session -t "=$SESSION" 2>/dev/null || tmux new-session -d -s "$SESSION" -n _ -c "$R"
+  tmux new-window -d -t "=$SESSION:" -n "discover" -c "$R"
+  tmux send-keys -t "=$SESSION:=discover" "export AGENT_ROLE=vega; clear; $run" Enter
+  say "discovery started on $notes in $SESSION:discover"
+}
+
+notify() { # a banner and the bell wherever the operator is attached
+  command -v tmux >/dev/null || return 0
+  local c; while read -r c; do tmux display-message -c "$c" -d 8000 "[constellation] $1" 2>/dev/null || true; done < <(tmux list-clients -F '#{client_name}' 2>/dev/null)
+  return 0
+}
+
+case "$1" in
+  take) shift; cmd_take "$@" ;;
+  run) shift; cmd_run "$@" ;;
+  resume) shift; RESUME=1 cmd_run "$@" ;;
+  done) shift; cmd_done "$@" ;;
+  ask) shift; cmd_ask "$@" ;;
+  answer) shift; cmd_answer "$@" ;;
+  land) shift; cmd_land "$@" ;;
+  status) shift; cmd_status "$@" ;;
+  discover) shift; cmd_discover "$@" ;;
+  *) die "unknown command '$1' (constellation help)" ;;
+esac
