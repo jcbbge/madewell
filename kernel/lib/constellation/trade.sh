@@ -18,7 +18,7 @@
 
 TRADE_DEFAULT=dev
 TRADE_REF="[^[:space:]\`'\"()<>]*trades/[A-Za-z0-9._-]+/TRADE\\.md"      # a reference to a trade
-TRADE_GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: follow only your brief."
+TRADE_GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: skip HOST.md and follow your brief; the rules of this project still bind."
 TRADE_LOADER="$TRADE_GUARD Otherwise, read and follow .madewell/HOST.md before anything else, then continue."  # install.sh's LOADER_LINE
 TRADE_NAME=$TRADE_DEFAULT TRADE_DIR="" TRADE_FROM=""
 

@@ -17,7 +17,7 @@ ok()   { printf 'ok   %s\n' "$1"; }
 bad()  { printf 'FAIL %s\n' "$1"; fails=$((fails + 1)); }
 check() { local n=$1; shift; if "$@" >/dev/null 2>&1; then ok "$n"; else bad "$n"; fi; }
 
-GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: follow only your brief."
+GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: skip HOST.md and follow your brief; the rules of this project still bind."
 LOADER="$GUARD Otherwise, read and follow .madewell/HOST.md before anything else, then continue."
 loader_line() { awk '/^<!-- MADE WELL — loader -->$/{getline; print; exit}' "$1"; }
 fresh() { mkdir -p "$1"; git init -q -b main "$1"; echo hi >"$1/notes.txt"; git -C "$1" add -A; git -C "$1" commit -qm init; }
