@@ -31,6 +31,8 @@ handoff. A dropped connection, a capped plan or a new provider loses nothing.
 | verify | Aldebaran | runs them; pass lands the piece | nothing |
 | verify | Polaris | on a failure, rules: bad test, bad code, or the operator's | nothing |
 
+*For the assistant:* the verbs you run on the person's behalf; they never type them.
+
 ```sh
 constellation adopt [<project>]               # set a project up: kernel, hooks, ideas/, checks, a welcome
 constellation discover notes/client-call.md   # the outer loop: notes → pieces on the rack
@@ -40,7 +42,7 @@ constellation status [<slug>]                 # where every piece is, and its la
 constellation resume <slug> --harness pi      # after a drop or a cap: same record, new hands
 ```
 
-**One interface.** People and agents act through `constellation <verb>` and nothing else:
+**One interface.** Your assistant acts through `constellation <verb>` and nothing else:
 `constellation move`, `session`, `tax`, `jigs`, `enforcers`, `hooks` and `install` put the
 kernel's own tools behind the same door, so no brief, skill or doc tells anyone to run a script
 by name. What sits behind a verb may change language (a Lisp runtime later); the verbs do not.
