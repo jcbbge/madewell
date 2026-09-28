@@ -99,10 +99,12 @@ as bye sirius pi; echo 'export const bye = () => "bye"' >"$WB/src/bye.js"; git -
 "$C" done "added bye()" >/dev/null
 as bye orion pi; mkdir -p "$WB/tests"; echo 'expect(bye()).toBe("bye")' >"$WB/tests/bye.test.js"; git -C "$WB" add tests; git -C "$WB" commit -qm "a test for bye"
 "$C" done "tests/bye.test.js" >/dev/null
+out; echo x >src/other.js; git add src/other.js; git commit -qm "an unrelated change made meanwhile"
 as bye aldebaran pi; "$C" done "pass: 1 passed" >/dev/null
 out
 "$C" receipt bye >"$T/r2" 2>&1
-check "the second receipt carries only its own commits" sh -c "grep -qF 'Saved as 2 changes' '$T/r2' && ! grep -q greet '$T/r2'"
+check "landed over a moved default branch (rebased first)" sh -c "test -f .madewell/finished/bye.md && git log --format=%s | grep -qx 'an unrelated change made meanwhile'"
+check "the second receipt carries only its own commits, not the other piece's or the meanwhile change" sh -c "grep -qF 'Saved as 2 changes' '$T/r2' && ! grep -qE 'greet|meanwhile' '$T/r2'"
 check "a maker who did not say how to try it: the receipt says so, and what to do" has "$T/r2" "The maker did not say how to try it. Ask for a short demonstration."
 check "no failed check, no failure line" sh -c "! grep -q 'did not pass the first time' '$T/r2'"
 check "no harness log, no token line (the time still shows)" sh -c "grep -q 'It took' '$T/r2' && ! grep -q tokens '$T/r2'"

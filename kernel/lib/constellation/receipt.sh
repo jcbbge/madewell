@@ -9,13 +9,13 @@
 # words for plain ones and leaves file paths alone.
 
 receipt_block() { # receipt_block <slug> <tip> : the piece's commits ending at <tip>, oldest first
-  local slug=$1 tip=$2 h s out=() keep=0
+  local slug=$1 tip=$2 h s out=() keep=0 rec="^run\\(([^)]*)\\): (${STEPS// /|}) "
   while IFS=$'\t' read -r h s; do
-    case "$s" in
-      "run($slug): "*) out+=("$h"); keep=${#out[@]} ;;
-      run\(*|"take "*" to the bench") break ;;   # another piece's record, or this piece's take
-      *) out+=("$h") ;;
-    esac
+    if [[ "$s" =~ $rec ]]; then
+      [ "${BASH_REMATCH[1]}" = "$slug" ] || break   # another piece's record: this one's run is over
+      out+=("$h"); keep=${#out[@]}
+    elif [[ "$s" == "take "*" to the bench" ]]; then break
+    else out+=("$h"); fi
   done < <(git -C "$R" log --first-parent --format='%H%x09%s' "$tip" 2>/dev/null)
   local i; for ((i = keep - 1; i >= 0; i--)); do printf '%s\n' "${out[$i]}"; done
 }
@@ -86,7 +86,7 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
   while IFS=$'\x1f' read -r h ct subj step ev har done; do
     [ -n "$h" ] || continue
     first=${first:-$ct}; last=$ct
-    if [[ "$subj" != "run($slug): "* ]]; then commits+=("$subj"); continue; fi
+    if [ -z "$step" ] || [[ "$subj" != "run($slug): "* ]]; then commits+=("$subj"); continue; fi
     [ "$har" != claude ] || claude=1
     case "$step:$ev" in
       sirius:done) parts=$(receipt_py split <<<"$done")
@@ -114,7 +114,8 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
     printf '\n### What it cost\n\nIt took %s from the first start to the passing check.' "$(receipt_duration $((last - first)))"
     if [ "$claude" = 1 ]; then  # tokens only when the harness kept logs for this piece's working copy
       local logs=${CONSTELLATION_HARNESS_LOGS:-$HOME/.claude/projects} c
-      c=$(receipt_py cost "$logs/$(work_of "$slug" | sed 's/[^A-Za-z0-9]/-/g')" "$first" "$last" 2>/dev/null || true)
+      local wt; wt=$(work_of "$slug"); wt=$(readlink -f "$wt" 2>/dev/null || printf '%s' "$wt")  # the harness logs by real path
+      c=$(receipt_py cost "$logs/$(sed 's/[^A-Za-z0-9]/-/g' <<<"$wt")" "$first" "$last" 2>/dev/null || true)
       [ -z "$c" ] || printf ' %s' "$c"
     fi
     printf '\n'
