@@ -35,6 +35,9 @@
 #                                              ideas/read/ and into discovery; the rest is listed for
 #                                              the host to read, then filed with --read (session start)
 #   constellation trade [<name>]               the kind of work (dev, marketing, sales): print it, or set it
+#   constellation brief                        the person's front page: done since the last brief,
+#                                              being made now, the one thing waiting on them
+#   constellation line                         one line for a status bar ('2 being made · 1 question for you')
 #
 # The one interface: people and agents act through `constellation <verb>` only. The kernel's
 # own tools sit behind it and are never called by name:
@@ -108,6 +111,8 @@ case "$1" in
   tend) shift; cmd_tend "$@" ;;
   inbox) shift; cmd_inbox "$@" ;;
   trade) shift; cmd_trade "$@" ;;
+  brief) shift; cmd_brief "$@" ;;
+  line) shift; cmd_line "$@" ;;
   # the kernel, behind the same door: nothing tells an agent or a person to run these directly
   move) shift; exec "$KERNEL/bin/mw-move" "$@" ;;                      # arrive | bench [--break] | finish <slug>
   session) shift; exec python3 "$KERNEL/bin/mw-session.py" "$@" ;;    # the durable execution door (bindings/SESSION.md)
