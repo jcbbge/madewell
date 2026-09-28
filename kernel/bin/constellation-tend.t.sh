@@ -35,6 +35,9 @@ win() { tmux list-windows -t workers -F '#W' | grep -qx "$1"; }
 "$C" run greet >/dev/null   # vega, on its star's harness: claude
 check "a live, busy step is left alone" sh -c "'$C' tend && test \"\$(git log piece/greet --format=%B | grep -c '^EVENT: started$')\" = 1"
 
+"$C" pause >/dev/null
+check "paused: a quiet step is not started again" sh -c "CONSTELLATION_STUCK_SECONDS=0 '$C' tend && test \"\$(git log piece/greet --format=%B | grep -c '^EVENT: started$')\" = 1"
+"$C" go >/dev/null
 tmux kill-window -t "=workers:=greet·vega"
 out=$(tend)
 check "a gone window: the step starts again" win "greet·vega"
@@ -81,6 +84,8 @@ check "a harness not in the list goes to the list's first: pi" test "$(harness b
 tmux kill-window -t "=workers:=bye·sirius"
 tend >/dev/null
 check "and then down the list: claude" test "$(harness bye)" = claude
+"$C" resume bye >/dev/null 2>&1
+check "run and resume take the first of a harness list: pi" test "$(harness bye)" = pi
 
 # --- one door: tend is a verb like any other, and help still reaches the end of the header
 check "help names tend" sh -c "'$C' help | grep -q 'constellation tend \\[--all\\]'"

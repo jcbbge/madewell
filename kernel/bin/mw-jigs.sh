@@ -19,7 +19,8 @@ jigs = data.get("jigs") or []
 fail = 0
 firings = Path(root) / ".madewell/jig/firings.jsonl"
 ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
+head = subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD"], cwd=root, capture_output=True, text=True)
+sha = head.stdout.strip() if head.returncode == 0 else ""  # a repo with no commit yet has no HEAD
 
 for j in jigs:
     run = j.get("run")

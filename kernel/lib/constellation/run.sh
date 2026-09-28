@@ -5,7 +5,7 @@ launch() { # launch <slug> <step> <harness> <model> <effort> <cmd> <note>
   local slug=$1 step=$2 h=$3 model=$4 effort=$5 cmd=$6 note=$7 star wt dir brief tl win
   star=$(star_of "$step"); wt=$(work_of "$slug")
   [ -d "$wt" ] || die "no worktree for $slug at $wt (constellation take $slug first)"
-  h=${h:-${CONSTELLATION_HARNESS_DEFAULT:-$(star_field "$star" harness)}}; h=${h:-claude}; effort=${effort:-$(star_field "$star" effort)}; effort=${effort:-high}
+  h=${h:-${CONSTELLATION_HARNESS_DEFAULT:-$(star_field "$star" harness)}}; h=${h%%,*}; h=${h// /}; h=${h:-claude}; effort=${effort:-$(star_field "$star" effort)}; effort=${effort:-high}
   model=${model:-${CONSTELLATION_MODEL:-}}
   dir="$STATE/$(basename "$R")"; brief="$dir/$slug.$step.brief.md"; tl="$dir/$slug.$step.TASKS.md"
   compose_brief "$slug" "$step" "$note" >"$brief"

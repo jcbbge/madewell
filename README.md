@@ -74,7 +74,9 @@ lack is somewhere to put it.
 
 Open your AI assistant in a folder and say:
 
-> **I want to adopt Made Well. Run adopt.**
+> **Set this project up with Constellation.**
+
+The first time, point it at your copy: it runs `<clone>/kernel/bin/constellation adopt` for you.
 
 It'll ask what you actually do all day, have you walk through one job start to finish, and
 then show you those four steps **in your own words** before it uses any of its own. By the end
