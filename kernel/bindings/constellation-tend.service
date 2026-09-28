@@ -1,0 +1,13 @@
+# constellation-tend.service — the night shift, one pass: every project with a piece on the bench
+# is tended (`constellation tend --all`). Its timer runs it every five minutes; see
+# constellation-tend.timer for how to turn it on.
+#
+# It finds `constellation` on the PATH below; a drop-in (systemctl --user edit constellation-tend)
+# may set another PATH, CONSTELLATION_STATE, CONSTELLATION_TMUX_SESSION or CONSTELLATION_STUCK_SECONDS.
+[Unit]
+Description=Constellation night shift: start again any step whose agent stopped
+
+[Service]
+Type=oneshot
+Environment=PATH=%h/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env constellation tend --all

@@ -1,0 +1,16 @@
+# constellation-tend.timer — runs constellation-tend.service every five minutes, as a user unit.
+#
+# Turn it on (both files side by side in the user unit directory):
+#   cp constellation-tend.service constellation-tend.timer ~/.config/systemd/user/
+#   systemctl --user daemon-reload && systemctl --user enable --now constellation-tend.timer
+# For it to run while nobody is logged in: loginctl enable-linger "$USER".
+[Unit]
+Description=Constellation night shift, every five minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=constellation-tend.service
+
+[Install]
+WantedBy=timers.target

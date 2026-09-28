@@ -20,6 +20,8 @@
 #   constellation answer <slug> "<text>"       reply to a star that asked; typed into its pane
 #   constellation land <slug>                  after a passing verify: fast-forward, bench → finished
 #   constellation discover <notes-file>        the outer loop: digest notes into pieces on the rack
+#   constellation tend [--all]                 the night shift: a step whose agent died, hit a usage limit or
+#                                              went quiet starts again on the next harness (twice, then the operator)
 #
 # The one interface: people and agents act through `constellation <verb>` only. The kernel's
 # own tools sit behind it and are never called by name:
@@ -52,10 +54,11 @@
 #
 # Knobs: CONSTELLATION_STATE (default ~/.local/state/constellation: worktrees, briefs, step
 #   ledgers), CONSTELLATION_TMUX_SESSION (default workers), CONSTELLATION_AUTO=0 (do not start
-#   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests).
+#   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests),
+#   CONSTELLATION_STUCK_SECONDS (default 1800: how long a step may go quiet before tend restarts it).
 # Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
 set -euo pipefail
-case "${1:-}" in -h|--help|help|"") sed -n '2,57p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
+case "${1:-}" in -h|--help|help|"") sed -n '2,/^# Requires:/p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
 
 SELF=$(readlink -f "$0")
 KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
@@ -82,6 +85,7 @@ case "$1" in
   land) shift; cmd_land "$@" ;;
   status) shift; cmd_status "$@" ;;
   discover) shift; cmd_discover "$@" ;;
+  tend) shift; cmd_tend "$@" ;;
   # the kernel, behind the same door: nothing tells an agent or a person to run these directly
   move) shift; exec "$KERNEL/bin/mw-move" "$@" ;;                      # arrive | bench [--break] | finish <slug>
   session) shift; exec python3 "$KERNEL/bin/mw-session.py" "$@" ;;    # the durable execution door (bindings/SESSION.md)
