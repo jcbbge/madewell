@@ -83,7 +83,7 @@ star_body() { sed '1,/^---$/d' "$STARS/$1.md"; }
 
 # --- the record: the piece branch's log -------------------------------------------------
 events() { # events <slug> : one line per event, oldest first: STEP<TAB>EVENT<TAB>HARNESS<TAB>DONE
-  git -C "$R" log --reverse --grep='^STEP: ' --format='%x1e%B' "$(branch_of "$1")" 2>/dev/null | awk -v RS='\x1e' '
+  git -C "$R" log --reverse --all-match --grep='^STEP: ' --grep="^run($(sed 's/[.[\*^$]/\\&/g' <<<"$1")): " --format='%x1e%B' "$(branch_of "$1")" 2>/dev/null | awk -v RS='\x1e' '
     { step = ev = h = d = ""
       n = split($0, L, "\n")
       for (i = 1; i <= n; i++) {

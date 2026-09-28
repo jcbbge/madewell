@@ -125,6 +125,13 @@ check "landed: the whole run is in main's history" sh -c "git log --format=%B | 
 check "landed: the worktree and branch are gone" sh -c "test ! -d '$WT' && ! git rev-parse --verify -q piece/greet"
 check "status shows the finished piece's run" sh -c "'$C' status | grep -q 'nothing on the bench'"
 
+# --- a second piece reads only its own run: the first's landed records are not its own
+printf '# Wave goodbye\n\n**Making:** a bye() function\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' >.madewell/stock/bye.md
+git add .madewell/stock/bye.md; git commit -qm "rack: bye"
+"$C" take bye >/dev/null
+check "a new piece starts at vega, not at the last piece's land" sh -c "'$C' run bye | grep -q 'vega (vega, ideate) started'"
+check "and it is still on the bench" test -f .madewell/bench/bye.md
+
 # --- one interface: the kernel's own tools answer through the same door
 check "constellation move stages a legal move (arrive)" sh -c "printf '# Later\n' | '$C' move arrive later && test -f .madewell/stock/later.md"
 git reset -q -- .madewell/stock/later.md; rm -f .madewell/stock/later.md
