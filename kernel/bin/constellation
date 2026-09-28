@@ -62,7 +62,6 @@ STATE=${CONSTELLATION_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/constellation
 SESSION=${CONSTELLATION_TMUX_SESSION:-workers}
 MW=.madewell
 STEPS="vega polaris-peer cassiopeia sirius orion aldebaran polaris-triage"
-TESTPATH='(^|/)(tests?|__tests__|spec|specs)/|[._-](test|spec)s?\.[A-Za-z0-9]+$|_test\.[A-Za-z0-9]+$'
 LIB=$KERNEL/lib/constellation
 for f in "$LIB"/*.sh; do . "$f"; done  # one file per concern; each verb's code lives in one of them
 

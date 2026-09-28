@@ -13,17 +13,7 @@ cmd_done() {
   R=$(main_repo); local wt; wt=$(work_of "$slug")
   since_start "$slug" "$step" | cut -f2 | grep -qx clear || die "the relay comes first: review what you were handed, then constellation clear (or constellation clarify \"<questions>\")"
   [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ] || die "uncommitted changes in the worktree: commit what belongs to this step, or undo it, then hand off"
-  local changed; changed=$(changed_since "$wt" "$base")
-  case "$step" in
-    orion)
-      local bad; bad=$(grep -vE "$TESTPATH" <<<"$changed" | sed '/^$/d' || true)
-      [ -z "$bad" ] || die "orion changes only test files; these are not: $(tr '\n' ' ' <<<"$bad")" ;;
-    sirius)
-      local bad; bad=$(grep -E "$TESTPATH" <<<"$changed" | sed '/^$/d' || true)
-      [ -z "$bad" ] || die "sirius never touches tests; these are tests: $(tr '\n' ' ' <<<"$bad")" ;;
-    *)
-      [ -z "$(commits_since "$wt" "$base")" ] || die "$step changes nothing, but it committed: $(commits_since "$wt" "$base" | cut -c1-60 | tr '\n' ';')" ;;
-  esac
+  local why; why=$(check_write_rule "$step" "$wt" "$base") || die "$why"
   case "$mode" in
     fail) [ "$step" = aldebaran ] || die "only aldebaran fails a run"; record "$slug" "$step" fail "${CONSTELLATION_HARNESS:-}" "$text" "polaris (arbiter)" ;;
     route) [ "$step" = polaris-triage ] || die "only the arbiter routes"

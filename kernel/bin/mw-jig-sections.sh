@@ -18,7 +18,8 @@ root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
 cd "$root"
 fail=0
 
-git ls-files '*.md' | while IFS= read -r src; do
+# runtime/ is an imported corpus (the Lisp runtime's own history) citing its own old files: not ours to resolve
+git ls-files '*.md' ':!runtime/**' | while IFS= read -r src; do
   grep -oE '[A-Za-z0-9_.-]+\.md §[0-9]+' "$src" 2>/dev/null | sort -u | while IFS= read -r ref; do
     doc=${ref%% *}
     num=${ref##*§}

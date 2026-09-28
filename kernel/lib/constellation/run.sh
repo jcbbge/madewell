@@ -51,6 +51,7 @@ compose_brief() { # compose_brief <slug> <step> <note>
   printf 'Three rounds at most: a fourth set of questions flags the operator, because the brief is wrong.\n'
   printf '`constellation done` is refused until you have cleared.\n\n'
   star_body "$star"; printf '\n'
+  star_overlay "$star"
   local skills; skills=$(star_field "$star" skills)
   [ -n "$skills" ] && printf '\nLoad these skills if your harness has them: %s.\n' "$skills"
   printf '\n## The piece\n\n'; cat "$R/$MW/bench/$slug.md"
