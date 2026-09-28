@@ -38,7 +38,7 @@
 #   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests).
 # Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
 set -euo pipefail
-case "${1:-}" in -h|--help|help|"") sed -n '2,38p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
+case "${1:-}" in -h|--help|help|"") sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
 
 SELF=$(readlink -f "$0")
 KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
@@ -163,7 +163,7 @@ launch() { # launch <slug> <step> <harness> <model> <effort> <cmd> <note>
   tmux has-session -t "=$SESSION" 2>/dev/null || tmux new-session -d -s "$SESSION" -n _ -c "$wt"
   tmux kill-window -t "=$SESSION:=$win" 2>/dev/null || true
   tmux new-window -d -t "=$SESSION:" -n "$win" -c "$wt"
-  tmux send-keys -t "=$SESSION:=$win" "export CONSTELLATION_PIECE='$slug' CONSTELLATION_STEP='$step' CONSTELLATION_REPO='$R' CONSTELLATION_BASE='$base' CONSTELLATION_HARNESS='$h' TASKS_FILE='$tl' AGENT_ROLE='$star' WORKER_ID='$slug' CIRCADIAN_ROLE=AGNT CIRCADIAN_LANE='$slug' PATH='$(dirname "$SELF")':\"\$PATH\"; clear; $run" Enter
+  tmux send-keys -t "=$SESSION:=$win" "export CONSTELLATION_PIECE='$slug' CONSTELLATION_STEP='$step' CONSTELLATION_REPO='$R' CONSTELLATION_BASE='$base' CONSTELLATION_HARNESS='$h' TASKS_FILE='$tl' AGENT_ROLE='$star' WORKER_ID='$slug' CIRCADIAN_ROLE=AGNT CIRCADIAN_LANE='$slug'${CONSTELLATION_MODEL:+ CONSTELLATION_MODEL='$CONSTELLATION_MODEL'}${CONSTELLATION_HARNESS_DEFAULT:+ CONSTELLATION_HARNESS_DEFAULT='$CONSTELLATION_HARNESS_DEFAULT'}${CONSTELLATION_STATE:+ CONSTELLATION_STATE='$CONSTELLATION_STATE'} PATH='$(dirname "$SELF")':\"\$PATH\"; clear; $run" Enter
   say "$slug: $step ($star, $(act_of "$step")) started on $h in $SESSION:$win"
 }
 trust() { # pre-accept Claude Code's folder-trust dialog for a worktree
