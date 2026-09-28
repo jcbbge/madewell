@@ -138,8 +138,16 @@ check "a route nowhere is still refused" says "route to sirius, orion or person"
 check "the arbiter routes to the person" "$C" done --route person "pre-existing: the runner was never installed"
 check "the piece now waits for the person" test "$(next greet)" = operator
 
-# --- the discovery brief -------------------------------------------------------------------------
+# an install that lost its law says so in the brief, instead of briefing a star without it
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE CONSTELLATION_REPO
+rm -f .madewell/stars/LAW.md
+printf '# lawless\n\n**Making:** lawless\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' >.madewell/stock/lawless.md
+git add .madewell/stock/lawless.md; git commit -qm "rack: lawless"
+(C=$P/.madewell/bin/constellation; op take lawless >/dev/null; op run lawless >/dev/null)
+check "an install without LAW.md: the brief says the law is missing" sh -c "grep -qF 'MISSING:' '$(brief lawless vega)' && grep -qF 'LAW.md is not in this install' '$(brief lawless vega)'"
+check "an install without LAW.md: the brief still says it is not the host" host_line_top "$(brief lawless vega)"
+
+# --- the discovery brief -------------------------------------------------------------------------
 printf 'we should greet people by name\n' >"$T/notes.md"
 check "discovery starts" env CONSTELLATION_DISCOVER=headless "$C" discover "$T/notes.md"
 db=$(ls "$T"/state/proj/discover.notes.*.brief.md 2>/dev/null | head -1)
