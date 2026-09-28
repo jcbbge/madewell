@@ -1,6 +1,6 @@
 # Extending Made Well — the Maintenance Manual
 
-This is the agent-facing manual for **modifying Made Well itself**. AGENTS.md tells you how to
+This is the agent-facing manual for **modifying Made Well itself**. `HOST.md` tells you how to
 *operate* the factory; this tells you how to *maintain and extend* it. Read it before changing
 the system — when the person says "I need Made Well to do X," "update my trade,"
 "add a pillar," or "this keeps breaking, fix the process."
@@ -34,7 +34,7 @@ it's **law** (the shop itself — never overwrite) or a **slot** a trade fills (
 
 | Layer | What it is / its purpose | Where | Law or slot |
 |---|---|---|---|
-| **The function** | The Orchestrator: think, plan, decompose, dispatch, verify, land. Never does the work. | `AGENTS.md` | **Law** |
+| **The function** | The Orchestrator: think, plan, decompose, dispatch, verify, land. Never does the work. | `HOST.md` (the host), `stars/LAW.md` (the stars) | **Law** |
 | **The model** | Four acts, Ground and the Jig, three states, the pause. | `MADEWELL.md` | **Law** |
 | **Ground** | Corpus + material before ideate/plan. Protocol, picture, roots. | `.madewell/ground/` | **Law** (the stop); slot (`ROOTS.md` this project adds) |
 | **The Jig** | Compiled conventions, wired stops, FENCE/SIGN/DOCTRINE. | `.madewell/jig/` | **Law** (the stop); slot (conventions a trade/project feeds) |
@@ -78,7 +78,7 @@ Everything not on this list is a slot a trade can fill.
 Each slot has a pattern. Follow it; the kernel already depends only on the contracts, so a
 well-formed trade needs **no kernel change**.
 
-- **Add a trade (a new industry).** Create `trades/<name>/TRADE.md`; carry its persona register(s) and any skills/pillars. Trades live *outside* the kernel install; a project loads one by explicit reference. Add a profile in `profiles.json` + `PROFILES.md` if it deserves its own loadout.
+- **Add a trade (a new industry).** Create `trades/<name>/TRADE.md`; carry its persona register(s) and any skills/pillars. The installer ships every trade in `.madewell/trades/`; a project names one by reference (`constellation trade <name>`). Add a profile in `profiles.json` + `PROFILES.md` if it deserves its own loadout.
 - **Add a persona register.** A markdown register the trade carries; name it in the trade's `persona` field and the relevant profile.
 - **Add a pillar.** A pillar file under `trades/<c>/pillars/`; declare it in the trade's manifest.
 - **Add a skill.** A markdown file in `skills/` (foundational) or `trades/<c>/skills/` (trade); foundational skills register in `SKILLS.json` with `layer`, `mode`, `when`; trade skills register in the trade's own manifest.

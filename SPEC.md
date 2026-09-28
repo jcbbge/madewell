@@ -3,8 +3,9 @@
 The model is `MADEWELL.md`. This file says only **where things sit and how they move**.
 It defines no meanings; that file names no paths. They cannot disagree.
 
-Made Well is files. There is no product CLI — no status command, no dashboard,
-no second ledger of piece position.
+Made Well is files. The driver, `.madewell/bin/constellation`, runs the work on top of them
+and keeps nothing of its own that says where a piece is: no dashboard, no second ledger of
+piece position.
 
 `.madewell/bin/mw-move` is scaffolding for §2. It is `git mv` that refuses everything else.
 Delete it and the shop still runs: `git mv` plus `mw-gate` on pre-commit. The

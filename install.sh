@@ -24,7 +24,9 @@ DEST=$(cd "$DEST_ARG" 2>/dev/null && pwd) || { echo "install: target '$DEST_ARG'
 GI_BEGIN="# MADE WELL — begin (managed; \`install.sh --uninstall\` removes this block)"
 GI_END="# MADE WELL — end"
 LOADER_BEGIN="<!-- MADE WELL — loader -->"
-LOADER_LINE="Read and follow .madewell/AGENTS.md before anything else, then continue."
+LOADER_GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: follow only your brief."
+LOADER_LINE="$LOADER_GUARD Otherwise, read and follow .madewell/HOST.md before anything else, then continue."
+LOADER_OLD="Read and follow .madewell/AGENTS.md"   # retired: the loader before the host law had its own file
 LOADER_END="<!-- /MADE WELL -->"
 
 # ── uninstall ────────────────────────────────────────────────────────────────
@@ -70,9 +72,10 @@ prev=""
 mkdir -p "$DEST/.madewell"
 cp "$SRC/MADEWELL.md" "$DEST/MADEWELL.md"                       # the model, at root, for the person
 cp "$SRC/SPEC.md"     "$DEST/.madewell/SPEC.md"                 # where work lives
-for f in AGENTS.md EXTENDING.md PROFILES.md profiles.json; do
+for f in HOST.md EXTENDING.md PROFILES.md profiles.json; do
   cp "$SRC/kernel/$f" "$DEST/.madewell/$f"
 done
+rm -f "$DEST/.madewell/AGENTS.md"                                # retired: the host law is HOST.md, the stars' is stars/LAW.md
 for d in guides skills templates bin lib registers bindings stars; do
   rm -rf "$DEST/.madewell/$d"
   cp -R "$SRC/kernel/$d" "$DEST/.madewell/$d"
@@ -124,6 +127,11 @@ wire() {
     printf '%s\n%s\n%s\n' "$LOADER_BEGIN" "$LOADER_LINE" "$LOADER_END" > "$f"
   elif ! grep -qF "$LOADER_BEGIN" "$f"; then
     printf '\n%s\n%s\n%s\n' "$LOADER_BEGIN" "$LOADER_LINE" "$LOADER_END" >> "$f"
+  elif grep -qF "$LOADER_OLD" "$f"; then   # an older loader: the guard and HOST.md, keeping any trade it names
+    awk -v b="$LOADER_BEGIN" -v e="$LOADER_END" -v old="$LOADER_OLD" \
+        -v new="$LOADER_GUARD Otherwise, read and follow .madewell/HOST.md" '
+      $0==b{on=1} $0==e{on=0}
+      on && index($0, old)==1 { $0 = new substr($0, length(old) + 1) } 1' "$f" > "$f.mw_tmp" && mv "$f.mw_tmp" "$f"
   fi
 }
 wire CLAUDE.md
@@ -172,7 +180,7 @@ fi
 echo
 if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
   echo "Done. Updated $prev -> $ver. Framework re-synced; stock/bench/finished, DECISIONS and PRODUCT untouched."
-  echo "Tell your agent: Made Well was updated — re-read .madewell/AGENTS.md, then continue."
+  echo "Tell your agent: Made Well was updated — re-read .madewell/HOST.md, then continue."
 elif [ -n "$prev" ]; then
   echo "Done. Already at $ver — framework re-synced, nothing else changed."
 else

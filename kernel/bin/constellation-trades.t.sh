@@ -66,7 +66,7 @@ done
 
 # --- marketing, set by name ----------------------------------------------------------------
 check "constellation trade marketing sets it" sh -c "'$C' trade marketing | grep -q '^marketing — named in AGENTS.md CLAUDE.md'"
-check "the loader names the trade by reference, in both entrypoints" sh -c "for f in AGENTS.md CLAUDE.md; do grep -qF 'Read and follow .madewell/AGENTS.md and $ROOT/trades/marketing/TRADE.md before anything else' \$f || exit 1; done"
+check "the loader names the trade by reference, in both entrypoints" sh -c "for f in AGENTS.md CLAUDE.md; do grep -qF 'read and follow .madewell/HOST.md and $ROOT/trades/marketing/TRADE.md before anything else' \$f || exit 1; done"
 check "setting it commits the loader, and nothing else" sh -c "test -z \"\$(git status --porcelain --untracked-files=no)\" && git log -1 --format=%s | grep -q '^chore(trade)' && test \"\$(git show --name-only --format= HEAD | sort | tr '\n' ' ')\" = 'AGENTS.md CLAUDE.md '"
 check "constellation trade prints marketing, and where it is named" sh -c "'$C' trade | grep -q '^marketing — named in AGENTS.md'"
 check "setting the same trade again changes nothing" sh -c "h=\$(git rev-parse HEAD); '$C' trade marketing >/dev/null && test \"\$(git rev-parse HEAD)\" = \"\$h\""
@@ -120,7 +120,7 @@ check "a named trade that is not on this machine is said, not guessed" says "the
 put third src/third.js
 check "a star that writes cannot hand off while its trade is missing" says "the ghost trade that says what it may write is not on this machine" "$C" done "built"
 mkdir -p trades/bare; printf '# Bare\n' >trades/bare/TRADE.md; git add trades; git commit -qm "a trade with no stars"
-check "a trade inside the project is named relative to it" sh -c "'$C' trade bare >/dev/null && grep -qF 'Read and follow .madewell/AGENTS.md and trades/bare/TRADE.md before' AGENTS.md"
+check "a trade inside the project is named relative to it" sh -c "'$C' trade bare >/dev/null && grep -qF 'read and follow .madewell/HOST.md and trades/bare/TRADE.md before' AGENTS.md"
 check "a trade with no write rule says the stop is missing" says "UNJIGGED: the bare trade names no write rule for sirius" "$C" done "built"
 mkdir -p trades/bare/stars; printf '# Orion, bare\nwrites-only: (reviews\n---\n' >trades/bare/stars/orion.md; git add trades; git commit -qm "a broken rule"
 as third orion; "$C" clear >/dev/null; put third notes/third.md

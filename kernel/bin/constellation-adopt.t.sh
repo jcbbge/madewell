@@ -31,7 +31,7 @@ out=$("$C" adopt 2>&1); rc=$?
 check "adopt with no argument sets up the current project" test "$rc" = 0
 check "install: the kernel is in the project" sh -c "test -x .madewell/bin/constellation && test -f .madewell/stars/vega.md && test -f .madewell/skills/adopt.md"
 check "install: the three places exist" sh -c "test -d .madewell/stock && test -d .madewell/bench && test -d .madewell/finished"
-check "install: the loader is appended and the project's own words are kept" sh -c "grep -qF 'Be kind.' CLAUDE.md && grep -qF '.madewell/AGENTS.md' CLAUDE.md && grep -qF '.madewell/AGENTS.md' AGENTS.md"
+check "install: the loader is appended and the project's own words are kept" sh -c "grep -qF 'Be kind.' CLAUDE.md && grep -qF '.madewell/HOST.md' CLAUDE.md && grep -qF '.madewell/HOST.md' AGENTS.md"
 check "hooks: the commit gate and jigs are wired" sh -c "grep -qF 'mw-gate.sh' '$(hooks_of "$P")/pre-commit' && grep -qF 'mw-record.sh' '$(hooks_of "$P")/post-commit'"
 check "hooks: the project's own pre-commit hook still runs" grep -qF 'echo our own pre-commit' "$(hooks_of "$P")/pre-commit"
 check "ideas/: the drop box exists and git will keep it" test -f ideas/.gitkeep

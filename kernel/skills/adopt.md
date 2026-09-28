@@ -15,9 +15,9 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
    <package>/kernel/bin/constellation adopt            # this project; or: … adopt <project>
    ```
 
-   No package on this machine? Clone it anywhere first (`git clone
-   https://github.com/jcbbge/madewell`). Once a project is adopted, its own copy
-   (`.madewell/bin/constellation adopt`) re-runs the setup without the package.
+   The package is the Constellation checkout on this machine (`~/projects/constellation`). It
+   is not fetched from anywhere; if it is not there, stop and say so plainly. Once a project is
+   adopted, its own copy (`.madewell/bin/constellation adopt`) re-runs the setup without it.
 
    Adopt installs the kernel, wires the commit hooks, makes `ideas/` (the drop box), runs the
    enforcer checks and prints a welcome. Running it twice changes nothing of theirs.
@@ -34,13 +34,22 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
    pasted. Then hold the conversation below. If adopt said it was *already set up* and they
    have work in hand, skip the conversation: they have adopted it already.
 
+5. **Ask the door question, once**, unless `.madewell/profile` already names one:
+
+   > *"Would you rather just talk, and I'll handle everything behind the scenes — or shall I
+   > show you the engine as we go?"*
+
+   Write one word to `.madewell/profile`: `guide` for just talk, `lead` for show me the engine.
+   Never ask it again; if they later ask for the other door, rewrite the file
+   (`.madewell/PROFILES.md` says what each door shows).
+
 ---
 
 ## What this is
 
 Somebody has turned up with work they already do. Your job is to find out what that work is,
-show them it already has the four acts in it, and leave them with a trade of their own
-and one real piece on the rack.
+show them it already has the four acts in it, and leave them with a trade that fits it and
+one real piece being made.
 
 **You are not selling them a process. You are naming the one they already have.**
 
@@ -107,6 +116,11 @@ making something to a standard. Work that is purely reactive — a queue of unre
 interrupts with no standard to hold — is a different shape, and telling them that is more
 useful than a bad fit.
 
+**If a shipped trade fits, use it.** The install carries three in `.madewell/trades/`: dev
+(software), marketing, sales. When their work is plainly one of those, set it
+(`constellation trade <name>`), say in one line which you chose and why, and go straight to
+step 9. Steps 4–8 are for work none of them fits.
+
 ### 4 — What has to be right first?
 
 > *"What's the thing where, if you get it wrong at the start, everything after it is wrong
@@ -162,16 +176,16 @@ Do not send them away to write it. Write it in front of them, from what they jus
 
 ```
 trades/<theirs>/
-  PACK.md              foundation + pillars table, the skips, the rubric
+  TRADE.md             foundation + pillars table, the skips, the rubric
   foundation/<x>.md    principles → protocol → definition of done
   pillars/*.md         one per pillar, same three parts
   discovery-lenses.md  what their trade hears that a general listener misses
 ```
 
 Read `.madewell/EXTENDING.md` for the slot contract, and copy the shape of
-`trades/marketing/` — it is the shortest complete example. **Every line in their trade
-must be traceable to something they said.** If you cannot point at the sentence it came from,
-cut it.
+`.madewell/trades/marketing/` — it is the shortest complete example. **Every line in their
+trade must be traceable to something they said.** If you cannot point at the sentence it came
+from, cut it. Then set it: `constellation trade trades/<theirs>`.
 
 ### 9 — Now try it
 
@@ -186,8 +200,10 @@ say:
 > *How will you know it's done?*
 > *Is anything holding it up?*
 
-Then put it with the ideas (`.madewell/stock/<slug>.md`) and start it yourself (`constellation
-take <slug>`), and tell them plainly: *"That's being made now."*
+Then file it the way everything they bring is filed: write their words into
+`ideas/<slug>.md` and run `constellation inbox`, which turns it into an idea. Once it is there,
+start it yourself: `constellation take <slug>` with their four answers, then
+`constellation run <slug>`. Tell them plainly: *"That's being made now."*
 
 **Those four answers are where adoption actually happens** — it is the first time the thing
 asks them for something and gives something back. If they struggle with *done when*, that is
@@ -203,7 +219,8 @@ it is easier learned with one.
 
 - They have named their unit of work.
 - Their four acts are written in **their** vocabulary.
-- A trade exists that they watched get written.
+- Their work has a trade: a shipped one that fits, or one they watched get written.
+- Their door is stored in `.madewell/profile`.
 - One real piece is being made, with the four questions answered in their words.
 - They know the three places work can be — ideas, being made, done — and that nothing ever
   moves backward.

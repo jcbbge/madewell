@@ -262,7 +262,7 @@ Full storage contract in [`SPEC.md`](SPEC.md). How to extend any part:
 | `MADEWELL.md` | **The whole model.** About 130 lines. Read this first. |
 | `SPEC.md` | Where work lives and how it moves. For developers. |
 | `.madewell/skills/adopt.md` | The first conversation. |
-| `.madewell/AGENTS.md` | Instructions to your assistant. |
+| `.madewell/HOST.md` | Instructions to your assistant. |
 | `.madewell/EXTENDING.md` | How to extend any part. |
 | `trades/` | Lines of work. |
 | `madewell-deck.html` | A 15-slide walkthrough. Open it in a browser. |

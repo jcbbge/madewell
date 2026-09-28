@@ -6,10 +6,12 @@ A trade teaches Made Well one line of work: what has to be right before anything
 areas every job passes through, what gets skipped when people are busy, and the one question
 asked before anything ships.
 
-Trades load **by reference** — they are not copied into your project by the installer.
+The installer ships every trade in `.madewell/trades/`. A project works in one, named by
+reference in its loader; the host sets it with `constellation trade <name>`, and a project that
+names none works in dev:
 
 ```
-Read .madewell/AGENTS.md and <path-to>/trades/<name>/TRADE.md. Let's get started.
+… read and follow .madewell/HOST.md and .madewell/trades/<name>/TRADE.md before anything else …
 ```
 
 ---
@@ -32,7 +34,7 @@ are not a software process with other domains bolted on afterwards.
 **Then don't write one from a template — have the concierge build it with you.**
 
 ```
-Read .madewell/AGENTS.md. I want to adopt Made Well. Run adopt.
+Set up Constellation in this project.
 ```
 
 It runs `.madewell/skills/adopt.md`: a conversation, not a form. It asks what you actually do

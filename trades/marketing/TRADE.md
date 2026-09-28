@@ -6,12 +6,14 @@
 
 ## How to activate
 
+The installer ships every trade in `.madewell/trades/`. The host sets this one with
+`constellation trade marketing`, which names it in the project's loader, by reference:
+
 ```
-Read .madewell/AGENTS.md and <trade-library>/marketing/TRADE.md. Let's get started.
+… read and follow .madewell/HOST.md and .madewell/trades/marketing/TRADE.md before anything else …
 ```
 
-Trades are loaded **by reference**. They are not copied into the project by the
-installer. All paths below are relative to this trade's directory.
+All paths below are relative to this trade's directory.
 
 ---
 

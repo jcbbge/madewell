@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # constellation-voice.t.sh — the host speaks one voice, in plain words, behind one of two doors.
-# Against a scratch project with the kernel installed: .madewell/AGENTS.md carries the Host
-# section (one voice, relay and rephrase, the glossary, the person's words mapped to verbs, the
+# Against a scratch project with the kernel installed: .madewell/HOST.md carries the host's
+# law (one voice, relay and rephrase, the glossary, the person's words mapped to verbs, the
 # session opening with the brief, the two doors); PROFILES.md and profiles.json say which
 # surfaces each door shows; and nothing in kernel/skills/*.md or the README's top section tells
 # the person to type an engine word or a command. The detector is proved on planted lines
@@ -20,14 +20,14 @@ check() { local n=$1; shift; if "$@" >/dev/null 2>&1; then ok "$n"; else bad "$n
 P=$T/proj; mkdir -p "$P"; git init -q -b main "$P"; echo hi >"$P/notes.txt"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-A=$P/.madewell/AGENTS.md
-# The Host section alone: from its heading to the next level-2 heading.
-HOST=$(awk '/^## Host$/{on=1; print; next} on && /^## /{exit} on' "$A")
+A=$P/.madewell/HOST.md
+# The host's law is the whole file: nothing else in it is anyone else's.
+HOST=$(cat "$A")
 has() { grep -qF -- "$1" <<<"$HOST"; }
 row() { grep -F -- "$1" <<<"$HOST" | grep -qF -- "$2"; }   # one line carries both
 
-# --- the Host section, as installed
-check "installed .madewell/AGENTS.md carries the Host section" grep -qx '## Host' "$A"
+# --- the host's law, as installed
+check "installed .madewell/HOST.md carries the host's law" test -s "$A"
 check "the host is the only voice the person hears" has "the host is the only voice the person hears"
 check "star output is relayed and rephrased" has "relayed and"
 check "the stars never speak to the person" has "The stars never speak to the person"
@@ -48,7 +48,6 @@ check "show me the engine is stored as the lead profile" row "show me the engine
 check "the door is stored in .madewell/profile" has '`.madewell/profile`'
 check "after a piece lands, the host relays its receipt" has "After a piece lands, relay its receipt"
 check "the receipt comes from constellation receipt, told in plain words" sh -c 'grep -qF "Run \`constellation receipt <slug>\` and tell the" "$0" && grep -qF "in plain words and your voice" "$0"' "$A"
-check "the Host section sits before the rest of the law" sh -c "grep -n '^## ' '$A' | sed -n 3p | grep -q ':## Host$'"
 
 # --- the doors, as installed: which surfaces each shows
 PJ=$P/.madewell/profiles.json PM=$P/.madewell/PROFILES.md

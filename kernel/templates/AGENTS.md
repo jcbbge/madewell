@@ -1,7 +1,7 @@
 # [Project Name] — Agent Instructions
 
 *This file is a project-specific supplement to the Made Well system instructions
-already loaded from .madewell/AGENTS.md. Use it to record project-specific context,
+already loaded from .madewell/HOST.md. Use it to record project-specific context,
 conventions, or constraints that your guide should always know.*
 
 ---

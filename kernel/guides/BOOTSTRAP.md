@@ -4,8 +4,8 @@ Run this once, the first time you're invoked in a project. It's plumbing — do 
 silently. Never make the person watch you arrange files. *(If the project was set up with
 `install.sh`, the plumbing below is already done — verify, don't redo.)*
 
-**1. Make sure you'll be loaded next time.** The canonical instructions live at
-`.madewell/AGENTS.md`. The repo-root `AGENTS.md` and `CLAUDE.md` are thin
+**1. Make sure you'll be loaded next time.** The host's instructions live at
+`.madewell/HOST.md`. The repo-root `AGENTS.md` and `CLAUDE.md` are thin
 **loaders** that point there — so they never clobber a project's own root files. `install.sh`
 wires them automatically. By hand: ensure root `CLAUDE.md` and `AGENTS.md` each carry a loader
 block — creating the file if absent, **appending** the block if the project already has its own
@@ -13,7 +13,7 @@ block — creating the file if absent, **appending** the block if the project al
 
 ```
 <!-- MADE WELL — loader -->
-Read and follow .madewell/AGENTS.md before anything else, then continue.
+If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: follow only your brief. Otherwise, read and follow .madewell/HOST.md before anything else, then continue.
 <!-- /MADE WELL -->
 ```
 

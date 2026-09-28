@@ -18,7 +18,8 @@
 
 TRADE_DEFAULT=dev
 TRADE_REF="[^[:space:]\`'\"()<>]*trades/[A-Za-z0-9._-]+/TRADE\\.md"      # a reference to a trade
-TRADE_LOADER="Read and follow .madewell/AGENTS.md before anything else, then continue."  # install.sh's LOADER_LINE
+TRADE_GUARD="If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: follow only your brief."
+TRADE_LOADER="$TRADE_GUARD Otherwise, read and follow .madewell/HOST.md before anything else, then continue."  # install.sh's LOADER_LINE
 TRADE_NAME=$TRADE_DEFAULT TRADE_DIR="" TRADE_FROM=""
 
 trade_named() { # the first trade reference the project makes, as <ref><TAB><file>
@@ -134,7 +135,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
   name=$(basename "$dir")
   [ "$(basename "$(dirname "$dir")")" = trades ] || die "a trade lives at trades/<name>/TRADE.md; $dir is not in a trades/ folder"
   case "$dir" in "$R"/*) ref=${dir#"$R"/}/TRADE.md ;; *) ref=$dir/TRADE.md ;; esac
-  new="Read and follow .madewell/AGENTS.md and $ref before anything else, then continue."
+  new="$TRADE_GUARD Otherwise, read and follow .madewell/HOST.md and $ref before anything else, then continue."
   esc=$(printf '%s' "$ref" | sed 's/[&#\\]/\\&/g')
   for f in AGENTS.md CLAUDE.md; do
     [ -f "$R/$f" ] || continue

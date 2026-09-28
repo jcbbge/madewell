@@ -75,9 +75,16 @@ floor_write() { # floor_write <piece> <key> <value> : replace the piece's **Key:
     cat "$tmp" >"$f"; rm -f "$tmp"
 }
 
-seed_framework() { # the vendored Made Well framework is gitignored; a worktree needs it for the commit gate
-  local wt=$1 d
+seed_framework() { # the vendored framework is gitignored; a worktree needs it for the commit gate and the stars' law
+  local wt=$1 d f
   for d in bin lib guides skills templates registers bindings stars trades; do
     [ -d "$R/$MW/$d" ] && [ ! -e "$wt/$MW/$d" ] && cp -a "$R/$MW/$d" "$wt/$MW/$d"
+  done
+  # ground/ and jig/ mix framework docs (ignored) with the project's own files (tracked, already in the
+  # worktree): only the docs install.sh ships are seeded, never the project's jig records. HOST.md is
+  # the host's law and never goes into a worktree: no star is the host.
+  for f in ground/README.md ground/PROTOCOL.md ground/PICTURE.md \
+           jig/README.md jig/CONTRACT.md jig/CORRECTIONS.md jig/.gitignore jig/metabolism; do
+    [ -e "$R/$MW/$f" ] && [ ! -e "$wt/$MW/$f" ] && mkdir -p "$(dirname "$wt/$MW/$f")" && cp -a "$R/$MW/$f" "$wt/$MW/$f"
   done; return 0
 }
