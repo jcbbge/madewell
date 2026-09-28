@@ -10,8 +10,9 @@ You turn the understanding into a plan grounded in this code base. Nothing in it
 - Ground first: the stack actually in use (framework, database, libraries), the schema, the
   API, and the existing utilities to reuse. Cite `path:line` for each. A plan for React in a
   Solid app, or MySQL in a Postgres app, is exactly the failure this act prevents.
-- Name the files to change, the approach for each, the order, and what the tests must prove,
-  derived from the piece's Done when.
+- The plan has two tracks, one per star, and never mixes them. What Sirius builds: the files to
+  change, the approach for each, the order. What Orion's tests must prove: derived from the
+  piece's Done when. Never assign a test to Sirius; the maker never writes its own tests.
 - Name the risks. If a real fork needs the operator: `constellation ask "<question>"`.
 - Change nothing. No edits, no commits.
 

@@ -32,6 +32,8 @@
 #   constellation clarify "<questions>"        to whoever handed it the work, who answers with
 #   constellation reply "<answers>"            (the operator answers the first star: constellation answer)
 #   Three rounds at most; a fourth set of questions flags the operator (the brief is wrong).
+#   constellation stop-check [--claude]        the harness's stop hook: a star cannot end its
+#                                              turn without a handoff (three refusals, then the operator)
 # Then the star finishes with one of:
 #   constellation done "<handoff>"             constellation done --fail "<output>"   (aldebaran)
 #   constellation done --route sirius|orion|operator "<why>"                        (polaris, arbiter)
@@ -51,7 +53,7 @@
 #   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests).
 # Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
 set -euo pipefail
-case "${1:-}" in -h|--help|help|"") sed -n '2,53p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
+case "${1:-}" in -h|--help|help|"") sed -n '2,55p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac
 
 SELF=$(readlink -f "$0")
 KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
@@ -226,7 +228,9 @@ compose_brief() { # compose_brief <slug> <step> <note>
   printf '\n## Where you are\n\n'
   printf -- '- Worktree: %s, branch %s. The main checkout is %s; do not work there.\n' "$(work_of "$slug")" "$(branch_of "$slug")" "$R"
   printf -- '- If an earlier start of this step was interrupted, read `git log` and `git status` here and continue from what is already done.\n'
-  printf -- '- Finish with `constellation done …` as your last act (it is on your PATH). Nothing else hands off.\n'
+  printf -- '- Every `constellation …` command here is run with your shell tool. Writing one as text does nothing.\n'
+  printf -- '- Finish with `constellation done …` as your last act (it is on your PATH). Nothing else hands off, and\n'
+  printf '  your turn cannot end without it: that is how the next star, and the operator, learn you are done.\n'
 }
 
 cmd_run() { # cmd_run <slug> [flags] [resume]
@@ -330,11 +334,13 @@ launch_reply() { # launch_reply <slug> <waiting-step> <originator-step> <questio
   { printf '# %s — answering for %s\n\n' "$(sed -n '1s/^# //p' "$STARS/$ostar.md")" "$slug"
     printf 'You are wearing the %s profile again. You (this profile) handed this piece to %s, and\n' "$ostar" "$(star_of "$step")"
     printf '%s has questions before it starts. Answer every one, from the piece, the run and the code.\n' "$(star_of "$step")"
-    printf 'Change nothing. When the answer is genuinely the operator'"'"'s, say so in your answer.\n\n'
+    printf 'Change nothing. When the answer is genuinely the operator'"'"'s, say so in your answer.\n'
+    printf 'The write rules are fixed and no answer overrides them: sirius builds and never writes tests;\n'
+    printf 'orion writes the tests from the plan; aldebaran runs them; the rest change nothing.\n\n'
     printf '## The questions\n\n%s\n\n## The piece\n\n' "$q"; cat "$R/$MW/bench/$slug.md"
     printf '\n## The run so far\n\n'
     local s e hh d; while IFS=$'\t' read -r s e hh d; do [ "$e" = started ] && continue; printf -- '- **%s** %s: %s\n' "$s" "$e" "$d"; done < <(events "$slug")
-    printf '\nFinish with your answers, as your last act:\n    constellation reply "<answers>"\n'; } >"$brief"
+    printf '\nFinish by running this with your shell tool, as your last act (writing it as text does nothing):\n    constellation reply "<answers>"\n'; } >"$brief"
   case "$h" in
     claude) run="claude --dangerously-skip-permissions --effort '$effort'${CONSTELLATION_MODEL:+ --model '$CONSTELLATION_MODEL'} \"\$(cat '$brief')\"" ;;
     pi) run="pi --approve${CONSTELLATION_MODEL:+ --model '$CONSTELLATION_MODEL'} --thinking '$effort' \"\$(cat '$brief')\"" ;;
@@ -360,6 +366,35 @@ cmd_reply() {
   deliver_answer "$slug" "$for" "$(star_of "${CONSTELLATION_STEP:-}")" "$a"
   say "answered $for"
   [ "${CONSTELLATION_DRY:-}" = 1 ] || ( sleep 5; tmux kill-window -t "=$SESSION:=$slug·$for·reply" 2>/dev/null ) >/dev/null 2>&1 &
+}
+
+cmd_stop_check() { # the harness's stop hook: a star may not end its turn without handing off
+  # Silent and allowed outside a step. Inside one: the latest start must be answered by a handoff
+  # (done / fail / route / clarify / ask / flag), and an answering star must have replied.
+  # --claude prints Claude Code's block JSON; otherwise the reason goes to stdout with exit 1.
+  # Three blocks in a row, then it lets the turn end and tells the operator (no loop forever).
+  local mode=${1:-}
+  local slug=${CONSTELLATION_PIECE:-} step=${CONSTELLATION_STEP:-} for=${CONSTELLATION_REPLY_FOR:-}
+  [ -n "$slug" ] && [ -n "$step" ] || return 0
+  R=$(main_repo) 2>/dev/null || return 0
+  local owed=""
+  if [ -n "$for" ]; then
+    [[ "$(next_step "$slug")" == "clarifying:$for" ]] && owed="$(star_of "$for") is waiting for your answers. Run it (with your shell tool, not as text): constellation reply \"<answers>\""
+  else
+    local last; last=$(since_start "$slug" "$step" | cut -f2 | { grep -vE '^(clear|reply:.*|answer)$' || true; } | tail -1)
+    case "$last" in
+      done|fail|route:*|clarify|ask|flag) ;;
+      *) owed="you have not handed off, so nobody knows this step is over. Run one of these with your shell tool (writing it as text does nothing): constellation done \"<handoff>\" · constellation clarify \"<questions>\" · constellation ask \"<question>\"" ;;
+    esac
+  fi
+  local mem="$STATE/$(basename "$R")/$slug.$step${for:+.reply}.stopblocks"
+  if [ -z "$owed" ]; then rm -f "$mem"; return 0; fi
+  local n; n=$(( $(cat "$mem" 2>/dev/null || echo 0) + 1 ))
+  if [ "$n" -gt 3 ]; then rm -f "$mem"; notify "$slug ($step) ended its turn three times without handing off — constellation status $slug"; return 0; fi
+  printf '%s\n' "$n" >"$mem"
+  if [ "$mode" = --claude ]; then
+    printf '{"decision":"block","reason":%s}\n' "$(printf 'Constellation (%s, %s): %s' "$slug" "$step" "$owed" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
+  else printf 'Constellation (%s, %s): %s\n' "$slug" "$step" "$owed"; return 1; fi
 }
 
 cmd_ask() {
@@ -446,6 +481,7 @@ case "$1" in
   clear) shift; cmd_clear "$@" ;;
   clarify) shift; cmd_clarify "$@" ;;
   reply) shift; cmd_reply "$@" ;;
+  stop-check) shift; cmd_stop_check "$@" ;;
   answer) shift; cmd_answer "$@" ;;
   land) shift; cmd_land "$@" ;;
   status) shift; cmd_status "$@" ;;

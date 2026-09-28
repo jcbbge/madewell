@@ -40,6 +40,12 @@ check "run starts vega in its own window" sh -c "'$C' run greet | grep -q 'vega 
 check "vega's window is open" win vega
 check "status says vega is running" test "$(next)" = running:vega
 check "a second run is refused while vega runs" refused "$C" run greet
+check "stop gate: outside a step it says nothing" sh -c "env -u CONSTELLATION_PIECE -u CONSTELLATION_STEP '$C' stop-check --claude | wc -c | grep -qx 0"
+SV="env CONSTELLATION_PIECE=greet CONSTELLATION_STEP=vega CONSTELLATION_REPO=$P"
+check "stop gate: a star that has not handed off may not end its turn" sh -c "$SV '$C' stop-check --claude | grep -q '\"decision\":\"block\"'"
+check "stop gate: the refusal says which command to run, and to run it" sh -c "$SV '$C' stop-check --claude | grep -q 'writing it as text does nothing'"
+$SV "$C" stop-check --claude >/dev/null
+check "stop gate: after three refusals it lets the turn end (no loop)" sh -c "$SV '$C' stop-check --claude | wc -c | grep -qx 0"
 check "vega's brief carries the piece and its star" grep -qF 'src/greet.js exports greet()' "$T/state/proj/greet.vega.brief.md"
 
 as vega
@@ -65,7 +71,11 @@ as sirius
 check "sirius's questions go back to cassiopeia" says "went to cassiopeia" "$C" clarify "which file?"
 check "cassiopeia is brought back to answer, in a reply window" win "sirius·reply"
 check "the reply brief carries the questions" grep -qF "which file?" "$T/state/proj/greet.sirius.reply.brief.md"
-( export CONSTELLATION_STEP=cassiopeia CONSTELLATION_REPLY_FOR=sirius; check "cassiopeia replies" "$C" reply "src/greet.js" )
+RP="env CONSTELLATION_STEP=cassiopeia CONSTELLATION_REPLY_FOR=sirius"
+check "stop gate: an answering star may not end its turn before it replies" sh -c "$RP '$C' stop-check --claude | grep -q 'waiting for your answers'"
+check "cassiopeia replies" $RP "$C" reply "src/greet.js"
+check "stop gate: after the reply the answering star may stop" sh -c "$RP '$C' stop-check --claude | wc -c | grep -qx 0"
+check "stop gate: a star that clarified may stop and wait" sh -c "'$C' stop-check --claude | wc -c | grep -qx 0"
 check "the answer is on the record, from cassiopeia" sh -c "'$C' status greet | grep -q 'reply:cassiopeia'"
 for r in 2 3; do "$C" clarify "round $r?" >/dev/null; ( export CONSTELLATION_STEP=cassiopeia CONSTELLATION_REPLY_FOR=sirius; "$C" reply "answer $r" >/dev/null ); done
 check "a fourth round of questions flags the operator" says "flagged for the operator" "$C" clarify "still unclear?"
