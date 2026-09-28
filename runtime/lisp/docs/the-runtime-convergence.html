@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Runtime Convergence — A Verdict</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0c0b;
+    --bg-alt: #161514;
+    --ink: #e8e4dc;
+    --muted: #9a948a;
+    --faint: #4a463f;
+    --accent: #c49a6c;
+    --accent-2: #7d9a8c;
+    --rule: #2b2825;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Space Grotesk', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); }
+  body { font-family: var(--body); color: var(--ink); font-size: 17px; line-height: 1.6; }
+
+  .magazine {
+    display: flex;
+    height: 100vh;
+    transition: transform 0.65s cubic-bezier(0.34, 1.12, 0.64, 1);
+    will-change: transform;
+  }
+  .slide {
+    flex: 0 0 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6vh 8vw;
+  }
+  .slide.alt { background: var(--bg-alt); }
+  .inner { max-width: 880px; width: 100%; position: relative; z-index: 2; }
+  .wide .inner { max-width: 1040px; }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .kicker::after {
+    content: '';
+    flex: 0 0 64px;
+    height: 1px;
+    background: var(--accent);
+    opacity: 0.5;
+  }
+  .slide.active .kicker::after {
+    transform-origin: left;
+    animation: drawIn 800ms cubic-bezier(.22,.61,.36,1) both 400ms;
+  }
+  @keyframes drawIn { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(44px, 7vw, 92px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    margin-bottom: 26px;
+  }
+  h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(30px, 4.2vw, 52px);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+  h2 em, h1 em { font-style: normal; color: var(--accent); }
+  .lede {
+    font-size: clamp(18px, 1.6vw, 22px);
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 640px;
+  }
+  .body { color: var(--ink); max-width: 660px; margin-top: 18px; }
+  .body p + p { margin-top: 14px; }
+  .body strong { color: var(--accent); font-weight: 500; }
+  .muted { color: var(--muted); }
+  .small { font-size: 14px; }
+
+  code, .mono { font-family: var(--mono); }
+  .codeblock {
+    font-family: var(--mono);
+    font-size: 13.5px;
+    line-height: 1.7;
+    background: rgba(196,154,108,0.05);
+    border-left: 2px solid var(--accent);
+    padding: 20px 24px;
+    margin-top: 26px;
+    white-space: pre;
+    overflow-x: auto;
+    color: var(--ink);
+  }
+  .codeblock .cm { color: var(--faint); }
+  .codeblock .kw { color: var(--accent); }
+  .codeblock .st { color: var(--accent-2); }
+
+  .field-map { margin-top: 30px; width: 100%; }
+  .field-row {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 24px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+  }
+  .field-row:first-child { border-top: 1px solid var(--rule); }
+  .field-term { font-family: var(--mono); font-size: 13px; color: var(--accent); letter-spacing: 0.04em; }
+  .field-def { font-size: 15.5px; color: var(--muted); line-height: 1.55; }
+  .field-def strong { color: var(--ink); font-weight: 500; }
+
+  .quote {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(26px, 3.6vw, 44px);
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    max-width: 820px;
+  }
+  .quote .qmark { color: var(--accent); }
+  .attrib {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 34px;
+  }
+
+  .callout {
+    background: rgba(125,154,140,0.07);
+    border-left: 4px solid var(--accent-2);
+    padding: 18px 24px;
+    margin-top: 28px;
+    font-size: 15px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 660px;
+  }
+  .callout strong { color: var(--ink); font-weight: 500; }
+
+  .ghost {
+    position: absolute;
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 46vh;
+    line-height: 1;
+    color: var(--ink);
+    opacity: 0.045;
+    right: -2vw;
+    bottom: -8vh;
+    z-index: 1;
+    user-select: none;
+    pointer-events: none;
+    animation: ghostDrift 12s ease-in-out infinite alternate;
+  }
+  @keyframes ghostDrift {
+    from { transform: translateY(0) scale(1); }
+    to   { transform: translateY(-6px) scale(1.01); }
+  }
+
+  .breathe { animation: breathe 4s ease-in-out infinite; }
+  @keyframes breathe { 0%, 100% { opacity: 0.88; } 50% { opacity: 1; } }
+
+  .slide .entry-1, .slide .entry-2, .slide .entry-3, .slide .entry-4 { opacity: 0; }
+  .slide.active .entry-1 { animation: fadeUp 600ms ease both 100ms; }
+  .slide.active .entry-2 { animation: fadeUp 600ms ease both 220ms; }
+  .slide.active .entry-3 { animation: fadeUp 600ms ease both 340ms; }
+  .slide.active .entry-4 { animation: fadeUp 600ms ease both 460ms; }
+  .slide.cover .entry-1, .slide.cover .entry-2, .slide.cover .entry-3, .slide.cover .entry-4 { opacity: 1; animation: none; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; margin-top: 30px; }
+  .col h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .col.no h3 { color: #b5705a; }
+  .col.yes h3 { color: var(--accent-2); }
+  .col p { font-size: 15px; color: var(--muted); line-height: 1.6; }
+  .col p strong { color: var(--ink); font-weight: 500; }
+  .col p + p { margin-top: 12px; }
+
+  .nav-hint {
+    position: fixed;
+    bottom: 28px;
+    right: 36px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    z-index: 10;
+  }
+  .counter {
+    position: fixed;
+    bottom: 28px;
+    left: 36px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    color: var(--faint);
+    z-index: 10;
+  }
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    z-index: 20;
+    transition: width 0.65s cubic-bezier(0.34, 1.12, 0.64, 1);
+  }
+
+  .src {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    margin-top: 26px;
+    letter-spacing: 0.03em;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 800px) {
+    .two-col { grid-template-columns: 1fr; gap: 28px; }
+    .field-row { grid-template-columns: 1fr; gap: 4px; }
+    .slide { padding: 5vh 7vw; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="magazine" id="magazine">
+
+  <!-- 1 · COVER -->
+  <section class="slide cover active">
+    <div class="ghost">λ</div>
+    <div class="inner">
+      <div class="kicker">madewell-meta / runtime · 2026-07-17</div>
+      <h1>The Runtime<br>Convergence</h1>
+      <p class="lede">Four projects, built independently over months, arrived at the same wall: the loop belongs to someone else. This is the verdict on the vehicle — Made Well, Circadian, and Strudel folded into one owned runtime, with Common Lisp as the candidate body.</p>
+      <p class="attrib" style="margin-top:48px;">A grounded assessment · every claim sourced this session</p>
+    </div>
+  </section>
+
+  <!-- 2 · EPIGRAPH -->
+  <section class="slide alt">
+    <div class="inner">
+      <div class="kicker entry-1">Thesis</div>
+      <p class="quote entry-2"><span class="qmark">“</span>When the loop is this small and owned, the contact point is a cons cell away — grounding is not a plugin, it is the shape of the recursion.<span class="qmark">”</span></p>
+      <p class="attrib entry-3">EXPLORE-epistemics.md · written the night before this verdict</p>
+    </div>
+  </section>
+
+  <!-- 3 · THE FOUR WALLS -->
+  <section class="slide wide">
+    <div class="ghost">4</div>
+    <div class="inner">
+      <div class="kicker entry-1">The Problem</div>
+      <h2 class="entry-2">Four projects. Four walls.<br><em>One wall.</em></h2>
+      <div class="field-map entry-3">
+        <div class="field-row">
+          <div class="field-term">Made Well</div>
+          <div class="field-def">Design law: <strong>mechanisms are properties of the pipe</strong>, never tools the agent may consult. But a contact point can only be structural if you own the pipe. In rented harnesses it degrades to prose and hooks — measured at <strong>0% adoption across 45 runs</strong> for pull-based grounding.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">Circadian</div>
+          <div class="field-def">A memory <strong>metabolism</strong> — WAKE, SLEEP, REM — currently bolted onto Claude Code as SessionStart hooks. It works as a tenant. It was designed as an owner: phases of the loop, not decorations on it.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">Strudel</div>
+          <div class="field-def">The gateway over every harness's <strong>collection primitives</strong> — pantry searched by intent, code-mode composing tools in one flight. By its own doctrine "a superset, never a replacement" of Pi. Every decision Pi makes, it inherits — including the blocking ones.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">Tower</div>
+          <div class="field-def">Fleet orchestration — coordinator, orchestrator, workers, verbatim relay — impersonated by <strong>JSONL files, Stop-hook blocking, and polling</strong>. An actor system built from duct tape because the runtime offers no actors.</div>
+        </div>
+      </div>
+      <p class="body entry-4 muted small" style="margin-top:26px;">Each project is a multi-month derivation. Each terminates at the same theorem: <span class="mono" style="color:var(--accent);">the loop belongs to someone else.</span></p>
+    </div>
+  </section>
+
+  <!-- 4 · NOT UNDER TEST -->
+  <section class="slide alt">
+    <div class="inner">
+      <div class="kicker entry-1">The Standing</div>
+      <h2 class="entry-2">The convergence is not<br>under test. <em>It already ran.</em></h2>
+      <div class="body entry-3">
+        <p>This is not an idea that needs validating. It is a conclusion that was reached four times, independently, by building — months of Made Well in live projects, Circadian through real wake cycles, Strudel against a real pantry, Tower across real fleets. Convergent derivation from independent starting points is the opposite of confabulation. It is how you know something is real.</p>
+        <p>And the industry is converging on the same point from the outside: everyone is trying to own the runtime harness, because <strong>the model stopped mattering</strong>. Everything here is framework-, provider-, and model-agnostic by construction. That is the direction of travel.</p>
+      </div>
+      <div class="callout entry-4"><strong>What remains open is exactly one question:</strong> the vehicle. The frame. The body everything latches onto. That is what the rest of this document decides.</div>
+    </div>
+  </section>
+
+  <!-- 5 · LISP-AGENT -->
+  <section class="slide">
+    <div class="ghost">138</div>
+    <div class="inner">
+      <div class="kicker entry-1">The Spark</div>
+      <h2 class="entry-2">lisp-agent is a pamphlet,<br>not a skeleton.</h2>
+      <p class="lede entry-3">138 lines. 3 commits. 112 stars. An HN front page. You will keep approximately zero of its code — what it demonstrates is that a complete agent is a recursive function over a message list.</p>
+      <div class="codeblock entry-4"><span class="cm">;; the whole agent — base case: words. recursive case: run tools, recur.</span>
+(<span class="kw">defun</span> agent-loop (messages)
+  (<span class="kw">let*</span> ((message (ref (call-model messages) <span class="st">"choices"</span> 0 <span class="st">"message"</span>))
+         (tool-calls (gethash <span class="st">"tool_calls"</span> message)))
+    (<span class="kw">if</span> (and tool-calls (plusp (length tool-calls)))
+        (agent-loop (append messages
+                            (list message)
+                            (map 'list #'execute tool-calls)))
+        (append messages (list message)))))</div>
+      <p class="src entry-4">github.com/jamiebeach/lisp-agent · sync, single-threaded, eval-as-only-tool, explicitly a sandbox toy. The state is the argument being folded through the recursion — that insight survives even if Lisp doesn't.</p>
+    </div>
+  </section>
+
+  <!-- 6 · THE FLOOR EXISTS -->
+  <section class="slide alt wide">
+    <div class="inner">
+      <div class="kicker entry-1">Ecosystem · Verified 2026-07-17</div>
+      <h2 class="entry-2">The floor is thin<br>but it is <em>real</em>.</h2>
+      <div class="field-map entry-3">
+        <div class="field-row">
+          <div class="field-term">cl-completions</div>
+          <div class="field-def"><strong>The load-bearing library.</strong> Streaming + tool-calling across Anthropic, OpenAI, Gemini, Ollama. <span class="mono">defun-tool</span> macro, permission management, tool-error-to-LLM retry. v1.1.0, March 2026. Author: Anthony Green.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">MCP</div>
+          <div class="field-def">Surprisingly populated: <span class="mono">40ants/mcp</span> (stdio + streamable HTTP), <span class="mono">jsulmont/mcp-lisp</span> — <strong>44/44 official conformance checks</strong> against the 2025-11-25 spec.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">HTTP / SSE</div>
+          <div class="field-def">dexador <span class="mono">:want-stream</span> + a small line parser. cl-completions proves LLM token streaming end-to-end in CL today.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">Deployment</div>
+          <div class="field-def"><strong>Better than the Node/Bun story:</strong> 12 MB compressed single binary, &lt;50 ms startup, maintained SBCL Docker images. Caveat: no cross-compilation — build per platform.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">Packages</div>
+          <div class="field-def">Quicklisp is one volunteer, nearly stalled — one dist update in 2025. Use <strong>ocicl</strong>: per-project deps, lock file, OCI artifacts. Same author as cl-completions.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 · THE HONEST NO -->
+  <section class="slide wide">
+    <div class="ghost">×</div>
+    <div class="inner">
+      <div class="kicker entry-1">The BEAM Question · Part I</div>
+      <h2 class="entry-2">Inside one SBCL image:<br><em>no.</em> Structurally no.</h2>
+      <p class="lede entry-3">You asked for BEAM-like composability at every layer. The two load-bearing BEAM guarantees cannot be replicated on shared-memory native threads. This is not an ecosystem gap; it is physics.</p>
+      <div class="field-map entry-4">
+        <div class="field-row">
+          <div class="field-term">Heap isolation</div>
+          <div class="field-def"><strong>Cannot.</strong> BEAM: per-process heaps, per-process GC. SBCL: one shared heap, stop-the-world GC — one thread's blowup is image-wide.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">Safe preemption</div>
+          <div class="field-def"><strong>Cannot.</strong> BEAM preempts every ~4,000 reductions. SBCL's <span class="mono">terminate-thread</span> is documented production-unsafe — a wedged thread cannot be safely killed.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">OTP supervision</div>
+          <div class="field-def"><strong>Not on the shelf.</strong> Sento (v3.4.3, May 2026, active) gives actor hierarchies and termination-<em>watching</em> — no restart strategies, no supervision trees, no restart-intensity semantics. And it can only restart actors that die, never actors that hang.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · THE REFRAME -->
+  <section class="slide alt">
+    <div class="inner">
+      <div class="kicker entry-1">The BEAM Question · Part II</div>
+      <h2 class="entry-2">BEAM's guarantees live at the process boundary. <em>Your architecture already has one.</em></h2>
+      <div class="body entry-2">
+        <p>Agents in this topology are OS processes — they must be. The Isolation Mandate demands it (the builder cannot verify itself), and workers are often other harnesses entirely. You do not need a million cheap green processes. You need a coordinator supervising dozens of workers.</p>
+        <p>At the OS-process boundary, everything BEAM promises is free: <strong>heap isolation</strong> (a crashed worker cannot corrupt the coordinator), <strong>preemption</strong> (<span class="mono">kill -9</span> works even on a wedged worker — which in-image Sento cannot do), <strong>restart</strong> (respawn). <span class="mono">uiop:launch-program</span> provides spawn, monitor, kill, and exit codes, portably, today.</p>
+      </div>
+      <div class="callout entry-3">Erlang's processes were an <strong>isolation design</strong> that the BEAM later made cheap. You need the isolation, not the cheapness. The hand-built supervisor is on the order of a hundred lines — and it is exactly the shape Made Well already mandates.</div>
+    </div>
+  </section>
+
+  <!-- 9 · THE KERNEL -->
+  <section class="slide">
+    <div class="ghost">⟲</div>
+    <div class="inner">
+      <div class="kicker entry-1">The Kernel</div>
+      <h2 class="entry-2">The condition system is your escalation cascade <em>as a language primitive.</em></h2>
+      <p class="lede entry-3">Confirmed semantics: handlers bound by <span class="mono">handler-bind</span> run <strong>before the stack unwinds</strong>, and can invoke a restart that resumes execution at the signal point. Detection, policy, and recovery decouple across the stack.</p>
+      <div class="codeblock entry-4"><span class="cm">;; worker: signals mid-computation, offers a way back in</span>
+(<span class="kw">restart-case</span> (proceed-with (signal-decision-needed task))
+  (<span class="kw">use-answer</span> (answer) (continue-task task answer)))
+
+<span class="cm">;; coordinator: policy lives at the top, work never unwinds</span>
+(<span class="kw">handler-bind</span> ((decision-needed
+                 (lambda (c)
+                   (<span class="kw">invoke-restart</span> 'use-answer (ask-human c)))))
+  (run-worker task))</div>
+      <p class="body entry-4 muted small" style="margin-top:22px;">Read it against Tower: an agent hits a decision, signals, the coordinator answers, and the computation <strong>continues from exactly where it stood</strong>. No polling. No check_inbox. No state serialization. BEAM cannot do this — a crashed Erlang process restarts from scratch. TypeScript categorically cannot — exceptions unwind, always. This is the one asymmetric capability in the entire analysis.</p>
+    </div>
+  </section>
+
+  <!-- 10 · HOMOICONICITY -->
+  <section class="slide alt">
+    <div class="inner">
+      <div class="kicker entry-1">The Second Advantage</div>
+      <h2 class="entry-2">The epistemics kernel<br>becomes <em>native.</em></h2>
+      <div class="body entry-2">
+        <p>The EXPLORE note's design wants claims as typed values — <span class="mono">(claim 1048576 :source "..." :fetched-at ts)</span> — where an untagged claim is a <strong>type error, not a rule violation</strong>, and acquisition is a scheduler constraint the task graph enforces. That design wants a runtime where the structure of what is being asserted is inspectable data.</p>
+        <p>In Lisp, the agent's output, the runtime's plumbing, and code-mode scripts are <strong>the same substrate</strong>. Strudel's oven currently compiles to a QuickJS sandbox bolted onto Pi; here, the model writes forms into the image the pipe is made of, and the answer-weave pass walks them as data.</p>
+        <p>And the live image closes the loop: redefine the running harness mid-session. Circadian's REM pass as literal self-modification of a mind that never restarts.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · THE LUMBERYARD -->
+  <section class="slide">
+    <div class="inner">
+      <div class="kicker entry-1">Why Not the Other Four</div>
+      <p class="quote entry-2"><span class="qmark">“</span>I'm okay with laying the pipe and the foundation. I just don't want to make the pipe. I don't want to make the lumber.<span class="qmark">”</span></p>
+      <div class="body entry-3" style="margin-top:36px;">
+        <p>Erlang, Gleam, TypeScript, Python — each survey ended the same way: minimal frameworks that demand you mold yourself to their shape, or raw materials that demand you mill your own. Common Lisp is the one candidate that is a <strong class="breathe">lumberyard without a framework</strong>: the condition system, the live image, CLOS, macros, cl-completions, the MCP servers — dimensional lumber, milled, stacked, and unopinionated about your blueprint.</p>
+        <p>The loop stays yours. The materials come cut.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 · THE TAXES -->
+  <section class="slide alt wide">
+    <div class="inner">
+      <div class="kicker entry-1">Costs · Unvarnished</div>
+      <h2 class="entry-2">The taxes are real.<br>Pay them <em>knowingly.</em></h2>
+      <div class="two-col entry-3">
+        <div class="col no">
+          <h3>What it costs</h3>
+          <p><strong>DX:</strong> first-class Lisp editing still means Emacs + SLIME/Sly. The VS Code extension (Alive) is pre-MVP; the JetBrains plugin self-labels experimental.</p>
+          <p><strong>LLM fluency:</strong> frontier models write CL measurably worse than TS — they miss <span class="mono">unwind-protect</span> idioms, occasionally miscount parens.</p>
+          <p><strong>Bus factor:</strong> one person carries a disproportionate share of the modern CL LLM stack.</p>
+          <p><strong>You:</strong> ten years of TS mastery stays home. Every idiom is new.</p>
+        </div>
+        <div class="col yes">
+          <h3>What offsets it</h3>
+          <p><strong>The REPL fix:</strong> the practitioner consensus cure for LLM-writes-CL is a live REPL wired in via MCP — which is, self-referentially, the architecture being built. Wire it in on day one.</p>
+          <p><strong>The floor:</strong> cl-completions + ocicl + conformant MCP servers mean the provider layer, packaging, and wire protocol are not your problem.</p>
+          <p><strong>The deploy story:</strong> a 12 MB binary that starts in 50 ms is a better ops surface than anything in the Node lineage.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 · ROAD NOT TAKEN -->
+  <section class="slide">
+    <div class="ghost">Λ</div>
+    <div class="inner">
+      <div class="kicker entry-1">The Road Not Taken</div>
+      <h2 class="entry-2">The two Lisps buy<br><em>opposite halves.</em></h2>
+      <div class="body entry-3">
+        <p><strong>LFE — Lisp Flavored Erlang — is real and active</strong> (v2.2.0, January 2025, full OTP interop). Supervision trees, distribution, hot code reload: free, day one, battle-tested. But it is Erlang semantics in Lisp syntax — no CLOS, no condition system, immutable data. You would gain OTP and lose the resume-at-signal-point primitive and the live image.</p>
+        <p>If what you want is BEAM, LFE or plain Elixir is the honest choice. If what you want is the condition system, homoiconicity, and the image — SBCL with supervision at the process boundary is the choice. There is no third option that buys both. This verdict picks the second, because the escalation cascade is the beating heart of the topology, and only one of the two Lisps has it as a primitive.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · FIRST CUTS -->
+  <section class="slide alt wide">
+    <div class="inner">
+      <div class="kicker entry-1">First Cuts</div>
+      <h2 class="entry-2">Not a stress test.<br><em>A vehicle fitting.</em></h2>
+      <p class="lede entry-2">The convergence ran for months; it does not need a probe. What the first build nights establish is fit and feel — whether this body latches onto the frame the way the theory says it does. Cut these boards first, in order:</p>
+      <div class="field-map entry-3">
+        <div class="field-row">
+          <div class="field-term">01 · grounding</div>
+          <div class="field-def">Claims as typed values, acquisition-before-assertion as a scheduler constraint in the loop. The EXPLORE note's design, made literal. This is the contact point that is "a cons cell away" — build it first because it is the thesis.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">02 · escalate/resume</div>
+          <div class="field-def">A worker signals a condition mid-computation; the coordinator invokes a restart; work resumes in place. Tower's ask_user without the polling. The asymmetric feature, demonstrated in the real loop.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">03 · supervisor</div>
+          <div class="field-def">Three worker processes via <span class="mono">uiop:launch-program</span>; kill one mid-task; one-for-one restart. ~100 lines. BEAM-at-the-boundary, proven on your machine.</div>
+        </div>
+        <div class="field-row">
+          <div class="field-term">day-one setup</div>
+          <div class="field-def">ocicl, not Quicklisp. cl-completions as the provider layer. A CL REPL wired into the coding harness via MCP — the fix for LLM-writes-CL and a prototype of the runtime's own thesis, in one move.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 15 · CODA -->
+  <section class="slide">
+    <div class="ghost">(</div>
+    <div class="inner">
+      <div class="kicker entry-1">Coda</div>
+      <p class="quote entry-2">The frame was never the IP. Contact points as the shape of the recursion, wake and sleep as phases of the loop, the pantry as the tool surface, supervision at the boundary — <span class="qmark">that architecture is already yours.</span> What Lisp offers is a body where the pipe does not have to be argued for, because the pipe is the language.</p>
+      <p class="attrib entry-3">The lumber is milled. Lay the pipe. · madewell-meta/runtime · 2026-07-17</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="counter" id="counter">01 / 15</div>
+<div class="nav-hint">→ · scroll · swipe</div>
+
+<script>
+(function () {
+  var mag = document.getElementById('magazine');
+  var slides = Array.prototype.slice.call(mag.children);
+  var counter = document.getElementById('counter');
+  var progress = document.getElementById('progress');
+  var n = slides.length, i = 0, locked = false;
+
+  function pad(x) { return (x < 10 ? '0' : '') + x; }
+  function go(k) {
+    i = Math.max(0, Math.min(n - 1, k));
+    mag.style.transform = 'translateX(' + (-i * 100) + 'vw)';
+    slides.forEach(function (s, j) { s.classList.toggle('active', j === i); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(n);
+    progress.style.width = ((i + 1) / n * 100) + '%';
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(i - 1); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End') go(n - 1);
+  });
+
+  window.addEventListener('wheel', function (e) {
+    if (locked) return;
+    var d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (Math.abs(d) < 24) return;
+    locked = true;
+    go(i + (d > 0 ? 1 : -1));
+    setTimeout(function () { locked = false; }, 700);
+  }, { passive: true });
+
+  var tx = null;
+  window.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; }, { passive: true });
+  window.addEventListener('touchend', function (e) {
+    if (tx === null) return;
+    var dx = e.changedTouches[0].clientX - tx;
+    if (Math.abs(dx) > 48) go(i + (dx < 0 ? 1 : -1));
+    tx = null;
+  }, { passive: true });
+
+  go(0);
+})();
+</script>
+</body>
+</html>

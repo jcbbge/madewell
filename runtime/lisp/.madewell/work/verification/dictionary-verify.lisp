@@ -1,0 +1,566 @@
+;;;; ============================================================================
+;;;; dictionary-verify.lisp — independent verification of the live-image
+;;;; dictionary (src/dictionary.lisp)
+;;;; Package c001-05 (cycle c001, item i005) · Designer: td-dictionary · 2026-08-05
+;;;;
+;;;; THE WALL (honored): designed from intent sources only —
+;;;;   .madewell/work/packages/c001-05-verify-dictionary.md (the brief)
+;;;;   README.md
+;;;;   src/package.lisp (the export list — also the dictionary's expected contents)
+;;;; No implementation file (src/dictionary.lisp et al.) and nothing under
+;;;; tests/ was read. Call shapes were acquired from the LIVE IMAGE via
+;;;; sb-introspect this session — the image describing itself, never source:
+;;;;   cst:dictionary-entries (&optional (package :constellation))
+;;;;   cst:dictionary-json    (&optional (package :constellation))
+;;;;   cst:write-dictionary   (&optional (package :constellation)
+;;;;                                   (stream *standard-output*))
+;;;;
+;;;; RUN (from the repository root):
+;;;;   sbcl --non-interactive --load .madewell/work/verification/dictionary-verify.lisp
+;;;; --non-interactive loads ~/.sbclrc (where `ocicl setup` lives), so FiveAM
+;;;; resolves through the repo's ocicl directory. --script would skip that file.
+;;;; Exit status: 0 = every check green · 1 = at least one contract failure.
+;;;;
+;;;; State discipline: the suite is read-only against the constellation image.
+;;;; The one piece of state it creates — a sandbox package used as controlled
+;;;; ground truth for kind detection — is deleted on every path
+;;;; (unwind-protect). Temp files live in the OS temp directory and are
+;;;; deleted on every path. No mocks. No run-order dependence: every test
+;;;; re-queries the dictionary and rebuilds its own sandbox.
+;;;; Process discipline: python3 subprocesses are waited via uiop:run-program;
+;;;; the script quits with the verdict code. No orphan processes.
+;;;; ============================================================================
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (require :asdf)
+  (require :sb-introspect)
+  (let ((asd (merge-pathnames "constellation.asd" (uiop:getcwd))))
+    (unless (probe-file asd)
+      (error "dictionary-verify must be loaded from the repository root (no constellation.asd at ~a)" asd))
+    (unless (asdf:find-system "constellation" nil)
+      (asdf:load-asd asd)))
+  (asdf:load-system "constellation")
+  (asdf:load-system "fiveam"))
+
+(defpackage #:dictionary-verify
+  (:use #:cl)
+  (:documentation "Independent verification of the constellation live-image dictionary (c001-05)."))
+
+(in-package #:dictionary-verify)
+
+;;; ---------- contract snapshot (diagnostic; asserted against nothing) ----------
+
+(defun print-contract-snapshot ()
+  "Print the live image's self-description of the dictionary's call shapes.
+Diagnostic context for triage. The assertions in this file come from intent,
+never from this snapshot."
+  (format t "~&=== CONTRACT SNAPSHOT (live image, this run) ===~%")
+  (dolist (s '("DICTIONARY-ENTRIES" "DICTIONARY-JSON" "WRITE-DICTIONARY"))
+    (let ((sym (find-symbol s "CONSTELLATION")))
+      (format t "~&  cst:~(~a~) arglist: ~s~%" s
+              (ignore-errors (sb-introspect:function-lambda-list sym)))))
+  (let ((n 0))
+    (do-external-symbols (x (find-package :constellation)) (incf n))
+    (format t "~&  constellation external symbols: ~d~%" n))
+  (let ((we (find-symbol "WITH-ENVELOPE" "CONSTELLATION")))
+    (format t "~&  trap premise: cst:with-envelope macro-function=~s fboundp=~s~%"
+            (and (macro-function we) t) (fboundp we)))
+  (format t "~&======================================================~%"))
+
+;;; ---------- helpers ----------
+
+(defun entry-named (name entries)
+  "The entry plist whose :name is NAME (lowercase string), or NIL."
+  (find name entries :key (lambda (p) (getf p :name)) :test #'string=))
+
+(defun entry-key-names (p)
+  "The plist's keys as sorted symbol-name strings."
+  (sort (loop for (k v) on p by #'cddr collect (symbol-name k)) #'string<))
+
+(defun entry-names (entries)
+  (mapcar (lambda (p) (getf p :name)) entries))
+
+(defun live-external-names (&optional (package :constellation))
+  "Downcased, sorted names of every external symbol of PACKAGE — the image's
+own census, independent of the dictionary under test."
+  (let (acc)
+    (do-external-symbols (s (find-package package))
+      (push (string-downcase (symbol-name s)) acc))
+    (sort acc #'string<)))
+
+(defun expected-export-names ()
+  "The :export names of src/package.lisp, derived at run time by reading the
+file with the Lisp reader — never hand-transcribed into this suite.
+package.lisp is a wall-permitted source; deriving expected names from it at
+run time keeps the completeness check tracking the contract as it changes."
+  (let ((path (merge-pathnames "src/package.lisp" (uiop:getcwd))))
+    (unless (probe-file path)
+      (error "src/package.lisp not found at ~a — run from the repository root" path))
+    (let ((form (with-open-file (s path) (read s))))
+      (unless (and (consp form) (eq (car form) 'cl:defpackage))
+        (error "first form of src/package.lisp is not DEFPACKAGE: ~s" (car form)))
+      (let ((export-clause (find :export (cddr form) :key #'car)))
+        (unless export-clause
+          (error "no :export clause in ~a" path))
+        (sort (mapcar (lambda (sym) (string-downcase (symbol-name sym)))
+                      (cdr export-clause))
+              #'string<)))))
+
+(defun ladder-violation (sym kind)
+  "NIL if KIND is consistent with the contract's detection order for SYM,
+else a string explaining the violation. The order (brief, intent 2) is the
+point: :macro (even though also fboundp) > :special-operator > :function >
+:class > :variable > fallback :symbol. Each rung may fire only when no rung
+above it fires. This law is checkable for EVERY entry without knowing
+anything about the entry in advance."
+  (let ((macro (and (macro-function sym) t))
+        (special (special-operator-p sym))
+        (fun (fboundp sym))
+        (class (and (find-class sym nil) t))
+        (var (boundp sym)))
+    (flet ((higher-rung-fires (&rest flags) (some #'identity flags)))
+      (case kind
+        (:macro
+         (unless macro "reported :macro but MACRO-FUNCTION is nil"))
+        (:special-operator
+         (unless special "reported :special-operator but SPECIAL-OPERATOR-P is nil"))
+        (:function
+         (cond ((not fun) "reported :function but symbol is not FBOUNDP")
+               ((higher-rung-fires macro special)
+                "reported :function but a higher rung (macro / special-operator) also fires — detection order violated")))
+        (:class
+         (cond ((not class) "reported :class but FIND-CLASS is nil")
+               ((higher-rung-fires macro special fun)
+                "reported :class but a higher rung (macro / special-operator / function) also fires — detection order violated")))
+        (:variable
+         (cond ((not var) "reported :variable but symbol is not BOUNDP")
+               ((higher-rung-fires macro special fun class)
+                "reported :variable but a higher rung also fires — detection order violated")))
+        (:symbol
+         (when (higher-rung-fires macro special fun class var)
+           "reported :symbol (fallback) but a higher rung fires — fallback violated"))
+        (otherwise
+         (format nil "kind ~s is not one of the contract's six rungs" kind))))))
+
+(defun entry-symbol (name &optional (package :constellation))
+  "The external symbol NAME (lowercase string) denotes in PACKAGE."
+  (find-symbol (string-upcase name) package))
+
+;;; ---------- the sandbox: controlled ground truth for kind detection ----------
+;;; Kinds are proven on symbols whose kind is unambiguous because WE defined
+;;; them this run — not on memory about which constellation symbol is what.
+;;; No mocks: these are real CL definitions in a real (throwaway) package.
+
+(defparameter +sandbox-package-name+ "DICTIONARY-VERIFY-SANDBOX")
+
+(defparameter +adversarial-doc+
+  (concatenate 'string
+               "Says \"hi\" then a newline:"
+               (string #\Newline)
+               "then a backslash \\ and a tab:"
+               (string #\Tab)
+               "end.")
+  "A docstring containing the RFC 8259 §7 escape alphabet: double quote,
+newline, backslash, tab. ASCII-only so external-format defaults cannot
+confound the round-trip.")
+
+(defmacro with-sandbox-package ((pkg) &body body)
+  "Bind PKG to a fresh throwaway package; delete it on every path."
+  `(let ((,pkg (progn
+                 (when (find-package +sandbox-package-name+)
+                   (delete-package +sandbox-package-name+))
+                 (make-package +sandbox-package-name+ :use nil))))
+     (unwind-protect (progn ,@body)
+       (delete-package ,pkg))))
+
+(defun populate-sandbox (pkg)
+  "Define and export one unambiguous specimen per kind rung, plus one
+deliberately unexported symbol. Returns an alist (expected-kind . symbol-name)
+for the exported specimens. The macro specimen reproduces the trap in
+miniature: a macro is BOTH macro-function and fboundp."
+  (let ((plain (intern "PLAIN-SYMBOL" pkg))
+        (fn (intern "SANDBOX-FUNCTION" pkg))
+        (mac (intern "SANDBOX-MACRO" pkg))
+        (var (intern "*SANDBOX-VARIABLE*" pkg))
+        (struct (intern "SANDBOX-STRUCT" pkg))
+        (adv (intern "SANDBOX-ADVERSARIAL" pkg)))
+    (intern "HIDDEN-INTERNAL" pkg)          ; never exported — must not appear
+    (eval `(defun ,fn (x) "Sandbox function doc." x))
+    (eval `(defmacro ,mac (x) "Sandbox macro doc." (declare (ignore x)) '(expanded)))
+    (eval `(defvar ,var 42 "Sandbox variable doc."))
+    (eval `(defstruct ,struct "Sandbox struct doc."))
+    (eval `(defun ,adv (x) ,+adversarial-doc+ x))
+    (export (list plain fn mac var struct adv) pkg)
+    (list (cons :symbol "PLAIN-SYMBOL")
+          (cons :function "SANDBOX-FUNCTION")
+          (cons :macro "SANDBOX-MACRO")
+          (cons :variable "*SANDBOX-VARIABLE*")
+          (cons :class "SANDBOX-STRUCT")
+          (cons :function "SANDBOX-ADVERSARIAL"))))
+
+;;; ---------- third-party JSON validators (python3 — never the emitter) ----------
+
+(defparameter +python-schema-validator+
+  "import json, sys
+kinds = {'macro', 'special-operator', 'function', 'class', 'variable', 'symbol'}
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+assert isinstance(data, list) and len(data) > 0, 'top level is not a non-empty array'
+names = []
+for i, e in enumerate(data):
+    assert isinstance(e, dict), 'entry %d is not an object' % i
+    keys = sorted(e.keys())
+    assert keys == ['documentation', 'kind', 'lambda_list', 'name'], 'entry %d keys %s != contract key set' % (i, keys)
+    assert isinstance(e['name'], str) and e['name'] == e['name'].lower(), 'entry %d name %r is not a lowercase string' % (i, e['name'])
+    assert e['kind'] in kinds, 'entry %d kind %r is not one of the six lowercase contract kinds' % (i, e['kind'])
+    assert e['lambda_list'] is None or isinstance(e['lambda_list'], str), 'entry %d lambda_list is not str|null' % i
+    assert e['documentation'] is None or isinstance(e['documentation'], str), 'entry %d documentation is not str|null' % i
+    names.append(e['name'])
+assert names == sorted(names), 'entries are not sorted by name'
+assert any(e['lambda_list'] is None for e in data), 'no null lambda_list anywhere - nil did not render as JSON null'
+assert any(e['documentation'] is None for e in data), 'no null documentation anywhere - nil did not render as JSON null'
+print('SCHEMA-OK %d entries' % len(data))"
+  "Asserts, with a THIRD-PARTY parser: the top level is a JSON array; every
+object carries exactly the contract keys {name, kind, lambda_list,
+documentation}; names are lowercase strings; kinds are the six contract
+keywords rendered lowercase; lambda_list and documentation are str|null;
+entries are sorted by name; and nil really renders as null somewhere in the
+real output.")
+
+(defparameter +python-roundtrip-validator+
+  "import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+expected = open(sys.argv[2], encoding='utf-8').read()
+by_name = {e['name']: e for e in data}
+adv = by_name.get('sandbox-adversarial')
+assert adv is not None, 'sandbox-adversarial entry missing'
+assert adv['documentation'] == expected, 'docstring did not round-trip byte-exactly: %r != %r' % (adv['documentation'], expected)
+print('ROUNDTRIP-OK')"
+  "Parses the sandbox dictionary with a third-party parser and asserts the
+adversarial docstring (quotes, newline, backslash, tab) survived the emitter
+BYTE-EXACTLY. The expected text arrives as a file, so no escaping convention
+is shared between the two languages — only the bytes are.")
+
+(defparameter +python-equiv-validator+
+  "import json, sys
+a = json.load(open(sys.argv[1], encoding='utf-8'))
+b = json.load(open(sys.argv[2], encoding='utf-8'))
+assert a == b, 'write-dictionary output and dictionary-json output differ as parsed JSON'
+print('STREAM-EQUIV-OK %d entries' % len(a))"
+  "Asserts write-dictionary's stream output and dictionary-json's string
+parse to the SAME value under a third-party parser.")
+
+(defun run-python (args)
+  "Run python3 with ARGS, waited. Returns (values stdout stderr exit-code)."
+  (uiop:run-program (append (list "python3") args)
+                    :output :string :error-output :string :ignore-error-status t))
+
+(defun write-string-to-temp (string name)
+  "Write STRING to a fresh temp file named NAME; return the pathname."
+  (let ((path (merge-pathnames name (uiop:temporary-directory))))
+    (with-open-file (s path :direction :output
+                       :if-exists :supersede :if-does-not-exist :create)
+      (write-string string s))
+    path))
+
+;;; ---------- suite ----------
+
+(fiveam:def-suite dictionary-verify
+  :description "Independent verification of the live-image dictionary — c001-05. One suite; every check traces to a brief intent line.")
+
+(fiveam:in-suite dictionary-verify)
+
+(fiveam:test entries-self-describe-the-image
+  "Intent 1: dictionary-entries returns every external symbol of the package
+(default :constellation) as a plist of :name (lowercase string), :kind,
+:lambda-list (string or nil), :documentation (string or nil)."
+  (let* ((default-entries (cst:dictionary-entries))
+         (explicit-entries (cst:dictionary-entries :constellation))
+         (live-names (live-external-names))
+         (names (entry-names default-entries)))
+    ;; the default package IS :constellation
+    (fiveam:is (equal names (entry-names explicit-entries))
+               "default argument and explicit :constellation return the same name set")
+    (fiveam:is (equal (mapcar (lambda (p) (getf p :kind)) default-entries)
+                      (mapcar (lambda (p) (getf p :kind)) explicit-entries))
+               "default argument and explicit :constellation return the same kinds")
+    ;; every entry is a plist with exactly the contract's four keys
+    (dolist (p default-entries)
+      (fiveam:is (equal '("DOCUMENTATION" "KIND" "LAMBDA-LIST" "NAME") (entry-key-names p))
+                 "entry ~s has keys other than (:name :kind :lambda-list :documentation)"
+                 (getf p :name))
+      (let ((name (getf p :name))
+            (kind (getf p :kind))
+            (ll (getf p :lambda-list))
+            (doc (getf p :documentation)))
+        (fiveam:is (and (stringp name) (equal name (string-downcase name)))
+                   ":name ~s is not a lowercase string" name)
+        (fiveam:is (member kind '(:macro :special-operator :function :class :variable :symbol))
+                   ":kind ~s is not one of the contract's six rungs" kind)
+        (fiveam:is (or (null ll) (stringp ll)) ":lambda-list of ~a is not string|nil" name)
+        (fiveam:is (or (null doc) (stringp doc)) ":documentation of ~a is not string|nil" name)))
+    ;; EVERY external symbol, no missing, no extras, no duplicates — checked
+    ;; against the image's own census, both directions
+    (fiveam:is (= (length names) (length (remove-duplicates names :test #'string=)))
+               "duplicate names in the dictionary")
+    (fiveam:is (null (set-difference live-names names :test #'string=))
+               "external symbols missing from the dictionary: ~s"
+               (set-difference live-names names :test #'string=))
+    (fiveam:is (null (set-difference names live-names :test #'string=))
+               "dictionary names that are not external symbols: ~s"
+               (set-difference names live-names :test #'string=))))
+
+(fiveam:test sorted-and-stable-across-calls
+  "Intent 1 (sorted by name so output is stable across images) + the done
+criterion: two calls return identical name order."
+  (let ((names-1 (entry-names (cst:dictionary-entries)))
+        (names-2 (entry-names (cst:dictionary-entries))))
+    (fiveam:is (equal names-1 names-2)
+               "two calls to dictionary-entries returned different name orders")
+    (fiveam:is (every #'string<= names-1 (rest names-1))
+               "names are not in sorted order"))
+  (fiveam:is (string= (cst:dictionary-json) (cst:dictionary-json))
+             "two calls to dictionary-json returned different strings"))
+
+(fiveam:test kind-ladder-holds-and-anchors-are-right
+  "Intent 2: the detection ORDER is the point. The ladder law is asserted for
+EVERY entry (a rung may fire only when no higher rung fires), then the four
+anchors the brief names are asserted explicitly."
+  (let ((entries (cst:dictionary-entries)))
+    ;; the generic law, image-wide
+    (dolist (p entries)
+      (let* ((name (getf p :name))
+             (kind (getf p :kind))
+             (violation (ladder-violation (entry-symbol name) kind)))
+        (fiveam:is (null violation)
+                   "ladder violation for ~a: ~a" name violation)))
+    ;; the trap premise must hold in this image, or the anchor proves nothing
+    (let ((we (find-symbol "WITH-ENVELOPE" "CONSTELLATION")))
+      (fiveam:is (and (macro-function we) (fboundp we))
+                 "trap premise failed: cst:with-envelope is not BOTH macro-function and fboundp in this image"))
+    ;; the four anchors named by the brief
+    (fiveam:is (eq :macro (getf (entry-named "with-envelope" entries) :kind))
+               "with-envelope must be :macro — macros and functions both being fboundp is the trap this check exists for")
+    (fiveam:is (eq :function (getf (entry-named "ground" entries) :kind))
+               "ground must be :function")
+    (fiveam:is (eq :variable (getf (entry-named "*actor*" entries) :kind))
+               "*actor* must be :variable")
+    (fiveam:is (eq :class (getf (entry-named "envelope" entries) :kind))
+               "envelope (a struct) must surface as :class per the contract's kind ladder")
+    ;; lambda lists appear ONLY for things that have them (functions, macros)
+    (dolist (p entries)
+      (when (getf p :lambda-list)
+        (fiveam:is (member (getf p :kind) '(:function :macro))
+                   "~a has a lambda-list but kind ~s — lambda lists are only for functions and macros"
+                   (getf p :name) (getf p :kind))))
+    ;; anchors' lambda-lists
+    (fiveam:is (stringp (getf (entry-named "with-envelope" entries) :lambda-list))
+               "macro with-envelope must carry a lambda-list string")
+    (fiveam:is (stringp (getf (entry-named "ground" entries) :lambda-list))
+               "function ground must carry a lambda-list string")
+    (fiveam:is (null (getf (entry-named "*actor*" entries) :lambda-list))
+               "variable *actor* must not carry a lambda-list")
+    (fiveam:is (null (getf (entry-named "envelope" entries) :lambda-list))
+               "class envelope must not carry a lambda-list")))
+
+(fiveam:test sandbox-kinds-on-controlled-ground
+  "Intent 2, proven on controlled ground truth: a throwaway package whose
+specimens WE defined this run — one per rung, plus the macro/fboundp trap
+reproduced in miniature, plus one unexported symbol that must not appear."
+  (with-sandbox-package (pkg)
+    (let* ((expected (populate-sandbox pkg))
+           (entries (cst:dictionary-entries pkg)))
+      ;; the trap premise, reproduced in the sandbox
+      (let ((mac (find-symbol "SANDBOX-MACRO" pkg)))
+        (fiveam:is (and (macro-function mac) (fboundp mac))
+                   "sandbox trap premise failed: SANDBOX-MACRO is not both macro-function and fboundp"))
+      ;; exactly the exported specimens, nothing else
+      (fiveam:is (= (length expected) (length entries))
+                 "sandbox dictionary has ~d entries, expected exactly the ~d exported specimens"
+                 (length entries) (length expected))
+      (fiveam:is (null (entry-named "hidden-internal" entries))
+                 "unexported symbol HIDDEN-INTERNAL leaked into the dictionary")
+      ;; every specimen on its rung, and ladder-consistent
+      (dolist (specimen expected)
+        (destructuring-bind (kind . name) specimen
+          (let ((entry (entry-named (string-downcase name) entries)))
+            (fiveam:is (not (null entry)) "sandbox specimen ~a missing from the dictionary" name)
+            (when entry
+              (fiveam:is (eq kind (getf entry :kind))
+                         "sandbox ~a must be ~s, got ~s" name kind (getf entry :kind))
+              (fiveam:is (null (ladder-violation (find-symbol name pkg) (getf entry :kind)))
+                         "sandbox ~a violates the ladder: ~a"
+                         name (ladder-violation (find-symbol name pkg) (getf entry :kind)))))))
+      ;; sorted in the sandbox too
+      (let ((names (entry-names entries)))
+        (fiveam:is (every #'string<= names (rest names))
+                   "sandbox entries are not sorted by name")))))
+
+(fiveam:test json-parses-under-a-third-party-parser
+  "Intent 3: the JSON is real JSON — proven by python3's json (json.tool AND
+a schema validator), never by string inspection. The real output includes
+entries with nil lambda-lists and docstrings containing quotes and newlines."
+  (let ((path (write-string-to-temp (cst:dictionary-json) "dictionary-verify.json")))
+    (unwind-protect
+         (progn
+           (multiple-value-bind (out err code)
+               (run-python (list "-m" "json.tool" (namestring path)))
+             (declare (ignore out))
+             (fiveam:is (eql 0 code)
+                        "python3 -m json.tool rejected the dictionary output (exit ~d): ~a"
+                        code err))
+           (multiple-value-bind (out err code)
+               (run-python (list "-c" +python-schema-validator+ (namestring path)))
+             (fiveam:is (eql 0 code)
+                        "third-party schema validation failed (exit ~d) — stdout: ~a stderr: ~a"
+                        code out err)
+             (fiveam:is (and out (search "SCHEMA-OK" out))
+                        "schema validator did not print SCHEMA-OK — stdout: ~a" out)))
+      (uiop:delete-file-if-exists path))))
+
+(fiveam:test adversarial-docstring-round-trips-byte-exactly
+  "Intent 3, escaping: a docstring containing a double quote, a newline, a
+backslash, and a tab (RFC 8259 §7's alphabet) must survive the emitter and a
+third-party parser BYTE-EXACTLY. The expected bytes travel as a file, so the
+two languages share no escaping convention — only the bytes."
+  (with-sandbox-package (pkg)
+    (populate-sandbox pkg)
+    (let ((json-path (write-string-to-temp (cst:dictionary-json pkg)
+                                           "dictionary-verify-sandbox.json"))
+          (doc-path (write-string-to-temp +adversarial-doc+
+                                          "dictionary-verify-expected-doc.txt")))
+      (unwind-protect
+           (progn
+             (multiple-value-bind (out err code)
+                 (run-python (list "-m" "json.tool" (namestring json-path)))
+               (declare (ignore out))
+               (fiveam:is (eql 0 code)
+                          "python3 -m json.tool rejected the sandbox dictionary (exit ~d): ~a"
+                          code err))
+             (multiple-value-bind (out err code)
+                 (run-python (list "-c" +python-roundtrip-validator+
+                                   (namestring json-path) (namestring doc-path)))
+               (fiveam:is (eql 0 code)
+                          "adversarial docstring did not round-trip (exit ~d) — stdout: ~a stderr: ~a"
+                          code out err)
+               (fiveam:is (and out (search "ROUNDTRIP-OK" out))
+                              "round-trip validator did not print ROUNDTRIP-OK — stdout: ~a" out)))
+      (uiop:delete-file-if-exists json-path)
+      (uiop:delete-file-if-exists doc-path)))))
+
+(fiveam:test write-dictionary-writes-the-same-json-to-a-stream
+  "Intent 3: write-dictionary writes the same JSON to a stream — asserted as
+parsed-value equality with dictionary-json under a third-party parser."
+  (let ((stream-path (merge-pathnames "dictionary-verify-stream.json"
+                                      (uiop:temporary-directory)))
+        (string-path (merge-pathnames "dictionary-verify-string.json"
+                                      (uiop:temporary-directory))))
+    (unwind-protect
+         (progn
+           (with-open-file (s stream-path :direction :output
+                              :if-exists :supersede :if-does-not-exist :create)
+             (cst:write-dictionary :constellation s))
+           (fiveam:is (not (null (probe-file stream-path)))
+                      "write-dictionary wrote no file")
+           (with-open-file (s string-path :direction :output
+                              :if-exists :supersede :if-does-not-exist :create)
+             (write-string (cst:dictionary-json) s))
+           (multiple-value-bind (out err code)
+               (run-python (list "-m" "json.tool" (namestring stream-path)))
+             (declare (ignore out))
+             (fiveam:is (eql 0 code)
+                        "python3 -m json.tool rejected write-dictionary's output (exit ~d): ~a"
+                        code err))
+           (multiple-value-bind (out err code)
+               (run-python (list "-c" +python-equiv-validator+
+                                 (namestring stream-path) (namestring string-path)))
+             (fiveam:is (eql 0 code)
+                        "write-dictionary output != dictionary-json output as parsed JSON (exit ~d) — stdout: ~a stderr: ~a"
+                        code out err)
+             (fiveam:is (and out (search "STREAM-EQUIV-OK" out))
+                        "equivalence validator did not print STREAM-EQUIV-OK — stdout: ~a" out))
+           ;; probe (reported, not asserted): is the stream text byte-identical
+           ;; to the string, or does it add e.g. a trailing newline?
+           (format t "~&  [probe] write-dictionary stream text string= dictionary-json string: ~s~%"
+                   (string= (uiop:read-file-string stream-path) (cst:dictionary-json))))
+      (uiop:delete-file-if-exists stream-path)
+      (uiop:delete-file-if-exists string-path))))
+
+(fiveam:test completeness-against-package-lisp
+  "Intent 4: for the default package, the dictionary's names exactly equal
+the export list in src/package.lisp — no missing, no extras — asserted both
+directions, case-normalized. The expected names are READ from package.lisp
+at run time, never hand-transcribed."
+  (let* ((expected (expected-export-names))
+         (names (entry-names (cst:dictionary-entries)))
+         (live (live-external-names)))
+    (fiveam:is (null (set-difference expected names :test #'string=))
+               "exports missing from the dictionary: ~s"
+               (set-difference expected names :test #'string=))
+    (fiveam:is (null (set-difference names expected :test #'string=))
+               "dictionary names not in the package.lisp export list: ~s"
+               (set-difference names expected :test #'string=))
+    (fiveam:is (= (length expected) (length names))
+               "export count ~d != dictionary entry count ~d"
+               (length expected) (length names))
+    ;; three-way: package.lisp ≡ dictionary ≡ the image's own census
+    (fiveam:is (null (set-difference expected live :test #'string=))
+               "package.lisp exports missing from the live image: ~s"
+               (set-difference expected live :test #'string=))
+    (fiveam:is (null (set-difference live expected :test #'string=))
+               "live external symbols not in the package.lisp export list: ~s"
+               (set-difference live expected :test #'string=))))
+
+;;; ---------- probes (observations for triage; asserted against nothing) ----------
+
+(defun print-probes ()
+  (let ((entries (cst:dictionary-entries)))
+    (format t "~&=== PROBES (observations, never failures) ===~%")
+    (let ((hist '()))
+      (dolist (p entries)
+        (let ((cell (assoc (getf p :kind) hist)))
+          (if cell (incf (cdr cell)) (push (cons (getf p :kind) 1) hist))))
+      (format t "~&  [probe] kind histogram: ~s~%"
+              (sort hist #'string< :key (lambda (c) (symbol-name (car c))))))
+    (format t "~&  [probe] entries reported :symbol (fallback): ~s~%"
+            (mapcar (lambda (p) (getf p :name))
+                    (remove-if-not (lambda (p) (eq :symbol (getf p :kind))) entries)))
+    (format t "~&  [probe] entries with nil documentation: ~d of ~d~%"
+            (count-if (lambda (p) (null (getf p :documentation))) entries) (length entries))
+    (format t "~&  [probe] entries with nil lambda-list: ~d of ~d~%"
+            (count-if (lambda (p) (null (getf p :lambda-list))) entries) (length entries))
+    (let ((wu (find-symbol "*WORK-UNIT*" "CONSTELLATION")))
+      (format t "~&  [probe] cst:*work-unit* boundp=~s — its rung is ~s~%"
+              (boundp wu)
+              (getf (entry-named "*work-unit*" entries) :kind)))
+    (format t "~&  [probe] :special-operator rung is vacuous for user packages — CL exports no special operators; nothing can exercise it~%")
+    (format t "~&==================================================~%")))
+
+;;; ---------- entry point ----------
+
+(defun main ()
+  (print-contract-snapshot)
+  ;; Ask FiveAM to record-and-continue rather than drop into the debugger —
+  ;; a script must run every check and report them all. (Symbols looked up
+  ;; by name so a FiveAM without these specials still loads.)
+  (dolist (v '("*ON-ERROR*" "*ON-FAILURE*"))
+    (let ((s (find-symbol v "FIVEAM")))
+      (when (and s (boundp s))
+        (setf (symbol-value s) nil))))
+  ;; fiveam:run! returns explain!'s all-passed BOOLEAN, not the results —
+  ;; run returns the result list; explain! prints the summary and details.
+  (let* ((results (fiveam:run 'dictionary-verify))
+         (failed (count-if (lambda (r)
+                             (let ((n (symbol-name (class-name (class-of r)))))
+                               (or (search "FAILURE" n) (search "ERROR" n))))
+                           results)))
+    (fiveam:explain! results)
+    (print-probes)
+    (format t "~&=== dictionary-verify verdict: ~d check result~:p, ~d failure~:p ===~%"
+            (length results) failed)
+    (if (and results (zerop failed)) 0 1)))
+
+;;; The suite is read-only against the image; the only state created (the
+;;; sandbox package, temp files) was destroyed on every path by the tests
+;;; themselves. Nothing to restore here.
+(let ((code (main)))
+  (uiop:quit code))

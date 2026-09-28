@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Made Well — TAX ledger line",
+  "description": "One line per Land, appended to .madewell/work/tax.jsonl at Verify→Land. The acceptance differential (proposed − accepted): a pure scalar the metabolism does arithmetic on. Made Well owns this stream; the quality organ (Rumen) grazes it as cud if installed — Made Well never writes to .rumen/ and never depends on Rumen being present.",
+  "type": "object",
+  "required": ["ts", "unit", "tax"],
+  "additionalProperties": false,
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of the Land"
+    },
+    "unit": {
+      "type": "string",
+      "description": "The unit/brick that landed — a task id or plain-language slug"
+    },
+    "commit": {
+      "type": "string",
+      "description": "Optional. The landing commit SHA, once known (the SHA does not exist until after the commit, so this is best-effort / back-fillable)"
+    },
+    "kind": {
+      "type": "string",
+      "description": "feat | fix | refactor | docs | test | chore — the unit's type"
+    },
+    "proposed": {
+      "type": "number",
+      "description": "First-pass size — e.g. edits/lines proposed before Verify drove corrections"
+    },
+    "accepted": {
+      "type": "number",
+      "description": "Landed size — what passed Verify"
+    },
+    "tax": {
+      "type": "number",
+      "description": "proposed − accepted: the correction cost. The scalar the metabolism reads. Never fold warning events into it."
+    },
+    "note": {
+      "type": "string",
+      "description": "Optional free text — context for a tax spike. Explanatory only; never summed."
+    }
+  }
+}
