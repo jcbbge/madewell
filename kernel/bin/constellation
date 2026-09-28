@@ -34,6 +34,7 @@
 #   constellation inbox [--read <file>…]       the drop box: every new text file in ideas/ goes to
 #                                              ideas/read/ and into discovery; the rest is listed for
 #                                              the host to read, then filed with --read (session start)
+#   constellation trade [<name>]               the kind of work (dev, marketing, sales): print it, or set it
 #
 # The one interface: people and agents act through `constellation <verb>` only. The kernel's
 # own tools sit behind it and are never called by name:
@@ -62,10 +63,10 @@
 #   --cmd '<command with {brief} in it>' for any other harness. For every step of a run:
 #   CONSTELLATION_MODEL and CONSTELLATION_HARNESS_DEFAULT (a flag still wins for its step).
 # The steps: vega (ideate) → polaris (peer) → cassiopeia (plan) → sirius (implement) →
-#   orion (verify: tests) → aldebaran (verify: run) → land; a failed run goes to polaris
+#   orion (verify: the check) → aldebaran (verify: run) → land; a failed run goes to polaris
 #   (arbiter), who routes it to sirius, orion or the operator; three routes, then the operator.
-# Write rules, checked at each handoff: orion commits only test files; sirius never touches a
-#   test file; every other star changes nothing and commits nothing.
+# Write rules, checked at each handoff, come from the trade (in dev: orion commits only test
+#   files, sirius never touches one); every other star changes nothing and commits nothing.
 #
 # Knobs: CONSTELLATION_STATE (default ~/.local/state/constellation: worktrees, briefs, step
 #   ledgers), CONSTELLATION_TMUX_SESSION (default workers), CONSTELLATION_AUTO=0 (do not start
@@ -106,6 +107,7 @@ case "$1" in
   discover) shift; cmd_discover "$@" ;;
   tend) shift; cmd_tend "$@" ;;
   inbox) shift; cmd_inbox "$@" ;;
+  trade) shift; cmd_trade "$@" ;;
   # the kernel, behind the same door: nothing tells an agent or a person to run these directly
   move) shift; exec "$KERNEL/bin/mw-move" "$@" ;;                      # arrive | bench [--break] | finish <slug>
   session) shift; exec python3 "$KERNEL/bin/mw-session.py" "$@" ;;    # the durable execution door (bindings/SESSION.md)

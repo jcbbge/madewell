@@ -12,7 +12,11 @@ You are the first to hold this piece. Understand it before anyone plans or build
   (`.madewell/stock/`, `bench/`, `finished/`), and whatever the piece names. Does something
   already exist that this would duplicate or contradict? Say so.
 - Break it into the smallest completable steps, in plain words.
-- Name what is unknown. If only the operator can settle it: `constellation ask "<question>"`.
+- Name what is unknown. If only the operator can settle it, ask with your recommendation and
+  the choices, one command, so they can answer in one word:
+      constellation ask "<question>" --situation "<what is happening>"
+        --background "<what led here>" --assessment "<what you make of it>"
+        --recommend "<what you would do>" --option "<another choice>"
 - Change nothing. No edits, no commits.
 
 Finish with one handoff for the next star — what this is, why it matters, how it fits, the
