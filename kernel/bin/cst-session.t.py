@@ -13,10 +13,10 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-MODULE = Path(__file__).with_name("mw-session.py")
-spec = importlib.util.spec_from_file_location("mw_session", MODULE)
-mw = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(mw)
+MODULE = Path(__file__).with_name("cst-session.py")
+spec = importlib.util.spec_from_file_location("cst_session", MODULE)
+cst = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(cst)
 
 
 class ExecutionTests(unittest.TestCase):
@@ -24,11 +24,11 @@ class ExecutionTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        (self.root / ".madewell/bench").mkdir(parents=True)
-        (self.root / ".madewell/bench/task.md").write_text("# A real fixture piece\n")
+        (self.root / ".constellation/bench").mkdir(parents=True)
+        (self.root / ".constellation/bench/task.md").write_text("# A real fixture piece\n")
         self.actor = "maker"
-        self.session = mw.Session(self.root, "test")
-        self.call("start", piece=".madewell/bench/task.md", goal="Make a file and verify its contents")
+        self.session = cst.Session(self.root, "test")
+        self.call("start", piece=".constellation/bench/task.md", goal="Make a file and verify its contents")
 
     def call(self, op, **data):
         return self.session.request(self.actor, {"op": op, **data})
@@ -61,10 +61,10 @@ class ExecutionTests(unittest.TestCase):
         self.call("resume", reason="Inspect implementation and run acceptance tests")
 
     def test_no_phase_skip(self):
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="Skip ideation")
         self.propose()
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("run", step="step", argv=[sys.executable, "-c", "open('bad','w').write('bad')"])
         self.assertFalse((self.root / "bad").exists())
 
@@ -73,20 +73,20 @@ class ExecutionTests(unittest.TestCase):
         self.call("record", step="step", result="Goal and non-goals recorded")
         self.call("advance", reason="Ideation complete")
         self.propose()
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="Plan not yet completed")
         self.assertEqual(self.call("show")["phase"], "plan")
 
     def test_dependencies(self):
         self.propose("first")
         self.propose("second", after=["first"])
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("record", step="second", result="Out of order")
         self.call("record", step="first", result="First complete")
         self.call("record", step="second", result="Second complete")
 
     def test_unknown_dependency(self):
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.propose(after=["nonexistent"])
 
     def test_real_execution_and_independent_completion(self):
@@ -96,28 +96,28 @@ class ExecutionTests(unittest.TestCase):
         self.call("run", step="step", argv=[sys.executable, "-c", "from pathlib import Path; assert Path('output').read_text() == 'correct'"])
         state = self.call("advance", reason="Real assertion passed against intended output")
         self.assertEqual(state["status"], "done")
-        self.assertTrue((self.root / ".madewell/bench/task.md").exists(), "execution must not move the piece")
-        with self.assertRaises(mw.Refused):
+        self.assertTrue((self.root / ".constellation/bench/task.md").exists(), "execution must not move the piece")
+        with self.assertRaises(cst.Refused):
             self.call("propose", step="extra", title="After completion", expected="Refused")
 
     def test_self_verification_refused(self):
         self.implemented()
         self.propose()
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("run", step="step", argv=[sys.executable, "-c", "pass"])
 
     def test_no_manual_test_success(self):
         self.implemented()
         self.verifier()
         self.propose()
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("record", step="step", result="Trust me, tests passed")
 
     def test_implementation_requires_artifact(self):
         self.planned()
         self.propose()
         self.call("run", step="step", argv=[sys.executable, "-c", "pass"])
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="No artifact exists")
 
     def test_failed_test_requires_new_attempt(self):
@@ -126,7 +126,7 @@ class ExecutionTests(unittest.TestCase):
         self.propose()
         state = self.call("run", step="step", argv=[sys.executable, "-c", "raise SystemExit(7)"])
         self.assertEqual(state["phases"]["verify"]["steps"]["step"]["exit"], 7)
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="Ignore failure")
         state = self.call("retry", phase="implement", reason="Repair failed behavior; retain failed attempt")
         self.assertEqual(state["phase"], "implement")
@@ -139,7 +139,7 @@ class ExecutionTests(unittest.TestCase):
         self.call("run", step="step", argv=[sys.executable, "-c", "pass"])
         state = self.call("reject", step="step", reason="Exit zero did not demonstrate the required outcome")
         self.assertEqual(state["phases"]["verify"]["steps"]["step"]["exit"], 0)
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="Cannot silently accept rejected evidence")
         state = self.call("retry", phase="plan", reason="Design an adequate check")
         self.assertEqual(state["phase"], "plan")
@@ -150,7 +150,7 @@ class ExecutionTests(unittest.TestCase):
         self.propose()
         self.call("run", step="step", argv=[sys.executable, "-c", "pass"])
         (self.root / "output").write_text("changed after tests")
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="Old green")
 
     def test_test_cannot_change_artifact(self):
@@ -165,9 +165,9 @@ class ExecutionTests(unittest.TestCase):
         self.propose()
         state = self.call("run", step="step", argv=[sys.executable, "-c", "import time; time.sleep(10)"], timeout=0.05)
         self.assertEqual(state["phases"]["implement"]["steps"]["step"]["status"], "interrupted")
-        reopened = mw.Session(self.root, "test").request(self.actor, {"op": "show"})
+        reopened = cst.Session(self.root, "test").request(self.actor, {"op": "show"})
         self.assertEqual(reopened["phases"], state["phases"])
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("advance", reason="Time is up, pretend complete")
 
     def test_real_cli_restart_and_owner_fencing(self):
@@ -178,23 +178,23 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
         state = json.loads(result.stdout)
         self.assertEqual(state["phases"]["ideate"]["steps"]["step"]["status"], "pending")
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("record", step="step", result="Old actor cannot continue")
 
     def test_duplicate_start_does_not_overwrite(self):
         before = self.session.path.read_bytes()
-        with self.assertRaises(mw.Refused):
-            self.call("start", piece=".madewell/bench/task.md", goal="Overwrite")
+        with self.assertRaises(cst.Refused):
+            self.call("start", piece=".constellation/bench/task.md", goal="Overwrite")
         self.assertEqual(before, self.session.path.read_bytes())
 
     def test_no_unplanned_implementation_step(self):
         self.planned()
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("propose", step="surprise", title="Unplanned work", expected="Not approved")
 
     def test_invalid_timeout_leaves_step_pending(self):
         self.planned()
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call("run", step="step", argv=[sys.executable, "-c", "pass"], timeout=-1)
         self.assertEqual(self.call("show")["phases"]["implement"]["steps"]["step"]["status"], "pending")
 
@@ -207,20 +207,20 @@ class ExecutionTests(unittest.TestCase):
         self.assertFalse(state["phases"]["implement"]["steps"])
 
     def test_same_piece_cannot_start_two_sessions(self):
-        with self.assertRaises(mw.Refused):
-            mw.Session(self.root, "duplicate").request("other", {"op": "start", "piece": ".madewell/bench/task.md", "goal": "Claim same work"})
+        with self.assertRaises(cst.Refused):
+            cst.Session(self.root, "duplicate").request("other", {"op": "start", "piece": ".constellation/bench/task.md", "goal": "Claim same work"})
 
     def test_cannot_recover_live_owner(self):
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.session.request("other", {"op": "recover", "reason": "Steal live work"})
 
     def test_start_can_create_only_stock_material(self):
-        other = mw.Session(self.root, "new")
-        state = other.request("maker", {"op": "start", "piece": ".madewell/stock/new.md", "create_piece": True, "goal": "New commission"})
+        other = cst.Session(self.root, "new")
+        state = other.request("maker", {"op": "start", "piece": ".constellation/stock/new.md", "create_piece": True, "goal": "New commission"})
         self.assertEqual(state["phase"], "ideate")
-        self.assertTrue((self.root / ".madewell/stock/new.md").is_file())
-        with self.assertRaises(mw.Refused):
-            mw.Session(self.root, "bad").request("maker", {"op": "start", "piece": ".madewell/bench/bad.md", "create_piece": True, "goal": "Skip stock"})
+        self.assertTrue((self.root / ".constellation/stock/new.md").is_file())
+        with self.assertRaises(cst.Refused):
+            cst.Session(self.root, "bad").request("maker", {"op": "start", "piece": ".constellation/bench/bad.md", "create_piece": True, "goal": "Skip stock"})
 
     def test_running_step_is_observable(self):
         self.planned()
@@ -233,7 +233,7 @@ class ExecutionTests(unittest.TestCase):
                 ready, _, _ = select.select([fd], [], [], 5)
                 self.assertTrue(ready, "real command must reach readiness")
                 self.assertEqual(os.read(fd, 100), b"ready")
-                observed = mw.Session(self.root, "test").request("observer", {"op": "show"})
+                observed = cst.Session(self.root, "test").request("observer", {"op": "show"})
                 self.assertEqual(observed["phases"]["implement"]["steps"]["step"]["status"], "running")
                 self.assertEqual(future.result(timeout=5)["phases"]["implement"]["steps"]["step"]["status"], "interrupted")
         finally:
@@ -241,11 +241,11 @@ class ExecutionTests(unittest.TestCase):
 
     def test_dead_host_can_be_recovered_by_a_new_actor(self):
         host = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
-        other = mw.Session(self.root, "crash")
+        other = cst.Session(self.root, "crash")
         try:
-            other.request("old-host", {"op": "start", "piece": ".madewell/stock/crash.md", "create_piece": True, "goal": "Survive host death", "supervisor": host.pid})
+            other.request("old-host", {"op": "start", "piece": ".constellation/stock/crash.md", "create_piece": True, "goal": "Survive host death", "supervisor": host.pid})
             other.request("old-host", {"op": "propose", "step": "think", "title": "Understand", "expected": "A recorded goal"})
-            with self.assertRaises(mw.Refused):
+            with self.assertRaises(cst.Refused):
                 other.request("replacement", {"op": "recover", "reason": "Cannot steal live host"})
         finally:
             host.kill()
@@ -258,9 +258,9 @@ class ExecutionTests(unittest.TestCase):
     def test_artifacts_cannot_escape_repository(self):
         with tempfile.NamedTemporaryFile() as external:
             (self.root / "link").symlink_to(external.name)
-            with self.assertRaises(mw.Refused):
+            with self.assertRaises(cst.Refused):
                 self.session.artifact("link")
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.session.artifact("/etc/passwd")
 
 
@@ -271,10 +271,10 @@ class ExecutionTests(unittest.TestCase):
         self.call('advance', reason='Independent fixture acceptance')
 
     def git_fixture(self):
-        (self.root / '.madewell/stock').mkdir(exist_ok=True)
-        (self.root / '.madewell/finished').mkdir(exist_ok=True)
+        (self.root / '.constellation/stock').mkdir(exist_ok=True)
+        (self.root / '.constellation/finished').mkdir(exist_ok=True)
         self.git('init', '-q')
-        self.git('add', '.madewell/bench/task.md')
+        self.git('add', '.constellation/bench/task.md')
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
                  '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'seed fixture')
 
@@ -282,8 +282,8 @@ class ExecutionTests(unittest.TestCase):
         return subprocess.run(['git', *args], cwd=self.root, check=True, capture_output=True, text=True)
 
     def gate(self):
-        env = {k: v for k, v in os.environ.items() if k not in ('MW_GATE', 'MW_ROOT')}
-        return subprocess.run(['sh', str(MODULE.with_name('mw-gate.sh'))], cwd=self.root,
+        env = {k: v for k, v in os.environ.items() if k not in ('CONSTELLATION_GATE', 'CONSTELLATION_ROOT')}
+        return subprocess.run(['sh', str(MODULE.with_name('cst-gate.sh'))], cwd=self.root,
                               capture_output=True, text=True, env=env)
 
     def test_named_dependency_stale_before_verify_run(self):
@@ -294,9 +294,9 @@ class ExecutionTests(unittest.TestCase):
         self.call('advance', reason='Made', artifacts=['output'])
         self.verifier()
         (self.root / 'dependency').write_text('changed')
-        with self.assertRaisesRegex(mw.Refused, 'evidence changed'):
+        with self.assertRaisesRegex(cst.Refused, 'evidence changed'):
             self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
-        with self.assertRaisesRegex(mw.Refused, 'evidence changed'):
+        with self.assertRaisesRegex(cst.Refused, 'evidence changed'):
             self.call('retry', phase='verify', reason='Cannot ignore upstream proof')
 
     def test_upstream_evidence_checked_after_verify_command(self):
@@ -325,7 +325,7 @@ class ExecutionTests(unittest.TestCase):
         self.call('stop', reason='Handoff')
         self.actor = 'maker'
         self.call('resume', reason='Original maker tries review')
-        with self.assertRaisesRegex(mw.Refused, 'different actor'):
+        with self.assertRaisesRegex(cst.Refused, 'different actor'):
             self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
 
     def test_failed_implementation_actor_retained(self):
@@ -338,7 +338,7 @@ class ExecutionTests(unittest.TestCase):
         self.call('stop', reason='Handoff')
         self.actor = 'maker'
         self.call('resume', reason='Try review')
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
 
     def test_done_stale_visible_and_explicit_reopening(self):
@@ -348,7 +348,7 @@ class ExecutionTests(unittest.TestCase):
         state = self.call('show')
         self.assertEqual(state['status'], 'done')
         self.assertFalse(state['proof']['valid'])
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             self.session.request('stranger', {'op':'retry', 'phase':'implement', 'reason':'Steal ownership'})
         state = self.call('retry', phase='implement', reason='Explicit stale reopening')
         self.assertEqual(state['status'], 'active')
@@ -357,38 +357,38 @@ class ExecutionTests(unittest.TestCase):
 
     def test_done_binding_cannot_be_replaced(self):
         self.complete()
-        with self.assertRaisesRegex(mw.Refused, 'already bound'):
-            mw.Session(self.root, 'replacement').request('other',
-                {'op':'start', 'piece':'.madewell/bench/task.md', 'goal':'Forget previous makers'})
+        with self.assertRaisesRegex(cst.Refused, 'already bound'):
+            cst.Session(self.root, 'replacement').request('other',
+                {'op':'start', 'piece':'.constellation/bench/task.md', 'goal':'Forget previous makers'})
 
     def test_missing_claim_fences_new_claim(self):
-        (self.root / '.madewell/bench/task.md').rename(self.root / '.madewell/bench/moved.md')
-        with self.assertRaisesRegex(mw.Refused, 'reconcile'):
-            mw.Session(self.root, 'second').request('other',
-                {'op':'start', 'piece':'.madewell/bench/moved.md', 'goal':'Duplicate'})
-        with self.assertRaises(mw.Refused):
-            self.call('reconcile', piece='.madewell/bench/moved.md', reason='Illegal rename is not a legal move')
+        (self.root / '.constellation/bench/task.md').rename(self.root / '.constellation/bench/moved.md')
+        with self.assertRaisesRegex(cst.Refused, 'reconcile'):
+            cst.Session(self.root, 'second').request('other',
+                {'op':'start', 'piece':'.constellation/bench/moved.md', 'goal':'Duplicate'})
+        with self.assertRaises(cst.Refused):
+            self.call('reconcile', piece='.constellation/bench/moved.md', reason='Illegal rename is not a legal move')
 
     def test_legal_stock_moves_rebind_leaf_and_unit(self):
         self.git_fixture()
         for slug, breaks in [('leaf', False), ('unit', True)]:
-            path = '.madewell/stock/' + slug + '.md'
+            path = '.constellation/stock/' + slug + '.md'
             content = chr(10).join(['# Piece', '**Making:** x', '**Not making:** y', '**Done when:** z', '**Waits on:**'])
             (self.root / path).write_text(content)
             self.git('add', path)
-            session = mw.Session(self.root, slug)
+            session = cst.Session(self.root, slug)
             session.request('maker', {'op':'start', 'piece':path, 'goal':'Move legally'})
-            argv = [str(MODULE.with_name('mw-move')), 'bench', slug] + (['--break'] if breaks else [])
+            argv = [str(MODULE.with_name('cst-move')), 'bench', slug] + (['--break'] if breaks else [])
             subprocess.run(argv, cwd=self.root, capture_output=True, check=True)
-            target = '.madewell/bench/' + slug + ('/PIECE.md' if breaks else '.md')
+            target = '.constellation/bench/' + slug + ('/PIECE.md' if breaks else '.md')
             self.assertEqual(session.request('observer', {'op':'show'})['piece'], target)
-            with self.assertRaises(mw.Refused):
-                mw.Session(self.root, slug + '-duplicate').request('other', {'op':'start','piece':target,'goal':'Duplicate'})
+            with self.assertRaises(cst.Refused):
+                cst.Session(self.root, slug + '-duplicate').request('other', {'op':'start','piece':target,'goal':'Duplicate'})
 
     def test_new_piece_floor_through_execution_door(self):
         self.git_fixture()
-        self.session = mw.Session(self.root, 'fresh')
-        piece = '.madewell/stock/fresh.md'
+        self.session = cst.Session(self.root, 'fresh')
+        piece = '.constellation/stock/fresh.md'
         self.call('start', piece=piece, goal='Fresh restricted-host work', create_piece=True)
         floor = dict(making='An output file', not_making='Product changes',
                      done_when='Exact content verified', waits_on='')
@@ -407,7 +407,7 @@ class ExecutionTests(unittest.TestCase):
         self.propose('check', phase='verify')
         self.call('record', step='step', result='Commit each move separately, then write and check')
         self.call('advance', reason='Declared lifecycle')
-        for step, path in [('stock-commit', piece), ('bench-commit', '.madewell/bench/fresh.md')]:
+        for step, path in [('stock-commit', piece), ('bench-commit', '.constellation/bench/fresh.md')]:
             # The restricted host permits these commands only through a planned run.
             script = ("import subprocess; subprocess.run(['git','add','--'," + repr(path) + "],check=True); "
                       "subprocess.run(['git','-c','user.name=Fixture','-c','user.email=fixture@example.invalid',"
@@ -422,33 +422,33 @@ class ExecutionTests(unittest.TestCase):
         self.call('run', step='check', argv=[sys.executable, '-c', "assert open('output').read() == 'correct'"])
         self.call('advance', reason='Independently checked')
         state = self.call('move', action='finish')
-        self.assertEqual(state['piece'], '.madewell/finished/fresh.md')
+        self.assertEqual(state['piece'], '.constellation/finished/fresh.md')
         self.assertTrue(state['proof']['valid'])
         self.assertEqual(self.gate().returncode, 0)
 
     def test_floor_refuses_wrong_phase_owner_target_and_invalid_fields(self):
         fields = dict(making='x', not_making='y', done_when='z', waits_on='')
-        with self.assertRaisesRegex(mw.Refused, 'stock piece'):
+        with self.assertRaisesRegex(cst.Refused, 'stock piece'):
             self.call('floor', **fields)
-        piece = '.madewell/stock/floor.md'
-        self.session = mw.Session(self.root, 'floor')
+        piece = '.constellation/stock/floor.md'
+        self.session = cst.Session(self.root, 'floor')
         self.call('start', piece=piece, goal='Floor validation', create_piece=True)
         original = (self.root / piece).read_bytes()
-        with self.assertRaisesRegex(mw.Refused, 'another actor'):
+        with self.assertRaisesRegex(cst.Refused, 'another actor'):
             self.session.request('stranger', {'op': 'floor', **fields})
         for key, value in [('making', ''), ('not_making', 'a\nb'), ('done_when', None), ('waits_on', 'a\rb')]:
-            with self.subTest(key=key), self.assertRaises(mw.Refused):
+            with self.subTest(key=key), self.assertRaises(cst.Refused):
                 self.call('floor', **{**fields, key: value})
             self.assertEqual((self.root / piece).read_bytes(), original)
         self.planned()
-        with self.assertRaisesRegex(mw.Refused, 'ideation or planning'):
+        with self.assertRaisesRegex(cst.Refused, 'ideation or planning'):
             self.call('floor', **fields)
         self.assertEqual((self.root / piece).read_bytes(), original)
 
     def test_floor_atomic_replacement_preserves_content_and_mode(self):
-        self.session = mw.Session(self.root, 'durable-floor')
-        self.call('start', piece='.madewell/stock/durable.md', goal='Durable floor', create_piece=True)
-        piece = self.root / '.madewell/stock/durable.md'
+        self.session = cst.Session(self.root, 'durable-floor')
+        self.call('start', piece='.constellation/stock/durable.md', goal='Durable floor', create_piece=True)
+        piece = self.root / '.constellation/stock/durable.md'
         piece.write_text('# Durable floor\n\nKeep this prose.\n**Making:** old\n')
         piece.chmod(0o640)
         inode = piece.stat().st_ino
@@ -461,9 +461,9 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(self.session.load()['events'][-1]['event'], 'floor')
 
     def test_floor_write_and_replace_failures_preserve_original_and_record(self):
-        self.session = mw.Session(self.root, 'failed-floor')
-        self.call('start', piece='.madewell/stock/durable.md', goal='Original floor', create_piece=True)
-        piece = self.root / '.madewell/stock/durable.md'
+        self.session = cst.Session(self.root, 'failed-floor')
+        self.call('start', piece='.constellation/stock/durable.md', goal='Original floor', create_piece=True)
+        piece = self.root / '.constellation/stock/durable.md'
         piece.chmod(0o640)
         original, record = piece.read_bytes(), self.session.path.read_bytes()
         inode = piece.stat().st_ino
@@ -485,7 +485,7 @@ class ExecutionTests(unittest.TestCase):
                     ('replace', OSError('injected replace failure')),
                     ('fsync', OSError('injected file fsync failure'))]
         for seam, failure in failures:
-            with self.subTest(seam=seam), patch.object(mw.os, seam, side_effect=failure):
+            with self.subTest(seam=seam), patch.object(cst.os, seam, side_effect=failure):
                 with self.assertRaisesRegex(OSError, 'injected'):
                     self.call('floor', making='new', not_making='extras', done_when='proved', waits_on='')
             self.assertEqual(piece.read_bytes(), original)
@@ -503,7 +503,7 @@ class ExecutionTests(unittest.TestCase):
         self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
         self.call('advance', reason='Independent acceptance')
         staged = self.git('diff', '--cached', '--name-status').stdout
-        with self.assertRaisesRegex(mw.Refused, 'commit the stock-to-bench position transition'):
+        with self.assertRaisesRegex(cst.Refused, 'commit the stock-to-bench position transition'):
             self.call('move', action='finish')
         self.assertEqual(self.git('diff', '--cached', '--name-status').stdout, staged)
         self.assertEqual(self.session.load()['piece'], new)
@@ -521,25 +521,25 @@ class ExecutionTests(unittest.TestCase):
         self.git('config', 'core.hooksPath', str(self.root / '.git/hooks'))
         hook = self.root / '.git/hooks/pre-commit'
         hook.write_text('#!/bin/sh\n: > hook-called\nexec sh ' +
-                        repr(str(MODULE.with_name('mw-gate.sh'))) + '\n')
+                        repr(str(MODULE.with_name('cst-gate.sh'))) + '\n')
         hook.chmod(0o755)
-        old, new = '.madewell/stock/live.md', '.madewell/bench/live.md'
+        old, new = '.constellation/stock/live.md', '.constellation/bench/live.md'
         (self.root / old).write_text('# Piece\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:**\n')
         self.git('add', old)
         self.git('commit', '-qm', 'stock arrival')
         (self.root / 'hook-called').unlink()
-        self.session = mw.Session(self.root, 'live')
+        self.session = cst.Session(self.root, 'live')
         self.call('start', piece=old, goal='Commit legal bench move inside run')
         self.planned()
         return old, new
 
     def test_hooked_commit_inside_run_after_rebound_move(self):
         old, new = self.stock_commit_fixture()
-        subprocess.run([str(MODULE.with_name('mw-move')), 'bench', 'live'],
+        subprocess.run([str(MODULE.with_name('cst-move')), 'bench', 'live'],
                        cwd=self.root, capture_output=True, check=True)
         self.assertEqual(self.session.load()['piece'], new)
         head = self.git('rev-parse', 'HEAD').stdout
-        state = self.call('run', step='step', argv=['env', 'MW_GATE=on', 'git', 'commit', '-qm', 'legal bench move'])
+        state = self.call('run', step='step', argv=['env', 'CONSTELLATION_GATE=on', 'git', 'commit', '-qm', 'legal bench move'])
         step = state['phases']['implement']['steps']['step']
         self.assertEqual(step['status'], 'done', (self.root / step['log']).read_text())
         self.assertTrue((self.root / 'hook-called').exists())
@@ -563,7 +563,7 @@ class ExecutionTests(unittest.TestCase):
         old, new = self.stock_commit_fixture()
         head = self.git('rev-parse', 'HEAD').stdout
         code = ("import subprocess; subprocess.run(['git','mv'," + repr(old) + ',' + repr(new) +
-                "],check=True); raise SystemExit(subprocess.run(['env','MW_GATE=on','git','commit','-qm','needs rebind']).returncode)")
+                "],check=True); raise SystemExit(subprocess.run(['env','CONSTELLATION_GATE=on','git','commit','-qm','needs rebind']).returncode)")
         state = self.call('run', step='step', argv=[sys.executable, '-c', code])
         step = state['phases']['implement']['steps']['step']
         self.assertEqual(step['status'], 'failed')
@@ -575,54 +575,54 @@ class ExecutionTests(unittest.TestCase):
 
     def test_explicit_legal_reconciliation(self):
         self.git_fixture()
-        old = '.madewell/stock/reconcile.md'
-        new = '.madewell/bench/reconcile.md'
+        old = '.constellation/stock/reconcile.md'
+        new = '.constellation/bench/reconcile.md'
         (self.root / old).write_text('# Claimed piece')
-        session = mw.Session(self.root, 'reconcile')
+        session = cst.Session(self.root, 'reconcile')
         session.request('owner', {'op':'start', 'piece':old, 'goal':'Reconcile interrupted movement'})
         (self.root / old).rename(self.root / new)
-        with self.assertRaises(mw.Refused):
+        with self.assertRaises(cst.Refused):
             session.request('stranger', {'op':'reconcile','piece':new,'reason':'Steal'})
         state = session.request('owner', {'op':'reconcile','piece':new,'reason':'Inspected interrupted move'})
         self.assertEqual(state['piece'], new)
 
     def test_bound_finish_refused_by_move_and_gate(self):
         self.git_fixture()
-        result = subprocess.run([str(MODULE.with_name('mw-move')), 'finish', 'task'],
+        result = subprocess.run([str(MODULE.with_name('cst-move')), 'finish', 'task'],
                                 cwd=self.root, capture_output=True)
         self.assertEqual(result.returncode, 5)
-        self.assertTrue((self.root / '.madewell/bench/task.md').exists())
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.assertTrue((self.root / '.constellation/bench/task.md').exists())
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         self.assertNotEqual(self.gate().returncode, 0)
 
     def test_fresh_bound_host_finish_then_gate(self):
         self.git_fixture()
         self.complete()
         state = self.call('move', action='finish')
-        self.assertEqual(state['piece'], '.madewell/finished/task.md')
+        self.assertEqual(state['piece'], '.constellation/finished/task.md')
         self.assertTrue(state['proof']['valid'])
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
         (self.root / 'output').write_text('stale after finish')
         self.assertNotEqual(self.gate().returncode, 0)
-        with self.assertRaisesRegex(mw.Refused, 'finished pieces'):
+        with self.assertRaisesRegex(cst.Refused, 'finished pieces'):
             self.call('retry', phase='implement', reason='No reverse move')
 
     def test_fresh_raw_git_finish_rebinds(self):
         self.git_fixture()
         self.complete()
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.call('show')['piece'], '.madewell/finished/task.md')
+        self.assertEqual(self.call('show')['piece'], '.constellation/finished/task.md')
 
     def test_legacy_unbound_finish_intentionally_allowed(self):
         self.git_fixture()
-        (self.root / '.madewell/bench/legacy.md').write_text('# Legacy')
-        self.git('add', '.madewell/bench/legacy.md')
+        (self.root / '.constellation/bench/legacy.md').write_text('# Legacy')
+        self.git('add', '.constellation/bench/legacy.md')
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
                  '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'legacy fixture')
-        self.git('mv', '.madewell/bench/legacy.md', '.madewell/finished/legacy.md')
+        self.git('mv', '.constellation/bench/legacy.md', '.constellation/finished/legacy.md')
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -632,24 +632,24 @@ class ExecutionTests(unittest.TestCase):
         (self.root / 'output').write_text('staged wrong')
         self.git('add', 'output')
         (self.root / 'output').write_text('correct')
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         self.assertNotEqual(self.gate().returncode, 0)
 
     def test_move_and_claim_share_real_lock(self):
         self.git_fixture()
-        old, new = '.madewell/stock/race.md', '.madewell/bench/race.md'
+        old, new = '.constellation/stock/race.md', '.constellation/bench/race.md'
         (self.root / old).write_text('# Race')
         self.git('add', old)
-        session = mw.Session(self.root, 'race')
+        session = cst.Session(self.root, 'race')
         session.request('maker', {'op':'start','piece':old,'goal':'Race movement'})
         def competing_claim():
             try:
-                mw.Session(self.root, 'duplicate').request('other', {'op':'start','piece':new,'goal':'Race claim'})
-            except mw.Refused:
+                cst.Session(self.root, 'duplicate').request('other', {'op':'start','piece':new,'goal':'Race claim'})
+            except cst.Refused:
                 return 'refused'
             return 'claimed'
         with ThreadPoolExecutor(max_workers=2) as pool:
-            moving = pool.submit(mw.move, self.root, old, new)
+            moving = pool.submit(cst.move, self.root, old, new)
             claiming = pool.submit(competing_claim)
             moving.result(timeout=5)
             self.assertEqual(claiming.result(timeout=5), 'refused')
@@ -663,16 +663,16 @@ class ExecutionTests(unittest.TestCase):
         self.verifier()
         self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
         (self.root / 'dependency').write_text('changed')
-        with self.assertRaisesRegex(mw.Refused, 'evidence changed'):
+        with self.assertRaisesRegex(cst.Refused, 'evidence changed'):
             self.call('advance', reason='Cannot accept stale upstream')
 
     def test_bound_unit_finish_rebinds_piece_evidence(self):
         self.git_fixture()
-        old = '.madewell/stock/unit.md'
-        piece = '.madewell/bench/unit/PIECE.md'
+        old = '.constellation/stock/unit.md'
+        piece = '.constellation/bench/unit/PIECE.md'
         (self.root / old).write_text(chr(10).join(['# Unit', '**Making:** a', '**Not making:** b', '**Done when:** c', '**Waits on:**']))
         self.git('add', old)
-        self.session = mw.Session(self.root, 'unit')
+        self.session = cst.Session(self.root, 'unit')
         self.call('start', piece=old, goal='Unit execution')
         self.planned()
         self.call('move', action='bench', **{'break': True})
@@ -684,17 +684,17 @@ class ExecutionTests(unittest.TestCase):
         self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
         self.call('advance', reason='Unit independently checked')
         state = self.call('move', action='finish')
-        self.assertEqual(state['piece'], '.madewell/finished/unit.md')
+        self.assertEqual(state['piece'], '.constellation/finished/unit.md')
         self.assertTrue(state['proof']['valid'])
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def assert_deleted_proof_refused(self):
-        result = subprocess.run([str(MODULE.with_name('mw-move')), 'finish', 'task'],
+        result = subprocess.run([str(MODULE.with_name('cst-move')), 'finish', 'task'],
                                 cwd=self.root, capture_output=True)
         self.assertEqual(result.returncode, 5)
-        self.assertTrue((self.root / '.madewell/bench/task.md').exists())
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.assertTrue((self.root / '.constellation/bench/task.md').exists())
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         result = self.gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('tracked evidence deleted or unmerged', result.stderr)
@@ -747,7 +747,7 @@ class ExecutionTests(unittest.TestCase):
         self.complete()
         blob = self.git('hash-object', '-w', 'output').stdout.strip()
         self.git('update-index', '--add', '--cacheinfo', '120000,' + blob + ',output')
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         result = self.gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('type conflict', result.stderr)
@@ -768,7 +768,7 @@ class ExecutionTests(unittest.TestCase):
         proof = self.session.artifact('legacy')
         del proof['tracked']  # In-memory old proof shape; no record or actor tampering.
         state = {'phases': {'implement': {'steps': {}, 'artifacts': [proof]}}}
-        with self.assertRaisesRegex(mw.Refused, 'tracking provenance missing'):
+        with self.assertRaisesRegex(cst.Refused, 'tracking provenance missing'):
             self.session.staged_proofs(state)
         self.assertTrue(self.session.needs_provenance(state))
         self.git('add', 'legacy')
@@ -776,20 +776,20 @@ class ExecutionTests(unittest.TestCase):
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
                  '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'legacy tracked proof')
         self.git('rm', '--cached', 'legacy')
-        with self.assertRaisesRegex(mw.Refused, 'deleted or unmerged'):
+        with self.assertRaisesRegex(cst.Refused, 'deleted or unmerged'):
             self.session.staged_proofs(state)
 
     def test_local_evidence_allowed_and_gate_success_quiet(self):
         self.git_fixture()
         self.complete()
         self.assertFalse(self.session.artifact('output')['tracked'])
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         result = self.gate()
         self.assertEqual((result.returncode, result.stdout, result.stderr), (0, '', ''))
 
     def test_gate_preserves_actionable_refusal(self):
         self.git_fixture()
-        self.git('mv', '.madewell/bench/task.md', '.madewell/finished/task.md')
+        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
         result = self.gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('bound finish needs completed execution', result.stderr)
@@ -826,7 +826,7 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(json.loads(line)['pid'], process.pid)
         if mode != 'hold':
             self.assertEqual(process.wait(timeout=5), 0)
-            self.assertFalse(mw.alive(process.pid))
+            self.assertFalse(cst.alive(process.pid))
         return process
 
     def test_dead_done_owner_stale_retry_transfers_and_invalidates(self):
@@ -846,10 +846,10 @@ class ExecutionTests(unittest.TestCase):
 
     def test_live_done_owner_stale_takeover_refused(self):
         process = self.verifier_process('hold')
-        self.assertTrue(mw.alive(process.pid))
+        self.assertTrue(cst.alive(process.pid))
         (self.root / 'output').write_text('stale but owner alive')
         before = self.session.path.read_bytes()
-        with self.assertRaisesRegex(mw.Refused, 'not proven dead'):
+        with self.assertRaisesRegex(cst.Refused, 'not proven dead'):
             self.session.request('fresh-actor', {'op':'retry','phase':'implement','reason':'No theft'})
         self.assertEqual(self.session.path.read_bytes(), before)
 
@@ -857,12 +857,12 @@ class ExecutionTests(unittest.TestCase):
         self.git_fixture()
         self.verifier_process('finish')
         (self.root / 'output').write_text('stale finished artifact')
-        with self.assertRaisesRegex(mw.Refused, 'finished pieces'):
+        with self.assertRaisesRegex(cst.Refused, 'finished pieces'):
             self.session.request('fresh-actor', {'op':'retry','phase':'implement','reason':'No rewind'})
 
     def test_dead_done_owner_fresh_proof_cannot_be_reopened(self):
         self.verifier_process()
-        with self.assertRaisesRegex(mw.Refused, 'reopen requires stale'):
+        with self.assertRaisesRegex(cst.Refused, 'reopen requires stale'):
             self.session.request('fresh-actor', {'op':'retry','phase':'implement','reason':'No needless reopening'})
 
     def test_install_sync_preserves_execution_and_loads_repairs(self):
@@ -872,10 +872,10 @@ class ExecutionTests(unittest.TestCase):
         for _ in range(2):
             subprocess.run(['sh', str(installer), str(self.root)], check=True, capture_output=True)
             self.assertEqual(self.session.path.read_bytes(), before)
-            self.assertEqual((self.root / '.madewell/bin/mw-session.py').read_bytes(), MODULE.read_bytes())
-            self.assertEqual((self.root / '.madewell/bindings/pi.ts').read_bytes(),
+            self.assertEqual((self.root / '.constellation/bin/cst-session.py').read_bytes(), MODULE.read_bytes())
+            self.assertEqual((self.root / '.constellation/bindings/pi.ts').read_bytes(),
                              (MODULE.parent.parent / 'bindings/pi.ts').read_bytes())
-        result = subprocess.run([sys.executable, str(self.root / '.madewell/bin/mw-session.py'),
+        result = subprocess.run([sys.executable, str(self.root / '.constellation/bin/cst-session.py'),
                                  '--root', str(self.root), '--session', 'test', '--actor', 'observer'],
                                 input=json.dumps({'op':'show'}), capture_output=True, text=True, check=True)
         self.assertTrue(json.loads(result.stdout)['proof']['valid'])

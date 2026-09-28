@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
 const here = dirname(fileURLToPath(import.meta.url));
-const dir = mkdtempSync(join(tmpdir(), 'mw-tax-'));
+const dir = mkdtempSync(join(tmpdir(), 'cst-tax-'));
 const t0 = Date.parse('2026-01-01T00:00:00Z');
 
 function iso(ms) {
@@ -61,7 +61,7 @@ let report;
 try {
   const stdout = execFileSync(process.execPath, [join(here, 'tax.mjs')], {
     encoding: 'utf8',
-    env: { ...process.env, MW_JIG_DIR: dir, MW_REPO_ROOT: dir },
+    env: { ...process.env, CONSTELLATION_JIG_DIR: dir, CONSTELLATION_REPO_ROOT: dir },
   });
   report = JSON.parse(stdout);
 } catch (e) {

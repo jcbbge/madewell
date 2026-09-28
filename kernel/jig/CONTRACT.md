@@ -1,7 +1,7 @@
 # Compiled conventions — shape
 
 A **conventions** file is what falls out when sources (a style guide, a lint rule, a
-blog, a correction, a trade) are sorted into Made Well's honesty tiers. You feed
+blog, a correction, a trade) are sorted into Constellation's honesty tiers. You feed
 sources through `skills/abstraction-builder.md`. You do not hand-author this format
 from nothing.
 
@@ -23,7 +23,7 @@ ship opinions about color or schema; a trade or this project does.
 }
 ```
 
-Instance files live in `.madewell/jig/conventions/` (seeded, never clobbered by re-sync).
+Instance files live in `.constellation/jig/conventions/` (seeded, never clobbered by re-sync).
 A trade may carry conventions as the diet until this repo compiles its own.
 
 ---

@@ -1,6 +1,6 @@
 # The Backend Pillar
 
-**One of Made Well's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
+**One of Constellation's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
 not an optional skill; it **governs its domain on every project that stores data or runs logic on
 a server.** This is the pillar of the parts the person never sees but trusts: where their data
 lives, what's true, who's allowed, and what happens when something goes wrong.
@@ -173,7 +173,7 @@ handling, the provider's particular quirks — from your own knowledge and, wher
 the store's and provider's current documentation. Write them below (or into a project-level stack
 profile the project carries) as concrete, binding rules. From that point it is a **constitution**:
 the agent embodies these rules on every backend task and never re-decides them (initialize once,
-then embody — the Made Well way).
+then embody — the Constellation way).
 
 What this layer should answer for the chosen store, for example:
 

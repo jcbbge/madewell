@@ -1,14 +1,14 @@
-# Made Well — where the work lives
+# Constellation — where the work lives
 
-The model is `MADEWELL.md`. This file says only **where things sit and how they move**.
+The model is `CONSTELLATION.md`. This file says only **where things sit and how they move**.
 It defines no meanings; that file names no paths. They cannot disagree.
 
-Made Well is files. The driver, `.madewell/bin/constellation`, runs the work on top of them
+Constellation is files. The driver, `.constellation/bin/constellation`, runs the work on top of them
 and keeps nothing of its own that says where a piece is: no dashboard, no second ledger of
 piece position.
 
-`.madewell/bin/mw-move` is scaffolding for §2. It is `git mv` that refuses everything else.
-Delete it and the shop still runs: `git mv` plus `mw-gate` on pre-commit. The
+`.constellation/bin/cst-move` is scaffolding for §2. It is `git mv` that refuses everything else.
+Delete it and the shop still runs: `git mv` plus `cst-gate` on pre-commit. The
 binary is not the work.
 
 ---
@@ -22,7 +22,7 @@ look at where it is. The Jig's `corrections.jsonl` is a different file: proposed
 for shop-made jigs (`jig/CORRECTIONS.md`). It does not say where a piece sits.
 
 ```
-.madewell/
+.constellation/
 ├── stock/                    uncut. Grows without limit.
 │   └── <slug>.md
 ├── bench/
@@ -42,13 +42,13 @@ looks like. Depth is bounded only by the work.
 **Reading it — the whole interface:**
 
 ```sh
-ls .madewell/stock/       # material on the rack. Large is correct.
-ls .madewell/bench/       # what is being worked, top level
-ls .madewell/finished/    # done
+ls .constellation/stock/       # material on the rack. Large is correct.
+ls .constellation/bench/       # what is being worked, top level
+ls .constellation/finished/    # done
 
-find .madewell -type f -name '*.md' | grep -E '/bench/[^/]+\.md$'   # every leaf in hand, any depth
-find .madewell -type f -name PIECE.md                                # everything open that breaks down
-git log --follow .madewell/finished/<slug>.md                        # one piece's whole history
+find .constellation -type f -name '*.md' | grep -E '/bench/[^/]+\.md$'   # every leaf in hand, any depth
+find .constellation -type f -name PIECE.md                                # everything open that breaks down
+git log --follow .constellation/finished/<slug>.md                        # one piece's whole history
 ```
 
 A piece that breaks down is **open** while its `PIECE.md` exists. Finishing moves that file
@@ -60,7 +60,7 @@ the work — `PIECE.md` is the liveness signal, not the directory.
 ## 2. Movement is `git mv`
 
 **The move is the transition.** One move per commit. `P` is the containing path —
-`.madewell`, or `.madewell/bench/<slug>` at any depth.
+`.constellation`, or `.constellation/bench/<slug>` at any depth.
 
 | Move | From | To | Also required |
 |---|---|---|---|
@@ -69,7 +69,7 @@ the work — `PIECE.md` is the liveness signal, not the directory.
 | **finish** (leaf) | `P/bench/X.md` | `P/finished/X.md` | — |
 | **finish** (breaks down) | `P/bench/X/PIECE.md` | `P/finished/X.md` | its `stock/` and `bench/` are empty |
 
-That is the complete inventory. **Every other move under `.madewell/` is illegal.** No force
+That is the complete inventory. **Every other move under `.constellation/` is illegal.** No force
 flag, no skip, no rewind. Nothing is ever deleted from a state directory — pieces leave by
 finishing.
 
@@ -121,7 +121,7 @@ down, and demanding them at this move is asking one gate to do two acts' jobs.
 **Making:** … **Not making:** … **Done when:** … **Waits on:** …
 ```
 
-This is how Made Well seats over an existing corpus without copying it. The store tracks
+This is how Constellation seats over an existing corpus without copying it. The store tracks
 **position**; the pointed-at document holds the **content**. Never both.
 
 ---
@@ -140,21 +140,21 @@ One rule: **a piece on the bench has exactly one pair of hands.**
 
 | Rule | Enforcer |
 |---|---|
-| Only the four moves (§2) | **JIG** — `.madewell/bin/mw-gate.sh` on pre-commit (`.madewell/bin/mw-hooks.sh` wires it). Optional scaffolding: `.madewell/bin/mw-move` performs them and stages; it is not the product. |
+| Only the four moves (§2) | **JIG** — `.constellation/bin/cst-gate.sh` on pre-commit (`.constellation/bin/cst-hooks.sh` wires it). Optional scaffolding: `.constellation/bin/cst-move` performs them and stages; it is not the product. |
 | Nothing deleted from a state directory | **JIG** |
 | Arrival only into `stock/` | **JIG** |
 | The floor (§3) | **JIG** |
 | Finish requires the inner states drained | **JIG** |
-| Wired convention detectors | **JIG** — `.madewell/bin/mw-jigs.sh` on pre-commit, from `jig/registry.json` |
-| Proposed − accepted (shop-made substrate) | **JIG** — `.madewell/bin/mw-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
-| Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `.madewell/bin/mw-tax.sh` at verify and session-end. Never auto-builds. |
+| Wired convention detectors | **JIG** — `.constellation/bin/cst-jigs.sh` on pre-commit, from `jig/registry.json` |
+| Proposed − accepted (shop-made substrate) | **JIG** — `.constellation/bin/cst-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
+| Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `.constellation/bin/cst-tax.sh` at verify and session-end. Never auto-builds. |
 | You don't proof your own plate | **JIG for execution-bound pieces** — current independent acceptance and fresh retained proof at legal finish; **UNJIGGED for legacy unbound pieces**, intentionally (§6) |
 | No silent pass | **UNJIGGED** |
 | Ground (did you look) | **UNJIGGED** — protocol is law; no detector can see a thought |
 
-`mw-gate.sh` is a stop, not a tool: nobody invokes it, it takes no arguments, it can only
-refuse. POSIX sh, git plus POSIX userland, reads nothing outside the repo. `mw-hooks.sh`
-wires it (and `mw-jigs.sh` / `mw-record.sh`) into this clone. Do not leave it as a comment
+`cst-gate.sh` is a stop, not a tool: nobody invokes it, it takes no arguments, it can only
+refuse. POSIX sh, git plus POSIX userland, reads nothing outside the repo. `cst-hooks.sh`
+wires it (and `cst-jigs.sh` / `cst-record.sh`) into this clone. Do not leave it as a comment
 in README.
 
 **UNJIGGED is stated on purpose.** A rule with no jig behind it is a preference, and it says
@@ -171,7 +171,7 @@ wiring, which is why it uses the second pair.
 
 Piece position (§1) and execution progress are different facts. A host may persist a
 session's current act, proposed checklist, dependencies, actor, expected results,
-command attempts, evidence and acceptances under `.madewell/sessions/`. Such a record
+command attempts, evidence and acceptances under `.constellation/sessions/`. Such a record
 must never override stock/bench/finished position or move a piece implicitly.
 
 A bound execution proceeds ideate → plan → implement → verify. Planning declares the
@@ -186,7 +186,7 @@ separate visible facts. A stale done execution may explicitly reopen while its
 piece is open; finished pieces never rewind.
 
 Execution adoption is optional for **legacy unbound pieces**. Once bound, both
-`mw-move` and `mw-gate.sh` require fresh independent completion for legal finish.
+`cst-move` and `cst-gate.sh` require fresh independent completion for legal finish.
 They rebind the existing execution reference on legal moves, including unit
 expansion, under the same lock used by claim acquisition. No position ledger is
 added: the actual file path still decides where the piece is. A missing claimed
@@ -198,7 +198,7 @@ to the existing Git/POSIX machinery.
 A session has a start, a time bound, and a stop. An interrupted or stopped session is
 not a completed task. Ownership and unfinished obligations survive; takeover is explicit.
 
-Reference door: `bin/mw-session.py` (package: `kernel/bin/mw-session.py`). Contract and
+Reference door: `bin/cst-session.py` (package: `kernel/bin/cst-session.py`). Contract and
 host activation: `bindings/SESSION.md` (package: `kernel/bindings/SESSION.md`). The
 optional host binding refuses alternate execution tools and renders the same persisted
 state. Until that binding is actually loaded, the CLI alone is not a host-wide fence.

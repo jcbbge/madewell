@@ -1,5 +1,5 @@
 #!/bin/sh
-# .madewell/bin/mw-gate.sh — the jig. SPEC.md §5.
+# .constellation/bin/cst-gate.sh — the jig. SPEC.md §5.
 #
 # A pre-commit stop, not a tool: no arguments, no verbs, silent on success.
 # It can only refuse.
@@ -19,17 +19,17 @@
 # edits it, to add the floor) can score below the threshold and arrive as delete + add.
 #
 # Zero deps: POSIX sh + git + POSIX userland. Reads nothing outside the repo.
-# Bypass, for an adoption commit only: MW_GATE=off git commit …
+# Bypass, for an adoption commit only: CONSTELLATION_GATE=off git commit …
 
 set -eu
 
-[ "${MW_GATE:-on}" = "off" ] && exit 0
+[ "${CONSTELLATION_GATE:-on}" = "off" ] && exit 0
 git rev-parse --show-toplevel >/dev/null 2>&1 || exit 0
-[ -d "$(git rev-parse --show-toplevel)/.madewell" ] || exit 0
+[ -d "$(git rev-parse --show-toplevel)/.constellation" ] || exit 0
 
-MW=.madewell
+CST=.constellation
 fail=0
-say()  { printf 'mw-gate: %s\n' "$1" >&2; fail=1; }
+say()  { printf 'cst-gate: %s\n' "$1" >&2; fail=1; }
 note() { printf '            %s\n' "$1" >&2; }
 staged() { git show ":$1" 2>/dev/null || true; }
 
@@ -67,7 +67,7 @@ parse() {
       N_=${1##*/}; d_=${1%/*}; S_=${d_##*/}; P_=${d_%/*}
       case "$S_" in stock|bench|finished) ;; *) return 1 ;; esac ;;
   esac
-  case "$P_" in "$MW") return 0 ;; "$MW"/bench/*) return 0 ;; *) return 1 ;; esac
+  case "$P_" in "$CST") return 0 ;; "$CST"/bench/*) return 0 ;; *) return 1 ;; esac
 }
 
 work=$(mktemp -d) || exit 1
@@ -80,10 +80,10 @@ while IFS='	' read -r st a b; do
   [ -n "${st:-}" ] || continue
   case "$st" in R*) o=$a; n=$b ;; D*) o=$a; n="" ;; A*) o=""; n=$a ;; *) continue ;; esac
   for f in $o $n; do
-    # Only the three state directories are governed. Everything else under .madewell/
+    # Only the three state directories are governed. Everything else under .constellation/
     # — skills/, guides/, packs/, bin/, templates/ — is ordinary repo content and free.
     case "$f" in
-      "$MW"/stock/*|"$MW"/bench/*|"$MW"/finished/*) ;;
+      "$CST"/stock/*|"$CST"/bench/*|"$CST"/finished/*) ;;
       *) continue ;;
     esac
     case "$f" in *.gitkeep) continue ;; esac
@@ -127,11 +127,11 @@ while IFS= read -r old; do
 
   printf '%s\n' "$got" >>"$work/used"
   # A bound piece cannot silently fall back to the legacy finish policy.
-  execution_door=$(CDPATH= cd -- "$(dirname "$0")" && pwd)/mw-session.py
+  execution_door=$(CDPATH= cd -- "$(dirname "$0")" && pwd)/cst-session.py
   if [ -f "$execution_door" ]; then
     python3 "$execution_door" --root "$(git rev-parse --show-toplevel)" --check-move "$old" "$got" >/dev/null ||
       say "$old — execution acceptance/rebinding refused"
-  elif [ -d "$MW/sessions" ]; then
+  elif [ -d "$CST/sessions" ]; then
     say "$old — execution door missing for existing session records"
   fi
   case "$S" in
@@ -152,12 +152,12 @@ while IFS= read -r new; do
   fi
 done <"$work/adds"
 
-[ "$fail" -eq 0 ] || printf 'mw-gate: refused. MW_GATE=off bypasses, for an adoption commit only.\n' >&2
+[ "$fail" -eq 0 ] || printf 'cst-gate: refused. CONSTELLATION_GATE=off bypasses, for an adoption commit only.\n' >&2
 # Take-down substrate: record refusals only. Success every commit would look like silence.
-if [ "$fail" -ne 0 ] && [ -d "$MW/jig" ]; then
+if [ "$fail" -ne 0 ] && [ -d "$CST/jig" ]; then
   _sha=$(git rev-parse HEAD 2>/dev/null || echo unknown)
   _ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-  printf '{"ts":"%s","sha":"%s","jig":"mw-gate","mode":"block","exit":%s,"violations_caught":%s}\n' \
-    "$_ts" "$_sha" "$fail" "$fail" >> "$MW/jig/firings.jsonl"
+  printf '{"ts":"%s","sha":"%s","jig":"cst-gate","mode":"block","exit":%s,"violations_caught":%s}\n' \
+    "$_ts" "$_sha" "$fail" "$fail" >> "$CST/jig/firings.jsonl"
 fi
 exit "$fail"

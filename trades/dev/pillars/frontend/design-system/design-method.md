@@ -29,7 +29,7 @@ It runs in **two modes**:
 ENUMERATE → MAP → RENDER → CHECK
 ```
 
-This is the "4" — the process number — and it echoes Made Well's IMAGINE → PLAN →
+This is the "4" — the process number — and it echoes Constellation's IMAGINE → PLAN →
 MAKE → VERIFY one altitude down. It's fractal: run it on an element, a component, a
 route, or the whole app (§4).
 

@@ -9,11 +9,11 @@ Install runs `constellation hooks`. After that:
 
 | Hook | Script | What happens if you skip it |
 |---|---|---|
-| **pre-commit** | `mw-gate.sh` | illegal stock/bench/finished move **refused** |
-| **pre-commit** | `mw-jigs.sh` | each registry jig with a `run` command runs; **block** fails the commit |
-| **post-commit** | `mw-record.sh` | one line appended to `corrections.jsonl`. Consumes `proposed.json` if present. Never blocks. |
+| **pre-commit** | `cst-gate.sh` | illegal stock/bench/finished move **refused** |
+| **pre-commit** | `cst-jigs.sh` | each registry jig with a `run` command runs; **block** fails the commit |
+| **post-commit** | `cst-record.sh` | one line appended to `corrections.jsonl`. Consumes `proposed.json` if present. Never blocks. |
 
-`MW_GATE=off` bypasses the move-gate only, adoption commits. Do not use it to smuggle an
+`CONSTELLATION_GATE=off` bypasses the move-gate only, adoption commits. Do not use it to smuggle an
 illegal move.
 
 A convention with no `run` in the registry is **UNJIGGED** — agents honor it; git will not.
@@ -38,7 +38,7 @@ and nothing ratifies. Ratify never auto-builds.
 
 ## What needs you
 
-- **Make this a jig?** `mw-tax.sh` printed RATIFY. You ratify. Never auto-build.
+- **Make this a jig?** `cst-tax.sh` printed RATIFY. You ratify. Never auto-build.
 - **Take this jig down?** DROP or SUNSET. You watch or retire. Never auto-delete.
 - **Two decidable rules disagree.** You pick.
 - **The human overrode the assistant.** Write `proposed.json` before the commit, or the tax is a lie.

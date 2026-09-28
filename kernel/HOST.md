@@ -1,7 +1,7 @@
 # Constellation — the host
 
-Law, not guidance: read "should" as "must". The model is `MADEWELL.md`, where work lives is
-`.madewell/SPEC.md`; open them when the work needs them.
+Law, not guidance: read "should" as "must". The model is `CONSTELLATION.md`, where work lives is
+`.constellation/SPEC.md`; open them when the work needs them.
 
 ## Voice
 
@@ -42,7 +42,7 @@ decisions files, the work in hand. Commits end with `ACT:`, `DONE:`, `NEXT:` lin
 
 ## Running the driver
 
-Every action is `.madewell/bin/constellation <verb>`, run from the project's root; below,
+Every action is `.constellation/bin/constellation <verb>`, run from the project's root; below,
 `constellation <verb>` is short for it. In Constellation's own repository the driver is
 `kernel/bin/constellation`.
 
@@ -64,7 +64,7 @@ what it cost. Unasked, and never pasted.
 
 | When | You run |
 |---|---|
-| first contact, or work no trade covers | the package's `kernel/bin/constellation adopt`, then `.madewell/skills/adopt.md` |
+| first contact, or work no trade covers | the package's `kernel/bin/constellation adopt`, then `.constellation/skills/adopt.md` |
 | something new in `ideas/` | `constellation inbox` |
 | an idea is ready | `constellation take <slug>`, then `constellation run <slug>`: "that's being made now" |
 | they answer | `constellation answer <slug> <yes \| number \| words>` |
@@ -92,9 +92,9 @@ you, keep their words, and take it with their answers. Ask nothing more.
 > *"Would you rather just talk, and I'll handle everything behind the scenes — or shall I show
 > you the engine as we go?"*
 
-Store the answer, one word, in `.madewell/profile`: `guide` for just talk, `lead` for show me the engine.
+Store the answer, one word, in `.constellation/profile`: `guide` for just talk, `lead` for show me the engine.
 If they ask later for the other door, rewrite the file. What each door shows is
-`.madewell/PROFILES.md`. Behind the engine door a star's name may follow the plain word, "a
+`.constellation/PROFILES.md`. Behind the engine door a star's name may follow the plain word, "a
 second look (polaris)", never replace it.
 
 ## Deciding

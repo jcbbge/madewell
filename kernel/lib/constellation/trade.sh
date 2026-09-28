@@ -2,7 +2,7 @@
 # Sourced by kernel/bin/constellation; never run directly. The kernel and the six stars stay the
 # same in every domain; the active trade fills them in.
 #
-# The active trade is the one the project loads by reference (MADEWELL.md, Trades): a path to
+# The active trade is the one the project loads by reference (CONSTELLATION.md, Trades): a path to
 # trades/<name>/TRADE.md in its AGENTS.md or CLAUDE.md loader, or its ground ROOTS.md. A project
 # that names none works in dev. `constellation trade <name>` writes the reference into the loader.
 #
@@ -19,12 +19,12 @@
 TRADE_DEFAULT=dev
 TRADE_REF="[^[:space:]\`'\"()<>]*trades/[A-Za-z0-9._-]+/TRADE\\.md"      # a reference to a trade
 TRADE_GUARD=$(cat "$KERNEL/templates/loader-guard.txt" 2>/dev/null || true)   # the one copy of the guard, install.sh's too
-TRADE_LOADER="$TRADE_GUARD Otherwise, read and follow .madewell/HOST.md before anything else, then continue."  # install.sh's LOADER_LINE
+TRADE_LOADER="$TRADE_GUARD Otherwise, read and follow .constellation/HOST.md before anything else, then continue."  # install.sh's LOADER_LINE
 TRADE_NAME=$TRADE_DEFAULT TRADE_DIR="" TRADE_FROM=""
 
 trade_named() { # the first trade reference the project makes, as <ref><TAB><file>
   local f ref
-  for f in AGENTS.md CLAUDE.md "$MW/ground/ROOTS.md"; do
+  for f in AGENTS.md CLAUDE.md "$CST/ground/ROOTS.md"; do
     [ -f "$R/$f" ] || continue
     ref=$(grep -oE -- "$TRADE_REF" "$R/$f" | head -1) || true
     [ -n "$ref" ] && { printf '%s\t%s\n' "$ref" "$f"; return 0; }
@@ -38,7 +38,7 @@ trade_abs() { # trade_abs <ref> : the trade's directory, relative references rea
 }
 trade_libraries() { # where a trade is found by name: the installed kernel's, the package's, the project's, the named trade's
   local d n
-  [ -d "$KERNEL/trades" ] && (cd "$KERNEL/trades" && pwd)       # installed: .madewell/trades, shipped by install.sh
+  [ -d "$KERNEL/trades" ] && (cd "$KERNEL/trades" && pwd)       # installed: .constellation/trades, shipped by install.sh
   d=$(cd "$KERNEL/.." && pwd)/trades; [ -d "$d" ] && printf '%s\n' "$d"
   [ -d "$R/trades" ] && (cd "$R/trades" && pwd)
   n=$(trade_named | cut -f1) || true
@@ -144,7 +144,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
   name=$(basename "$dir")
   [ "$(basename "$(dirname "$dir")")" = trades ] || die "a trade lives at trades/<name>/TRADE.md; $dir is not in a trades/ folder"
   case "$dir" in "$R"/*) ref=${dir#"$R"/}/TRADE.md ;; *) ref=$dir/TRADE.md ;; esac
-  new="$TRADE_GUARD Otherwise, read and follow .madewell/HOST.md and $ref before anything else, then continue."
+  new="$TRADE_GUARD Otherwise, read and follow .constellation/HOST.md and $ref before anything else, then continue."
   esc=$(printf '%s' "$ref" | sed 's/[&#\\]/\\&/g')
   for f in AGENTS.md CLAUDE.md; do
     [ -f "$R/$f" ] || continue
@@ -154,7 +154,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
     else rm -f "$tmp"; continue; fi
     cat "$tmp" >"$R/$f"; rm -f "$tmp"; changed+=("$f")
   done
-  [ ${#changed[@]} -gt 0 ] || die "no Made Well loader in AGENTS.md or CLAUDE.md to name the trade in (constellation install <project> first)"
+  [ ${#changed[@]} -gt 0 ] || die "no Constellation loader in AGENTS.md or CLAUDE.md to name the trade in (constellation install <project> first)"
   for f in "${changed[@]}"; do git -C "$R" ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && tracked+=("$f"); done
   if [ ${#tracked[@]} -gt 0 ] && ! git -C "$R" diff --quiet -- "${tracked[@]}"; then
     git -C "$R" commit -q -m "chore(trade): the project works in $name" -m "ACT: plan

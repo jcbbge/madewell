@@ -10,14 +10,14 @@ const loaded = await loadExtensions([join(import.meta.dirname, 'pi.ts')], proces
 assert.deepEqual(loaded.errors, []);
 assert.equal(loaded.extensions.length, 1);
 const extension = loaded.extensions[0];
-assert(extension.tools.has('mw_session'));
-assert(extension.commands.has('mw'));
+assert(extension.tools.has('cst_session'));
+assert(extension.commands.has('cst'));
 const gates = extension.handlers.get('tool_call');
 for (const toolName of ['bash', 'write', 'edit', 'unknown_mutating_tool']) {
   const results = await Promise.all(gates.map(gate => gate({ type: 'tool_call', toolName, input: {} })));
   assert(results.some(r => r?.block), `${toolName} must be refused`);
 }
-for (const toolName of ['read', 'grep', 'find', 'ls', 'mw_session']) {
+for (const toolName of ['read', 'grep', 'find', 'ls', 'cst_session']) {
   const results = await Promise.all(gates.map(gate => gate({ type: 'tool_call', toolName, input: {} })));
   assert(!results.some(r => r?.block), `${toolName} must remain available`);
 }
@@ -51,6 +51,6 @@ assert.deepEqual(parseRequest(JSON.stringify(request)), request);
 for (const malformed of [null, [], 1, true, '', '{', 'null', '[]', '42', 'true']) {
   assert.throws(() => parseRequest(malformed));
 }
-const schema = extension.tools.get('mw_session').definition.parameters.properties.request;
+const schema = extension.tools.get('cst_session').definition.parameters.properties.request;
 assert.deepEqual(schema.anyOf.map(option => option.type), ['object', 'string']);
 console.log('PASS: structured and legacy requests, 10 malformed inputs, object-first schema; live UI remains independent');

@@ -6,7 +6,7 @@ import { existsSync, readFileSync, readdirSync, watch, type FSWatcher } from "no
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const door = join(dirname(fileURLToPath(import.meta.url)), "../bin/mw-session.py");
+const door = join(dirname(fileURLToPath(import.meta.url)), "../bin/cst-session.py");
 const reads = new Set(["read", "grep", "find", "ls"]);
 
 export function parseRequest(value: unknown): Record<string, unknown> {
@@ -19,7 +19,7 @@ export default function (pi: ExtensionAPI) {
   let selected: string | undefined;
   let watcher: FSWatcher | undefined;
   let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
-  const directory = (ctx: ExtensionContext) => join(ctx.cwd, ".madewell/sessions");
+  const directory = (ctx: ExtensionContext) => join(ctx.cwd, ".constellation/sessions");
   const state = (ctx: ExtensionContext) => {
     if (!selected) return undefined;
     return JSON.parse(readFileSync(join(directory(ctx), `${selected}.json`), "utf8"));
@@ -34,8 +34,8 @@ export default function (pi: ExtensionAPI) {
       if (inspected && inspected.status !== 0) throw new Error(inspected.stdout || inspected.stderr);
       const value = inspected ? JSON.parse(inspected.stdout) : undefined;
       if (!value) {
-        ctx.ui.setStatus("madewell", "Made Well: no session — execution locked");
-        ctx.ui.setWidget("madewell", undefined);
+        ctx.ui.setStatus("constellation-session", "Constellation: no session — execution locked");
+        ctx.ui.setWidget("constellation-session", undefined);
         return;
       }
       const expired = Date.now() / 1000 >= value.deadline;
@@ -46,14 +46,14 @@ export default function (pi: ExtensionAPI) {
       const visible = value.phase === "plan" ? ["plan", "implement", "verify"] : [value.phase];
       const steps = visible.flatMap(phase => Object.entries(value.phases[phase].steps).map(([id, step]) => [`${phase}/${id}`, step])) as [string, any][];
       const currentStatus = !value.proof.valid ? "stale proof (" + value.status + ")" : value.status === "done" ? "done · fresh proof" : expired ? "expired" : value.status;
-      ctx.ui.setStatus("madewell", `${value.id} · ${value.phase} · ${currentStatus}`);
-      ctx.ui.setWidget("madewell", [
+      ctx.ui.setStatus("constellation-session", `${value.id} · ${value.phase} · ${currentStatus}`);
+      ctx.ui.setWidget("constellation-session", [
         `${value.phase} · ${currentStatus}`,
         `${value.goal} | actor: ${value.actor}`,
         ...steps.map(([id, s]) => `${s.status === "done" ? "✓" : s.status === "running" ? "▶" : "·"} ${id}: ${s.title} [${s.status}]${s.after.length ? ` after ${s.after.join(", ")}` : ""}`),
       ]);
     } catch (error) {
-      ctx.ui.setStatus("madewell", `Made Well: state unavailable — ${String(error)}`);
+      ctx.ui.setStatus("constellation-session", `Constellation: state unavailable — ${String(error)}`);
     }
   };
   const observe = (ctx: ExtensionContext) => {
@@ -90,18 +90,18 @@ export default function (pi: ExtensionAPI) {
     });
 
   pi.registerTool({
-    name: "mw_session",
-    label: "Made Well execution",
-    description: "Durable ideate → plan → implement → verify. Use start, propose, record, advance, run, show, stop, recover, resume, retry, reconcile, move. Read kernel/bindings/SESSION.md (installed: .madewell/bindings/SESSION.md) for the JSON contract. All executable work goes through run, never raw shell tools.",
+    name: "cst_session",
+    label: "Constellation execution",
+    description: "Durable ideate → plan → implement → verify. Use start, propose, record, advance, run, show, stop, recover, resume, retry, reconcile, move. Read kernel/bindings/SESSION.md (installed: .constellation/bindings/SESSION.md) for the JSON contract. All executable work goes through run, never raw shell tools.",
     parameters: Type.Object({ session: Type.String({ pattern: "^[a-zA-Z0-9_-]{1,80}$" }), request: Type.Union([Type.Object({}, { additionalProperties: true }), Type.String()], { description: "Structured request object (preferred), or legacy JSON string. Actor identity is assigned by this host." }) }),
     async execute(_id, params, signal, _update, ctx) {
       const request = parseRequest(params.request);
       selected = params.session;
-      pi.appendEntry("madewell-binding", { session: selected });
+      pi.appendEntry("constellation-binding", { session: selected });
       const result = await invoke(ctx, selected, request, signal);
       const summary = { id: result.id, phase: result.phase, status: result.status,
         actor: result.actor, phases: result.phases, proof: result.proof, piece: result.piece,
-        record: `.madewell/sessions/${selected}.json` };
+        record: `.constellation/sessions/${selected}.json` };
       return { content: [{ type: "text", text: JSON.stringify(summary, null, 2) }], details: summary };
     },
   });
@@ -109,22 +109,22 @@ export default function (pi: ExtensionAPI) {
   // Closed allowlist: unknown extension tools cannot quietly become an alternate write/spawn door.
   pi.on("tool_call", async (event, ctx) => {
     if (ctx) render(ctx);
-    if (event.toolName === "mw_session" || reads.has(event.toolName)) return;
+    if (event.toolName === "cst_session" || reads.has(event.toolName)) return;
     if (event.toolName === 'intercom') {
       const input = event.input as Record<string, unknown>;
       const observing = ['list', 'list-cwd', 'pending', 'status'].includes(String(input.action));
       const replying = input.action === 'reply' && typeof input.replyTo === 'string' && input.replyTo.trim().length > 0;
       if ((observing || replying) && !input.openProjectPaneIfMissing && !input.retryOf && !input.supersedes) return;
     }
-    return { block: true, reason: "Made Well execution gate: use mw_session. Commands are locked until ideate and plan finish; verification requires a different actor." };
+    return { block: true, reason: "Constellation execution gate: use cst_session. Commands are locked until ideate and plan finish; verification requires a different actor." };
   });
   pi.on("before_agent_start", async () => ({ message: {
-    customType: "madewell-execution", display: false,
-    content: "Made Well execution is active. Use mw_session to persist your goal, proposed checklist and results. Ideate and plan must finish before executing commands. Use read/grep/find/ls for inspection. No raw write/edit/bash or other mutating tools are available. A different native session must perform verification. Never claim a session complete unless the door returns status done.",
+    customType: "constellation-execution", display: false,
+    content: "Constellation execution is active. Use cst_session to persist your goal, proposed checklist and results. Ideate and plan must finish before executing commands. Use read/grep/find/ls for inspection. No raw write/edit/bash or other mutating tools are available. A different native session must perform verification. Never claim a session complete unless the door returns status done.",
   } }));
   pi.on("session_start", async (_event, ctx) => {
     const entries = ctx.sessionManager.getEntries();
-    const entry = [...entries].reverse().find((e: any) => e.type === "custom" && e.customType === "madewell-binding") as any;
+    const entry = [...entries].reverse().find((e: any) => e.type === "custom" && e.customType === "constellation-binding") as any;
     selected = entry?.data?.session;
     observe(ctx);
   });
@@ -135,13 +135,13 @@ export default function (pi: ExtensionAPI) {
     const value = state(ctx);
     if (value?.status === "active" && value.actor === ctx.sessionManager.getSessionId()) {
       try { await invoke(ctx, selected, { op: "stop", reason: `Host session ${event.reason}` }); }
-      catch (error) { ctx.ui.notify(`Made Well did not pause cleanly: ${String(error)}. Inspect/recover the record.`, "warning"); }
+      catch (error) { ctx.ui.notify(`Constellation did not pause cleanly: ${String(error)}. Inspect/recover the record.`, "warning"); }
     }
     watcher?.close();
     if (deadlineTimer) clearTimeout(deadlineTimer);
   });
-  pi.registerCommand("mw", {
-    description: "Inspect a durable Made Well session: /mw <id>. With no argument, list session IDs.",
+  pi.registerCommand("cst", {
+    description: "Inspect a durable Constellation session: /cst <id>. With no argument, list session IDs.",
     handler: async (args, ctx) => {
       const id = args.trim();
       if (!id) {
@@ -151,7 +151,7 @@ export default function (pi: ExtensionAPI) {
       }
       if (!/^[a-zA-Z0-9_-]{1,80}$/.test(id)) throw new Error("Invalid session ID");
       selected = id;
-      pi.appendEntry("madewell-binding", { session: id });
+      pi.appendEntry("constellation-binding", { session: id });
       await invoke(ctx, id, { op: "show" });
     },
   });

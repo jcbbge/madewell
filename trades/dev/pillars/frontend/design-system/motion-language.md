@@ -221,7 +221,7 @@ fine)`; set `transform` directly on the element, not a shared CSS var on the par
 > as constraints** — _"the more you can package into a skill, the more leverage you
 > get out of your agents."_ That is exactly what this motion language — and the
 > whole Feedback Doctrine — is: taste made explicit and declarative, so an agent
-> (or Made Well's builder) applies it correctly. We were already building the thing
+> (or Constellation's builder) applies it correctly. We were already building the thing
 > Emil describes.
 
 ---

@@ -4,14 +4,14 @@
 
 **Written:** 2026-06-13
 **Author:** Josh
-**Part of:** Made Well — the UI/UX wing. Rubric: _"Does this lead to craft, beauty, and care?"_
+**Part of:** Constellation — the UI/UX wing. Rubric: _"Does this lead to craft, beauty, and care?"_
 **Status:** Doctrine — v0.4 (draft for redline). The sensory operationalization of the craft rubric. Motion, sound, color, and the feel of every interaction answer to this document.
 
 ---
 
 ## 0. Why this exists
 
-Made Well measures every decision — including _animation timing_ and
+Constellation measures every decision — including _animation timing_ and
 _feel_ — against one question: **does this lead to craft, beauty, and care?**
 That rubric never said _how_ feel gets built. This doctrine is that missing arm.
 
@@ -320,7 +320,7 @@ author that app's own.
 This is exactly what Emil Kowalski's _agents-with-taste_ argues for: taste
 transmitted to AI as **explicit, packaged rules fed to agents as constraints**.
 This doctrine and its channel languages _are_ those rules — which is precisely
-Made Well's premise: deliberate, craft-first software, lean and agnostic to any
+Constellation's premise: deliberate, craft-first software, lean and agnostic to any
 one provider or model.
 
 ---

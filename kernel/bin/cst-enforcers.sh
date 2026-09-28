@@ -1,5 +1,5 @@
 #!/bin/sh
-# mw-enforcers — the jig on the ledger itself.
+# cst-enforcers — the jig on the ledger itself.
 #
 # A jig claims to be a stop. This checks that the stop exists.
 #
@@ -22,17 +22,17 @@
 # never claimed to be a stop.
 #
 # Usage:
-#   mw-enforcers.sh          probe every claiming jig; non-zero if any is dead
-#   mw-enforcers.sh --list   print the tier of every jig and exit 0
+#   cst-enforcers.sh          probe every claiming jig; non-zero if any is dead
+#   cst-enforcers.sh --list   print the tier of every jig and exit 0
 #
 # Zero deps beyond POSIX sh + python3, matching the rest of kernel/bin.
 
 set -eu
 
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-reg="$repo_root/.madewell/jig/registry.json"
+reg="$repo_root/.constellation/jig/registry.json"
 # Package-repo shape: the kernel's own registry lives beside the kernel.
-[ -f "$reg" ] || reg="$repo_root/.madewell/jig/registry.json"
+[ -f "$reg" ] || reg="$repo_root/.constellation/jig/registry.json"
 [ -f "$reg" ] || exit 0
 
 MODE=probe
@@ -46,7 +46,7 @@ reg_path, root, mode = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
     data = json.loads(Path(reg_path).read_text())
 except Exception as e:
-    sys.stderr.write(f"mw-enforcers: cannot read {reg_path}: {e}\n")
+    sys.stderr.write(f"cst-enforcers: cannot read {reg_path}: {e}\n")
     sys.exit(1)
 
 jigs = data.get("jigs") or []
@@ -61,7 +61,7 @@ def tier(j):
 
 if mode == "list":
     if not jigs:
-        print("mw-enforcers: no jigs registered")
+        print("cst-enforcers: no jigs registered")
     for j in jigs:
         ident = j.get("id") or j.get("run") or "<unnamed>"
         p = j.get("probe")
@@ -89,7 +89,7 @@ if not unprobed and not dead:
     sys.exit(0)
 
 out = sys.stderr.write
-out("\nmw-enforcers: the ledger is claiming enforcement it cannot prove.\n\n")
+out("\ncst-enforcers: the ledger is claiming enforcement it cannot prove.\n\n")
 
 for ident, t in unprobed:
     out(f"  {ident}: claims {t} with no probe.\n")

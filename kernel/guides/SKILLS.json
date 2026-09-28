@@ -1,6 +1,6 @@
 {
   "version": "6.0",
-  "note": "Reference manifest. FOUNDATIONAL skills are Made Well's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. TRADE skills load only with a trade and may be pillar-scoped; they register in the trade's own manifest, not here. Paths are relative to .madewell/.",
+  "note": "Reference manifest. FOUNDATIONAL skills are Constellation's own and always available \u2014 the workflow machinery that runs the four acts, plus the thinking lenses. TRADE skills load only with a trade and may be pillar-scoped; they register in the trade's own manifest, not here. Paths are relative to .constellation/.",
   "skills": [
     {
       "name": "adopt",
@@ -21,7 +21,7 @@
       "file": "skills/bench.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "A piece is being taken from the rack. Runs plan: ground first (see .madewell/ground/), then write the floor (Making / Not making / Done when / Waits on). Decides leaf vs breakdown."
+      "when": "A piece is being taken from the rack. Runs plan: ground first (see .constellation/ground/), then write the floor (Making / Not making / Done when / Waits on). Decides leaf vs breakdown."
     },
     {
       "name": "orchestrate",
@@ -112,7 +112,7 @@
       "file": "skills/abstraction-builder.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "Feeding a new convention, organ remnant, lint, skill, or pack into Made Well. Profile \u2192 tier filter \u2192 recommender \u2192 place. Gate before EXTENDING. Never silent delete/install."
+      "when": "Feeding a new convention, organ remnant, lint, skill, or pack into Constellation. Profile \u2192 tier filter \u2192 recommender \u2192 place. Gate before EXTENDING. Never silent delete/install."
     }
   ],
   "trades": {
@@ -124,7 +124,7 @@
       "name": "guide",
       "file": "registers/guide/REGISTER.md",
       "fills": "the Persona slot \u2014 the GUIDE register (novice-human)",
-      "activate": "Read at session start. Made Well's batteries-included default; recommended for any non-technical builder.",
+      "activate": "Read at session start. Constellation's batteries-included default; recommended for any non-technical builder.",
       "pillars": [],
       "when": "Persona slot, novice-human register: warm concierge, teaches through doing. The kernel itself is persona-free. Sibling registers: trade-supplied expert-human registers (Lead / Contributor) and naked (machines/CI)."
     }

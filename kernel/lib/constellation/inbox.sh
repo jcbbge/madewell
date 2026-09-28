@@ -11,9 +11,9 @@
 # It prints nothing when nothing is new, and what it prints is for the host, not the person.
 #
 # The host hook: every session start runs, from the project root,
-#   .madewell/bin/constellation inbox || true
+#   .constellation/bin/constellation inbox || true
 # and the host reads its output. As a Claude Code SessionStart hook, in the project's settings:
-#   {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":".madewell/bin/constellation inbox || true"}]}]}}
+#   {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":".constellation/bin/constellation inbox || true"}]}]}}
 # Any other harness: whatever it runs at session start, with the output put in front of the agent.
 # The drop box is the host's: inside a star's step or a discovery act (the same hook fires
 # there too) it does nothing, so no star or discovery picks up what the person dropped.
@@ -57,7 +57,7 @@ cmd_inbox() {
   if [ ${#others[@]} -gt 0 ]; then
     say "  for you to read (not text):"
     for rel in "${others[@]}"; do say "    $rel"; done
-    say "  Read each with your own tools, think it through with the discovery skill ($MW/skills/discovery.md),
+    say "  Read each with your own tools, think it through with the discovery skill ($CST/skills/discovery.md),
   then file it so it is not new again: constellation inbox --read <file>"
   fi
   [ ${#texts[@]} -eq 0 ] || say "Tell the person, in plain words, that you are thinking their ideas through; what comes of them will be on the ideas list."

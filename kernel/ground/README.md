@@ -1,9 +1,9 @@
 # Ground — the human door
 
-Ground is the stop on **ideate** and **plan**. It is part of Made Well, not a skill you add
+Ground is the stop on **ideate** and **plan**. It is part of Constellation, not a skill you add
 to a repo and not a slash command in a harness.
 
-You already have it when Made Well is installed: `.madewell/ground/`. Re-sync updates the
+You already have it when Constellation is installed: `.constellation/ground/`. Re-sync updates the
 protocol; this project's **roots** (what to look at) are seeded once and left alone.
 
 ## What you will see

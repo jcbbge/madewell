@@ -6,11 +6,11 @@
 
 ## How to Activate
 
-The installer ships every trade in `.madewell/trades/`. The host sets this one with
+The installer ships every trade in `.constellation/trades/`. The host sets this one with
 `constellation trade dev`, which names it in the project's loader, by reference:
 
 ```
-If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: … Otherwise, read and follow .madewell/HOST.md and .madewell/trades/dev/TRADE.md before anything else, then continue.
+If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: … Otherwise, read and follow .constellation/HOST.md and .constellation/trades/dev/TRADE.md before anything else, then continue.
 ```
 
 All paths below are relative to this trade's directory.
@@ -180,7 +180,7 @@ calls for them. The person doesn't need to invoke them.
 | Skill | File | When |
 |---|---|---|
 | **Sitting** | `skills/sitting.md` | Every act on a software piece. Contact point, not a consult. Kernel Ground first. |
-| **Jig conventions** | `jig/conventions/` | Frontend / schema / testing. Honor via kernel `.madewell/jig/`. |
+| **Jig conventions** | `jig/conventions/` | Frontend / schema / testing. Honor via kernel `.constellation/jig/`. |
 | **Enforcer** | `skills/enforcer.md` | After significant AI-assisted work. Before anything ships. Stateful code-quality protocol. |
 | **Discovery lenses** | `discovery-lenses.md` | Every discovery pass. Fills the kernel discovery skill's **Lens Slot** with the software lane's four lenses — Technical, Integration, UX/Interaction, Initiative→Irreducible Units — run after the universal core. |
 

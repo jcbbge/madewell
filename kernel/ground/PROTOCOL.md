@@ -52,7 +52,7 @@ First move for:
 
 ## The protocol
 
-Read `.madewell/ground/ROOTS.md` first. That file is *this project's* list of where to
+Read `.constellation/ground/ROOTS.md` first. That file is *this project's* list of where to
 look. Kernel roots below are the floor; ROOTS may add, never subtract.
 
 ### Step 0 — Pre-flight the paths
@@ -63,10 +63,10 @@ is **`NO EXISTING IMPLEMENTATION — net new`**, never filled from memory.
 From the project root, confirm what this sitting actually has (adapt; do not invent trees):
 
 ```sh
-ls -d .madewell docs 2>/dev/null
-ls .madewell/stock .madewell/bench .madewell/finished 2>/dev/null
-ls .madewell/DECISIONS.md .madewell/PRODUCT.md AGENTS.md MADEWELL.md 2>/dev/null
-ls .madewell/ground .madewell/jig 2>/dev/null
+ls -d .constellation docs 2>/dev/null
+ls .constellation/stock .constellation/bench .constellation/finished 2>/dev/null
+ls .constellation/DECISIONS.md .constellation/PRODUCT.md AGENTS.md CONSTELLATION.md 2>/dev/null
+ls .constellation/ground .constellation/jig 2>/dev/null
 ```
 
 Then confirm each path named in `ROOTS.md`.
@@ -89,11 +89,11 @@ task, using `ROOTS.md`. Kernel floor:
 
 | Root | What it is |
 |---|---|
-| `.madewell/DECISIONS.md` | locked decisions |
-| `.madewell/PRODUCT.md` | identity |
-| `.madewell/stock/`, `bench/`, `finished/` | work already named |
-| `.madewell/jig/` | compiled conventions and wired jigs |
-| `AGENTS.md`, `MADEWELL.md`, `SPEC.md` | law |
+| `.constellation/DECISIONS.md` | locked decisions |
+| `.constellation/PRODUCT.md` | identity |
+| `.constellation/stock/`, `bench/`, `finished/` | work already named |
+| `.constellation/jig/` | compiled conventions and wired jigs |
+| `AGENTS.md`, `CONSTELLATION.md`, `SPEC.md` | law |
 | `docs/` if present | project specs, decisions, runbooks |
 | loaded trade | domain law |
 | discovery / stock the task names | intake already on the rack |
@@ -169,6 +169,6 @@ work. It does not write the floor. `skills/bench.md` is next, after.
 |---|---|
 | **ideate** | Corpus + material before a piece is named onto the rack. A trade sitting may add reconstruct-purpose *after*. |
 | **plan** | Already grounded; the floor is written on this picture. If the picture is stale, ground again. |
-| **implement / verify** | Not Ground. That stop is **the Jig** (`.madewell/jig/`). |
+| **implement / verify** | Not Ground. That stop is **the Jig** (`.constellation/jig/`). |
 
 A plan whose task was never grounded is a process defect.

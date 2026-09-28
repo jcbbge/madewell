@@ -23,11 +23,11 @@ lines() { local n; n=$(wc -l <<<"$1" | tr -d ' '); [ "$n" -ge 3 ] && [ "$n" -le 
 P=$T/proj; git init -q -b main "$P"; echo 'x' >"$P/README"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
 piece() { # piece <slug> <title> : on the rack with its floor, then taken to the bench
-  printf '# %s\n\n**Making:** %s\n**Not making:** more\n**Done when:** it exists\n**Waits on:** \n' "$2" "$2" >".madewell/stock/$1.md"
-  git add ".madewell/stock/$1.md"; git commit -qm "rack: $1"; "$C" take "$1" >/dev/null
+  printf '# %s\n\n**Making:** %s\n**Not making:** more\n**Done when:** it exists\n**Waits on:** \n' "$2" "$2" >".constellation/stock/$1.md"
+  git add ".constellation/stock/$1.md"; git commit -qm "rack: $1"; "$C" take "$1" >/dev/null
 }
 rec() { # rec <slug> <step> <event> <text> [trailer] : a handoff on the piece's record, as a star leaves it
   git -C "$T/state/proj/$1" -c core.hooksPath=/dev/null commit -q --allow-empty -m "run($1): $2 $3
@@ -55,7 +55,7 @@ check "brief remembers its time in the state dir" test -s "$T/state/proj/brief.l
 sleep 1
 
 # --- a finished piece, two being made, one question
-piece old "Old piece"; git mv .madewell/bench/old.md .madewell/finished/old.md; MW_GATE=off git commit -qm "finish old"  # as land moves it
+piece old "Old piece"; git mv .constellation/bench/old.md .constellation/finished/old.md; CONSTELLATION_GATE=off git commit -qm "finish old"  # as land moves it
 piece greet "Greet the user"; "$C" run greet >/dev/null
 piece bye "Wave goodbye"; "$C" run bye >/dev/null; rec bye vega clear "no open questions"; rec bye vega done "a one-function module"
 piece hi "Say hi"; "$C" run hi >/dev/null
@@ -102,17 +102,17 @@ check "the answered piece is being made again" has "$B" "Say hi — thinking it 
 rec ping vega flag "still unclear after three rounds: which server?"
 check "a flagged piece needs the person, and says so without a recommendation" bash -c "grep -qF 'Ping the server needs you: still unclear after three rounds' <<<\"\$0\" && grep -qF 'No recommendation came with it.' <<<\"\$0\"" "$(brief)"
 
-# --- line is silent where there is no Made Well
+# --- line is silent where there is no Constellation
 mkdir -p "$T/plain"; git init -q "$T/plain"
-check "line: silent in a project without Made Well" test -z "$(cd "$T/plain" && "$C" line)"
+check "line: silent in a project without Constellation" test -z "$(cd "$T/plain" && "$C" line)"
 check "line: silent outside a git repository" test -z "$(cd "$T" && "$C" line)"
 
 # --- the bindings show the same line
 check "statusline: Claude Code's JSON in, the line out" test "$(cd / && printf '{"session_id":"s","workspace":{"current_dir":"%s","project_dir":"%s"}}' "$P" "$P" | sh "$ROOT/kernel/bindings/statusline.sh")" = "3 being made · 1 question for you"
-check "statusline: the installed copy finds its own constellation" test "$(cd "$P" && echo '{}' | sh .madewell/bindings/statusline.sh)" = "3 being made · 1 question for you"
+check "statusline: the installed copy finds its own constellation" test "$(cd "$P" && echo '{}' | sh .constellation/bindings/statusline.sh)" = "3 being made · 1 question for you"
 mkdir -p "$T/a, b"; git clone -q "$P" "$T/a, b/proj" 2>/dev/null
 check "statusline: a path with a comma in it" test "$(cd / && printf '{"workspace":{"current_dir":"%s"}}' "$T/a, b/proj" | sh "$ROOT/kernel/bindings/statusline.sh")" = "4 being made"
-check "statusline: silent without Made Well" test -z "$(printf '{"workspace":{"current_dir":"%s"}}' "$T/plain" | sh "$ROOT/kernel/bindings/statusline.sh")"
+check "statusline: silent without Constellation" test -z "$(printf '{"workspace":{"current_dir":"%s"}}' "$T/plain" | sh "$ROOT/kernel/bindings/statusline.sh")"
 pihost=/; command -v pi >/dev/null && pihost=$(dirname "$(readlink -f "$(command -v pi)")")
 while [ "$pihost" != / ] && [ ! -f "$pihost/dist/core/extensions/loader.js" ]; do pihost=$(dirname "$pihost"); done
 if [ "$pihost" != / ]; then
@@ -131,7 +131,7 @@ console.log(JSON.stringify(shown));
 EOF
   echo "     | pi: $(node "$T/pi-line.mjs" "$pihost" "$ROOT/kernel/bindings/constellation-line-pi.ts" "$P" 2>&1)"
   check "pi: the widget shows the line on session start" sh -c "node '$T/pi-line.mjs' '$pihost' '$ROOT/kernel/bindings/constellation-line-pi.ts' '$P' | grep -qF '[[\"constellation\",[\"3 being made · 1 question for you\"]]]'"
-  check "pi: no widget without Made Well" sh -c "node '$T/pi-line.mjs' '$pihost' '$ROOT/kernel/bindings/constellation-line-pi.ts' '$T/plain' | grep -qF '[[\"constellation\",null]]'"
+  check "pi: no widget without Constellation" sh -c "node '$T/pi-line.mjs' '$pihost' '$ROOT/kernel/bindings/constellation-line-pi.ts' '$T/plain' | grep -qF '[[\"constellation\",null]]'"
 else
   printf 'skip pi: the widget (Pi is not installed here)\n'
 fi
@@ -145,25 +145,25 @@ check "line: go lifts the pause" test "$(line)" = "3 being made · 1 question fo
 
 # --- ideas on the list: new ones are named, and one that needs answers is what waits on the person
 "$C" pause >/dev/null; "$C" go >/dev/null
-sleep 1; printf '# Shopping list\n\n**Making:** a list\n\n## Open questions (carried)\n\n- who uses it?\n- where do recipes live?\n' >.madewell/stock/shop.md
-git add .madewell/stock/shop.md; git commit -qm "rack: shop"; sleep 1
+sleep 1; printf '# Shopping list\n\n**Making:** a list\n\n## Open questions (carried)\n\n- who uses it?\n- where do recipes live?\n' >.constellation/stock/shop.md
+git add .constellation/stock/shop.md; git commit -qm "rack: shop"; sleep 1
 b=$(brief)
 check "brief: a new idea is on the front page, with what it needs" has "$b" "Ideas: 1 on the list: Shopping list (new; needs your answers first)."
 check "brief: a question from what is being made still comes first" matches "$b" '^Waiting on you: Ping the server'
 sleep 1; check "brief: next time the idea is no longer new" has "$(brief)" "Ideas: 1 on the list: Shopping list (needs your answers first)."
 P2=$T/proj2; git init -q -b main "$P2"; echo x >"$P2/README"; git -C "$P2" add -A; git -C "$P2" commit -qm init
-sh "$ROOT/install.sh" "$P2" >/dev/null 2>&1; git -C "$P2" add -A; MW_GATE=off git -C "$P2" commit -qm "adopt"
-cp .madewell/stock/shop.md "$P2/.madewell/stock/shop.md"
-printf '# Dark mode\n\n**Making:** dark\n**Not making:** themes\n**Done when:** the toggle works\n**Waits on:** nothing\n' >"$P2/.madewell/stock/dark.md"
-git -C "$P2" add .madewell/stock; git -C "$P2" commit -qm "rack: two ideas"
-printf '# Watering reminder\n\n**Making:** a text when the soil is dry\n**Not making:** OPEN — sensors?\n**Done when:** TBD\n**Waits on:** nothing\n' >"$P2/.madewell/stock/water.md"
-git -C "$P2" add .madewell/stock; git -C "$P2" commit -qm "rack: water"
+sh "$ROOT/install.sh" "$P2" >/dev/null 2>&1; git -C "$P2" add -A; CONSTELLATION_GATE=off git -C "$P2" commit -qm "adopt"
+cp .constellation/stock/shop.md "$P2/.constellation/stock/shop.md"
+printf '# Dark mode\n\n**Making:** dark\n**Not making:** themes\n**Done when:** the toggle works\n**Waits on:** nothing\n' >"$P2/.constellation/stock/dark.md"
+git -C "$P2" add .constellation/stock; git -C "$P2" commit -qm "rack: two ideas"
+printf '# Watering reminder\n\n**Making:** a text when the soil is dry\n**Not making:** OPEN — sensors?\n**Done when:** TBD\n**Waits on:** nothing\n' >"$P2/.constellation/stock/water.md"
+git -C "$P2" add .constellation/stock; git -C "$P2" commit -qm "rack: water"
 b2=$(cd "$P2" && "$C" brief 2>&1)
 check "brief: an answer written as OPEN or TBD is not an answer" has "$b2" "Watering reminder (new; needs your answers first)"
 check "brief: with nothing being made, an idea that needs answers is what waits on the person" has "$b2" "Waiting on you: Shopping list needs your answers (2 open questions) before it can start (and 1 more after this)."
 check "brief: an idea with its four questions answered is ready to start" has "$b2" "Dark mode (new; ready to start)"
 check "brief: the ideas line carries no engine words" bash -c '! grep "^Ideas:" <<<"$1" | grep -qiE "stock|rack|floor|bench|slug"' _ "$b2"
-rm "$P2/.madewell/stock/shop.md" "$P2/.madewell/stock/water.md"; MW_GATE=off git -C "$P2" commit -qam "drop shop" >/dev/null
+rm "$P2/.constellation/stock/shop.md" "$P2/.constellation/stock/water.md"; CONSTELLATION_GATE=off git -C "$P2" commit -qam "drop shop" >/dev/null
 check "brief: with nothing waiting, a ready idea is offered" has "$(cd "$P2" && "$C" brief 2>&1)" "Nothing is waiting on you. Ready to start when you are: Dark mode."
 
 [ $fails -eq 0 ] && echo "constellation-brief: all tests passed" || { echo "constellation-brief: $fails failure(s)"; exit 1; }

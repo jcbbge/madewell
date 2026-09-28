@@ -6,18 +6,18 @@ Paste this to your AI assistant: **Set up Constellation in this project.**
 2. From then on you just talk — ideas, notes, call transcripts, voice memos — or drop files in `ideas/`.
 3. It keeps track of what's an idea, what's being made and what's done, and gets a second look before anything is called done.
 
-*For the assistant:* get this repository (`git clone https://github.com/jcbbge/madewell`), run
+*For the assistant:* clone this repository, run
 `<clone>/kernel/bin/constellation adopt` from the project, then follow
-`.madewell/skills/adopt.md`.
+`.constellation/skills/adopt.md`.
 
 ---
 
-**Made Well is the playbook. Constellation drives it.** One project: the Made Well kernel
-(below, unchanged) and the six stars that carry a piece through its four acts. A Lisp
+**The kernel is the playbook; the six stars drive it.** One project: the kernel (below) and
+the six stars that carry a piece through its four acts. A Lisp
 runtime that will host all of it lives in `runtime/lisp/` and is not needed today.
 
 **The piece is the actor.** An agent is a profile the piece borrows for one step: any
-harness, any model, swapped freely. Everything durable is Made Well's own. Position is the
+harness, any model, swapped freely. Everything durable is Constellation's own. Position is the
 piece's directory, and the run is the git log of the piece's branch, one commit per
 handoff. A dropped connection, a capped plan or a new provider loses nothing.
 
@@ -48,11 +48,11 @@ kernel's own tools behind the same door, so no brief, skill or doc tells anyone 
 by name. What sits behind a verb may change language (a Lisp runtime later); the verbs do not.
 
 The stars are `kernel/stars/*.md`; the driver is `kernel/bin/constellation`, with its test
-beside it. Everything below is the Made Well kernel.
+beside it. Everything below is the kernel.
 
 ---
 
-# Made Well
+# How it works
 
 **A way of working that keeps good work from quietly going missing.**
 
@@ -60,7 +60,7 @@ You already know how to do your job. What's hard is that when things get busy, t
 always get dropped — the thinking at the start, and the checking at the end — and nobody
 notices until it's expensive.
 
-Made Well is four steps, written down, with something to stop you skipping them.
+Constellation is four steps, written down, with something to stop you skipping them.
 
 > **Think it through. Decide the next thing. Do it. Check it against what you expected.**
 
@@ -171,7 +171,7 @@ Six at most. Past that, keeping everyone straight costs more than the work does.
 
 ## Lines of work
 
-Made Well doesn't know your industry. That part plugs in — a **trade**.
+Constellation doesn't know your industry. That part plugs in — a **trade**.
 
 | Trade | What has to be right first | The areas every job touches |
 |---|---|---|
@@ -218,7 +218,7 @@ And one more, asked of anything before it's finished:
 If no, it's the wrong move — and it doesn't matter that it works, that it was faster, or that
 nobody will notice. People notice everything; they just can't always say what they noticed.
 
-That question is what *made well* means, and it's why the thing is called that.
+That question is the standard everything here is held to.
 
 ---
 
@@ -228,30 +228,30 @@ It's plain text files in a git repository. No command-line tool, no service, no 
 account. Delete the tooling and the work is still there and still readable.
 
 ```sh
-git clone https://github.com/jcbbge/madewell
-sh madewell/install.sh /path/to/your/project
+git clone <this repository> constellation
+sh constellation/install.sh /path/to/your/project
 ```
 
-It adds a `.madewell/` folder, appends one line to `CLAUDE.md` / `AGENTS.md`, and touches
+It adds a `.constellation/` folder, appends one line to `CLAUDE.md` / `AGENTS.md`, and touches
 nothing else. Re-running re-syncs the framework and leaves your work alone. `--uninstall`
 removes it with no residue. You can also copy the files in by hand — the installer isn't doing
 anything clever.
 
 > **Two shapes, one system.** In *this* repo — the package — every functional component
-> lives in plain sight under **`kernel/`**, and `.madewell/` holds only this repo's own work.
-> `install.sh` assembles `kernel/` into **exactly one `.madewell/`** in your project, and
+> lives in plain sight under **`kernel/`**, and `.constellation/` holds only this repo's own work.
+> `install.sh` assembles `kernel/` into **exactly one `.constellation/`** in your project, and
 > appends a managed `.gitignore` block so the vendored framework stays out of your history
-> while your work stays in it. Paths written as `.madewell/…` throughout the docs describe
+> while your work stays in it. Paths written as `.constellation/…` throughout the docs describe
 > the installed shape, because those docs ship with the install.
 
 The three places are directories: `stock/`, `bench/`, `finished/`. A piece's state **is** the
 directory it's in; nothing else records it. Work moves with `git mv`, one move per commit. Install wires a pre-commit hook that
-runs `.madewell/bin/mw-gate.sh` (illegal moves refused) and `.madewell/bin/mw-jigs.sh`
+runs `.constellation/bin/cst-gate.sh` (illegal moves refused) and `.constellation/bin/cst-jigs.sh`
 (wired jigs). Post-commit appends the accepted side of a correction line. Bypass the
-move-gate only for an adoption commit: `MW_GATE=off`.
+move-gate only for an adoption commit: `CONSTELLATION_GATE=off`.
 
 Full storage contract in [`SPEC.md`](SPEC.md). How to extend any part:
-[`.madewell/EXTENDING.md`](.madewell/EXTENDING.md).
+[`.constellation/EXTENDING.md`](.constellation/EXTENDING.md).
 
 ---
 
@@ -259,15 +259,15 @@ Full storage contract in [`SPEC.md`](SPEC.md). How to extend any part:
 
 | Path | What it is |
 |---|---|
-| `MADEWELL.md` | **The whole model.** About 130 lines. Read this first. |
+| `CONSTELLATION.md` | **The whole model.** About 130 lines. Read this first. |
 | `SPEC.md` | Where work lives and how it moves. For developers. |
-| `.madewell/skills/adopt.md` | The first conversation. |
-| `.madewell/HOST.md` | Instructions to your assistant. |
-| `.madewell/EXTENDING.md` | How to extend any part. |
+| `.constellation/skills/adopt.md` | The first conversation. |
+| `.constellation/HOST.md` | Instructions to your assistant. |
+| `.constellation/EXTENDING.md` | How to extend any part. |
 | `trades/` | Lines of work. |
-| `madewell-deck.html` | A 15-slide walkthrough. Open it in a browser. |
+| `docs/history/` | Records of earlier work, kept for reference. Nothing here decides anything. |
 
-`MADEWELL.md` and `SPEC.md` are the only documents that decide anything. If something else
+`CONSTELLATION.md` and `SPEC.md` are the only documents that decide anything. If something else
 disagrees with them, they win. If something else *repeats* them, that's a bug — delete it.
 
 ---

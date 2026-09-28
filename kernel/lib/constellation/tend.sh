@@ -19,7 +19,7 @@ tend_projects() { # the main checkout behind every piece worktree in $STATE, onc
   for wt in "$STATE"/*/*/; do
     [ -e "$wt.git" ] || continue
     c=$(git -C "$wt" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) || continue
-    [ -d "$(dirname "$c")/$MW/bench" ] && dirname "$c"
+    [ -d "$(dirname "$c")/$CST/bench" ] && dirname "$c"
   done | sort -u
 }
 tend_bench() { # one pass over R's bench: only a running step can have lost its agent

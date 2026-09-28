@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Made Well session execution door. JSON request on stdin, JSON result on stdout.
+"""Constellation session execution door. JSON request on stdin, JSON result on stdout.
 
 Work position remains stock/bench/finished. This file owns execution within one
 session, not piece position. No service, agent runtime, or model dependency.
@@ -59,8 +59,8 @@ def alive(pid):
 class Session:
     def __init__(self, root, name):
         self.root = Path(root).resolve()
-        require((self.root / ".madewell").is_dir(), "repository has no .madewell directory")
-        self.directory = self.root / ".madewell" / "sessions"
+        require((self.root / ".constellation").is_dir(), "repository has no .constellation directory")
+        self.directory = self.root / ".constellation" / "sessions"
         self.name = identifier(name)
         self.path = self.directory / (self.name + ".json")
         require(self.directory.resolve().is_relative_to(self.root), "session directory escapes repository")
@@ -176,7 +176,7 @@ class Session:
     def load(self):
         require(self.path.is_file(), "session does not exist")
         state = json.loads(self.path.read_text())
-        require(state.get("schema") == "madewell.session/v1", "unsupported session schema")
+        require(state.get("schema") == "constellation.session/v1", "unsupported session schema")
         return state
 
     def save(self, state, actor, event, detail=None):
@@ -237,7 +237,7 @@ class Session:
                 goal = text(request.get("goal"))
                 piece = request.get("piece")
                 if request.get("create_piece"):
-                    require(isinstance(piece, str) and re.fullmatch(r"\.madewell/stock/[a-zA-Z0-9_-]{1,80}\.md", piece), "new pieces may arrive only in stock")
+                    require(isinstance(piece, str) and re.fullmatch(r"\.constellation/stock/[a-zA-Z0-9_-]{1,80}\.md", piece), "new pieces may arrive only in stock")
                     destination = self.root / piece
                     require(destination.resolve().is_relative_to(self.root), "piece path escapes repository")
                     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -250,8 +250,8 @@ class Session:
                 for other_session, other in self.claims():
                     require(other['piece'] != piece, 'piece already bound; resume or reopen: ' + other_session.name)
                 parts = Path(piece).parts
-                require(parts[0] == ".madewell" and len(parts) > 2 and parts[1] in ("stock", "bench"), "session needs an open Made Well piece")
-                state = {"schema": "madewell.session/v1", "id": self.name, "piece": piece,
+                require(parts[0] == ".constellation" and len(parts) > 2 and parts[1] in ("stock", "bench"), "session needs an open Constellation piece")
+                state = {"schema": "constellation.session/v1", "id": self.name, "piece": piece,
                          "goal": goal, "actor": actor, "supervisor": supervisor, "status": "active",
                          "phase": "ideate", "deadline": time.time() + minutes * 60,
                          "phases": {p: {"steps": {}, "accepted": None} for p in PHASES},
@@ -454,7 +454,7 @@ class Session:
                 require(committed.returncode == 0,
                         'commit the stock-to-bench position transition before finish; one move per commit')
             require(isinstance(request.get('break', False), bool), 'break must be boolean')
-            argv = [str(Path(__file__).resolve().with_name('mw-move')), action, slug]
+            argv = [str(Path(__file__).resolve().with_name('cst-move')), action, slug]
             if request.get('break', False):
                 require(action == 'bench', 'break is only for bench')
                 argv.append('--break')
@@ -526,7 +526,7 @@ class Session:
 def legal_move(old, new):
     for value in (old, new):
         require(isinstance(value, str) and not Path(value).is_absolute() and
-                '..' not in Path(value).parts and value.startswith('.madewell/') and
+                '..' not in Path(value).parts and value.startswith('.constellation/') and
                 value.endswith('.md'), 'invalid piece path')
     path = Path(old)
     if path.parent.name == 'stock':
@@ -600,9 +600,9 @@ def main():
             result = Session(args.root, args.session).request(args.actor, json.load(sys.stdin))
         print(json.dumps(result, indent=2))
     except (Refused, ValueError, OSError, KeyError, TypeError) as error:
-        print(json.dumps({"schema": "madewell.refused/v1", "error": str(error)}))
+        print(json.dumps({"schema": "constellation.refused/v1", "error": str(error)}))
         if args.check_move:
-            print('mw-session: ' + str(error), file=sys.stderr)
+            print('cst-session: ' + str(error), file=sys.stderr)
         return 5
     return 0
 

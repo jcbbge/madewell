@@ -18,7 +18,7 @@ goes in your handoff or a clarify, never in a LATER line.
 
 Before your first change or claim, read what exists: the project's entrypoint, its contracts
 (the product and decisions files), the API and the schema this piece touches, and the work it
-builds on. Say where each fact came from. Follow `.madewell/ground/PROTOCOL.md` in full, with
+builds on. Say where each fact came from. Follow `.constellation/ground/PROTOCOL.md` in full, with
 `PICTURE.md` and `ROOTS.md` beside it. Skip it only for work grounded earlier this session.
 
 ## The relay
@@ -47,9 +47,9 @@ it never fixes. Report what happened, including what failed.
 
 ## The Jig
 
-Honor `.madewell/jig/` (its README and CONTRACT); run the jigs with `constellation jigs`.
+Honor `.constellation/jig/` (its README and CONTRACT); run the jigs with `constellation jigs`.
 Never bypass the commit gate. A rule with no detector is UNJIGGED: say so. Overridden by the
-person's answer? Write `.madewell/jig/proposed.json` before committing their way. At verify,
+person's answer? Write `.constellation/jig/proposed.json` before committing their way. At verify,
 put `constellation tax`'s reading in your handoff.
 
 ## Commits

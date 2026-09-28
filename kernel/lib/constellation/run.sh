@@ -54,7 +54,7 @@ compose_brief() { # compose_brief <slug> <step> <note>
   star_overlay "$star"
   local skills; skills=$(star_field "$star" skills)
   [ -z "$skills" ] || printf '\nRead these skills before you start: %s.\n' "$(skill_paths "$KERNEL/skills" "$skills")"
-  printf '\n## The piece\n\n'; cat "$R/$MW/bench/$slug.md"
+  printf '\n## The piece\n\n'; cat "$R/$CST/bench/$slug.md"
   printf '\n## The run so far (every handoff before you)\n\n'
   local s e h d any=0
   while IFS=$'\t' read -r s e h d; do
@@ -76,7 +76,7 @@ cmd_run() { # cmd_run <slug> [flags] [resume]
   while [ $# -gt 0 ]; do case "$1" in
     --harness) h=$2; shift;; --model) model=$2; shift;; --effort) effort=$2; shift;; --cmd) cmd=$2; shift;;
     *) die "unknown flag $1";; esac; shift; done
-  R=$(main_repo); [ -f "$R/$MW/bench/$slug.md" ] || die "$slug is not on the bench (constellation take $slug)"
+  R=$(main_repo); [ -f "$R/$CST/bench/$slug.md" ] || die "$slug is not on the bench (constellation take $slug)"
   local nx; nx=$(next_step "$slug")
   case "$nx" in
     running:*) if [ "$resume" = 1 ]; then launch "$slug" "${nx#running:}" "$h" "$model" "$effort" "$cmd" "resumed: the previous start of this step did not finish"

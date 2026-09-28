@@ -26,7 +26,7 @@ question is this act's whole job, and no CI run will do it for you.
 
 ## Then the jig
 
-**Contact:** `.madewell/jig/`. Honor compiled conventions. Run wired jigs in
+**Contact:** `.constellation/jig/`. Honor compiled conventions. Run wired jigs in
 `registry.json`. Report warn-mode. Assess rubrics. Surface signs. Use house names.
 A green test run that re-decided a fence is not verify.
 

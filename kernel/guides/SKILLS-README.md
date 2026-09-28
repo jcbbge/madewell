@@ -2,17 +2,17 @@
 
 **What:** the tools and protocols the agent reaches for when the situation calls for one.
 **When:** not invoked by hand — the agent loads them when relevant. Manifest: `SKILLS.json`.
-**Two layers:** **foundational** (Made Well's own, always available) and **trade** (loads
+**Two layers:** **foundational** (Constellation's own, always available) and **trade** (loads
 with a trade, may be scoped to a pillar).
 
 ---
 
-## Foundational — Made Well's own
+## Foundational — Constellation's own
 
 **Workflow** (`mode: workflow`) — the protocols that run the four acts.
 
-**Ground and the Jig are not skills.** They are kernel instruments: `.madewell/ground/`
-and `.madewell/jig/`. They arrive with Made Well. They are not added to a harness and
+**Ground and the Jig are not skills.** They are kernel instruments: `.constellation/ground/`
+and `.constellation/jig/`. They arrive with Constellation. They are not added to a harness and
 not listed here.
 
 | Skill | Act | What it does |

@@ -52,7 +52,7 @@ advance() { # advance <slug> : start what comes after a handoff — the next sta
 # --- the save line: every handoff tells the person, in plain words, that nothing is lost ------
 plain_act() { case "$1" in vega) echo 'thinking it through';; polaris-*) echo 'a second look';; cassiopeia) echo 'planning it';; sirius) echo 'making it';; orion) echo 'writing the checks';; aldebaran) echo 'checking it';; *) echo "$1";; esac; }
 piece_name() { # the piece's own title, else its slug
-  local f t; for f in "$R/$MW/bench/$1.md" "$R/$MW/finished/$1.md"; do
+  local f t; for f in "$R/$CST/bench/$1.md" "$R/$CST/finished/$1.md"; do
     [ -f "$f" ] && t=$(sed -n '1s/^#[[:space:]]*//p' "$f") && [ -n "$t" ] && { printf '%s' "$t"; return; }
   done; printf '%s' "$1"
 }
@@ -152,7 +152,7 @@ launch_reply() { # launch_reply <slug> <waiting-step> <originator-step> <questio
     printf 'Change nothing. When the answer is genuinely the person'"'"'s, say so in your answer.\n'
     printf 'The write rules are fixed and no answer overrides them: sirius builds and never writes tests;\n'
     printf 'orion writes the tests from the plan; aldebaran runs them; the rest change nothing.\n\n'
-    printf '## The questions\n\n%s\n\n## The piece\n\n' "$q"; cat "$R/$MW/bench/$slug.md"
+    printf '## The questions\n\n%s\n\n## The piece\n\n' "$q"; cat "$R/$CST/bench/$slug.md"
     printf '\n## The run so far\n\n'
     local s e hh d; while IFS=$'\t' read -r s e hh d; do [ "$e" = started ] && continue; printf -- '- **%s** %s: %s\n' "$s" "$e" "$d"; done < <(events "$slug")
     printf '\nFinish by running this with your shell tool, as your last act (writing it as text does nothing):\n    constellation reply "<answers>"\n'; } >"$brief"

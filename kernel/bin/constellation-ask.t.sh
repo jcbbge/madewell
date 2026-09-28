@@ -23,10 +23,10 @@ refuses_saying() { local w=$1 out; shift; out=$("$@" 2>&1) && return 1; grep -qF
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
-printf '# Greet the user\n\n**Making:** a greeting\n**Not making:** localisation\n**Done when:** greet() returns "hello"\n**Waits on:** \n' >.madewell/stock/greet.md
-git add .madewell/stock/greet.md; git commit -qm "rack: greet"
+printf '# Greet the user\n\n**Making:** a greeting\n**Not making:** localisation\n**Done when:** greet() returns "hello"\n**Waits on:** \n' >.constellation/stock/greet.md
+git add .constellation/stock/greet.md; git commit -qm "rack: greet"
 "$C" take greet >/dev/null; WT=$T/state/proj/greet
 "$C" run greet >/dev/null
 

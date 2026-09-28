@@ -23,7 +23,7 @@ wins() { tmux list-windows -t workers -F '#W' | grep -c '^discover·'; }
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
 
 # --- the drop box -----------------------------------------------------------------------
@@ -85,38 +85,38 @@ fi; rm -f ideas/stranded.md
 check "discover still works on a notes file by itself" says "discovery started on" "$C" discover ideas/read/todo.txt
 
 # --- the four questions -------------------------------------------------------------------
-printf '# Greet the user\n\nDana wants a greeting on the home page.\n' >.madewell/stock/greet.md
-git add .madewell/stock/greet.md; git commit -qm "rack: greet"
+printf '# Greet the user\n\nDana wants a greeting on the home page.\n' >.constellation/stock/greet.md
+git add .constellation/stock/greet.md; git commit -qm "rack: greet"
 OUT=$("$C" take greet 2>&1); rc=$?
-check "take with no floor does not take it" sh -c "test $rc -ne 0 && test -f .madewell/stock/greet.md && test ! -e .madewell/bench/greet.md"
+check "take with no floor does not take it" sh -c "test $rc -ne 0 && test -f .constellation/stock/greet.md && test ! -e .constellation/bench/greet.md"
 check "it asks the four questions, in plain words" bash -c "grep -qF 'What are we making?' <<<\"\$1\" && grep -qF 'What are we not making' <<<\"\$1\" && grep -qF 'How will we know it is done?' <<<\"\$1\" && grep -qF 'Is it waiting on anything' <<<\"\$1\"" _ "$OUT"
 check "as a conversation, not a form" grep -qF "as a conversation, not a form" <<<"$OUT"
 check "and says how to take it with the answers" grep -qF "constellation take greet --making '…' --not-making '…' --done-when '…' --waits-on '…'" <<<"$OUT"
 check "it still names what is missing" grep -qF "missing Making, Not making, Done when, Waits on" <<<"$OUT"
-check "nothing was written or moved" test -z "$(git status --porcelain -- .madewell)"
-printf '# Greet the user\n\n**Making:** a greeting on the home page\n**Not making:** OPEN — which pages?\n**Done when:** TBD\n**Waits on:** ?\n' >.madewell/stock/greet.md
-git add .madewell/stock/greet.md; git commit -qm "rack: greet, placeholders"
+check "nothing was written or moved" test -z "$(git status --porcelain -- .constellation)"
+printf '# Greet the user\n\n**Making:** a greeting on the home page\n**Not making:** OPEN — which pages?\n**Done when:** TBD\n**Waits on:** ?\n' >.constellation/stock/greet.md
+git add .constellation/stock/greet.md; git commit -qm "rack: greet, placeholders"
 OUT=$("$C" take greet 2>&1); rc=$?
-check "a placeholder (OPEN, TBD, ?) is not an answer: take still asks" bash -c "test $rc -ne 0 && grep -qF 'missing Not making, Done when, Waits on' <<<\"\$1\" && test -f .madewell/stock/greet.md" _ "$OUT"
-printf '# Greet the user\n\n**Making:** a greeting on the home page\n' >.madewell/stock/greet.md
-git add .madewell/stock/greet.md; git commit -qm "rack: greet, making"
+check "a placeholder (OPEN, TBD, ?) is not an answer: take still asks" bash -c "test $rc -ne 0 && grep -qF 'missing Not making, Done when, Waits on' <<<\"\$1\" && test -f .constellation/stock/greet.md" _ "$OUT"
+printf '# Greet the user\n\n**Making:** a greeting on the home page\n' >.constellation/stock/greet.md
+git add .constellation/stock/greet.md; git commit -qm "rack: greet, making"
 OUT=$("$C" take greet 2>&1)
 check "a question the piece already answers is not asked again" bash -c "! grep -qF 'What are we making?' <<<\"\$1\" && grep -qF 'What are we not making' <<<\"\$1\" && grep -qF \"take greet --not-making '…' --done-when '…' --waits-on '…'\" <<<\"\$1\"" _ "$OUT"
 OUT=$("$C" take greet --not-making 'localisation' --done-when 'a test proves it' 2>&1)
-check "some answers but not all: still asks the rest, and writes nothing" bash -c "grep -qF 'Is it waiting on anything' <<<\"\$1\" && ! grep -qF 'How will we know' <<<\"\$1\" && test -z \"\$(git status --porcelain -- .madewell)\"" _ "$OUT"
+check "some answers but not all: still asks the rest, and writes nothing" bash -c "grep -qF 'Is it waiting on anything' <<<\"\$1\" && ! grep -qF 'How will we know' <<<\"\$1\" && test -z \"\$(git status --porcelain -- .constellation)\"" _ "$OUT"
 check "an unknown flag is refused" says "unknown flag --why" "$C" take greet --why x
 check "take with the answers takes it" "$C" take greet --making "a greeting that says \"hello\" & waves \\o/" --not-making 'localisation' --done-when 'src/greet.js exports greet() returning "hello"' --waits-on ''
-check "the piece is on the bench, off the rack" sh -c "test -f .madewell/bench/greet.md && test ! -e .madewell/stock/greet.md"
-check "the answers are written into the piece, in their words" sh -c "grep -qxF '**Making:** a greeting that says \"hello\" & waves \\o/' .madewell/bench/greet.md && grep -qxF '**Not making:** localisation' .madewell/bench/greet.md && grep -qxF '**Done when:** src/greet.js exports greet() returning \"hello\"' .madewell/bench/greet.md && grep -qxF '**Waits on:**' .madewell/bench/greet.md"
-check "a given answer replaces the line, never doubles it" test "$(grep -ci '^\*\*Making:\*\*' .madewell/bench/greet.md)" = 1
-check "the rest of the piece is kept" grep -qxF '# Greet the user' .madewell/bench/greet.md
-check "one commit: the move with the floor in it, and nothing left over" sh -c "git log -1 --format=%s | grep -qx 'take greet to the bench' && git show --stat HEAD | grep -q 'bench/greet.md' && test -z \"\$(git status --porcelain -- .madewell)\""
+check "the piece is on the bench, off the rack" sh -c "test -f .constellation/bench/greet.md && test ! -e .constellation/stock/greet.md"
+check "the answers are written into the piece, in their words" sh -c "grep -qxF '**Making:** a greeting that says \"hello\" & waves \\o/' .constellation/bench/greet.md && grep -qxF '**Not making:** localisation' .constellation/bench/greet.md && grep -qxF '**Done when:** src/greet.js exports greet() returning \"hello\"' .constellation/bench/greet.md && grep -qxF '**Waits on:**' .constellation/bench/greet.md"
+check "a given answer replaces the line, never doubles it" test "$(grep -ci '^\*\*Making:\*\*' .constellation/bench/greet.md)" = 1
+check "the rest of the piece is kept" grep -qxF '# Greet the user' .constellation/bench/greet.md
+check "one commit: the move with the floor in it, and nothing left over" sh -c "git log -1 --format=%s | grep -qx 'take greet to the bench' && git show --stat HEAD | grep -q 'bench/greet.md' && test -z \"\$(git status --porcelain -- .constellation)\""
 check "the branch and the worktree exist" sh -c "git rev-parse --verify -q piece/greet && test -d '$T/state/proj/greet'"
-check "the committed piece carries the floor" sh -c "git show HEAD:.madewell/bench/greet.md | grep -q '^\*\*Waits on:\*\*'"
+check "the committed piece carries the floor" sh -c "git show HEAD:.constellation/bench/greet.md | grep -q '^\*\*Waits on:\*\*'"
 check "the piece's run can start" sh -c "'$C' run greet | grep -q 'vega (vega, ideate) started'"
 
-printf '# Multi\n\nline one\n' >.madewell/stock/multi.md; git add .madewell/stock/multi.md; git commit -qm "rack: multi"
-check "a multi-line answer becomes one line" sh -c "'$C' take multi --making \"\$(printf 'one\ntwo')\" --not-making x --done-when y --waits-on 'Dana' && grep -qxF '**Making:** one two' .madewell/bench/multi.md && grep -qxF '**Waits on:** Dana' .madewell/bench/multi.md"
+printf '# Multi\n\nline one\n' >.constellation/stock/multi.md; git add .constellation/stock/multi.md; git commit -qm "rack: multi"
+check "a multi-line answer becomes one line" sh -c "'$C' take multi --making \"\$(printf 'one\ntwo')\" --not-making x --done-when y --waits-on 'Dana' && grep -qxF '**Making:** one two' .constellation/bench/multi.md && grep -qxF '**Waits on:** Dana' .constellation/bench/multi.md"
 
 echo
 [ "$fails" -eq 0 ] && echo "PASS: constellation inbox and take" || { echo "FAIL: $fails check(s)"; exit 1; }

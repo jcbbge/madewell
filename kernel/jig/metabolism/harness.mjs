@@ -1,9 +1,9 @@
 /**
  * harness.mjs — function-rot check for metabolism.mjs (synthetic 6/6).
  *
- * That table is not the tax. The tax is jsonl → tax.mjs (live-feed.mjs, mw-tax.sh).
+ * That table is not the tax. The tax is jsonl → tax.mjs (live-feed.mjs, cst-tax.sh).
  *
- * Run: node .madewell/jig/metabolism/harness.mjs
+ * Run: node .constellation/jig/metabolism/harness.mjs
  */
 
 import { spawnSync } from 'node:child_process';

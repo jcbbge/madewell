@@ -18,7 +18,7 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
    The package is the Constellation package checkout on this machine; if you do not know where
    it is, ask where it is. It is not fetched from anywhere; if it is not there, stop and say so
    plainly. Once a project is
-   adopted, its own copy (`.madewell/bin/constellation adopt`) re-runs the setup without it.
+   adopted, its own copy (`.constellation/bin/constellation adopt`) re-runs the setup without it.
 
    Adopt installs the kernel, wires the commit hooks, makes `ideas/` (the drop box), runs the
    enforcer checks and prints a welcome. Running it twice changes nothing of theirs.
@@ -28,15 +28,15 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
 
 3. **Commit the adoption** when the project already had history (adopt makes the first commit
    itself in a repository that had none): stage only what adopt added — `.gitignore`,
-   `CLAUDE.md`, `AGENTS.md`, `.madewell/`, `ideas/.gitkeep` — and commit with `MW_GATE=off`,
+   `CLAUDE.md`, `AGENTS.md`, `.constellation/`, `ideas/.gitkeep` — and commit with `CONSTELLATION_GATE=off`,
    the one sanctioned bypass.
 
 4. **Give them the welcome in your own voice**: what it says they can do next, not the output
    pasted. Then hold the conversation below. If adopt said it was *already set up* and they
    have work in hand, skip the conversation: they have adopted it already.
 
-5. **Ask the door question, once**, unless `.madewell/profile` already names one: it is in
-   `.madewell/HOST.md` (The two doors), with where the answer goes.
+5. **Ask the door question, once**, unless `.constellation/profile` already names one: it is in
+   `.constellation/HOST.md` (The two doors), with where the answer goes.
 
 ---
 
@@ -64,7 +64,7 @@ Conversationally. One question at a time. **Never present the whole framework up
 that is a lecture, and they will nod and leave. Ask, listen, reflect their own words back as
 structure.
 
-Speak the glossary in `.madewell/HOST.md`, never the engine's words. Do not name the four acts
+Speak the glossary in `.constellation/HOST.md`, never the engine's words. Do not name the four acts
 (*thinking it through, planning it, making it, checking it*) until step 3, and when you do,
 attach each one to something they already said.
 
@@ -113,7 +113,7 @@ making something to a standard. Work that is purely reactive — a queue of unre
 interrupts with no standard to hold — is a different shape, and telling them that is more
 useful than a bad fit.
 
-**If a shipped trade fits, use it.** The install carries three in `.madewell/trades/`: dev
+**If a shipped trade fits, use it.** The install carries three in `.constellation/trades/`: dev
 (software), marketing, sales. When their work is plainly one of those, set it
 (`constellation trade <name>`), say in one line which you chose and why, and go straight to
 step 9. Steps 4–8 are for work none of them fits.
@@ -153,7 +153,7 @@ theirs rather than a template with their logo on it.
 > *"Before anything leaves here, what's the one question you'd want asked?"*
 
 That is their one question (the rubric, in their `TRADE.md`). The kernel's are the three
-questions in `.madewell/HOST.md` (Deciding): ten times better to use, remembered or loved, as
+questions in `.constellation/HOST.md` (Deciding): ten times better to use, remembered or loved, as
 easy for an agent as for a person. Theirs sits on top of them and is usually sharper and more
 specific.
 
@@ -184,8 +184,8 @@ trades/<theirs>/
   discovery-lenses.md  what their trade hears that a general listener misses
 ```
 
-Read `.madewell/EXTENDING.md` for the slot contract, and copy the shape of
-`.madewell/trades/marketing/` — it is the shortest complete example. **Every line in their
+Read `.constellation/EXTENDING.md` for the slot contract, and copy the shape of
+`.constellation/trades/marketing/` — it is the shortest complete example. **Every line in their
 trade must be traceable to something they said.** If you cannot point at the sentence it came
 from, cut it. Then set it: `constellation trade trades/<theirs>`.
 
@@ -205,7 +205,7 @@ say:
 Then file it the way everything they bring is filed: write their words into
 `ideas/<slug>.md` and run `constellation inbox`, which starts discovery on it. Discovery turns
 it into an idea and commits it: wait for that commit, then read the new piece's slug from
-`.madewell/stock/` (discovery names it; it need not be yours). Start it yourself:
+`.constellation/stock/` (discovery names it; it need not be yours). Start it yourself:
 `constellation take <slug>` with their four answers, then `constellation run <slug>`. Tell them
 plainly: *"That's being made now."*
 
@@ -224,7 +224,7 @@ it is easier learned with one.
 - They have named their unit of work.
 - Their four acts are written in **their** vocabulary.
 - Their work has a trade: a shipped one that fits, or one they watched get written.
-- Their door is stored in `.madewell/profile`.
+- Their door is stored in `.constellation/profile`.
 - One real piece is being made, with the four questions answered in their words.
 - They know the three places work can be — ideas, being made, done — and that nothing ever
   moves backward.

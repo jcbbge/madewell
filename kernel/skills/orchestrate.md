@@ -12,7 +12,7 @@ scopes to concurrent makers. A session owns one piece and records its actor.
 The reference door fences duplicate unfinished sessions for that piece; it does
 not claim to detect all overlapping source-file scopes across different pieces.
 
-The host owns agent launch and identity. Made Well does not require a particular
+The host owns agent launch and identity. Constellation does not require a particular
 agent runtime and does not spawn agents by itself. Each worker uses the same
 execution door. A process being launched or becoming idle is not completion.
 

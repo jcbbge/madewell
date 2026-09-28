@@ -1,6 +1,6 @@
 # The API Pillar
 
-**One of Made Well's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
+**One of Constellation's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
 not an optional skill; it **governs its domain on every project where two parts communicate.** The
 API is the seam between the pieces — frontend to backend, service to service, app to shared
 infrastructure. Get it right and the system stays changeable; get it wrong and every piece becomes

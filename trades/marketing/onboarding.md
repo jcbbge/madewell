@@ -17,7 +17,7 @@ become the onboarding teacher.
 
 4. **The voice.** Show two assets that are on-voice and one that is not, and say why.
 
-5. **Where things sit.** `ls .madewell/stock/ bench/ finished/`. The rack is large on purpose;
+5. **Where things sit.** `ls .constellation/stock/ bench/ finished/`. The rack is large on purpose;
    the bench is short on purpose.
 
 6. **The line they do not cross.** They work inside the positioning. If they think it is

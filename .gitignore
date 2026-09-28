@@ -11,23 +11,23 @@
 # Node tooling (if added later)
 node_modules/
 
-# Made Well — the active profile is a local, per-clone choice (never committed)
-.madewell/profile
+# Constellation — the active profile is a local, per-clone choice (never committed)
+.constellation/profile
 
-# Scaffolding binary (source is bin/mw-move.c)
-.madewell/bin/mw-move
-.madewell/bin/mw-move.dSYM/
+# Scaffolding binary (source is bin/cst-move.c)
+.constellation/bin/cst-move
+.constellation/bin/cst-move.dSYM/
 
-# Made Well — this repo's own instance ledgers (local, never committed).
+# Constellation — this repo's own instance ledgers (local, never committed).
 # A consumer gets the same protection from kernel/jig/.gitignore, seeded by install.
-.madewell/jig/corrections.jsonl
-.madewell/jig/firings.jsonl
-.madewell/jig/proposed.json
-.madewell/profile
+.constellation/jig/corrections.jsonl
+.constellation/jig/firings.jsonl
+.constellation/jig/proposed.json
+.constellation/profile
 
 # Local execution evidence and harness telemetry. The durable conclusion belongs
 # in docs; raw session/review records remain available in this clone for audit.
-.madewell/sessions/
-.madewell/reviews/
+.constellation/sessions/
+.constellation/reviews/
 .pi/pispine-ledger.json
 .coraline/

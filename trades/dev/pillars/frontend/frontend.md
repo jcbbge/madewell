@@ -1,9 +1,9 @@
 # The Frontend Pillar
 
-**One of Made Well's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
+**One of Constellation's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
 not an optional skill; it **governs its domain on every project a person will see and touch.** This
 is the pillar where the work stops being functional and starts being *loved* — or doesn't. It is
-the most visible, the most often rushed, and (per Made Well's thesis) the most neglected dimension
+the most visible, the most often rushed, and (per Constellation's thesis) the most neglected dimension
 of software.
 
 **Agnostic by construction.** The principles hold whatever the framework or platform. The
@@ -92,7 +92,7 @@ Every word is a design decision.
 
 ## The deeper craft layer — the Feedback Doctrine (Voice & Materiality)
 
-The seven dimensions are the foundation. Beyond them, Made Well carries a full sensory design
+The seven dimensions are the foundation. Beyond them, Constellation carries a full sensory design
 system — how the app *speaks back* through motion, sound, and color, split into **Voice** (the app
 saying something) and **Materiality** (the interface behaving like matter). It is the
 design-forward edge of this pillar, and the deepening this pillar grows into. **It lives beside

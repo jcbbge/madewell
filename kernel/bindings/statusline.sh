@@ -1,9 +1,9 @@
 #!/bin/sh
 # statusline.sh — Claude Code's status line shows `constellation line` for the project the session
-# is in: '2 being made · 1 question for you', or 'all quiet'. Silent where there is no Made Well.
+# is in: '2 being made · 1 question for you', or 'all quiet'. Silent where there is no Constellation.
 # Wire it in the project's .claude/settings.json (or ~/.claude/settings.json):
 #
-#   "statusLine": { "type": "command", "command": "sh .madewell/bindings/statusline.sh" }
+#   "statusLine": { "type": "command", "command": "sh .constellation/bindings/statusline.sh" }
 #
 # Claude Code sends the session as JSON on stdin; its workspace.current_dir is where to look
 # (read with python3 when there is one, else a plain match that suits paths without commas).

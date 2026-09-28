@@ -1,6 +1,6 @@
 #!/bin/sh
 # Append one correction line for HEAD. Post-commit. Never blocks. Never fails the commit.
-# Schema: .madewell/jig/CORRECTIONS.md
+# Schema: .constellation/jig/CORRECTIONS.md
 #
 # This is not piece-position (SPEC.md forbids a status ledger). This is
 # proposed − accepted, so shop-made jigs have a substrate. Git log is the
@@ -9,7 +9,7 @@
 
 set -e
 repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
-jig="$repo_root/.madewell/jig"
+jig="$repo_root/.constellation/jig"
 [ -d "$jig" ] || exit 0
 ledger="$jig/corrections.jsonl"
 sha=$(git rev-parse HEAD 2>/dev/null) || exit 0
@@ -25,7 +25,7 @@ if [ -f "$jig/proposed.json" ]; then
   if proposed=$(python3 -c 'import json,sys; print(json.dumps(json.load(open(sys.argv[1]))))' "$jig/proposed.json"); then
     rm -f "$jig/proposed.json"
   else
-    printf 'mw-record: proposed.json is not JSON; recording proposed:null and leaving the file\n' >&2
+    printf 'cst-record: proposed.json is not JSON; recording proposed:null and leaving the file\n' >&2
     proposed='null'
   fi
 fi

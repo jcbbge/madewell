@@ -1,6 +1,6 @@
 # Product
 
-*Made Well's own product file. The framework describing itself — which is also the shortest
+*Constellation's own product file. The framework describing itself — which is also the shortest
 worked example of what this file is for.*
 
 ---
@@ -44,8 +44,8 @@ lives in the core.
 describe a process with four positions. That was the bug. Craft is the only metaphor now, and
 the bar for a new document is that it must not restate the model.
 
-**The rubric.** *Does this lead to craft, beauty, and care?* It is the reason the framework is
-called what it is, and it outranks working, faster, and nobody-will-notice.
+**The rubric.** *Does this lead to craft, beauty, and care?* It is the standard the framework
+is held to, and it outranks working, faster, and nobody-will-notice.
 
 **Honesty about enforcement.** Every rule names what backs it. A rule with no jig behind it is
 a preference and must be labelled one.

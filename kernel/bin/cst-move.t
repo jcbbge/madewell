@@ -1,12 +1,12 @@
 #!/bin/sh
-# Live proof that mw-move speaks SPEC.md, not a second board.
-# Run from anywhere: sh .madewell/bin/mw-move.t
+# Live proof that cst-move speaks SPEC.md, not a second board.
+# Run from anywhere: sh .constellation/bin/cst-move.t
 set -eu
 here=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 repo=$(CDPATH= cd -- "$here/../.." && pwd)
-bin="$here/mw-move"
+bin="$here/cst-move"
 [ -x "$bin" ] || {
-  echo "compile first: clang -O2 -o $bin $here/mw-move.c" >&2
+  echo "compile first: clang -O2 -o $bin $here/cst-move.c" >&2
   exit 1
 }
 
@@ -16,9 +16,9 @@ cd "$work"
 git init -q
 git config user.email t@t
 git config user.name t
-mkdir -p .madewell/stock .madewell/bench .madewell/finished
-touch .madewell/stock/.gitkeep .madewell/bench/.gitkeep .madewell/finished/.gitkeep
-git add .madewell
+mkdir -p .constellation/stock .constellation/bench .constellation/finished
+touch .constellation/stock/.gitkeep .constellation/bench/.gitkeep .constellation/finished/.gitkeep
+git add .constellation
 git commit -q -m 'floor'
 # empty first commit so later git mv has a HEAD
 
@@ -28,7 +28,7 @@ bad() { printf 'FAIL %s\n' "$1"; fail=1; }
 
 # 1. arrive
 printf '# piece\nabout this cut\n' | "$bin" arrive alpha >/dev/null
-[ -f .madewell/stock/alpha.md ] || bad 'arrive wrote stock/alpha.md'
+[ -f .constellation/stock/alpha.md ] || bad 'arrive wrote stock/alpha.md'
 git diff --cached --name-only | grep -q 'stock/alpha.md' && ok 'arrive stages' || bad 'arrive stages'
 
 # 2. bench without floor → 5
@@ -42,10 +42,10 @@ set -e
 {
   printf '%s\n' '# piece' 'about this cut' \
     '**Making:** x' '**Not making:** y' '**Done when:** z' '**Waits on:** —'
-} > .madewell/stock/alpha.md
+} > .constellation/stock/alpha.md
 "$bin" bench alpha >/dev/null
-[ -f .madewell/bench/alpha.md ] || bad 'bench leaf'
-[ ! -f .madewell/stock/alpha.md ] && ok 'stock emptied' || bad 'stock emptied'
+[ -f .constellation/bench/alpha.md ] || bad 'bench leaf'
+[ ! -f .constellation/stock/alpha.md ] && ok 'stock emptied' || bad 'stock emptied'
 
 # 4. second bench of gone stock → 4
 set +e
@@ -56,8 +56,8 @@ set -e
 
 # 5. finish
 "$bin" finish alpha >/dev/null
-[ -f .madewell/finished/alpha.md ] && ok 'finish' || bad 'finish'
-[ ! -f .madewell/bench/alpha.md ] && ok 'bench emptied' || bad 'bench emptied'
+[ -f .constellation/finished/alpha.md ] && ok 'finish' || bad 'finish'
+[ ! -f .constellation/bench/alpha.md ] && ok 'bench emptied' || bad 'bench emptied'
 
 # 6. no rewind: finish again → 4
 set +e
@@ -70,19 +70,19 @@ set -e
 printf '%s\n' '# nest' '**Making:** a' '**Not making:** b' '**Done when:** c' '**Waits on:** —' \
   | "$bin" arrive nest >/dev/null
 "$bin" bench nest --break >/dev/null
-[ -f .madewell/bench/nest/PIECE.md ] && ok 'break → PIECE.md' || bad 'break'
-[ -f .madewell/bench/nest/stock/.gitkeep ] && ok 'inner stock/' || bad 'inner stock/'
+[ -f .constellation/bench/nest/PIECE.md ] && ok 'break → PIECE.md' || bad 'break'
+[ -f .constellation/bench/nest/stock/.gitkeep ] && ok 'inner stock/' || bad 'inner stock/'
 
 # 7b. finish nested while inner stock has work → 5
-printf 'leftover\n' > .madewell/bench/nest/stock/child.md
+printf 'leftover\n' > .constellation/bench/nest/stock/child.md
 set +e
 "$bin" finish nest >/dev/null 2>&1
 rc=$?
 set -e
 [ "$rc" -eq 5 ] && ok 'nested finish blocked' || bad "nested finish rc=$rc"
-rm .madewell/bench/nest/stock/child.md
+rm .constellation/bench/nest/stock/child.md
 "$bin" finish nest >/dev/null
-[ -f .madewell/finished/nest.md ] && ok 'nested finish after drain' || bad 'nested finish after drain'
+[ -f .constellation/finished/nest.md ] && ok 'nested finish after drain' || bad 'nested finish after drain'
 
 # 8. illegal slug
 set +e

@@ -1,13 +1,13 @@
-# Extending Made Well — the Maintenance Manual
+# Extending Constellation — the Maintenance Manual
 
-This is the agent-facing manual for **modifying Made Well itself**. `HOST.md` tells you how to
+This is the agent-facing manual for **modifying Constellation itself**. `HOST.md` tells you how to
 *operate* the factory; this tells you how to *maintain and extend* it. Read it before changing
-the system — when the person says "I need Made Well to do X," "update my trade,"
+the system — when the person says "I need Constellation to do X," "update my trade,"
 "add a pillar," or "this keeps breaking, fix the process."
 
 ## The mental model — one shop, many trades
 
-Made Well is **a shop**. The bench, the rack, the jigs and the standard are the same whether you
+Constellation is **a shop**. The bench, the rack, the jigs and the standard are the same whether you
 are a joiner or a bookbinder. It does not know your industry. Everything domain-specific is
 **the trade** you practise in it:
 
@@ -35,20 +35,20 @@ it's **law** (the shop itself — never overwrite) or a **slot** a trade fills (
 | Layer | What it is / its purpose | Where | Law or slot |
 |---|---|---|---|
 | **The function** | The Orchestrator: think, plan, decompose, dispatch, verify, land. Never does the work. | `HOST.md` (the host), `stars/LAW.md` (the stars) | **Law** |
-| **The model** | Four acts, Ground and the Jig, three states, the pause. | `MADEWELL.md` | **Law** |
-| **Ground** | Corpus + material before ideate/plan. Protocol, picture, roots. | `.madewell/ground/` | **Law** (the stop); slot (`ROOTS.md` this project adds) |
-| **The Jig** | Compiled conventions, wired stops, FENCE/SIGN/DOCTRINE. | `.madewell/jig/` | **Law** (the stop); slot (conventions a trade/project feeds) |
+| **The model** | Four acts, Ground and the Jig, three states, the pause. | `CONSTELLATION.md` | **Law** |
+| **Ground** | Corpus + material before ideate/plan. Protocol, picture, roots. | `.constellation/ground/` | **Law** (the stop); slot (`ROOTS.md` this project adds) |
+| **The Jig** | Compiled conventions, wired stops, FENCE/SIGN/DOCTRINE. | `.constellation/jig/` | **Law** (the stop); slot (conventions a trade/project feeds) |
 | **Contracts** | The named seams a profile fills: persona · domain · quality · memory · onboarding. | `profiles.json` | Law (the *set*); slot (the *fills*) |
 | **Profiles** | One selection that fills every contract row (lead / contributor / guide / naked). | `PROFILES.md`, `profiles.json` | Slot — add your own |
 | **Trades** | A domain bundle: persona register(s) + skills + pillars. Lives outside the kernel; loaded by explicit reference. | `trades/<name>/TRADE.md` | Slot |
 | **Persona register** (kernel) | The Guide (novice-human register) ships with the kernel because it's the human-facing default. | `registers/guide/REGISTER.md` | Slot |
 | **Pillars** | The hierarchy inside a trade (e.g. dev → frontend / api / backend / ci-cd). | `trades/<c>/pillars/`, declared in the trade's manifest | Slot |
-| **Skills** | Foundational (loop machinery + lenses — Made Well's own) vs trade (loaded with a trade, may be pillar-scoped). | `skills/` (foundational), `trades/<c>/skills/` | Foundational = law-adjacent; trade = slot |
+| **Skills** | Foundational (loop machinery + lenses — Constellation's own) vs trade (loaded with a trade, may be pillar-scoped). | `skills/` (foundational), `trades/<c>/skills/` | Foundational = law-adjacent; trade = slot |
 | **State** | Three directories: `stock/`, `bench/`, `finished/`. Position is path. | `SPEC.md` | **Law** |
 | **Orchestration** | The shop: fan-out across hands, per act. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
-| **Memory** | git log (moves) · DECISIONS.md · PRODUCT.md. Jig tax: `jig/corrections.jsonl` + `mw-tax.sh` (gitignored ledgers, not piece position). | repo root of `.madewell/` | Slot |
+| **Memory** | git log (moves) · DECISIONS.md · PRODUCT.md. Jig tax: `jig/corrections.jsonl` + `cst-tax.sh` (gitignored ledgers, not piece position). | repo root of `.constellation/` | Slot |
 | **Install** | Unfolds the shell, re-syncs the framework (preserving memory), uninstalls cleanly. | `install.sh` | Mechanism |
-| **Human surface** | Front door + guides — how a person meets the system. | `README.md`, `MADEWELL.md`, `guides/` | Slot |
+| **Human surface** | Front door + guides — how a person meets the system. | `README.md`, `CONSTELLATION.md`, `guides/` | Slot |
 
 ---
 
@@ -60,14 +60,14 @@ closed decision casually).
 
 - **The four acts** — ideate → plan → implement → verify, recurring at every depth. There is no second vocabulary for the outer pass. *Why: it's the engine; every piece assumes it.*
 - **You don't proof your own plate** — planner ≠ executor, maker ≠ proofer. *Why: without it the system collapses into self-justifying code-gen.*
-- **The cooperative pause** — every loop yields to the human between iterations; nothing runs autonomously. *Why: the person steers; Made Well is not an autopilot.*
+- **The cooperative pause** — every loop yields to the human between iterations; nothing runs autonomously. *Why: the person steers; Constellation is not an autopilot.*
 - **The Orchestrator function** — output is a question, a plan, a decision, or a brief — never the work itself. *Why: the separation is the whole architecture.*
 - **Finish always fires** — work ships *and* reflects, or it leaks. *Why: a system that only takes in floods.*
 - **Position is path.** *Why: a status field can lie about where something is; a directory cannot.*
 - **Persona is a slot** — the kernel is persona-free; registers fill the slot. *Why: the same function must serve a novice and a machine.*
 - **The Rubric** — does this lead to craft, beauty, and care? *Why: it's the point.*
 - **The three questions** — does it *lead toward* ten times better to use? *point toward* something remembered or loved? *get closer to* being as easy for an agent as for a person? Directions, not scores, asked of every decision rather than only the finished thing. *Why: a framework that cannot say why it chose one way over another accumulates arbitrary choices, and arbitrary choices are what make a system feel like paperwork.*
-- **Contact points, not consultations** — Made Well's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See the Jig in `MADEWELL.md` — a mechanism you may skip is a mechanism you will skip.*
+- **Contact points, not consultations** — Constellation's mechanisms are properties of the pipe, not tools the agent may consult. Anything optional is anything skipped. *Why: the failing agent is precisely the one who does not know it needs the mechanism at that moment; empirical evidence (0% adoption of pull-based grounding over 45 runs) confirms it. See the Jig in `CONSTELLATION.md` — a mechanism you may skip is a mechanism you will skip.*
 
 Everything not on this list is a slot a trade can fill.
 
@@ -78,7 +78,7 @@ Everything not on this list is a slot a trade can fill.
 Each slot has a pattern. Follow it; the kernel already depends only on the contracts, so a
 well-formed trade needs **no kernel change**.
 
-- **Add a trade (a new industry).** Create `trades/<name>/TRADE.md`; carry its persona register(s) and any skills/pillars. The installer ships every trade in `.madewell/trades/`; a project names one by reference (`constellation trade <name>`). Add a profile in `profiles.json` + `PROFILES.md` if it deserves its own loadout.
+- **Add a trade (a new industry).** Create `trades/<name>/TRADE.md`; carry its persona register(s) and any skills/pillars. The installer ships every trade in `.constellation/trades/`; a project names one by reference (`constellation trade <name>`). Add a profile in `profiles.json` + `PROFILES.md` if it deserves its own loadout.
 - **Add a persona register.** A markdown register the trade carries; name it in the trade's `persona` field and the relevant profile.
 - **Add a pillar.** A pillar file under `trades/<c>/pillars/`; declare it in the trade's manifest.
 - **Add a skill.** A markdown file in `skills/` (foundational) or `trades/<c>/skills/` (trade); foundational skills register in `SKILLS.json` with `layer`, `mode`, `when`; trade skills register in the trade's own manifest.
@@ -108,7 +108,7 @@ before creating one — never invent a slot silently.
 
 ## The maintenance protocol
 
-Modifying Made Well runs **the kernel's own four acts** — it is just another piece of work.
+Modifying Constellation runs **the kernel's own four acts** — it is just another piece of work.
 
 **Intake gate:** when the change is a *new artifact being absorbed* (a lint set, a blog's
 rules, a deleted convention to fold, a recurring correction), run
@@ -139,6 +139,6 @@ You are the mechanic who also notices the warning lights. Don't wait to be told:
   name the piece, the pattern, and the proposed change ("your software trade's debug skill keeps missing
   this class of bug — update it?"). You **MUST NOT** apply it without explicit approval. The
   cooperative pause is mandatory here, not a courtesy.
-- **Route the request.** When the person says "I need Made Well to do X," you already know the map:
+- **Route the request.** When the person says "I need Constellation to do X," you already know the map:
   translate X into the right slot (a new skill? a pillar? a pack? a schema field?) and surface that.
 - **Never mutate law.** Proactivity ends at the confines — those are the Lead's call, always.

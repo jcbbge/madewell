@@ -1,6 +1,6 @@
 # Discovery Lenses — Software Development
 
-**Extends:** the kernel's `discovery` skill (`.madewell/skills/discovery.md`), via its Lens Slot.
+**Extends:** the kernel's `discovery` skill (`.constellation/skills/discovery.md`), via its Lens Slot.
 **When:** loaded with the dev trade; run these *after* the universal core (Substance,
 People, Process, Gap, ★Subtext, Meta) on every discovery pass.
 
@@ -10,11 +10,11 @@ universal core can't name.
 
 > **Corpus feeder:** `~/infinity/discovery/` holds transcripts, analyses, and the legacy
 > V2.2 pipeline — a read-only feeder, not a second framework. Raw sitting goes through
-> Made Well discovery and lands on `P/stock/`; the corpus is cited, not copied.
+> Constellation discovery and lands on `P/stock/`; the corpus is cited, not copied.
 
 **Lens map (legacy V2.2 → this trade):**
 
-| V2.2 lens | Made Well home |
+| V2.2 lens | Constellation home |
 |-----------|----------------|
 | Lens 1 — Product | kernel **Substance** + **D4** for grand visions |
 | Lens 2 — UX | **D3** below |

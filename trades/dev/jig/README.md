@@ -1,7 +1,7 @@
 # Software trade — compiled conventions
 
-Diet for the kernel Jig (`.madewell/jig/`). A project that loads this trade honors these;
-`.madewell/jig/conventions/` is where *this repo* compiles its own.
+Diet for the kernel Jig (`.constellation/jig/`). A project that loads this trade honors these;
+`.constellation/jig/conventions/` is where *this repo* compiles its own.
 
 | File | What |
 |---|---|

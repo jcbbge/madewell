@@ -2,16 +2,16 @@
 
 The kernel does not know your industry. Everything domain-specific plugs in here.
 
-A trade teaches Made Well one line of work: what has to be right before anything else, which
+A trade teaches Constellation one line of work: what has to be right before anything else, which
 areas every job passes through, what gets skipped when people are busy, and the one question
 asked before anything ships.
 
-The installer ships every trade in `.madewell/trades/`. A project works in one, named by
+The installer ships every trade in `.constellation/trades/`. A project works in one, named by
 reference in its loader; the host sets it with `constellation trade <name>`, and a project that
 names none works in dev:
 
 ```
-… read and follow .madewell/HOST.md and .madewell/trades/<name>/TRADE.md before anything else …
+… read and follow .constellation/HOST.md and .constellation/trades/<name>/TRADE.md before anything else …
 ```
 
 ---
@@ -37,7 +37,7 @@ are not a software process with other domains bolted on afterwards.
 Set up Constellation in this project.
 ```
 
-It runs `.madewell/skills/adopt.md`: a conversation, not a form. It asks what you actually do
+It runs `.constellation/skills/adopt.md`: a conversation, not a form. It asks what you actually do
 all day, has you walk through one job start to finish, and names the four acts back to you in
 **your** vocabulary before it uses any of its own. Then it asks the three questions that
 produce a trade —
@@ -70,7 +70,7 @@ trades/<name>/
 
 Only `TRADE.md` is required. The rest earn their place.
 
-The slot contract is in [`.madewell/EXTENDING.md`](../.madewell/EXTENDING.md).
+The slot contract is in [`.constellation/EXTENDING.md`](../.constellation/EXTENDING.md).
 `marketing/` is the shortest complete example to copy from.
 
 ---

@@ -20,17 +20,17 @@ check() { local n=$1; shift; if "$@" >/dev/null 2>&1; then ok "$n"; else bad "$n
 says() { local w=$1 out; shift; out=$("$@" 2>&1); grep -qF -- "$w" <<<"$out"; }
 has() { grep -qF -- "$2" "$1"; }
 # The engine's words, listed here and not taken from the code under test.
-ENGINE='\b(vega|polaris|cassiopeia|sirius|orion|aldebaran|constellation|madewell|stock|bench|floor|relay|arbiter|handoffs?|worktrees?|piece|trailer|jig)\b'
-clean() { ! grep -qiE "$ENGINE" "$1" && ! grep -qE 'run\(|piece/|^(ACT|STAR|STEP|EVENT|HARNESS|DONE|NEXT): |\.madewell' "$1"; }
+ENGINE='\b(vega|polaris|cassiopeia|sirius|orion|aldebaran|constellation|stock|bench|floor|relay|arbiter|handoffs?|worktrees?|piece|trailer|jig)\b'
+clean() { ! grep -qiE "$ENGINE" "$1" && ! grep -qE 'run\(|piece/|^(ACT|STAR|STEP|EVENT|HARNESS|DONE|NEXT): |\.constellation' "$1"; }
 
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
 
-rack() { printf '# %s\n\n**Making:** %s\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' "$2" "$3" >".madewell/stock/$1.md"
-         git add ".madewell/stock/$1.md"; git commit -qm "rack: $1"; "$C" take "$1" >/dev/null; }
+rack() { printf '# %s\n\n**Making:** %s\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' "$2" "$3" >".constellation/stock/$1.md"
+         git add ".constellation/stock/$1.md"; git commit -qm "rack: $1"; "$C" take "$1" >/dev/null; }
 as() { export CONSTELLATION_PIECE=$1 CONSTELLATION_STEP=$2 CONSTELLATION_REPO=$P CONSTELLATION_HARNESS=$3 CONSTELLATION_BASE
        CONSTELLATION_BASE=$(git -C "$T/state/proj/$1" rev-parse HEAD); "$C" clear >/dev/null; }
 out() { unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE; }
@@ -60,7 +60,7 @@ printf '%s\n' '{"type":"assistant","timestamp":"'$ts'","message":{"id":"m2","usa
 printf '%s\n' '{"type":"assistant","timestamp":"2020-01-01T00:00:00.000Z","message":{"id":"old","usage":{"input_tokens":9000000,"output_tokens":9000000}}}' >"$logs/s3.jsonl"
 as greet aldebaran claude;    "$C" done "pass: tests/greet.test.js, 1 test, 1 passed" >"$T/land.out" 2>&1
 out
-F=.madewell/finished/greet.md
+F=.constellation/finished/greet.md
 check "the run lands the finished piece" test -f "$F"
 check "land prints the receipt" has "$T/land.out" "## Receipt"
 check "the receipt is appended to the finished piece, below the piece itself" sh -c "head -1 '$F' | grep -qx '# Greet the user' && grep -qx '## Receipt' '$F'"
@@ -103,7 +103,7 @@ out; echo x >src/other.js; git add src/other.js; git commit -qm "an unrelated ch
 as bye aldebaran pi; "$C" done "pass: 1 passed" >/dev/null
 out
 "$C" receipt bye >"$T/r2" 2>&1
-check "landed over a moved default branch (rebased first)" sh -c "test -f .madewell/finished/bye.md && git log --format=%s | grep -qx 'an unrelated change made meanwhile'"
+check "landed over a moved default branch (rebased first)" sh -c "test -f .constellation/finished/bye.md && git log --format=%s | grep -qx 'an unrelated change made meanwhile'"
 check "the second receipt carries only its own commits, not the other piece's or the meanwhile change" sh -c "grep -qF 'Saved as 2 changes' '$T/r2' && ! grep -qE 'greet|meanwhile' '$T/r2'"
 check "a maker who did not say how to try it: the receipt says so, and what to do" has "$T/r2" "The maker did not say how to try it. Ask for a short demonstration."
 check "no failed check, no failure line" sh -c "! grep -q 'did not pass the first time' '$T/r2'"
@@ -111,7 +111,7 @@ check "no harness log, no token line (the time still shows)" sh -c "grep -q 'It 
 check "the second receipt never says an engine word" clean "$T/r2"
 
 # --- refusals, in plain words
-printf '# Soon\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.madewell/stock/soon.md; git add .madewell/stock/soon.md; git commit -qm "rack: soon"
+printf '# Soon\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.constellation/stock/soon.md; git add .constellation/stock/soon.md; git commit -qm "rack: soon"
 check "an idea that is not done has no receipt yet" says "is not done yet, so it has no receipt" "$C" receipt soon
 "$C" move bench soon >/dev/null 2>&1 && git commit -qm "soon to the bench" && "$C" move finish soon >/dev/null 2>&1 && git commit -qm "soon finished by hand"
 check "finished by hand, with no record: it says there is nothing to build from" says "without a record of how it was made" "$C" receipt soon

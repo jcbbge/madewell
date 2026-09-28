@@ -31,7 +31,7 @@ done
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
 
 wt() { printf '%s/state/%s/%s' "$T" "$(basename "$P")" "$1"; }
@@ -41,8 +41,8 @@ as() { export CONSTELLATION_PIECE=$1 CONSTELLATION_STEP=$2 CONSTELLATION_REPO=$P
 put() { local w; w=$(wt "$1"); mkdir -p "$w/$(dirname "$2")"; echo "$1" >>"$w/$2"; git -C "$w" add -- "$2"; git -C "$w" commit -qm "add $2"; }
 undo() { git -C "$(wt "$1")" reset -q --hard HEAD~1; }
 rack() { # rack <slug> : a piece with its floor, taken and started (vega runs)
-  printf '# %s\n\n**Making:** %s\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' "$1" "$1" >".madewell/stock/$1.md"
-  git add ".madewell/stock/$1.md"; git commit -qm "rack: $1"; op take "$1" >/dev/null; op run "$1" >/dev/null
+  printf '# %s\n\n**Making:** %s\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' "$1" "$1" >".constellation/stock/$1.md"
+  git add ".constellation/stock/$1.md"; git commit -qm "rack: $1"; op take "$1" >/dev/null; op run "$1" >/dev/null
 }
 to_sirius() { local s; for s in vega polaris-peer cassiopeia; do as "$1" "$s"; "$C" clear >/dev/null; "$C" done "$s: handed off" >/dev/null; done; as "$1" sirius; "$C" clear >/dev/null; }
 
@@ -66,7 +66,7 @@ done
 
 # --- marketing, set by name ----------------------------------------------------------------
 check "constellation trade marketing sets it" sh -c "'$C' trade marketing | grep -q '^marketing — named in AGENTS.md CLAUDE.md'"
-check "the loader names the trade by reference, in both entrypoints" sh -c "for f in AGENTS.md CLAUDE.md; do grep -qF 'read and follow .madewell/HOST.md and $ROOT/trades/marketing/TRADE.md before anything else' \$f || exit 1; done"
+check "the loader names the trade by reference, in both entrypoints" sh -c "for f in AGENTS.md CLAUDE.md; do grep -qF 'read and follow .constellation/HOST.md and $ROOT/trades/marketing/TRADE.md before anything else' \$f || exit 1; done"
 check "setting it commits the loader, and nothing else" sh -c "test -z \"\$(git status --porcelain --untracked-files=no)\" && git log -1 --format=%s | grep -q '^chore(trade)' && test \"\$(git show --name-only --format= HEAD | sort | tr '\n' ' ')\" = 'AGENTS.md CLAUDE.md '"
 check "constellation trade prints marketing, and where it is named" sh -c "'$C' trade | grep -q '^marketing — named in AGENTS.md'"
 check "setting the same trade again changes nothing" sh -c "h=\$(git rev-parse HEAD); '$C' trade marketing >/dev/null && test \"\$(git rev-parse HEAD)\" = \"\$h\""
@@ -120,7 +120,7 @@ check "a named trade that is not on this machine is said, not guessed" says "the
 put third src/third.js
 check "a star that writes cannot hand off while its trade is missing" says "the ghost trade that says what it may write is not on this machine" "$C" done "built"
 mkdir -p trades/bare; printf '# Bare\n' >trades/bare/TRADE.md; git add trades; git commit -qm "a trade with no stars"
-check "a trade inside the project is named relative to it" sh -c "'$C' trade bare >/dev/null && grep -qF 'read and follow .madewell/HOST.md and trades/bare/TRADE.md before' AGENTS.md"
+check "a trade inside the project is named relative to it" sh -c "'$C' trade bare >/dev/null && grep -qF 'read and follow .constellation/HOST.md and trades/bare/TRADE.md before' AGENTS.md"
 check "a trade with no write rule says the stop is missing" says "UNJIGGED: the bare trade names no write rule for sirius" "$C" done "built"
 mkdir -p trades/bare/stars; printf '# Orion, bare\nwrites-only: (reviews\n---\n' >trades/bare/stars/orion.md; git add trades; git commit -qm "a broken rule"
 as third orion; "$C" clear >/dev/null; put third notes/third.md
@@ -132,10 +132,10 @@ check "a rule with no refusal words still names the paths" says "orion changes o
 P=$T/solo; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
-cd "$P"; C=$P/.madewell/bin/constellation
-check "the installed kernel carries the trades" test -f "$P/.madewell/trades/dev/stars/sirius.md"
-check "installed, no reference: constellation trade finds dev in the kernel" says "dev — the default (this project names no trade); its files are in $P/.madewell/trades/dev" op trade
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
+cd "$P"; C=$P/.constellation/bin/constellation
+check "the installed kernel carries the trades" test -f "$P/.constellation/trades/dev/stars/sirius.md"
+check "installed, no reference: constellation trade finds dev in the kernel" says "dev — the default (this project names no trade); its files are in $P/.constellation/trades/dev" op trade
 rack solo; to_sirius solo
 check "installed: sirius's brief carries the dev overlay" grep -qF "In this trade: dev" "$(brief solo sirius)"
 put solo tests/solo.test.js

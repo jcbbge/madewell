@@ -5,9 +5,9 @@ cmd_status() {
   R=$(main_repo)
   if [ -n "${1:-}" ]; then
     local slug=$1 s e h d where
-    if [ -f "$R/$MW/bench/$slug.md" ]; then where='on the bench'
+    if [ -f "$R/$CST/bench/$slug.md" ]; then where='on the bench'
     elif broken_down "$slug"; then where="on the bench, in parts: $(parts_said "$slug")"
-    elif [ -f "$R/$MW/finished/$slug.md" ]; then where=finished
+    elif [ -f "$R/$CST/finished/$slug.md" ]; then where=finished
     else where='not on the bench'; fi
     say "$slug — $where"
     while IFS=$'\t' read -r s e h d; do printf '  %-15s %-14s %-7s %s\n' "$s" "$e" "$h" "$d"; done < <(events "$slug")

@@ -5,11 +5,11 @@ Do not list trees that do not exist.
 
 ## Kernel (always)
 
-- `.madewell/DECISIONS.md`
-- `.madewell/PRODUCT.md`
-- `.madewell/stock/`, `.madewell/bench/`, `.madewell/finished/`
-- `.madewell/jig/`
-- `AGENTS.md`, `MADEWELL.md`, `.madewell/SPEC.md` (or `SPEC.md` in the dist checkout)
+- `.constellation/DECISIONS.md`
+- `.constellation/PRODUCT.md`
+- `.constellation/stock/`, `.constellation/bench/`, `.constellation/finished/`
+- `.constellation/jig/`
+- `AGENTS.md`, `CONSTELLATION.md`, `.constellation/SPEC.md` (or `SPEC.md` in the dist checkout)
 
 ## This project
 

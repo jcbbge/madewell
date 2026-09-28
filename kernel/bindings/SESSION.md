@@ -1,6 +1,6 @@
 # Session execution binding
 
-Executable door: `bin/mw-session.py`. Optional Pi host: `bindings/pi.ts`.
+Executable door: `bin/cst-session.py`. Optional Pi host: `bindings/pi.ts`.
 Requires Python 3.9+ on a POSIX host. No model, agent runtime, service, or
 third-party Python package is required by the door.
 
@@ -12,7 +12,7 @@ and commit gates. Legacy unbound pieces intentionally remain allowed.
 
 ## Storage and observability
 
-`.madewell/sessions/<id>.json` is the authoritative execution record: goal,
+`.constellation/sessions/<id>.json` is the authoritative execution record: goal,
 piece reference, current phase, actor, deadline, every phase's actionable
 checklist, expected results, dependencies, command attempts, file hashes,
 acceptances, prior failed cycles, and timestamped events. Logs are separate
@@ -35,21 +35,21 @@ A timeout or interrupt is not success. No command is retried automatically.
 One JSON request on stdin; one JSON result on stdout:
 
 ```sh
-python3 kernel/bin/mw-session.py --root "$PWD" --session example --actor operator
+python3 kernel/bin/cst-session.py --root "$PWD" --session example --actor operator
 ```
 
-Installed path: `.madewell/bin/mw-session.py`. IDs use letters, digits, `_`, `-`.
+Installed path: `.constellation/bin/cst-session.py`. IDs use letters, digits, `_`, `-`.
 The caller supplies identity; the standalone CLI is a trusted local binding,
 not an authentication service. The Pi binding supplies the native session ID
 itself and does not expose an actor override to the model.
 
 For new work, `start` may include `create_piece: true` with a new
-`.madewell/stock/<slug>.md` path. This creates only stock material, not code;
+`.constellation/stock/<slug>.md` path. This creates only stock material, not code;
 existing files are never overwritten. Existing pieces need no creation flag.
 During ideate/plan, `floor` writes the four SPEC lines on that bound stock piece:
 
 ```json
-{"op":"start","piece":".madewell/stock/example.md","goal":"Write and verify an output file","create_piece":true}
+{"op":"start","piece":".constellation/stock/example.md","goal":"Write and verify an output file","create_piece":true}
 {"op":"floor","making":"output.txt containing hello","not_making":"Other product changes","done_when":"Independent exact-content assertion passes","waits_on":""}
 ```
 
@@ -70,7 +70,7 @@ do not combine staged moves or bypass the commit gate.
 For example, the planned stock-arrival step may run:
 
 ```json
-{"op":"run","step":"stock-commit","argv":["sh","-c","git add -- .madewell/stock/example.md && git commit -m 'chore(example): stock arrival' -m 'ACT: implement\nDONE: Record stock arrival\nNEXT: Move to bench'"]}
+{"op":"run","step":"stock-commit","argv":["sh","-c","git add -- .constellation/stock/example.md && git commit -m 'chore(example): stock arrival' -m 'ACT: implement\nDONE: Record stock arrival\nNEXT: Move to bench'"]}
 {"op":"move","action":"bench"}
 {"op":"run","step":"bench-commit","argv":["git","commit","-m","chore(example): bench arrival","-m","ACT: implement\nDONE: Record bench arrival\nNEXT: Make the artifact"]}
 ```
@@ -82,7 +82,7 @@ Request examples for an **already committed bench piece**, in sequence
 (one invocation per request):
 
 ```json
-{"op":"start","piece":".madewell/bench/example.md","goal":"Write and verify an output file","minutes":60}
+{"op":"start","piece":".constellation/bench/example.md","goal":"Write and verify an output file","minutes":60}
 {"op":"propose","step":"understand","title":"Establish goal and exclusions","expected":"A concrete intended outcome and non-goals"}
 {"op":"record","step":"understand","result":"Produce output.txt containing hello; do not modify other product files."}
 {"op":"advance","reason":"Goal and exclusions established"}
@@ -180,7 +180,7 @@ stderr while successful gate checks remain quiet.
 Both share the claim lock. A crash between Git and record persistence leaves a
 missing-path fence, not silent double ownership.
 
-Refusal uses CLI exit 5 and `madewell.refused/v1`. Time expiry refuses further
+Refusal uses CLI exit 5 and `constellation.refused/v1`. Time expiry refuses further
 work until an explicit stop/resume. It does not magically mean completion.
 
 ## Pi host: the actual tool boundary
@@ -191,19 +191,19 @@ Load explicitly from the project root:
 pi -e ./kernel/bindings/pi.ts
 ```
 
-In an installed project, use `pi -e ./.madewell/bindings/pi.ts`.
+In an installed project, use `pi -e ./.constellation/bindings/pi.ts`.
 No global Pi settings are modified by this package. This package checkout opts
-in through `.pi/extensions/madewell.ts`; it loads when Pi trusts and opens this
+in through `.pi/extensions/constellation.ts`; it loads when Pi trusts and opens this
 project (or reloads within it). Other installed projects opt in explicitly.
 Starting a Pi process from another working directory does not activate this
 project's binding.
 
-The binding registers `mw_session` with `session` and a structured `request`
+The binding registers `cst_session` with `session` and a structured `request`
 object (preferred). Legacy JSON-string requests remain accepted. Both forms
 use the same object validation, backend and phase/tool gates; actor identity
 still comes exclusively from the native host. Arrays, null and primitives
 are refused; the backend continues to validate operations and their fields.
-It allows read/grep/find/ls and `mw_session`. Intercom permits only `list`,
+It allows read/grep/find/ls and `cst_session`. Intercom permits only `list`,
 `list-cwd`, `pending`, `status`, and `reply` with a nonempty `replyTo`; pane
 creation, retry/supersession, send, ask and cancel remain refused. All other
 native/extension tools are blocked. Executable work goes through gated `run`
@@ -213,13 +213,13 @@ clear first enforcement boundary: read-based exploration remains available.
 
 The footer/widget displays the selected session, phase, actor, and step states
 from the same persisted record. Filesystem notifications update it during a
-running command. `/mw <id>` inspects an existing record; `/mw` lists IDs.
+running command. `/cst <id>` inspects an existing record; `/cst` lists IDs.
 Selection survives native-session reload via a Pi custom entry, but execution
 state lives only in the repository record. Rendering rechecks proof through
 the Python door, showing historical done separately from stale proof. The first
 widget line starts with phase and status, before the goal, actor and checklist,
 so a long session ID cannot hide them in a narrow pane. Refresh
-on session events, tool calls or `/mw`; external artifact changes while idle
+on session events, tool calls or `/cst`; external artifact changes while idle
 are not guaranteed an immediate repaint. Normal host shutdown requests a pause. Abrupt termination requires inspecting/recovering the durable record.
 
 ## Honesty boundaries
@@ -249,9 +249,9 @@ are not guaranteed an immediate repaint. Normal host shutdown requests a pause. 
   Neither mechanism certifies reviewer competence or separate human identity.
 - Installer-managed ignores currently keep execution records local in consumer
   projects. They survive process loss and re-sync, but are not automatically
-  backed up or transported by Git. The existing uninstall removes `.madewell/`,
+  backed up or transported by Git. The existing uninstall removes `.constellation/`,
   including local execution records; do not uninstall a live workspace.
 - The binding must actually be loaded before calling the host fence live.
   Installing source files is not activation.
 
-Tests: `PYTHONDONTWRITEBYTECODE=1 python3 kernel/bin/mw-session.t.py`.
+Tests: `PYTHONDONTWRITEBYTECODE=1 python3 kernel/bin/cst-session.t.py`.

@@ -1,4 +1,4 @@
-# Made Well — Portability & the Host ABI
+# Constellation — Portability & the Host ABI
 
 **Version:** 1 (draft)
 **Date:** 2026-08-16
@@ -10,9 +10,9 @@ The key words MUST, SHOULD, MAY are per RFC 2119.
 
 ---
 
-## 1. What Made Well is, ontologically
+## 1. What Constellation is, ontologically
 
-Made Well is not a program. Stripped to identity, it is five kinds of
+Constellation is not a program. Stripped to identity, it is five kinds of
 declaration, none of which names a runtime:
 
 | Kind | Examples |
@@ -23,7 +23,7 @@ declaration, none of which names a runtime:
 | **roles** | profiles with obligations, never providers or models |
 | **rubrics** | judgment procedures with stated tie-breaks |
 
-**Made Well is the rules of a game. Any runtime is one table.** Chess is
+**Constellation is the rules of a game. Any runtime is one table.** Chess is
 portable across carved wood, postal mail, and silicon because its rules are
 expressed over an abstract state space — positions and legal moves — never
 over any particular table. So here.
@@ -31,21 +31,21 @@ over any particular table. So here.
 ## 2. The three layers (never conflate them)
 
 1. **Declarations** — the portable soul (§1). Runtime-free by construction.
-2. **Serialization** — the wire format. Made Well travels as **plain text
+2. **Serialization** — the wire format. Constellation travels as **plain text
    files in a git repository** (SPEC.md Rules 1–2): diffable, reviewable,
    signable, clonable, readable by a human with no tooling at all. Files
-   are how Made Well *travels*, not what it *is* — a score is not the music.
+   are how Constellation *travels*, not what it *is* — a score is not the music.
 3. **Binding** — per-host compilation. A digestion step (in tup terms: the
    mint) compiles the declarations into whatever enforcement forms *this*
    host offers: repo jigs, CI checks, branch protections, hooks, or a
    laminated checklist on a shop wall.
 
-**You port hosts, never Made Well itself.** No future rewrite (Rust or otherwise)
-touches Made Well itself; only tables get rebuilt.
+**You port hosts, never Constellation itself.** No future rewrite (Rust or otherwise)
+touches Constellation itself; only tables get rebuilt.
 
 ## 3. The Host ABI — five ontological commitments
 
-A host CAN run Made Well iff it offers:
+A host CAN run Constellation iff it offers:
 
 1. **Durable state** — loop position survives any process.
 2. **Typed transitions** — state changes by legal moves, not free edits.
@@ -76,15 +76,15 @@ named enforcer wears its tier label explicitly.
 
 ## 5. Worked ports (informative)
 
-- **Bare git repo + `mw-gate` (reference):** all five commitments; the jig = FENCE.
+- **Bare git repo + `cst-gate` (reference):** all five commitments; the jig = FENCE.
 - **GitHub alone:** issues/PR states (1, 2) · CODEOWNERS + review identity
   (3) · protected branches + required checks (4 → criteria-before-code as
   review rules, the verify act as CI, the commit gate as branch
   protection) · git log (5). Weaker fences, same law.
 - **A human team with index cards:** 1, 2, 3, 5 on paper; 4 is social →
-  Made Well runs at SIGN tier, honestly labelled.
+  Constellation runs at SIGN tier, honestly labelled.
 - **The tup runtime:** all five at full strength (durable objects, typed
-  deposits, spawn-door identity, lockouts, hash-chained events); Made Well
+  deposits, spawn-door identity, lockouts, hash-chained events); Constellation
   is tup's first pack, and its clean extraction from tup is a standing
   conformance test in both directions.
 

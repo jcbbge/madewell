@@ -1,7 +1,7 @@
 # Abstraction Builder
 
 **Mode:** Workflow — maintenance / fold gate (not a product loop act)
-**Trigger:** New artifact to absorb into Made Well — a lint rule, a blog, a correction, a
+**Trigger:** New artifact to absorb into Constellation — a lint rule, a blog, a correction, a
 convention file, a detector, a doctrine doc, “we keep making this mistake”
 **Artifacts:** A **profile** + **recommender** card; optional piece on `P/stock/` pending Lead place
 **Not:** A CLI, MCP, or app. Not a harness skill.
@@ -15,8 +15,8 @@ Stops **whack-a-mole**: adding rules, hooks, and markdown one at a time without 
 Filter: the decidable question (`jig/CONTRACT.md`) plus placement (`EXTENDING.md` +
 `PORTABILITY.md`). Honesty labels: **FENCE / SIGN / DOCTRINE**. Shop-made jig after twice.
 
-**Feeder into the Jig.** Residue lands in `.madewell/jig/conventions/` (this project) or
-`trades/<name>/jig/conventions/` (diet). Ground is `.madewell/ground/`. This skill is how
+**Feeder into the Jig.** Residue lands in `.constellation/jig/conventions/` (this project) or
+`trades/<name>/jig/conventions/` (diet). Ground is `.constellation/ground/`. This skill is how
 new material enters those two — not a substitute for either.
 
 ---
@@ -48,7 +48,7 @@ Deletion without this protocol is a process defect.
 | **Problem** | Failure mode (never-looked? re-decision? taste? naming?) |
 | **Audience** | Agent / human / both / CI-only |
 | **Regularities** | Atomic claims (split compound docs) |
-| **Already exists?** | Overlap with MADEWELL / trade / `ci/` / hooks (file:line) |
+| **Already exists?** | Overlap with CONSTELLATION.md / trade / `ci/` / hooks (file:line) |
 | **Live vs aspirational** | What already runs vs what is prose |
 | **Cost if skipped** | Redo? Drift? Silent wrong? |
 
@@ -91,7 +91,7 @@ house names ──────────────────────�
 |---|---|
 | **Kernel law** | Only Lead |
 | **Foundational skill** | Loop machinery / lenses |
-| **Ground / Jig** | `.madewell/ground/`, `.madewell/jig/` |
+| **Ground / Jig** | `.constellation/ground/`, `.constellation/jig/` |
 | **Trade sitting / pillar / conventions** | Domain-specific |
 | **Host CI / hook** | Decidable FENCE |
 | **Project AGENTS / DESIGN** | Project names or project-only fence |
@@ -111,10 +111,10 @@ Paths resolve. Install still unfolds. Every kept law names its honesty tier.
 
 ## Worked feed (2026-08-27)
 
-Lab quality stop folded into Made Well names:
+Lab quality stop folded into Constellation names:
 
-- Ground → `.madewell/ground/`
-- The Jig → `.madewell/jig/`
+- Ground → `.constellation/ground/`
+- The Jig → `.constellation/jig/`
 - Software diet → `trades/dev/jig/conventions/`
 - This skill = feeder
 - `corrections.jsonl` = proposed − accepted. Contact: `proposed.json` before commit. Reading: `constellation tax`. Git log is not a substitute. Fixture 6/6 is not the tax.
@@ -127,5 +127,5 @@ Lab quality stop folded into Made Well names:
 |---|---|
 | `discovery.md` | Raw *work* → rack. This: raw *convention* → place. |
 | `EXTENDING.md` | Slots. This is the gate before you turn a bolt. |
-| `.madewell/ground/` | Stop on product work. This is the stop on *framework intake*. |
+| `.constellation/ground/` | Stop on product work. This is the stop on *framework intake*. |
 | Enforcer (trade) | Source text. This decides whether a *rule about* source text becomes a jig. |

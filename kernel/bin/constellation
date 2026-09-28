@@ -41,8 +41,8 @@
 #
 # The one interface: people and agents act through `constellation <verb>` only. The kernel's
 # own tools sit behind it and are never called by name:
-#   constellation move arrive|bench|finish <slug>   the four legal moves, staged (mw-move)
-#   constellation session …                    the durable execution door (mw-session)
+#   constellation move arrive|bench|finish <slug>   the four legal moves, staged (cst-move)
+#   constellation session …                    the durable execution door (cst-session)
 #   constellation tax | jigs | enforcers       the jig tax reading · run the jigs · every claim + falsifier
 #   constellation hooks                        wire the commit gate and jigs into this clone
 #   constellation install <project> [--uninstall]   put the kernel into a project (package only)
@@ -86,7 +86,7 @@ KERNEL=$(cd "$(dirname "$SELF")/.." && pwd)
 STARS=$KERNEL/stars
 STATE=${CONSTELLATION_STATE:-${XDG_STATE_HOME:-$HOME/.local/state}/constellation}
 SESSION=${CONSTELLATION_TMUX_SESSION:-workers}
-MW=.madewell
+CST=.constellation
 STEPS="vega polaris-peer cassiopeia sirius orion aldebaran polaris-triage"
 LIB=$KERNEL/lib/constellation
 for f in "$LIB"/*.sh; do . "$f"; done  # one file per concern; each verb's code lives in one of them
@@ -115,12 +115,12 @@ case "$1" in
   brief) shift; cmd_brief "$@" ;;
   line) shift; cmd_line "$@" ;;
   # the kernel, behind the same door: nothing tells an agent or a person to run these directly
-  move) shift; exec "$KERNEL/bin/mw-move" "$@" ;;                      # arrive | bench [--break] | finish <slug>
-  session) shift; exec python3 "$KERNEL/bin/mw-session.py" "$@" ;;    # the durable execution door (bindings/SESSION.md)
-  tax) shift; exec sh "$KERNEL/bin/mw-tax.sh" "$@" ;;                  # the jig tax reading: promote / hold / drop
-  jigs) shift; exec sh "$KERNEL/bin/mw-jigs.sh" "$@" ;;                # run the wired jigs now
-  enforcers) shift; exec sh "$KERNEL/bin/mw-enforcers.sh" "${@:---list}" ;;  # every enforcement claim and its falsifier
-  hooks) shift; exec sh "$KERNEL/bin/mw-hooks.sh" "$@" ;;              # wire the commit gate and jigs into this clone
+  move) shift; exec "$KERNEL/bin/cst-move" "$@" ;;                      # arrive | bench [--break] | finish <slug>
+  session) shift; exec python3 "$KERNEL/bin/cst-session.py" "$@" ;;    # the durable execution door (bindings/SESSION.md)
+  tax) shift; exec sh "$KERNEL/bin/cst-tax.sh" "$@" ;;                  # the jig tax reading: promote / hold / drop
+  jigs) shift; exec sh "$KERNEL/bin/cst-jigs.sh" "$@" ;;                # run the wired jigs now
+  enforcers) shift; exec sh "$KERNEL/bin/cst-enforcers.sh" "${@:---list}" ;;  # every enforcement claim and its falsifier
+  hooks) shift; exec sh "$KERNEL/bin/cst-hooks.sh" "$@" ;;              # wire the commit gate and jigs into this clone
   install) shift; [ -f "$KERNEL/../install.sh" ] || die "install runs from the package checkout"; exec sh "$KERNEL/../install.sh" "$@" ;;
   *) die "unknown command '$1' (constellation help)" ;;
 esac

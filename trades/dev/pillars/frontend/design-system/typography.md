@@ -22,7 +22,7 @@ Every app speaks in three typographic voices. They must be **chosen together** s
 3. **Mono — the system voice.** Monospaced, for status, system messages, code, data, anything the
    *computer* is saying rather than the person reading. This is the app's machine register — it
    pairs directly with the feedback doctrine's idea of the system speaking back. Most design
-   systems forget it; Made Well treats it as a first-class voice.
+   systems forget it; Constellation treats it as a first-class voice.
 
 A valid system can be **one family** used across roles (a single typeface with bold headings, a
 lighter body, and the family's mono cut) or a **pairing/trio** of families that harmonize. Never

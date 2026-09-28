@@ -7,9 +7,9 @@
 ## Look at where things are
 
 ```sh
-ls .madewell/stock/       # material on the rack
-ls .madewell/bench/       # what is in hand
-ls .madewell/finished/    # what is done
+ls .constellation/stock/       # material on the rack
+ls .constellation/bench/       # what is in hand
+ls .constellation/finished/    # what is done
 git log --oneline -12     # what just happened
 git status --porcelain    # what is uncommitted, and whose it is
 constellation tax  # promote / drop from the live ledger, not fixtures

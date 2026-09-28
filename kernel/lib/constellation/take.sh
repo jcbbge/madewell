@@ -30,8 +30,8 @@ cmd_take() {
     esac
   done
   [ -n "$slug" ] || die "usage: constellation take <slug> [--making '…' --not-making '…' --done-when '…' --waits-on '…']"
-  R=$(main_repo); local src="$R/$MW/stock/$slug.md" dst="$R/$MW/bench/$slug.md"
-  [ -f "$src" ] || die "no piece $MW/stock/$slug.md on the rack"
+  R=$(main_repo); local src="$R/$CST/stock/$slug.md" dst="$R/$CST/bench/$slug.md"
+  [ -f "$src" ] || die "no piece $CST/stock/$slug.md on the rack"
   local missing=()
   for i in 0 1 2 3; do
     [ "${given[i]}" = 1 ] || floor_answered "$src" "${FLOOR_KEYS[i]}" || missing+=("$i")
@@ -45,11 +45,11 @@ cmd_take() {
 DONE: $slug is in hand (its floor is stated)
 NEXT: constellation run $slug (vega, ideate)" || {
     git -C "$R" reset -q -- "$src" "$dst" 2>/dev/null; mv "$dst" "$src"
-    die "the move was refused (mw-gate); $slug stays on the rack"; }
+    die "the move was refused (cst-gate); $slug stays on the rack"; }
   local wt; wt=$(work_of "$slug"); mkdir -p "$(dirname "$wt")"
   git -C "$R" worktree add -q -b "$(branch_of "$slug")" "$wt" HEAD || die "could not make the worktree for $slug"
   seed_framework "$wt"
-  project_hook setup "$slug" "$wt" || die "$slug is on the bench, but the project's own setup for its worktree failed (above); fix it, then run $MW/setup $wt $R by hand"
+  project_hook setup "$slug" "$wt" || die "$slug is on the bench, but the project's own setup for its worktree failed (above); fix it, then run $CST/setup $wt $R by hand"
   say "took $slug to the bench — branch $(branch_of "$slug"), worktree $wt
 next: constellation run $slug"
 }
@@ -77,10 +77,10 @@ floor_write() { # floor_write <piece> <key> <value> : replace the piece's **Key:
 }
 
 project_hook() { # project_hook <setup|teardown> <slug> <worktree> : the project's own step for a piece's worktree
-  # A project may ship .madewell/setup and .madewell/teardown (tracked, executable): setup runs in
+  # A project may ship .constellation/setup and .constellation/teardown (tracked, executable): setup runs in
   # a new piece's worktree (its dependencies, its environment, its own database), teardown before
   # the worktree is removed at land. Each gets <worktree> <main checkout>. No file, nothing to do.
-  local f="$R/$MW/$1" out
+  local f="$R/$CST/$1" out
   [ -x "$f" ] || return 0
   [ "${CONSTELLATION_DRY:-}" = 1 ] && [ -z "${CONSTELLATION_HOOKS:-}" ] && return 0
   out=$(cd "$3" && "$f" "$3" "$R" 2>&1) && return 0
@@ -89,13 +89,13 @@ project_hook() { # project_hook <setup|teardown> <slug> <worktree> : the project
 seed_framework() { # the vendored framework is gitignored; a worktree needs it for the commit gate and the stars' law
   local wt=$1 d f
   for d in bin lib guides skills templates registers bindings stars trades; do
-    [ -d "$R/$MW/$d" ] && [ ! -e "$wt/$MW/$d" ] && cp -a "$R/$MW/$d" "$wt/$MW/$d"
+    [ -d "$R/$CST/$d" ] && [ ! -e "$wt/$CST/$d" ] && cp -a "$R/$CST/$d" "$wt/$CST/$d"
   done
   # ground/ and jig/ mix framework docs (ignored) with the project's own files (tracked, already in the
   # worktree): only the docs install.sh ships are seeded, never the project's jig records. HOST.md is
   # the host's law and never goes into a worktree: no star is the host.
   for f in ground/README.md ground/PROTOCOL.md ground/PICTURE.md \
            jig/README.md jig/CONTRACT.md jig/CORRECTIONS.md jig/.gitignore jig/metabolism; do
-    [ -e "$R/$MW/$f" ] && [ ! -e "$wt/$MW/$f" ] && mkdir -p "$(dirname "$wt/$MW/$f")" && cp -a "$R/$MW/$f" "$wt/$MW/$f"
+    [ -e "$R/$CST/$f" ] && [ ! -e "$wt/$CST/$f" ] && mkdir -p "$(dirname "$wt/$CST/$f")" && cp -a "$R/$CST/$f" "$wt/$CST/$f"
   done; return 0
 }

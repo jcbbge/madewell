@@ -13,15 +13,15 @@ cmd_land() {
   fi
   git -C "$R" merge --ff-only -q "$br" || die "the fast-forward failed; nothing landed"
   local rc; rc=$(receipt_compose "$slug" HEAD) || rc=""
-  git -C "$R" mv "$MW/bench/$slug.md" "$MW/finished/$slug.md"
-  if [ -n "$rc" ]; then printf '\n%s\n' "$rc" >>"$R/$MW/finished/$slug.md"; git -C "$R" add "$MW/finished/$slug.md"; fi
+  git -C "$R" mv "$CST/bench/$slug.md" "$CST/finished/$slug.md"
+  if [ -n "$rc" ]; then printf '\n%s\n' "$rc" >>"$R/$CST/finished/$slug.md"; git -C "$R" add "$CST/finished/$slug.md"; fi
   git -C "$R" commit -q -m "finish $slug" -m "ACT: verify
 DONE: $slug verified by a star that did not build it; landed from $br
-NEXT: —" || die "the finish move was refused (mw-gate); the code is landed, the piece is still on the bench"
-  project_hook teardown "$slug" "$wt" || say "$slug landed; the project's teardown for its worktree failed (above): run $MW/teardown $wt $R by hand"
+NEXT: —" || die "the finish move was refused (cst-gate); the code is landed, the piece is still on the bench"
+  project_hook teardown "$slug" "$wt" || say "$slug landed; the project's teardown for its worktree failed (above): run $CST/teardown $wt $R by hand"
   git -C "$R" worktree remove --force "$wt" 2>/dev/null || true
   git -C "$R" branch -D "$br" >/dev/null 2>&1 || true
   notify "$slug landed and finished"
-  say "landed $slug into $def; $MW/finished/$slug.md"
+  say "landed $slug into $def; $CST/finished/$slug.md"
   [ -z "$rc" ] || printf '\n%s\n' "$rc"
 }

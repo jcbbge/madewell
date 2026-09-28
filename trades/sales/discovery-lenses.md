@@ -1,6 +1,6 @@
 # Discovery Lenses — Sales
 
-**Extends:** the kernel's `discovery` skill (`.madewell/skills/discovery.md`), via its Lens Slot.
+**Extends:** the kernel's `discovery` skill (`.constellation/skills/discovery.md`), via its Lens Slot.
 **When:** loaded with the sales trade; run *after* the universal core on every pass.
 
 The engine lives in the kernel. This adds what a sales lane can see that the universal core

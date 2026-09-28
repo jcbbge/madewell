@@ -2,10 +2,10 @@
 /**
  * Live tax — proposed − accepted in, promote / keep / drop out.
  *
- * Reads .madewell/jig/corrections.jsonl and firings.jsonl.
+ * Reads .constellation/jig/corrections.jsonl and firings.jsonl.
  * Decision functions: metabolism.mjs (lab math, unchanged).
  *
- *   node .madewell/jig/metabolism/tax.mjs
+ *   node .constellation/jig/metabolism/tax.mjs
  *
  * Exit 0 always (report). Ratification and take-down are printed, not auto-built.
  */
@@ -102,8 +102,8 @@ function historyFor(firings, jigId, window, periodMs) {
 }
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
-const root = process.env.MW_REPO_ROOT || repoRoot();
-const jig = process.env.MW_JIG_DIR || `${root}/.madewell/jig`;
+const root = process.env.CONSTELLATION_REPO_ROOT || repoRoot();
+const jig = process.env.CONSTELLATION_JIG_DIR || `${root}/.constellation/jig`;
 const config = { ...DEFAULT_CONFIG };
 const corrections = readJsonl(`${jig}/corrections.jsonl`);
 const firings = readJsonl(`${jig}/firings.jsonl`);
@@ -157,7 +157,7 @@ const report = {
 
 if (overrides === 0) {
   report.note =
-    'No proposed side recorded. Tax for shop-made jigs is zero until an override is written to .madewell/jig/proposed.json (consumed at commit).';
+    'No proposed side recorded. Tax for shop-made jigs is zero until an override is written to .constellation/jig/proposed.json (consumed at commit).';
 }
 
 process.stdout.write(JSON.stringify(report, null, 2) + '\n');

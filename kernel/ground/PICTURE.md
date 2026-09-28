@@ -9,7 +9,7 @@ shape.
 
 ## 0. Pre-flight
 
-- Every path in `.madewell/ground/ROOTS.md` was checked for existence this sitting.
+- Every path in `.constellation/ground/ROOTS.md` was checked for existence this sitting.
 - Nouns pulled from the task: the search terms used below.
 - Any named path that does not exist is listed as **`NO EXISTING IMPLEMENTATION — net new`**.
 

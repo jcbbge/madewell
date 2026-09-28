@@ -1,9 +1,9 @@
 # Profiles — one word, one door
 
-A **profile** is one word in `.madewell/profile`, a local, git-ignored file: this clone's
+A **profile** is one word in `.constellation/profile`, a local, git-ignored file: this clone's
 choice, never committed, so one person's door never forces another's. It decides which door
 the person came through and how the host sounds. It never changes the work. The whole
-manifest, with every row a profile fills, is `.madewell/profiles.json`.
+manifest, with every row a profile fills, is `.constellation/profiles.json`.
 
 | Profile | Who | Door | How the host sounds |
 |---|---|---|---|
@@ -19,7 +19,7 @@ manifest, with every row a profile fills, is `.madewell/profiles.json`.
 The person meets Constellation through one of two doors, **chosen once at adoption** and
 stored as the profile: **just talk** is `guide`, **show me the engine** is `lead`. The host asks
 the question once (`HOST.md`) and never again; if the person later asks for the other door, the
-host rewrites `.madewell/profile`.
+host rewrites `.constellation/profile`.
 
 Both doors keep the same work, the one voice and the glossary. A door decides only **which
 surfaces the person sees**:
@@ -36,7 +36,7 @@ surfaces the person sees**:
 | the commands the host runs, shown as it runs them | no | yes |
 | where every piece is and its whole run — `constellation status` | no | yes |
 | the helpers' own windows, live | no | yes |
-| the files under `.madewell/` and the history of commits | no | yes |
+| the files under `.constellation/` and the history of commits | no | yes |
 | the jig reading — `constellation tax` | no | yes |
 
 Behind either door, **the person is never asked to type a command or an engine word.** Behind
@@ -47,10 +47,10 @@ show me the engine they may, if they want to; nothing depends on it. `contributo
 
 ## At session start
 
-1. **`.madewell/profile` names one** — use it, silently.
+1. **`.constellation/profile` names one** — use it, silently.
 2. **No file yet:** headless, with no person → `naked`. A person on a fresh clone of someone
    else's project → `contributor`, and the trade's first-contact read-out, once. Anyone else →
    adoption, which asks the door question once: just talk → `guide`, show me the engine →
    `lead`.
 
-Write the answer to `.madewell/profile` so it is silent next time.
+Write the answer to `.constellation/profile` so it is silent next time.

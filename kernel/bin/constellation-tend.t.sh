@@ -21,10 +21,10 @@ says() { local w=$1 out; shift; out=$("$@" 2>&1); grep -qF -- "$w" <<<"$out"; }
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
-C=$P/.madewell/bin/constellation
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
+C=$P/.constellation/bin/constellation
 cd "$P"
-floor() { printf '# %s\n\n**Making:** %s\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' "$1" "$1" >".madewell/stock/$1.md"; git add ".madewell/stock/$1.md"; git commit -qm "rack: $1"; "$C" take "$1" >/dev/null; }
+floor() { printf '# %s\n\n**Making:** %s\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' "$1" "$1" >".constellation/stock/$1.md"; git add ".constellation/stock/$1.md"; git commit -qm "rack: $1"; "$C" take "$1" >/dev/null; }
 floor greet
 tend() { "$C" tend "$@" 2>&1; }
 starts() { git log "piece/$1" --format=%B | grep -c '^EVENT: started$'; }
@@ -69,7 +69,7 @@ tmux kill-window -t "=workers:=greet·vega"
 check "after the operator resumes, the count starts again" says "That was try 1 of 2." tend
 
 # --- the star's harness: line is a list, first preferred; --all finds every project from $STATE
-sed -i 's/^harness:.*/harness: pi, claude/' .madewell/stars/sirius.md
+sed -i 's/^harness:.*/harness: pi, claude/' .constellation/stars/sirius.md
 floor bye
 for s in vega polaris-peer cassiopeia; do   # the run so far: up to the plan, so sirius is next
   git -C "$T/state/proj/bye" commit -q --allow-empty -m "run(bye): $s done" -m "STEP: $s
@@ -101,6 +101,6 @@ check "the timer is wanted by the user's timers" grep -qx 'WantedBy=timers.targe
 if command -v systemd-analyze >/dev/null; then
   check "systemd reads both units cleanly" sh -c "d=\$(mktemp -d '$T/units.XXXXXX'); cp '$U'/constellation-tend.* \"\$d\"/; systemd-analyze --user verify \"\$d\"/constellation-tend.timer \"\$d\"/constellation-tend.service"
 else ok "systemd reads both units cleanly (skipped: no systemd-analyze)"; fi
-check "install carries the units into the project" test -f "$P/.madewell/bindings/constellation-tend.timer"
+check "install carries the units into the project" test -f "$P/.constellation/bindings/constellation-tend.timer"
 
 [ $fails -eq 0 ] && echo "constellation-tend: all tests passed" || { echo "constellation-tend: $fails failure(s)"; exit 1; }

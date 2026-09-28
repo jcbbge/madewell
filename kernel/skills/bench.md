@@ -12,7 +12,7 @@ on the rack was rejected, it was just still on the rack.
 
 ## Ground first
 
-**Contact:** `.madewell/ground/PROTOCOL.md` — run it in full before you write a word of the
+**Contact:** `.constellation/ground/PROTOCOL.md` — run it in full before you write a word of the
 floor. The picture shape is `ground/PICTURE.md`. This section does not replace that.
 
 The most common failure of this act is proposing work that already exists. It looks like

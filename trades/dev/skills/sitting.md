@@ -7,8 +7,8 @@ This does not replace the four acts, the floor (`Making` / `Not making` / `Done 
 Source of the folds: Lauren Tan's pstack SOPs, taken as law for a cut, not as a second process; reconstruct-purpose (what the object is for before you act), taken the same way. No slash commands. No sticky mode. No plugin. The Cursor desk may still run those tools; this trade does not name them.
 
 Already in this trade, do not restate as a new gate:
-- Kernel Ground → `.madewell/ground/` — **first**, every sitting
-- Kernel Jig → `.madewell/jig/` — implement and verify
+- Kernel Ground → `.constellation/ground/` — **first**, every sitting
+- Kernel Jig → `.constellation/jig/` — implement and verify
 - Runtime proof of the running product → `verify-principles.md`
 - Source-text quality → `skills/enforcer.md`
 - You don't proof your own plate → kernel `finish.md`
@@ -26,7 +26,7 @@ A claim that it is stupid is not a reconstruction. More environment variables an
 
 ## Ideate — look, then name
 
-**Kernel Ground first.** Run `.madewell/ground/PROTOCOL.md` in full. This sitting does not replace that. After the gap picture exists:
+**Kernel Ground first.** Run `.constellation/ground/PROTOCOL.md` in full. This sitting does not replace that. After the gap picture exists:
 
 Before a piece is written onto the rack, or when a piece on the rack is still clay:
 
@@ -68,7 +68,7 @@ One owner. Failure stays on the bench.
 - No junior cleanup. "This is stupid, fix it" is banned unless the floor named that cleanup.
 
 Do not start a second vocabulary. Do not open a parallel process. Do not land your own work.
-Honor the Jig (`.madewell/jig/`) — compiled conventions and wired stops on this cut.
+Honor the Jig (`.constellation/jig/`) — compiled conventions and wired stops on this cut.
 
 ---
 
@@ -78,7 +78,7 @@ The kernel already forbids proofing your own plate. This sitting names what the 
 
 - Run `Done when` against the real thing (the command, the flow, the record), not a proxy.
 - Hand the reconstruction with the diff. Other eyes read what it is for, then try to break the artifact. They sort findings: act / consider / noted / dismissed. Dismissed stays visible.
-- Then the kernel Jig (`.madewell/jig/`), the runtime judge in `verify-principles.md`, and the enforcer. All still fire. This sitting does not replace them.
+- Then the kernel Jig (`.constellation/jig/`), the runtime judge in `verify-principles.md`, and the enforcer. All still fire. This sitting does not replace them.
 
 A green build is not verify.
 
@@ -94,7 +94,7 @@ Do not invent a fifth act.
 
 ## Leave on the desk
 
-These are Cursor-desk factory moves. They time and ship work. Made Well already times work with path. They are not this trade:
+These are Cursor-desk factory moves. They time and ship work. Constellation already times work with path. They are not this trade:
 
 sticky routing, babysit / shipping / autopilot / orchestrate / overnight loops, Graphite, a second style-router, "never block on the human," "the best spec is code so skip plan."
 

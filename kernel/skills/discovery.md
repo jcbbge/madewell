@@ -20,7 +20,7 @@ only; never takes a piece to the bench**. A pipeline that classifies, lenses, an
 This engine is domain-agnostic. It carries a **universal lens core**; a loaded trade
 may extend the lens set for its lane of work (see *The Lens Slot* below).
 
-**Fractal depth:** `P` is `.madewell` or any `bench/<slug>/` at the current depth. Discovery
+**Fractal depth:** `P` is `.constellation` or any `bench/<slug>/` at the current depth. Discovery
 at inner depth writes that depth's `stock/` — same protocol, nested rack. **Maturity** (aka
 Phase in the legacy pipeline) tags the run; do not rename the field.
 
@@ -262,7 +262,7 @@ stock piece is a title plus path — never both. For transcripts under
 The dist tracks position; the corpus holds content.
 
 **Adoption — in-flight work is its own case.** When discovery runs on a project with work
-already half-built (adopting Made Well mid-stream, migrating an existing tracker), work
+already half-built (adopting Constellation mid-stream, migrating an existing tracker), work
 found mid-execution is neither an idea nor releasable: route to **`P/stock/` flagged
 `in-flight`**. The flag means: this already holds work-in-progress and gets verdicted
 *first* before racking more — bound what is mid-stream before adding new pieces. It

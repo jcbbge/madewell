@@ -20,13 +20,13 @@ Git log is the accepted commit. Git log is **not** the rejected proposal. Withou
 
 ## Contact — `proposed.json`
 
-When the human overrode the assistant, write `.madewell/jig/proposed.json` **before** the commit that lands their version:
+When the human overrode the assistant, write `.constellation/jig/proposed.json` **before** the commit that lands their version:
 
 ```json
 { "convention": "stable-id-or-name", "summary": "what they threw away", "tax": 1.5 }
 ```
 
-`bin/mw-record.sh` (post-commit) copies that object onto the new `corrections.jsonl` line as `proposed`, then deletes the file. `tax` is hours; omit it and the default is `DEFAULT_CONFIG.avg_tax_per_violation`. Grouping key is `convention`, then `summary`. Equivalence of “same correction” is still a stub (lab R7).
+`bin/cst-record.sh` (post-commit) copies that object onto the new `corrections.jsonl` line as `proposed`, then deletes the file. `tax` is hours; omit it and the default is `DEFAULT_CONFIG.avg_tax_per_violation`. Grouping key is `convention`, then `summary`. Equivalence of “same correction” is still a stub (lab R7).
 
 Do not patch jsonl by hand unless the commit already landed without the file.
 
@@ -35,8 +35,8 @@ Do not patch jsonl by hand unless the commit already landed without the file.
 | File | Who writes | What |
 |---|---|---|
 | `proposed.json` | the agent, when the human overrode, before commit | next `proposed` side |
-| `corrections.jsonl` | `bin/mw-record.sh` on every commit | accepted + `proposed` (or null) |
-| `firings.jsonl` | `bin/mw-jigs.sh` each registry run; `mw-gate.sh` on **refusal only** | take-down / sunset |
+| `corrections.jsonl` | `bin/cst-record.sh` on every commit | accepted + `proposed` (or null) |
+| `firings.jsonl` | `bin/cst-jigs.sh` each registry run; `cst-gate.sh` on **refusal only** | take-down / sunset |
 
 ## `corrections.jsonl` line
 
@@ -61,7 +61,7 @@ Do not patch jsonl by hand unless the commit already landed without the file.
 {
   "ts": "…",
   "sha": "…",
-  "jig": "id from registry (or mw-gate)",
+  "jig": "id from registry (or cst-gate)",
   "mode": "warn" | "block",
   "exit": 0,
   "violations_caught": 0,
@@ -73,4 +73,4 @@ Live take-down counts **lines** in a week, not the lab fixture’s summed totals
 
 ## Math
 
-Functions: `metabolism/metabolism.mjs`. Live feed: `metabolism/tax.mjs`. Proof that jsonl drives RATIFY/HOLD/DROP/SUNSET/KEEP: `node .madewell/jig/metabolism/live-feed.mjs` (also run from the harness). Function-rot only: `node .madewell/jig/metabolism/harness.mjs`.
+Functions: `metabolism/metabolism.mjs`. Live feed: `metabolism/tax.mjs`. Proof that jsonl drives RATIFY/HOLD/DROP/SUNSET/KEEP: `node .constellation/jig/metabolism/live-feed.mjs` (also run from the harness). Function-rot only: `node .constellation/jig/metabolism/harness.mjs`.

@@ -1,6 +1,6 @@
 {
   "version": "1.2",
-  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .madewell/profile. Quality is the Jig (`.madewell/jig/`) plus trade conventions if a trade is loaded, else the Rubric asked inline. The installer ships every trade; a project names one by reference (constellation trade <name>). The door is chosen once at adoption (just talk = guide, show me the engine = lead) and decides only which surfaces the person sees; the work, the one voice and the glossary are the same behind both (HOST.md, PROFILES.md § The two doors).",
+  "note": "A profile is ONE selection that fills every contract row at once. The kernel resolves the active profile at session start and loads its rows. Selection: read .constellation/profile. Quality is the Jig (`.constellation/jig/`) plus trade conventions if a trade is loaded, else the Rubric asked inline. The installer ships every trade; a project names one by reference (constellation trade <name>). The door is chosen once at adoption (just talk = guide, show me the engine = lead) and decides only which surfaces the person sees; the work, the one voice and the glossary are the same behind both (HOST.md, PROFILES.md § The two doors).",
   "contracts": ["persona", "domain", "quality", "memory", "onboarding", "door"],
   "doors": {
     "just talk": {
@@ -24,7 +24,7 @@
     "commands": "the constellation commands the host runs, shown as it runs them",
     "status": "constellation status: where every piece is, and its whole run",
     "windows": "the helpers' own windows, live",
-    "files": "the files under .madewell/ and the commit history",
+    "files": "the files under .constellation/ and the commit history",
     "tax": "the jig reading: constellation tax"
   },
   "profiles": {

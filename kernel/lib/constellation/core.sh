@@ -17,16 +17,16 @@ star_of() { case "$1" in polaris-*) echo polaris;; *) echo "$1";; esac; }
 act_of() { case "$1" in vega|polaris-peer) echo ideate;; cassiopeia) echo plan;; sirius) echo implement;; *) echo verify;; esac; }
 bench_pieces() { # every piece being made, one file per line: a leaf's bench/<slug>.md, or the PIECE.md of one that broke
   local f                  # down (a bench/<slug>/ without PIECE.md is a finished breakdown, or an empty scaffold: not listed)
-  for f in "$R/$MW"/bench/*.md "$R/$MW"/bench/*/PIECE.md; do
+  for f in "$R/$CST"/bench/*.md "$R/$CST"/bench/*/PIECE.md; do
     [ -f "$f" ] || continue
     case "$f" in */PIECE.md) [ ! -f "${f%/PIECE.md}.md" ] || continue ;; esac
     printf '%s\n' "$f"
   done
 }
 piece_slug() { case "$1" in */PIECE.md) basename "$(dirname "$1")" ;; *) basename "$1" .md ;; esac; }
-broken_down() { [ ! -f "$R/$MW/bench/$1.md" ] && [ -f "$R/$MW/bench/$1/PIECE.md" ]; }
+broken_down() { [ ! -f "$R/$CST/bench/$1.md" ] && [ -f "$R/$CST/bench/$1/PIECE.md" ]; }
 parts_of() { # parts_of <slug> : DONE<TAB>BEING-MADE<TAB>ON-THE-RACK, the parts of a piece that broke down
-  local d="$R/$MW/bench/$1" f done=0 made=0 rack=0
+  local d="$R/$CST/bench/$1" f done=0 made=0 rack=0
   for f in "$d"/finished/*.md; do [ -f "$f" ] || continue; done=$((done + 1)); done
   for f in "$d"/bench/*.md "$d"/bench/*/PIECE.md; do [ -f "$f" ] || continue; made=$((made + 1)); done
   for f in "$d"/stock/*.md; do [ -f "$f" ] || continue; rack=$((rack + 1)); done

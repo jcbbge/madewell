@@ -86,7 +86,7 @@ for t in "$ROOT"/trades/*/; do t=${t%/}
     for n in $(skills_of "$f"); do check "$(basename "$t")/$(basename "$f" .md)'s skill $n is real" skill_real "$n" "$t"; done
   done
 done
-sp() { (KERNEL=$ROOT/kernel; R=$ROOT; MW=.madewell; . "$ROOT/kernel/lib/constellation/trade.sh"; skill_paths "$@"); }
+sp() { (KERNEL=$ROOT/kernel; R=$ROOT; CST=.constellation; . "$ROOT/kernel/lib/constellation/trade.sh"; skill_paths "$@"); }
 check "a brief names a skill the install lacks as MISSING, beside the ones it has" \
   test "$(sp "$ROOT/trades/dev/skills" "sitting, no-such-skill")" = "\`$ROOT/trades/dev/skills/sitting.md\`, MISSING: no-such-skill (not in $ROOT/trades/dev/skills)"
 check "a made-up skill does not resolve" sh -c "! ( ROOT='$ROOT'; $(declare -f skill_real); skill_real no-such-skill-here '$ROOT/trades/dev' )"
@@ -96,9 +96,9 @@ check "a skill only a harness has does not resolve for a kernel star" sh -c "! (
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
-check "the install carries the star law" test -f .madewell/stars/LAW.md
+check "the install carries the star law" test -f .constellation/stars/LAW.md
 
 wt() { printf '%s/state/%s/%s' "$T" "$(basename "$P")" "$1"; }
 brief() { printf '%s/state/%s/%s.%s.brief.md' "$T" "$(basename "$P")" "$1" "$2"; }
@@ -107,8 +107,8 @@ as() { export CONSTELLATION_PIECE=$1 CONSTELLATION_STEP=$2 CONSTELLATION_REPO=$P
 next() { op status "$1" | sed -n 's/^  next: //p'; }
 put() { local w; w=$(wt "$1"); mkdir -p "$w/$(dirname "$2")"; echo "$1" >>"$w/$2"; git -C "$w" add -- "$2"; git -C "$w" commit -qm "add $2"; }
 rack() {
-  printf '# %s\n\n**Making:** %s\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' "$1" "$1" >".madewell/stock/$1.md"
-  git add ".madewell/stock/$1.md"; git commit -qm "rack: $1"; op take "$1" >/dev/null; op run "$1" >/dev/null
+  printf '# %s\n\n**Making:** %s\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' "$1" "$1" >".constellation/stock/$1.md"
+  git add ".constellation/stock/$1.md"; git commit -qm "rack: $1"; op take "$1" >/dev/null; op run "$1" >/dev/null
 }
 hand() { as "$1" "$2"; "$C" clear >/dev/null; "$C" done "$2: handed off" >/dev/null; }
 to_aldebaran() { # to_aldebaran <slug> : every star before aldebaran hands off, and aldebaran clears
@@ -166,10 +166,10 @@ check "and the piece waits for the person the same way" test "$(next older)" = o
 
 # an install that lost its law says so in the brief, instead of briefing a star without it
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE CONSTELLATION_REPO
-rm -f .madewell/stars/LAW.md
-printf '# lawless\n\n**Making:** lawless\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' >.madewell/stock/lawless.md
-git add .madewell/stock/lawless.md; git commit -qm "rack: lawless"
-(C=$P/.madewell/bin/constellation; op take lawless >/dev/null; op run lawless >/dev/null)
+rm -f .constellation/stars/LAW.md
+printf '# lawless\n\n**Making:** lawless\n**Not making:** -\n**Done when:** it exists\n**Waits on:** \n' >.constellation/stock/lawless.md
+git add .constellation/stock/lawless.md; git commit -qm "rack: lawless"
+(C=$P/.constellation/bin/constellation; op take lawless >/dev/null; op run lawless >/dev/null)
 check "an install without LAW.md: the brief says the law is missing" sh -c "grep -qF 'MISSING:' '$(brief lawless vega)' && grep -qF 'LAW.md is not in this install' '$(brief lawless vega)'"
 check "an install without LAW.md: the brief still says it is not the host" host_line_top "$(brief lawless vega)"
 check "an install without LAW.md: the brief still puts the relay first" sh -c "grep -qF 'Before any work: \`constellation clear\`, or \`constellation clarify' '$(brief lawless vega)' && grep -qF 'is refused until you have cleared' '$(brief lawless vega)'"

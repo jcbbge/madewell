@@ -28,18 +28,18 @@ git ls-files '*.md' ':!runtime/**' | while IFS= read -r src; do
     for cand in "$(dirname "$src")/$doc" "$doc" $(git ls-files "*$doc" | head -1); do
       [ -n "$cand" ] && [ -f "$cand" ] && { target=$cand; break; }
     done
-    [ -n "$target" ] || { printf 'mw-jig-sections: %s cites %s — file not found\n' "$src" "$ref" >&2; echo x >> /tmp/.mwjig.$$; continue; }
+    [ -n "$target" ] || { printf 'cst-jig-sections: %s cites %s — file not found\n' "$src" "$ref" >&2; echo x >> /tmp/.cstjig.$$; continue; }
     if ! grep -qE "^#+[[:space:]]+$num\." "$target"; then
-      printf 'mw-jig-sections: %s cites %s — %s has no section %s\n' "$src" "$ref" "$target" "$num" >&2
-      echo x >> /tmp/.mwjig.$$
+      printf 'cst-jig-sections: %s cites %s — %s has no section %s\n' "$src" "$ref" "$target" "$num" >&2
+      echo x >> /tmp/.cstjig.$$
     fi
   done
 done
 
-if [ -f /tmp/.mwjig.$$ ]; then
-  n=$(wc -l < /tmp/.mwjig.$$ | tr -d ' ')
-  rm -f /tmp/.mwjig.$$
-  printf 'mw-jig-sections: %s unresolved section reference(s)\n' "$n" >&2
+if [ -f /tmp/.cstjig.$$ ]; then
+  n=$(wc -l < /tmp/.cstjig.$$ | tr -d ' ')
+  rm -f /tmp/.cstjig.$$
+  printf 'cst-jig-sections: %s unresolved section reference(s)\n' "$n" >&2
   fail=1
 fi
 exit $fail

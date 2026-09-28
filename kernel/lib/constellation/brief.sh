@@ -57,7 +57,7 @@ survey() {
     slug=$(piece_slug "$f"); title=$(title_of "$f")
     nx=$(next_step "$slug" 2>/dev/null || echo operator)
     if broken_down "$slug"; then  # its parts are made one by one; it has no record of its own, only their progress
-      lt=$(git -C "$R" log -1 --format=%ct -- "$MW/bench/$slug" 2>/dev/null)
+      lt=$(git -C "$R" log -1 --format=%ct -- "$CST/bench/$slug" 2>/dev/null)
       if [ "$nx" = finish ]; then MAKING+="${lt:-0}"$'\t'"$title — $(parts_said "$slug"), ready to finish"$'\n'
       else MAKING+="${lt:-0}"$'\t'"$title — $(parts_said "$slug")"$'\n'; fi
       continue
@@ -91,7 +91,7 @@ survey() {
   WAITING=$(sort -t "$US" -k1,1n <<<"$WAITING" | sed '/^$/d'); MAKING=$(sort -n <<<"$MAKING" | sed '/^$/d')
 }
 finished_since() { # finished_since <epoch|""> : the title of every piece that reached finished/ on main since then
-  git -C "$R" log -n 500 --no-renames --diff-filter=A --name-only --format='%x1e%ct' -- "$MW/finished/" 2>/dev/null | awk -v RS='\x1e' -v s="$1" '
+  git -C "$R" log -n 500 --no-renames --diff-filter=A --name-only --format='%x1e%ct' -- "$CST/finished/" 2>/dev/null | awk -v RS='\x1e' -v s="$1" '
     { n = split($0, L, "\n"); t = ""
       for (i = 1; i <= n; i++) { if (L[i] == "") continue; if (t == "") { t = L[i]; continue }
         if ((s == "" || t + 0 > s + 0) && L[i] ~ /\.md$/) print L[i] } }' | while read -r p; do
@@ -103,7 +103,7 @@ open_questions() { # open_questions <piece file> : the bullets under an "Open qu
 ideas_survey() { # IDEAS_LINE (the ideas on the list, new ones first) and IDEAS_ASK (the first that needs answers)
   IDEAS_LINE=""; IDEAS_ASK=""; IDEAS_READY=""; IDEAS_MORE=0
   local f title q gaps added new=() old=() n=0 need=0 what
-  for f in "$R/$MW"/stock/*.md; do
+  for f in "$R/$CST"/stock/*.md; do
     [ -e "$f" ] || continue; n=$((n + 1)); title=$(title_of "$f")
     q=$(open_questions "$f"); gaps=$(floor_gaps "$f")
     if [ "$q" -gt 0 ] || [ -n "$gaps" ]; then
@@ -123,7 +123,7 @@ ideas_survey() { # IDEAS_LINE (the ideas on the list, new ones first) and IDEAS_
 brief_mem() { printf '%s/%s/brief.last' "$STATE" "$(basename "$R")"; }
 
 cmd_brief() { # the front page: done since the last brief, being made now, the one thing waiting on you
-  R=$(main_repo); [ -d "$R/$MW" ] || die "no Made Well here (constellation install <project>)"
+  R=$(main_repo); [ -d "$R/$CST" ] || die "no Constellation here (constellation install <project>)"
   local mem; mem=$(brief_mem); SINCE=$(cat "$mem" 2>/dev/null | tr -cd 0-9 || true)
   local stamp; stamp=$(date +%s)
   survey
@@ -155,8 +155,8 @@ cmd_brief() { # the front page: done since the last brief, being made now, the o
   mkdir -p "$(dirname "$mem")"; printf '%s\n' "$stamp" >"$mem"
 }
 
-cmd_line() { # one line for a status bar; silent where there is no Made Well
-  R=$(main_repo 2>/dev/null) || return 0; [ -d "$R/$MW" ] || return 0
+cmd_line() { # one line for a status bar; silent where there is no Constellation
+  R=$(main_repo 2>/dev/null) || return 0; [ -d "$R/$CST" ] || return 0
   SINCE=""; survey
   local m=0 w=0 out=""
   [ -z "$MAKING" ] || m=$(wc -l <<<"$MAKING" | tr -d ' ')

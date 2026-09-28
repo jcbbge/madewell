@@ -1,6 +1,6 @@
 # The CI/CD Pillar
 
-**One of Made Well's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
+**One of Constellation's four pillars of software** — `backend · frontend · API · CI/CD`. A pillar is
 not an optional skill the agent loads when convenient; it **governs its domain on every
 software project that will ship.** This is the pillar that governs the moment a project will be
 run, shipped, or deployed by anyone other than the person at the keyboard.
@@ -160,7 +160,7 @@ right thing. Keep the roles separate and each stays legible: a test-designer wri
 agent names the bucket — a, b, or c — before anyone touches a line; and the fix goes to a fresh
 agent, never the one whose work is in question. A gate the author can rig is not a trust machine
 (Principle 1) — it's theater with a green light. The mechanism that enforces this is the
-orchestration skill (`.madewell/skills/orchestrate.md`); this principle is *why* it refuses to let
+orchestration skill (`.constellation/skills/orchestrate.md`); this principle is *why* it refuses to let
 one agent close the loop on itself.
 
 ---

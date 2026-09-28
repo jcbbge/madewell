@@ -1,7 +1,7 @@
 // constellation-line-pi — Pi's side of the status line. A one-line widget shows `constellation
 // line` for the project Pi is in ('2 being made · 1 question for you', or 'all quiet'), and
 // refreshes when a session starts, whenever the agent settles, and every thirty seconds.
-// Nothing shows where there is no Made Well. Load it: pi -e ./.madewell/bindings/constellation-line-pi.ts
+// Nothing shows where there is no Constellation. Load it: pi -e ./.constellation/bindings/constellation-line-pi.ts
 // @ts-nocheck
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";

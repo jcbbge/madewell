@@ -97,7 +97,7 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
     esac
   done < <(git -C "$R" log --no-walk=unsorted --format='%H%x1f%ct%x1f%s%x1f%(trailers:key=STEP,valueonly,separator=)%x1f%(trailers:key=EVENT,valueonly,separator=)%x1f%(trailers:key=HARNESS,valueonly,separator=)%x1f%(trailers:key=DONE,valueonly,separator=)' $hashes)
   local title="" pf x
-  for pf in "$R/$MW/bench/$slug.md" "$R/$MW/finished/$slug.md"; do [ -f "$pf" ] && title=$(sed -n '1s/^# //p' "$pf") && break; done
+  for pf in "$R/$CST/bench/$slug.md" "$R/$CST/finished/$slug.md"; do [ -f "$pf" ] && title=$(sed -n '1s/^# //p' "$pf") && break; done
   {
     printf '## Receipt\n\n**%s** is done.\n\n### What changed\n\n' "${title:-This work}"
     for x in "${made[@]}"; do printf -- '- %s\n' "$x"; done
@@ -128,11 +128,11 @@ receipt_of() { # receipt_of <file> : the Receipt section already in a finished p
 
 cmd_receipt() {
   local slug=${1:-}; [ -n "$slug" ] || die "usage: constellation receipt <slug>"
-  R=$(main_repo); local f="$R/$MW/finished/$slug.md"
+  R=$(main_repo); local f="$R/$CST/finished/$slug.md"
   [ -f "$f" ] || die "$slug is not done yet, so it has no receipt (constellation status $slug)"
   local rc; rc=$(receipt_of "$f")
   if [ -z "$rc" ]; then  # finished before receipts, or by hand: build it from the record
-    local fin; fin=$(git -C "$R" log -1 --format=%H --diff-filter=A -- "$MW/finished/$slug.md")
+    local fin; fin=$(git -C "$R" log -1 --format=%H --diff-filter=A -- "$CST/finished/$slug.md")
     rc=$( [ -n "$fin" ] && receipt_compose "$slug" "$fin^" ) || die "$slug was finished without a record of how it was made, so there is nothing to build a receipt from"
   fi
   printf '%s\n' "$rc"

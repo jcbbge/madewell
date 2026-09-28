@@ -1,4 +1,4 @@
-# Made Well — The Marketing Trade
+# Constellation — The Marketing Trade
 **Version:** 1.0
 **Domain:** Marketing — positioning, message, channel, measurement
 
@@ -6,11 +6,11 @@
 
 ## How to activate
 
-The installer ships every trade in `.madewell/trades/`. The host sets this one with
+The installer ships every trade in `.constellation/trades/`. The host sets this one with
 `constellation trade marketing`, which names it in the project's loader, by reference:
 
 ```
-… read and follow .madewell/HOST.md and .madewell/trades/marketing/TRADE.md before anything else …
+… read and follow .constellation/HOST.md and .constellation/trades/marketing/TRADE.md before anything else …
 ```
 
 All paths below are relative to this trade's directory.

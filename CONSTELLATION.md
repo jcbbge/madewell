@@ -1,4 +1,4 @@
-# Made Well
+# Constellation
 
 Work has four acts. They recur at every scale. Everything else in this document
 exists to keep you honest about them.
@@ -49,7 +49,7 @@ Here it means: make the existing decisions present before you design anything. W
 already built, already named, already ruled on. The dominant failure in this work is not
 choosing wrong — it is **never thinking to look.**
 
-**The protocol is `.madewell/ground/`.** Protocol, picture, roots. A paragraph is not a
+**The protocol is `.constellation/ground/`.** Protocol, picture, roots. A paragraph is not a
 substitute for it.
 
 ### The Jig — covers implement and verify
@@ -67,7 +67,7 @@ earning their place come down.
 
 **A claim of enforcement ships its own falsifier.** Every jig carrying a `run` —
 FENCE at mode block, SIGN at mode warn — must also carry a `probe`: a command that
-exits 0 only when that jig's machinery is actually reachable. `mw-enforcers.sh` runs
+exits 0 only when that jig's machinery is actually reachable. `cst-enforcers.sh` runs
 every probe on pre-commit and refuses the commit when one fails or is missing.
 
 This is the jig on the ledger itself, and it is the one worth having first. A row
@@ -81,9 +81,9 @@ been caught by a probe.
 
 A jig with no `run` is DOCTRINE and is exempt. It never claimed to be a stop.
 
-**The instrument is `.madewell/jig/`.** Compiled conventions, a registry of wired jigs,
-honesty tiers (FENCE / SIGN / DOCTRINE). Install wires `mw-gate.sh` and `mw-jigs.sh` on
-pre-commit, `mw-record.sh` on post-commit. Whether to promote or drop is
+**The instrument is `.constellation/jig/`.** Compiled conventions, a registry of wired jigs,
+honesty tiers (FENCE / SIGN / DOCTRINE). Install wires `cst-gate.sh` and `cst-jigs.sh` on
+pre-commit, `cst-record.sh` on post-commit. Whether to promote or drop is
 `constellation tax` on the live ledgers — not the synthetic harness.
 
 ---
@@ -154,8 +154,7 @@ One question, asked of anything before it finishes:
 
 If the answer is no, it is the wrong move — and it does not matter that it works, that it was
 faster, or that nobody will notice. People notice everything; they just cannot always say
-what they noticed. That question is what "made well" means, and it is why the framework is
-called that.
+what they noticed. That question is the standard everything here is held to.
 
 ---
 

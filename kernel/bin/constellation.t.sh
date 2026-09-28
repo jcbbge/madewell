@@ -21,16 +21,16 @@ says() { local w=$1 out; shift; out=$("$@" 2>&1); grep -qF -- "$w" <<<"$out"; }
 P=$T/proj; mkdir -p "$P/src"; git init -q -b main "$P"; echo 'export const a = 1' >"$P/src/a.js"
 git -C "$P" add -A; git -C "$P" commit -qm init
 sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
-git -C "$P" add -A; MW_GATE=off git -C "$P" commit -qm "adopt Made Well"
+git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
-printf '# Greet the user\n\nA greeting on the home page.\n' >.madewell/stock/greet.md
-git add .madewell/stock/greet.md; git commit -qm "rack: greet"
+printf '# Greet the user\n\nA greeting on the home page.\n' >.constellation/stock/greet.md
+git add .constellation/stock/greet.md; git commit -qm "rack: greet"
 check "take refuses a piece without its floor" says "missing Making, Not making, Done when, Waits on" "$C" take greet
-printf '# Greet the user\n\n**Making:** a greeting on the home page\n**Not making:** localisation\n**Done when:** src/greet.js exports greet() returning "hello"\n**Waits on:** \n' >.madewell/stock/greet.md
-git add .madewell/stock/greet.md; git commit -qm "rack: greet floor"
+printf '# Greet the user\n\n**Making:** a greeting on the home page\n**Not making:** localisation\n**Done when:** src/greet.js exports greet() returning "hello"\n**Waits on:** \n' >.constellation/stock/greet.md
+git add .constellation/stock/greet.md; git commit -qm "rack: greet floor"
 WT=$T/state/proj/greet
-check "take moves stock to bench, makes the branch and the worktree" sh -c "'$C' take greet && test -f .madewell/bench/greet.md && test -d '$WT' && git rev-parse --verify piece/greet"
-check "the worktree carries the framework for the commit gate" test -x "$WT/.madewell/bin/mw-gate.sh"
+check "take moves stock to bench, makes the branch and the worktree" sh -c "'$C' take greet && test -f .constellation/bench/greet.md && test -d '$WT' && git rev-parse --verify piece/greet"
+check "the worktree carries the framework for the commit gate" test -x "$WT/.constellation/bin/cst-gate.sh"
 
 as() { export CONSTELLATION_PIECE=greet CONSTELLATION_STEP=$1 CONSTELLATION_REPO=$P CONSTELLATION_HARNESS=claude CONSTELLATION_BASE; CONSTELLATION_BASE=$(git -C "$WT" rev-parse HEAD); }
 next() { (unset CONSTELLATION_PIECE CONSTELLATION_STEP; "$C" status greet | sed -n 's/^  next: //p'); }
@@ -61,7 +61,7 @@ git -C "$WT" reset -q --hard HEAD~1
 check "vega hands off" "$C" done "greet is a one-function module; steps: add greet(); risk: none"
 check "the next star starts by itself: polaris, peer" win polaris-peer
 check "the handoff is in the next brief" grep -qF "greet is a one-function module" "$T/state/proj/greet.polaris-peer.brief.md"
-check "the record is a Made Well trailer on the piece branch" sh -c "git log piece/greet --format=%B | grep -q '^ACT: ideate' && git log piece/greet --format=%B | grep -q '^STAR: vega'"
+check "the record is a Constellation trailer on the piece branch" sh -c "git log piece/greet --format=%B | grep -q '^ACT: ideate' && git log piece/greet --format=%B | grep -q '^STAR: vega'"
 
 as polaris-peer; "$C" clear >/dev/null; check "polaris peer hands off" "$C" done "agree"
 as cassiopeia; "$C" clear >/dev/null; check "cassiopeia hands off the plan" "$C" done "plan: add src/greet.js with greet(); test in tests/greet.test.js"
@@ -119,23 +119,23 @@ check "the resumed brief carries the question and the answer" grep -qF "unit tes
 as aldebaran; "$C" clear >/dev/null
 check "aldebaran passes; the piece lands" "$C" done "pass: 1 test, 1 passed"
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE
-check "landed: finished/ holds the piece, bench does not" sh -c "test -f .madewell/finished/greet.md && test ! -e .madewell/bench/greet.md"
+check "landed: finished/ holds the piece, bench does not" sh -c "test -f .constellation/finished/greet.md && test ! -e .constellation/bench/greet.md"
 check "landed: main has the code and the tests" sh -c "grep -q hello src/greet.js && test -f tests/greet.test.js"
 check "landed: the whole run is in main's history" sh -c "git log --format=%B | grep -c '^STEP: ' | awk '{exit !(\$1 >= 15)}'"
 check "landed: the worktree and branch are gone" sh -c "test ! -d '$WT' && ! git rev-parse --verify -q piece/greet"
 check "status shows the finished piece's run" sh -c "'$C' status | grep -q 'nothing on the bench'"
 
 # --- a second piece reads only its own run: the first's landed records are not its own
-printf '# Wave goodbye\n\n**Making:** a bye() function\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' >.madewell/stock/bye.md
-git add .madewell/stock/bye.md; git commit -qm "rack: bye"
+printf '# Wave goodbye\n\n**Making:** a bye() function\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' >.constellation/stock/bye.md
+git add .constellation/stock/bye.md; git commit -qm "rack: bye"
 "$C" take bye >/dev/null
 check "a new piece starts at vega, not at the last piece's land" sh -c "'$C' run bye | grep -q 'vega (vega, ideate) started'"
-check "and it is still on the bench" test -f .madewell/bench/bye.md
+check "and it is still on the bench" test -f .constellation/bench/bye.md
 
 # --- one interface: the kernel's own tools answer through the same door
-check "constellation move stages a legal move (arrive)" sh -c "printf '# Later\n' | '$C' move arrive later && test -f .madewell/stock/later.md"
-git reset -q -- .madewell/stock/later.md; rm -f .madewell/stock/later.md
-check "constellation move refuses the floorless bench move" sh -c "printf '# X\n' >.madewell/stock/nofloor.md; ! '$C' move bench nofloor; rm -f .madewell/stock/nofloor.md"
+check "constellation move stages a legal move (arrive)" sh -c "printf '# Later\n' | '$C' move arrive later && test -f .constellation/stock/later.md"
+git reset -q -- .constellation/stock/later.md; rm -f .constellation/stock/later.md
+check "constellation move refuses the floorless bench move" sh -c "printf '# X\n' >.constellation/stock/nofloor.md; ! '$C' move bench nofloor; rm -f .constellation/stock/nofloor.md"
 check "constellation enforcers lists every claim and its falsifier" sh -c "'$C' enforcers | grep -q enforcers-are-real"
 check "constellation tax gives the reading" "$C" tax
 check "constellation session answers (the door is reachable)" sh -c "'$C' session --help | tr '\\n' ' ' | grep -q 'session execution door'"
