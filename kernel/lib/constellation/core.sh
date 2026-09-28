@@ -74,7 +74,10 @@ originator() { # originator <slug> <step> : the step that handed this one its wo
 }
 
 # --- the floor ----------------------------------------------------------------------------
-floor_gaps() { local f=$1 m=(); for k in Making 'Not making' 'Done when' 'Waits on'; do grep -qi "^\*\*$k:\*\*" "$f" || m+=("$k"); done; local IFS=,; printf '%s' "${m[*]}" | sed 's/,/, /g'; }
+floor_answered() { # floor_answered <piece> <key> : the line is there, and not a placeholder (OPEN, TBD, TODO, ?, …)
+  grep -iE "^\*\*$2:\*\*" "$1" | head -1 | sed -E "s/^\*\*[^*]*:\*\*[[:space:]]*//" | grep -qivE '^((open|tbd|todo|unknown)([[:space:]]*[—–:-]([[:space:]]|$)|[[:space:]]*$)|(\?|…|\.\.\.)[[:space:]]*$)'
+}
+floor_gaps() { local f=$1 m=(); for k in Making 'Not making' 'Done when' 'Waits on'; do floor_answered "$f" "$k" || m+=("$k"); done; local IFS=,; printf '%s' "${m[*]}" | sed 's/,/, /g'; }
 
 # --- commands -------------------------------------------------------------------------------
 

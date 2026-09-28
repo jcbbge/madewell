@@ -50,7 +50,7 @@ cmd_inbox() {
         else inbox_unfile "$to" "$rel"; say "  could not start thinking through $rel; it stays in $IDEAS/"; fi
       done
     else
-      for rel in "${texts[@]}"; do say "  $rel: no harness here to think it through (claude on PATH); it stays in $IDEAS/"; done
+      for rel in "${texts[@]}"; do say "  $rel: no harness here to think it through (claude or pi on PATH); it stays in $IDEAS/"; done
     fi
   fi
   for rel in "${empties[@]}"; do to=$(inbox_file_away "$rel") && say "  set aside $rel → $to (it was empty)"; done

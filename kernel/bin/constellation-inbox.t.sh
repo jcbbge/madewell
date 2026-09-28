@@ -69,6 +69,15 @@ printf 'kept in git\n' >ideas/tracked.md; git add ideas/tracked.md; git commit -
 check "an idea kept in git is moved by a commit, and the tree stays clean" sh -c "git ls-files --error-unmatch ideas/read/tracked.md && test -z \"\$(git status --porcelain -- ideas/tracked.md ideas/read/tracked.md)\""
 printf 'headless idea\n' >ideas/quiet.md
 check "discovery can run headless" sh -c "CONSTELLATION_DISCOVER=headless '$C' inbox | grep -q 'headless' && ! tmux list-windows -t workers -F '#W' | grep -qx 'discover·quiet' && test -f ideas/read/quiet.md"
+printf 'on pi\n' >ideas/onpi.md
+check "discovery runs on pi when asked" sh -c "CONSTELLATION_DISCOVER_HARNESS=pi '$C' inbox | grep -q 'on pi, in workers:discover·onpi'"
+FAKE="$T/fakebin"; mkdir -p "$FAKE"; printf '#!/bin/sh\nprintf "%%s\\n" "$@" >"%s/pi.args"\n' "$T" >"$FAKE/pi"; chmod +x "$FAKE/pi"
+printf 'no claude here\n' >ideas/fallback.md
+if PATH=/usr/bin:/bin command -v claude >/dev/null; then ok "with no claude, discovery falls back to pi (skipped: claude is on the system path)"; else
+env -u CONSTELLATION_DRY PATH="$FAKE:/usr/bin:/bin" CONSTELLATION_DISCOVER=headless bash -c "'$C' inbox" >"$T/fallback.out" 2>&1; sleep 1
+check "with no claude, discovery falls back to pi" grep -q 'on pi, headless' "$T/fallback.out"
+check "pi is started headless, trusted, with the discovery brief" sh -c "head -3 '$T/pi.args' | tr '\n' ' ' | grep -q '^-p --approve --thinking ' && grep -q 'Discovery — the outer loop' '$T/pi.args'"
+fi
 printf 'no harness here\n' >ideas/stranded.md
 if PATH=/usr/bin:/bin command -v claude >/dev/null; then ok "with no harness to run (skipped: a harness is on the system path)"; else
 check "with no harness to run, a text file stays in the drop box" sh -c "env -u CONSTELLATION_DRY PATH=/usr/bin:/bin bash -c \"'$C' inbox\" | grep -q 'stays in ideas/' && test -f ideas/stranded.md && test ! -e ideas/read/stranded.md"
@@ -85,6 +94,10 @@ check "as a conversation, not a form" grep -qF "as a conversation, not a form" <
 check "and says how to take it with the answers" grep -qF "constellation take greet --making '…' --not-making '…' --done-when '…' --waits-on '…'" <<<"$OUT"
 check "it still names what is missing" grep -qF "missing Making, Not making, Done when, Waits on" <<<"$OUT"
 check "nothing was written or moved" test -z "$(git status --porcelain -- .madewell)"
+printf '# Greet the user\n\n**Making:** a greeting on the home page\n**Not making:** OPEN — which pages?\n**Done when:** TBD\n**Waits on:** ?\n' >.madewell/stock/greet.md
+git add .madewell/stock/greet.md; git commit -qm "rack: greet, placeholders"
+OUT=$("$C" take greet 2>&1); rc=$?
+check "a placeholder (OPEN, TBD, ?) is not an answer: take still asks" bash -c "test $rc -ne 0 && grep -qF 'missing Not making, Done when, Waits on' <<<\"\$1\" && test -f .madewell/stock/greet.md" _ "$OUT"
 printf '# Greet the user\n\n**Making:** a greeting on the home page\n' >.madewell/stock/greet.md
 git add .madewell/stock/greet.md; git commit -qm "rack: greet, making"
 OUT=$("$C" take greet 2>&1)

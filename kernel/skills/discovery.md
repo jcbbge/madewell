@@ -43,7 +43,9 @@ The person never learns a command. Ideas reach the rack two ways, and both are t
   what it says, then files it with `constellation inbox --read <file>` so it is not new again.
 
 **Dropped, not spoken.** A discovery act on a dropped file usually has no one to answer
-it. It does not wait: it racks what it found with each open question carried on its piece,
+it. It does not wait: it racks what it found with each open question carried on its piece
+(under a `## Open questions` heading, one bullet each; a floor line the notes do not settle is
+left out, never written as OPEN or a guess),
 and writes "here is what I heard" in its commit body. The host reads that back to the person
 at the next conversation, and their answer is captured as in Step 5. The rack is where a
 finding waits to be seen; nothing reaches the bench before the person has answered the four

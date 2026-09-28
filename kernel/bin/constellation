@@ -75,7 +75,8 @@
 #   ledgers), CONSTELLATION_TMUX_SESSION (default workers), CONSTELLATION_AUTO=0 (do not start
 #   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests),
 #   CONSTELLATION_STUCK_SECONDS (default 1800: how long a step may go quiet before tend restarts it),
-#   CONSTELLATION_DISCOVER=window|headless (how discovery runs; default a window when tmux is here).
+#   CONSTELLATION_DISCOVER=window|headless (how discovery runs; default a window when tmux is here),
+#   CONSTELLATION_DISCOVER_HARNESS (what it runs on; default vega's harness, then claude, then pi).
 # Requires: bash, git, tmux; the Made Well kernel beside this file (../stars).
 set -euo pipefail
 case "${1:-}" in -h|--help|help|"") sed -n '2,/^# Requires:/p' "$0" | sed 's/^# \{0,1\}//'; exit 0;; esac

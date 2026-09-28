@@ -34,7 +34,7 @@ cmd_take() {
   [ -f "$src" ] || die "no piece $MW/stock/$slug.md on the rack"
   local missing=()
   for i in 0 1 2 3; do
-    [ "${given[i]}" = 1 ] || grep -qi "^\*\*${FLOOR_KEYS[i]}:\*\*" "$src" || missing+=("$i")
+    [ "${given[i]}" = 1 ] || floor_answered "$src" "${FLOOR_KEYS[i]}" || missing+=("$i")
   done
   [ ${#missing[@]} -eq 0 ] || { floor_interview "$slug" "${missing[@]}"; exit 3; }
   [ -z "$(git -C "$R" diff --cached --name-only)" ] || die "the index already holds staged changes; commit or unstage them first"

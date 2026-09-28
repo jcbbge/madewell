@@ -143,4 +143,27 @@ check "brief: says when everything is paused, and the word that picks up" has "$
 "$C" go >/dev/null
 check "line: go lifts the pause" test "$(line)" = "3 being made · 1 question for you"
 
+# --- ideas on the list: new ones are named, and one that needs answers is what waits on the person
+"$C" pause >/dev/null; "$C" go >/dev/null
+sleep 1; printf '# Shopping list\n\n**Making:** a list\n\n## Open questions (carried)\n\n- who uses it?\n- where do recipes live?\n' >.madewell/stock/shop.md
+git add .madewell/stock/shop.md; git commit -qm "rack: shop"; sleep 1
+b=$(brief)
+check "brief: a new idea is on the front page, with what it needs" has "$b" "Ideas: 1 on the list: Shopping list (new; needs your answers first)."
+check "brief: a question from what is being made still comes first" matches "$b" '^Waiting on you: Ping the server'
+sleep 1; check "brief: next time the idea is no longer new" has "$(brief)" "Ideas: 1 on the list: Shopping list (needs your answers first)."
+P2=$T/proj2; git init -q -b main "$P2"; echo x >"$P2/README"; git -C "$P2" add -A; git -C "$P2" commit -qm init
+sh "$ROOT/install.sh" "$P2" >/dev/null 2>&1; git -C "$P2" add -A; MW_GATE=off git -C "$P2" commit -qm "adopt"
+cp .madewell/stock/shop.md "$P2/.madewell/stock/shop.md"
+printf '# Dark mode\n\n**Making:** dark\n**Not making:** themes\n**Done when:** the toggle works\n**Waits on:** nothing\n' >"$P2/.madewell/stock/dark.md"
+git -C "$P2" add .madewell/stock; git -C "$P2" commit -qm "rack: two ideas"
+printf '# Watering reminder\n\n**Making:** a text when the soil is dry\n**Not making:** OPEN — sensors?\n**Done when:** TBD\n**Waits on:** nothing\n' >"$P2/.madewell/stock/water.md"
+git -C "$P2" add .madewell/stock; git -C "$P2" commit -qm "rack: water"
+b2=$(cd "$P2" && "$C" brief 2>&1)
+check "brief: an answer written as OPEN or TBD is not an answer" has "$b2" "Watering reminder (new; needs your answers first)"
+check "brief: with nothing being made, an idea that needs answers is what waits on the person" has "$b2" "Waiting on you: Shopping list needs your answers (2 open questions) before it can start (and 1 more after this)."
+check "brief: an idea with its four questions answered is ready to start" has "$b2" "Dark mode (new; ready to start)"
+check "brief: the ideas line carries no engine words" bash -c '! grep "^Ideas:" <<<"$1" | grep -qiE "stock|rack|floor|bench|slug"' _ "$b2"
+rm "$P2/.madewell/stock/shop.md" "$P2/.madewell/stock/water.md"; MW_GATE=off git -C "$P2" commit -qam "drop shop" >/dev/null
+check "brief: with nothing waiting, a ready idea is offered" has "$(cd "$P2" && "$C" brief 2>&1)" "Nothing is waiting on you. Ready to start when you are: Dark mode."
+
 [ $fails -eq 0 ] && echo "constellation-brief: all tests passed" || { echo "constellation-brief: $fails failure(s)"; exit 1; }

@@ -90,6 +90,29 @@ finished_since() { # finished_since <epoch|""> : the title of every piece that r
         if ((s == "" || t + 0 > s + 0) && L[i] ~ /\.md$/) print L[i] } }' | while read -r p; do
       if [ -f "$R/$p" ]; then title_of "$R/$p"; else basename "$p" .md | tr -d '\n'; fi; printf '\n'; done
 }
+open_questions() { # open_questions <piece file> : the bullets under an "Open questions" heading
+  awk 'tolower($0) ~ /^#+ .*open questions/ { on = 1; next } /^#/ { on = 0 } on && /^[[:space:]]*[-*] / { n++ } END { print n + 0 }' "$1"
+}
+ideas_survey() { # IDEAS_LINE (the ideas on the list, new ones first) and IDEAS_ASK (the first that needs answers)
+  IDEAS_LINE=""; IDEAS_ASK=""; IDEAS_READY=""; IDEAS_MORE=0
+  local f title q gaps added new=() old=() n=0 need=0 what
+  for f in "$R/$MW"/stock/*.md; do
+    [ -e "$f" ] || continue; n=$((n + 1)); title=$(title_of "$f")
+    q=$(open_questions "$f"); gaps=$(floor_gaps "$f")
+    if [ "$q" -gt 0 ] || [ -n "$gaps" ]; then
+      need=$((need + 1))
+      if [ "$q" -gt 0 ]; then what="$q open question$([ "$q" -eq 1 ] || echo s)"; else local g; g=$(tr ',' '\n' <<<"$gaps" | grep -c .); what="$g of the four questions"; fi
+      [ -n "$IDEAS_ASK" ] || IDEAS_ASK="$title needs your answers ($what) before it can start"
+      what="needs your answers first"
+    else what="ready to start"; [ -n "$IDEAS_READY" ] || IDEAS_READY=$title; fi
+    added=$(git -C "$R" log -1 --diff-filter=A --format=%ct -- "$f" 2>/dev/null)
+    if [ -n "$added" ] && { [ -z "$SINCE" ] || [ "$added" -ge "$SINCE" ]; }; then new+=("$title (new; $what)")
+    else old+=("$title ($what)"); fi
+  done
+  [ "$n" -gt 0 ] || return 0
+  IDEAS_MORE=$((need - 1))
+  IDEAS_LINE="$n on the list: $(joined 3 "${new[@]}" "${old[@]}")"
+}
 brief_mem() { printf '%s/%s/brief.last' "$STATE" "$(basename "$R")"; }
 
 cmd_brief() { # the front page: done since the last brief, being made now, the one thing waiting on you
@@ -105,7 +128,14 @@ cmd_brief() { # the front page: done since the last brief, being made now, the o
   else say "Nothing is done yet."; fi
   local mk=(); while IFS=$'\t' read -r _ x; do [ -n "$x" ] && mk+=("$x"); done <<<"$MAKING"
   if [ ${#mk[@]} -gt 0 ]; then say "Being made: $(joined 3 "${mk[@]}")."; else say "Nothing is being made right now."; fi
-  if [ -z "$WAITING" ]; then say "Nothing is waiting on you."
+  ideas_survey
+  [ -z "$IDEAS_LINE" ] || say "Ideas: $IDEAS_LINE."
+  if [ -z "$WAITING" ] && [ -n "$IDEAS_ASK" ]; then
+    local more=""; [ "$IDEAS_MORE" -le 0 ] || more=" (and $IDEAS_MORE more after this)"
+    say "Waiting on you: $IDEAS_ASK$more."
+    say "  Recommended: go through them now, one at a time — say yes to start."
+  elif [ -z "$WAITING" ] && [ -n "$IDEAS_READY" ]; then say "Nothing is waiting on you. Ready to start when you are: $IDEAS_READY."
+  elif [ -z "$WAITING" ]; then say "Nothing is waiting on you."
   else
     local n t asks rec op; n=$(wc -l <<<"$WAITING" | tr -d ' ')
     IFS=$US read -r t asks rec op <<<"$(head -1 <<<"$WAITING")"
