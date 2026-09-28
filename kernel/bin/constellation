@@ -21,7 +21,10 @@
 #                                              yes takes its recommendation, a number that choice
 #   constellation pause                        every piece stops at its next handoff; nothing new starts
 #   constellation go                           start again what the pause held
-#   constellation land <slug>                  after a passing verify: fast-forward, bench → finished
+#   constellation land <slug>                  after a passing verify: fast-forward, bench → finished,
+#                                              and print the receipt it writes into the finished piece
+#   constellation receipt <slug>               a finished piece's receipt again: what changed, how we
+#                                              know it works, how to see it, what it cost
 #   constellation discover <notes-file>        the outer loop: digest notes into pieces on the rack
 #   constellation tend [--all]                 the night shift: a step whose agent died, hit a usage limit or
 #                                              went quiet starts again on the next harness (twice, then the operator)
@@ -91,6 +94,7 @@ case "$1" in
   stop-check) shift; cmd_stop_check "$@" ;;
   answer) shift; cmd_answer "$@" ;;
   land) shift; cmd_land "$@" ;;
+  receipt) shift; cmd_receipt "$@" ;;
   status) shift; cmd_status "$@" ;;
   discover) shift; cmd_discover "$@" ;;
   tend) shift; cmd_tend "$@" ;;
