@@ -35,11 +35,14 @@ printf 'WEBVTT\n\n00:00.000 --> 00:02.000\nwe should add a newsletter\n' >"ideas
 printf 'ID3\000\001\002binary audio' >ideas/memo.m4a
 : >ideas/blank.md
 printf 'x' >ideas/.DS_Store
+check "inside a star's step the drop box is left alone" sh -c "CONSTELLATION_STEP=vega '$C' inbox | wc -c | grep -qx 0 && test -f ideas/call-notes.md"
+check "inside a discovery act too" sh -c "CONSTELLATION_DISCOVERING=1 '$C' inbox | wc -c | grep -qx 0 && test -f ideas/call-notes.md"
 OUT=$("$C" inbox 2>&1); echo "$OUT" >"$T/inbox.out"
 check "inbox starts discovery on each text file, in its own window" sh -c "$(declare -f win); win call-notes && win todo && win Team-sync"
 check "one discovery act per text file" test "$(wins)" = 3
 check "each text file is filed in ideas/read/" sh -c "test -f ideas/read/call-notes.md && test -f ideas/read/todo.txt && test -f 'ideas/read/Team sync.vtt' && test ! -e ideas/call-notes.md && test ! -e ideas/todo.txt"
 check "discovery reads the filed copy, through the discovery skill" sh -c "grep -l 'ideas/read/call-notes.md' '$T'/state/proj/discover.call-notes.*.brief.md | xargs grep -q 'skills/discovery.md'"
+check "the discovery act is marked, so its own session start leaves the drop box alone" sh -c "tmux capture-pane -p -t 'workers:discover·todo' | grep -q CONSTELLATION_DISCOVERING=1"
 check "the brief says to cite the intake record and never copy it" sh -c "grep -q 'intake record' '$T'/state/proj/discover.call-notes.*.brief.md"
 check "a file that is not text is listed for the host to read" grep -qF "ideas/memo.m4a" "$T/inbox.out"
 check "and is left where it was dropped" test -f ideas/memo.m4a

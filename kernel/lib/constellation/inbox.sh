@@ -15,21 +15,24 @@
 # and the host reads its output. As a Claude Code SessionStart hook, in the project's settings:
 #   {"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":".madewell/bin/constellation inbox || true"}]}]}}
 # Any other harness: whatever it runs at session start, with the output put in front of the agent.
+# The drop box is the host's: inside a star's step or a discovery act (the same hook fires
+# there too) it does nothing, so no star or discovery picks up what the person dropped.
 
 IDEAS=ideas
 
 cmd_inbox() {
+  [ -z "${CONSTELLATION_STEP:-}${CONSTELLATION_DISCOVERING:-}" ] || return 0
   R=$(main_repo); local box="$R/$IDEAS" f rel
   if [ "${1:-}" = --read ]; then
     shift; [ $# -gt 0 ] || die "usage: constellation inbox --read <file>…"
     for f in "$@"; do
       rel=$(inbox_resolve "$f") || die "$f is not a new file in $IDEAS/"
-      say "filed $rel → $(inbox_file_away "$rel")"
+      local to; to=$(inbox_file_away "$rel") || die "could not file $rel"; say "filed $rel → $to"
     done; return 0
   fi
   [ $# -eq 0 ] || die "usage: constellation inbox [--read <file>…]"
   mkdir -p "$box"
-  local texts=() others=() empties=()
+  local texts=() others=() empties=() to
   while IFS= read -r -d '' f; do
     rel=$IDEAS/$(basename "$f")
     if [ ! -s "$f" ]; then empties+=("$rel")
@@ -42,7 +45,7 @@ cmd_inbox() {
   if [ ${#texts[@]} -gt 0 ]; then
     if discover_ready; then
       for rel in "${texts[@]}"; do
-        local to out; to=$(inbox_file_away "$rel")
+        local out; to=$(inbox_file_away "$rel") || continue   # another session took it first
         if out=$(discover_start "$R/$to"); then say "  thinking through $to — $out"
         else inbox_unfile "$to" "$rel"; say "  could not start thinking through $rel; it stays in $IDEAS/"; fi
       done
@@ -50,7 +53,7 @@ cmd_inbox() {
       for rel in "${texts[@]}"; do say "  $rel: no harness here to think it through (claude on PATH); it stays in $IDEAS/"; done
     fi
   fi
-  for rel in "${empties[@]}"; do say "  set aside $rel → $(inbox_file_away "$rel") (it was empty)"; done
+  for rel in "${empties[@]}"; do to=$(inbox_file_away "$rel") && say "  set aside $rel → $to (it was empty)"; done
   if [ ${#others[@]} -gt 0 ]; then
     say "  for you to read (not text):"
     for rel in "${others[@]}"; do say "    $rel"; done
@@ -77,7 +80,7 @@ inbox_file_away() { # inbox_file_away <ideas/x> : move it into ideas/read/ under
 DONE: $rel is in hand for discovery, at $to
 NEXT: —" -- "$rel" "$to" >/dev/null || printf 'constellation: the move of %s is staged but not committed\n' "$rel" >&2
   else
-    mv -- "$R/$rel" "$R/$to"
+    mv -- "$R/$rel" "$R/$to" 2>/dev/null || return 1
   fi
   printf '%s' "$to"
 }

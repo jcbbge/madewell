@@ -30,13 +30,13 @@ discover_start() { # discover_start <notes-path> : start the act on one file; sa
       [ "${CONSTELLATION_DRY:-}" = 1 ] && run="sleep 3600"
       tmux has-session -t "=$SESSION" 2>/dev/null || tmux new-session -d -s "$SESSION" -n _ -c "$R" || return 1
       local wid; wid=$(tmux new-window -d -P -F '#{window_id}' -t "=$SESSION:" -n "discover·$name" -c "$R") || return 1
-      tmux send-keys -t "$wid" "export AGENT_ROLE=vega; clear; $run" Enter || return 1
+      tmux send-keys -t "$wid" "export AGENT_ROLE=vega CONSTELLATION_DISCOVERING=1; clear; $run" Enter || return 1
       say "discovery started on $notes in $SESSION:discover·$name" ;;
     headless)
       local log=${brief%.brief.md}.log
       run="claude -p --dangerously-skip-permissions --effort high \"\$(cat '$brief')\""
       [ "${CONSTELLATION_DRY:-}" = 1 ] && run=true
-      ( cd "$R" && AGENT_ROLE=vega nohup bash -c "$run" >"$log" 2>&1 </dev/null & ) || return 1
+      ( cd "$R" && AGENT_ROLE=vega CONSTELLATION_DISCOVERING=1 nohup bash -c "$run" >"$log" 2>&1 </dev/null & ) || return 1
       say "discovery started on $notes, headless (its log: $log)" ;;
   esac
 }
