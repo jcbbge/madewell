@@ -1,5 +1,5 @@
 # Cassiopeia, in the dev trade
-skills: designing-apis, repo-deep-dive-analysis
+skills: sitting
 ---
 Here the thing being made is code, and the check is its tests.
 

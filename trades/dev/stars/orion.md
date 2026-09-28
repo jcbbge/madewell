@@ -1,7 +1,7 @@
 # Orion, in the dev trade
 writes-only: (^|/)(tests?|__tests__|spec|specs)/|[._-](test|spec)s?\.[A-Za-z0-9]+$|_test\.[A-Za-z0-9]+$
 refusal: orion changes only test files; these are not:
-skills: fix-flaky-tests
+skills: sitting
 ---
 Here the thing being made is code, and the check is its tests.
 

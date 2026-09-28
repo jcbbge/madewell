@@ -54,7 +54,7 @@ check "the dev overlay says what the thing and the check are" grep -qF "the thin
 check "vega's brief carries no other trade's words" lacks "the draft" "$(brief greet vega)"
 to_sirius greet
 check "cassiopeia's brief names repo search and the test paths" sh -c "grep -qF 'Search the repo' '$(brief greet cassiopeia)' && grep -qF 'the test paths are' '$(brief greet cassiopeia)'"
-check "cassiopeia's brief adds the dev skills" grep -qF "This trade's skills, if your harness has them: designing-apis, repo-deep-dive-analysis." "$(brief greet cassiopeia)"
+check "cassiopeia's brief adds the dev skills" grep -qF "This trade's skills, if your harness has them: sitting." "$(brief greet cassiopeia)"
 check "sirius's brief ends the handoff with the line the receipt reads" sh -c "grep -qF 'To see it: <what they open or do' '$(brief greet sirius)' && grep -qF 'End the handoff with \"To see it:\"' '$(brief greet sirius)'"
 check "sirius's brief is the kernel star, then the dev overlay" sh -c "grep -qF 'Sirius — the maker' '$(brief greet sirius)' && grep -qF 'Write code only' '$(brief greet sirius)'"
 put greet tests/greet.test.js

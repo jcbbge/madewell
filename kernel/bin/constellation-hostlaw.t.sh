@@ -47,7 +47,7 @@ done
 check "HOST.md calls itself Constellation, not a version or a checkout" sh -c "! grep -qiE 'Made Well 6|Version:\*\* 6|dist checkout' '$H'"
 check "HOST.md carries no stars' law (ground, jig, commits)" sh -c "! grep -qE '^## (Ground|The Jig|Commits)' '$H' && ! grep -qF 'git add -A' '$H'"
 check "HOST.md restates neither MADEWELL.md nor SPEC.md" sh -c "! grep -qE '^## (The four acts|Moving work|Hands|Forbidden)' '$H' && ! grep -qF 'stock/X.md' '$H'"
-check "stars/LAW.md holds ground, the jig and commits, and nothing else" test "$(grep '^## ' "$L" | paste -sd'|' -)" = "## Ground before you plan|## The Jig before you implement, and at verify|## Commits"
+check "stars/LAW.md holds ground, the jig and commits" sh -c "grep -qx '## Ground first' '$L' && grep -qx '## The Jig' '$L' && grep -qx '## Commits' '$L'"
 
 # --- an older install: its loader is rewritten in place, its trade and its own words kept
 O=$T/old; fresh "$O"

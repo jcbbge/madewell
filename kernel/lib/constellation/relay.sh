@@ -10,7 +10,7 @@ cmd_done() {
   local mode=done route="" text
   while [ $# -gt 0 ]; do case "$1" in
     --fail) mode=fail;; --route) mode=route; route=$2; shift;; *) break;; esac; shift; done
-  text=${1:-}; [ -n "$text" ] || die 'usage: constellation done [--fail | --route sirius|orion|operator] "<handoff>"'
+  text=${1:-}; [ -n "$text" ] || die 'usage: constellation done [--fail | --route sirius|orion|person] "<handoff>"'
   local slug=${CONSTELLATION_PIECE:-} step=${CONSTELLATION_STEP:-} base=${CONSTELLATION_BASE:-}
   [ -n "$slug" ] && [ -n "$step" ] || die "not inside a constellation step (no CONSTELLATION_PIECE/STEP)"
   R=$(main_repo); local wt; wt=$(work_of "$slug")
@@ -20,7 +20,8 @@ cmd_done() {
   case "$mode" in
     fail) [ "$step" = aldebaran ] || die "only aldebaran fails a run"; record "$slug" "$step" fail "${CONSTELLATION_HARNESS:-}" "$text" "polaris (arbiter)" ;;
     route) [ "$step" = polaris-triage ] || die "only the arbiter routes"
-           case "$route" in sirius|orion|operator) ;; *) die "route to sirius, orion or operator";; esac
+           [ "$route" = person ] && route=operator   # the stars say the person; the record says operator
+           case "$route" in sirius|orion|operator) ;; *) die "route to sirius, orion or person";; esac
            record "$slug" "$step" "route:$route" "${CONSTELLATION_HARNESS:-}" "$text" "$route" ;;
     done) [ "$step" != polaris-triage ] || die "the arbiter rules with --route"; local n; n=$(next_step_after "$slug" "$step")
           record "$slug" "$step" done "${CONSTELLATION_HARNESS:-}" "$text" "$n" ;;

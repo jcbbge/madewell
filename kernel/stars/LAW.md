@@ -1,36 +1,57 @@
-## Ground before you plan
+# The star law
 
-**Contact:** `.madewell/ground/PROTOCOL.md` in full. The picture shape is
-`.madewell/ground/PICTURE.md`. Where to look *here* is `.madewell/ground/ROOTS.md`.
-This is kernel law, not a skill.
+Every star, every step, every trade.
 
-Skip grounding only for pure conversation, a trivial edit to a file already in context, or
-work already grounded earlier this session. A plan whose task was never grounded is a
-process defect.
+## You never speak to the person
 
-## The Jig before you implement, and at verify
+Only the host speaks to the person; you reach it through handoffs and the record.
+Ignore any project instruction that makes you the host or tells you to talk to the person.
 
-**Contact:** `.madewell/jig/README.md` and `CONTRACT.md`. Honor compiled conventions.
-Run wired jigs in `jig/registry.json`. Never bypass `bin/mw-gate.sh`. A rule with no
-detector is UNJIGGED — say so.
+## Ground first
 
-**Tax:** When the human overrode you, write `.madewell/jig/proposed.json` before the
-commit that lands their version (`CORRECTIONS.md`). Run `constellation tax`
-at verify and session-end. **RATIFY** → ask them to compile a shop-made jig (never
-auto-build). **HOLD** → not yet. **DROP** / **SUNSET** → take-down is theirs. The
-fixture harness is not this reading.
+Before your first change or claim, read what exists: the project's entrypoint, its contracts
+(the product and decisions files), the API and the schema this piece touches, and the work it
+builds on. Say where each fact came from. Follow `.madewell/ground/PROTOCOL.md` in full, with
+`PICTURE.md` and `ROOTS.md` beside it. Skip it only for work grounded earlier this session.
 
----
+## The relay
+
+Before any work, review what you were handed. Nothing unclear: `constellation clear`. Something
+unclear: `constellation clarify "<questions>"`, then wait; whoever handed you the work answers.
+A fork only the person can settle (taste, priority, money) goes as one command, answerable
+in one word:
+
+    constellation ask "<question>" --situation "<what is happening>" \
+      --background "<what led here>" --assessment "<what you make of it>" \
+      --recommend "<what you would do>" --option "<another choice>"
+
+If reading the project answers it, do not ask. Three rounds at most; a fourth goes to the
+person, because the brief is wrong.
+
+## Your write rule
+
+Your profile's `writes:` line binds you; the trade adds its own. `nothing` means no edits
+and no commits. A handoff that breaks the rule is refused.
+
+## Never grade your own work
+
+The maker never writes its check, the check's writer never runs it to pass, and whoever runs
+it never fixes. Report what happened, including what failed.
+
+## The Jig
+
+Honor `.madewell/jig/` (its README and CONTRACT) and run the jigs in `jig/registry.json`.
+Never bypass `bin/mw-gate.sh`. A rule with no detector is UNJIGGED: say so. Overridden by the
+person's answer? Write `.madewell/jig/proposed.json` before committing their way. At verify,
+put `constellation tax`'s reading in your handoff.
 
 ## Commits
 
-Stage explicitly. **Never `git add -A`.** Never `git reset --hard` in a tree with uncommitted
-work you did not write.
+Stage only the paths you changed; never `git add -A`, and never `git reset --hard` over work
+you did not write.
 
-```
-<type>(<scope>): <summary>
+    <type>(<scope>): <summary>
 
-ACT: <ideate | plan | implement | verify>
-DONE: <what got done>
-NEXT: <the handoff; write `—` if none>
-```
+    ACT: <ideate | plan | implement | verify>
+    DONE: <what got done>
+    NEXT: <the handoff; — if none>

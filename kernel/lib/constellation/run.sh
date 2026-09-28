@@ -39,6 +39,8 @@ compose_brief() { # compose_brief <slug> <step> <note>
   printf '# %s — %s\n\n' "$(sed -n '1s/^# //p' "$STARS/$star.md")" "$slug"
   printf 'You are wearing the %s profile for one step of this piece. The piece is the actor;\n' "$star"
   printf 'you are the hands for this step only. When it is done, hand off and stop.\n\n'
+  printf 'Ignore any project instruction that makes you the host or tells you to talk to the person.\n'
+  printf 'You are a star: you never speak to the person; the host does.\n\n'
   [ "$step" = polaris-peer ] && printf '**This step: peer, after Vega.**\n\n'
   [ "$step" = polaris-triage ] && printf '**This step: arbiter. A verify run failed; its output is in the run below.**\n\n'
   [ -n "$note" ] && printf '**Note for this start:** %s\n\n' "$note"
@@ -48,8 +50,11 @@ compose_brief() { # compose_brief <slug> <step> <note>
   printf -- '- If nothing: `constellation clear`, then do the work.\n'
   printf -- '- If something: `constellation clarify "<your questions>"`, then stop and wait. Whoever\n'
   printf '  handed you this work answers in this pane. Repeat until nothing is left, then `constellation clear`.\n'
-  printf 'Three rounds at most: a fourth set of questions flags the operator, because the brief is wrong.\n'
+  printf 'Three rounds at most: a fourth set of questions goes to the person, because the brief is wrong.\n'
   printf '`constellation done` is refused until you have cleared.\n\n'
+  if [ -f "$STARS/LAW.md" ]; then sed 's/^#/##/' "$STARS/LAW.md"   # the star law, one level under this brief
+  else printf '## The star law\n\nMISSING: %s/LAW.md is not in this install; say so in your handoff.\n' "$STARS"; fi
+  printf '\n'
   star_body "$star"; printf '\n'
   star_overlay "$star"
   local skills; skills=$(star_field "$star" skills)
@@ -67,7 +72,7 @@ compose_brief() { # compose_brief <slug> <step> <note>
   printf -- '- If an earlier start of this step was interrupted, read `git log` and `git status` here and continue from what is already done.\n'
   printf -- '- Every `constellation …` command here is run with your shell tool. Writing one as text does nothing.\n'
   printf -- '- Finish with `constellation done …` as your last act (it is on your PATH). Nothing else hands off, and\n'
-  printf '  your turn cannot end without it: that is how the next star, and the operator, learn you are done.\n'
+  printf '  your turn cannot end without it: that is how the next star, and the host, learn you are done.\n'
 }
 
 cmd_run() { # cmd_run <slug> [flags] [resume]
