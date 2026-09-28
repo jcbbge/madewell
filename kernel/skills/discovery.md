@@ -1,7 +1,7 @@
 # Discovery Workflow
 
 **Mode:** Workflow — runs **ideate** on raw input. Hosts the Lens Slot.
-**Trigger:** Brain dump, transcript, meeting notes, AI-chat log, thinking out loud, first session
+**Trigger:** Brain dump, transcript, meeting notes, AI-chat log, thinking out loud, first session, anything dropped into `ideas/`
 **Artifacts:** Pieces on the rack (`P/stock/`); decisions surfaced; The One Thing written down
 
 ---
@@ -26,6 +26,37 @@ Phase in the legacy pipeline) tags the run; do not rename the field.
 
 **Corpus boundary:** Never copy transcript bodies into the dist. Never write `STAGING.md` or
 `STG-*` ids. Substance stays in the read-only corpus; the dist tracks **position** only.
+
+---
+
+## Where intake comes from: the drop box and the chat
+
+The person never learns a command. Ideas reach the rack two ways, and both are this skill:
+
+- **The chat.** They talk to the host; that is *Live Conversation Mode* below.
+- **The drop box.** They drop anything into the project's `ideas/` folder: notes, markdown, a
+  call transcript, a voice memo, a photo, a PDF. At every session start the host runs
+  `constellation inbox`. Each new text file is moved to `ideas/read/` and a discovery act
+  starts on it there, in its own window or headless; the pieces it racks cite
+  `ideas/read/<file>` as their intake record (never copy its body onto the piece). Anything
+  that is not text is listed for the host, who reads it with its own tools, runs this skill on
+  what it says, then files it with `constellation inbox --read <file>` so it is not new again.
+
+**Dropped, not spoken.** A discovery act on a dropped file usually has no one to answer
+it. It does not wait: it racks what it found with each open question carried on its piece,
+and writes "here is what I heard" in its commit body. The host reads that back to the person
+at the next conversation, and their answer is captured as in Step 5. The rack is where a
+finding waits to be seen; nothing reaches the bench before the person has answered the four
+questions, so nothing is made from a reading they never saw.
+
+**The four questions are a conversation, not a form.** When the person wants a piece made,
+the host runs `constellation take <slug>`. If the piece does not yet state its floor, take
+prints the questions still open, in plain words: *what are we making, what are we not making,
+how will we know it is done, is it waiting on anything.* Ask them one at a time, in your own
+words, in the flow of the talk; skip what the person already told you (or what this skill
+already wrote on the piece); keep their words. Then take it with their answers:
+`constellation take <slug> --making '…' --not-making '…' --done-when '…' --waits-on '…'`.
+Never read the questions out as a list, and never say "floor", "stock" or "bench" to them.
 
 ---
 
@@ -344,6 +375,9 @@ When the input is the person talking to you right now (not a document):
 
 Mid-session capture: when something comes up that isn't the current work, **capture on the
 rack immediately** (`P/stock/<slug>.md`), say "captured," and return to what you were doing.
+
+A file they paste or attach in the chat is the drop box by another door: put it in `ideas/`
+and run `constellation inbox`, so it is read, racked and filed the same way.
 
 ---
 
