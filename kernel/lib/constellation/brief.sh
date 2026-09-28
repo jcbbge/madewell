@@ -26,9 +26,10 @@ joined() { # joined <max> <items…> : "a; b; c" and "and N more" past the max
   printf '%s' "$out"
 }
 
-timed_events() { # timed_events <slug> : TIME<TAB>STEP<TAB>EVENT<TAB>DONE<TAB>RECOMMEND per event, oldest first
+US=$'\037'  # the field separator where a field may be empty (a tab is IFS whitespace: empties would collapse)
+timed_events() { # timed_events <slug> : TIME US STEP US EVENT US DONE US RECOMMEND US OPTIONS per event, oldest first
   git -C "$R" log --reverse --all-match --grep='^STEP: ' --grep="^run($(sed 's/[.[\*^$]/\\&/g' <<<"$1")): " --format='%x1e%ct%n%B' "$(branch_of "$1")" 2>/dev/null | awk -v RS='\x1e' '
-    { t = step = ev = d = rec = ""
+    { t = step = ev = d = rec = opts = ""; k = 1
       n = split($0, L, "\n")
       for (i = 1; i <= n; i++) {
         if (t == "" && L[i] ~ /^[0-9]+$/) t = L[i]
@@ -36,28 +37,29 @@ timed_events() { # timed_events <slug> : TIME<TAB>STEP<TAB>EVENT<TAB>DONE<TAB>RE
         else if (L[i] ~ /^EVENT: /) ev = substr(L[i], 8)
         else if (L[i] ~ /^DONE: /) d = substr(L[i], 7)
         else if (L[i] ~ /^RECOMMEND(ATION)?: /) { rec = L[i]; sub(/^RECOMMEND(ATION)?: /, "", rec) }
+        else if (L[i] ~ /^OPTION: /) { k++; opts = opts (opts == "" ? "" : " · ") k ". " substr(L[i], 9) }
       }
-      if (step != "") printf "%s\t%s\t%s\t%s\t%s\n", t, step, ev, d, rec }'
+      if (step != "") printf "%s\037%s\037%s\037%s\037%s\037%s\n", t, step, ev, d, rec, opts }'
 }
 recommendation_in() { # recommendation_in <recommend-trailer> <text> : the trailer, else "Recommendation: …" in the text
   if [ -n "$1" ]; then printf '%s' "$1"; return; fi
   sed -nE 's/.*[Rr]ecommend(ation|ed)?:[[:space:]]*//p' <<<"$2" | sed -E 's/[[:space:]]*([Oo]ptions?:.*)?$//' | head -1
 }
 
-# One pass over the bench. Fills WAITING (TIME<TAB>title<TAB>what it asks<TAB>recommendation, one per
+# One pass over the bench. Fills WAITING (TIME US what it asks US recommendation US other choices, one per
 # piece that needs the person) and MAKING (TIME<TAB>"title — act, since …"), and DID (bench pieces'
 # latest done act since $SINCE).
 survey() {
   WAITING=""; MAKING=""; DID=()
-  local f slug title nx t st e d rec lt ld lrec started dones
+  local f slug title nx t st e d rec op lt ld lrec lop started dones
   for f in "$R/$MW"/bench/*.md; do
     [ -e "$f" ] || continue; slug=$(basename "$f" .md); title=$(title_of "$f")
     nx=$(next_step "$slug" 2>/dev/null || echo operator)
-    lt=""; ld=""; lrec=""; started=""; dones=""
-    while IFS=$'\t' read -r t st e d rec; do  # the latest handoff, the latest start, the latest act done since
+    lt=""; ld=""; lrec=""; lop=""; started=""; dones=""
+    while IFS=$US read -r t st e d rec op; do  # the latest handoff, the latest start, the latest act done since
       [ -n "$st" ] || continue
       if [ "$e" = started ]; then started=$t; continue; fi
-      lt=$t; ld=$d; lrec=$rec
+      lt=$t; ld=${d%% — Situation: *}; lrec=$rec; lop=$op  # the question alone: its SBAR stays in the record
       if [ "$e" = "done" ] && { [ -z "$SINCE" ] || [ "$t" -gt "$SINCE" ]; }; then dones=$st; fi
     done <<<"$(timed_events "$slug")"
     [ -z "$dones" ] || DID+=("$title was $(did_of "$dones")")
@@ -70,7 +72,7 @@ survey() {
     if [ -n "$asks" ]; then
       rec=$(recommendation_in "$lrec" "$ld")
       [ -z "$rec" ] || asks=$(sed -E 's/[[:space:]]*[Rr]ecommend(ation|ed)?:.*//' <<<"$asks")
-      WAITING+="${lt:-0}"$'\t'"$(clip "$asks")"$'\t'"$(clip "$rec")"$'\n'
+      WAITING+="${lt:-0}$US$(clip "$asks")$US$(clip "$rec")$US$(clip "$lop")"$'\n'
       continue
     fi
     case "$nx" in
@@ -79,7 +81,7 @@ survey() {
       *) MAKING+="${lt:-0}"$'\t'"$title — $(doing_of "$nx") is next"$'\n' ;;
     esac
   done
-  WAITING=$(sort -n <<<"$WAITING" | sed '/^$/d'); MAKING=$(sort -n <<<"$MAKING" | sed '/^$/d')
+  WAITING=$(sort -t "$US" -k1,1n <<<"$WAITING" | sed '/^$/d'); MAKING=$(sort -n <<<"$MAKING" | sed '/^$/d')
 }
 finished_since() { # finished_since <epoch|""> : the title of every piece that reached finished/ on main since then
   git -C "$R" log -n 500 --diff-filter=A --name-only --format='%x1e%ct' -- "$MW/finished/" 2>/dev/null | awk -v RS='\x1e' -v s="$1" '
@@ -105,12 +107,14 @@ cmd_brief() { # the front page: done since the last brief, being made now, the o
   if [ ${#mk[@]} -gt 0 ]; then say "Being made: $(joined 3 "${mk[@]}")."; else say "Nothing is being made right now."; fi
   if [ -z "$WAITING" ]; then say "Nothing is waiting on you."
   else
-    local n t asks rec; n=$(wc -l <<<"$WAITING" | tr -d ' ')
-    IFS=$'\t' read -r t asks rec <<<"$(head -1 <<<"$WAITING")"
+    local n t asks rec op; n=$(wc -l <<<"$WAITING" | tr -d ' ')
+    IFS=$US read -r t asks rec op <<<"$(head -1 <<<"$WAITING")"
     local more=""; [ "$n" -le 1 ] || more=" (and $((n - 1)) more after this)"
     say "Waiting on you: $asks$more"
-    if [ -n "$rec" ]; then say "  Recommended: ${rec%.} — say yes to go with it."; else say "  No recommendation came with it."; fi
+    if [ -n "$rec" ]; then say "  Recommended: ${rec%.} — say yes to go with it.${op:+ Or say the number: $op.}"
+    else say "  No recommendation came with it."; fi
   fi
+  ! paused || say "Everything is paused: what is being made stops at its next save. Say go to pick up."
   mkdir -p "$(dirname "$mem")"; printf '%s\n' "$stamp" >"$mem"
 }
 
@@ -123,5 +127,6 @@ cmd_line() { # one line for a status bar; silent where there is no Made Well
   local q=question; [ "$w" -eq 1 ] || q=questions
   [ "$m" -eq 0 ] || out="$m being made"
   [ "$w" -eq 0 ] || out="${out:+$out · }$w $q for you"
+  ! paused || out="paused${out:+ · $out}"
   say "${out:-all quiet}"
 }

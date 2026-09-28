@@ -2,8 +2,8 @@
 # constellation-brief.t.sh — the person's front page and the status line, on scratch pieces:
 # brief's three parts (done since the last brief, being made now, the one thing waiting on the
 # person with its recommendation), the remembered time, plain words only, `constellation line`,
-# and both bindings (Claude Code's status line, Pi's widget). Questions are written straight
-# onto the pieces' records, the way a star's handoff lands there. Isolated tmux, no harness.
+# pause, and both bindings (Claude Code's status line, Pi's widget). Stars' questions go through
+# `constellation ask`, or straight onto a piece's record as a handoff lands there. Isolated tmux.
 set -uo pipefail
 KB=$(cd "$(dirname "$0")" && pwd); ROOT=$(cd "$KB/../.." && pwd); C=$KB/constellation
 T=$(mktemp -d "${TMPDIR:-/tmp}/constellation-brief-test.XXXXXX")
@@ -58,8 +58,10 @@ sleep 1
 printf '# Old piece\n\nIt was done.\n' >.madewell/finished/old.md; git add .madewell/finished/old.md; MW_GATE=off git commit -qm "finish old"
 piece greet "Greet the user"; "$C" run greet >/dev/null
 piece bye "Wave goodbye"; "$C" run bye >/dev/null; rec bye vega clear "no open questions"; rec bye vega done "a one-function module"
-piece hi "Say hi"; "$C" run hi >/dev/null; rec hi vega clear "no open questions"
-rec hi vega ask "run the e2e suite too?" "RECOMMEND: unit tests are enough"
+piece hi "Say hi"; "$C" run hi >/dev/null
+( export CONSTELLATION_PIECE=hi CONSTELLATION_STEP=vega CONSTELLATION_REPO=$P CONSTELLATION_HARNESS=claude
+  "$C" clear >/dev/null && "$C" ask "run the e2e suite too?" --situation "the unit tests pass" --background "e2e takes an hour" \
+    --assessment "the unit tests cover it" --recommend "unit tests are enough" --option "run e2e too" >/dev/null )
 
 check "line: two being made, one question" test "$(line)" = "2 being made · 1 question for you"
 B=$(brief); printf '%s\n' "$B" | sed 's/^/     | /'
@@ -69,7 +71,8 @@ check "brief (done): an act handed off since the last brief" has "$B" "Wave good
 check "brief (being made): which act, since when" matches "$B" "Greet the user — thinking it through, since [0-9]{2}:[0-9]{2}[;.]"
 check "brief (being made): the act that comes next" has "$B" "Wave goodbye — getting a second look is next"
 check "brief (waiting): the question" has "$B" "Waiting on you: Say hi asks: run the e2e suite too?"
-check "brief (waiting): its recommendation, and the one word that takes it" has "$B" "Recommended: unit tests are enough — say yes to go with it."
+check "brief (waiting): its recommendation, the one word that takes it, and the other choices" has "$B" "Recommended: unit tests are enough — say yes to go with it. Or say the number: 2. run e2e too."
+check "brief (waiting): the question alone; its situation stays in the record" bash -c "! grep -qE 'Situation|Background|Assessment' <<<\"\$0\"" "$B"
 check "brief speaks plain words: no star or engine names" sh -c "! grep -qiE 'vega|polaris|cassiopeia|sirius|orion|aldebaran|bench|stock|STEP|EVENT' <<'EOF'
 $B
 EOF"
@@ -91,7 +94,7 @@ check "brief (waiting): the oldest question first, and how many more" has "$B" "
 rec bye polaris-peer started "-"; rec bye polaris-peer clarify "which module?"
 check "a question from one act to the one before is not the person's" test "$(line)" = "2 being made · 2 questions for you"
 rec bye vega reply:vega "the greet module"
-rec hi vega answer "unit tests are enough"
+"$C" answer hi yes >/dev/null
 B=$(brief)
 check "brief (waiting): an answered question leaves; the next one comes up" has "$B" "Waiting on you: Ping the server asks before it starts: Situation: the name is unclear."
 check "brief (waiting): a recommendation written into the question is found" has "$B" "Recommended: call it ping — say yes to go with it."
@@ -132,5 +135,12 @@ EOF
 else
   printf 'skip pi: the widget (Pi is not installed here)\n'
 fi
+
+# --- pause and go show on the front page and the line
+"$C" pause >/dev/null
+check "line: says when everything is paused" test "$(line)" = "paused · 3 being made · 1 question for you"
+check "brief: says when everything is paused, and the word that picks up" has "$(brief)" "Everything is paused: what is being made stops at its next save. Say go to pick up."
+"$C" go >/dev/null
+check "line: go lifts the pause" test "$(line)" = "3 being made · 1 question for you"
 
 [ $fails -eq 0 ] && echo "constellation-brief: all tests passed" || { echo "constellation-brief: $fails failure(s)"; exit 1; }
