@@ -34,6 +34,9 @@ check "the guard names what the driver sets for discovery" grep -qF "CONSTELLATI
 check "HOST.md is installed as .madewell/HOST.md" cmp -s "$ROOT/kernel/HOST.md" "$P/.madewell/HOST.md"
 check "the retired .madewell/AGENTS.md is not installed" test ! -e "$P/.madewell/AGENTS.md"
 check "the stars' law is installed with the stars" cmp -s "$ROOT/kernel/stars/LAW.md" "$P/.madewell/stars/LAW.md"
+printf '<!-- MADE WELL — loader -->\nIf CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host: follow only your brief. Otherwise, read and follow .madewell/HOST.md before anything else, then continue.\n<!-- /MADE WELL -->\n' >"$T/oldguard.md"
+OG=$T/og; mkdir -p "$OG"; git -C "$OG" init -q; cp "$T/oldguard.md" "$OG/CLAUDE.md"; sh "$ROOT/install.sh" "$OG" >/dev/null 2>&1
+check "an earlier guard is brought up to today's words on re-sync" test "$(loader_line "$OG/CLAUDE.md")" = "$LOADER"
 check "a second install leaves one loader" sh -c "sh '$ROOT/install.sh' '$P' >/dev/null 2>&1 && test \$(grep -c 'MADE WELL — loader' '$P/CLAUDE.md') = 1 && test \"\$(awk '/^<!-- MADE WELL — loader -->\$/{getline; print; exit}' '$P/CLAUDE.md')\" = '$LOADER'"
 
 # --- the host's law holds only the host's law

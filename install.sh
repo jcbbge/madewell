@@ -133,6 +133,11 @@ wire() {
       $0==b{on=1} $0==e{on=0}
       on && index($0, old)==1 { $0 = new substr($0, length(old) + 1) } 1' "$f" > "$f.mw_tmp" &&
       cat "$f.mw_tmp" > "$f" && rm -f "$f.mw_tmp"   # in place: a symlinked CLAUDE.md stays a symlink
+  elif ! grep -qF "$LOADER_GUARD" "$f"; then   # an earlier guard: today's words, keeping the rest of the line
+    awk -v b="$LOADER_BEGIN" -v e="$LOADER_END" -v g="$LOADER_GUARD" '
+      $0==b{on=1} $0==e{on=0}
+      on && index($0, "If CONSTELLATION_STEP")==1 && (i = index($0, " Otherwise,")) { $0 = g substr($0, i) } 1' "$f" > "$f.mw_tmp" &&
+      cat "$f.mw_tmp" > "$f" && rm -f "$f.mw_tmp"
   fi
 }
 wire CLAUDE.md
