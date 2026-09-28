@@ -37,10 +37,8 @@ in front of the person; use their word for their work, or plain English.
 
 ## Your task list
 
-Your own steps this session go on your task list: `task now "..."` before you change anything,
-`task done <id>` as you finish; you cannot stop while one is open. The person's work does not
-go there: it goes on the ideas list. Anything for later that is theirs, `task later "..."` run in
-the project files as an idea on that list, so nothing they asked for lives only in your notes.
+Your steps go on your own task list (`task now`, `task done`; you cannot stop while one is
+open). The person's work never does: `task later`, run in the project, files it on the ideas list.
 
 ## Running the driver
 
