@@ -121,7 +121,7 @@ git reset -q -- .madewell/stock/later.md; rm -f .madewell/stock/later.md
 check "constellation move refuses the floorless bench move" sh -c "printf '# X\n' >.madewell/stock/nofloor.md; ! '$C' move bench nofloor; rm -f .madewell/stock/nofloor.md"
 check "constellation enforcers lists every claim and its falsifier" sh -c "'$C' enforcers | grep -q enforcers-are-real"
 check "constellation tax gives the reading" "$C" tax
-check "constellation session answers (the door is reachable)" sh -c "'$C' session --help >/dev/null 2>&1 || '$C' session --root . --session x <<<'{\"op\":\"show\"}' 2>&1 | grep -qiE 'refused|no such|not found|session'"
+check "constellation session answers (the door is reachable)" sh -c "'$C' session --help | tr '\\n' ' ' | grep -q 'session execution door'"
 check "help names the one interface" sh -c "'$C' help | grep -q 'The one interface'"
 
 [ $fails -eq 0 ] && echo "constellation: all tests passed" || { echo "constellation: $fails failure(s)"; exit 1; }
