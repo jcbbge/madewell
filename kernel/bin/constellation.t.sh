@@ -110,7 +110,7 @@ check "sirius hands off the fix" "$C" done "fixed the typo"
 check "after a fix the run goes straight to aldebaran, not orion again" win aldebaran
 
 as aldebaran; "$C" clear >/dev/null
-check "a star asks the operator" "$C" ask "run the e2e suite too?"
+check "a star asks the operator" "$C" ask "run the e2e suite too?" --situation "unit tests pass" --background "the plan names unit tests" --assessment "e2e adds little here" --recommend "unit tests are enough" --option "run the e2e suite too"
 check "status says it waits" test "$(next)" = wait:aldebaran
 check "run is refused while a question is open" says "asked a question" env -u CONSTELLATION_PIECE -u CONSTELLATION_STEP "$C" run greet
 check "the operator answers" env -u CONSTELLATION_PIECE -u CONSTELLATION_STEP "$C" answer greet "unit tests are enough"

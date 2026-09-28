@@ -17,7 +17,10 @@
 #   constellation resume <slug> [launch flags] start the current step again (new agent, same record)
 #   constellation status [<slug>]              every piece on the bench: its step and last handoff;
 #                                              with a slug, its whole run
-#   constellation answer <slug> "<text>"       reply to a star that asked; typed into its pane
+#   constellation answer <slug> yes|<n>|"<text>"  reply to a star that asked, typed into its pane:
+#                                              yes takes its recommendation, a number that choice
+#   constellation pause                        every piece stops at its next handoff; nothing new starts
+#   constellation go                           start again what the pause held
 #   constellation land <slug>                  after a passing verify: fast-forward, bench → finished
 #   constellation discover <notes-file>        the outer loop: digest notes into pieces on the rack
 #   constellation tend [--all]                 the night shift: a step whose agent died, hit a usage limit or
@@ -41,7 +44,10 @@
 # Then the star finishes with one of:
 #   constellation done "<handoff>"             constellation done --fail "<output>"   (aldebaran)
 #   constellation done --route sirius|orion|operator "<why>"                        (polaris, arbiter)
-#   constellation ask "<question>"             for what only the operator can settle
+#   constellation ask "<question>" --situation S --background B --assessment A --recommend R --option O [--option O]
+#                                              for what only the operator can settle; refused without
+#                                              the recommendation and a choice (a clarify to the operator
+#                                              takes the same flags)
 #
 # Launch flags: --harness claude|pi (default: the star's), --model M, --effort E,
 #   --cmd '<command with {brief} in it>' for any other harness. For every step of a run:
@@ -73,8 +79,10 @@ for f in "$LIB"/*.sh; do . "$f"; done  # one file per concern; each verb's code 
 case "$1" in
   adopt) shift; cmd_adopt "$@" ;;
   take) shift; cmd_take "$@" ;;
-  run) shift; cmd_run "$@" ;;
-  resume) shift; RESUME=1 cmd_run "$@" ;;
+  run) shift; not_paused; cmd_run "$@" ;;
+  resume) shift; not_paused; RESUME=1 cmd_run "$@" ;;
+  pause) shift; cmd_pause "$@" ;;
+  go) shift; cmd_go "$@" ;;
   done) shift; cmd_done "$@" ;;
   ask) shift; cmd_ask "$@" ;;
   clear) shift; cmd_clear "$@" ;;
