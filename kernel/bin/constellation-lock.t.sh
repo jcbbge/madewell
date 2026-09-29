@@ -75,6 +75,18 @@ check "two lands at once: each finish commit removes only its own piece" sh -c "
 check "two lands at once: the worktrees and branches are gone" sh -c "! git rev-parse -q --verify piece/alpha && ! git rev-parse -q --verify piece/beta && test ! -d '$T/state/proj/alpha' && test ! -d '$T/state/proj/beta'"
 check "two lands at once: both receipts read back" sh -c "'$C' receipt alpha | grep -qx '## Receipt' && '$C' receipt beta | grep -qx '## Receipt'"
 
+# --- two sessions filing the same idea at once: one files it, the other finds it gone; nothing collides
+mkdir -p ideas; echo 'a thought' >ideas/call.txt; echo 'another' >ideas/memo.txt
+git add ideas; git commit -qm "ideas: two notes" -m "ACT: ideate
+DONE: notes
+NEXT: —"
+"$C" inbox --read ideas/call.txt >"$T/i1.out" 2>&1 & a=$!
+"$C" inbox --read ideas/call.txt >"$T/i2.out" 2>&1 & b=$!
+"$C" inbox --read ideas/memo.txt >"$T/i3.out" 2>&1 & c=$!
+wait $a; r1=$?; wait $b; r2=$?; wait $c; r3=$?
+check "filings at once: the same note is filed once, a different one beside it" sh -c "test \"\$(printf '%s\n' $r1 $r2 | sort | tr '\n' ' ')\" = '0 2 ' && test $r3 = 0 && test -f ideas/read/call.txt && test -f ideas/read/memo.txt && test ! -e ideas/read/call.2.txt"
+check "filings at once: one commit per note, and a clean checkout" sh -c "test \$(git log --format=%s | grep -c '^chore(ideas): read ') = 2 && test -z \"\$(git status --porcelain --untracked-files=no)\""
+
 # --- a writer that finds the lock held waits for it, and then goes on
 printf '# gamma\n\n**Making:** g\n**Not making:** more\n**Done when:** it exists\n**Waits on:** \n' >.constellation/stock/gamma.md
 git add .constellation/stock/gamma.md; git commit -qm "rack: gamma" -m "ACT: ideate

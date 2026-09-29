@@ -146,6 +146,26 @@ check "the gate refuses a move into finished/ now (the shelf is retired)" sh -c 
 check "a receipt an older land wrote into finished/ is read back from that commit" sh -c "'$C' receipt legacy | head -1 | grep -qx '## Receipt' && '$C' receipt legacy | grep -qxF -- '- the old way'"
 check "and it is done, with that commit" sh -c "'$C' status legacy | grep -qxF \"  done: finished in \$(git log -1 --format='%h, %ad' --date=short --grep='^finish legacy\$')\""
 
+# --- a finish the gate refuses puts the piece back on the bench, and nothing is left staged
+rack stay "Stay put" "a stay() function"; WY=$T/state/proj/stay
+"$C" run stay >/dev/null
+as stay aldebaran pi; out
+git -C "$WY" -c core.hooksPath=/dev/null commit -q --allow-empty -m "run(stay): aldebaran done
+
+ACT: verify
+STAR: aldebaran
+STEP: aldebaran
+EVENT: done
+HARNESS: pi
+DONE: pass
+NEXT: -"
+hook=$(git rev-parse --path-format=absolute --git-path hooks)/pre-commit; cp "$hook" "$T/hook"
+printf 'git diff --cached --name-only | grep -q bench/stay.md && exit 1\n' >>"$hook"
+check "a refused finish says so" says "the finish was refused" "$C" land stay
+check "a refused finish: the piece is back on the bench, tracked, and nothing is staged" sh -c "test -f .constellation/bench/stay.md && git ls-files --error-unmatch .constellation/bench/stay.md && test -z \"\$(git status --porcelain --untracked-files=no)\""
+cp "$T/hook" "$hook"
+check "landed again, it goes" sh -c "'$C' land stay >/dev/null && test ! -e .constellation/bench/stay.md && git log -1 --format=%s | grep -qx 'finish stay'"
+
 # --- refusals, in plain words
 printf '# Soon\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.constellation/stock/soon.md; git add .constellation/stock/soon.md; git commit -qm "rack: soon"
 check "an idea that is not done has no receipt yet" says "is not done yet, so it has no receipt" "$C" receipt soon
