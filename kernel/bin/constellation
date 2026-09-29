@@ -31,8 +31,6 @@
 #   constellation receipt <slug>               a done piece's receipt again, from its finish commit: what
 #                                              changed, how we know it works, how to see it, what it cost
 #   constellation discover <notes-file>        the outer loop: digest notes into pieces on the rack
-#   constellation tend [--all]                 the night shift: a step whose agent died, hit a usage limit or
-#                                              went quiet starts again on the next harness (twice, then the operator)
 #   constellation inbox [--read <file>…]       the drop box: every new text file in ideas/ goes to
 #                                              ideas/read/ and into discovery; the rest is listed for
 #                                              the host to read, then filed with --read (session start)
@@ -76,7 +74,6 @@
 # Knobs: CONSTELLATION_STATE (default ~/.local/state/constellation: worktrees, briefs, step
 #   ledgers), CONSTELLATION_TMUX_SESSION (default workers), CONSTELLATION_AUTO=0 (do not start
 #   the next step by itself), CONSTELLATION_DRY=1 (launch a placeholder, not a harness: tests),
-#   CONSTELLATION_STUCK_SECONDS (default 1800: how long a step may go quiet before tend restarts it),
 #   CONSTELLATION_DISCOVER=window|headless (how discovery runs; default a window when tmux is here),
 #   CONSTELLATION_DISCOVER_HARNESS (what it runs on; default vega's harness, then claude, then pi).
 # Parallel agents: every write in the main checkout (take, land, inbox filing, trade, adopt) holds one lock
@@ -113,7 +110,6 @@ case "$1" in
   receipt) shift; cmd_receipt "$@" ;;
   status) shift; cmd_status "$@" ;;
   discover) shift; cmd_discover "$@" ;;
-  tend) shift; cmd_tend "$@" ;;
   inbox) shift; cmd_inbox "$@" ;;
   trade) shift; cmd_trade "$@" ;;
   brief) shift; cmd_brief "$@" ;;

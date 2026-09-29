@@ -71,7 +71,7 @@ the main checkout only receives landings; CLAUDE.md and AGENTS.md are one text.
 | they answer | `constellation answer <slug> <yes \| number \| words>` |
 | their work needs another trade | `constellation trade <name>` |
 
-`line` (the status bar) and `tend` (the night shift) run on their own; relay their news.
+`line` (the status bar) runs on its own; relay its news.
 
 ## The relay
 

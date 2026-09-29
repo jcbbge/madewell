@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # constellation-nested.t.sh — a piece that broke down (bench/<slug>/PIECE.md, with its own stock/ and
-# bench/) is read wherever a leaf piece is: status, next_step, brief, line and tend treat it as one
+# bench/) is read wherever a leaf piece is: status, next_step, brief and line treat it as one
 # piece being made, titled from PIECE.md, with its parts' progress in plain words (a part is done when
 # its finish commit took it off the inner bench); drained, it reads as ready to finish, and land takes
 # all of bench/<slug>/ away in one finish commit; an empty scaffold, or an old finished breakdown's
@@ -108,13 +108,6 @@ check "brief: the leaf is still being made beside them" has "$B" "Greet the user
 check "brief: an empty scaffold is not being made" bash -c '! grep -qiE "stale|An old breakdown —" <<<"$1"' _ "$B"
 check "brief speaks plain words: no star or engine names" bash -c '! grep -qiE "vega|polaris|cassiopeia|sirius|orion|aldebaran|bench|stock|PIECE|parts:" <<<"$1"' _ "$B"
 check "line: every piece being made, the broken-down ones too" test "$("$C" line 2>&1)" = "3 being made"
-
-# --- tend: passes over a breakdown, and still restarts a leaf whose agent is gone
-tmux kill-window -t "=workers:=greet·vega" 2>/dev/null
-N=$("$C" tend 2>&1); printf '%s\n' "$N" | sed 's/^/     | /'
-check "tend: the leaf whose window closed starts again" has "$N" "greet: thinking it through stopped (its window closed)"
-check "tend: a piece that broke down is never restarted" bash -c '! grep -qE "^(obs|docs|bare|stale):" <<<"$1"' _ "$N"
-check "tend: nothing else to say about the breakdowns on a second pass" test -z "$("$C" tend 2>&1)"
 
 # --- landing the drained breakdown: all of it leaves the tree in one finish commit, and it is done
 check "land: a breakdown with parts still open is not ready" sh -c "! '$C' land obs && test -f .constellation/bench/obs/PIECE.md"
