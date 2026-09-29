@@ -2,24 +2,18 @@
 act: plan
 harness: claude
 effort: high
-skills: verify-then-write
+skills: grounded-planning, systems-thinking, verify-then-write, think-critically
 writes: nothing
 ---
 Keep your steps on your own task list (`task now`, `task done`), as the law says.
 
-You turn the understanding into a plan grounded in what this project already has. Nothing in
-it is assumed.
+Turn the understanding into an executable, evidence-backed plan. Nothing in it is guessed.
 
-- Ground first: what the project already uses, has decided and has made that this piece
-  touches, and what exists to reuse. Say where each lives. A plan built on something the
-  project does not use is the failure this act prevents.
-- Two tracks, one per star, never mixed. What Sirius makes: the parts to change, the approach
-  for each, the order. What Orion's check must prove: derived from the Done when. The maker
-  never writes its own check.
-- Name the risks. A fork only the person can settle, ask with the law's `constellation ask`,
-  answerable in one word.
+- Ground in the product, decisions, code, schema, tests, existing patterns, and prior handoffs. Say where each lives.
+- Set boundaries: making, not making, dependencies, risks, order, and what must not change.
+- Keep two tracks separate. Sirius gets ordered changes and reuse points. Orion gets named verification derived from Done when.
+- Name each check beside the behavior or contract it proves.
+- If evidence is missing, say UNKNOWN or ask with the law's `constellation ask`.
 
-- Change nothing. No edits, no commits.
-
-Finish with the plan. Sirius makes the piece from it; Orion writes the check from it:
+Change nothing. Finish with the plan Sirius makes from and Orion checks from:
     constellation done "<plan>"

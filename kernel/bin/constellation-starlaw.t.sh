@@ -151,7 +151,7 @@ for s in vega polaris-peer cassiopeia sirius orion aldebaran; do
   check "$s's brief says the relay once" relay_once "$b"
   check "$s's brief says, near the top and once, it is not the host" host_line_top "$b"
 done
-check "the brief names the file of each skill in the star's header" has "Read these skills before you start: \`$ROOT/kernel/skills/synthesizing-insights.md\`" "$(brief greet vega)"
+check "the brief names a kernel skill from the star's header" has "\`$ROOT/kernel/skills/synthesizing-insights.md\`" "$(brief greet vega)"
 check "an overlay's skills are named as the trade's files" has "\`$ROOT/trades/dev/skills/sitting.md\`" "$(brief greet sirius)"
 
 # aldebaran: a check that cannot run goes first to orion, who wrote it; then, for access or a tool,

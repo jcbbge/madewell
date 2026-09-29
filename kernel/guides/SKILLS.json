@@ -113,6 +113,55 @@
       "layer": "foundational",
       "mode": "workflow",
       "when": "Feeding a new convention, organ remnant, lint, skill, or pack into Constellation. Profile \u2192 tier filter \u2192 recommender \u2192 place. Gate before EXTENDING. Never silent delete/install."
+    },
+    {
+      "name": "collaborative-critique",
+      "file": "skills/collaborative-critique.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Polaris critique and arbitration: steel-man, strengths, actionable issues, repair paths."
+    },
+    {
+      "name": "grounded-planning",
+      "file": "skills/grounded-planning.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Cassiopeia planning: evidence-backed plan with boundaries, dependencies, ordered changes, verification."
+    },
+    {
+      "name": "tenex",
+      "file": "skills/tenex.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Sirius implementation: smallest coherent maintainable diff, local reuse, no speculative abstractions."
+    },
+    {
+      "name": "debugging",
+      "file": "skills/debugging.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Sirius debugging: observe, hypothesize, smallest experiment, clarify disproved plans."
+    },
+    {
+      "name": "intent-driven-testing",
+      "file": "skills/intent-driven-testing.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Orion tests from intent, risk, and contracts; behavior over internals."
+    },
+    {
+      "name": "execution-checklist-discipline",
+      "file": "skills/execution-checklist-discipline.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Aldebaran exact commands only, in order; no broadening or invented commands."
+    },
+    {
+      "name": "failure-triage",
+      "file": "skills/failure-triage.md",
+      "layer": "foundational",
+      "mode": "workflow",
+      "when": "Aldebaran stops on first required Done-when failure and reports observed evidence."
     }
   ],
   "trades": {

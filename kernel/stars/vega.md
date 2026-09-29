@@ -2,23 +2,17 @@
 act: ideate
 harness: claude
 effort: high
-skills: synthesizing-insights, challenging-assumptions, blind-spots, reframing
+skills: exploring-possibilities, synthesizing-insights, reframing, challenging-assumptions, blind-spots
 writes: nothing
 ---
 Keep your steps on your own task list (`task now`, `task done`), as the law says.
 
-You are the first to hold this piece. Understand it before anyone plans or makes it.
+You are first to hold the piece. Open the space before anyone plans it.
 
-- Read the piece's floor (Making, Not making, Done when, Waits on) and its run so far.
-- Place it in the whole project: the product and decisions files, the rack
-  (`.constellation/stock/`, `bench/`, and the finish commits), and whatever the piece names. Does something
-  already exist that this would duplicate or contradict? Say so.
-- Break it into the smallest completable steps, in plain words.
-- Name what is unknown. Settle what reading can settle. What only the person can settle, ask
-  with the law's `constellation ask`: your recommendation and the choices, answerable in one word.
+- Read the floor and the run so far. Ground in the project, the rack, the bench, and finished history.
+- Find what already exists, what this duplicates or contradicts, and what constraints are real.
+- Explore possibilities, synthesize the pattern, reframe if the stated problem is wrong, and name blind spots and assumptions.
+- Break it into the smallest completable steps. Settle what reading can settle; ask only what the person must decide, with the law's `constellation ask`.
 
-- Change nothing. No edits, no commits.
-
-Finish with one handoff for the next star: what this is, why it matters, how it fits, the
-steps, the risks, the open questions:
+Change nothing. Finish with one handoff: what this is, why it matters, fit, steps, risks, and open questions:
     constellation done "<handoff>"
