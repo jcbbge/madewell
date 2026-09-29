@@ -4,7 +4,8 @@
 #
 # The receipt is built from the record alone, so it can be built again for any finished piece:
 # the piece's commits sit in one unbroken run on the default branch (land fast-forwards them),
-# from its first run(<slug>) record up to the finish commit. Engine words never reach it: the
+# from its first run(<slug>) record up to the finish commit. Its times are author times: land's
+# rebase rewrites every commit's own time to the moment it lands. Engine words never reach it: the
 # whole section passes through receipt_py plain, which swaps the stars' names and the process's
 # words for plain ones and leaves file paths alone.
 
@@ -82,12 +83,13 @@ receipt_duration() { # receipt_duration <seconds> : "1 hour 12 minutes"
 receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from the record ending at <tip>
   local slug=$1 tip=$2 hashes; hashes=$(receipt_block "$slug" "$tip")
   [ -n "$hashes" ] || return 1
-  local made=() commits=() exercise="" written="" evidence="" fails=0 claude=0 first="" last="" h ct subj step ev har done parts
-  while IFS=$'\x1f' read -r h ct subj step ev har done; do
+  local made=() commits=() exercise="" written="" evidence="" fails=0 claude=0 first="" last="" h at subj step ev har done parts
+  while IFS=$'\x1f' read -r h at subj step ev har done; do
     [ -n "$h" ] || continue
-    first=${first:-$ct}; last=$ct
     if [ -z "$step" ] || [[ "$subj" != "run($slug): "* ]]; then commits+=("$subj"); continue; fi
     [ "$har" != claude ] || claude=1
+    [ "$ev" != started ] || first=${first:-$at}   # the clock starts at the first start, and stops at the
+    [ "$step:$ev" != aldebaran:done ] || last=$at  # passing check
     case "$step:$ev" in
       sirius:done) parts=$(receipt_py split <<<"$done")
                    made+=("${parts%%$'\x1f'*}"); [ -z "${parts#*$'\x1f'}" ] || exercise=${parts#*$'\x1f'} ;;
@@ -95,7 +97,7 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
       aldebaran:done) evidence=$done ;;
       aldebaran:fail) fails=$((fails + 1)) ;;
     esac
-  done < <(git -C "$R" log --no-walk=unsorted --format='%H%x1f%ct%x1f%s%x1f%(trailers:key=STEP,valueonly,separator=)%x1f%(trailers:key=EVENT,valueonly,separator=)%x1f%(trailers:key=HARNESS,valueonly,separator=)%x1f%(trailers:key=DONE,valueonly,separator=)' $hashes)
+  done < <(git -C "$R" log --no-walk=unsorted --format='%H%x1f%at%x1f%s%x1f%(trailers:key=STEP,valueonly,separator=)%x1f%(trailers:key=EVENT,valueonly,separator=)%x1f%(trailers:key=HARNESS,valueonly,separator=)%x1f%(trailers:key=DONE,valueonly,separator=)' $hashes)
   local title="" pf x
   for pf in "$R/$CST/bench/$slug.md" "$R/$CST/finished/$slug.md"; do [ -f "$pf" ] && title=$(sed -n '1s/^# //p' "$pf") && break; done
   {
@@ -111,8 +113,10 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
     printf 'Someone else ran them: %s\n' "${evidence:-(no result was written down)}"
     [ "$fails" = 0 ] || printf '\nIt did not pass the first time: the check failed %d time%s, and it was sent back and fixed until it held.\n' "$fails" "$([ "$fails" = 1 ] || echo s)"
     printf '\n### How to see it yourself\n\n%s\n' "${exercise:-The maker did not say how to try it. Ask for a short demonstration.}"
-    printf '\n### What it cost\n\nIt took %s from the first start to the passing check.' "$(receipt_duration $((last - first)))"
-    if [ "$claude" = 1 ]; then  # tokens only when the harness kept logs for this piece's working copy
+    if [ -n "$first" ] && [ -n "$last" ]; then
+      printf '\n### What it cost\n\nIt took %s from the first start to the passing check.' "$(receipt_duration $((last - first)))"
+    else printf '\n### What it cost\n\nHow long it took was not written down.'; fi
+    if [ "$claude" = 1 ] && [ -n "$first" ] && [ -n "$last" ]; then  # tokens only when the harness kept logs for this piece's working copy
       local logs=${CONSTELLATION_HARNESS_LOGS:-$HOME/.claude/projects} c
       local wt; wt=$(work_of "$slug"); wt=$(readlink -f "$wt" 2>/dev/null || printf '%s' "$wt")  # the harness logs by real path
       c=$(receipt_py cost "$logs/$(sed 's/[^A-Za-z0-9]/-/g' <<<"$wt")" "$first" "$last" 2>/dev/null || true)

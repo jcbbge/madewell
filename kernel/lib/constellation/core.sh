@@ -61,7 +61,8 @@ record() { # record <slug> <step> <event> <harness> <done-text> <next> : one emp
   git -C "$wt" -c core.hooksPath=/dev/null commit -q --allow-empty -m "$msg" || die "could not record $ev for $slug"
 }
 next_step() { # next_step <slug> : the step to run next, or land / wait / operator / running:<step>; for a piece
-  local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d  # that broke down, parts (its parts are made) or finish
+  local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d  # that broke down, parts (its parts are made) or finish;
+  if [ ! -f "$R/$CST/bench/$slug.md" ] && [ -f "$R/$CST/finished/$slug.md" ]; then echo done; return; fi  # done: nothing next
   if broken_down "$slug"; then
     local pd pm pr; IFS=$'\t' read -r pd pm pr < <(parts_of "$slug")
     if [ "$pm" -eq 0 ] && [ "$pr" -eq 0 ] && [ "$pd" -gt 0 ]; then echo finish; else echo parts; fi

@@ -110,6 +110,28 @@ check "no failed check, no failure line" sh -c "! grep -q 'did not pass the firs
 check "no harness log, no token line (the time still shows)" sh -c "grep -q 'It took' '$T/r2' && ! grep -q tokens '$T/r2'"
 check "the second receipt never says an engine word" clean "$T/r2"
 
+# --- a piece that ran for hours, landed over a moved default branch: the rebase gives every commit
+# the landing's time, so what it cost is measured from the record's own times (first start → passing check)
+at() { export GIT_AUTHOR_DATE="$1 +0000" GIT_COMMITTER_DATE="$1 +0000"; }
+t0=1790000000
+rack slow "Take our time" "a slow() function"; WS=$T/state/proj/slow
+at $t0; "$C" run slow >/dev/null
+at $((t0 + 600));  as slow vega pi; "$C" done "one function" >/dev/null
+at $((t0 + 900));  as slow polaris-peer pi; "$C" done "agree" >/dev/null
+at $((t0 + 1800)); as slow cassiopeia pi; "$C" done "plan: src/slow.js" >/dev/null
+at $((t0 + 5400)); as slow sirius pi; echo 'export const slow = () => 1' >"$WS/src/slow.js"; git -C "$WS" add src/slow.js; git -C "$WS" commit -qm "add slow()"
+"$C" done "added slow()" >/dev/null
+at $((t0 + 9000)); as slow orion pi; mkdir -p "$WS/tests"; echo 'expect(slow()).toBe(1)' >"$WS/tests/slow.test.js"; git -C "$WS" add tests; git -C "$WS" commit -qm "a test for slow"
+"$C" done "tests/slow.test.js" >/dev/null
+out; unset GIT_AUTHOR_DATE GIT_COMMITTER_DATE; echo y >src/meanwhile.js; git add src/meanwhile.js; git commit -qm "another change made meanwhile"
+at $((t0 + 11520)); as slow aldebaran pi; "$C" done "pass: 1 passed" >/dev/null
+out; unset GIT_AUTHOR_DATE GIT_COMMITTER_DATE
+"$C" receipt slow >"$T/r3" 2>&1
+check "landed over a moved default branch, so every commit of its run was made again at landing" sh -c "test -f .constellation/finished/slow.md && test \$(git log -1 --format=%ct --grep='^run(slow): vega started\$') = $((t0 + 11520))"
+check "what it cost: from the first start to the passing check, not the landing's single minute" has "$T/r3" "It took 3 hours 12 minutes from the first start to the passing check."
+sed '/^## Receipt$/,$d' .constellation/finished/slow.md >"$T/bare3"; cp "$T/bare3" .constellation/finished/slow.md; git commit -qam "drop the slow receipt"
+check "built again from the record, it says the same" sh -c "'$C' receipt slow | diff - '$T/r3'"
+
 # --- refusals, in plain words
 printf '# Soon\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.constellation/stock/soon.md; git add .constellation/stock/soon.md; git commit -qm "rack: soon"
 check "an idea that is not done has no receipt yet" says "is not done yet, so it has no receipt" "$C" receipt soon

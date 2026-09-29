@@ -124,6 +124,11 @@ check "landed: main has the code and the tests" sh -c "grep -q hello src/greet.j
 check "landed: the whole run is in main's history" sh -c "git log --format=%B | grep -c '^STEP: ' | awk '{exit !(\$1 >= 15)}'"
 check "landed: the worktree and branch are gone" sh -c "test ! -d '$WT' && ! git rev-parse --verify -q piece/greet"
 check "status shows the finished piece's run" sh -c "'$C' status | grep -q 'nothing on the bench'"
+fin="$(git log -1 --format='%h, %ad' --date=short --grep='^finish greet$')"
+check "status <slug> of a finished piece: done, with its finish commit" sh -c "'$C' status greet | grep -qxF '  done: finished in $fin'"
+check "status <slug> of a finished piece: no next step (not vega again)" sh -c "! '$C' status greet | grep -q 'next:'"
+git clone -q "$P" "$T/moved"; ( cd "$T/moved" && git mv .constellation .old && git commit -qm "move the whole folder" && git mv .old .constellation && git commit -qm "and back" )
+check "the finish commit is the move to finished, not a later move of the whole folder" sh -c "cd '$T/moved' && env -u CONSTELLATION_REPO '$C' status greet | grep -qxF '  done: finished in $fin'"
 
 # --- a second piece reads only its own run: the first's landed records are not its own
 printf '# Wave goodbye\n\n**Making:** a bye() function\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' >.constellation/stock/bye.md
