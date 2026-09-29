@@ -29,8 +29,9 @@ cmd_done() {
   say "$slug: $step handed off"; saved "$slug" "$step"
   notify "$slug: $step $mode — $(cut -c1-80 <<<"$text")"
   if [ "${CONSTELLATION_AUTO:-1}" != 0 ]; then
-    advance "$slug"
-    [ "${CONSTELLATION_DRY:-}" = 1 ] || ( sleep 5; tmux kill-window -t "=$SESSION:=$slug·$step" 2>/dev/null ) >/dev/null 2>&1 &
+    HANDED_OFF="$slug·$step" advance "$slug"   # this step's window closes itself below: the next may start beside it
+    if [ "${CONSTELLATION_DRY:-}" = 1 ]; then tmux kill-window -t "=$SESSION:=$slug·$step" 2>/dev/null || true   # no agent in it
+    else ( sleep 5; tmux kill-window -t "=$SESSION:=$slug·$step" 2>/dev/null ) >/dev/null 2>&1 & fi
   fi
 }
 advance() { # advance <slug> : start what comes after a handoff — the next star, the land, or an answering star
@@ -91,7 +92,7 @@ attach_choices() { # attach_choices <slug> : the choices ride on the question's 
   local wt body o; wt=$(work_of "$1"); body=$(git -C "$wt" log -1 --format=%B)
   body+=$'\n'"RECOMMEND: $(printf '%s' "$REC" | tr '\n' ' ')"
   for o in "${OPTS[@]}"; do body+=$'\n'"OPTION: $(printf '%s' "$o" | tr '\n' ' ')"; done
-  git -C "$wt" -c core.hooksPath=/dev/null commit -q --amend --allow-empty -m "$body" || die "could not record the choices for $1"
+  record_commit "$wt" "$body" amend || die "could not record the choices for $1"
 }
 choices_of() { # choices_of <slug> : the open question's recommendation, then its other choices, one per line
   { git -C "$R" log --all-match --grep='^STEP: ' --grep="^run($(sed 's/[.[\*^$]/\\&/g' <<<"$1")): " --format='%x1e%B' "$(branch_of "$1")" 2>/dev/null || true; } | awk -v RS='\x1e' '
@@ -181,7 +182,8 @@ cmd_reply() {
   R=$(main_repo); [[ "$(next_step "$slug")" == "clarifying:$for" ]] || die "$for is not waiting for answers"
   deliver_answer "$slug" "$for" "$(star_of "${CONSTELLATION_STEP:-}")" "$a"
   say "answered $for"; saved "$slug" "${CONSTELLATION_STEP:-}"
-  [ "${CONSTELLATION_DRY:-}" = 1 ] || ( sleep 5; tmux kill-window -t "=$SESSION:=$slug·$for·reply" 2>/dev/null ) >/dev/null 2>&1 &
+  if [ "${CONSTELLATION_DRY:-}" = 1 ]; then tmux kill-window -t "=$SESSION:=$slug·$for·reply" 2>/dev/null || true   # no agent in it
+  else ( sleep 5; tmux kill-window -t "=$SESSION:=$slug·$for·reply" 2>/dev/null ) >/dev/null 2>&1 & fi
 }
 
 cmd_stop_check() { # the harness's stop hook: a star may not end its turn without handing off

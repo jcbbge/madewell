@@ -160,6 +160,7 @@ as greet aldebaran
 check "aldebaran asks the person when the check cannot run" "$C" ask "the check cannot run: the runner is missing" --situation "running the check" --background "the plan names a runner" --assessment "neither a pass nor a fail" --recommend "install the runner, then I run it" --option "land it unchecked"
 check "the piece waits for the person, not the arbiter" test "$(next greet)" = wait:aldebaran
 op answer greet yes >/dev/null
+tmux kill-window -t "=workers:=greet·aldebaran·reply"   # orion's answering window closes, as it does once it replies
 as greet aldebaran; "$C" done --fail "the check failed: it printed no greeting" >/dev/null
 as greet polaris-triage; "$C" clear >/dev/null
 check "a route nowhere is still refused" says "route to sirius, orion or person" "$C" done --route nobody "x"

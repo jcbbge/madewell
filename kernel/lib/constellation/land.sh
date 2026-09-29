@@ -23,26 +23,23 @@ finish_commit_msg() { # finish_commit_msg <slug> <receipt> <done> : the finish c
   printf 'ACT: verify\nDONE: %s\nNEXT: —\n' "$3"
 }
 
-finish_piece() { # finish_piece <slug> <path> <receipt> <done> : remove the piece and commit, or put it back
-  git -C "$R" rm -r -q -- "$2" || die "could not take $2 off the bench"
-  finish_commit_msg "$1" "$3" "$4" | git -C "$R" commit -q --cleanup=verbatim -F - || {
-    git -C "$R" reset -q -- "$2"; git -C "$R" checkout -q -- "$2" 2>/dev/null
-    return 1; }
+finish_piece() { # finish_piece <slug> <path> <receipt> <done> : land the piece's removal (land_write), or leave it be
+  land_write "$(finish_commit_msg "$1" "$3" "$4")" del "$2"
 }
 
 land_leaf() {
   local slug=$1 wt br def; wt=$(work_of "$slug"); br=$(branch_of "$slug")
   def=$(git -C "$R" branch --show-current)
-  [ -z "$(git -C "$R" status --porcelain --untracked-files=no)" ] || die "the main checkout has uncommitted changes; clean it, then constellation land $slug"
   [ -z "$(git -C "$wt" status --porcelain --untracked-files=no)" ] || die "the worktree has uncommitted changes"
   if ! git -C "$R" merge-base --is-ancestor "$def" "$br"; then
     git -C "$wt" -c core.hooksPath=/dev/null rebase -q "$def" || { git -C "$wt" rebase --abort 2>/dev/null; die "$br does not rebase cleanly onto $def; resolve it in $wt, then constellation land $slug"; }
   fi
+  # the fast-forward keeps whatever else is staged or changed in the checkout, and refuses when that touches the piece's paths
   git -C "$R" merge --ff-only -q "$br" || die "the fast-forward failed; nothing landed"
   local rc; rc=$(receipt_compose "$slug" HEAD) || rc=""
   finish_piece "$slug" "$CST/bench/$slug.md" "$rc" "$slug verified by a star that did not build it; landed from $br" ||
-    die "the finish was refused (cst-gate); the code is landed, the piece is still on the bench"
-  local fin; fin=$(git -C "$R" rev-parse --short HEAD)
+    die "the finish was refused (above); the code is landed, the piece is still on the bench"
+  local fin; fin=$(git -C "$R" rev-parse --short "$LANDED")
   repo_unlock   # the project's teardown may take a while, or leave something running: not under the lock
   project_hook teardown "$slug" "$wt" || say "$slug landed; the project's teardown for its worktree failed (above): run $CST/teardown $wt $R by hand"
   repo_lock
@@ -56,11 +53,10 @@ land_leaf() {
 
 land_breakdown() { # a piece that broke down: every part done, so the whole bench/<slug>/ goes
   local slug=$1 def; def=$(git -C "$R" branch --show-current)
-  [ -z "$(git -C "$R" status --porcelain --untracked-files=no)" ] || die "the main checkout has uncommitted changes; clean it, then constellation land $slug"
   local rc; rc=$(receipt_breakdown "$slug")
   finish_piece "$slug" "$CST/bench/$slug" "$rc" "$slug is done: every part of it was finished" ||
-    die "the finish was refused (cst-gate); $slug is still on the bench"
-  local fin; fin=$(git -C "$R" rev-parse --short HEAD)
+    die "the finish was refused (above); $slug is still on the bench"
+  local fin; fin=$(git -C "$R" rev-parse --short "$LANDED")
   repo_unlock
   notify "$slug is done"
   say "finished $slug on $def; it is done, and its receipt is in the finish commit ($fin)"

@@ -5,6 +5,8 @@ launch() { # launch <slug> <step> <harness> <model> <effort> <cmd> <note>
   local slug=$1 step=$2 h=$3 model=$4 effort=$5 cmd=$6 note=$7 star wt dir brief tl win
   star=$(star_of "$step"); wt=$(work_of "$slug")
   [ -d "$wt" ] || die "no worktree for $slug at $wt (constellation take $slug first)"
+  local live; live=$(piece_live "$slug" "$slug·$step") &&
+    die "$slug: $live is still open, and a piece's steps never share its worktree; close it, then start $step"
   h=${h:-${CONSTELLATION_HARNESS_DEFAULT:-$(star_field "$star" harness)}}; h=${h%%,*}; h=${h// /}; h=${h:-claude}; effort=${effort:-$(star_field "$star" effort)}; effort=${effort:-high}
   model=${model:-${CONSTELLATION_MODEL:-}}
   dir="$STATE/$(basename "$R")"; brief="$dir/$slug.$step.brief.md"; tl="$dir/$slug.$step.TASKS.md"
@@ -27,6 +29,17 @@ launch() { # launch <slug> <step> <harness> <model> <effort> <cmd> <note>
   tmux new-window -d -t "=$SESSION:" -n "$win" -c "$wt"
   tmux send-keys -t "=$SESSION:=$win" "export CONSTELLATION_PIECE='$slug' CONSTELLATION_STEP='$step' CONSTELLATION_REPO='$R' CONSTELLATION_BASE='$base' CONSTELLATION_HARNESS='$h' TASKS_FILE='$tl' AGENT_ROLE='$star' WORKER_ID='$slug' CIRCADIAN_ROLE=AGNT CIRCADIAN_LANE='$slug'${CONSTELLATION_MODEL:+ CONSTELLATION_MODEL='$CONSTELLATION_MODEL'}${CONSTELLATION_HARNESS_DEFAULT:+ CONSTELLATION_HARNESS_DEFAULT='$CONSTELLATION_HARNESS_DEFAULT'}${CONSTELLATION_STATE:+ CONSTELLATION_STATE='$CONSTELLATION_STATE'} PATH='$(dirname "$SELF")':\"\$PATH\"; clear; $run" Enter
   say "$slug: $step ($star, $(act_of "$step")) started on $h in $SESSION:$win"
+}
+piece_live() { # piece_live <slug> <window> : a live window of another of this piece's steps (<slug>·<step>, or a reply's
+  # <slug>·<step>·reply), found by name in any session on the tmux server, as "<session>:<index> (<name>)". Not counted:
+  # the <window> in $SESSION that this start replaces, and the step that just handed off ($HANDED_OFF, closing itself).
+  local mine; command -v tmux >/dev/null || return 1
+  mine=$(tmux list-windows -t "=$SESSION" -F '#{window_id}	#{window_name}' 2>/dev/null | awk -F'\t' -v w="$2" '$2 == w { printf "%s ", $1 }')
+  tmux list-windows -a -F '#{window_id}	#{session_name}:#{window_index}	#{window_name}' 2>/dev/null |
+    awk -F'\t' -v s="$1" -v mine=" $mine" -v off="${HANDED_OFF:-}" '
+      index(mine, " " $1 " ") || $3 == off { next }
+      { n = split($3, p, "·"); if (n >= 2 && p[1] == s) { print $2 " (" $3 ")"; found = 1; exit } }
+      END { exit !found }'
 }
 trust() { # pre-accept Claude Code's folder-trust dialog for a worktree
   [ "${CONSTELLATION_DRY:-}" = 1 ] && return 0

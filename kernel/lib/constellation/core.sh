@@ -86,11 +86,12 @@ events() { # events <slug> : one line per event, oldest first: STEP<TAB>EVENT<TA
       }
       if (step != "") printf "%s\t%s\t%s\t%s\n", step, ev, h, d }'
 }
-record() { # record <slug> <step> <event> <harness> <done-text> <next> : one empty commit on the piece branch
+record() { # record <slug> <step> <event> <harness> <done-text> <next> : one empty commit on the piece branch, carrying
+  # the worktree's HEAD tree (record_commit): nothing staged in the worktree enters a record
   local slug=$1 step=$2 ev=$3 h=$4 done=$5 next=$6 wt; wt=$(work_of "$slug")
   local msg; msg=$(printf 'run(%s): %s %s\n\nACT: %s\nSTAR: %s\nSTEP: %s\nEVENT: %s\nHARNESS: %s\nDONE: %s\nNEXT: %s\n' \
     "$slug" "$step" "$ev" "$(act_of "$step")" "$(star_of "$step")" "$step" "$ev" "${h:--}" "$(tr '\n' ' ' <<<"${done:--}" | sed 's/[[:space:]]*$//')" "${next:--}")
-  git -C "$wt" -c core.hooksPath=/dev/null commit -q --allow-empty -m "$msg" || die "could not record $ev for $slug"
+  record_commit "$wt" "$msg" || die "could not record $ev for $slug"
 }
 next_step() { # next_step <slug> : the step to run next, or land / wait / operator / running:<step>; for a piece
   local slug=$1 last="" lev="" routes=0 orion_done=0 step ev h d  # that broke down, parts (its parts are made) or finish;
@@ -172,6 +173,131 @@ repo_unlock() { # let the repository's lock go
   if [ -n "$LOCK_DIR" ]; then rm -rf "$LOCK_DIR"; LOCK_DIR=""; fi
   unset CONSTELLATION_LOCK_HELD
   return 0
+}
+
+# --- a landing: the only way a bookkeeping write reaches the default branch -------------------------
+# Constellation never stages, commits or moves files through a project's main checkout's index: that
+# index is shared with everyone else working there. A bookkeeping change (take, finish, inbox filing,
+# trade) lands like code: built from the default branch's tip in a temporary index (GIT_INDEX_FILE),
+# written with commit-tree, and moved onto the branch by a compare-and-swap (update-ref <ref> <new>
+# <old>) under the repository's lock; a lost race rebuilds on the new tip and tries again. The main
+# checkout has the branch out, so only the changed paths are brought up to date in its working tree and
+# index, just before the repository's own commit hook runs over the new tree (the gate reads the working
+# tree too); whatever else is staged or changed there stays exactly as it was. A refusal puts those
+# paths back as they were.
+LANDED=""
+land_write() { # land_write <message> <op>… : land one commit carrying just these changes. Paths are from the project root:
+  #   put <path> <file>          <path> gets <file>'s content (its mode: the path's on the tip, else <file>'s executable bit)
+  #   move <from> <to> <file>    <from> goes and <to> gets <file> (<from>'s own working copy, or what the command made of
+  #                              it): what was changed in <from> travels with it, so nothing there is refused
+  #   del <path>                 <path> goes: a file, or every tracked file under a folder
+  # Sets LANDED to the commit (the tip, when nothing changed). Returns 1, the checkout as it was, when the commit hook
+  # refuses, or when a path del takes away holds someone's uncommitted changes.
+  local msg=$1 ref old tree new tmp tries=0 p; shift
+  ref=$(rgit symbolic-ref -q HEAD) || die "the main checkout is not on a branch; nothing landed"
+  repo_lock
+  tmp=$(mktemp -d "${TMPDIR:-/tmp}/constellation-land.XXXXXX") || die "could not make a temporary folder"
+  while :; do
+    old=$(rgit rev-parse -q --verify "$ref^{commit}") || { rm -rf "$tmp"; die "$ref has no commit yet; nothing landed"; }
+    [ "$(rgit symbolic-ref -q HEAD)" = "$ref" ] || { rm -rf "$tmp"; die "the main checkout left $ref; nothing landed"; }
+    land_build "$tmp" "$old" "$@" || { rm -rf "$tmp"; die "could not build the change for $ref"; }
+    tree=$(tgit write-tree) || { rm -rf "$tmp"; die "could not write the tree"; }
+    if [ "$tree" = "$(rgit rev-parse "$old^{tree}")" ]; then LANDED=$old; rm -rf "$tmp"; return 0; fi
+    while IFS= read -r -d '' p; do  # what del takes away must not carry anyone's uncommitted work
+      if ! rgit diff --quiet "$old" -- ":(literal)$p" || ! rgit diff --cached --quiet "$old" -- ":(literal)$p"; then
+        printf 'constellation: %s has uncommitted changes in the main checkout; nothing landed\n' "$p" >&2
+        rm -rf "$tmp"; return 1
+      fi
+    done <"$tmp/gone"
+    land_sync "$tmp"
+    if ! land_hook pre-commit "$tmp/index"; then land_restore "$tmp"; rm -rf "$tmp"; return 1; fi
+    new=$(printf '%s\n' "$msg" | rgit commit-tree "$tree" -p "$old") || { land_restore "$tmp"; rm -rf "$tmp"; die "could not write the commit"; }
+    if rgit update-ref -m "constellation: $(head -1 <<<"$msg")" "$ref" "$new" "$old" 2>/dev/null; then
+      land_hook post-commit "$tmp/index" || true
+      LANDED=$new; rm -rf "$tmp"; return 0
+    fi
+    land_restore "$tmp"   # someone moved the branch meanwhile: build again on the new tip
+    tries=$((tries + 1)); [ "$tries" -lt 10 ] || { rm -rf "$tmp"; die "$ref kept moving; nothing landed"; }
+  done
+}
+rgit() { env -u GIT_INDEX_FILE git -C "$R" "$@"; }          # the main checkout, with its own index
+tgit() { GIT_INDEX_FILE=$tmp/index git -C "$R" "$@"; }     # the landing's temporary index (its caller's $tmp)
+land_build() { # land_build <tmp> <tip> <op>… : the tip's tree with the ops applied, in <tmp>/index; every path it
+  # changes in <tmp>/paths, the ones del takes away also in <tmp>/gone (both NUL-separated)
+  local tmp=$1 tip=$2; shift 2
+  rm -f "$tmp/index"; : >"$tmp/paths"; : >"$tmp/gone"
+  tgit read-tree "$tip" || return 1
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      put) [ $# -ge 3 ] || return 1; land_put "$2" "$3" || return 1; shift 3 ;;
+      move) [ $# -ge 4 ] || return 1; land_put "$3" "$4" || return 1; land_gone "$2" || return 1; shift 4 ;;
+      del) [ $# -ge 2 ] || return 1; land_gone "$2" "$tmp/gone" || return 1; shift 2 ;;
+      *) return 1 ;;
+    esac
+  done
+}
+land_put() { # land_put <path> <file>
+  local blob mode
+  blob=$(rgit hash-object -w --path="$1" -- "$2") || return 1
+  mode=$(tgit ls-files -s -z -- ":(literal)$1" | tr '\0' '\n' | awk 'NR == 1 { print $1 }')
+  [ -n "$mode" ] || { [ -x "$2" ] && mode=100755 || mode=100644; }
+  tgit update-index --add --cacheinfo "$mode,$blob,$1" || return 1
+  printf '%s\0' "$1" >>"$tmp/paths"
+}
+land_gone() { # land_gone <path> [<list>] : take the path (or every tracked file under it) out, noting each in <list> too
+  local f any=0
+  while IFS= read -r -d '' f; do
+    any=1; tgit update-index --force-remove -- "$f" || return 1
+    printf '%s\0' "$f" >>"$tmp/paths"; [ -z "${2:-}" ] || printf '%s\0' "$f" >>"$2"
+  done < <(tgit ls-files -z -- ":(literal)$1")
+  # not on the tip: an untracked file that moves still leaves the working tree
+  [ "$any" = 1 ] || [ ! -f "$R/$1" ] || [ -n "${2:-}" ] || printf '%s\0' "$1" >>"$tmp/paths"
+}
+land_sync() { # land_sync <tmp> : bring each changed path in the checkout to the new tree, keeping how it was in <tmp>/was
+  local tmp=$1 p e
+  mkdir -p "$tmp/was"; : >"$tmp/was.index"
+  while IFS= read -r -d '' p; do
+    rgit ls-files -s -z -- ":(literal)$p" >>"$tmp/was.index"
+    if [ -e "$R/$p" ] || [ -L "$R/$p" ]; then mkdir -p "$tmp/was/$(dirname -- "$p")"; cp -a -- "$R/$p" "$tmp/was/$p"; fi
+    e=$(tgit ls-files -s -z -- ":(literal)$p" | tr '\0' '\n' | awk 'NR == 1 { print $1 "," $2 }')
+    if [ -n "$e" ]; then
+      rgit update-index --add --cacheinfo "$e,$p" && rgit checkout-index -f -u -- "$p"
+    else
+      rgit update-index --force-remove -- "$p"; rm -f -- "$R/$p"; land_prune "$p"
+    fi
+  done <"$tmp/paths"
+}
+land_restore() { # land_restore <tmp> : put each changed path in the checkout back as land_sync found it
+  local tmp=$1 p
+  while IFS= read -r -d '' p; do
+    rgit update-index --force-remove -- "$p"; rm -f -- "$R/$p"
+    if [ -e "$tmp/was/$p" ] || [ -L "$tmp/was/$p" ]; then mkdir -p "$R/$(dirname -- "$p")"; cp -a -- "$tmp/was/$p" "$R/$p"; else land_prune "$p"; fi
+  done <"$tmp/paths"
+  [ ! -s "$tmp/was.index" ] || rgit update-index -z --index-info <"$tmp/was.index"
+}
+land_prune() { # land_prune <path> : take away the folders a removed file leaves empty
+  local d; d=$(dirname -- "$1")
+  while [ "$d" != . ] && [ "$d" != / ] && rmdir -- "$R/$d" 2>/dev/null; do d=$(dirname -- "$d"); done
+}
+land_hook() { # land_hook <name> <index> : the repository's own git hook, run the way a commit runs it, its output to stderr
+  local h; h=$(rgit rev-parse --path-format=absolute --git-path "hooks/$1" 2>/dev/null) && [ -x "$h" ] || return 0
+  (cd "$R" && GIT_INDEX_FILE=$2 "$h") >&2
+}
+
+# --- a run record: a commit on the piece branch carrying the worktree's HEAD tree, never what is staged there ---
+record_commit() { # record_commit <worktree> <message> [amend] : one commit with HEAD's tree onto the worktree's branch, by
+  # commit-tree and a compare-and-swap update-ref; amend replaces HEAD (same parents) instead of adding after it
+  local wt=$1 msg=$2 amend=${3:-} old tree new parents p args tries=0
+  while :; do
+    old=$(git -C "$wt" rev-parse -q --verify HEAD) || return 1
+    tree=$(git -C "$wt" rev-parse "$old^{tree}") || return 1
+    if [ -n "$amend" ]; then parents=$(git -C "$wt" rev-list --parents -n 1 "$old" | cut -d' ' -f2- -s); else parents=$old; fi
+    args=(); for p in $parents; do args+=(-p "$p"); done
+    new=$(printf '%s\n' "$msg" | env -u GIT_INDEX_FILE git -C "$wt" commit-tree "$tree" ${args[@]+"${args[@]}"}) || return 1
+    git -C "$wt" update-ref -m "constellation: $(head -1 <<<"$msg")" HEAD "$new" "$old" 2>/dev/null && return 0
+    [ -z "$amend" ] || return 1   # the question moved on under the amend: never amend some other commit
+    tries=$((tries + 1)); [ "$tries" -lt 10 ] || return 1
+  done
 }
 
 notify() { # a banner and the bell wherever the operator is attached

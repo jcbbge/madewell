@@ -30,7 +30,7 @@ cmd_take() {
     esac
   done
   [ -n "$slug" ] || die "usage: constellation take <slug> [--making '…' --not-making '…' --done-when '…' --waits-on '…']"
-  R=$(main_repo); local src="$R/$CST/stock/$slug.md" dst="$R/$CST/bench/$slug.md"
+  R=$(main_repo); local src="$R/$CST/stock/$slug.md"
   [ -f "$src" ] || die "no piece $CST/stock/$slug.md on the rack"
   local missing=()
   for i in 0 1 2 3; do
@@ -39,17 +39,18 @@ cmd_take() {
   [ ${#missing[@]} -eq 0 ] || { floor_interview "$slug" "${missing[@]}"; exit 3; }
   repo_lock   # one writer at a time in the main checkout: another take or land waits its turn here
   [ -f "$src" ] || die "$CST/stock/$slug.md is no longer on the rack (taken meanwhile?)"
-  [ -z "$(git -C "$R" diff --cached --name-only)" ] || die "the index already holds staged changes; commit or unstage them first"
-  for i in 0 1 2 3; do [ "${given[i]}" = 1 ] && floor_write "$src" "${FLOOR_KEYS[i]}" "${value[i]}"; done
-  git -C "$R" mv "$src" "$dst"
-  git -C "$R" add -- "$dst"
-  git -C "$R" commit -q -m "take $slug to the bench" -m "ACT: plan
+  local body; body=$(mktemp) || die "could not make a temporary file"
+  cat "$src" >"$body"   # the piece as it stands, with the person's answers written in: the checkout is not touched until it lands
+  for i in 0 1 2 3; do [ "${given[i]}" = 1 ] && floor_write "$body" "${FLOOR_KEYS[i]}" "${value[i]}"; done
+  land_write "take $slug to the bench
+
+ACT: plan
 DONE: $slug is in hand (its floor is stated)
-NEXT: constellation run $slug (vega, ideate)" || {
-    git -C "$R" reset -q -- "$src" "$dst" 2>/dev/null; mv "$dst" "$src"
-    die "the move was refused (cst-gate); $slug stays on the rack"; }
+NEXT: constellation run $slug (vega, ideate)" move "$CST/stock/$slug.md" "$CST/bench/$slug.md" "$body" || {
+    rm -f "$body"; die "the move was refused (above); $slug stays on the rack"; }
+  rm -f "$body"
   local wt; wt=$(work_of "$slug"); mkdir -p "$(dirname "$wt")"
-  git -C "$R" worktree add -q -b "$(branch_of "$slug")" "$wt" HEAD || die "could not make the worktree for $slug"
+  git -C "$R" worktree add -q -b "$(branch_of "$slug")" "$wt" "$LANDED" || die "could not make the worktree for $slug"
   seed_framework "$wt"
   repo_unlock   # the project's setup may take a while, or leave something running: not under the lock
   project_hook setup "$slug" "$wt" || die "$slug is on the bench, but the project's own setup for its worktree failed (above); fix it, then run $CST/setup $wt $R by hand"

@@ -49,6 +49,7 @@ check "HOST.md: the host asks the person itself, in decision form" sh -c "grep -
 check "HOST.md: the host answers a star's questions, three rounds at most" sh -c "grep -qx '## The relay' '$H' && grep -qF 'constellation answer <slug> \"…\"' '$H' && grep -qF 'three rounds at most' '$H'"
 check "HOST.md: the host relays, and never re-runs or redoes a star's work" grep -qF "never re-run or redo a star's work" "$H"
 check "HOST.md: the host grounds first and commits in the ACT/DONE/NEXT form" sh -c "grep -qF 'read what exists' '$H' && grep -qF '\`ACT:\`, \`DONE:\`, \`NEXT:\`' '$H'"
+check "HOST.md: the host never edits, stages or commits in the checkout; every write is a verb" sh -c "grep -qF 'You never edit, stage or commit in the checkout.' '$H' && grep -qF 'Every write there goes through a' '$H'"
 check "HOST.md: first contact adopts with the package's driver" grep -qF "the package's \`kernel/bin/constellation adopt\`" "$H"
 for s in "## Voice" "## The glossary" "## Their words, your verbs" "## The four questions" "## The two doors" "## Deciding" "## The pause"; do
   check "HOST.md has '$s'" grep -qx "$s" "$H"

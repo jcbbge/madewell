@@ -135,7 +135,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
     else say "$TRADE_NAME — the default (this project names no trade); its files are in $TRADE_DIR"; fi
     return 0
   fi
-  local want=$1 dir name ref new f tmp esc changed=() tracked=()
+  local want=$1 dir name ref new f tmp esc changed=() puts=() tmps=()
   [ -n "$TRADE_GUARD" ] || die "the loader's guard ($KERNEL/templates/loader-guard.txt) is missing from this install; install the kernel again"
   case "$want" in
     */*|.|..) dir=$([ -f "$want/TRADE.md" ] && cd "$want" && pwd) || die "no trade at $want (a trade is a folder with a TRADE.md)" ;;
@@ -153,14 +153,17 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
     if grep -qE -- "$TRADE_REF" "$R/$f"; then sed -E "s#$TRADE_REF#$esc#g" "$R/$f" >"$tmp"
     elif grep -qxF -- "$TRADE_LOADER" "$R/$f"; then awk -v old="$TRADE_LOADER" -v new="$new" '$0 == old { $0 = new } 1' "$R/$f" >"$tmp"
     else rm -f "$tmp"; continue; fi
-    cat "$tmp" >"$R/$f"; rm -f "$tmp"; changed+=("$f")
+    changed+=("$f")   # a loader the project keeps in git changes by a landing; one it does not, in place
+    if git -C "$R" cat-file -e "HEAD:$f" 2>/dev/null; then puts+=(put "$f" "$tmp"); tmps+=("$tmp"); else cat "$tmp" >"$R/$f"; rm -f "$tmp"; fi
   done
   [ ${#changed[@]} -gt 0 ] || die "no Constellation loader in AGENTS.md or CLAUDE.md to name the trade in (constellation install <project> first)"
-  for f in "${changed[@]}"; do git -C "$R" ls-files --error-unmatch -- "$f" >/dev/null 2>&1 && tracked+=("$f"); done
-  if [ ${#tracked[@]} -gt 0 ] && ! git -C "$R" diff --quiet -- "${tracked[@]}"; then
-    git -C "$R" commit -q -m "chore(trade): the project works in $name" -m "ACT: plan
+  if [ ${#puts[@]} -gt 0 ]; then
+    land_write "chore(trade): the project works in $name
+
+ACT: plan
 DONE: the loader names the $name trade by reference ($ref)
-NEXT: —" -- "${tracked[@]}" || die "$name is named in ${changed[*]}, but the commit was refused; commit those files, then continue"
+NEXT: —" "${puts[@]}" || { rm -f "${tmps[@]}"; die "$name was not named: the commit was refused (above)"; }
+    rm -f "${tmps[@]}"
   fi
   repo_unlock
   say "$name — named in ${changed[*]}; its files are in $dir"

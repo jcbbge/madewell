@@ -46,6 +46,9 @@ Every action is `.constellation/bin/constellation <verb>`, run from the project'
 `constellation <verb>` is short for it. In Constellation's own repository the driver is
 `kernel/bin/constellation`.
 
+**You never edit, stage or commit in the checkout.** Every write there goes through a
+`constellation` verb, which lands it; whatever else is staged there is someone else's.
+
 ## Their words, your verbs
 
 | The person says | You run |
