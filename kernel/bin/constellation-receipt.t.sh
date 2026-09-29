@@ -148,7 +148,7 @@ check "built again from the record, it says the same" sh -c "'$C' receipt slow |
 # --- finished the old way: moved into finished/, with the receipt in the file; it is still read back
 printf '# Legacy\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.constellation/stock/legacy.md; git add .constellation/stock/legacy.md; git commit -qm "rack: legacy"
 "$C" take legacy >/dev/null; mkdir -p .constellation/finished
-mv .constellation/bench/legacy.md .constellation/finished/legacy.md; git add -f .constellation/finished/legacy.md; git add -u .constellation/bench; printf '\n## Receipt\n\n**Legacy** is done.\n\n### What changed\n\n- the old way\n' >>.constellation/finished/legacy.md
+git mv -f .constellation/bench/legacy.md .constellation/finished/legacy.md; printf '\n## Receipt\n\n**Legacy** is done.\n\n### What changed\n\n- the old way\n' >>.constellation/finished/legacy.md
 git add .constellation/finished/legacy.md; CONSTELLATION_GATE=off git commit -qm "finish legacy"
 check "the gate refuses a move into finished/ now (the shelf is retired)" sh -c "printf '# N\n' >.constellation/finished/new.md && git add -f .constellation/finished/new.md && ! git commit -qm 'onto the shelf'; git rm -q --cached .constellation/finished/new.md; rm -f .constellation/finished/new.md"
 check "a receipt an older land wrote into finished/ is read back from that commit" sh -c "'$C' receipt legacy | head -1 | grep -qx '## Receipt' && '$C' receipt legacy | grep -qxF -- '- the old way'"
