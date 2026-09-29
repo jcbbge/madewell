@@ -117,6 +117,46 @@ as sirius; "$C" clear >/dev/null; echo 'export const greet = () => "hello"' >"$W
 check "sirius hands off the fix" "$C" done "fixed the typo"
 check "after a fix the run goes straight to aldebaran, not orion again" win aldebaran
 
+# --- both are wrong: the piece goes to sirius, then to orion again (orion finished before), then aldebaran.
+# Each handoff here is made without advancing (CONSTELLATION_AUTO=0), so next_step is read before anything starts.
+hand() { CONSTELLATION_AUTO=0 "$C" done "$@"; }
+start() { tmux kill-window -t "=workers:=greet·$1" 2>/dev/null; (unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE; "$C" run greet); }
+lastev() { git log -1 piece/greet --format=%B | sed -n 's/^EVENT: //p'; }
+as aldebaran; "$C" clear >/dev/null
+check "only the arbiter rules both wrong" says "only the arbiter routes" "$C" done --route both "x"
+hand --fail "tests/greet.test.js: greet('ann') is not greeted by name" >/dev/null
+check "a failed run goes to the arbiter" test "$(next)" = polaris-triage
+start aldebaran >/dev/null; as polaris-triage; "$C" clear >/dev/null
+check "the usage line names the fourth ruling" says "--route sirius|orion|both|person" "$C" done --route both
+check "the arbiter rules both wrong" hand --route both "greet() takes no name, and the test expects hello, ann; both change"
+check "the record says route:both" test "$(lastev)" = route:both
+check "stop gate: an arbiter that ruled both wrong may stop" sh -c "'$C' stop-check --claude | wc -c | grep -qx 0"
+check "the record says who comes after: sirius, then orion" sh -c "git log -1 piece/greet --format=%B | grep -qx 'NEXT: sirius, then orion'"
+check "after route:both, sirius is next" test "$(next)" = sirius
+check "sirius starts" sh -c "$(declare -f start); C='$C'; start polaris-triage | grep -q 'sirius (sirius, implement) started'"
+as sirius; "$C" clear >/dev/null; echo 'export const greet = (n) => n ? "hello, " + n : "hello"' >"$WT/src/greet.js"; git -C "$WT" commit -qam "greet takes a name"
+check "sirius hands off" hand "greet(n) greets by name"
+check "after sirius, orion is next again, though orion finished before" test "$(next)" = orion
+check "orion starts" sh -c "$(declare -f start); C='$C'; start sirius | grep -q 'orion (orion, verify) started'"
+as orion; "$C" clear >/dev/null; echo 'expect(greet("ann")).toBe("hello, ann")' >>"$WT/tests/greet.test.js"; git -C "$WT" commit -qam "a test for greet by name"
+check "orion hands off" hand "tests/greet.test.js proves greet(\"ann\")"
+check "after orion, aldebaran is next" test "$(next)" = aldebaran
+start orion >/dev/null; as aldebaran; "$C" clear >/dev/null
+
+# --- the check is wrong: orion, then aldebaran; and route:both counts toward the three routes
+hand --fail "tests/greet.test.js: the test's quote marks are wrong" >/dev/null
+start aldebaran >/dev/null; as polaris-triage; "$C" clear >/dev/null
+check "the arbiter routes to orion" hand --route orion "the test is wrong; greet is right"
+check "after route:orion, orion is next" test "$(next)" = orion
+start polaris-triage >/dev/null; as orion; "$C" clear >/dev/null
+echo '// quotes' >>"$WT/tests/greet.test.js"; git -C "$WT" commit -qam "fix the test"
+check "orion hands off the fixed check" hand "fixed the quotes"
+check "after a routed orion, aldebaran is next" test "$(next)" = aldebaran
+start orion >/dev/null; as aldebaran; "$C" clear >/dev/null
+hand --fail "still failing" >/dev/null
+check "three routes (sirius, both, orion) and a fourth failure go to the person, not the arbiter" test "$(next)" = operator
+check "the person resumes aldebaran" sh -c "env -u CONSTELLATION_PIECE -u CONSTELLATION_STEP -u CONSTELLATION_BASE '$C' resume greet | grep -q 'aldebaran (aldebaran, verify) started'"
+
 as aldebaran; "$C" clear >/dev/null
 check "a star asks the operator" "$C" ask "run the e2e suite too?" --situation "unit tests pass" --background "the plan names unit tests" --assessment "e2e adds little here" --recommend "unit tests are enough" --option "run the e2e suite too"
 check "status says it waits" test "$(next)" = wait:aldebaran

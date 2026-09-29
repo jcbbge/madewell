@@ -56,7 +56,7 @@
 #                                              turn without a handoff (three refusals, then the operator)
 # Then the star finishes with one of:
 #   constellation done "<handoff>"             constellation done --fail "<output>"   (aldebaran)
-#   constellation done --route sirius|orion|operator "<why>"                        (polaris, arbiter)
+#   constellation done --route sirius|orion|both|operator "<why>"                   (polaris, arbiter)
 #   constellation ask "<question>" --situation S --background B --assessment A --recommend R --option O [--option O]
 #                                              for what only the operator can settle; refused without
 #                                              the recommendation and a choice (a clarify to the operator
@@ -67,7 +67,8 @@
 #   CONSTELLATION_MODEL and CONSTELLATION_HARNESS_DEFAULT (a flag still wins for its step).
 # The steps: vega (ideate) → polaris (peer) → cassiopeia (plan) → sirius (implement) →
 #   orion (verify: the check) → aldebaran (verify: run) → land; a failed run goes to polaris
-#   (arbiter), who routes it to sirius, orion or the operator; three routes, then the operator.
+#   (arbiter), who routes it to sirius, orion, both (sirius, then orion) or the operator; three
+#   routes, then the operator.
 # Write rules, checked at each handoff, come from the trade (in dev: orion commits only test
 #   files, sirius never touches one); every other star changes nothing and commits nothing.
 #

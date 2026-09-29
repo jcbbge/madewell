@@ -54,6 +54,7 @@ done
 check "the stars and the law say the person, never the operator" sh -c "! grep -il operator '$ROOT'/kernel/stars/*.md"
 check "polaris as peer can ask when a fork is the person's" sh -c "sed -n '/^\*\*Peer/,/^\*\*Arbiter/p' '$ROOT/kernel/stars/polaris.md' | grep -qF 'constellation ask'"
 check "polaris as arbiter routes to the person" grep -qF -- "--route person" "$ROOT/kernel/stars/polaris.md"
+check "polaris as arbiter can rule the piece and the check both wrong" sh -c "sed -n '/^\\*\\*Arbiter/,\$p' '$ROOT/kernel/stars/polaris.md' | grep -qE 'the piece and the check are both wrong: +constellation done --route both'"
 check "sirius takes a wrong plan back through clarify" sh -c "grep -qF 'proves the plan wrong, do not quietly work around it' '$ROOT/kernel/stars/sirius.md' && grep -qF 'constellation clarify' '$ROOT/kernel/stars/sirius.md'"
 check "sirius commits in the law's format" sh -c "grep -qF \"in the law's format (\\\`ACT: implement\\\`)\" '$ROOT/kernel/stars/sirius.md' && ! grep -qi 'plain messages' '$ROOT/kernel/stars/sirius.md'"
 check "orion clarifies a Done when that cannot be checked" sh -c "grep -qF 'cannot be checked as written' '$ROOT/kernel/stars/orion.md' && grep -qF 'constellation clarify' '$ROOT/kernel/stars/orion.md'"
@@ -163,7 +164,7 @@ op answer greet yes >/dev/null
 tmux kill-window -t "=workers:=greet·aldebaran·reply"   # orion's answering window closes, as it does once it replies
 as greet aldebaran; "$C" done --fail "the check failed: it printed no greeting" >/dev/null
 as greet polaris-triage; "$C" clear >/dev/null
-check "a route nowhere is still refused" says "route to sirius, orion or person" "$C" done --route nobody "x"
+check "a route nowhere is still refused" says "route to sirius, orion, both or person" "$C" done --route nobody "x"
 check "the arbiter routes to the person" "$C" done --route person "pre-existing: the runner was never installed"
 check "the piece now waits for the person" test "$(next greet)" = operator
 check "the record keeps the operator route" sh -c "'$C' status greet | grep -q 'route:operator'"

@@ -18,7 +18,8 @@ then hand off.
 
 **Arbiter, when a check failed.** You did not make the piece or write the check. Read the
 failure, the check and the thing being made, then rule exactly one, with a one-line reason:
-- the check is wrong:             constellation done --route orion "<why>"
-- the piece is wrong:             constellation done --route sirius "<why>"
+- the check is wrong:                      constellation done --route orion "<why>"
+- the piece is wrong:                      constellation done --route sirius "<why>"
+- the piece and the check are both wrong:  constellation done --route both "<why>"
 - pre-existing, out of scope, or
-  the person's to settle:         constellation done --route person "<why>"
+  the person's to settle:                  constellation done --route person "<why>"

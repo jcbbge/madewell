@@ -104,6 +104,7 @@ next_step() { # next_step <slug> : the step to run next, or land / wait / operat
   while IFS=$'\t' read -r step ev h d; do
     last=$step; lev=$ev
     [ "$step" = orion ] && [ "$ev" = done ] && orion_done=1
+    [ "$ev" = route:both ] && orion_done=0   # the check is owed again: the sirius done after it goes to orion
     [[ "$ev" == route:* ]] && routes=$((routes + 1))
   done < <(events "$slug")
   case "$lev" in
@@ -113,7 +114,7 @@ next_step() { # next_step <slug> : the step to run next, or land / wait / operat
     clarify) echo "clarifying:$last" ;;
     flag) echo operator ;;
     fail) if [ "$routes" -ge 3 ]; then echo operator; else echo polaris-triage; fi ;;
-    route:sirius) echo sirius ;;
+    route:sirius|route:both) echo sirius ;;
     route:orion) echo orion ;;
     route:operator) echo operator ;;
     done)
