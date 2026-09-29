@@ -9,11 +9,19 @@
 set -uo pipefail
 KB=$(cd "$(dirname "$0")" && pwd); ROOT=$(cd "$KB/../.." && pwd); C=$KB/constellation
 T=$(mktemp -d "${TMPDIR:-/tmp}/constellation-lock-test.XXXXXX")
-sock=$T/tmux.sock; tmux -S "$sock" new-session -d -s workers -n _ 'sleep 3600'
+sock=$T/tmux.sock   # the scratch server: the operator's tmux.conf ignored, and gone on every exit, a killed run too
+scratch_down() { # scratch_down <status> : kill the server, then whatever it started, then the scratch dir
+  trap - EXIT INT TERM
+  local left; left=$(scratch_tree "$(tmux -S "$sock" display -p '#{pid}' 2>/dev/null)")
+  tmux -S "$sock" kill-server 2>/dev/null; [ -z "$left" ] || kill $left 2>/dev/null
+  rm -rf "$T"; exit "$1"
+}
+scratch_tree() { local p c; for p in $1; do for c in $(pgrep -P "$p"); do printf '%s ' "$c"; scratch_tree "$c"; done; done; }
+trap 'scratch_down $?' EXIT; trap 'scratch_down 130' INT; trap 'scratch_down 143' TERM
+tmux -S "$sock" -f /dev/null new-session -d -s workers -n _ 'sleep 3600'
 export TMUX="$sock,1,0" CONSTELLATION_STATE=$T/state CONSTELLATION_DRY=1 CONSTELLATION_TMUX_SESSION=workers CONSTELLATION_AUTO=0
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t GIT_CONFIG_NOSYSTEM=1
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_REPO CONSTELLATION_BASE CONSTELLATION_HARNESS
-trap 'tmux -S "$sock" kill-server 2>/dev/null; rm -rf "$T"' EXIT
 fails=0
 ok()   { printf 'ok   %s\n' "$1"; }
 bad()  { printf 'FAIL %s\n' "$1"; fails=$((fails + 1)); }
