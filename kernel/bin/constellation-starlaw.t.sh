@@ -174,6 +174,20 @@ rack older; to_aldebaran older
 check "the older spelling, --route operator, still routes to the person" "$C" done --route operator "out of scope"
 check "and the piece waits for the person the same way" test "$(next older)" = operator
 
+# both are wrong, then later a plain --route sirius: the orion done after the both counts again, so sirius goes
+# straight to aldebaran, as it does after any orion that finished
+unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE CONSTELLATION_REPO
+rack twice; to_aldebaran twice
+"$C" done --fail "the check failed" >/dev/null; as twice polaris-triage; "$C" clear >/dev/null
+"$C" done --route both "the piece and the check both miss it" >/dev/null
+as twice sirius; "$C" clear >/dev/null; put twice "src/twice.js"; "$C" done "fixed" >/dev/null
+check "after route:both, sirius hands to orion" test "$(next twice)" = running:orion
+as twice orion; "$C" clear >/dev/null; put twice "tests/twice.test.js"; "$C" done "the check, again" >/dev/null
+as twice aldebaran; "$C" clear >/dev/null; "$C" done --fail "still failing" >/dev/null
+as twice polaris-triage; "$C" clear >/dev/null; "$C" done --route sirius "the code is wrong" >/dev/null
+as twice sirius; "$C" clear >/dev/null; put twice "src/twice.js"; "$C" done "fixed again" >/dev/null
+check "a plain --route sirius after a both still goes straight to aldebaran" test "$(next twice)" = running:aldebaran
+
 # an install that lost its law says so in the brief, instead of briefing a star without it
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE CONSTELLATION_REPO
 rm -f .constellation/stars/LAW.md
