@@ -217,7 +217,12 @@ check "killed landing: it exits as killed, at once and not when the hook is thro
 check "killed landing: nothing landed" bash -c "git log -1 --format=%s | grep -vqx 'finish zeta' && git cat-file -e HEAD:.constellation/bench/zeta.md"
 check "killed landing: the index and working tree are byte for byte as before" test "$(snap)" = "$before"
 check "killed landing: its hook was stopped" bash -c "! kill -0 \$(cat '$T/slow')"
-kill "$(cat "$T/slow.pid")" 2>/dev/null
+kill "$(cat "$T/slow.pid")" 2>/dev/null; rm -f "$T/slow" "$T/slow.pid"
+# a closed window: the hangup reaches the landing, its hook and the hook's own children at once
+SLOW=$T/slow setsid "$C" land zeta >"$T/slow.out" 2>&1 & k=$!
+until [ -e "$T/slow.pid" ] || ! kill -0 "$k" 2>/dev/null; do sleep 0.1; done
+kill -HUP -- "-$k"; wait "$k"; rk=$?
+check "hung up with its hook: it exits as hung up, and the checkout is byte for byte as before" bash -c "test $rk = 129 && test \"\$(snap)\" = \"\$1\" && ! kill -0 \$(cat '$T/slow')" _ "$before"
 check "after the kill, the finish lands" "$C" land zeta
 check "after the kill: the finish commit only removes the piece, and the checkout shows nothing" bash -c "test \"\$(paths_of HEAD)\" = 'D .constellation/bench/zeta.md|' && quiet .constellation/bench/zeta.md && foreign_kept"
 
