@@ -8,6 +8,7 @@ exact(){ [ "$(skills_of "$1" | paste -sd, - | sed 's/,/, /g')" = "$2" ]; }
 count(){ n=$(skills_of "$1"|wc -l|tr -d ' '); [ "$n" -ge 3 ] && [ "$n" -le 5 ]; }
 real(){ while read -r n; do [ -f "$ROOT/kernel/skills/$n.md" ] || return 1; done < <(skills_of "$1"); }
 words(){ [ "$(wc -w <"$ROOT/kernel/stars/$1.md")" -le 220 ]; }
+debugging_separation(){ grep -qF "rerun the exact failing behavior or the smallest experiment; never rerun Orion's check" "$ROOT/kernel/skills/debugging.md" && ! grep -qF 'rerun the named check' "$ROOT/kernel/skills/debugging.md"; }
 registered(){ python3 - "$ROOT" <<'PY'
 import json, pathlib, sys
 root=pathlib.Path(sys.argv[1]); data=json.loads((root/'kernel/guides/SKILLS.json').read_text())['skills']; seen={s['name']:s['file'] for s in data}
@@ -27,6 +28,7 @@ check 'seven new skills registered' registered
 check 'polaris behavior' grep -qF 'Steel-man it first' "$ROOT/kernel/stars/polaris.md"
 check 'cassiopeia behavior' grep -qF 'executable, evidence-backed plan' "$ROOT/kernel/stars/cassiopeia.md"
 check 'sirius behavior' grep -qF 'smallest coherent maintainable diff' "$ROOT/kernel/stars/sirius.md"
+check 'sirius debugging keeps maker out of checker run' debugging_separation
 check 'orion behavior' grep -qF 'No count or coverage theater' "$ROOT/kernel/stars/orion.md"
 check 'aldebaran behavior' grep -qF 'Run exactly the named commands, in order' "$ROOT/kernel/stars/aldebaran.md"
 check 'vega brief paths' brief_paths vega vega
