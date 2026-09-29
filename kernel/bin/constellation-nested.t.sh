@@ -91,7 +91,7 @@ touch .constellation/bench/stale/stock/.gitkeep .constellation/bench/stale/bench
 git add -f .constellation/bench/stale; CONSTELLATION_GATE=off git commit -qm "an empty scaffold, as Arc has"
 broken old "An old breakdown"; rack .constellation/bench/old one "One"; move .constellation/bench/old/stock/one.md .constellation/bench/old/bench/one.md
 mkdir -p .constellation/finished .constellation/bench/old/finished
-mv .constellation/bench/old/bench/one.md .constellation/bench/old/finished/one.md; git add -f .constellation/bench/old/finished/one.md; git add -u .constellation/bench/old/bench; CONSTELLATION_GATE=off git commit -qm "finish one, the old way"
+git mv .constellation/bench/old/bench/one.md .constellation/bench/old/finished/one.md; CONSTELLATION_GATE=off git commit -qm "finish one, the old way"
 mv .constellation/bench/old/PIECE.md .constellation/finished/old.md; git add -f .constellation/finished/old.md; git add -u .constellation/bench/old; CONSTELLATION_GATE=off git commit -qm "finish old, the old way"
 check "the old way leaves a directory behind" sh -c "test -f .constellation/finished/old.md && test -f .constellation/bench/old/finished/one.md && test ! -e .constellation/bench/old/PIECE.md"
 
