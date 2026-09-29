@@ -30,7 +30,7 @@ command's; say what it means for them.
 | aldebaran (verify: the run) | **checking it** |
 
 Other engine names (piece, step, star, handoff, slug, branch, worktree, jig, trade) never reach
-the person.
+the person; use their word, or plain English.
 **The person never types an engine word or a command.** They talk; you run the verbs.
 
 ## Your own work

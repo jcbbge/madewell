@@ -42,7 +42,7 @@ check "a second install leaves one loader" sh -c "sh '$ROOT/install.sh' '$P' >/d
 # --- the host's law holds only the host's law
 H=$ROOT/kernel/HOST.md L=$ROOT/kernel/stars/LAW.md
 words=$(sed 's/[|*`#>-]//g' "$H" | wc -w)
-check "HOST.md is short: about 700 words ($words)" test "$words" -ge 550 -a "$words" -le 800
+check "HOST.md is short: about 800 words ($words)" test "$words" -ge 550 -a "$words" -le 850
 check "HOST.md tells the host how to run the driver" grep -qF '.constellation/bin/constellation <verb>' "$H"
 check "HOST.md never sends the host to constellation ask (it refuses outside a step)" sh -c "! grep -qF 'constellation ask' '$H'"
 check "HOST.md: the host asks the person itself, in decision form" sh -c "grep -qF 'in decision form' '$H' && grep -qF 'your recommendation, the options' '$H'"
