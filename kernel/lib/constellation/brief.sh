@@ -1,6 +1,6 @@
 # constellation — brief and line: the person's front page, and one line for a status bar.
 # Sourced by kernel/bin/constellation; never run directly. Plain words only: no star names, no
-# engine words. Read from the pieces' records (the piece branches, and finished/ on main); the
+# engine words. Read from the pieces' records (the piece branches, and the finish commits on main); the
 # last brief's time is remembered in the state dir, so "done" means done since you last looked.
 # shellcheck shell=bash
 
@@ -90,12 +90,12 @@ survey() {
   done
   WAITING=$(sort -t "$US" -k1,1n <<<"$WAITING" | sed '/^$/d'); MAKING=$(sort -n <<<"$MAKING" | sed '/^$/d')
 }
-finished_since() { # finished_since <epoch|""> : the title of every piece that reached finished/ on main since then
-  git -C "$R" log -n 500 --no-renames --diff-filter=A --name-only --format='%x1e%ct' -- "$CST/finished/" 2>/dev/null | awk -v RS='\x1e' -v s="$1" '
-    { n = split($0, L, "\n"); t = ""
-      for (i = 1; i <= n; i++) { if (L[i] == "") continue; if (t == "") { t = L[i]; continue }
-        if ((s == "" || t + 0 > s + 0) && L[i] ~ /\.md$/) print L[i] } }' | while read -r p; do
-      if [ -f "$R/$p" ]; then title_of "$R/$p"; else basename "$p" .md | tr -d '\n'; fi; printf '\n'; done
+finished_since() { # finished_since <epoch|""> : the title of every piece finished since then, from its finish commit
+  local h p
+  while IFS=$'\t' read -r h _ _ p; do
+    [ -n "$h" ] || continue
+    local t; t=$(title_at "$h^" "$p"); printf '%s\n' "${t:-$(piece_slug "$p")}"
+  done < <(finishes '*' "$1" | head -n 500)
 }
 open_questions() { # open_questions <piece file> : the bullets under an "Open questions" heading
   awk 'tolower($0) ~ /^#+ .*open questions/ { on = 1; next } /^#/ { on = 0 } on && /^[[:space:]]*[-*] / { n++ } END { print n + 0 }' "$1"

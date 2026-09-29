@@ -39,6 +39,6 @@ knowing it.
 
 ## Leave the bench tidy, not empty
 
-Do not rush a piece to `finished/` to make the session look complete. A piece left properly
+Do not rush a piece to land to make the session look complete. A piece left properly
 on the bench with a clear `NEXT:` is a good handoff. A piece finished without a proof is a
 lie the next session has to discover.

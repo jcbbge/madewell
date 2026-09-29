@@ -1,7 +1,8 @@
 # Finish — proof it and take it off the bench
 
 **Mode:** Workflow — runs **verify**.
-**Moves:** `bench/X.md` → `finished/X.md`, or `bench/X/PIECE.md` → `finished/X.md`.
+**Moves:** `bench/X.md` → removed, or `bench/X/PIECE.md` → removed with all of `bench/X/`:
+done work leaves the tree. `constellation land` makes the finish commit, the receipt its body.
 
 ---
 
@@ -44,7 +45,8 @@ thing is named after.
 ## A breakdown finishes last
 
 A piece with its own rack can only finish when its `stock/` and `bench/` are both empty.
-Its `finished/` stays where it is — that is the record of how it was made.
+Each part left in its own finish commit; those commits are the record of how it was made,
+and the piece's receipt lists them.
 
 ## Failure is not a move
 
@@ -54,4 +56,5 @@ until it passes.
 
 ## Done when
 
-The piece is in `finished/`, and someone who did not make it said so.
+The piece is gone from the bench in a finish commit whose receipt says what changed and how
+we know it works, and someone who did not make it said so.

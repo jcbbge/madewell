@@ -17,8 +17,8 @@ declaration, none of which names a runtime:
 
 | Kind | Examples |
 |---|---|
-| **vocabulary** | the lexicon: the four acts · stock · bench · finished · ground · jig · floor · trade |
-| **state machines** | the four acts, recurring at every scale (ideate → plan → implement → verify); three states and the four legal moves (SPEC.md §2) |
+| **vocabulary** | the lexicon: the four acts · stock · bench · finished (the finish commit) · ground · jig · floor · trade |
+| **state machines** | the four acts, recurring at every scale (ideate → plan → implement → verify); three states and the legal moves (SPEC.md §2: stock → bench, and bench → removed at land) |
 | **predicates** | the laws — `author(criteria) ≠ author(implementation)` · `partial ≠ success` · `no stop while holding a live claim` |
 | **roles** | profiles with obligations, never providers or models |
 | **rubrics** | judgment procedures with stated tie-breaks |

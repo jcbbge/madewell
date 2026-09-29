@@ -52,8 +52,8 @@ execution facts—not a separately maintained status narrative.
 ## Finish
 
 Execution `done` means the verification gate accepted the session. It does not
-move the piece. Perform the legal finish move separately; existing move gates
-still apply. Session execution records never override piece position.
+move the piece. Land it separately (`constellation land`: the finish commit removes
+the piece); existing move gates still apply. Session execution records never override piece position.
 
 Neither a worker report nor a model's confidence is independent acceptance.
 If the host binding is absent, say that execution is not mechanically gated.

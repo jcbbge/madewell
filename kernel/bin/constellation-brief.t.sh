@@ -55,7 +55,11 @@ check "brief remembers its time in the state dir" test -s "$T/state/proj/brief.l
 sleep 1
 
 # --- a finished piece, two being made, one question
-piece old "Old piece"; git mv .constellation/bench/old.md .constellation/finished/old.md; CONSTELLATION_GATE=off git commit -qm "finish old"  # as land moves it
+piece old "Old piece"; git rm -q .constellation/bench/old.md; git commit -qm "finish old" -m "ACT: verify
+DONE: old
+NEXT: —"  # as land takes it off the bench, through the gate
+piece older "Older piece"; mkdir -p .constellation/finished; git mv .constellation/bench/older.md .constellation/finished/older.md
+CONSTELLATION_GATE=off git commit -qm "finish older"  # as land moved it before there was no done shelf
 piece greet "Greet the user"; "$C" run greet >/dev/null
 piece bye "Wave goodbye"; "$C" run bye >/dev/null; rec bye vega clear "no open questions"; rec bye vega done "a one-function module"
 piece hi "Say hi"; "$C" run hi >/dev/null
@@ -66,7 +70,8 @@ piece hi "Say hi"; "$C" run hi >/dev/null
 check "line: two being made, one question" test "$(line)" = "2 being made · 1 question for you"
 B=$(brief); printf '%s\n' "$B" | sed 's/^/     | /'
 check "brief: three to five lines" lines "$B"
-check "brief (done): a piece that reached finished" has "$B" "Old piece is done"
+check "brief (done): a piece whose finish commit took it off the bench" has "$B" "Old piece is done"
+check "brief (done): a piece finished the old way, into finished/" has "$B" "Older piece is done"
 check "brief (done): an act handed off since the last brief" has "$B" "Wave goodbye was thought through"
 check "brief (being made): which act, since when" matches "$B" "Greet the user — thinking it through, since [0-9]{2}:[0-9]{2}[;.]"
 check "brief (being made): the act that comes next" has "$B" "Wave goodbye — getting a second look is next"
@@ -89,7 +94,7 @@ piece ping "Ping the server"; "$C" run ping >/dev/null
 rec ping vega clarify "Situation: the name is unclear. Recommendation: call it ping."
 check "line: two questions for you" test "$(line)" = "2 being made · 2 questions for you"
 B=$(brief)
-check "brief (done): only what is new since the last brief" bash -c "grep -qF 'Greet the user was thought through' <<<\"\$0\" && ! grep -qE 'Wave goodbye was|Old piece' <<<\"\$0\"" "$B"
+check "brief (done): only what is new since the last brief" bash -c "grep -qF 'Greet the user was thought through' <<<\"\$0\" && ! grep -qE 'Wave goodbye was|Old piece|Older piece' <<<\"\$0\"" "$B"
 check "brief (waiting): the oldest question first, and how many more" has "$B" "Waiting on you: Say hi asks: run the e2e suite too? (and 1 more after this)"
 rec bye polaris-peer started "-"; rec bye polaris-peer clarify "which module?"
 check "a question from one act to the one before is not the person's" test "$(line)" = "2 being made · 2 questions for you"

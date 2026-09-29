@@ -14,12 +14,12 @@ Runs **once**, on first contact with a guest. Then never again.
 4. **The rubric.** *Would this customer be glad a year from now?* Show one deal that passed
    and one that was walked away from.
 
-5. **A finished deal, end to end.** `ls .constellation/finished/`. Walk one: qualification through
+5. **A finished deal, end to end.** `git log --grep='^finish '`, then `constellation receipt <deal>`. Walk one: qualification through
    handoff, including what went wrong.
 
 6. **A lost deal.** Walk one of those too, with the real reason. A team that only shows its
    wins teaches nothing.
 
-7. **Where things sit.** `ls .constellation/stock/ bench/ finished/`. One pair of hands per deal.
+7. **Where things sit.** `ls .constellation/stock/ bench/`. One pair of hands per deal.
 
 Then onboarding is done.

@@ -52,7 +52,7 @@ advance() { # advance <slug> : start what comes after a handoff — the next sta
 # --- the save line: every handoff tells the person, in plain words, that nothing is lost ------
 plain_act() { case "$1" in vega) echo 'thinking it through';; polaris-*) echo 'a second look';; cassiopeia) echo 'planning it';; sirius) echo 'making it';; orion) echo 'writing the checks';; aldebaran) echo 'checking it';; *) echo "$1";; esac; }
 piece_name() { # the piece's own title, else its slug
-  local f t; for f in "$R/$CST/bench/$1.md" "$R/$CST/finished/$1.md"; do
+  local f t; for f in "$R/$CST/bench/$1.md" "$R/$CST/bench/$1/PIECE.md"; do
     [ -f "$f" ] && t=$(sed -n '1s/^#[[:space:]]*//p' "$f") && [ -n "$t" ] && { printf '%s' "$t"; return; }
   done; printf '%s' "$1"
 }

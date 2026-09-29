@@ -123,7 +123,7 @@ you how long anything will take.
 ```
 waiting     things you might do. Grows without limit — that's fine, that's correct.
 in hand     what you're working on now. One person per thing.
-done        checked, and finished.
+done        checked, and finished: it leaves the list, and its history keeps the record.
 ```
 
 To move something from *waiting* to *in hand*, you answer four questions:
@@ -244,8 +244,10 @@ anything clever.
 > while your work stays in it. Paths written as `.constellation/…` throughout the docs describe
 > the installed shape, because those docs ship with the install.
 
-The three places are directories: `stock/`, `bench/`, `finished/`. A piece's state **is** the
-directory it's in; nothing else records it. Work moves with `git mv`, one move per commit. Install wires a pre-commit hook that
+Waiting and in hand are directories: `stock/`, `bench/`. A piece's state **is** the
+directory it's in; nothing else records it. Work moves with `git mv`, one move per commit, and
+done work leaves the tree: `constellation land` removes the piece in its finish commit, with the
+receipt as that commit's body, so `git log` is where done lives. Install wires a pre-commit hook that
 runs `.constellation/bin/cst-gate.sh` (illegal moves refused) and `.constellation/bin/cst-jigs.sh`
 (wired jigs). Post-commit appends the accepted side of a correction line. Bypass the
 move-gate only for an adoption commit: `CONSTELLATION_GATE=off`.

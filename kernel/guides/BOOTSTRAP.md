@@ -19,7 +19,7 @@ If CONSTELLATION_STEP or CONSTELLATION_DISCOVERING is set, you are not the host:
 
 **2. Know the layout.** Two doors at root — `README.md` (for the person) and `CONSTELLATION.md`
 (the model). Everything else lives in `.constellation/`: your instructions, guides, skills, packs,
-memory, and the three state directories `stock/ bench/ finished/`. You manage `.constellation/`;
+memory, and the two state directories `stock/ bench/` (done work leaves the tree at land). You manage `.constellation/`;
 the person rarely opens it. To *modify Constellation itself* — add a trade, persona,
 pillar, or skill; or fix the process — read `.constellation/EXTENDING.md` first.
 

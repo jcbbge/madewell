@@ -7,17 +7,18 @@ Constellation is files. The driver, `.constellation/bin/constellation`, runs the
 and keeps nothing of its own that says where a piece is: no dashboard, no second ledger of
 piece position.
 
-`.constellation/bin/cst-move` is scaffolding for §2. It is `git mv` that refuses everything else.
-Delete it and the shop still runs: `git mv` plus `cst-gate` on pre-commit. The
-binary is not the work.
+`.constellation/bin/cst-move` is scaffolding for §2. It is `git mv` and `git rm` that refuse
+everything else. Delete it and the shop still runs: `git mv`, `git rm` plus `cst-gate` on
+pre-commit. The binary is not the work.
 
 ---
 
 ## 1. Position is path
 
 > **A piece's state is the directory it is in. Nothing else records it.**
+> **Done work is gone: it leaves the tree when it lands, and git log is where it is done.**
 
-No status field, no projection, no ledger **of piece position**. To ask where something is,
+No status field, no projection, no ledger **of piece position**, and no shelf of done work. To ask where something is,
 look at where it is. The Jig's `corrections.jsonl` is a different file: proposed − accepted
 for shop-made jigs (`jig/CORRECTIONS.md`). It does not say where a piece sits.
 
@@ -25,35 +26,34 @@ for shop-made jigs (`jig/CORRECTIONS.md`). It does not say where a piece sits.
 .constellation/
 ├── stock/                    uncut. Grows without limit.
 │   └── <slug>.md
-├── bench/
-│   ├── <slug>.md                 a leaf — one pair of hands, does not break down
-│   └── <slug>/                   breaks down — the same three, one depth in
-│       ├── PIECE.md
-│       ├── stock/
-│       ├── bench/
-│       └── finished/
-└── finished/
-    └── <slug>.md
+└── bench/
+    ├── <slug>.md                 a leaf — one pair of hands, does not break down
+    └── <slug>/                   breaks down — the same two, one depth in
+        ├── PIECE.md
+        ├── stock/
+        └── bench/
 ```
 
-The three names recur at every depth. `bench/<a>/bench/<b>/` is legal and means what it
-looks like. Depth is bounded only by the work.
+The two names recur at every depth. `bench/<a>/bench/<b>/` is legal and means what it
+looks like. Depth is bounded only by the work. **Done** is not a directory: it is the
+finish commit that took the piece out of the tree (§2), with the piece's receipt as its body.
 
 **Reading it — the whole interface:**
 
 ```sh
 ls .constellation/stock/       # material on the rack. Large is correct.
 ls .constellation/bench/       # what is being worked, top level
-ls .constellation/finished/    # done
+git log --grep='^finish '      # done: every finish commit, newest first
 
 find .constellation -type f -name '*.md' | grep -E '/bench/[^/]+\.md$'   # every leaf in hand, any depth
 find .constellation -type f -name PIECE.md                                # everything open that breaks down
-git log --follow .constellation/finished/<slug>.md                        # one piece's whole history
+git log -- .constellation/bench/<slug>.md                                 # one piece's whole history, to its finish
 ```
 
-A piece that breaks down is **open** while its `PIECE.md` exists. Finishing moves that file
-out; the `finished/` beneath it stays as the record. So a `bench/<slug>/` directory outlives
-the work — `PIECE.md` is the liveness signal, not the directory.
+A piece that breaks down is **open** while its `PIECE.md` exists. Its parts leave its inner
+`bench/` the way any piece leaves, each in its own finish commit; when all are done, its
+finish commit takes the whole `bench/<slug>/` away. (An older install finished into a
+`finished/` directory; `constellation adopt` removes it, since its history is in git.)
 
 ---
 
@@ -65,15 +65,21 @@ the work — `PIECE.md` is the liveness signal, not the directory.
 | Move | From | To | Also required |
 |---|---|---|---|
 | **to the bench** (leaf) | `P/stock/X.md` | `P/bench/X.md` | the floor (§3) |
-| **to the bench** (breaks down) | `P/stock/X.md` | `P/bench/X/PIECE.md` | the floor, plus `stock/ bench/ finished/` created in the same commit |
-| **finish** (leaf) | `P/bench/X.md` | `P/finished/X.md` | — |
-| **finish** (breaks down) | `P/bench/X/PIECE.md` | `P/finished/X.md` | its `stock/` and `bench/` are empty |
+| **to the bench** (breaks down) | `P/stock/X.md` | `P/bench/X/PIECE.md` | the floor, plus `stock/ bench/` created in the same commit |
+| **finish** (leaf) | `P/bench/X.md` | removed (`git rm`), at land | — |
+| **finish** (breaks down) | `P/bench/X/PIECE.md` | removed, with all of `P/bench/X/`, at land | its `stock/` and `bench/` are empty |
 
 That is the complete inventory. **Every other move under `.constellation/` is illegal.** No force
-flag, no skip, no rewind. Nothing is ever deleted from a state directory — pieces leave by
-finishing.
+flag, no skip, no rewind. Nothing is deleted from `stock/`, nothing arrives anywhere but
+`stock/`, and a piece leaves the bench only by finishing. `finished/` is retired: nothing
+arrives there, and an old one may only be taken away.
 
-**Abandoning** is a finish with `**ABANDONED:** <reason>` as the first line. A recorded
+**The finish commit is the record of done.** `constellation land` makes it: subject
+`finish <slug>`, the receipt (what changed, how we know it works, how to see it, what it cost)
+as its body, the trailer below. `constellation receipt`, `status` and `brief` read it back
+from `git log`. The piece's text is in the commit before it.
+
+**Abandoning** is a finish whose commit body opens with `ABANDONED: <reason>`. A recorded
 outcome, not an undo.
 
 **Failure is not a move.** A failed proof leaves the piece on the bench. The next attempt is
@@ -140,11 +146,13 @@ One rule: **a piece on the bench has exactly one pair of hands.**
 
 | Rule | Enforcer |
 |---|---|
-| Only the four moves (§2) | **JIG** — `.constellation/bin/cst-gate.sh` on pre-commit (`.constellation/bin/cst-hooks.sh` wires it). Optional scaffolding: `.constellation/bin/cst-move` performs them and stages; it is not the product. |
-| Nothing deleted from a state directory | **JIG** |
+| Only the moves of §2 | **JIG** — `.constellation/bin/cst-gate.sh` on pre-commit (`.constellation/bin/cst-hooks.sh` wires it). Optional scaffolding: `.constellation/bin/cst-move` performs them and stages; it is not the product. |
+| Nothing deleted from `stock/`; nothing arrives in `finished/` | **JIG** |
 | Arrival only into `stock/` | **JIG** |
 | The floor (§3) | **JIG** |
 | Finish requires the inner states drained | **JIG** |
+| A bench removal happens only at land | **UNJIGGED** — the gate cannot see which command made the commit; `constellation land` is the door, and its finish commit says so |
+| One writer at a time in the main checkout | **The driver's door**, not a commit stop — every write the driver makes there (take, land, inbox filing, trade, adopt) holds `flock` on `<git common dir>/constellation.lock`, waiting its turn; a git command run by hand does not take it (**UNJIGGED**) |
 | Wired convention detectors | **JIG** — `.constellation/bin/cst-jigs.sh` on pre-commit, from `jig/registry.json` |
 | Proposed − accepted (shop-made substrate) | **JIG** — `.constellation/bin/cst-record.sh` on post-commit → `jig/corrections.jsonl`; override via `jig/proposed.json` |
 | Shop-made / take-down verdict | **UNJIGGED** as a commit stop — `.constellation/bin/cst-tax.sh` at verify and session-end. Never auto-builds. |
@@ -172,7 +180,7 @@ wiring, which is why it uses the second pair.
 Piece position (§1) and execution progress are different facts. A host may persist a
 session's current act, proposed checklist, dependencies, actor, expected results,
 command attempts, evidence and acceptances under `.constellation/sessions/`. Such a record
-must never override stock/bench/finished position or move a piece implicitly.
+must never override stock/bench position or move a piece implicitly.
 
 A bound execution proceeds ideate → plan → implement → verify. Planning declares the
 implementation and verification steps before execution opens. Completion requires the
@@ -183,12 +191,13 @@ closure is rechecked at execution, acceptance and finish, not only final artifac
 All contributing makers, including failed implementation attempts, remain excluded
 from verification across retries. Historical done and current proof validity are
 separate visible facts. A stale done execution may explicitly reopen while its
-piece is open; finished pieces never rewind.
+piece is open; landed pieces never rewind.
 
 Execution adoption is optional for **legacy unbound pieces**. Once bound, both
-`cst-move` and `cst-gate.sh` require fresh independent completion for legal finish.
-They rebind the existing execution reference on legal moves, including unit
-expansion, under the same lock used by claim acquisition. No position ledger is
+`cst-move` and `cst-gate.sh` require fresh independent completion for legal finish,
+the removal at land; the record is then marked landed, claims nothing, and its path
+is free for new work. They rebind the existing execution reference on the legal move,
+including unit expansion, under the same lock used by claim acquisition. No position ledger is
 added: the actual file path still decides where the piece is. A missing claimed
 piece requires explicit reconciliation, not a new claim that forgets its maker.
 The host exposes a separate legal move after done; passing verification never

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Constellation session execution door. JSON request on stdin, JSON result on stdout.
 
-Work position remains stock/bench/finished. This file owns execution within one
-session, not piece position. No service, agent runtime, or model dependency.
+Work position remains stock/bench; done work leaves the tree at land. This file owns
+execution within one session, not piece position. No service, agent runtime, or model dependency.
 """
 import argparse
 import copy
@@ -115,10 +115,16 @@ class Session:
             require(self.artifact(proof["path"], capture_tracking=False)["sha256"] == proof["sha256"], "evidence changed: " + proof["path"])
 
     def proofs(self, state):
+        # A landed piece's own file is gone from the tree; the rest of its proof still has to hold.
+        gone = state['piece'] if state.get('landed') else None
         for phase in state['phases'].values():
-            yield from phase.get('artifacts', [])
+            for proof in phase.get('artifacts', []):
+                if proof['path'] != gone:
+                    yield proof
             for step in phase['steps'].values():
-                yield from step.get('evidence', [])
+                for proof in step.get('evidence', []):
+                    if proof['path'] != gone:
+                        yield proof
 
     def fresh_state(self, state):
         self.fresh(self.proofs(state))
@@ -137,20 +143,28 @@ class Session:
                 for step in phase['implement']['steps'].values()
                 if 'argv' in step and 'actor' in step}
 
-    def claims(self, missing=()):
+    def landed(self, state):
+        # Once landed, always: new work may later take the same path, and it is not this record's.
+        return bool(state.get('landed'))
+
+    def records(self, missing=()):
         records = []
         for path in sorted(self.directory.glob('*.json')):
             session = Session(self.root, path.stem)
             state = session.load()
-            require(state['piece'] in missing or (self.root / state['piece']).is_file(),
+            require(state['piece'] in missing or self.landed(state) or (self.root / state['piece']).is_file(),
                     'claimed piece missing; reconcile explicitly: ' + path.stem)
             records.append((session, state))
         return records
 
+    def claims(self, missing=()):
+        # A landed piece claims nothing: done work is gone, and its path is free for new work.
+        return [(session, state) for session, state in self.records(missing) if not self.landed(state)]
+
     def open_piece(self, state):
         path = self.root / state['piece']
+        require(not self.landed(state), 'landed pieces cannot reopen')
         require(path.is_file(), 'claimed piece missing; reconcile explicitly')
-        require(path.parent.name != 'finished', 'finished pieces cannot reopen')
 
     def accepted(self, state):
         require(state['status'] == 'done', 'bound finish needs completed execution')
@@ -420,15 +434,21 @@ class Session:
         require(not any(step['status'] == 'running' for phase in state['phases'].values()
                         for step in phase['steps'].values()), 'command running; cannot reconcile')
         reason = text(request.get('reason'))
-        old, new = state['piece'], text(request.get('piece'))
+        old = state['piece']
+        if request.get('landed') is True:  # the piece left the tree without the door: it must have been accepted
+            legal_removal(old)
+            require(not (self.root / old).exists(), 'old piece still exists')
+            done = as_landed(state, old)
+            self.accepted(done)
+            self.save(done, actor, 'reconciled', {'from': old, 'landed': True, 'reason': reason})
+            return done
+        new = text(request.get('piece'))
         legal_move(old, new)
         require(not (self.root / old).exists(), 'old piece still exists')
         self.artifact(new)
         for _, other in self.claims(missing=(old,)):
             require(other['id'] == state['id'] or other['piece'] != new, 'destination already claimed')
         moved = rebound(state, old, new)
-        if Path(new).parent.name == 'finished':
-            self.accepted(moved)
         self.save(moved, actor, 'reconciled', {'from': old, 'to': new, 'reason': reason})
         return moved
 
@@ -523,22 +543,38 @@ class Session:
             return state
 
 
+def piece_path(value):
+    require(isinstance(value, str) and not Path(value).is_absolute() and
+            '..' not in Path(value).parts and value.startswith('.constellation/') and
+            value.endswith('.md'), 'invalid piece path')
+
+
 def legal_move(old, new):
+    # The one move: stock to bench, a leaf or a breakdown. The other way out of a state is removal (land).
     for value in (old, new):
-        require(isinstance(value, str) and not Path(value).is_absolute() and
-                '..' not in Path(value).parts and value.startswith('.constellation/') and
-                value.endswith('.md'), 'invalid piece path')
+        piece_path(value)
     path = Path(old)
     if path.parent.name == 'stock':
         base = path.parent.parent
         allowed = (base / 'bench' / path.name, base / 'bench' / path.stem / 'PIECE.md')
-    elif path.parent.name == 'bench':
-        allowed = (path.parent.parent / 'finished' / path.name,)
-    elif path.name == 'PIECE.md' and path.parent.parent.name == 'bench':
-        allowed = (path.parent.parent.parent / 'finished' / (path.parent.name + '.md'),)
     else:
-        raise Refused('not a legal move source; no rewind')
+        raise Refused('not a legal move source; a piece leaves the bench only by landing, and there is no rewind')
     require(Path(new) in allowed, 'not a legal piece destination')
+
+
+def legal_removal(old):
+    # Done work leaves the tree: a leaf on the bench, or a breakdown's PIECE.md (with all of its folder).
+    piece_path(old)
+    path = Path(old)
+    require(path.parent.name == 'bench' or (path.name == 'PIECE.md' and path.parent.parent.name == 'bench'),
+            'only a piece on the bench leaves the tree, at land')
+
+
+def as_landed(state, old):
+    state = copy.deepcopy(state)
+    state['piece'] = old
+    state['landed'] = {'at': time.time()}
+    return state
 
 
 def rebound(state, old, new):
@@ -563,10 +599,6 @@ def move(root, old, new, staged=False):
             require((staged and state['piece'] == new) or
                     not any(step['status'] == 'running' for phase in state['phases'].values()
                             for step in phase['steps'].values()), 'command running; move separately')
-            if Path(new).parent.name == 'finished':
-                candidate = rebound(state, old, new) if staged else state
-                session.accepted(candidate)
-                session.staged_proofs(candidate)
         if not staged:
             require(not (door.root / new).exists(), 'move destination exists')
             result = subprocess.run(['git', 'mv', '--', old, new], cwd=door.root, capture_output=True, text=True)
@@ -581,6 +613,32 @@ def move(root, old, new, staged=False):
     return {'moved': new, 'bound': [session.name for session, _ in bound]}
 
 
+def remove(root, old, staged=False):
+    # Land: the piece leaves the tree. A bound piece needs its fresh, independent acceptance first.
+    legal_removal(old)
+    door = Session(root, 'movement')
+    with door.locked():
+        bound = [(session, state) for session, state in door.records(missing=(old,)) if state['piece'] == old]
+        for session, state in bound:
+            require(not any(step['status'] == 'running' for phase in state['phases'].values()
+                            for step in phase['steps'].values()), 'command running; land separately')
+            candidate = as_landed(state, old)
+            session.accepted(candidate)
+            session.staged_proofs(candidate)
+        if not staged:
+            path = Path(old)
+            target = str(path.parent) if path.name == 'PIECE.md' else old  # a breakdown goes with all of its folder
+            require((door.root / old).is_file(), 'nothing to land at ' + old)
+            result = subprocess.run(['git', 'rm', '-r', '-q', '--', target], cwd=door.root, capture_output=True, text=True)
+            require(result.returncode == 0, result.stderr.strip() or 'git rm refused')
+        else:
+            require(not (door.root / old).exists(), 'staged removal still has its working path')
+        for session, state in bound:
+            if not state.get('landed'):
+                session.save(as_landed(state, old), 'movement-door', 'piece_landed', {'from': old})
+    return {'landed': old, 'bound': [session.name for session, _ in bound]}
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".")
@@ -589,6 +647,8 @@ def main():
     movement = parser.add_mutually_exclusive_group()
     movement.add_argument('--move', nargs=2)
     movement.add_argument('--check-move', nargs=2)
+    movement.add_argument('--remove')
+    movement.add_argument('--check-remove')
     args = parser.parse_args()
     def interrupted(_signal, _frame):
         raise KeyboardInterrupt()
@@ -596,12 +656,14 @@ def main():
     try:
         if args.move or args.check_move:
             result = move(args.root, *(args.move or args.check_move), staged=bool(args.check_move))
+        elif args.remove or args.check_remove:
+            result = remove(args.root, args.remove or args.check_remove, staged=bool(args.check_remove))
         else:
             result = Session(args.root, args.session).request(args.actor, json.load(sys.stdin))
         print(json.dumps(result, indent=2))
     except (Refused, ValueError, OSError, KeyError, TypeError) as error:
         print(json.dumps({"schema": "constellation.refused/v1", "error": str(error)}))
-        if args.check_move:
+        if args.check_move or args.check_remove:
             print('cst-session: ' + str(error), file=sys.stderr)
         return 5
     return 0

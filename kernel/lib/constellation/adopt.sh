@@ -11,6 +11,7 @@ cmd_adopt() { # adopt [<project>] : install the kernel, wire the hooks, make ide
   fi
   [ -d "$dest/$CST" ] && again=1
   pkg=$(cd "$KERNEL/.." && pwd -P)
+  repo_lock "$dest"   # one writer at a time in the main checkout, held to the end of adopt
 
   # 1. the kernel: from the package, install (or re-sync); from a project's own copy, it is already there
   if [ "$(basename "$KERNEL")" = kernel ] && [ -f "$pkg/install.sh" ]; then   # the package checkout, not an installed .constellation/
@@ -22,6 +23,30 @@ cmd_adopt() { # adopt [<project>] : install the kernel, wire the hooks, make ide
   elif [ "$again" = 0 ]; then
     die "adopt: run it from the Constellation package (<package>/kernel/bin/constellation adopt $dest)"
   fi
+
+  # 1b. done work is gone: an install from before kept a finished/ shelf (at the top, and inside pieces that broke
+  #     down). Its history is in git, so it goes: staged, not committed; the agent commits it with the adoption.
+  local shelf shelves=() tidied=""
+  while IFS= read -r shelf; do [ -n "$shelf" ] && shelves+=("$shelf"); done < <(cd "$dest" &&
+    find "$CST" -type d -name finished \( -path "$CST/finished" -o -path "$CST/bench/*/finished" \) -prune 2>/dev/null | awk -F/ '{ print NF "\t" $0 }' | sort -n | cut -f2-)   # the top one first
+  if [ ${#shelves[@]} -gt 0 ]; then
+    local gone=()
+    for shelf in "${shelves[@]}"; do   # one holding anything the last commit does not have stays, and is said
+      if ! in_history "$dest" "$shelf"; then
+        printf '  kept %s/: it holds changes git does not have; commit or drop them, then adopt again\n' "$shelf" >&2; continue
+      fi
+      git -C "$dest" rm -r -q -f --ignore-unmatch -- "$shelf" >/dev/null   # -f: an old install's move may be staged
+      rm -rf "${dest:?}/$shelf"; gone+=("$shelf/")
+    done
+    if [ ${#gone[@]} -gt 0 ]; then
+      tidied=1
+      printf '  removed %s: done work is in git history now, not on a shelf; the removal is staged, commit it with the adoption\n' \
+        "$(printf '%s, ' "${gone[@]}" | sed 's/, $//')" >&2
+    fi
+  fi
+
+  # 1c. one text for every assistant: CLAUDE.md and AGENTS.md are read by different ones, so they must not disagree
+  parity_check "$dest"
 
   # 2. the hooks: the commit gate and the jigs (idempotent; install wires them too, a project's own copy re-wires them)
   out=$(cd "$dest" && sh "$CST/bin/cst-hooks.sh" 2>&1) || { printf '%s\n' "$out" >&2; die "adopt: could not wire the commit hooks"; }
@@ -49,6 +74,7 @@ NEXT: the adopt conversation ($CST/skills/adopt.md)" ||
   # 6. the welcome, in the person's words: no engine words, no commands
   local name; name=$(basename "$dest")
   if [ "$again" = moved ]; then say "Constellation was already set up in $name, under its old name. It is up to date, and all of your work moved with it."
+  elif [ "$again" = 1 ] && [ -n "$tidied" ]; then say "Constellation was already set up in $name. It is up to date: what is done is now kept in the project's history instead of a folder, and nothing else of yours was changed."
   elif [ "$again" = 1 ]; then say "Constellation was already set up in $name. It is up to date, and nothing of yours was changed."
   else say "Constellation is set up in $name."
   fi
@@ -61,4 +87,27 @@ What you can do next:
 Before anything is started you will be asked the four questions: what it is, what it is not,
 how you will know it is done, and whether anything is holding it up. The rest is handled for
 you. There are no commands to learn."
+}
+
+in_history() { # in_history <project> <folder> : every file in it is in the last commit, under some name
+  local d=$1 f sums; sums=$(git -C "$d" ls-tree -r HEAD 2>/dev/null | awk '{ print $3 }')
+  while IFS= read -r -d '' f; do
+    [ "$(basename "$f")" != .gitkeep ] || continue
+    grep -qxF -- "$(git -C "$d" hash-object -- "$f")" <<<"$sums" || return 1
+  done < <(cd "$d" && find "$2" -type f -print0)
+}
+
+parity_check() { # parity_check <project> : when CLAUDE.md and AGENTS.md both exist and differ, say which one to copy over
+  local d=$1 a=CLAUDE.md b=AGENTS.md from to why
+  [ -f "$d/$a" ] && [ -f "$d/$b" ] || return 0
+  ! cmp -s "$d/$a" "$d/$b" || return 0
+  if [ -z "$(grep -vxF -f "$d/$a" "$d/$b")" ]; then from=$a to=$b why="it says everything $b says, and more"
+  elif [ -z "$(grep -vxF -f "$d/$b" "$d/$a")" ]; then from=$b to=$a why="it says everything $a says, and more"
+  else
+    local ta tb; ta=$(git -C "$d" log -1 --format=%ct -- "$a" 2>/dev/null); tb=$(git -C "$d" log -1 --format=%ct -- "$b" 2>/dev/null)
+    [ -n "$ta" ] && [ -n "$tb" ] || { ta=$(date -r "$d/$a" +%s); tb=$(date -r "$d/$b" +%s); }
+    if [ "${tb:-0}" -gt "${ta:-0}" ]; then from=$b to=$a; else from=$a to=$b; fi
+    why="it is the newer; bring over anything of $to's first"
+  fi
+  printf '  %s and %s differ, and different assistants read different ones, so they should be one text: copy %s over %s (%s)\n' "$a" "$b" "$from" "$to" "$why" >&2
 }

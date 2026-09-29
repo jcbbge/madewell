@@ -48,7 +48,7 @@ the piece so the next pair of hands can see what was traded and why.
 
 - **Leaf** — one pair of hands can do it. `git mv stock/X.md bench/X.md`.
 - **Breaks down** — it needs its own rack. `git mv stock/X.md bench/X/PIECE.md` and create
-  `bench/X/{stock,bench,finished}/` in the same commit. Its pieces run the same four acts,
+  `bench/X/{stock,bench}/` in the same commit. Its pieces run the same four acts,
   one depth down.
 
 If you cannot tell, it is a leaf. You will find out.

@@ -64,7 +64,7 @@ From the project root, confirm what this sitting actually has (adapt; do not inv
 
 ```sh
 ls -d .constellation docs 2>/dev/null
-ls .constellation/stock .constellation/bench .constellation/finished 2>/dev/null
+ls .constellation/stock .constellation/bench 2>/dev/null; git log --grep='^finish ' -n 20 --format='%h %s' 
 ls .constellation/DECISIONS.md .constellation/PRODUCT.md AGENTS.md CONSTELLATION.md 2>/dev/null
 ls .constellation/ground .constellation/jig 2>/dev/null
 ```
@@ -91,7 +91,7 @@ task, using `ROOTS.md`. Kernel floor:
 |---|---|
 | `.constellation/DECISIONS.md` | locked decisions |
 | `.constellation/PRODUCT.md` | identity |
-| `.constellation/stock/`, `bench/`, `finished/` | work already named |
+| `.constellation/stock/`, `bench/`, the finish commits | work already named, and done |
 | `.constellation/jig/` | compiled conventions and wired jigs |
 | `AGENTS.md`, `CONSTELLATION.md`, `SPEC.md` | law |
 | `docs/` if present | project specs, decisions, runbooks |

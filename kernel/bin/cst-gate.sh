@@ -4,17 +4,18 @@
 # A pre-commit stop, not a tool: no arguments, no verbs, silent on success.
 # It can only refuse.
 #
-# Three state directories — stock, bench, finished — recurring at every depth.
-# Work moves one direction. This enforces, over the staged index:
+# Two state directories — stock, bench — recurring at every depth. Work moves one direction,
+# and done work leaves the tree: its record is the finish commit. This enforces, over the staged index:
 #
 #   stock/X.md      -> bench/X.md          a leaf        (needs the floor)
 #   stock/X.md      -> bench/X/PIECE.md    breaks down   (needs the floor)
-#   bench/X.md      -> finished/X.md
-#   bench/X/PIECE.md-> finished/X.md                     (needs its stock/ + bench/ empty)
+#   bench/X.md      -> removed             at land, the finish commit
+#   bench/X/PIECE.md-> removed             at land, with all of bench/X/ (needs its stock/ + bench/ empty)
 #
-# ...plus: nothing is deleted from a state directory, and nothing arrives anywhere but stock/.
+# ...plus: nothing is deleted from stock/, and nothing arrives anywhere but stock/. finished/ is
+# retired: nothing arrives there, and an old one may only be taken away (its history is in git).
 #
-# Departures pair with arrivals by COMPUTING the legal destination rather than trusting git's
+# Departures from stock/ pair with arrivals by COMPUTING the legal destination rather than trusting git's
 # similarity-based rename detection — a file edited while it moves (the bench move always
 # edits it, to add the floor) can score below the threshold and arrive as delete + add.
 #
@@ -80,7 +81,7 @@ while IFS='	' read -r st a b; do
   [ -n "${st:-}" ] || continue
   case "$st" in R*) o=$a; n=$b ;; D*) o=$a; n="" ;; A*) o=""; n=$a ;; *) continue ;; esac
   for f in $o $n; do
-    # Only the three state directories are governed. Everything else under .constellation/
+    # Only the state directories (stock, bench, and the retired finished) are governed. Everything else under .constellation/
     # — skills/, guides/, packs/, bin/, templates/ — is ordinary repo content and free.
     case "$f" in
       "$CST"/stock/*|"$CST"/bench/*|"$CST"/finished/*) ;;
@@ -102,9 +103,17 @@ while IFS= read -r old; do
   d1=""; d2=""
   case "$S" in
     stock)    d1="$P/bench/$N"; d2="$P/bench/$base/PIECE.md" ;;
-    bench)    d1="$P/finished/$N" ;;
-    PIECE)    d1="$P/finished/$N.md" ;;
-    finished) d1="" ;;
+    finished) continue ;;   # the retired shelf: taking it away is allowed, and is all there is to do with it
+    bench|PIECE) # done: the piece leaves the tree. A bound piece must be accepted first; a breakdown must be drained
+      execution_door=$(CDPATH= cd -- "$(dirname "$0")" && pwd)/cst-session.py
+      if [ -f "$execution_door" ]; then
+        python3 "$execution_door" --root "$(git rev-parse --show-toplevel)" --check-remove "$old" >/dev/null ||
+          say "$old — execution acceptance refused"
+      elif [ -d "$CST/sessions" ]; then
+        say "$old — execution door missing for existing session records"
+      fi
+      [ "$S" = PIECE ] && check_drained "$P/bench/$N"
+      continue ;;
   esac
 
   got=""
@@ -113,15 +122,9 @@ while IFS= read -r old; do
 
   if [ -z "$got" ]; then
     say "illegal departure: $old"
-    if [ "$S" = finished ]; then
-      note "Nothing leaves finished/. No rewind (SPEC.md §2)."
-    elif [ -n "$d2" ]; then
-      note "The only moves from here are → $d1 (a leaf)"
-      note "                            or → $d2 (breaks down)."
-    else
-      note "The only move from here is → $d1 (SPEC.md §2)."
-      note "Pieces leave a state directory by moving, never by deletion."
-    fi
+    note "The only moves from here are → $d1 (a leaf)"
+    note "                            or → $d2 (breaks down)."
+    note "Nothing is deleted from stock/; a piece leaves the bench only when it lands (SPEC.md §2)."
     continue
   fi
 
@@ -134,10 +137,7 @@ while IFS= read -r old; do
   elif [ -d "$CST/sessions" ]; then
     say "$old — execution door missing for existing session records"
   fi
-  case "$S" in
-    stock) check_floor "$got" ;;
-    PIECE) check_drained "$P/bench/$N" ;;
-  esac
+  check_floor "$got"
 done <"$work/dels"
 
 # --- each arrival is a used destination, or new material on the rack ----------
@@ -145,7 +145,11 @@ while IFS= read -r new; do
   [ -n "$new" ] || continue
   grep -Fxq "$new" "$work/used" && continue
   parse "$new" || continue
-  if [ "$S_" != stock ]; then
+  if [ "$S_" = finished ]; then
+    say "illegal arrival: $new"
+    note "finished/ is retired: done work leaves the tree at land, and its record is the"
+    note "finish commit (constellation land; SPEC.md §2)."
+  elif [ "$S_" != stock ]; then
     say "illegal arrival: $new"
     note "Only stock/ may be written into directly. Everywhere else is reached by moving"
     note "something already there (SPEC.md §2)."

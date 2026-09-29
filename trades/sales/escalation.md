@@ -4,7 +4,7 @@
 
 1. **The qualification bar** — `foundation/qualification.md`.
 2. **What we will not sell** — the walk-away list.
-3. **Prior finished deals** — `ls .constellation/finished/`. How was this handled before?
+3. **Prior finished deals** — `git log --grep='^finish '`. How was this handled before?
 4. **Prior lost deals** — often more instructive.
 5. **Ask the Owner.** One message: what you checked, what you propose, what you need decided.
 

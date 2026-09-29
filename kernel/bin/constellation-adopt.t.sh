@@ -27,10 +27,12 @@ printf '#!/bin/sh\necho our own pre-commit\n' >"$P/.git/hooks/pre-commit"; chmod
 git -C "$P" add -A; git -C "$P" commit -qm init
 before=$(git -C "$P" rev-parse HEAD)
 cd "$P"
-out=$("$C" adopt 2>&1); rc=$?
+out=$("$C" adopt 2>"$T/err"); rc=$?; err=$(cat "$T/err")
 check "adopt with no argument sets up the current project" test "$rc" = 0
 check "install: the kernel is in the project" sh -c "test -x .constellation/bin/constellation && test -f .constellation/stars/vega.md && test -f .constellation/skills/adopt.md"
-check "install: the three places exist" sh -c "test -d .constellation/stock && test -d .constellation/bench && test -d .constellation/finished"
+check "install: the two places exist, and no done shelf" sh -c "test -d .constellation/stock && test -d .constellation/bench && test ! -e .constellation/finished && ! grep -qF finished .gitignore"
+check "install: the same loader in CLAUDE.md and AGENTS.md" sh -c "test \"\$(sed -n '/CONSTELLATION — loader/,/\/CONSTELLATION/p' CLAUDE.md)\" = \"\$(sed -n '/CONSTELLATION — loader/,/\/CONSTELLATION/p' AGENTS.md)\""
+check "parity: CLAUDE.md and AGENTS.md differ, and adopt says which to copy over" has "copy CLAUDE.md over AGENTS.md (it says everything AGENTS.md says, and more)" "$err"
 check "install: the loader is appended and the project's own words are kept" sh -c "grep -qF 'Be kind.' CLAUDE.md && grep -qF '.constellation/HOST.md' CLAUDE.md && grep -qF '.constellation/HOST.md' AGENTS.md"
 check "hooks: the commit gate and jigs are wired" sh -c "grep -qF 'cst-gate.sh' '$(hooks_of "$P")/pre-commit' && grep -qF 'cst-record.sh' '$(hooks_of "$P")/post-commit'"
 check "hooks: the project's own pre-commit hook still runs" grep -qF 'echo our own pre-commit' "$(hooks_of "$P")/pre-commit"
@@ -59,6 +61,18 @@ check "a second adopt changes no file, hook or commit" test "$snap" = "$(snapsho
 check "a second adopt keeps one loader, one gitignore block, one hook block" sh -c "test \$(grep -c 'CONSTELLATION — loader' CLAUDE.md) = 1 && test \$(grep -c 'CONSTELLATION — begin' .gitignore) = 1 && test \$(grep -c 'CONSTELLATION — begin' '$(hooks_of "$P")/pre-commit') = 1"
 check "the project's own copy re-runs adopt without the package" sh -c "'$P/.constellation/bin/constellation' adopt | grep -qF 'already set up' && test -z \"\$(git status --porcelain)\""
 
+# --- parity: one text for every assistant ---------------------------------------------------
+cp CLAUDE.md AGENTS.md; git add AGENTS.md; git commit -qm "one text"
+check "parity: identical files, nothing said" sh -c "! '$C' adopt 2>&1 >/dev/null | grep -q 'differ'"
+printf '\nAGENTS.md says this too.\n' >>AGENTS.md; git commit -qam "AGENTS.md grows"
+check "parity: the one that says more is the one to copy" sh -c "'$C' adopt 2>&1 >/dev/null | grep -qF 'copy AGENTS.md over CLAUDE.md (it says everything CLAUDE.md says, and more)'"
+sed -i 's/Be kind./Be very kind./' CLAUDE.md; sleep 1; git commit -qam "each says its own thing"
+check "parity: neither says it all: the newer one, and bring the other's lines over first" sh -c "'$C' adopt 2>&1 >/dev/null | grep -qF 'copy CLAUDE.md over AGENTS.md (it is the newer; bring over anything of AGENTS.md'\''s first)'"
+ln -sf CLAUDE.md AGENTS.md; git add AGENTS.md; git commit -qm "one file, linked"
+check "parity: a link from one to the other is one text" sh -c "! '$C' adopt 2>&1 >/dev/null | grep -q 'differ'"
+check "parity: adopt leaves a linked AGENTS.md a link" test -L AGENTS.md
+git checkout -q HEAD~3 -- AGENTS.md CLAUDE.md; git commit -qm "back as they were"
+
 # --- a failing check is never welcomed ------------------------------------------------------
 cp .constellation/jig/registry.json "$T/registry.json"
 python3 - .constellation/jig/registry.json <<'PY'
@@ -82,6 +96,28 @@ check "its first commit is the adoption, and only adopt's own paths" sh -c "test
 check "the person's file is left for them, untracked" sh -c "git -C '$F' status --porcelain | grep -qx '?? notes.txt'"
 check "after that, an ordinary commit goes through the hooks" sh -c "cd '$F' && git add notes.txt && git commit -qm notes"
 check "a second adopt of it is harmless too" sh -c "'$C' adopt '$F' | grep -qF 'already set up' && test \$(git -C '$F' rev-list --count HEAD) = 2 && test -z \"\$(git -C '$F' status --porcelain)\""
+
+# --- an install from before, with a done shelf: adopt takes it away, staged, and says so in one line
+S=$T/shelf; mkdir -p "$S"; git init -q -b main "$S"; echo x >"$S/x"; git -C "$S" add -A; git -C "$S" commit -qm init
+"$C" adopt "$S" >/dev/null 2>&1; git -C "$S" add -A; CONSTELLATION_GATE=off git -C "$S" commit -qm adopt
+mkdir -p "$S/.constellation/finished" "$S/.constellation/bench/big/finished"
+printf '# Done long ago\n' >"$S/.constellation/finished/old.md"; : >"$S/.constellation/finished/.gitkeep"
+printf '# A part\n' >"$S/.constellation/bench/big/finished/part.md"
+git -C "$S" add -f .constellation/finished .constellation/bench/big; CONSTELLATION_GATE=off git -C "$S" commit -qm "the old shelf"
+out5=$("$C" adopt "$S" 2>"$T/err5"); rc=$?
+check "old shelf: adopt succeeds" test "$rc" = 0
+check "old shelf: finished/ is gone, at the top and inside a breakdown" sh -c "test ! -e '$S/.constellation/finished' && test ! -e '$S/.constellation/bench/big/finished'"
+check "old shelf: the removal is staged (git rm), not committed" sh -c "git -C '$S' diff --cached --name-status | grep -qxF 'D	.constellation/finished/old.md' && git -C '$S' diff --cached --name-status | grep -qxF 'D	.constellation/bench/big/finished/part.md' && git -C '$S' log -1 --format=%s | grep -qx 'the old shelf'"
+check "old shelf: one line says so" sh -c "test \$(grep -c 'removed .constellation/finished/' '$T/err5') = 1 && grep -qF 'done work is in git history now' '$T/err5'"
+check "old shelf: the welcome says it in plain words" has "what is done is now kept in the project's history instead of a folder" "$out5"
+check "old shelf: its history is still in git" sh -c "git -C '$S' show HEAD:.constellation/finished/old.md | grep -qx '# Done long ago'"
+check "old shelf: the removal commits through the gate" sh -c "git -C '$S' commit -qm 'the done shelf goes' -m 'ACT: plan
+DONE: done work lives in git history
+NEXT: —'"
+check "old shelf: a second adopt says nothing about it" sh -c "! '$C' adopt '$S' 2>&1 | grep -q 'removed'"
+mkdir -p "$S/.constellation/finished"; printf '# Mine\n' >"$S/.constellation/finished/mine.md"
+check "old shelf: one holding a file git does not have is kept, and said" sh -c "'$C' adopt '$S' 2>&1 >/dev/null | grep -qF 'kept .constellation/finished/' && test -f '$S/.constellation/finished/mine.md'"
+rm -rf "$S/.constellation/finished"
 
 # --- refusals and the rest of the door -------------------------------------------------------
 check "adopt refuses a folder that is not there" sh -c "! '$C' adopt '$T/nowhere'"

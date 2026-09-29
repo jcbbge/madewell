@@ -11,7 +11,7 @@ Do not list trees that do not exist.
 
 - `.constellation/DECISIONS.md`
 - `.constellation/PRODUCT.md`
-- `.constellation/stock/`, `.constellation/bench/`, `.constellation/finished/`
+- `.constellation/stock/`, `.constellation/bench/`, and what is done: `git log --grep='^finish '`
 - `.constellation/jig/`
 - `AGENTS.md`, `CONSTELLATION.md`, `.constellation/SPEC.md`
 

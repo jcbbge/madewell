@@ -119,7 +119,8 @@ check "the resumed brief carries the question and the answer" grep -qF "unit tes
 as aldebaran; "$C" clear >/dev/null
 check "aldebaran passes; the piece lands" "$C" done "pass: 1 test, 1 passed"
 unset CONSTELLATION_PIECE CONSTELLATION_STEP CONSTELLATION_BASE
-check "landed: finished/ holds the piece, bench does not" sh -c "test -f .constellation/finished/greet.md && test ! -e .constellation/bench/greet.md"
+check "landed: done work is gone, from the bench and from any done shelf" sh -c "test ! -e .constellation/bench/greet.md && test ! -e .constellation/finished && test -z \"\$(git ls-files -- '*greet.md')\""
+check "landed: the finish commit removed the piece (git rm), with the receipt as its body" sh -c "git show --no-renames --name-status --format= HEAD | grep -qxF 'D	.constellation/bench/greet.md' && git log -1 --format=%B | grep -qx '## Receipt'"
 check "landed: main has the code and the tests" sh -c "grep -q hello src/greet.js && test -f tests/greet.test.js"
 check "landed: the whole run is in main's history" sh -c "git log --format=%B | grep -c '^STEP: ' | awk '{exit !(\$1 >= 15)}'"
 check "landed: the worktree and branch are gone" sh -c "test ! -d '$WT' && ! git rev-parse --verify -q piece/greet"
@@ -128,7 +129,7 @@ fin="$(git log -1 --format='%h, %ad' --date=short --grep='^finish greet$')"
 check "status <slug> of a finished piece: done, with its finish commit" sh -c "'$C' status greet | grep -qxF '  done: finished in $fin'"
 check "status <slug> of a finished piece: no next step (not vega again)" sh -c "! '$C' status greet | grep -q 'next:'"
 git clone -q "$P" "$T/moved"; ( cd "$T/moved" && git mv .constellation .old && git commit -qm "move the whole folder" && git mv .old .constellation && git commit -qm "and back" )
-check "the finish commit is the move to finished, not a later move of the whole folder" sh -c "cd '$T/moved' && env -u CONSTELLATION_REPO '$C' status greet | grep -qxF '  done: finished in $fin'"
+check "the finish commit is the one that took it off the bench, not a later move of the whole folder" sh -c "cd '$T/moved' && env -u CONSTELLATION_REPO '$C' status greet | grep -qxF '  done: finished in $fin'"
 
 # --- a second piece reads only its own run: the first's landed records are not its own
 printf '# Wave goodbye\n\n**Making:** a bye() function\n**Not making:** anything else\n**Done when:** a test proves it\n**Waits on:** \n' >.constellation/stock/bye.md

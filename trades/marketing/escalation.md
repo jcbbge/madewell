@@ -9,7 +9,7 @@ Climb it in order. Only escalate when the rung below genuinely has no answer.
 1. **The positioning** — `foundation/positioning.md`. Most questions die here.
 2. **Existing sourced claims** — has this already been established and sourced?
 3. **The audience's captured words** — `pillars/audience.md`.
-4. **Prior finished work** — `ls .constellation/finished/`. How was this handled before?
+4. **Prior finished work** — `git log --grep='^finish '`. How was this handled before?
 5. **Ask the Owner.** One message, with what you already checked and what you propose.
 
 ## What you decide

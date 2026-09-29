@@ -272,7 +272,6 @@ class ExecutionTests(unittest.TestCase):
 
     def git_fixture(self):
         (self.root / '.constellation/stock').mkdir(exist_ok=True)
-        (self.root / '.constellation/finished').mkdir(exist_ok=True)
         self.git('init', '-q')
         self.git('add', '.constellation/bench/task.md')
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
@@ -422,7 +421,9 @@ class ExecutionTests(unittest.TestCase):
         self.call('run', step='check', argv=[sys.executable, '-c', "assert open('output').read() == 'correct'"])
         self.call('advance', reason='Independently checked')
         state = self.call('move', action='finish')
-        self.assertEqual(state['piece'], '.constellation/finished/fresh.md')
+        self.assertTrue(state['landed'])
+        self.assertEqual(state['piece'], '.constellation/bench/fresh.md')
+        self.assertFalse(state['piece_exists'], 'done work leaves the tree')
         self.assertTrue(state['proof']['valid'])
         self.assertEqual(self.gate().returncode, 0)
 
@@ -592,29 +593,61 @@ class ExecutionTests(unittest.TestCase):
                                 cwd=self.root, capture_output=True)
         self.assertEqual(result.returncode, 5)
         self.assertTrue((self.root / '.constellation/bench/task.md').exists())
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         self.assertNotEqual(self.gate().returncode, 0)
 
     def test_fresh_bound_host_finish_then_gate(self):
         self.git_fixture()
         self.complete()
         state = self.call('move', action='finish')
-        self.assertEqual(state['piece'], '.constellation/finished/task.md')
+        self.assertTrue(state['landed'])
+        self.assertFalse((self.root / '.constellation/bench/task.md').exists())
+        self.assertIn('D\t.constellation/bench/task.md', self.git('diff', '--cached', '--name-status').stdout)
         self.assertTrue(state['proof']['valid'])
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
         (self.root / 'output').write_text('stale after finish')
         self.assertNotEqual(self.gate().returncode, 0)
-        with self.assertRaisesRegex(cst.Refused, 'finished pieces'):
+        with self.assertRaisesRegex(cst.Refused, 'landed pieces'):
             self.call('retry', phase='implement', reason='No reverse move')
 
     def test_fresh_raw_git_finish_rebinds(self):
         self.git_fixture()
         self.complete()
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.call('show')['piece'], '.constellation/finished/task.md')
+        self.assertTrue(self.call('show')['landed'])
+
+    def test_landed_piece_frees_its_path_and_claims_nothing(self):
+        self.git_fixture()
+        self.complete()
+        self.call('move', action='finish')
+        self.git('-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'finish task')
+        self.assertEqual(self.session.claims(), [], 'a landed piece claims nothing')
+        (self.root / '.constellation/bench').mkdir(exist_ok=True)
+        (self.root / '.constellation/bench/task.md').write_text('# New work at the same path')
+        other = cst.Session(self.root, 'next')
+        state = other.request('maker', {'op': 'start', 'piece': '.constellation/bench/task.md', 'goal': 'New work'})
+        self.assertEqual(state['piece'], '.constellation/bench/task.md')
+
+    def test_bench_to_finished_is_no_longer_a_move(self):
+        with self.assertRaisesRegex(cst.Refused, 'leaves the bench only by landing'):
+            cst.legal_move('.constellation/bench/task.md', '.constellation/finished/task.md')
+        with self.assertRaisesRegex(cst.Refused, 'only a piece on the bench'):
+            cst.legal_removal('.constellation/stock/task.md')
+        cst.legal_removal('.constellation/bench/task.md')
+        cst.legal_removal('.constellation/bench/unit/PIECE.md')
+
+    def test_reconcile_a_piece_that_left_without_the_door(self):
+        self.git_fixture()
+        self.complete()
+        subprocess.run(['git', 'rm', '-q', '.constellation/bench/task.md'], cwd=self.root, check=True)
+        with self.assertRaisesRegex(cst.Refused, 'claimed piece missing'):
+            self.session.claims()
+        state = self.call('reconcile', landed=True, reason='Landed by hand, with the gate off')
+        self.assertTrue(state['landed'])
+        self.assertEqual(self.session.claims(), [])
 
     def test_legacy_unbound_finish_intentionally_allowed(self):
         self.git_fixture()
@@ -622,7 +655,7 @@ class ExecutionTests(unittest.TestCase):
         self.git('add', '.constellation/bench/legacy.md')
         self.git('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid',
                  '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'legacy fixture')
-        self.git('mv', '.constellation/bench/legacy.md', '.constellation/finished/legacy.md')
+        self.git('rm', '-q', '.constellation/bench/legacy.md')
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
 
@@ -632,7 +665,7 @@ class ExecutionTests(unittest.TestCase):
         (self.root / 'output').write_text('staged wrong')
         self.git('add', 'output')
         (self.root / 'output').write_text('correct')
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         self.assertNotEqual(self.gate().returncode, 0)
 
     def test_move_and_claim_share_real_lock(self):
@@ -684,7 +717,8 @@ class ExecutionTests(unittest.TestCase):
         self.call('run', step='step', argv=[sys.executable, '-c', 'pass'])
         self.call('advance', reason='Unit independently checked')
         state = self.call('move', action='finish')
-        self.assertEqual(state['piece'], '.constellation/finished/unit.md')
+        self.assertTrue(state['landed'])
+        self.assertFalse((self.root / '.constellation/bench/unit').exists(), 'a breakdown leaves with all of its folder')
         self.assertTrue(state['proof']['valid'])
         result = self.gate()
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -694,7 +728,7 @@ class ExecutionTests(unittest.TestCase):
                                 cwd=self.root, capture_output=True)
         self.assertEqual(result.returncode, 5)
         self.assertTrue((self.root / '.constellation/bench/task.md').exists())
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         result = self.gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('tracked evidence deleted or unmerged', result.stderr)
@@ -747,7 +781,7 @@ class ExecutionTests(unittest.TestCase):
         self.complete()
         blob = self.git('hash-object', '-w', 'output').stdout.strip()
         self.git('update-index', '--add', '--cacheinfo', '120000,' + blob + ',output')
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         result = self.gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('type conflict', result.stderr)
@@ -783,13 +817,13 @@ class ExecutionTests(unittest.TestCase):
         self.git_fixture()
         self.complete()
         self.assertFalse(self.session.artifact('output')['tracked'])
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         result = self.gate()
         self.assertEqual((result.returncode, result.stdout, result.stderr), (0, '', ''))
 
     def test_gate_preserves_actionable_refusal(self):
         self.git_fixture()
-        self.git('mv', '.constellation/bench/task.md', '.constellation/finished/task.md')
+        self.git('rm', '-q', '.constellation/bench/task.md')
         result = self.gate()
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('bound finish needs completed execution', result.stderr)
@@ -857,7 +891,7 @@ class ExecutionTests(unittest.TestCase):
         self.git_fixture()
         self.verifier_process('finish')
         (self.root / 'output').write_text('stale finished artifact')
-        with self.assertRaisesRegex(cst.Refused, 'finished pieces'):
+        with self.assertRaisesRegex(cst.Refused, 'landed pieces'):
             self.session.request('fresh-actor', {'op':'retry','phase':'implement','reason':'No rewind'})
 
     def test_dead_done_owner_fresh_proof_cannot_be_reopened(self):

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # constellation-receipt.t.sh — the receipt after a dry end-to-end run: land writes it into the
-# finished piece and prints it; `constellation receipt` prints it again, and builds it from the
-# record when the section is missing; it says what changed, how we know it works, how to see it
+# body of the finish commit (the commit that takes the piece off the bench) and prints it;
+# `constellation receipt` reads it back from git log, finds one an older land wrote into finished/,
+# and builds it from the record when there is none; it says what changed, how we know it works, how to see it
 # and what it cost, and never an engine word. Isolated tmux server, no harness: the test plays
 # each star by calling `constellation done` the way an agent would.
 set -uo pipefail
@@ -60,14 +61,13 @@ printf '%s\n' '{"type":"assistant","timestamp":"'$ts'","message":{"id":"m2","usa
 printf '%s\n' '{"type":"assistant","timestamp":"2020-01-01T00:00:00.000Z","message":{"id":"old","usage":{"input_tokens":9000000,"output_tokens":9000000}}}' >"$logs/s3.jsonl"
 as greet aldebaran claude;    "$C" done "pass: tests/greet.test.js, 1 test, 1 passed" >"$T/land.out" 2>&1
 out
-F=.constellation/finished/greet.md
-check "the run lands the finished piece" test -f "$F"
+check "the run lands the piece: it is gone from the tree, and nothing is left uncommitted" sh -c "test ! -e .constellation/bench/greet.md && test ! -e .constellation/finished && test -z \"\$(git status --porcelain --untracked-files=no)\""
 check "land prints the receipt" has "$T/land.out" "## Receipt"
-check "the receipt is appended to the finished piece, below the piece itself" sh -c "head -1 '$F' | grep -qx '# Greet the user' && grep -qx '## Receipt' '$F'"
-check "the receipt landed in the finish commit (nothing left uncommitted)" sh -c "test -z \"\$(git status --porcelain --untracked-files=no)\" && git show HEAD -- '$F' | grep -q '^+## Receipt'"
+git log -1 --format=%B >"$T/body"
+check "the finish commit removes the piece and carries the receipt as its body, above its trailers" sh -c "git show --no-renames --name-status --format= HEAD | grep -qxF 'D	.constellation/bench/greet.md' && head -1 '$T/body' | grep -qx 'finish greet' && sed -n 3p '$T/body' | grep -qx '## Receipt' && sed '/^\$/d' '$T/body' | tail -3 | head -1 | grep -qx 'ACT: verify'"
 "$C" receipt greet >"$T/r1" 2>&1
 check "constellation receipt prints it again" has "$T/r1" "## Receipt"
-check "the reprint is the section in the finished piece, word for word" sh -c "sed -n '/^## Receipt\$/,\$p' '$F' | diff - '$T/r1'"
+check "the reprint is the finish commit's body, word for word" sh -c "sed -n '3,\$p' '$T/body' | head -n \$(wc -l <'$T/r1') | diff - '$T/r1' && test \"\$(sed -n \"\$((\$(wc -l <'$T/r1') + 3))p\" '$T/body')\" = ''"
 check "the reprint is what land printed" sh -c "sed -n '/^## Receipt\$/,\$p' '$T/land.out' | diff - '$T/r1'"
 check "it names what it is" has "$T/r1" "**Greet the user** is done."
 check "what changed: the maker's own words, first build and fix" sh -c "grep -qF 'Added greet() in src/greet.js' '$T/r1' && grep -qF 'Fixed the typo' '$T/r1'"
@@ -85,9 +85,12 @@ check "the receipt never says an engine word" clean "$T/r1"
 sed -n '/^## Receipt$/,$p' "$T/land.out" >"$T/landr"
 check "nor does what land printed of it" clean "$T/landr"
 
-# --- built again from the record, when the section is missing
-sed '/^## Receipt$/,$d' "$F" >"$T/bare"; cp "$T/bare" "$F"; git commit -qam "drop the receipt"
-check "a finished piece without a receipt gets one built from the record" sh -c "'$C' receipt greet | diff - '$T/r1'"
+# --- built again from the record, when the finish commit carries none (landed before receipts)
+git commit -q --amend -m "finish greet" -m "ACT: verify
+DONE: greet landed
+NEXT: —"
+check "a finish commit without a receipt: one is built from the record, the same" sh -c "'$C' receipt greet | diff - '$T/r1'"
+check "and status still finds that finish commit" sh -c "'$C' status greet | grep -qxF \"  done: finished in \$(git log -1 --format='%h, %ad' --date=short)\""
 
 # --- the next piece: its receipt is its own, and says so when a thing is missing
 rack bye "Wave goodbye" "a bye() function"; WB=$T/state/proj/bye
@@ -103,7 +106,7 @@ out; echo x >src/other.js; git add src/other.js; git commit -qm "an unrelated ch
 as bye aldebaran pi; "$C" done "pass: 1 passed" >/dev/null
 out
 "$C" receipt bye >"$T/r2" 2>&1
-check "landed over a moved default branch (rebased first)" sh -c "test -f .constellation/finished/bye.md && git log --format=%s | grep -qx 'an unrelated change made meanwhile'"
+check "landed over a moved default branch (rebased first)" sh -c "test ! -e .constellation/bench/bye.md && git log -1 --format=%s | grep -qx 'finish bye' && git log --format=%s | grep -qx 'an unrelated change made meanwhile'"
 check "the second receipt carries only its own commits, not the other piece's or the meanwhile change" sh -c "grep -qF 'Saved as 2 changes' '$T/r2' && ! grep -qE 'greet|meanwhile' '$T/r2'"
 check "a maker who did not say how to try it: the receipt says so, and what to do" has "$T/r2" "The maker did not say how to try it. Ask for a short demonstration."
 check "no failed check, no failure line" sh -c "! grep -q 'did not pass the first time' '$T/r2'"
@@ -127,10 +130,21 @@ out; unset GIT_AUTHOR_DATE GIT_COMMITTER_DATE; echo y >src/meanwhile.js; git add
 at $((t0 + 11520)); as slow aldebaran pi; "$C" done "pass: 1 passed" >/dev/null
 out; unset GIT_AUTHOR_DATE GIT_COMMITTER_DATE
 "$C" receipt slow >"$T/r3" 2>&1
-check "landed over a moved default branch, so every commit of its run was made again at landing" sh -c "test -f .constellation/finished/slow.md && test \$(git log -1 --format=%ct --grep='^run(slow): vega started\$') = $((t0 + 11520))"
+check "landed over a moved default branch, so every commit of its run was made again at landing" sh -c "test ! -e .constellation/bench/slow.md && test \$(git log -1 --format=%ct --grep='^run(slow): vega started\$') = $((t0 + 11520))"
 check "what it cost: from the first start to the passing check, not the landing's single minute" has "$T/r3" "It took 3 hours 12 minutes from the first start to the passing check."
-sed '/^## Receipt$/,$d' .constellation/finished/slow.md >"$T/bare3"; cp "$T/bare3" .constellation/finished/slow.md; git commit -qam "drop the slow receipt"
+git commit -q --amend -m "finish slow" -m "ACT: verify
+DONE: slow landed
+NEXT: —"
 check "built again from the record, it says the same" sh -c "'$C' receipt slow | diff - '$T/r3'"
+
+# --- finished the old way: moved into finished/, with the receipt in the file; it is still read back
+printf '# Legacy\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.constellation/stock/legacy.md; git add .constellation/stock/legacy.md; git commit -qm "rack: legacy"
+"$C" take legacy >/dev/null; mkdir -p .constellation/finished
+git mv .constellation/bench/legacy.md .constellation/finished/legacy.md; printf '\n## Receipt\n\n**Legacy** is done.\n\n### What changed\n\n- the old way\n' >>.constellation/finished/legacy.md
+git add .constellation/finished/legacy.md; CONSTELLATION_GATE=off git commit -qm "finish legacy"
+check "the gate refuses a move into finished/ now (the shelf is retired)" sh -c "printf '# N\n' >.constellation/finished/new.md && git add -f .constellation/finished/new.md && ! git commit -qm 'onto the shelf'; git rm -q --cached .constellation/finished/new.md; rm -f .constellation/finished/new.md"
+check "a receipt an older land wrote into finished/ is read back from that commit" sh -c "'$C' receipt legacy | head -1 | grep -qx '## Receipt' && '$C' receipt legacy | grep -qxF -- '- the old way'"
+check "and it is done, with that commit" sh -c "'$C' status legacy | grep -qxF \"  done: finished in \$(git log -1 --format='%h, %ad' --date=short --grep='^finish legacy\$')\""
 
 # --- refusals, in plain words
 printf '# Soon\n\n**Making:** x\n**Not making:** y\n**Done when:** z\n**Waits on:** \n' >.constellation/stock/soon.md; git add .constellation/stock/soon.md; git commit -qm "rack: soon"

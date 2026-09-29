@@ -162,8 +162,10 @@ for d in decisions specs work packs cycles queue; do
   fi
 done
 
-# ── 2. the three states + memory + instance instruments — seeded once ────────
-for k in stock bench finished; do
+# ── 2. where work waits and is made + memory + instance instruments — seeded once
+# Only two places: stock (waiting) and bench (being made). Done work is gone from the tree; its record
+# is the finish commit `constellation land` makes. An older install's finished/ goes on adopt.
+for k in stock bench; do
   mkdir -p "$DEST/.constellation/$k"
   [ -e "$DEST/.constellation/$k/.gitkeep" ] || : > "$DEST/.constellation/$k/.gitkeep"
 done
@@ -201,7 +203,7 @@ wire AGENTS.md
 # ── 4. gitignore the vendored framework; never the work ─────────────────────
 # One .constellation/ in a repo. The framework inside it is a package — reinstallable,
 # so it does not belong in the host's history. The WORK inside it is not ignored:
-# a piece's state is the directory it is in, so stock/bench/finished must be in git
+# a piece's state is the directory it is in, so stock/ and bench/ must be in git
 # or Constellation has no ledger at all.
 gi="$DEST/.gitignore"
 if [ ! -f "$gi" ] || ! grep -qF "$GI_BEGIN" "$gi"; then
@@ -214,7 +216,6 @@ CONSTELLATION.md
 # …but the work, and this project's own files, stay in git:
 !.constellation/stock/
 !.constellation/bench/
-!.constellation/finished/
 !.constellation/DECISIONS.md
 !.constellation/PRODUCT.md
 !.constellation/ground/
@@ -228,8 +229,13 @@ CONSTELLATION.md
 !.constellation/teardown
 # CONSTELLATION — end
 CSTGI
-elif ! grep -qxF '!.constellation/setup' "$gi"; then   # an older block: let the project's own setup/teardown into git
-  awk -v e="$GI_END" '$0==e{print "!.constellation/setup"; print "!.constellation/teardown"} {print}' "$gi" > "$gi.cst_tmp" && cat "$gi.cst_tmp" > "$gi" && rm -f "$gi.cst_tmp"
+else
+  if ! grep -qxF '!.constellation/setup' "$gi"; then   # an older block: let the project's own setup/teardown into git
+    awk -v e="$GI_END" '$0==e{print "!.constellation/setup"; print "!.constellation/teardown"} {print}' "$gi" > "$gi.cst_tmp" && cat "$gi.cst_tmp" > "$gi" && rm -f "$gi.cst_tmp"
+  fi
+  if grep -qxF '!.constellation/finished/' "$gi"; then   # an older block: there is no done shelf any more
+    awk -v b="$GI_BEGIN" -v e="$GI_END" '$0==b{on=1} $0==e{on=0} !(on && $0=="!.constellation/finished/")' "$gi" > "$gi.cst_tmp" && cat "$gi.cst_tmp" > "$gi" && rm -f "$gi.cst_tmp"
+  fi
 fi
 
 # ── 5. provenance — so you can tell whether a project has drifted ────────────
@@ -244,7 +250,7 @@ fi
 
 echo
 if [ -n "$prev" ] && [ "$prev" != "$ver" ]; then
-  echo "Done. Updated $prev -> $ver. Framework re-synced; stock/bench/finished, DECISIONS and PRODUCT untouched."
+  echo "Done. Updated $prev -> $ver. Framework re-synced; stock/bench, DECISIONS and PRODUCT untouched."
   echo "Tell your agent: Constellation was updated — re-read .constellation/HOST.md, then continue."
 elif [ -n "$prev" ]; then
   echo "Done. Already at $ver — framework re-synced, nothing else changed."

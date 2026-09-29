@@ -55,7 +55,7 @@ put `constellation tax`'s reading in your handoff.
 ## Commits
 
 Stage only the paths you changed; never `git add -A`, and never `git reset --hard` over work
-you did not write.
+you did not write. Work in your worktree only: the driver alone takes, lands and removes pieces.
 
     <type>(<scope>): <summary>
 

@@ -24,7 +24,7 @@ plugged in, because the project carries its own instructions and memory.
 | The guest needs… | Read it from… |
 |---|---|
 | **Scope** — what this is, who it's for | `PRODUCT.md` |
-| **Roadmap** — done / in-flight / next | `ls .constellation/{stock,bench,finished}/` + recent git log handoffs (DONE/NEXT) |
+| **Roadmap** — done / in-flight / next | `ls .constellation/{stock,bench}/` + the finish commits (`git log --grep='^finish '`) + recent git log handoffs (DONE/NEXT) |
 | **Conventions** — how we build, what's non-negotiable | `DECISIONS.md` |
 | **Workflow** — how work moves | the four acts: ideate → plan → implement → verify (`AGENTS.md`) |
 | **Environment / setup** — how to run it | the project's setup + CI files (the dev trade's ci-cd pillar knows where) |

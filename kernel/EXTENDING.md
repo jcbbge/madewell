@@ -44,7 +44,7 @@ it's **law** (the shop itself — never overwrite) or a **slot** a trade fills (
 | **Persona register** (kernel) | The Guide (novice-human register) ships with the kernel because it's the human-facing default. | `registers/guide/REGISTER.md` | Slot |
 | **Pillars** | The hierarchy inside a trade (e.g. dev → frontend / api / backend / ci-cd). | `trades/<c>/pillars/`, declared in the trade's manifest | Slot |
 | **Skills** | Foundational (loop machinery + lenses — Constellation's own) vs trade (loaded with a trade, may be pillar-scoped). | `skills/` (foundational), `trades/<c>/skills/` | Foundational = law-adjacent; trade = slot |
-| **State** | Three directories: `stock/`, `bench/`, `finished/`. Position is path. | `SPEC.md` | **Law** |
+| **State** | Two directories: `stock/`, `bench/`. Position is path; done work leaves the tree in its finish commit. | `SPEC.md` | **Law** |
 | **Orchestration** | The shop: fan-out across hands, per act. Baseline default; host-overridable. | `skills/orchestrate.md` | Mechanism — extend the cells |
 | **Memory** | git log (moves) · DECISIONS.md · PRODUCT.md. Jig tax: `jig/corrections.jsonl` + `cst-tax.sh` (gitignored ledgers, not piece position). | repo root of `.constellation/` | Slot |
 | **Install** | Unfolds the shell, re-syncs the framework (preserving memory), uninstalls cleanly. | `install.sh` | Mechanism |

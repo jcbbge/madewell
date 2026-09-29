@@ -7,7 +7,8 @@
 # from its first run(<slug>) record up to the finish commit. Its times are author times: land's
 # rebase rewrites every commit's own time to the moment it lands. Engine words never reach it: the
 # whole section passes through receipt_py plain, which swaps the stars' names and the process's
-# words for plain ones and leaves file paths alone.
+# words for plain ones and leaves file paths alone. Land writes it into the body of the finish
+# commit, the commit that takes the piece off the bench, and `constellation receipt` reads it back.
 
 receipt_block() { # receipt_block <slug> <tip> : the piece's commits ending at <tip>, oldest first
   local slug=$1 tip=$2 h s out=() keep=0 rec="^run\\(([^)]*)\\): (${STEPS// /|}) "
@@ -80,8 +81,8 @@ receipt_duration() { # receipt_duration <seconds> : "1 hour 12 minutes"
   printf '%s' "$out"
 }
 
-receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from the record ending at <tip>
-  local slug=$1 tip=$2 hashes; hashes=$(receipt_block "$slug" "$tip")
+receipt_compose() { # receipt_compose <slug> <tip> [<piece path>] : the Receipt section, from the record ending at <tip>
+  local slug=$1 tip=$2 path=${3:-$CST/bench/$1.md} hashes; hashes=$(receipt_block "$slug" "$tip")
   [ -n "$hashes" ] || return 1
   local made=() commits=() exercise="" written="" evidence="" fails=0 claude=0 first="" last="" h at subj step ev har done parts
   while IFS=$'\x1f' read -r h at subj step ev har done; do
@@ -98,8 +99,7 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
       aldebaran:fail) fails=$((fails + 1)) ;;
     esac
   done < <(git -C "$R" log --no-walk=unsorted --format='%H%x1f%at%x1f%s%x1f%(trailers:key=STEP,valueonly,separator=)%x1f%(trailers:key=EVENT,valueonly,separator=)%x1f%(trailers:key=HARNESS,valueonly,separator=)%x1f%(trailers:key=DONE,valueonly,separator=)' $hashes)
-  local title="" pf x
-  for pf in "$R/$CST/bench/$slug.md" "$R/$CST/finished/$slug.md"; do [ -f "$pf" ] && title=$(sed -n '1s/^# //p' "$pf") && break; done
+  local title x; title=$(git -C "$R" show "$tip:$path" 2>/dev/null | sed -n '1s/^# //p')
   {
     printf '## Receipt\n\n**%s** is done.\n\n### What changed\n\n' "${title:-This work}"
     for x in "${made[@]}"; do printf -- '- %s\n' "$x"; done
@@ -126,18 +126,36 @@ receipt_compose() { # receipt_compose <slug> <tip> : the Receipt section, from t
   } | receipt_py plain
 }
 
-receipt_of() { # receipt_of <file> : the Receipt section already in a finished piece, if there is one
-  awk '/^## Receipt$/ { on = 1; print; next } on && /^## / { exit } on' "$1"
+receipt_breakdown() { # receipt_breakdown <slug> : the Receipt section of a piece that broke down, from its parts' finishes
+  local slug=$1 title h p parts=() t
+  title=$(title_of "$R/$CST/bench/$slug/PIECE.md")
+  while IFS=$'\t' read -r h _ p t; do
+    [ -n "$h" ] || continue
+    [ ! -f "$R/$CST/bench/$slug/bench/$p.md" ] && [ ! -f "$R/$CST/bench/$slug/bench/$p/PIECE.md" ] || continue
+    t=$(title_at "$h^" "$t"); parts+=("${t:-$p}")
+  done < <(finishes "$CST/bench/$slug" | awk -F'\t' '!seen[$3]++ { a[++n] = $0 } END { while (n) print a[n--] }')
+  {
+    printf '## Receipt\n\n**%s** is done.\n\n### What changed\n\n' "$title"
+    if [ ${#parts[@]} -gt 0 ]; then
+      printf 'It was made in %d part%s, each finished on its own, oldest first:\n' "${#parts[@]}" "$([ ${#parts[@]} = 1 ] || echo s)"
+      for t in "${parts[@]}"; do printf -- '- %s\n' "$t"; done
+    else printf 'Nobody wrote down its parts.\n'; fi
+  } | receipt_py plain
+}
+
+receipt_of() { # receipt_of : the Receipt section of a piece's text or a finish commit's message, on stdin
+  awk '/^## Receipt$/ { on = 1; print; next } on && (/^## / || /^ACT: /) { exit } on'
 }
 
 cmd_receipt() {
   local slug=${1:-}; [ -n "$slug" ] || die "usage: constellation receipt <slug>"
-  R=$(main_repo); local f="$R/$CST/finished/$slug.md"
-  [ -f "$f" ] || die "$slug is not done yet, so it has no receipt (constellation status $slug)"
-  local rc; rc=$(receipt_of "$f")
+  R=$(main_repo); local fin h p rc
+  fin=$(finish_of "$slug") || die "$slug is not done yet, so it has no receipt (constellation status $slug)"
+  IFS=$'\t' read -r h _ _ p <<<"$fin"
+  rc=$(git -C "$R" log -1 --format=%B "$h" | receipt_of)          # land writes it into the finish commit
+  [ -n "$rc" ] || rc=$(git -C "$R" show "$h:${p%%/bench/*}/finished/$slug.md" 2>/dev/null | receipt_of || true)  # before: into finished/
   if [ -z "$rc" ]; then  # finished before receipts, or by hand: build it from the record
-    local fin; fin=$(git -C "$R" log -1 --format=%H --diff-filter=A -- "$CST/finished/$slug.md")
-    rc=$( [ -n "$fin" ] && receipt_compose "$slug" "$fin^" ) || die "$slug was finished without a record of how it was made, so there is nothing to build a receipt from"
+    rc=$(receipt_compose "$slug" "$h^" "$p") || die "$slug was finished without a record of how it was made, so there is nothing to build a receipt from"
   fi
   printf '%s\n' "$rc"
 }

@@ -146,6 +146,7 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
   case "$dir" in "$R"/*) ref=${dir#"$R"/}/TRADE.md ;; *) ref=$dir/TRADE.md ;; esac
   new="$TRADE_GUARD Otherwise, read and follow .constellation/HOST.md and $ref before anything else, then continue."
   esc=$(printf '%s' "$ref" | sed 's/[&#\\]/\\&/g')
+  repo_lock   # one writer at a time in the main checkout
   for f in AGENTS.md CLAUDE.md; do
     [ -f "$R/$f" ] || continue
     tmp=$(mktemp)
@@ -161,5 +162,6 @@ cmd_trade() { # cmd_trade [<name> | <path to trades/<name>>] : print the active 
 DONE: the loader names the $name trade by reference ($ref)
 NEXT: —" -- "${tracked[@]}" || die "$name is named in ${changed[*]}, but the commit was refused; commit those files, then continue"
   fi
+  repo_unlock
   say "$name — named in ${changed[*]}; its files are in $dir"
 }

@@ -37,6 +37,8 @@ cmd_take() {
     [ "${given[i]}" = 1 ] || floor_answered "$src" "${FLOOR_KEYS[i]}" || missing+=("$i")
   done
   [ ${#missing[@]} -eq 0 ] || { floor_interview "$slug" "${missing[@]}"; exit 3; }
+  repo_lock   # one writer at a time in the main checkout: another take or land waits its turn here
+  [ -f "$src" ] || die "$CST/stock/$slug.md is no longer on the rack (taken meanwhile?)"
   [ -z "$(git -C "$R" diff --cached --name-only)" ] || die "the index already holds staged changes; commit or unstage them first"
   for i in 0 1 2 3; do [ "${given[i]}" = 1 ] && floor_write "$src" "${FLOOR_KEYS[i]}" "${value[i]}"; done
   git -C "$R" mv "$src" "$dst"
@@ -49,6 +51,7 @@ NEXT: constellation run $slug (vega, ideate)" || {
   local wt; wt=$(work_of "$slug"); mkdir -p "$(dirname "$wt")"
   git -C "$R" worktree add -q -b "$(branch_of "$slug")" "$wt" HEAD || die "could not make the worktree for $slug"
   seed_framework "$wt"
+  repo_unlock   # the project's setup may take a while, or leave something running: not under the lock
   project_hook setup "$slug" "$wt" || die "$slug is on the bench, but the project's own setup for its worktree failed (above); fix it, then run $CST/setup $wt $R by hand"
   say "took $slug to the bench — branch $(branch_of "$slug"), worktree $wt
 next: constellation run $slug"

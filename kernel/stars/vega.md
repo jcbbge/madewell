@@ -11,7 +11,7 @@ You are the first to hold this piece. Understand it before anyone plans or makes
 
 - Read the piece's floor (Making, Not making, Done when, Waits on) and its run so far.
 - Place it in the whole project: the product and decisions files, the rack
-  (`.constellation/stock/`, `bench/`, `finished/`), and whatever the piece names. Does something
+  (`.constellation/stock/`, `bench/`, and the finish commits), and whatever the piece names. Does something
   already exist that this would duplicate or contradict? Say so.
 - Break it into the smallest completable steps, in plain words.
 - Name what is unknown. Settle what reading can settle. What only the person can settle, ask

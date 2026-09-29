@@ -94,7 +94,8 @@ Material has three states and no others.
 
 - **stock** — what you have, uncut. Grows without limit. That is correct, not a backlog.
 - **on the bench** — what you are working. One pair of hands per piece.
-- **finished** — proofed, and off the bench.
+- **finished** — proofed, and off the bench. Done work is gone: it leaves the shop when it lands,
+  and its history is where you find it. Nothing piles up on a shelf.
 
 There is no admission gate. You take stock to the bench. **Nothing is rejected** — it is
 just still on the rack.

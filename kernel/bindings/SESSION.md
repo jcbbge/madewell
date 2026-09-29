@@ -5,7 +5,7 @@ Requires Python 3.9+ on a POSIX host. No model, agent runtime, service, or
 third-party Python package is required by the door.
 
 A piece's position remains its path. A session record describes **execution
-within that piece**, not a second stock/bench/finished ledger. Verification never moves a piece implicitly. Successful independent verification
+within that piece**, not a second stock/bench ledger. Verification never moves a piece implicitly. Successful independent verification
 permits a separate legal finish through the existing movement door. Bound pieces
 require current, fresh, independently accepted execution at both the movement
 and commit gates. Legacy unbound pieces intentionally remain allowed.
@@ -147,26 +147,29 @@ Other operations:
   explicit retry only if the previous supervisor PID is recorded and proven
   dead; expiry alone or an unknown supervisor is not enough. Ownership transfers
   only on a successful retry; cycles/makers survive and downstream approval is
-  invalidated. A finished piece cannot reopen or move backward.
+  invalidated. A landed piece cannot reopen or move backward.
   Missing tracking provenance in old records also permits retry for recapture;
   restart at the earliest phase containing such evidence, not just verify.
 - `reconcile`: owner-only, explicit `piece` destination and `reason`, with no
   running command. Rebinds an inspected, already-performed legal move whose old
   path is missing. Arbitrary renames are refused: restore the original path
-  before continuing. Finished destinations require fresh independent acceptance.
+  before continuing. With `landed: true` instead of `piece`, records a piece that
+  left the tree without the door; that requires fresh independent acceptance.
 - `move`: separate sanctioned host operation; `action` is `bench` or `finish`,
   optional boolean `break` for unit expansion at the bench. Uses the existing
   C movement door, stages only that move, never commits. Allowed after planning
   in implement and after done, under the session owner. Supports top-level
-  pieces; nested moves use Git plus the commit gate. Finish requires the bound
+  pieces; nested moves use Git plus the commit gate. Finish is the removal at land
+  (`git rm` of the leaf, or of a breakdown's whole folder), and requires the bound
   bench path to exist in HEAD: commit its stock-to-bench transition first, rather
-  than collapsing two staged moves into an illegal stock-to-finished commit.
+  than collapsing two staged moves into an illegal stock-to-nowhere commit. The
+  record is then marked `landed`: it claims nothing, and its path is free.
   Never run a move inside an
   executing step of the same bound piece: running commands fence movement.
 
-The C door uses the Python `--move OLD NEW` seam; the commit gate uses
-`--check-move OLD NEW` to validate staged moves and rebind claims made before a
-direct Git move. Named tracked evidence must also match staged content at finish.
+The C door uses the Python `--move OLD NEW` and `--remove OLD` seams; the commit
+gate uses `--check-move OLD NEW` and `--check-remove OLD` to validate staged moves
+and removals and to rebind or land claims made before a direct Git command. Named tracked evidence must also match staged content at finish.
 Proof capture retains `tracked` provenance from index or HEAD, including new
 uncommitted tracked files. Finish checks capture provenance, current index and
 HEAD; staged deletion, unmerged entries and non-regular tracked types refuse.
@@ -175,7 +178,7 @@ provenance, current index/HEAD membership still requires delivery. If neither
 can establish tracking history, finish refuses with an explicit recapture
 instruction: it never silently assumes that missing metadata meant untracked.
 Freshness checks remain content checks; this delivery-provenance migration is
-an additional finish obligation. Python check-move refusals retain actionable
+an additional finish obligation. Python check-move and check-remove refusals retain actionable
 stderr while successful gate checks remain quiet.
 Both share the claim lock. A crash between Git and record persistence leaves a
 missing-path fence, not silent double ownership.

@@ -52,7 +52,7 @@ a preference and must be labelled one.
 
 ## What's been made
 
-- The kernel: the model, the storage contract, the four moves, and one jig that enforces them.
+- The kernel: the model, the storage contract, the legal moves, and one jig that enforces them.
 - Three trades — dev, marketing, sales — proving the acts are not software-shaped.
 - The concierge (`skills/adopt.md`): the conversation that names someone's existing four acts
   in their own vocabulary and builds them a trade in one sitting.

@@ -9,7 +9,7 @@ Install runs `constellation hooks`. After that:
 
 | Hook | Script | What happens if you skip it |
 |---|---|---|
-| **pre-commit** | `cst-gate.sh` | illegal stock/bench/finished move **refused** |
+| **pre-commit** | `cst-gate.sh` | illegal stock/bench move or removal **refused** |
 | **pre-commit** | `cst-jigs.sh` | each registry jig with a `run` command runs; **block** fails the commit |
 | **post-commit** | `cst-record.sh` | one line appended to `corrections.jsonl`. Consumes `proposed.json` if present. Never blocks. |
 

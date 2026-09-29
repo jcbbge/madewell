@@ -1,14 +1,14 @@
 /* cst-move — scaffolding for SPEC.md §2. Not the product.
  *
- * Constellation is files. This binary performs the four legal moves and refuses
- * everything else. Delete it: `git mv` plus cst-gate still run the shop.
+ * Constellation is files. This binary performs the legal moves and refuses
+ * everything else. Delete it: `git mv`, `git rm` plus cst-gate still run the shop.
  *
  *   clang -O2 -flto -arch arm64 -mcpu=native -Wl,-dead_strip -o cst-move cst-move.c
  *
  *   cst-move arrive <slug>              stdin → stock/<slug>.md
  *   cst-move bench  <slug>              stock → bench (leaf; floor required)
  *   cst-move bench  <slug> --break      stock → bench/<slug>/PIECE.md
- *   cst-move finish <slug>              bench → finished
+ *   cst-move finish <slug>              bench → removed (done work leaves the tree; land commits it)
  *
  * Stages. Does not commit. The commit is the record (SPEC.md §2).
  * Exit: 0 ok · 4 source gone (someone else moved it) · 5 refused · 2 usage
@@ -119,6 +119,25 @@ static int git_mv(const char *from, const char *to) {
     return 0;
 }
 
+static int git_rm(const char *rel, const char *target) {
+    char *argv[] = { "git", "-C", root, "rm", "-r", "-q", "--", (char *)target, NULL };
+    int rc;
+    if (exists(execution_door)) {
+        char *command[] = { "python3", execution_door, "--root", root, "--remove", (char *)rel, NULL };
+        rc = git(command);
+    } else {
+        char sessions[PATH_MAX];
+        snprintf(sessions, sizeof sessions, "%s/sessions", cst);
+        if (exists(sessions)) die(5, "execution door missing; cannot inspect bound pieces");
+        rc = git(argv);
+    }
+    if (rc != 0) {
+        if (!exists(rel)) return 4;
+        return 5;
+    }
+    return 0;
+}
+
 static int git_add(const char *path) {
     char *add[] = { "git", "-C", root, "add", "--", (char *)path, NULL };
     return git(add);
@@ -186,12 +205,11 @@ static char *read_stdin(size_t *len_out) {
 }
 
 static int anywhere(const char *slug) {
-    char a[PATH_MAX], b[PATH_MAX], c[PATH_MAX], d[PATH_MAX];
+    char a[PATH_MAX], b[PATH_MAX], c[PATH_MAX];
     snprintf(a, sizeof a, "%s/stock/%s.md", cst, slug);
     snprintf(b, sizeof b, "%s/bench/%s.md", cst, slug);
     snprintf(c, sizeof c, "%s/bench/%s/PIECE.md", cst, slug);
-    snprintf(d, sizeof d, "%s/finished/%s.md", cst, slug);
-    return exists(a) || exists(b) || exists(c) || exists(d);
+    return exists(a) || exists(b) || exists(c);
 }
 
 static void cmd_arrive(const char *slug) {
@@ -234,8 +252,8 @@ static void cmd_bench(const char *slug, int brk) {
         char inner[PATH_MAX];
         snprintf(inner, sizeof inner, "%s/bench/%s", cst, slug);
         if (mkdir_p(inner) < 0) die(5, "mkdir %s: %s", inner, strerror(errno));
-        for (int i = 0; i < 3; i++) {
-            const char *st = (const char *[]){ "stock", "bench", "finished" }[i];
+        for (int i = 0; i < 2; i++) {
+            const char *st = (const char *[]){ "stock", "bench" }[i];
             char d[PATH_MAX], keep[PATH_MAX], keep_rel[PATH_MAX];
             snprintf(d, sizeof d, "%s/%s", inner, st);
             if (mkdir(d, 0755) < 0 && errno != EEXIST) die(5, "mkdir %s: %s", d, strerror(errno));
@@ -261,10 +279,10 @@ static void cmd_finish(const char *slug) {
     char leaf[PATH_MAX], piece[PATH_MAX];
     snprintf(leaf, sizeof leaf, "%s/bench/%s.md", cst, slug);
     snprintf(piece, sizeof piece, "%s/bench/%s/PIECE.md", cst, slug);
-    char src_rel[PATH_MAX], dst_rel[PATH_MAX];
-    snprintf(dst_rel, sizeof dst_rel, ".constellation/finished/%s.md", slug);
+    char src_rel[PATH_MAX], target[PATH_MAX];
     if (exists(leaf)) {
         snprintf(src_rel, sizeof src_rel, ".constellation/bench/%s.md", slug);
+        snprintf(target, sizeof target, "%s", src_rel);
     } else if (exists(piece)) {
         char stock[PATH_MAX], bench[PATH_MAX];
         snprintf(stock, sizeof stock, ".constellation/bench/%s/stock", slug);
@@ -272,22 +290,23 @@ static void cmd_finish(const char *slug) {
         if (!drained(stock) || !drained(bench))
             die(5, "cannot finish %s — inner stock/ or bench/ is not empty", slug);
         snprintf(src_rel, sizeof src_rel, ".constellation/bench/%s/PIECE.md", slug);
+        snprintf(target, sizeof target, ".constellation/bench/%s", slug);
     } else {
         die(4, "not on the bench: %s", slug);
     }
-    int rc = git_mv(src_rel, dst_rel);
+    int rc = git_rm(src_rel, target);
     if (rc == 4) die(4, "fenced: %s is gone from the bench", src_rel);
-    if (rc != 0) die(5, "git mv failed");
-    printf("%s\n", dst_rel);
+    if (rc != 0) die(5, "git rm failed");
+    printf("%s\n", target);
 }
 
 static const char USAGE[] =
-    "cst-move — the four legal moves (SPEC.md §2). Scaffolding, not the product.\n"
+    "cst-move — the legal moves (SPEC.md §2). Scaffolding, not the product.\n"
     "\n"
     "  cst-move arrive <slug>         put a piece on the rack (stdin = title + what it's about)\n"
     "  cst-move bench  <slug>         stock → bench (leaf). Floor required.\n"
     "  cst-move bench  <slug> --break stock → bench/<slug>/PIECE.md\n"
-    "  cst-move finish <slug>         bench → finished. No rewind.\n"
+    "  cst-move finish <slug>         bench → removed: done work leaves the tree. No rewind.\n"
     "\n"
     "Stages. Does not commit. Position is still the directory.\n"
     "Exit: 0 ok · 4 source gone · 5 refused · 2 usage\n";

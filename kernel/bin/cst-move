@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """cst-move — scaffolding for SPEC.md §2. Not the product.
 
-Constellation is files. This performs the four legal moves and refuses everything else.
-Delete it: `git mv` plus cst-gate still run the shop.
+Constellation is files. This performs the legal moves and refuses everything else.
+Delete it: `git mv`, `git rm` plus cst-gate still run the shop.
 
   cst-move arrive <slug>              stdin → stock/<slug>.md
   cst-move bench  <slug>              stock → bench (leaf; floor required)
   cst-move bench  <slug> --break      stock → bench/<slug>/PIECE.md
-  cst-move finish <slug>              bench → finished
+  cst-move finish <slug>              bench → removed (done work leaves the tree; land commits it)
 
 Stages. Does not commit. The commit is the record (SPEC.md §2).
 Exit: 0 ok · 4 source gone (someone else moved it) · 5 refused · 2 usage
@@ -20,12 +20,12 @@ import subprocess
 import sys
 
 USAGE = (
-    "cst-move — the four legal moves (SPEC.md §2). Scaffolding, not the product.\n"
+    "cst-move — the legal moves (SPEC.md §2). Scaffolding, not the product.\n"
     "\n"
     "  cst-move arrive <slug>         put a piece on the rack (stdin = title + what it's about)\n"
     "  cst-move bench  <slug>         stock → bench (leaf). Floor required.\n"
     "  cst-move bench  <slug> --break stock → bench/<slug>/PIECE.md\n"
-    "  cst-move finish <slug>         bench → finished. No rewind.\n"
+    "  cst-move finish <slug>         bench → removed: done work leaves the tree. No rewind.\n"
     "\n"
     "Stages. Does not commit. Position is still the directory.\n"
     "Exit: 0 ok · 4 source gone · 5 refused · 2 usage\n"
@@ -75,6 +75,18 @@ def git_mv(frm, to):
     return 0
 
 
+def git_rm(rel, target):
+    if os.path.exists(execution_door):
+        rc = run(["python3", execution_door, "--root", root, "--remove", rel])
+    else:
+        if os.path.exists(os.path.join(cst, "sessions")):
+            die(5, "execution door missing; cannot inspect bound pieces")
+        rc = run(["git", "-C", root, "rm", "-r", "-q", "--", target])
+    if rc != 0:
+        return 4 if not os.path.exists(os.path.join(root, rel)) else 5
+    return 0
+
+
 def git_add(path):
     return run(["git", "-C", root, "add", "--", path])
 
@@ -103,7 +115,7 @@ def drained(rel):
 
 def anywhere(slug):
     return any(os.path.exists(os.path.join(cst, p)) for p in
-               ("stock/%s.md" % slug, "bench/%s.md" % slug, "bench/%s/PIECE.md" % slug, "finished/%s.md" % slug))
+               ("stock/%s.md" % slug, "bench/%s.md" % slug, "bench/%s/PIECE.md" % slug))
 
 
 def cmd_arrive(slug):
@@ -141,7 +153,7 @@ def cmd_bench(slug, brk):
             os.makedirs(inner, exist_ok=True)
         except OSError as e:
             die(5, "mkdir %s: %s" % (inner, e.strerror))
-        for st in ("stock", "bench", "finished"):
+        for st in ("stock", "bench"):
             d = os.path.join(inner, st)
             try:
                 os.makedirs(d, exist_ok=True)
@@ -163,21 +175,21 @@ def cmd_bench(slug, brk):
 def cmd_finish(slug):
     leaf = os.path.join(cst, "bench", slug + ".md")
     piece = os.path.join(cst, "bench", slug, "PIECE.md")
-    dst_rel = ".constellation/finished/%s.md" % slug
     if os.path.exists(leaf):
-        src_rel = ".constellation/bench/%s.md" % slug
+        src_rel = target = ".constellation/bench/%s.md" % slug
     elif os.path.exists(piece):
         if not drained(".constellation/bench/%s/stock" % slug) or not drained(".constellation/bench/%s/bench" % slug):
             die(5, "cannot finish %s — inner stock/ or bench/ is not empty" % slug)
         src_rel = ".constellation/bench/%s/PIECE.md" % slug
+        target = ".constellation/bench/%s" % slug
     else:
         die(4, "not on the bench: %s" % slug)
-    rc = git_mv(src_rel, dst_rel)
+    rc = git_rm(src_rel, target)
     if rc == 4:
         die(4, "fenced: %s is gone from the bench" % src_rel)
     if rc != 0:
-        die(5, "git mv failed")
-    print(dst_rel)
+        die(5, "git rm failed")
+    print(target)
 
 
 def main(argv):

@@ -62,6 +62,7 @@ check "a path to the old folder inside a piece now points at the new one" grep -
 check "the project's own setup moved, points at the new folder, and still runs" sh -c "test -x .constellation/setup && grep -qF 'cp .constellation/PRODUCT.md' .constellation/setup"
 check "an ignored ledger moved with it and names the new gate" grep -qF '"jig":"cst-gate"' .constellation/jig/firings.jsonl
 check "a session record moved and carries the new schema and path" grep -qF '{"schema": "constellation.session/v1", "id": "s1", "piece": ".constellation/stock/idea.md"}' .constellation/sessions/s1.json
+check "the old done shelf moved over and then went: done work is in git history" sh -c "test ! -e .constellation/finished && grep -qF 'removed .constellation/finished/' '$T/err'"
 check "the root document has the new name" sh -c "test -f CONSTELLATION.md && test ! -e $OLD_UP.md"
 check "loader: the new markers, the new folder, the trade kept, the project's own words kept" sh -c "grep -qxF '<!-- CONSTELLATION — loader -->' CLAUDE.md && grep -qxF '<!-- /CONSTELLATION -->' CLAUDE.md && grep -qF '.constellation/HOST.md and .constellation/trades/marketing/TRADE.md' CLAUDE.md && grep -qF 'Be kind.' CLAUDE.md && grep -qF '.constellation/trades/marketing/TRADE.md' AGENTS.md"
 check "the trade is still marketing" sh -c "'$C' trade | grep -q marketing"
@@ -74,7 +75,8 @@ check "adopt prints what to commit, the tracked hooks included" sh -c "grep -q '
 commit_cmd=$(sed -n 's/^  commit: //p' "$T/err")
 check "the printed commit lands the move; only adopt's new drop box is left to commit" sh -c "$commit_cmd >/dev/null && test \"\$(git status --porcelain)\" = '?? ideas/'"
 check "after the move, the old paths are gone from the tree git tracks" test -z "$(git ls-files | grep -F ".$OLD")"
-check "the new gate governs: a legal move passes with the hooks on" sh -c "git mv .constellation/bench/work.md .constellation/finished/work.md && git commit -qm 'finish: work'"
+check "the new gate governs: a legal finish (the piece leaves the tree) passes with the hooks on" sh -c "git rm -q .constellation/bench/work.md && git commit -qm 'finish work'"
+check "the new gate governs: the old move into finished/ is refused" sh -c "printf '# Y\n**Making:** a\n**Not making:** b\n**Done when:** c\n**Waits on:** \n' >.constellation/stock/y.md && git add .constellation/stock/y.md && git commit -qm 'rack: y' && git mv .constellation/stock/y.md .constellation/bench/y.md && git commit -qm 'take y' && mkdir -p .constellation/finished && git mv .constellation/bench/y.md .constellation/finished/y.md && ! git commit -qm 'onto the shelf'; git reset -q --hard HEAD~2; rm -rf .constellation/finished"
 check "the new gate governs: an illegal arrival is refused" sh -c "printf '# X\n' >.constellation/bench/x.md && git add .constellation/bench/x.md && ! git commit -qm 'illegal'; git reset -q -- .constellation/bench/x.md; rm -f .constellation/bench/x.md"
 
 # --- running it twice changes nothing

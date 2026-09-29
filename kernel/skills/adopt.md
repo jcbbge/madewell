@@ -30,6 +30,11 @@ The person asked for setup, so do all of it. They run nothing and read nothing.
    itself in a repository that had none): stage only what adopt added — `.gitignore`,
    `CLAUDE.md`, `AGENTS.md`, `.constellation/`, `ideas/.gitkeep` — and commit with `CONSTELLATION_GATE=off`,
    the one sanctioned bypass.
+   Adopt's lines for you (never for the person) come before the welcome: an older install's
+   `finished/` it *removed* (staged; done work lives in git history now) goes into that commit;
+   when `CLAUDE.md` and `AGENTS.md` *differ*, it names which to copy over the other, since
+   different assistants read different ones: do that (bringing over anything the other alone
+   says), then commit both.
 
 4. **Give them the welcome in your own voice**: what it says they can do next, not the output
    pasted. Then hold the conversation below. If adopt said it was *already set up* and they

@@ -9,7 +9,7 @@
 ```sh
 ls .constellation/stock/       # material on the rack
 ls .constellation/bench/       # what is in hand
-ls .constellation/finished/    # what is done
+git log --grep='^finish ' -n 10 --format='%h %s'   # what is done (done work leaves the tree)
 git log --oneline -12     # what just happened
 git status --porcelain    # what is uncommitted, and whose it is
 constellation tax  # promote / drop from the live ledger, not fixtures

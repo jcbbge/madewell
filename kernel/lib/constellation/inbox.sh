@@ -76,9 +76,13 @@ inbox_file_away() { # inbox_file_away <ideas/x> : move it into ideas/read/ under
   to=$IDEAS/read/$base
   while [ -e "$R/$to" ]; do to=$IDEAS/read/$stem.$n$ext; n=$((n + 1)); done
   if git -C "$R" ls-files --error-unmatch -- "$rel" >/dev/null 2>&1; then # the person keeps ideas/ in git: the move is a commit
+    repo_lock   # one writer at a time in the main checkout
+    [ -e "$R/$rel" ] || { repo_unlock; return 1; }   # another session filed it while this one waited
+    while [ -e "$R/$to" ]; do to=$IDEAS/read/$stem.$n$ext; n=$((n + 1)); done
     git -C "$R" mv -- "$rel" "$to" && git -C "$R" commit -q -m "chore(ideas): read $base" -m "ACT: ideate
 DONE: $rel is in hand for discovery, at $to
 NEXT: —" -- "$rel" "$to" >/dev/null || printf 'constellation: the move of %s is staged but not committed\n' "$rel" >&2
+    repo_unlock   # let go before discovery starts: an agent must never hold the checkout
   else
     mv -- "$R/$rel" "$R/$to" 2>/dev/null || return 1
   fi
