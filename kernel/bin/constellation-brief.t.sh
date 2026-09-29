@@ -66,7 +66,7 @@ sleep 1
 piece old "Old piece"; git rm -q .constellation/bench/old.md; git commit -qm "finish old" -m "ACT: verify
 DONE: old
 NEXT: —"  # as land takes it off the bench, through the gate
-piece older "Older piece"; mkdir -p .constellation/finished; git mv -f .constellation/bench/older.md .constellation/finished/older.md
+piece older "Older piece"; mkdir -p .constellation/finished; git mv .constellation/bench/older.md .constellation/finished/older.md
 CONSTELLATION_GATE=off git commit -qm "finish older"  # as land moved it before there was no done shelf
 piece greet "Greet the user"; "$C" run greet >/dev/null
 piece bye "Wave goodbye"; "$C" run bye >/dev/null; rec bye vega clear "no open questions"; rec bye vega done "a one-function module"
