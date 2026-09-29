@@ -143,11 +143,11 @@
       "when": "Sirius debugging: observe, hypothesize, smallest experiment, clarify disproved plans."
     },
     {
-      "name": "intent-driven-testing",
-      "file": "skills/intent-driven-testing.md",
+      "name": "intent-driven-checks",
+      "file": "skills/intent-driven-checks.md",
       "layer": "foundational",
       "mode": "workflow",
-      "when": "Orion tests from intent, risk, and contracts; behavior over internals."
+      "when": "Orion checks from intent, risk, and contracts; observable results over internals."
     },
     {
       "name": "execution-checklist-discipline",

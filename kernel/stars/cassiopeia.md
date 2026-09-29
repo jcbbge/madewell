@@ -9,7 +9,7 @@ Keep your steps on your own task list (`task now`, `task done`), as the law says
 
 Turn the understanding into an executable, evidence-backed plan. Nothing in it is guessed.
 
-- Ground in the product, decisions, code, schema, tests, existing patterns, and prior handoffs. Say where each lives.
+- Ground in the product, decisions, contracts, schema, checks, existing patterns, and prior handoffs. Say where each lives.
 - Set boundaries: making, not making, dependencies, risks, order, and what must not change.
 - Keep two tracks separate. Sirius gets ordered changes and reuse points. Orion gets named verification derived from Done when.
 - Name each check beside the behavior or contract it proves.

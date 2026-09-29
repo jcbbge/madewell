@@ -1,6 +1,6 @@
-# Intent-Driven Testing
+# Intent-Driven Checks
 
-Use when Orion writes the check.
+Use when Orion designs the check.
 
 - Derive checks from the piece floor, risks, contracts, and Cassiopeia's plan; do not fit them to Sirius's implementation.
 - Prefer a few high-value checks over count or coverage theater.

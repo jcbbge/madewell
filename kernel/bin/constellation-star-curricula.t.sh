@@ -12,7 +12,7 @@ debugging_separation(){ grep -qF "rerun the exact failing behavior or the smalle
 registered(){ python3 - "$ROOT" <<'PY'
 import json, pathlib, sys
 root=pathlib.Path(sys.argv[1]); data=json.loads((root/'kernel/guides/SKILLS.json').read_text())['skills']; seen={s['name']:s['file'] for s in data}
-want={'collaborative-critique':'skills/collaborative-critique.md','grounded-planning':'skills/grounded-planning.md','tenex':'skills/tenex.md','debugging':'skills/debugging.md','intent-driven-testing':'skills/intent-driven-testing.md','execution-checklist-discipline':'skills/execution-checklist-discipline.md','failure-triage':'skills/failure-triage.md'}
+want={'collaborative-critique':'skills/collaborative-critique.md','grounded-planning':'skills/grounded-planning.md','tenex':'skills/tenex.md','debugging':'skills/debugging.md','intent-driven-checks':'skills/intent-driven-checks.md','execution-checklist-discipline':'skills/execution-checklist-discipline.md','failure-triage':'skills/failure-triage.md'}
 assert all(seen.get(k)==v and (root/'kernel'/v).is_file() for k,v in want.items())
 PY
 }
@@ -21,7 +21,7 @@ check 'vega exact skills' exact vega 'exploring-possibilities, synthesizing-insi
 check 'polaris exact skills' exact polaris 'collaborative-critique, think-critically, blind-spots, challenging-assumptions'
 check 'cassiopeia exact skills' exact cassiopeia 'grounded-planning, systems-thinking, verify-then-write, think-critically'
 check 'sirius exact skills' exact sirius 'tenex, debugging, verify-then-write'
-check 'orion exact skills' exact orion 'intent-driven-testing, challenging-assumptions, systems-thinking, blind-spots'
+check 'orion exact skills' exact orion 'intent-driven-checks, challenging-assumptions, systems-thinking, blind-spots'
 check 'aldebaran exact skills' exact aldebaran 'execution-checklist-discipline, failure-triage, verify-then-write'
 for s in vega polaris cassiopeia sirius orion aldebaran; do check "$s count" count "$s"; check "$s real" real "$s"; check "$s words" words "$s"; done
 check 'seven new skills registered' registered

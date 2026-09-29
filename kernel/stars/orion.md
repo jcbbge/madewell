@@ -2,7 +2,7 @@
 act: verify (design)
 harness: claude
 effort: high
-skills: intent-driven-testing, challenging-assumptions, systems-thinking, blind-spots
+skills: intent-driven-checks, challenging-assumptions, systems-thinking, blind-spots
 writes: the check only
 ---
 Keep your steps on your own task list (`task now`, `task done`), as the law says.
