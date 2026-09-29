@@ -185,7 +185,7 @@ repo_unlock() { # let the repository's lock go
 # checkout has the branch out, so only the changed paths are brought up to date in its working tree and
 # index, just before the repository's own commit hook runs over the new tree (the gate reads the working
 # tree too); whatever else is staged or changed there stays exactly as it was. A refusal puts those
-# paths back as they were.
+# paths back as they were, and so does a landing killed or exiting partway (land_trap).
 LANDED=""
 land_write() { # land_write <message> <op>… : land one commit carrying just these changes. Paths are from the project root:
   #   put <path> <file>          <path> gets <file>'s content (its mode: the path's on the tip, else <file>'s executable bit)
@@ -204,20 +204,23 @@ land_write() { # land_write <message> <op>… : land one commit carrying just th
     land_build "$tmp" "$old" "$@" || { rm -rf "$tmp"; die "could not build the change for $ref"; }
     tree=$(tgit write-tree) || { rm -rf "$tmp"; die "could not write the tree"; }
     if [ "$tree" = "$(rgit rev-parse "$old^{tree}")" ]; then LANDED=$old; rm -rf "$tmp"; return 0; fi
-    while IFS= read -r -d '' p; do  # what del takes away must not carry anyone's uncommitted work
+    while IFS= read -r -d '' p; do  # what del takes away must not carry anyone's uncommitted work; a path the checkout
+      land_removed "$old" "$p" && continue  # already shows removed (a landing cut short left it so) carries none
       if ! rgit diff --quiet "$old" -- ":(literal)$p" || ! rgit diff --cached --quiet "$old" -- ":(literal)$p"; then
         printf 'constellation: %s has uncommitted changes in the main checkout; nothing landed\n' "$p" >&2
         rm -rf "$tmp"; return 1
       fi
     done <"$tmp/gone"
-    land_sync "$tmp"
-    if ! land_hook pre-commit "$tmp/index"; then land_restore "$tmp"; rm -rf "$tmp"; return 1; fi
-    new=$(printf '%s\n' "$msg" | rgit commit-tree "$tree" -p "$old") || { land_restore "$tmp"; rm -rf "$tmp"; die "could not write the commit"; }
+    land_trap "$ref" "$tmp"; land_sync "$tmp"
+    if ! land_hook pre-commit "$tmp/index"; then land_restore "$tmp"; land_untrap; rm -rf "$tmp"; return 1; fi
+    new=$(printf '%s\n' "$msg" | rgit commit-tree "$tree" -p "$old") || { land_restore "$tmp"; land_untrap; rm -rf "$tmp"; die "could not write the commit"; }
+    LAND_NEW=$new
     if rgit update-ref -m "constellation: $(head -1 <<<"$msg")" "$ref" "$new" "$old" 2>/dev/null; then
+      land_untrap
       land_hook post-commit "$tmp/index" || true
       LANDED=$new; rm -rf "$tmp"; return 0
     fi
-    land_restore "$tmp"   # someone moved the branch meanwhile: build again on the new tip
+    land_restore "$tmp"; land_untrap   # someone moved the branch meanwhile: build again on the new tip
     tries=$((tries + 1)); [ "$tries" -lt 10 ] || { rm -rf "$tmp"; die "$ref kept moving; nothing landed"; }
   done
 }
@@ -254,12 +257,21 @@ land_gone() { # land_gone <path> [<list>] : take the path (or every tracked file
   # not on the tip: an untracked file that moves still leaves the working tree
   [ "$any" = 1 ] || [ ! -f "$R/$1" ] || [ -n "${2:-}" ] || printf '%s\0' "$1" >>"$tmp/paths"
 }
-land_sync() { # land_sync <tmp> : bring each changed path in the checkout to the new tree, keeping how it was in <tmp>/was
+land_removed() { # land_removed <tip> <path> : the checkout already shows the path removed: gone from the working tree,
+  # and from the index too, or still there exactly as on the tip
+  [ ! -e "$R/$2" ] && [ ! -L "$R/$2" ] || return 1
+  [ -z "$(rgit ls-files -- ":(literal)$2")" ] || rgit diff --cached --quiet "$1" -- ":(literal)$2"
+}
+land_sync() { # land_sync <tmp> : bring each changed path in the checkout to the new tree, keeping how it was in <tmp>/was;
+  # every path is kept before any is changed (<tmp>/saved), so a landing cut short anywhere can put them all back
   local tmp=$1 p e
-  mkdir -p "$tmp/was"; : >"$tmp/was.index"
+  rm -rf "$tmp/was" "$tmp/saved"; mkdir -p "$tmp/was"; : >"$tmp/was.index"
   while IFS= read -r -d '' p; do
     rgit ls-files -s -z -- ":(literal)$p" >>"$tmp/was.index"
     if [ -e "$R/$p" ] || [ -L "$R/$p" ]; then mkdir -p "$tmp/was/$(dirname -- "$p")"; cp -a -- "$R/$p" "$tmp/was/$p"; fi
+  done <"$tmp/paths"
+  : >"$tmp/saved"
+  while IFS= read -r -d '' p; do
     e=$(tgit ls-files -s -z -- ":(literal)$p" | tr '\0' '\n' | awk 'NR == 1 { print $1 "," $2 }')
     if [ -n "$e" ]; then
       rgit update-index --add --cacheinfo "$e,$p" && rgit checkout-index -f -u -- "$p"
@@ -270,6 +282,7 @@ land_sync() { # land_sync <tmp> : bring each changed path in the checkout to the
 }
 land_restore() { # land_restore <tmp> : put each changed path in the checkout back as land_sync found it
   local tmp=$1 p
+  [ -e "$tmp/saved" ] || return 0   # land_sync had changed nothing yet
   while IFS= read -r -d '' p; do
     rgit update-index --force-remove -- "$p"; rm -f -- "$R/$p"
     if [ -e "$tmp/was/$p" ] || [ -L "$tmp/was/$p" ]; then mkdir -p "$R/$(dirname -- "$p")"; cp -a -- "$tmp/was/$p" "$R/$p"; else land_prune "$p"; fi
@@ -280,9 +293,30 @@ land_prune() { # land_prune <path> : take away the folders a removed file leaves
   local d; d=$(dirname -- "$1")
   while [ "$d" != . ] && [ "$d" != / ] && rmdir -- "$R/$d" 2>/dev/null; do d=$(dirname -- "$d"); done
 }
-land_hook() { # land_hook <name> <index> : the repository's own git hook, run the way a commit runs it, its output to stderr
-  local h; h=$(rgit rev-parse --path-format=absolute --git-path "hooks/$1" 2>/dev/null) && [ -x "$h" ] || return 0
-  (cd "$R" && GIT_INDEX_FILE=$2 "$h") >&2
+LAND_REF="" LAND_TMP="" LAND_NEW="" LAND_TRAPS="" LAND_EXIT="" LAND_HOOK=""
+land_trap() { # land_trap <ref> <tmp> : from here to the end of the attempt, a landing cut short (killed, or an exit) puts
+  # the checkout back as land_sync found it; the caller's own traps are kept aside, and land_untrap gives them back
+  LAND_REF=$1 LAND_TMP=$2 LAND_NEW=""
+  LAND_TRAPS=$(trap -p EXIT INT TERM HUP); LAND_EXIT=$(trap -p EXIT)
+  trap 'land_abort exit' EXIT; trap 'land_abort 130' INT; trap 'land_abort 143' TERM; trap 'land_abort 129' HUP
+}
+land_untrap() { trap - EXIT INT TERM HUP; eval "$LAND_TRAPS"; LAND_TRAPS="" LAND_EXIT=""; }
+land_abort() { # land_abort <status | exit> : the landing was cut short: stop its hook, put the checkout back (unless the
+  # commit is already on the branch), and go; on an exit, the caller's own exit trap still runs
+  trap '' INT TERM HUP
+  if [ -n "$LAND_HOOK" ]; then kill -TERM "$LAND_HOOK" 2>/dev/null || true; wait "$LAND_HOOK" 2>/dev/null || true; fi
+  if [ -z "$LAND_NEW" ] || [ "$(rgit rev-parse -q --verify "$LAND_REF" 2>/dev/null)" != "$LAND_NEW" ]; then land_restore "$LAND_TMP"; fi
+  rm -rf "$LAND_TMP"
+  local ex=$LAND_EXIT; land_untrap
+  [ "$1" = exit ] || exit "$1"
+  [ -z "$ex" ] || { eval "set -- ${ex#trap -- }"; eval "$1"; }
+}
+land_hook() { # land_hook <name> <index> : the repository's own git hook, run the way a commit runs it, its output to stderr;
+  # waited on in the background, so a landing that is killed hears it at once, not when the hook is through
+  local h rc; h=$(rgit rev-parse --path-format=absolute --git-path "hooks/$1" 2>/dev/null) && [ -x "$h" ] || return 0
+  (cd "$R" && GIT_INDEX_FILE=$2 exec "$h") >&2 </dev/null &
+  LAND_HOOK=$!; wait "$LAND_HOOK" && rc=0 || rc=$?; LAND_HOOK=""
+  return "$rc"
 }
 
 # --- a run record: a commit on the piece branch carrying the worktree's HEAD tree, never what is staged there ---

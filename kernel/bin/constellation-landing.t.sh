@@ -33,10 +33,12 @@ sh "$ROOT/install.sh" "$P" >/dev/null 2>&1
 git -C "$P" add -A; CONSTELLATION_GATE=off git -C "$P" commit -qm "adopt Constellation"
 cd "$P"
 hook=$(git rev-parse --path-format=absolute --git-path hooks)/pre-commit
-# The commit hook, for the tests below: REFUSE=<flag> refuses once; RACE=<flag> moves main once, as another writer
-# landing meanwhile would (its own commit, made away from any index, with no lock).
+# The commit hook, for the tests below: REFUSE=<flag> refuses once; SLOW=<flag> writes its pid there, then takes 30 s
+# (its sleep's pid in <flag>.pid); RACE=<flag> moves main once, as another writer landing meanwhile would (its own
+# commit, made away from any index, with no lock).
 cat >>"$hook" <<'EOF'
 if [ -n "${REFUSE:-}" ] && [ ! -e "$REFUSE" ]; then : >"$REFUSE"; echo "refused, once" >&2; exit 1; fi
+if [ -n "${SLOW:-}" ]; then echo $$ >"$SLOW"; sleep 30 & echo $! >"$SLOW.pid"; wait $!; fi
 if [ -n "${RACE:-}" ] && [ ! -e "$RACE" ]; then
   : >"$RACE"; i=$RACE.index; tip=$(git rev-parse refs/heads/main)
   GIT_INDEX_FILE=$i git read-tree "$tip"
@@ -155,7 +157,7 @@ check "the step that is handing off is not in the way of the next" sh -c "
 
 # --- finish: the code fast-forwards and the piece's removal lands; the foreign work stays
 tmux kill-window -t "=workers:=alpha·polaris-peer"
-rec() { git -C "$1" -c core.hooksPath=/dev/null commit -q --allow-empty -m "run(alpha): aldebaran done
+rec() { git -C "$1" -c core.hooksPath=/dev/null commit -q --allow-empty -m "run(${2:-alpha}): aldebaran done
 
 ACT: verify
 STAR: aldebaran
@@ -175,6 +177,57 @@ check "finish: the receipt is its body" sh -c "git log -1 --format=%B | grep -qx
 check "finish: someone else's work is untouched" foreign_kept
 check "finish: none of it is in the finish commit or the code" bash -c "foreign_out HEAD && foreign_out HEAD~1"
 check "finish: the checkout shows nothing for the landed paths" quiet .constellation/bench/alpha.md src/alpha.js
+
+# --- finish when the checkout already shows the piece removed (a landing cut short left it so): it lands, and is clean
+snap() { # the checkout, byte for byte: its index, and every tracked or untracked (not ignored) file's content
+  git ls-files -s; git ls-files -z -co --exclude-standard | sort -z | xargs -0 sh -c 'for f; do
+    if [ -e "$f" ] || [ -L "$f" ]; then printf "%s %s\n" "$(git hash-object --no-filters -- "$f")" "$f"; else echo "absent $f"; fi; done' _
+}
+export -f snap
+rack delta epsilon zeta eta
+for s in delta epsilon zeta eta; do "$C" take "$s" >/dev/null 2>&1 && rec "$T/state/proj/$s" "$s"; done
+git rm -q .constellation/bench/delta.md
+check "finish lands when the removal is already staged in the checkout" "$C" land delta
+check "staged removal: the finish commit only removes the piece" bash -c "git log -1 --format=%s | grep -qx 'finish delta' && test \"\$(paths_of HEAD)\" = 'D .constellation/bench/delta.md|'"
+check "staged removal: the checkout shows nothing for it" quiet .constellation/bench/delta.md
+check "staged removal: someone else's work is untouched" foreign_kept
+rm .constellation/bench/eta.md
+check "finish lands when the piece is gone from the working tree only" "$C" land eta
+check "removed file: the finish commit only removes the piece, and the checkout shows nothing" bash -c "git log -1 --format=%s | grep -qx 'finish eta' && test \"\$(paths_of HEAD)\" = 'D .constellation/bench/eta.md|' && quiet .constellation/bench/eta.md"
+
+# --- a staged edit to the piece is someone's work: finish refuses, and the checkout is as it was
+echo 'a staged edit' >>.constellation/bench/epsilon.md; git add .constellation/bench/epsilon.md
+before=$(snap)
+check "finish refuses to take away a piece with a staged edit" says ".constellation/bench/epsilon.md has uncommitted changes" "$C" land epsilon
+check "refused finish: nothing landed, and the checkout is exactly as it was" bash -c "git log -1 --format=%s | grep -vqx 'finish epsilon' && test \"\$(snap)\" = \"\$1\"" _ "$before"
+git reset -q -- .constellation/bench/epsilon.md; git checkout -q -- .constellation/bench/epsilon.md
+before=$(snap)
+rm .constellation/bench/epsilon.md; git add .constellation/bench/epsilon.md; echo 'written back, changed' >.constellation/bench/epsilon.md
+check "finish refuses a piece removed in the index but written back with changes" says ".constellation/bench/epsilon.md has uncommitted changes" "$C" land epsilon
+git reset -q -- .constellation/bench/epsilon.md; git checkout -q -- .constellation/bench/epsilon.md
+check "refused finishes: the checkout is back as it was" test "$(snap)" = "$before"
+
+# --- a landing killed during the commit hook puts every path it changed back as it found it, and goes at once
+before=$(snap)
+SLOW=$T/slow "$C" land zeta >"$T/slow.out" 2>&1 & k=$!
+until [ -e "$T/slow" ] || ! kill -0 "$k" 2>/dev/null; do sleep 0.1; done
+check "killed landing: its hook is running, and the checkout shows the removal it is landing" bash -c "test -e '$T/slow' && test ! -e .constellation/bench/zeta.md"
+t0=$SECONDS; kill -TERM "$k"; wait "$k"; rk=$?
+check "killed landing: it exits as killed, at once and not when the hook is through" test "$rk:$(( SECONDS - t0 < 10 ))" = 143:1
+check "killed landing: nothing landed" bash -c "git log -1 --format=%s | grep -vqx 'finish zeta' && git cat-file -e HEAD:.constellation/bench/zeta.md"
+check "killed landing: the index and working tree are byte for byte as before" test "$(snap)" = "$before"
+check "killed landing: its hook was stopped" bash -c "! kill -0 \$(cat '$T/slow')"
+kill "$(cat "$T/slow.pid")" 2>/dev/null
+check "after the kill, the finish lands" "$C" land zeta
+check "after the kill: the finish commit only removes the piece, and the checkout shows nothing" bash -c "test \"\$(paths_of HEAD)\" = 'D .constellation/bench/zeta.md|' && quiet .constellation/bench/zeta.md && foreign_kept"
+
+# --- a landing hands its caller back the caller's own traps, after it lands and after it is refused
+check "land_write leaves its caller's traps as they were" bash -c '
+  set -euo pipefail; source "$2/kernel/lib/constellation/core.sh"; R=$1 CST=.constellation
+  trap "echo caller-exit" EXIT; trap "echo caller-term" TERM; t=$(trap -p)
+  echo one >"$R/traps.txt"; land_write "chore: traps" put traps.txt "$R/traps.txt"; test "$(trap -p)" = "$t"
+  echo two >"$R/traps.txt"; ! REFUSE="$R/../refused-traps" land_write "chore: traps again" put traps.txt "$R/traps.txt" 2>/dev/null
+  test "$(trap -p)" = "$t" && test "$(cat "$R/traps.txt")" = two' _ "$P" "$ROOT"
 
 # --- the law, in the code: no kernel command stages, moves, removes or commits through a checkout's index, but adopt
 check "no git add, mv, rm or commit in kernel/lib or the driver, but adopt's" sh -c "
