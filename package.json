@@ -1,0 +1,49 @@
+{
+  "name": "madewell-pi-durable",
+  "version": "0.3.0",
+  "description": "Made Well on Pi Durable: durable work, separate pi agents per phase",
+  "files": [
+    "pi-extension.ts",
+    "pi-bridge.mjs",
+    "cli.mjs",
+    "config.mjs",
+    "work.mjs",
+    "drive.mjs",
+    "observe.mjs",
+    "nq.mjs",
+    "pi-call.mjs",
+    "pi-stream.mjs",
+    "pi-runtime.mjs",
+    "child-environment.mjs",
+    "work-progress.mjs",
+    "FOUNDATION.md",
+    "AGENTS.md",
+    "README.md",
+    "serve.mjs",
+    "dashboard.html"
+  ],
+  "pi": {
+    "extensions": [
+      "./pi-extension.ts"
+    ]
+  },
+  "private": true,
+  "bin": {
+    "pi-durable": "cli.mjs"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "update": "npm install --no-save @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "latest",
+    "@earendil-works/pi-durable": "latest"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*"
+  }
+}
