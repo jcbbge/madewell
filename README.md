@@ -58,6 +58,18 @@ Every workspace store, every thread: the phase rail with the current position an
 
 On a remote machine, forward the port over ssh (for example `ssh -L 7789:localhost:7788 <host>`) and open http://localhost:7789.
 
+## Sidecar
+
+Run `pi-durable sidecar` in a pane. It is one plain terminal program, read-only like the dashboard, and shows only what needs you or is moving: what waits on you, each as a decision card with the exact command to answer; what is in progress, with its stage, its job, the harness and model doing it, any question round and the fix items it waits on; any account out of quota and when it resets; and the last few finished units. It redraws on change or every 2 seconds; `q` or Ctrl-C quits. `--once` prints one frame and exits; `--width N` sets the width. Colour is used on a terminal unless `NO_COLOR` is set.
+
+It is built for a right-hand third of the screen (60–90 columns). In tmux:
+
+```sh
+tmux split-window -h -l 33% 'pi-durable sidecar'
+```
+
+In herdr, run the same command in a pane.
+
 ## Test
 
 `npm test` — a scripted fake pi plays every role (no model calls): the full lifecycle, every Arbiter ruling, the 3-correction hold, NQ holds, a real `kill -9` redrive, and the extension (no tool blocking).

@@ -25,6 +25,7 @@
     "AGENTS.md",
     "README.md",
     "serve.mjs",
+    "sidecar.mjs",
     "dashboard.html"
   ],
   "pi": {
