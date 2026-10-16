@@ -106,12 +106,13 @@ During an operator-authorized autonomous delivery cycle, the issuer checks in-fl
 
 ### NQ precedes delegated execution
 
-The recipient establishes its understanding of purpose and raises questions or ambiguities before executing. The manager answers; the recipient confirms whether anything remains unresolved.
+The recipient establishes its understanding of purpose and raises questions or ambiguities before executing. The originating agent answers: a fresh headless call playing the role that made the handoff, answering from its own accepted handoff and the source. Before any phase has handed off, that is the dispatcher, from the objective and source; normally it is the previous phase's role; after a failure ruling sends the work back, it is the Arbiter, from its ruling. The originator clarifies what it handed over and never changes its handoff or the work; when only the operator can answer, it says so and the work holds for the human. The recipient confirms whether anything remains unresolved.
 
 - Bind each exchange to its delegation, participants, and fixed brief.
 - Clear understanding with no open questions permits execution; do not manufacture three rounds for a clear brief.
-- Count completed manager answers as clarification rounds, not retries or bare worker submissions.
-- After answer three, allow the recipient to confirm understanding. If questions remain, stop that work on a durable human hold. No fourth agent-only round and no actor-switch bypass.
+- Count completed originator answers as clarification rounds, not retries or bare worker submissions.
+- After answer three, allow the recipient to confirm understanding. If questions remain, stop that work on a durable human hold that names the originator: three rounds still unclear means its handoff is ambiguous or wrong. No fourth agent-only round and no actor-switch bypass.
+- The executing recipient receives the whole exchange: its questions, the originator's answers and any human answers.
 - Human clarification and release do not themselves authorize execution: recipient confirmation is still required.
 - Preserve questions, answers, confirmation, escalation, and release as inspectable evidence. A transport retry must not consume a new round or duplicate an effect.
 
