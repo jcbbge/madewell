@@ -9,6 +9,7 @@ import { drive } from './drive.mjs';
 import { observe, render, watchWork } from './observe.mjs';
 import { dataDirectory } from './config.mjs';
 import { serve } from './serve.mjs';
+import { renderSidecar, runSidecar, sidecarSnapshot } from './sidecar.mjs';
 
 const home = dirname(fileURLToPath(import.meta.url));
 const directory = dataDirectory();
@@ -24,6 +25,7 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   drive-all <ids...> [--delivery] [--model provider/model] [--background]
   answer <id> <answer.txt> [${CAUSES.join('|')}]   human answer to whatever is held
   serve [--port 7788] [--host 127.0.0.1]   live dashboard: states, transitions, agents, latency
+  sidecar [--once] [--width N]   terminal view for a pane: what waits on you, what is running
 
 Store: ${directory}
 Phases: ${STEPS.map(s => `${s.name} (${s.role})`).join(' → ')}
@@ -50,6 +52,12 @@ try {
     const opt = name => { const i = args.indexOf(name); return i < 0 ? undefined : args[i + 1]; };
     await serve({ port: Number(opt('--port') ?? 7788), host: opt('--host') ?? '127.0.0.1' });
     await new Promise(() => {});
+  }
+  else if (command === 'sidecar') {
+    const i = args.indexOf('--width'), width = i < 0 ? undefined : Number(args[i + 1]);
+    if (width !== undefined && !(width > 0)) throw new Error('--width needs a positive number of columns');
+    if (args.includes('--once')) console.log(renderSidecar(await sidecarSnapshot(), { width: width ?? process.stdout.columns ?? 80, color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR }));
+    else await runSidecar({ width });
   }
   else if (command === 'status') {
     const id = args.find(a => a !== '--json'), works = await observe(directory, id ? Number(id) : null);

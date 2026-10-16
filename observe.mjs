@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { STEPS } from './pi-runtime.mjs';
 
+const cardView = c => c && { harness: c.harness, provider: c.provider, account: c.account, model: c.model, effort: c.effort };
+
 // A rebuildable read-only view written after each commit. Never a second authority.
 export async function publishWork(directory, w) {
   const folder = join(directory, 'observability');
@@ -23,7 +25,7 @@ export async function publishWork(directory, w) {
   else if (current && current.name !== 'discover' && !w.delivery) { state = 'delivery-authorization-required'; next = 'Authorize delivery to continue past discovery.'; owner = 'operator'; }
   const view = {
     schema: 'pi-durable.work-view.v2', threadId: w.id, workspace: w.cwd, objective: w.objective.slice(0, 300), projectedAt: new Date().toISOString(),
-    done: Boolean(w.completion), state, next, owner, current, position: w.position, round: w.round, parentId: w.parentId, waitsOn: w.waitsOn,
+    done: Boolean(w.completion), state, next, owner, current, position: w.position, round: w.round, parentId: w.parentId, waitsOn: w.waitsOn, depth: w.depth ?? 0,
     progress: { accepted: w.completion ? STEPS.length : w.position, total: STEPS.length },
     checklist: STEPS.map((s, i) => ({ name: s.name, role: s.role, state: i < w.position || w.completion ? 'done' : i === w.position ? state : 'pending' })),
     questions: w.hold?.questions ?? (x?.status === 'awaiting-originator' ? x.turns.at(-1)?.questions ?? [] : []),
@@ -37,7 +39,9 @@ export async function publishWork(directory, w) {
       createdAt: w.events[0]?.at ?? null, delivery: w.delivery, completion: w.completion,
       attempts: w.attempts.map(a => ({ id: a.id, step: a.step, role: a.role, round: a.round, actor: a.actor, status: a.status, launches: a.launches ?? 0,
         runs: a.runs ?? [], createdAt: a.createdAt, startedAt: a.startedAt ?? null, endedAt: a.endedAt ?? null, progress: a.progress, checkIns: a.checkIns,
-        error: a.error || null, exitCode: a.exitCode ?? null, outputHead: (a.output ?? '').slice(0, 800) })),
+        error: a.error || null, exitCode: a.exitCode ?? null, outputHead: (a.output ?? '').slice(0, 800),
+        card: a.card ? cardView(a.card) : null,
+        swaps: (a.swaps ?? []).map(s => ({ from: cardView(s.from), to: cardView(s.to), at: s.at, account: s.limit?.account ?? null, resetsAt: s.limit?.resetsAt ?? null })) })),
       exchanges: (w.exchanges ?? []).map(x => ({ id: x.id, step: x.step, round: x.round, status: x.status, rounds: x.rounds,
         turns: x.turns.map(t => ({ type: t.type, at: t.at, questions: t.questions ?? [], clear: t.clear ?? null, text: (t.text ?? '').slice(0, 400) })) })),
       failures: w.failures.map(f => ({ id: f.id, status: f.status, at: f.at, round: f.round, ruling: f.ruling ?? null, prerequisite: f.prerequisite ?? null, report: f.report.slice(-1200) })),
