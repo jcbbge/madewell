@@ -41,7 +41,7 @@ export async function runPi({ cwd, args, prompt, record, env = {}, onLine, onSpa
   return { ...result, summary, ok: result.code === 0 && summary.finalStopReason === 'stop' && summary.output.trim() !== '' };
 }
 
-// A bounded judgment call (intake, manager, arbiter): read the answer, keep the receipt.
+// A bounded judgment call (intake, originator, arbiter): read the answer, keep the receipt.
 export async function callPi({ cwd, prompt, system, model, step, record }) {
   const args = buildPiArgs({ step, system, model, sessionDir: record + '-session' });
   const result = await runPi({ cwd, args, prompt, record });

@@ -120,20 +120,20 @@ test('three corrections still failing → human hold', t => run(t, {
   assert.match(w.hold.reason, /after 3 corrections/);
 }));
 
-test('NQ: questions get manager answers; missing authority holds for the human', t => run(t, {
+test('NQ: questions get originator answers', t => run(t, {
   intakeQuestions: ['Which database?', null],
-  manager: [{ answer: 'Postgres, per the source.', unresolvedAuthority: false }],
+  originator: [{ answer: 'Postgres, per the source.', unresolvedAuthority: false }],
 }, async ({ store, cwd }) => {
   const id = await store.create('Build it', 'source', cwd);
   await drive(store, id, quiet);
   const x = (await store.get(id)).exchanges[0];
-  assert.deepEqual(x.turns.map(t => t.type), ['worker', 'manager', 'worker']);
+  assert.deepEqual(x.turns.map(t => t.type), ['worker', 'originator', 'worker']);
   assert.equal(x.status, 'clear');
 }));
 
 test('NQ: unresolved authority → human answers → worker confirms → continues', t => run(t, {
   intakeQuestions: ['May I drop the table?', null],
-  manager: [{ answer: 'Only the operator can approve dropping data.', unresolvedAuthority: true }],
+  originator: [{ answer: 'Only the operator can approve dropping data.', unresolvedAuthority: true }],
 }, async ({ store, cwd }) => {
   const id = await store.create('Build it', 'source', cwd);
   assert.equal((await drive(store, id, quiet)).status, 'held');
@@ -144,6 +144,112 @@ test('NQ: unresolved authority → human answers → worker confirms → continu
   assert.equal(packet.exchange.at(-1).text, 'No dropping. Migrate in place.', 'the resumed worker receives the human answer');
   assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
   assert.deepEqual((await store.get(id)).exchanges[0].turns.map(t => t.type), ['worker', 'human', 'worker']);
+}));
+
+// NQ: the originating agent answers. Who that is depends on who made the handoff.
+const originatorCalls = log => log().filter(c => c.role === 'originator');
+const handoffOf = call => { const p = JSON.parse(call.prompt); return { packet: p, text: p.handoff ? readFileSync(p.handoff, 'utf8') : undefined }; };
+
+test('NQ: a mid-pipeline question is answered by the previous role, from its accepted output', t => run(t, {
+  intakeQuestions: [null, null, null, null, 'Which test runner?', null],
+  originator: [{ answer: 'node:test, as the plan says.', unresolvedAuthority: false }],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id), x = w.exchanges.find(x => x.step === 'test-plan');
+  assert.equal(x.originator, 'Cassiopeia', 'the planner handed test design its work');
+  assert.notEqual(x.originator, x.worker);
+  const calls = originatorCalls(log);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].as, 'Cassiopeia');
+  const { packet, text } = handoffOf(calls[0]);
+  assert.equal(text, w.attempts.find(a => a.step === 'plan' && a.status === 'accepted').output, 'the originator answers from its own accepted output');
+  assert.equal(text, 'Cassiopeia done');
+  assert.deepEqual(packet.questions, ['Which test runner?']);
+  assert.equal(packet.brief, undefined, 'the originator does not get the receiving step\'s brief');
+  assert.deepEqual(x.turns.map(t => [t.type, t.actor]).slice(0, 2), [['worker', x.worker], ['originator', 'Cassiopeia']]);
+  assert.equal(w.events.filter(e => e.type === 'call' && e.kind === 'originator').length, 1, 'the originator call is on the timeline');
+  assert.equal(w.events.filter(e => e.type === 'call' && e.kind === 'manager').length, 0);
+}));
+
+test('NQ: discovery questions are answered by the dispatcher, from objective and source only', t => run(t, {
+  intakeQuestions: ['Which file format?', null],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'CSV only, please.', cwd);
+  assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
+  const x = (await store.get(id)).exchanges[0];
+  assert.equal(x.step, 'discover');
+  assert.equal(x.originator, 'dispatcher');
+  const [call] = originatorCalls(log);
+  assert.equal(call.as, 'dispatcher');
+  const { packet, text } = handoffOf(call);
+  assert.equal(text, undefined, 'no phase handoff exists yet');
+  assert.deepEqual(packet.accepted, []);
+  assert.equal(packet.originator.basis, 'source');
+  assert.equal(readFileSync(packet.source, 'utf8'), 'CSV only, please.');
+}));
+
+test('NQ: after a failure rewind, the Arbiter answers from its ruling', t => run(t, {
+  verify: ['fail', 'pass'], arbiter: [{ cause: 'test', answer: 'Test t1 asserts the wrong value; fix it.', evidence: 'spec says ok' }],
+  intakeQuestions: [null, null, null, null, null, null, null, 'Which assertion is wrong?', null],
+  originator: [{ answer: 'The expected value in t1.', unresolvedAuthority: false }],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id), x = w.exchanges.find(x => x.step === 'test-plan' && x.round === 1);
+  assert.equal(x.originator, 'Arbiter');
+  const [call] = originatorCalls(log);
+  assert.equal(call.as, 'Arbiter');
+  const { packet, text } = handoffOf(call);
+  assert.equal(packet.originator.basis, 'ruling');
+  assert.match(text, /Test t1 asserts the wrong value; fix it\./);
+  assert.match(text, /spec says ok/);
+  assert.equal(w.exchanges.find(x => x.step === 'implement' && x.round === 1).originator, 'Orion', 'later steps in the round are handed over normally');
+}));
+
+test('NQ: the executing worker receives the whole exchange, including the originator\'s answer', t => run(t, {
+  intakeQuestions: ['Which database?', null],
+  originator: [{ answer: 'Postgres, per the source.', unresolvedAuthority: false }],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd);
+  await drive(store, id, quiet);
+  const discover = (await store.get(id)).attempts.find(a => a.step === 'discover');
+  const prompt = JSON.parse(log().find(c => c.role === 'Vega').prompt);
+  for (const packet of [JSON.parse(discover.packet), prompt]) {
+    assert.equal(packet.purpose, 'execute');
+    assert.deepEqual(packet.exchange.map(t => t.type), ['worker', 'originator', 'worker']);
+    assert.deepEqual(packet.exchange[0].questions, ['Which database?']);
+    assert.equal(packet.exchange[1].actor, 'dispatcher');
+    assert.equal(packet.exchange[1].text, 'Postgres, per the source.');
+  }
+}));
+
+test('NQ: three answered rounds with questions open → human hold naming the originator, no fourth round', t => run(t, {
+  intakeQuestions: [null, null, null, 'What does "fast" mean?'],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const result = await drive(store, id, quiet);
+  assert.equal(result.status, 'held');
+  const w = await store.get(id), x = w.exchanges.find(x => x.step === 'plan');
+  assert.equal(x.originator, 'Polaris');
+  assert.equal(x.rounds, 3);
+  assert.equal(x.status, 'human-hold');
+  assert.equal(w.hold.kind, 'nq');
+  assert.match(w.hold.reason, /handoff from Polaris is ambiguous or wrong/);
+  assert.equal(originatorCalls(log).length, 3);
+  assert.ok(originatorCalls(log).every(c => c.as === 'Polaris'), 'no actor switch');
+  assert.equal((await drive(store, id, quiet)).status, 'held', 'driving again does not bypass the hold');
+  assert.equal(originatorCalls(log).length, 3, 'no fourth originator call');
+  assert.equal(w.attempts.filter(a => a.step === 'plan').length, 0, 'nothing executed');
+}));
+
+test('NQ: a clear intake executes immediately with zero originator calls', t => run(t, {}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id);
+  assert.equal(originatorCalls(log).length, 0);
+  assert.ok(w.exchanges.every(x => x.rounds === 0 && x.turns.length === 1 && x.status === 'clear'));
+  assert.equal(w.events.filter(e => e.type === 'call' && e.kind === 'originator').length, 0);
 }));
 
 test('crash: kill -9 the driver mid-implementation; driving again continues the same pi session', async () => {

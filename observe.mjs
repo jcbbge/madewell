@@ -18,7 +18,7 @@ export async function publishWork(directory, w) {
   else if (failure) { state = 'test-failed'; next = 'The Arbiter decides whose question the failure is.'; owner = 'Arbiter'; }
   else if (a && ['queued', 'running'].includes(a.status)) { state = 'working'; next = `${a.role} is working.`; owner = a.role; }
   else if (a?.status === 'failed') { state = 'worker-failed'; next = 'Drive again to redrive the same worker session.'; owner = 'driver'; }
-  else if (x?.status === 'awaiting-manager') { state = 'question'; next = 'The manager answers the worker\'s questions.'; owner = x.manager; }
+  else if (x?.status === 'awaiting-originator') { state = 'question'; next = `${x.originator}, who handed over this work, answers the worker's questions.`; owner = x.originator; }
   else if (x?.status === 'awaiting-worker') { state = 'intake'; next = 'The worker confirms understanding or asks.'; owner = current.role; }
   else if (current && current.name !== 'discover' && !w.delivery) { state = 'delivery-authorization-required'; next = 'Authorize delivery to continue past discovery.'; owner = 'operator'; }
   const view = {
@@ -26,10 +26,10 @@ export async function publishWork(directory, w) {
     done: Boolean(w.completion), state, next, owner, current, position: w.position, round: w.round, parentId: w.parentId, waitsOn: w.waitsOn,
     progress: { accepted: w.completion ? STEPS.length : w.position, total: STEPS.length },
     checklist: STEPS.map((s, i) => ({ name: s.name, role: s.role, state: i < w.position || w.completion ? 'done' : i === w.position ? state : 'pending' })),
-    questions: w.hold?.questions ?? (x?.status === 'awaiting-manager' ? x.turns.at(-1)?.questions ?? [] : []),
+    questions: w.hold?.questions ?? (x?.status === 'awaiting-originator' ? x.turns.at(-1)?.questions ?? [] : []),
     hold: w.hold, failure: failure ? { id: failure.id, status: failure.status, report: failure.report.slice(-1500) } : null,
     lastRuling: w.failures.findLast(f => f.ruling)?.ruling ?? null,
-    exchange: x ? { id: x.id, status: x.status, manager: x.manager, rounds: x.rounds } : null,
+    exchange: x ? { id: x.id, status: x.status, originator: x.originator, rounds: x.rounds } : null,
     attempt: a ? { id: a.id, role: a.role, state: a.status, launches: a.launches ?? 0, progress: a.progress, error: a.error || null } : null,
     lastEvent: w.events.at(-1) ?? null, ownerPid: w.events.at(-1)?.pid ?? null,
     // The full timeline for the dashboard: everything that happened, minus packet and source text.

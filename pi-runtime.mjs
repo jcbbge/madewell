@@ -24,7 +24,7 @@ export const TOOLS = {
   implement: null,
   verify: [...inspect, 'bash'],
   arbitrate: [...inspect, 'bash'],
-  intake: inspect, manager: inspect,
+  intake: inspect, originator: inspect, // NQ judgment calls are read-only
 };
 
 export const progressExtension = fileURLToPath(new URL('./work-progress.mjs', import.meta.url));

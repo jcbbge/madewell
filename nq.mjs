@@ -1,17 +1,18 @@
 import { randomUUID } from 'node:crypto';
 // NQ: before a worker executes, it states its understanding and asks its questions.
-// The manager answers. Three answered rounds with questions still open = human hold.
+// The originating agent (whoever handed the work over) answers from its own handoff.
+// Three answered rounds with questions still open = the handoff is ambiguous or wrong: human hold.
 const text = (v, name) => { if (typeof v !== 'string' || !v.trim()) throw new Error(`${name} must be nonempty`); };
 
 export function noHold(work) { if (work.hold) throw new Error(`Human hold: ${work.hold.reason}`); }
 const current = (work, step) => (work.exchanges ?? []).findLast(x => x.step === step && x.round === work.round);
 
-export function delegate(work, step, manager, worker) {
-  text(manager, 'Manager'); text(worker, 'Worker'); noHold(work);
-  if (manager === worker) throw new Error('Manager and worker must differ');
+export function delegate(work, step, originator, worker) {
+  text(originator, 'Originator'); text(worker, 'Worker'); noHold(work);
+  if (originator === worker) throw new Error('Originator and worker must differ');
   const open = current(work, step);
   if (open && open.status !== 'clear') throw new Error('Resolve the existing exchange first');
-  const x = { id: randomUUID(), step, round: work.round, manager, worker, status: 'awaiting-worker', rounds: 0, turns: [], createdAt: new Date().toISOString() };
+  const x = { id: randomUUID(), step, round: work.round, originator, worker, status: 'awaiting-worker', rounds: 0, turns: [], createdAt: new Date().toISOString() };
   work.exchanges.push(x);
   return x.id;
 }
@@ -30,18 +31,19 @@ export function workerReply(work, id, actor, response) {
   if (clear) x.status = 'clear';
   else if (x.rounds >= 3 || x.humanAnswered) {
     x.status = 'human-hold';
-    work.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), reason: `${x.step}: worker still has questions after ${x.humanAnswered ? 'the human answer' : 'three answers'}`, questions };
-  } else x.status = 'awaiting-manager';
+    work.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), reason: x.humanAnswered ? `${x.step}: worker still has questions after the human answer`
+      : `${x.step}: the handoff from ${x.originator} is ambiguous or wrong: questions remain after three answers`, questions };
+  } else x.status = 'awaiting-originator';
   return { exchangeId: id, status: x.status, rounds: x.rounds };
 }
 
-export function managerReply(work, id, actor, answer) {
-  noHold(work); text(answer, 'Manager answer');
+export function originatorReply(work, id, actor, answer) {
+  noHold(work); text(answer, 'Originator answer');
   const x = find(work, id);
-  if (x.manager !== actor) throw new Error('Only this exchange manager can answer');
-  if (x.status !== 'awaiting-manager') throw new Error('No manager answer is due');
+  if (x.originator !== actor) throw new Error('Only the originator of this handoff can answer');
+  if (x.status !== 'awaiting-originator') throw new Error('No originator answer is due');
   x.rounds++;
-  x.turns.push({ type: 'manager', actor, at: new Date().toISOString(), round: x.rounds, text: answer });
+  x.turns.push({ type: 'originator', actor, at: new Date().toISOString(), round: x.rounds, text: answer });
   x.status = 'awaiting-worker';
   return { exchangeId: id, status: x.status, rounds: x.rounds };
 }

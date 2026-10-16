@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STEPS, provisionPacket, CAUSES } from './work.mjs';
+import { STEPS, provisionPacket, CAUSES, DISPATCHER } from './work.mjs';
 import { ARBITER } from './pi-runtime.mjs';
 import { callPi } from './pi-call.mjs';
 import { parseResponse } from './pi-stream.mjs';
@@ -86,10 +86,10 @@ export async function drive(store, id, { delivery = false, model = '', call = ca
       continue;
     }
 
-    // NQ before execution: the worker states its understanding; the manager answers.
+    // NQ before execution: the worker states its understanding; whoever handed it the work answers.
     let x = currentExchange(w, step.name);
     if (!x || w.attempts.some(a => a.actor === x.worker && a.round === w.round && a.step === step.name)) {
-      await store.delegate(id, 'work-driver', `${step.role}-${randomUUID()}`);
+      await store.delegate(id, `${step.role}-${randomUUID()}`);
       continue;
     }
     if (x.status === 'awaiting-worker') {
@@ -99,12 +99,13 @@ export async function drive(store, id, { delivery = false, model = '', call = ca
       await store.nq(id, x.id, parseResponse(reply), x.worker);
       continue;
     }
-    if (x.status === 'awaiting-manager') {
-      const reply = parseResponse(await timed(id, 'manager', step.name, { cwd: w.cwd, model, step: 'manager', record: record(`${step.name}-manager`),
-        system: 'You manage this work. Answer the worker\'s questions from the source, the accepted dossier and the workspace. Never invent operator authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If only the operator can answer, set unresolvedAuthority:true and say what is needed.',
-        prompt: JSON.stringify({ questions: x.turns.at(-1).questions, packet: JSON.parse(await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'manager'))) }) }));
+    if (x.status === 'awaiting-originator') {
+      // A fresh headless call plays the party that made this handoff, answering from its own handoff.
+      const reply = parseResponse(await timed(id, 'originator', step.name, { cwd: w.cwd, model, step: 'originator', record: record(`${step.name}-originator`),
+        system: originatorSystem(x.originator),
+        prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
       if (reply.unresolvedAuthority) { await store.holdQuestion(id, x.id, reply.answer); continue; }
-      await store.answer(id, x.id, x.manager, reply.answer);
+      await store.answer(id, x.id, x.originator, reply.answer);
       continue;
     }
     if (x.status !== 'clear') return finish('question', `${step.name}: exchange ${x.id} is ${x.status}`);
@@ -113,6 +114,11 @@ export async function drive(store, id, { delivery = false, model = '', call = ca
     await store.execute(id, attemptId);
   }
 }
+
+const originatorSystem = role => `You are ${role}, who handed over this work. ${role === DISPATCHER
+  ? 'You dispatched it on behalf of the person who asked for it: answer from the objective and source only.'
+  : role === ARBITER.role ? 'Your ruling on a failed test sent it here: answer from that ruling and the verifier report.'
+  : 'Your accepted handoff output is in the packet: answer from it and the source.'} The receiving worker asked questions before executing. Clarify what you handed over; never change your handoff or the work, and never invent operator authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If only the operator can answer, set unresolvedAuthority:true and say what is needed.`;
 
 // A failed test is a question. The Arbiter decides whose question it is.
 async function arbitrate(store, w, failure, { call, model, record }) {
