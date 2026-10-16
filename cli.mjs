@@ -12,7 +12,7 @@ import { dataDirectory, workspaceDataDirectory } from './config.mjs';
 import { serve } from './serve.mjs';
 import { renderSidecar, runSidecar, sidecarSnapshot } from './sidecar.mjs';
 import { doctor, renderDoctor } from './doctor.mjs';
-import { provision, renderProvision } from './provision.mjs';
+import { provision, provisionHost, renderProvision } from './provision.mjs';
 
 const home = dirname(fileURLToPath(import.meta.url));
 const [command, ...given] = process.argv.slice(2);
@@ -40,6 +40,7 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   sidecar [--once] [--width N]   terminal view for a pane: what waits on you, what is running
   doctor [--json]                  what can run here: harnesses, sign-in, cards per tier, front doors
   provision [--yes]                install each installed harness's front door (--yes replaces changed files)
+  provision --host                 make Made Well how every agent session on this machine works (each harness's global instructions)
 
   --workspace <dir> on any command uses that workspace's store (the one pi uses there).
 
@@ -121,7 +122,7 @@ try {
     console.log(args.includes('--json') ? JSON.stringify(report, null, 2) : renderDoctor(report));
     if (!report.ok) process.exitCode = 1;
   }
-  else if (command === 'provision') console.log(renderProvision(await provision({ yes: args.includes('--yes') })));
+  else if (command === 'provision') console.log(renderProvision(args.includes('--host') ? await provisionHost() : await provision({ yes: args.includes('--yes') })));
   else if (command === 'start') {
     const o = startOptions(), cwd = await realpath(workspace);
     const source = o.source ?? await readFile(o.sourceFile, 'utf8');

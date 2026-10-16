@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, readFile, writeFile, readdir, access, symlink, realpath } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { machine, runCli, repo } from './harness-fakes.mjs';
 
@@ -106,4 +106,21 @@ test('start: creates the unit in the workspace\'s store and drives it in the bac
   const exit = JSON.parse(await readFile(join(out.store, 'runs', `${out.launched.runId}.exit.json`), 'utf8'));
   assert.equal(exit.exitCode, 0);
   assert.equal(JSON.parse((await runCli(['list'], env)).stdout).length, 0, 'the shared store is not where it went');
+});
+
+test('provision --host: puts the Made Well directive into each installed harness\'s global instructions, once, and keeps the rest', async () => {
+  const { provisionHost, BEGIN, END, globalFiles } = await import('../provision.mjs');
+  const m = await machine();
+  const files = globalFiles(m.env);
+  await mkdir(dirname(files.claude), { recursive: true });
+  await writeFile(files.claude, '# My own rules\n\nBe kind.\n');
+  const first = await provisionHost({ env: m.env });
+  const claude = await readFile(files.claude, 'utf8');
+  assert.match(claude, /^# My own rules\n\nBe kind\.\n/, 'the person\'s own instructions stay first and untouched');
+  assert.equal(claude.split(BEGIN).length, 2, 'exactly one block');
+  assert.match(claude, /you are the \*\*dispatcher\*\*/);
+  const again = await provisionHost({ env: m.env });
+  assert.ok(again.filter(a => a.action !== 'skipped').every(a => a.action === 'present'), 'repeating changes nothing');
+  assert.equal((await readFile(files.claude, 'utf8')).split(END).length, 2);
+  assert.ok(first.some(a => a.harness === 'codex'));
 });

@@ -42,14 +42,26 @@ it run in the background, show status, answer a hold, inspect a unit.
   `node cli.mjs provision --yes`. If it is something else, ask the person before replacing it.
 - **pi**: it prints a `pi install "<this checkout>"` command. Run it. Then `/reload` any open pi session.
 
-## 5. The command on PATH (optional)
+## 5. Make it how this machine works
+
+    node cli.mjs provision --host
+
+Made Well is not a per-project tool: it is how every agent session on this machine works, in any
+harness and any folder. This writes the Made Well directive (`DISPATCH.md`) into each installed
+harness's global instructions: Claude Code's `CLAUDE.md`, Codex's `AGENTS.md`, pi's `AGENTS.md`, in
+their config folders. It goes between `made-well:begin` and `made-well:end` markers after whatever is
+already there, and repeating it replaces only that block. From then on the root agent of every new
+session is the dispatcher: it talks, reads and explains directly, and runs every change as a Made
+Well work unit. Multiplexers such as tmux or herdr need nothing: they start harnesses.
+
+## 6. The command on PATH (optional)
 
     npm link
 
 This puts `pi-durable` on PATH. If it fails for lack of permission, skip it: the skills already name
 the full `node .../cli.mjs` command to use instead.
 
-## 6. Guard hooks
+## 7. Guard hooks
 
 Made Well's workers are headless harness runs. They carry `PI_DURABLE_WORKER=1` and keep their steps
 on Made Well's own record. Any hook on this machine that stops a tool call or a turn until steps,
@@ -67,14 +79,14 @@ Each such hook must let a worker through: exit 0 (allow) when `PI_DURABLE_WORKER
 first line of `[ -n "$PI_DURABLE_WORKER" ] && exit 0`. These are the person's own settings: tell them
 which hook and the change, and make it only with their yes.
 
-## 7. Check again
+## 8. Check again
 
     node cli.mjs doctor
 
 Fix each problem it lists with the fix it gives, then run it again. It exits non-zero while some job
 has no card that can run here.
 
-## 8. Tell the person
+## 9. Tell the person
 
 In plain words, no command output:
 

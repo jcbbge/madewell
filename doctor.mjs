@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -119,9 +120,10 @@ export async function doctor({ env = process.env } = {}) {
   const cards = prescriptions ? Object.values(prescriptions.tiers).flat() : [];
 
   const doors = frontDoors(env), homes = harnessHomes(env), harnesses = {};
+  const host = await import('./provision.mjs'), hostFiles = host.globalFiles(env), hostBlock = await host.dispatchBlock();
   for (const harness of HARNESSES) {
     const command = binaryFor(harness), here = installed({ harness }, { env });
-    const h = { name: NAMES[harness], command, installed: here, version: null, signedIn: null, frontDoor: null };
+    const h = { name: NAMES[harness], command, installed: here, version: null, signedIn: null, frontDoor: null, host: null };
     if (here) {
       const v = await run(command, ['--version'], { env });
       h.version = v.code === 0 ? v.stdout.trim().split('\n')[0] || null : null;
@@ -133,6 +135,10 @@ export async function doctor({ env = process.env } = {}) {
       h.frontDoor = door.kind === 'skill' ? skillState(door) : piPackageState(door);
       if (h.signedIn === false) problem(`${h.name} is installed but not signed in`, harness === 'claude' ? 'Run: claude auth login'
         : harness === 'codex' ? 'Run: codex login' : `Run pi and sign in (/login) to one of: ${providers.join(', ')}`);
+      // The host directive: Made Well is how every session of this harness works, in any folder.
+      const global = await readFile(hostFiles[harness], 'utf8').catch(() => '');
+      h.host = global.includes(hostBlock.trim()) ? 'installed' : global.includes(host.BEGIN) ? 'stale' : 'missing';
+      if (h.host !== 'installed') problem(`${h.name} sessions do not work through Made Well by default (host directive ${h.host} in ${hostFiles[harness]})`, 'Run: pi-durable provision --host');
       if (h.frontDoor === 'missing') problem(`${h.name} has no Made Well front door`, door.kind === 'skill' ? 'Run: pi-durable provision' : `Run: ${door.command}`);
       if (h.frontDoor === 'different') problem(`${h.name}'s Made Well skill differs from this checkout`, 'Run: pi-durable provision --yes');
     }
@@ -168,7 +174,7 @@ export function renderDoctor(r) {
   for (const h of Object.values(r.harnesses)) {
     if (!h.installed) { lines.push(`${h.name}: not installed (${h.command})`); continue; }
     const providers = h.providers ? ` (${Object.entries(h.providers).map(([p, v]) => `${p} ${yes(v)}`).join(', ')})` : '';
-    lines.push(`${h.name}: ${h.version ?? 'version UNKNOWN'} · signed in ${yes(h.signedIn)}${providers} · front door ${h.frontDoor}`);
+    lines.push(`${h.name}: ${h.version ?? 'version UNKNOWN'} · signed in ${yes(h.signedIn)}${providers} · front door ${h.frontDoor} · host directive ${h.host}`);
   }
   lines.push('');
   for (const [tier, t] of Object.entries(r.tiers)) {
