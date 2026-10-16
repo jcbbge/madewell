@@ -171,6 +171,8 @@ const CODEX_LIMIT = /[Yy]ou['’]ve hit your usage limit[^\n"]*/;
 const PI_LIMIT = /You have hit your ChatGPT usage limit(?: \([^)]*\))?\.(?: Try again in ~(\d+) min\.)?/;
 
 // One harness run's stdout → output, success, session, and any usage limit with its reset time.
+// Limit signals are read only from the harness's own error/result events, never from tool output
+// (a worker can cat a file that quotes a limit message), and only when the run did not succeed.
 // The caller still owns the exit code; exit codes on a limit are undocumented for all three.
 export function parseRun(harness, stdoutText, { now = Date.now(), account } = {}) {
   const evs = events(stdoutText);
@@ -178,52 +180,69 @@ export function parseRun(harness, stdoutText, { now = Date.now(), account } = {}
     const result = evs.findLast(e => e.type === 'result');
     const sessionId = evs.find(e => e.session_id)?.session_id ?? null;
     const output = typeof result?.result === 'string' ? result.result : '';
+    // A result whose whole text is Claude Code's limit message is a limit, whatever its subtype says.
+    const succeeded = result?.subtype === 'success' && result.is_error === false && output.trim() !== ''
+      && !new RegExp(`^\\s*${CLAUDE_LIMIT.source}`).test(output);
+    // Harness-own events: the result, error records, the synthetic assistant message Claude Code writes on a limit.
+    const own = evs.filter(e => e.type === 'result' || e.error || e.type === 'rate_limit_event'
+      || (e.type === 'system' && e.subtype === 'api_retry') || (e.type === 'assistant' && e.message?.model === '<synthetic>'));
     let limit = null;
-    const record = evs.find(e => e.error === 'rate_limit' && e.quotaLimits)
-      ?? evs.find(e => e.type === 'rate_limit_event' && e.rate_limit_info?.status === 'rejected');
-    const text = evs.flatMap(strings).find(s => CLAUDE_LIMIT.test(s));
-    const message = text ? CLAUDE_LIMIT.exec(text)[0] : null;
-    if (record || message) {
-      const machine = seconds(record?.quotaLimits?.resetsAt ?? record?.rate_limit_info?.resetsAt);
-      limit = { account: account ?? 'anthropic', resetsAt: machine ?? (message ? clockToEpoch(message.split('resets')[1], now) : null),
-        message: message ?? `rate limit ${record?.quotaLimits?.rateLimitType ?? record?.rate_limit_info?.rateLimitType ?? ''}`.trim() };
+    if (!succeeded) {
+      const record = own.find(e => e.error === 'rate_limit' && e.quotaLimits)
+        ?? own.find(e => e.type === 'rate_limit_event' && e.rate_limit_info?.status === 'rejected');
+      const text = own.flatMap(strings).find(s => CLAUDE_LIMIT.test(s));
+      const message = text ? CLAUDE_LIMIT.exec(text)[0] : null;
+      if (record || message) {
+        const machine = seconds(record?.quotaLimits?.resetsAt ?? record?.rate_limit_info?.resetsAt);
+        limit = { account: account ?? 'anthropic', resetsAt: machine ?? (message ? clockToEpoch(message.split('resets')[1], now) : null),
+          message: message ?? `rate limit ${record?.quotaLimits?.rateLimitType ?? record?.rate_limit_info?.rateLimitType ?? ''}`.trim() };
+      }
     }
-    return { output, ok: result?.subtype === 'success' && result.is_error === false && !limit && output.trim() !== '', sessionId, limit };
+    return { output, ok: succeeded && !limit, sessionId, limit };
   }
   if (harness === 'codex') {
     const sessionId = evs.find(e => e.type === 'thread.started')?.thread_id ?? null;
     const output = evs.filter(e => e.type === 'item.completed' && e.item?.type === 'agent_message').map(e => e.item.text).at(-1) ?? '';
-    const failed = evs.some(e => e.type === 'turn.failed' || e.type === 'error');
-    const all = evs.flatMap(strings);
+    const own = evs.filter(e => e.type === 'turn.failed' || e.type === 'error');
+    const succeeded = evs.some(e => e.type === 'turn.completed') && own.length === 0 && output.trim() !== '';
     const rateLimits = evs.map(function find(o) {
       if (!o || typeof o !== 'object') return null;
       if (o.rate_limits && typeof o.rate_limits === 'object') return o.rate_limits;
       for (const v of Object.values(o)) { const r = find(v); if (r) return r; }
       return null;
     }).filter(Boolean).at(-1);
-    const text = all.find(s => CODEX_LIMIT.test(s));
-    const message = text ? CODEX_LIMIT.exec(text)[0] : null;
-    const reached = rateLimits?.rate_limit_reached_type != null || all.includes('usage_limit_reached');
     let limit = null;
-    if (message || reached) {
-      const machine = seconds(rateLimits?.primary?.resets_at) ?? seconds(rateLimits?.secondary?.resets_at);
-      const at = message && /try again at\s+(.+)/i.exec(message);
-      limit = { account: account ?? 'openai', resetsAt: machine ?? (at ? clockToEpoch(at[1], now) : null),
-        message: message ?? `usage limit reached (${rateLimits?.rate_limit_reached_type ?? 'usage_limit_reached'})` };
+    if (!succeeded) {
+      const ownText = own.flatMap(strings);
+      const text = ownText.find(s => CODEX_LIMIT.test(s));
+      const message = text ? CODEX_LIMIT.exec(text)[0] : null;
+      const reached = rateLimits?.rate_limit_reached_type != null || ownText.some(s => /usage_limit_reached|usage_not_included|quota_exceeded/.test(s));
+      if (message || reached) {
+        const machine = seconds(rateLimits?.primary?.resets_at) ?? seconds(rateLimits?.secondary?.resets_at);
+        const at = message && /try again at\s+(.+)/i.exec(message);
+        limit = { account: account ?? 'openai', resetsAt: machine ?? (at ? clockToEpoch(at[1], now) : null),
+          message: message ?? `usage limit reached (${rateLimits?.rate_limit_reached_type ?? 'usage_limit_reached'})` };
+      }
     }
-    return { output, ok: evs.some(e => e.type === 'turn.completed') && !failed && !limit && output.trim() !== '', sessionId, limit };
+    return { output, ok: succeeded && !limit, sessionId, limit };
   }
   if (harness === 'pi') {
     const summary = summarizePi(stdoutText);
     const sessionId = evs.find(e => e.type === 'session')?.id ?? null;
-    const text = evs.flatMap(strings).find(s => PI_LIMIT.test(s));
+    const succeeded = summary.finalStopReason === 'stop' && summary.output.trim() !== '';
+    // Harness-own events: an assistant turn that ended in error, a failed auto-retry, an error event.
+    const own = evs.filter(e => (e.type === 'message_end' && e.message?.role === 'assistant' && e.message?.stopReason === 'error')
+      || (e.type === 'auto_retry_end' && e.success === false) || e.type === 'error');
     let limit = null;
-    if (text) {
-      const [message, minutes] = PI_LIMIT.exec(text);
-      // pi's ChatGPT limit is the openai-codex subscription: the same pool as Codex.
-      limit = { account: account ?? 'openai', resetsAt: minutes == null ? null : now + Number(minutes) * 60_000, message };
+    if (!succeeded) {
+      const text = own.flatMap(strings).find(s => PI_LIMIT.test(s));
+      if (text) {
+        const [message, minutes] = PI_LIMIT.exec(text);
+        // pi's ChatGPT limit is the openai-codex subscription: the same pool as Codex.
+        limit = { account: account ?? 'openai', resetsAt: minutes == null ? null : now + Number(minutes) * 60_000, message };
+      }
     }
-    return { output: summary.output, ok: summary.finalStopReason === 'stop' && summary.output.trim() !== '' && !limit, sessionId, limit };
+    return { output: summary.output, ok: succeeded && !limit, sessionId, limit };
   }
   throw new TypeError(`Unknown harness ${harness}`);
 }

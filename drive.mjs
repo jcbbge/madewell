@@ -12,6 +12,7 @@ import { loadPrescriptions, cardsFor, pickCard } from './cards.mjs';
 const home = dirname(fileURLToPath(import.meta.url));
 const MAX_LAUNCHES = 3;
 const UNKNOWN_RESET_MS = 60 * 60_000; // a limit with no reset time is treated as out for an hour
+const MIN_OUT_MS = 5 * 60_000; // a reported reset in the past or 'in ~0 min' still keeps the account out briefly
 const guidance = {
   discover: 'Inspect the supplied source and workspace. Identify the requested deliverable, scope, uncertainties and acceptance conditions. Do not implement.',
   ideate: 'Use the accepted discovery. Shape the outcome and bounded options. Recommend the smallest useful approach across developer, user and agentic experience. Do not implement.',
@@ -43,13 +44,19 @@ export async function drive(store, id, { delivery = false, model = '', prescript
   const record = name => join(store.directory, 'calls', `${name}-${randomUUID()}`);
   const cardsOf = (job, fromJob) => model ? [overrideCard(model)] : cardsFor(prescriptions, job, { fromJob });
   const accessOf = job => prescriptions.jobs[job]?.access ?? 'read';
-  const pick = async (job, fromJob) => {
-    const { card, resetsAt } = pickCard(cardsOf(job, fromJob), { exhausted: await store.exhausted() });
-    if (!card) throw new QuotaOut(job, resetsAt);
+  // The first card whose account has quota. `avoid`: accounts that just hit a limit here, never picked again
+  // for this job whatever their reported reset says, so a swap always changes provider account.
+  const pick = async (job, fromJob, avoid = []) => {
+    const exhausted = { ...await store.exhausted() };
+    for (const account of avoid) exhausted[account] = Infinity;
+    const { card, resetsAt } = pickCard(cardsOf(job, fromJob), { exhausted });
+    if (!card) throw new QuotaOut(job, Number.isFinite(resetsAt) ? resetsAt : null);
     return card;
   };
-  const outOf = async (limit, where) => {
-    const resetsAt = Number.isFinite(limit.resetsAt) ? limit.resetsAt : Date.now() + UNKNOWN_RESET_MS;
+  // Marks the account out, measured from when the limit was hit, so a re-read limit never extends it.
+  const outOf = async (limit, where, at = Date.now()) => {
+    const reported = Number.isFinite(limit.resetsAt) ? limit.resetsAt : at + UNKNOWN_RESET_MS;
+    const resetsAt = Math.max(reported, at + MIN_OUT_MS);
     await store.markExhausted(limit.account, resetsAt);
     await store.note(id, 'quota', { account: limit.account, resetsAt, message: limit.message, where });
     log(`${where}: ${limit.account} is out of quota until ${new Date(resetsAt).toISOString()}`);
@@ -67,12 +74,14 @@ export async function drive(store, id, { delivery = false, model = '', prescript
     }
   };
   // A judgment call on its job's card. A usage limit swaps to the next card on another account.
-  const judge = async (kind, stepName, job, fromJob, options) => {
+  const judge = async (kind, stepName, job, fromJob, { name, ...options }) => {
+    const avoid = [];
     for (;;) {
-      const card = await pick(job, fromJob);
-      const result = await timed(kind, stepName, { ...options, card, access: accessOf(job), readDirs: [store.directory] });
+      const card = await pick(job, fromJob, avoid);
+      const result = await timed(kind, stepName, { ...options, record: record(name), card, access: accessOf(job), readDirs: [store.directory] });
       if (!result.limit) return result.output;
       await outOf(result.limit, `${kind} for ${stepName}`);
+      avoid.push(result.limit.account, card.account);
     }
   };
   const finish = async (status, reason) => {
@@ -95,7 +104,7 @@ export async function drive(store, id, { delivery = false, model = '', prescript
 
       const open = w.failures.find(f => f.status === 'open');
       if (open) {
-        const verdict = await arbitrate(w, open, { ask: options => judge('arbiter', 'verify', 'arbitrate', undefined, options), record });
+        const verdict = await arbitrate(w, open, { ask: options => judge('arbiter', 'verify', 'arbitrate', undefined, options) });
         const routed = await store.rule(id, open.id, verdict);
         log(`arbiter: ${routed.cause}${routed.prerequisite ? ` → prerequisite thread ${routed.prerequisite}` : ''}`);
         continue;
@@ -111,8 +120,8 @@ export async function drive(store, id, { delivery = false, model = '', prescript
       const attempt = w.attempts.findLast(a => a.step === step.name && a.round === w.round);
       if (attempt && ['queued', 'running'].includes(attempt.status)) { log(`${step.name}: resuming ${attempt.id}`); await store.execute(id, attempt.id); continue; }
       if (attempt?.status === 'failed' && attempt.limit) {
-        await outOf(attempt.limit, step.name);
-        const card = await pick(step.name);
+        await outOf(attempt.limit, step.name, attempt.endedAt ?? Date.now());
+        const card = await pick(step.name, undefined, [attempt.limit.account, attempt.card.account]);
         await store.swap(id, attempt.id, card);
         log(`${step.name}: continuing on ${card.harness} · ${card.model}`);
         await store.execute(id, attempt.id); continue;
@@ -140,7 +149,7 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         continue;
       }
       if (x.status === 'awaiting-worker') {
-        const reply = await judge('intake', step.name, 'intake', undefined, { cwd: w.cwd, record: record(`${step.name}-nq`),
+        const reply = await judge('intake', step.name, 'intake', undefined, { cwd: w.cwd, name: `${step.name}-nq`,
           system: 'You are the assigned worker in read-only intake, not execution. Do not infer your execution tools from the limited tools in this intake: test-plan execution has bash/write/edit; verify execution has bash. The coordinator handles reassignment, not the worker. Return ONLY JSON {intent:string, questions:string[], ambiguities:string[]}. Empty arrays confirm readiness. Ask only about material missing information or authority that the accepted dossier and workspace cannot settle.',
           prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'nq')) });
         await store.nq(id, x.id, parseResponse(reply), x.worker);
@@ -150,7 +159,7 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         // A fresh headless call plays the party that made this handoff, on that party's own card.
         const o = await store.originator(id);
         const fromJob = o.step ?? (o.role === ARBITER.role ? 'arbitrate' : 'discover');
-        const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, record: record(`${step.name}-originator`),
+        const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, name: `${step.name}-originator`,
           system: originatorSystem(x.originator),
           prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
         if (reply.unresolvedAuthority) { await store.holdQuestion(id, x.id, reply.answer); continue; }
@@ -175,13 +184,13 @@ const originatorSystem = role => `You are ${role}, who handed over this work. ${
   : 'Your accepted handoff output is in the packet: answer from it and the source.'} The receiving worker asked questions before executing. Clarify what you handed over; never change your handoff or the work, and never invent operator authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If only the operator can answer, set unresolvedAuthority:true and say what is needed.`;
 
 // A failed test is a question. The Arbiter decides whose question it is.
-async function arbitrate(w, failure, { ask, record }) {
+async function arbitrate(w, failure, { ask }) {
   const byStep = name => w.attempts.findLast(a => a.step === name && a.status === 'accepted')?.output ?? '(none)';
   const prompt = JSON.stringify({ objective: w.objective, workspace: w.cwd, failure: failure.report,
     plan: byStep('plan'), testPlan: byStep('test-plan'), implementation: byStep('implement'),
     priorRulings: w.failures.filter(f => f.ruling).map(f => f.ruling) }, null, 2);
   try {
-    const verdict = parseResponse(await ask({ cwd: w.cwd, record: record('arbiter'), prompt,
+    const verdict = parseResponse(await ask({ cwd: w.cwd, name: 'arbiter', prompt,
       system: `You are the ${ARBITER.role}. ${ARBITER.duty} Inspect the actual code, tests and history; you may run the tests. Decide exactly one cause: "pre-existing" (a defect that existed before this work), "implementation" (the new code is wrong), "test" (the test is wrong). If the evidence does not decide it, answer "undetermined". Return ONLY JSON {"cause":"pre-existing"|"implementation"|"test"|"undetermined","answer":string,"evidence":string}. The answer is what the responsible party must do.` }));
     return { cause: CAUSES.includes(verdict.cause) ? verdict.cause : 'undetermined', answer: verdict.answer ?? '', evidence: verdict.evidence ?? '', by: ARBITER.role };
   } catch (error) {

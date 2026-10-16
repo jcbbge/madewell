@@ -202,3 +202,25 @@ test('clockToEpoch: next occurrence, UTC or local', () => {
   assert.equal(clockToEpoch('Fri 12:00am (UTC)', NOW), Date.UTC(2026, 9, 23, 0, 0));
   assert.equal(clockToEpoch('no time here', NOW), null);
 });
+
+test('parseRun: limit text inside tool output is not a limit (a worker may read a file that quotes one)', () => {
+  const quoted = 'You have hit your ChatGPT usage limit (pro plan). Try again in ~5 min.';
+  const pi = parseRun('pi', lines(
+    { type: 'tool_execution_end', toolCallId: 'r1', toolName: 'read', isError: false, result: { content: [{ type: 'text', text: quoted }] } },
+    { type: 'message_end', message: { role: 'assistant', content: [{ type: 'text', text: 'done' }], stopReason: 'stop' } }), { now: NOW });
+  assert.equal(pi.limit, null); assert.equal(pi.ok, true);
+  const claude = parseRun('claude', lines(
+    { type: 'user', message: { content: [{ type: 'tool_result', content: "You've hit your weekly limit · resets 4pm (UTC)" }] } },
+    { type: 'result', subtype: 'success', is_error: false, result: 'done', session_id: 's' }), { now: NOW });
+  assert.equal(claude.limit, null); assert.equal(claude.ok, true);
+  const codex = parseRun('codex', lines({ type: 'thread.started', thread_id: 't' },
+    { type: 'item.completed', item: { type: 'command_execution', aggregated_output: "usage_limit_reached You've hit your usage limit" } },
+    { type: 'item.completed', item: { type: 'agent_message', text: 'done' } }, { type: 'turn.completed' }), { now: NOW });
+  assert.equal(codex.limit, null); assert.equal(codex.ok, true);
+});
+
+test('parseRun claude: a run that recovered from a rejected rate-limit event and finished is a success', () => {
+  const r = parseRun('claude', lines({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 1792180200 } },
+    { type: 'result', subtype: 'success', is_error: false, result: 'the plan', session_id: 's' }), { now: NOW });
+  assert.equal(r.ok, true); assert.equal(r.limit, null); assert.equal(r.output, 'the plan');
+});

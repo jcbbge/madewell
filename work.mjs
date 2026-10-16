@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, writeFile, rename, unlink, realpath } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import * as nq from './nq.mjs';
 import { STEPS, ARBITER, stepIndex, progressExtension } from './pi-runtime.mjs';
 import { runCard } from './pi-call.mjs';
@@ -26,8 +27,10 @@ const terminal = result => ({ status: 'terminal', outcome: { status: 'completed'
 const alive = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code !== 'ESRCH'; } };
 
 // The store owns one SQLite file. Exactly one process owns it at a time.
-export async function openStore(directory, { checkInMs = 1_800_000, resume = false } = {}) {
+export async function openStore(directory, { checkInMs = 1_800_000, resume = false, accountsFile = null } = {}) {
   directory = resolve(directory);
+  accountsFile = accountsFile ? resolve(accountsFile) : join(directory, 'accounts.json');
+  let marks = Promise.resolve();
   await mkdir(directory, { recursive: true });
   const lockPath = join(directory, 'owner.lock');
   let lock;
@@ -63,7 +66,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         await runtime.commit(async tx => {
           const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
           a.status = 'running'; a.startedAt ??= Date.now(); a.launches = (a.launches ?? 0) + 1;
-          a.runs = [...(a.runs ?? []), { n: a.launches, startedAt: Date.now(), endedAt: null, pid: null, exit: null, record: join('attempts', attemptId, `launch-${a.launches}`) }];
+          a.runs = [...(a.runs ?? []), { n: a.launches, startedAt: Date.now(), endedAt: null, pid: null, exit: null, record: join('attempts', attemptId, launchName(a)) }];
           event(w, resumed ? 'redriven' : 'started', { attemptId, step: a.step });
           return { status: 'running', checkpoint: { phase: 'execute' } };
         }, ctx);
@@ -79,8 +82,12 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
           resume: continuing, progressExtension: card.harness === 'pi' ? progressExtension : undefined, readDirs: [directory],
           system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope.` });
         // After a swap the new card starts fresh: transcripts don't cross harnesses, the workspace and record do.
-        const pickup = prior.swaps?.length
-          ? `\n\nPicking up: this step was started on ${prior.swaps.at(-1).from.harness} · ${prior.swaps.at(-1).from.model} and stopped at a usage limit. Inspect the workspace and your step's task list first; continue the assignment and do not redo finished parts.`
+        const last = prior.swaps?.at(-1);
+        const pickup = last
+          ? `\n\nPicking up: this step was started on ${last.from.harness} · ${last.from.model} and stopped at a usage limit. ` +
+            `The workspace is as it left it${last.workspace?.head ? ` (HEAD ${last.workspace.head})` : ''}` +
+            `${last.workspace?.uncommitted?.length ? `; uncommitted: ${last.workspace.uncommitted.join(', ')}` : ''}. ` +
+            'Inspect the workspace and your step\'s task list first; continue the assignment and do not redo finished parts.'
           : '';
         const prompt = continuing
           ? 'You were interrupted mid-assignment. Continue the same assignment from where you stopped. Inspect the workspace first; do not redo finished parts.'
@@ -97,6 +104,14 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
           timer.unref?.();
         };
         const onLine = entry => {
+          // Codex names its session only once it starts: keep it now, so a crash can still continue it.
+          if (card.harness === 'codex' && entry.type === 'thread.started' && entry.thread_id) {
+            queue = queue.then(() => runtime.commit(async tx => {
+              (await tx.doc(Work, workId)).attempts.find(a => a.id === attemptId).harnessSession = entry.thread_id;
+              return { status: 'running', checkpoint: { phase: 'execute' } };
+            }, ctx));
+            return;
+          }
           const p = entry.type === 'tool_execution_end' && entry.toolName === 'durable_progress' && !entry.isError ? entry.result?.details?.durableProgress : null;
           if (!p || p.attemptId !== attemptId) return;
           queue = queue.then(() => runtime.commit(async tx => {
@@ -110,7 +125,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         checkIn();
         let result;
         try {
-          result = await runCard({ card, launch, cwd: saved.cwd, prompt, record: join(channel, `launch-${(prior.launches ?? 0) + 1}`), onLine, signal: ctx.abortSignal,
+          result = await runCard({ card, launch, cwd: saved.cwd, prompt, record: join(channel, launchName({ ...prior, launches: (prior.launches ?? 0) + 1 })), onLine, signal: ctx.abortSignal,
             env: { WORK_DATA: directory, PI_DURABLE_ATTEMPT: attemptId, PI_DURABLE_CHECKIN: inbox },
             onSpawn: pid => runtime.commit(async tx => { const a = (await tx.doc(Work, workId)).attempts.find(a => a.id === attemptId); a.pid = pid; a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, pid } : r); return { status: 'running', checkpoint: { phase: 'execute' } }; }, ctx).then(() => publish(workId)) });
         } finally { clearTimeout(timer); }
@@ -263,24 +278,32 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       return change(id, async (w, tx) => {
         const a = w.attempts.find(a => a.id === attemptId);
         if (a?.status !== 'failed' || !a.limit) throw new Error('Only an attempt stopped by a usage limit is swapped');
-        a.swaps.push({ from: a.card, to: card, limit: a.limit, at: new Date().toISOString() });
+        // What the successor needs: the outgoing session, the limit, and the workspace as it was left.
+        a.swaps.push({ from: a.card, to: card, limit: a.limit, session: a.harnessSession ?? a.sessionId,
+          workspace: workspaceState(w.cwd), lastOutput: (a.output ?? '').slice(-2000), at: new Date().toISOString() });
         event(w, 'swapped', { attemptId, step: a.step, from: `${a.card.harness} · ${a.card.model}`, to: `${card.harness} · ${card.model}`, account: a.limit.account });
         Object.assign(a, { card, model: `${card.harness} · ${card.provider}/${card.model}`, sessionId: randomUUID(), harnessSession: null,
           limit: null, error: '', launches: 0, status: 'queued' });
         a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
       });
     },
-    // Quota belongs to the provider account. {account: resetsAt epoch ms, or null when unknown}.
+    // Quota belongs to the provider account: {account: resetsAt epoch ms}. The file can be shared by
+    // every workspace's store (accountsFile), so one limit is learned once. Writes are serialized here
+    // and land by atomic rename; a mark only ever moves a reset later.
     async exhausted() {
-      try { return JSON.parse(await readFile(join(directory, 'accounts.json'), 'utf8')); } catch { return {}; }
+      try { return JSON.parse(await readFile(accountsFile, 'utf8')); } catch { return {}; }
     },
     async markExhausted(account, resetsAt) {
       requireText(account, 'Account');
-      const all = await this.exhausted();
-      all[account] = Number.isFinite(resetsAt) ? resetsAt : null;
-      await writeFile(join(directory, 'accounts.json.tmp'), JSON.stringify(all, null, 2));
-      await rename(join(directory, 'accounts.json.tmp'), join(directory, 'accounts.json'));
-      return all;
+      if (!Number.isFinite(resetsAt)) throw new Error('A reset time is required');
+      return (marks = marks.then(async () => {
+        const all = await this.exhausted();
+        all[account] = Math.max(all[account] ?? 0, resetsAt);
+        const tmp = `${accountsFile}.${process.pid}.${randomUUID()}.tmp`;
+        await writeFile(tmp, JSON.stringify(all, null, 2));
+        await rename(tmp, accountsFile);
+        return all;
+      }));
     },
     async execute(id, attemptId) {
       const a = (await this.get(id)).attempts.find(a => a.id === attemptId);
@@ -397,6 +420,15 @@ function makePacket(w, s, b, purpose) {
       : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.' }, null, 2);
 }
 
+// One transcript file per card and launch: a swap never appends to the outgoing harness's stream.
+const launchName = a => `launch-${a.swaps?.length ? `s${a.swaps.length}-` : ''}${a.launches}`;
+
+// The workspace as a worker left it: HEAD and uncommitted paths (stay on disk; a swap keeps the workspace).
+function workspaceState(cwd) {
+  const git = args => { const r = spawnSync('git', ['-C', cwd, ...args], { encoding: 'utf8', timeout: 5000 }); return r.status === 0 ? r.stdout.trim() : null; };
+  return { head: git(['rev-parse', 'HEAD']), uncommitted: git(['status', '--porcelain'])?.split('\n').filter(Boolean).slice(0, 50) ?? null };
+}
+
 // The originator sees what it handed over, the source, and the questions: never the receiving step's own brief or later work.
 function originatorPacket(w, s) {
   const o = originatorOf(w), x = nq.currentExchange(w, s.name);
@@ -404,7 +436,7 @@ function originatorPacket(w, s) {
   return JSON.stringify({ purpose: 'originator', threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source,
     receivingStep: s, round: w.round, originator: describe(o), handoff: o.handoff, exchange: x.turns, questions: x.turns.at(-1)?.questions ?? [],
     instruction: o.handoff === undefined
-      ? 'You dispatched this work. Answer from the objective and source only.'
+      ? (o.role === ARBITER.role ? 'Your ruling created this prerequisite work; it is in the source. Answer from it.' : 'You dispatched this work. Answer from the objective and source only.')
       : 'Answer from your own handoff (and the source). Do not change your handoff or the work; clarify what you meant.' }, null, 2);
 }
 

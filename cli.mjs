@@ -79,7 +79,10 @@ try {
   else {
     const need = { create: 3, list: 0, show: 1, report: 1, export: 1, drive: 1, 'drive-all': 1, answer: 2 };
     if (!(command in need) || args.length < need[command]) throw new Error(usage);
-    store = await openStore(directory, { resume: ['drive', 'drive-all'].includes(command) });
+    // Usage limits belong to provider accounts, so every workspace's store shares one accounts file
+    // (an explicit WORK_DATA store keeps its own).
+    store = await openStore(directory, { resume: ['drive', 'drive-all'].includes(command),
+      accountsFile: process.env.WORK_DATA === undefined ? join(dataDirectory(), 'accounts.json') : null });
     const id = Number(args[0]);
     switch (command) {
       case 'create': console.log(await store.create(await readFile(args[0], 'utf8'), await readFile(args[1], 'utf8'), args[2])); break;

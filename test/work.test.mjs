@@ -341,3 +341,17 @@ test('every account out: the drive stops as out-of-quota, nothing is held for a 
   assert.match(result.reason, new RegExp(new Date(later).toISOString()), 'it says when the first account resets');
   assert.equal((await store.get(id)).hold, null);
 }));
+
+test('a limit reporting "~0 min" never swaps back onto the same account', t => run(t, { limitOnce: { Sirius: 1 }, limitMinutes: 0 }, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  assert.deepEqual(log().filter(c => c.role === 'Sirius').map(c => c.model), ['a/code-a', 'b/code-b']);
+  assert.ok((await store.exhausted()).a >= Date.now() + 4 * 60_000, 'an account that just hit a limit stays out for a while');
+}));
+
+test('account marks: concurrent marks both land, and a mark never moves a reset earlier', t => run(t, {}, async ({ store }) => {
+  const t1 = Date.now() + 60_000, t2 = t1 + 60_000;
+  await Promise.all([store.markExhausted('a', t2), store.markExhausted('b', t1)]);
+  await store.markExhausted('a', t1);
+  assert.deepEqual(await store.exhausted(), { a: t2, b: t1 });
+}));

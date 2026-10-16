@@ -132,3 +132,28 @@ Each step is one work unit, run through the process itself once the process can 
 
 Left alone: the Lisp runtime (the long-term rewrite) and the Constellation shell kernel (it retires
 once this engine covers what it does).
+
+## Status after the first pass (2026-10-16)
+
+Built on branch `fold` (tests: `npm test`, all fakes; no real harness runs in tests):
+
+- NQ with the originating agent answering, on its own card; the exchange reaches the executor.
+- Every job, intake, originator and Arbiter call runs on its prescribed card (`prescriptions.json`).
+- Launching Claude Code, Codex and pi from a card (`cards.mjs`), with each harness's usage-limit
+  signals read from its own error and result events.
+- Automatic swap on a usage limit to another provider account, recorded on the attempt; all
+  accounts out ends the drive as `out-of-quota`. Accounts are shared across workspaces through
+  one `accounts.json` in the data directory.
+
+Still open:
+
+- **Never run against real harnesses yet.** Claude's and Codex's live limit records, Codex's
+  `--json` rate-limit events, and whether Haiku accepts `--effort` are read from docs and
+  binaries, not observed. One supervised real run per harness should come first.
+- A Claude worker that died before writing its session fails `--resume` three times
+  (`worker-failing`); fall back to a fresh `--session-id`.
+- On Codex the `run` access is `workspace-write`, so the Arbiter and the check runner can edit
+  files; only their brief forbids it. Check the diff after those steps.
+- Stores written before this change (attempts without a card, exchanges awaiting a manager) are
+  not migrated. Start fresh stores on the new code.
+- Worktree per work unit, the terminal sidecar and the QA preview are not started.

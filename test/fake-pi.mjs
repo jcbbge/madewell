@@ -22,7 +22,7 @@ appendFileSync(path + '.log', JSON.stringify({ n: state.calls, role, model, thin
 let text;
 if (limited) {
   writeFileSync(path, JSON.stringify(state));
-  process.stdout.write(JSON.stringify({ type: 'message_end', message: { role: 'assistant', content: [{ type: 'text', text: 'You have hit your ChatGPT usage limit (pro plan). Try again in ~30 min.' }], stopReason: 'error' } }) + '\n');
+  process.stdout.write(JSON.stringify({ type: 'message_end', message: { role: 'assistant', content: [{ type: 'text', text: `You have hit your ChatGPT usage limit (pro plan). Try again in ~${state.limitMinutes ?? 30} min.` }], stopReason: 'error' } }) + '\n');
   process.exit(1);
 }
 if (role === 'intake') {
