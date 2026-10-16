@@ -347,8 +347,8 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       requireText(report, 'Failure report');
       return change(id, w => {
         const a = w.attempts.find(a => a.id === attemptId);
-        // A failed check (verify), or a maker that could not execute the plan as written (implement): both are questions.
-        if (!a || !['verify', 'implement'].includes(a.step) || a.status !== 'reported') throw new Error('A failure comes from a reported verify or implement step');
+        // A failed check (verify), or a maker or check designer that could not do its step as written: all are questions.
+        if (!a || !['verify', 'implement', 'test-plan'].includes(a.step) || a.status !== 'reported') throw new Error('A failure comes from a reported verify, implement or test-plan step');
         a.status = a.step === 'verify' ? 'failed-test' : 'blocked';
         const failure = { id: randomUUID(), attemptId, step: a.step, report, status: 'open', round: w.round, at: new Date().toISOString() };
         w.failures.push(failure);

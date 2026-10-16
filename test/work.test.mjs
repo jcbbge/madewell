@@ -391,3 +391,12 @@ test('pre-existing defects nested past the cap hold for the human instead of ope
   assert.match(result.reason, /prerequisites deep/);
   assert.equal((await store.list()).length, 3, 'the original plus two nested prerequisites, no more');
 }));
+
+test('a blocked check designer goes to the Arbiter, not the operator: pre-existing → prerequisite → back to writing the checks', t => run(t, { blockedOnce: { Orion: 1 }, arbiter: [{ cause: 'pre-existing', answer: 'fix the test script', evidence: 'first commit' }] }, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id);
+  assert.equal(w.failures[0].step, 'test-plan');
+  assert.deepEqual(w.attempts.filter(a => a.step === 'test-plan').map(a => a.status), ['blocked', 'accepted']);
+  assert.equal(w.hold, null);
+}));
