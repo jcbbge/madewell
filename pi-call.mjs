@@ -3,17 +3,15 @@ import { createWriteStream } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute } from 'node:path';
 import { childEnvironment } from './child-environment.mjs';
-import { buildPiArgs } from './pi-runtime.mjs';
 import { summarizePi } from './pi-stream.mjs';
+import { buildLaunch, parseRun } from './cards.mjs';
 
-export const piBinary = () => process.env.PI_DURABLE_PI || 'pi';
-
-// One pi process. Raw JSON events go to <record>.jsonl; onLine sees each parsed event.
-export async function runPi({ cwd, args, prompt, record, env = {}, onLine, onSpawn, signal }) {
+// One harness process. Raw JSON events go to <record>.jsonl; onLine sees each parsed event.
+async function runProcess({ command, cwd, args, prompt, record, env = {}, onLine, onSpawn, signal }) {
   if (typeof record !== 'string' || !isAbsolute(record)) throw new TypeError('Absolute record prefix required');
   await mkdir(dirname(record), { recursive: true });
   const out = createWriteStream(record + '.jsonl', { flags: 'a' }), err = createWriteStream(record + '.stderr', { flags: 'a' });
-  const child = spawn(piBinary(), args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
+  const child = spawn(command, args, { cwd, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
     env: childEnvironment(process.env, { PI_DURABLE_WORKER: '1', ...env }) });
   const stop = () => { try { process.kill(-child.pid, 'SIGTERM'); } catch {} };
   signal?.addEventListener('abort', stop, { once: true });
@@ -37,15 +35,26 @@ export async function runPi({ cwd, args, prompt, record, env = {}, onLine, onSpa
   const result = await exited;
   signal?.removeEventListener('abort', stop);
   await Promise.all([out, err].map(s => new Promise(r => s.end(r))));
-  const summary = summarizePi(raw);
-  return { ...result, summary, ok: result.code === 0 && summary.finalStopReason === 'stop' && summary.output.trim() !== '' };
+  return { ...result, raw };
 }
 
-// A bounded judgment call (intake, originator, arbiter): read the answer, keep the receipt.
-export async function callPi({ cwd, prompt, system, model, step, record }) {
-  const args = buildPiArgs({ step, system, model, sessionDir: record + '-session' });
-  const result = await runPi({ cwd, args, prompt, record });
-  await writeFile(record + '.result.json', JSON.stringify({ step, exitCode: result.code, signal: result.signal, ...result.summary }, null, 2));
-  if (!result.ok) throw new Error(`pi ${step} call failed (${result.signal ?? `exit ${result.code}`}): ${result.summary.error || result.error || 'no answer'}; receipt ${record}.result.json`);
-  return result.summary.output;
+// One run of a card (harness + provider + model). A usage limit comes back as `limit`, never as success.
+export async function runCard({ card, launch, ...options }) {
+  const result = await runProcess({ ...options, command: launch.command, args: launch.args, env: { ...launch.env, ...options.env } });
+  const run = parseRun(card.harness, result.raw, { account: card.account });
+  const pi = card.harness === 'pi' ? summarizePi(result.raw) : null;
+  return { code: result.code, signal: result.signal, error: result.error || pi?.error || '', toolCalls: pi?.toolCalls ?? null, ...run,
+    ok: run.ok && result.code === 0 && !result.signal };
+}
+
+// A bounded judgment call (intake, originator, arbiter) on one card: read the answer, keep the receipt.
+// Returns { output } or { limit }; any other failure throws.
+export async function callCard({ cwd, prompt, system, card, access, record, readDirs = [] }) {
+  const launch = buildLaunch(card, { access, system, sessionDir: record + '-session', readDirs });
+  const result = await runCard({ card, launch, cwd, prompt, record });
+  await writeFile(record + '.result.json', JSON.stringify({ card, access, exitCode: result.code, signal: result.signal,
+    ok: result.ok, output: result.output, sessionId: result.sessionId, limit: result.limit }, null, 2));
+  if (result.limit) return { limit: result.limit };
+  if (!result.ok) throw new Error(`${card.harness} ${card.model} call failed (${result.signal ?? `exit ${result.code}`}): ${result.error || 'no answer'}; receipt ${record}.result.json`);
+  return { output: result.output };
 }

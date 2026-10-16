@@ -1,0 +1,17 @@
+{
+  "tiers": {
+    "deep":   [{ "harness": "pi", "provider": "a", "account": "a", "model": "deep-a", "effort": "high" },
+               { "harness": "pi", "provider": "b", "account": "b", "model": "deep-b", "effort": "high" }],
+    "coding": [{ "harness": "pi", "provider": "a", "account": "a", "model": "code-a", "effort": "low" },
+               { "harness": "pi", "provider": "b", "account": "b", "model": "code-b", "effort": "low" }],
+    "fast":   [{ "harness": "pi", "provider": "a", "account": "a", "model": "fast-a", "effort": "low" },
+               { "harness": "pi", "provider": "b", "account": "b", "model": "fast-b", "effort": "low" }]
+  },
+  "jobs": {
+    "discover": { "tier": "deep", "access": "read" }, "ideate": { "tier": "deep", "access": "read" },
+    "challenge": { "tier": "deep", "access": "read" }, "plan": { "tier": "deep", "access": "read" },
+    "test-plan": { "tier": "deep", "access": "checks" }, "implement": { "tier": "coding", "access": "make" },
+    "verify": { "tier": "fast", "access": "run" }, "arbitrate": { "tier": "deep", "access": "run" },
+    "intake": { "tier": "fast", "access": "read" }, "originator": { "tier": "inherit", "access": "read" }
+  }
+}

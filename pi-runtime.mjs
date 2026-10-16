@@ -8,8 +8,8 @@ export const STEPS = [
   { name: 'challenge', act: 'think', role: 'Polaris', duty: 'Challenge the idea, its failure modes and assumptions. Do not implement.' },
   { name: 'plan', act: 'plan', role: 'Cassiopeia', duty: 'Inspect the actual repository and environment. Produce grounded instructions: Making / Not making / Done when / Waits on. Do not implement.' },
   { name: 'test-plan', act: 'plan', role: 'Orion', duty: 'Derive the tests from the plan, independently of implementation, and write them. Do not implement product code.' },
-  { name: 'implement', act: 'implement', role: 'Sirius', duty: 'Execute the plan. No redesign or invented scope. Stop and report a blocker rather than improvise.' },
-  { name: 'verify', act: 'test', role: 'Aldebaran', duty: 'Run the tests against the implementation and report what you observed. Never repair product code or tests.' },
+  { name: 'implement', act: 'implement', role: 'Sirius', duty: 'Execute the plan exactly as written. You do not think, plan, design or improvise, and you never change the spec. Stop and report when the plan is wrong.' },
+  { name: 'verify', act: 'test', role: 'Aldebaran', duty: 'Run only this work unit\'s named checks and report what you observed. You execute; never repair, retry or broaden.' },
 ];
 export const ARBITER = { name: 'arbitrate', role: 'Arbiter', duty: 'A test failed. Decide whose question it is: a pre-existing bug, a bad implementation, or a bad test.' };
 export const stepIndex = name => STEPS.findIndex(s => s.name === name);

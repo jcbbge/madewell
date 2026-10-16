@@ -102,7 +102,8 @@ export const binaryFor = harness => ({
 // sessionId: pi continues or creates it; claude creates it (must be a UUID) unless resume is true;
 // codex cannot choose an id up front, so a sessionId always means `codex exec resume <id>`.
 // sessionDir and progressExtension apply to pi only; claude and codex keep sessions in their own homes.
-export function buildLaunch(card, { access, system, sessionDir, sessionId, resume = false, progressExtension } = {}) {
+// readDirs: folders outside the working directory the run must read (the work packets live in the store).
+export function buildLaunch(card, { access, system, sessionDir, sessionId, resume = false, progressExtension, readDirs = [] } = {}) {
   if (!HARNESSES.includes(card?.harness)) throw new TypeError(`Unknown harness ${card?.harness}`);
   if (!ACCESS.includes(access)) throw new TypeError(`Unknown access ${access}`);
   const notes = [...(NOTES[card.harness][access] ?? [])];
@@ -120,6 +121,8 @@ export function buildLaunch(card, { access, system, sessionDir, sessionId, resum
     args = ['-p', '--verbose', '--output-format', 'stream-json', '--model', card.model, '--effort', card.effort,
       '--permission-prompts', 'none', ...CLAUDE_ACCESS[access]];
     if (system) args.push('--append-system-prompt', system);
+    // Claude confines file tools to the working directory; the packet folder must be added.
+    if (readDirs.length) args.push('--add-dir', ...readDirs);
     if (sessionId) args.push(resume ? '--resume' : '--session-id', sessionId);
     if (progressExtension) notes.push('progress: the durable_progress extension is pi-only');
   } else {

@@ -18,6 +18,9 @@
     "prescriptions.json",
     "child-environment.mjs",
     "work-progress.mjs",
+    "cards.mjs",
+    "prescriptions.json",
+    "FOLD.md",
     "FOUNDATION.md",
     "AGENTS.md",
     "README.md",
@@ -35,7 +38,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs",
     "update": "npm install --no-save @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest"
   },
   "engines": {

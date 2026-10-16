@@ -18,6 +18,7 @@ async function setup(scenario = {}) {
   await mkdir(cwd);
   await writeFile(state, JSON.stringify(scenario));
   process.env.PI_DURABLE_PI = fake; process.env.FAKE_PI_STATE = state;
+  process.env.PI_DURABLE_PRESCRIPTIONS = fileURLToPath(new URL('./fixtures/two-accounts.json', import.meta.url));
   const log = () => readFileSync(state + '.log', 'utf8').trim().split('\n').map(l => JSON.parse(l));
   return { root, dir, cwd, state, log };
 }
@@ -289,3 +290,54 @@ test('a live owner keeps a second process out of the store', async () => {
   const store = await openStore(s.dir);
   try { await assert.rejects(openStore(s.dir), /owned by live process/); } finally { await store.close(); }
 });
+
+test('prescriptions: each job runs on its own tier card and effort', t => run(t, {}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const by = role => log().find(c => c.role === role);
+  assert.deepEqual([by('Cassiopeia').model, by('Cassiopeia').thinking], ['a/deep-a', 'high'], 'planning is deep');
+  assert.deepEqual([by('Orion').model, by('Orion').thinking], ['a/deep-a', 'high'], 'check design is deep');
+  assert.deepEqual([by('Sirius').model, by('Sirius').thinking], ['a/code-a', 'low'], 'the maker only executes: coding tier, low effort');
+  assert.deepEqual([by('Aldebaran').model, by('Aldebaran').thinking], ['a/fast-a', 'low'], 'the runner only executes: fast tier');
+  assert.equal(by('intake').model, 'a/fast-a');
+  const impl = (await store.get(id)).attempts.find(a => a.step === 'implement');
+  assert.equal(impl.card.model, 'code-a');
+  assert.equal(impl.access, 'make');
+}));
+
+test('a usage limit mid-step swaps to another provider account and the work finishes, no human', t => run(t, { limitOnce: { Sirius: 1 } }, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const result = await drive(store, id, quiet);
+  assert.equal(result.status, 'complete', JSON.stringify(result));
+  const w = await store.get(id), impl = w.attempts.find(a => a.step === 'implement');
+  assert.equal(impl.swaps.length, 1);
+  assert.equal(impl.swaps[0].from.model, 'code-a');
+  assert.equal(impl.swaps[0].to.model, 'code-b');
+  assert.equal(impl.swaps[0].limit.account, 'a');
+  assert.equal(impl.card.account, 'b', 'the step finished on the other account');
+  assert.ok(w.events.some(e => e.type === 'swapped'), 'the swap is on the record');
+  assert.equal(w.hold, null);
+  const sirius = log().filter(c => c.role === 'Sirius');
+  assert.deepEqual(sirius.map(c => [c.model, c.limited]), [['a/code-a', true], ['b/code-b', false]]);
+  assert.match(sirius[1].prompt, /Picking up/, 'the new card is told it is picking the step up');
+  assert.ok(Number.isFinite((await store.exhausted()).a), 'account a is out until its reset');
+  assert.equal(log().find(c => c.role === 'Aldebaran').model, 'b/fast-b', 'later jobs skip the exhausted account');
+}));
+
+test('a usage limit on a judgment call swaps too', t => run(t, { limitOnce: { intake: 1 } }, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const intakes = log().filter(c => c.role === 'intake');
+  assert.deepEqual(intakes.slice(0, 2).map(c => c.model), ['a/fast-a', 'b/fast-b']);
+  assert.ok((await store.get(id)).events.some(e => e.type === 'quota' && e.account === 'a'));
+}));
+
+test('every account out: the drive stops as out-of-quota, nothing is held for a human', t => run(t, {}, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const later = Date.now() + 3_600_000;
+  await store.markExhausted('a', later); await store.markExhausted('b', later + 60_000);
+  const result = await drive(store, id, quiet);
+  assert.equal(result.status, 'out-of-quota');
+  assert.match(result.reason, new RegExp(new Date(later).toISOString()), 'it says when the first account resets');
+  assert.equal((await store.get(id)).hold, null);
+}));

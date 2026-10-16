@@ -117,7 +117,7 @@ export default function durable(pi: ExtensionAPI) {
       if (!directory) throw new Error(error || 'Pi Durable is not initialized for this session');
       if (params.workspace) { const target = await realpath(params.workspace); if (target !== workspace) { await mount(target); await refresh(); } }
       let id = params.id ?? selected, result: any;
-      const model = ctx.model && ctx.model.provider !== 'unknown' ? `${ctx.model.provider}/${ctx.model.id}` : undefined;
+      // Each job's card comes from prescriptions.json, never from this chat's model.
       if (params.action === 'start') {
         if (!params.objective?.trim()) throw new Error('An objective is required');
         const turns = ctx.sessionManager.getBranch().filter((e: any) => e.type === 'message' && e.message?.role === 'user')
@@ -130,7 +130,7 @@ export default function durable(pi: ExtensionAPI) {
       if (params.action === 'start' || params.action === 'resume') {
         if (!id) throw new Error('No work selected; start one or pass id');
         attach(id);
-        result = await invoke('cli.mjs', ['drive', String(id), '--background', ...(params.delivery ? ['--delivery'] : []), ...(model ? ['--model', model] : [])], undefined, directory);
+        result = await invoke('cli.mjs', ['drive', String(id), '--background', ...(params.delivery ? ['--delivery'] : [])], undefined, directory);
         result = { id, launched: result, note: 'Driver running in the background. The footer shows progress; status reports it.' };
       } else if (params.action === 'status') {
         await refresh();
@@ -141,7 +141,7 @@ export default function durable(pi: ExtensionAPI) {
         result = await invoke('pi-bridge.mjs', [], { action: params.action, id, text: params.text, cause: params.cause }, directory);
         attach(id);
         // An answered hold continues on its own; no second instruction needed.
-        if (params.action === 'answer') result = { answered: result, driver: await invoke('cli.mjs', ['drive', String(id), '--background', ...(model ? ['--model', model] : [])], undefined, directory) };
+        if (params.action === 'answer') result = { answered: result, driver: await invoke('cli.mjs', ['drive', String(id), '--background'], undefined, directory) };
       }
       await refresh();
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], details: { id, action: params.action, directory } };

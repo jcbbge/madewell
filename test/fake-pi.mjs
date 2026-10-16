@@ -14,9 +14,17 @@ const role = /You are the assigned worker in (?:read-only )?intake/.test(system)
   : (system.match(/^You are (\w+)\./) ?? [])[1] ?? 'unknown';
 const take = key => { const list = state[key] ?? []; const value = list.length > 1 ? list.shift() : list[0]; return value; };
 state.calls = (state.calls ?? 0) + 1;
-appendFileSync(path + '.log', JSON.stringify({ n: state.calls, role, sessionId: arg('--session-id'), tools: arg('--tools'), as: originator, prompt, continued: /You were interrupted/.test(prompt), worker: process.env.PI_DURABLE_WORKER ?? null }) + '\n');
+// A scripted usage limit: state.limitOnce[role] = n makes the next n calls for that role on account "a" hit it.
+const model = arg('--model'), limited = state.limitOnce?.[role] > 0 && model?.startsWith('a/');
+if (limited) state.limitOnce[role]--;
+appendFileSync(path + '.log', JSON.stringify({ n: state.calls, role, model, thinking: arg('--thinking'), limited, sessionId: arg('--session-id'), tools: arg('--tools'), as: originator, prompt, continued: /You were interrupted/.test(prompt), worker: process.env.PI_DURABLE_WORKER ?? null }) + '\n');
 
 let text;
+if (limited) {
+  writeFileSync(path, JSON.stringify(state));
+  process.stdout.write(JSON.stringify({ type: 'message_end', message: { role: 'assistant', content: [{ type: 'text', text: 'You have hit your ChatGPT usage limit (pro plan). Try again in ~30 min.' }], stopReason: 'error' } }) + '\n');
+  process.exit(1);
+}
 if (role === 'intake') {
   const q = take('intakeQuestions');
   text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], ambiguities: [] });

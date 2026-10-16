@@ -2,8 +2,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, writeFile, rename, unlink, realpath } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import * as nq from './nq.mjs';
-import { STEPS, ARBITER, stepIndex, buildPiArgs } from './pi-runtime.mjs';
-import { runPi } from './pi-call.mjs';
+import { STEPS, ARBITER, stepIndex, progressExtension } from './pi-runtime.mjs';
+import { runCard } from './pi-call.mjs';
+import { buildLaunch } from './cards.mjs';
 import { publishWork } from './observe.mjs';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import { createModels } from '@earendil-works/pi-ai/models';
@@ -69,13 +70,21 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         await publish(workId);
         const channel = join(directory, 'attempts', attemptId), inbox = join(channel, 'check-in.json');
         await mkdir(channel, { recursive: true });
-        const step = STEPS[stepIndex(prior.step)];
-        const args = buildPiArgs({ step: prior.step, model: prior.model, progress: true,
-          sessionDir: join(directory, 'sessions', attemptId), sessionId: prior.sessionId,
+        const step = STEPS[stepIndex(prior.step)], card = prior.card;
+        if (!card) throw new Error(`Attempt ${attemptId} has no card`);
+        // Same card: continue its own session. Codex can only continue a session it has already named.
+        const continuing = resumed && (card.harness !== 'codex' || Boolean(prior.harnessSession));
+        const launch = buildLaunch(card, { access: prior.access, sessionDir: join(directory, 'sessions', attemptId),
+          sessionId: card.harness === 'codex' ? (continuing ? prior.harnessSession : undefined) : prior.harnessSession ?? prior.sessionId,
+          resume: continuing, progressExtension: card.harness === 'pi' ? progressExtension : undefined, readDirs: [directory],
           system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope.` });
-        const prompt = resumed
+        // After a swap the new card starts fresh: transcripts don't cross harnesses, the workspace and record do.
+        const pickup = prior.swaps?.length
+          ? `\n\nPicking up: this step was started on ${prior.swaps.at(-1).from.harness} · ${prior.swaps.at(-1).from.model} and stopped at a usage limit. Inspect the workspace and your step's task list first; continue the assignment and do not redo finished parts.`
+          : '';
+        const prompt = continuing
           ? 'You were interrupted mid-assignment. Continue the same assignment from where you stopped. Inspect the workspace first; do not redo finished parts.'
-          : await provisionPacket(directory, attemptId, prior.packet);
+          : await provisionPacket(directory, attemptId, prior.packet) + pickup;
         let queue = Promise.resolve(), timer;
         const checkIn = () => {
           clearTimeout(timer);
@@ -101,18 +110,21 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         checkIn();
         let result;
         try {
-          result = await runPi({ cwd: saved.cwd, args, prompt, record: join(channel, `launch-${(prior.launches ?? 0) + 1}`), onLine, signal: ctx.abortSignal,
+          result = await runCard({ card, launch, cwd: saved.cwd, prompt, record: join(channel, `launch-${(prior.launches ?? 0) + 1}`), onLine, signal: ctx.abortSignal,
             env: { WORK_DATA: directory, PI_DURABLE_ATTEMPT: attemptId, PI_DURABLE_CHECKIN: inbox },
             onSpawn: pid => runtime.commit(async tx => { const a = (await tx.doc(Work, workId)).attempts.find(a => a.id === attemptId); a.pid = pid; a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, pid } : r); return { status: 'running', checkpoint: { phase: 'execute' } }; }, ctx).then(() => publish(workId)) });
         } finally { clearTimeout(timer); }
         await queue;
         await runtime.commit(async tx => {
           const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
-          a.endedAt = Date.now(); a.exitCode = result.code; a.output = result.summary.output;
-          a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, endedAt: a.endedAt, exit: result.signal ?? result.code, toolCalls: result.summary.toolCalls } : r);
+          a.endedAt = Date.now(); a.exitCode = result.code; a.output = result.output;
+          a.harnessSession = result.sessionId ?? a.harnessSession ?? null;
+          a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, endedAt: a.endedAt, exit: result.signal ?? result.code, toolCalls: result.toolCalls, card: `${card.harness} · ${card.model}` } : r);
+          a.limit = result.limit ?? null;
           a.status = result.ok ? 'reported' : 'failed';
-          a.error = result.ok ? '' : (result.signal ?? result.summary.error ?? result.error) || `pi exited ${result.code}`;
-          event(w, a.status, { attemptId, step: a.step });
+          a.error = result.ok ? '' : result.limit ? `usage limit: ${result.limit.message}`
+            : (result.signal ?? result.error) || `${card.harness} exited ${result.code}`;
+          event(w, a.status, { attemptId, step: a.step, ...(result.limit ? { limit: result.limit } : {}) });
           return terminal({ status: a.status });
         }, ctx);
         await publish(workId);
@@ -216,14 +228,17 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       if (!b) throw new Error(`Seal a brief for ${s.name} first`);
       return makePacket(w, s, b, purpose);
     },
-    async begin(id, actor, model = '') {
+    // card: the harness + provider + model this step's prescription picked; access: what it may change.
+    async begin(id, actor, card, access) {
       requireText(actor, 'Actor');
+      if (!card?.harness || !card?.model) throw new Error('A card (harness, provider, model) is required');
       return change(id, async (w, tx) => {
         const s = step(w), b = w.briefs[s.name];
         if (!b) throw new Error(`Seal a brief for ${s.name} first`);
         nq.readyExchange(w, s.name, actor);
         if (w.attempts.some(a => a.step === s.name && a.round === w.round && ['queued', 'running'].includes(a.status))) throw new Error('A worker is already on this step');
-        const a = { id: randomUUID(), step: s.name, role: s.role, round: w.round, actor, model, sessionId: randomUUID(), status: 'queued',
+        const a = { id: randomUUID(), step: s.name, role: s.role, round: w.round, actor, card, access, model: `${card.harness} · ${card.provider}/${card.model}`,
+          sessionId: randomUUID(), harnessSession: null, swaps: [], status: 'queued',
           packet: makePacket(w, s, b, 'execute'), progress: [], checkIns: [], createdAt: Date.now() };
         a.taskId = await tx.createTask(Attempt, { workId: id, attemptId: a.id }, { ownership: { kind: 'conversation' }, conversationId: id });
         w.attempts.push(a);
@@ -240,6 +255,32 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
         event(w, 'redrive', { attemptId });
       });
+    },
+    // A usage limit stopped this worker: the same step continues on another card, in the same workspace,
+    // with a fresh session (transcripts don't cross harnesses). The swap stays on the record.
+    async swap(id, attemptId, card) {
+      if (!card?.harness || !card?.model) throw new Error('A card is required');
+      return change(id, async (w, tx) => {
+        const a = w.attempts.find(a => a.id === attemptId);
+        if (a?.status !== 'failed' || !a.limit) throw new Error('Only an attempt stopped by a usage limit is swapped');
+        a.swaps.push({ from: a.card, to: card, limit: a.limit, at: new Date().toISOString() });
+        event(w, 'swapped', { attemptId, step: a.step, from: `${a.card.harness} · ${a.card.model}`, to: `${card.harness} · ${card.model}`, account: a.limit.account });
+        Object.assign(a, { card, model: `${card.harness} · ${card.provider}/${card.model}`, sessionId: randomUUID(), harnessSession: null,
+          limit: null, error: '', launches: 0, status: 'queued' });
+        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+      });
+    },
+    // Quota belongs to the provider account. {account: resetsAt epoch ms, or null when unknown}.
+    async exhausted() {
+      try { return JSON.parse(await readFile(join(directory, 'accounts.json'), 'utf8')); } catch { return {}; }
+    },
+    async markExhausted(account, resetsAt) {
+      requireText(account, 'Account');
+      const all = await this.exhausted();
+      all[account] = Number.isFinite(resetsAt) ? resetsAt : null;
+      await writeFile(join(directory, 'accounts.json.tmp'), JSON.stringify(all, null, 2));
+      await rename(join(directory, 'accounts.json.tmp'), join(directory, 'accounts.json'));
+      return all;
     },
     async execute(id, attemptId) {
       const a = (await this.get(id)).attempts.find(a => a.id === attemptId);
