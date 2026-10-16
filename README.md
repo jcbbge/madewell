@@ -25,15 +25,16 @@ you ── chat ──▶ pi (your pi: extensions, skills, settings, login)
 
 ## Install
 
+Clone it and point your agent at [PROVISION.md](PROVISION.md): *"set this up: follow PROVISION.md"*. It checks Node, installs the packages, finds which harnesses are installed and signed in, puts each one's front door in place, checks the machine's guard hooks, and tells you what can run.
+
 ```sh
 git clone https://github.com/jcbbge/madewell.git && cd madewell
 git checkout fold                 # until the fold lands on main
-npm install                       # tracks @latest pi-durable / pi-ai / chord; no lockfile
-npm link                          # optional: pi-durable on PATH
-pi install "$PWD"                 # adds durable_work to pi; /reload open sessions
 ```
 
 Requires Node ≥ 22.19 and at least one harness, signed in: Claude Code (`claude`), Codex (`codex`) or pi (`pi`, any provider). Each job uses the first card in its tier whose harness is installed and whose provider account has quota, so one harness is enough and more harnesses mean more room to swap. Edit `prescriptions.json` to change which cards each job may use. Update the upstream packages any time with `npm run update`.
+
+The front doors (in [`harness/`](harness)): pi gets the package itself (`pi install "$PWD"`: `durable_work`, `/work`, the footer); Claude Code and Codex get a `made-well` skill that drives the `pi-durable` command.
 
 ## Use
 
@@ -42,11 +43,15 @@ In pi, just say it: *"run this durably: …"*. The agent calls `durable_work sta
 Command line, same store:
 
 ```sh
+pi-durable start --objective <text> (--source <text> | --source-file <path>) [--workspace <dir>] [--delivery]
 pi-durable status [id]          pi-durable watch [id]
 pi-durable drive <id> [--delivery] [--model provider/model] [--background]   # --model: force every job onto pi with one model, no swaps
 pi-durable answer <id> <answer.txt> [pre-existing|implementation|test]
 pi-durable show <id>            pi-durable report <id>
+pi-durable doctor [--json]      pi-durable provision [--yes]
 ```
+
+`--workspace <dir>` on any command uses that workspace's store, the same one pi and the skills use. `doctor` reports what can run here (harnesses, sign-in, cards per tier, front doors, guard hooks) and the fix for each problem; `provision` installs the front doors and never replaces a changed file without `--yes`.
 
 Stores live under `~/.local/share/pi-durable/workspaces/<hash>` per workspace (`WORK_DATA` overrides). One process owns a store; a dead owner is replaced automatically on the next drive.
 

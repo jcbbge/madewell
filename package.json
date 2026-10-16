@@ -4,6 +4,10 @@
   "description": "Made Well on Pi Durable: durable work, separate pi agents per phase",
   "files": [
     "pi-extension.ts",
+    "doctor.mjs",
+    "provision.mjs",
+    "harness/",
+    "PROVISION.md",
     "pi-bridge.mjs",
     "cli.mjs",
     "config.mjs",

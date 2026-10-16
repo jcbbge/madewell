@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFile, mkdir, writeFile, open } from 'node:fs/promises';
+import { readFile, mkdir, writeFile, open, realpath } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { join, dirname } from 'node:path';
@@ -7,16 +8,27 @@ import { fileURLToPath } from 'node:url';
 import { openStore, STEPS, CAUSES } from './work.mjs';
 import { drive } from './drive.mjs';
 import { observe, render, watchWork } from './observe.mjs';
-import { dataDirectory } from './config.mjs';
+import { dataDirectory, workspaceDataDirectory } from './config.mjs';
 import { serve } from './serve.mjs';
+import { doctor, renderDoctor } from './doctor.mjs';
+import { provision, renderProvision } from './provision.mjs';
 
 const home = dirname(fileURLToPath(import.meta.url));
-const directory = dataDirectory();
-const [command, ...args] = process.argv.slice(2);
+const [command, ...given] = process.argv.slice(2);
+// --workspace <dir> selects that workspace's store, the same one pi uses for it (WORK_DATA still wins).
+const at = given.indexOf('--workspace');
+const workspace = at >= 0 ? given[at + 1] : command === 'start' ? process.cwd() : null;
+const args = at >= 0 ? given.filter((_, i) => i !== at && i !== at + 1) : given;
+const byWorkspace = workspace !== null && process.env.WORK_DATA === undefined;
+let directory;
+try { directory = byWorkspace ? workspaceDataDirectory(realpathSync(workspace)) : dataDirectory(); }
+catch (error) { console.error(`Workspace ${workspace}: ${error.code === 'ENOENT' ? 'no such folder' : error.message}`); process.exit(1); }
 const backgroundRun = process.env.PI_DURABLE_RUN_ID;
 delete process.env.PI_DURABLE_RUN_ID;
 const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; agents are pi.
 
+  start --objective <text> (--source <text> | --source-file <path>) [--workspace <dir>] [--delivery]
+                                   new work in that workspace (default: here), driven in the background
   create <objective.txt> <source.txt> <workspace>
   list | show <id> | report <id> | export <id>
   status [id] [--json] | watch [id] [--json]
@@ -24,10 +36,46 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   drive-all <ids...> [--delivery] [--model provider/model] [--background]
   answer <id> <answer.txt> [${CAUSES.join('|')}]   human answer to whatever is held
   serve [--port 7788] [--host 127.0.0.1]   live dashboard: states, transitions, agents, latency
+  doctor [--json]                  what can run here: harnesses, sign-in, cards per tier, front doors
+  provision [--yes]                install each installed harness's front door (--yes replaces changed files)
+
+  --workspace <dir> on any command uses that workspace's store (the one pi uses there).
 
 Store: ${directory}
 Phases: ${STEPS.map(s => `${s.name} (${s.role})`).join(' → ')}
 A failed test is a question; the Arbiter rules who answers it; undetermined comes to you.`;
+
+// A detached driver; its output goes to runs/<id>.log. A --workspace store is found again by the child.
+async function background(childArgs, threadIds) {
+  const runId = randomUUID(), runs = join(directory, 'runs');
+  await mkdir(runs, { recursive: true, mode: 0o700 });
+  const log = join(runs, `${runId}.log`), errors = join(runs, `${runId}.stderr`);
+  const stdout = await open(log, 'a', 0o600), stderr = await open(errors, 'a', 0o600);
+  let child;
+  try {
+    child = spawn(process.execPath, [fileURLToPath(import.meta.url), ...childArgs], {
+      detached: true, stdio: ['ignore', stdout.fd, stderr.fd], env: { ...process.env, ...(byWorkspace ? {} : { WORK_DATA: directory }), PI_DURABLE_RUN_ID: runId } });
+    await new Promise((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
+    child.unref();
+  } finally { await stdout.close(); await stderr.close(); }
+  const launch = { runId, pid: child.pid, threadIds, log, errors, launchedAt: new Date().toISOString() };
+  await writeFile(join(runs, `${runId}.launch.json`), JSON.stringify(launch, null, 2), { mode: 0o600 });
+  return launch;
+}
+
+function startOptions() {
+  const o = { objective: '', source: null, sourceFile: null, delivery: false };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--delivery') o.delivery = true;
+    else if (args[i] === '--objective') o.objective = args[++i] ?? '';
+    else if (args[i] === '--source') o.source = args[++i] ?? '';
+    else if (args[i] === '--source-file') o.sourceFile = args[++i] ?? '';
+    else throw new Error(`Unknown option ${args[i]}`);
+  }
+  if (!o.objective.trim()) throw new Error('start needs --objective <text>');
+  if ((o.source === null) === (o.sourceFile === null)) throw new Error('start needs exactly one of --source <text> or --source-file <path>');
+  return o;
+}
 
 function driveOptions() {
   const ids = []; let delivery = false, model = '';
@@ -60,21 +108,28 @@ try {
     process.once('SIGINT', () => controller.abort());
     await watchWork(directory, id ? Number(id) : null, { jsonOutput: args.includes('--json'), signal: controller.signal });
   }
+  else if (command === 'doctor') {
+    const report = await doctor();
+    console.log(args.includes('--json') ? JSON.stringify(report, null, 2) : renderDoctor(report));
+    if (!report.ok) process.exitCode = 1;
+  }
+  else if (command === 'provision') console.log(renderProvision(await provision({ yes: args.includes('--yes') })));
+  else if (command === 'start') {
+    const o = startOptions(), cwd = await realpath(workspace);
+    const source = o.source ?? await readFile(o.sourceFile, 'utf8');
+    if (!source.trim()) throw new Error('The source is empty');
+    store = await openStore(directory, { accountsFile: process.env.WORK_DATA === undefined ? join(dataDirectory(), 'accounts.json') : null });
+    const id = await store.create(o.objective, source, cwd, { delivery: o.delivery });
+    await store.close(); store = undefined;
+    const where = byWorkspace ? ` --workspace ${JSON.stringify(cwd)}` : '';
+    const launched = await background(['drive', String(id), ...(byWorkspace ? ['--workspace', cwd] : []), ...(o.delivery ? ['--delivery'] : [])], [id]);
+    console.log(JSON.stringify({ id, workspace: cwd, delivery: o.delivery, store: directory, launched,
+      status: `pi-durable status ${id}${where}`, watch: `pi-durable watch ${id}${where}`, inspect: `pi-durable show ${id}${where}` }, null, 2));
+  }
   else if (['drive', 'drive-all'].includes(command) && args.includes('--background')) {
-    const options = driveOptions(), runId = randomUUID(), runs = join(directory, 'runs');
-    await mkdir(runs, { recursive: true, mode: 0o700 });
-    const log = join(runs, `${runId}.log`), errors = join(runs, `${runId}.stderr`);
-    const stdout = await open(log, 'a', 0o600), stderr = await open(errors, 'a', 0o600);
-    let child;
-    try {
-      child = spawn(process.execPath, [fileURLToPath(import.meta.url), command, ...args.filter(a => a !== '--background')], {
-        detached: true, stdio: ['ignore', stdout.fd, stderr.fd], env: { ...process.env, WORK_DATA: directory, PI_DURABLE_RUN_ID: runId } });
-      await new Promise((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });
-      child.unref();
-    } finally { await stdout.close(); await stderr.close(); }
-    const launch = { runId, pid: child.pid, threadIds: options.ids, log, errors, launchedAt: new Date().toISOString() };
-    await writeFile(join(runs, `${runId}.launch.json`), JSON.stringify(launch, null, 2), { mode: 0o600 });
-    console.log(JSON.stringify(launch, null, 2));
+    const options = driveOptions();
+    const childArgs = [command, ...args.filter(a => a !== '--background'), ...(byWorkspace ? ['--workspace', workspace] : [])];
+    console.log(JSON.stringify(await background(childArgs, options.ids), null, 2));
   }
   else {
     const need = { create: 3, list: 0, show: 1, report: 1, export: 1, drive: 1, 'drive-all': 1, answer: 2 };
