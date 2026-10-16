@@ -201,7 +201,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
     }
     else if (ruling.cause === 'pre-existing') {
       const child = await createIn(tx, fresh(`Fix the pre-existing defect blocking thread ${w.id}: ${ruling.answer.slice(0, 400)}`,
-        `${w.source}\n\n## Prerequisite of thread ${w.id}\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, delivery: true }));
+        `${w.source}\n\n## Prerequisite of thread ${w.id}\nScope: fix only this defect. Thread ${w.id} is unfinished and waits for this fix, so its own checks are expected to fail: this unit's checks test only this fix and must not run or depend on thread ${w.id}'s checks.\n\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, delivery: true }));
       w.waitsOn = child; failure.prerequisite = child;
       // Back to where the defect stopped the work: the making (a blocked maker) or the checks.
       const back = STEPS[stepIndex(failure.step ?? 'verify')];
