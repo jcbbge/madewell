@@ -194,7 +194,11 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       const child = await createIn(tx, fresh(`Fix the pre-existing defect blocking thread ${w.id}: ${ruling.answer.slice(0, 400)}`,
         `${w.source}\n\n## Prerequisite of thread ${w.id}\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, delivery: true }));
       w.waitsOn = child; failure.prerequisite = child;
-      rewind(w, stepIndex('verify'), { to: 'Aldebaran', failureId: failure.id, text: `Prerequisite thread ${child} fixed the pre-existing defect. Re-run the original tests.` });
+      // Back to where the defect stopped the work: the making (a blocked maker) or the checks.
+      const back = STEPS[stepIndex(failure.step ?? 'verify')];
+      rewind(w, stepIndex(back.name), { to: back.role, failureId: failure.id, text: back.name === 'verify'
+        ? `Prerequisite thread ${child} fixed the pre-existing defect. Re-run the original tests.`
+        : `Prerequisite thread ${child} fixed the pre-existing defect that blocked you. Execute the accepted plan.` });
     } else throw new Error(`Unknown cause ${ruling.cause}`);
     event(w, 'failure-routed', { failureId: failure.id, cause: ruling.cause, by: ruling.by });
     return { cause: ruling.cause, prerequisite: failure.prerequisite ?? null };
@@ -334,9 +338,10 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       requireText(report, 'Failure report');
       return change(id, w => {
         const a = w.attempts.find(a => a.id === attemptId);
-        if (!a || a.step !== 'verify' || a.status !== 'reported') throw new Error('A failure comes from a reported verify step');
-        a.status = 'failed-test';
-        const failure = { id: randomUUID(), attemptId, report, status: 'open', round: w.round, at: new Date().toISOString() };
+        // A failed check (verify), or a maker that could not execute the plan as written (implement): both are questions.
+        if (!a || !['verify', 'implement'].includes(a.step) || a.status !== 'reported') throw new Error('A failure comes from a reported verify or implement step');
+        a.status = a.step === 'verify' ? 'failed-test' : 'blocked';
+        const failure = { id: randomUUID(), attemptId, step: a.step, report, status: 'open', round: w.round, at: new Date().toISOString() };
         w.failures.push(failure);
         const corrections = w.failures.filter(f => f.status !== 'withdrawn').length - 1;
         if (corrections >= MAX_CORRECTIONS) {
@@ -416,7 +421,7 @@ function makePacket(w, s, b, purpose) {
     // The whole NQ exchange travels with the work: intake and execution both read it.
     originator: describe(originatorOf(w)), exchange: x?.turns ?? [],
     instruction: purpose === 'nq'
-      ? 'Read the exchange, including the originator\'s or the operator\'s answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], ambiguities:string[]}. Empty arrays mean you understand and can execute. Do not do the work yet.'
+      ? 'Read the exchange, including the originator\'s or the operator\'s answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. questions: only what blocks you from executing and cannot be settled from the packet, the workspace or the answers already in the exchange; never repeat a question the exchange has answered. notes: your assumptions and anything already settled; notes never block. An empty questions array confirms readiness. Do not do the work yet.'
       : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.' }, null, 2);
 }
 

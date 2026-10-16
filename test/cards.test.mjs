@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadPrescriptions, validatePrescriptions, cardsFor, pickCard, buildLaunch, parseRun, clockToEpoch } from '../cards.mjs';
+import { loadPrescriptions, validatePrescriptions, cardsFor, pickCard, buildLaunch, parseRun, clockToEpoch, installed } from '../cards.mjs';
 import { buildPiArgs, progressExtension } from '../pi-runtime.mjs';
 
 const rx = loadPrescriptions();
@@ -223,4 +223,15 @@ test('parseRun claude: a run that recovered from a rejected rate-limit event and
   const r = parseRun('claude', lines({ type: 'rate_limit_event', rate_limit_info: { status: 'rejected', resetsAt: 1792180200 } },
     { type: 'result', subtype: 'success', is_error: false, result: 'the plan', session_id: 's' }), { now: NOW });
   assert.equal(r.ok, true); assert.equal(r.limit, null); assert.equal(r.output, 'the plan');
+});
+
+test('installed: a harness counts only if it can run here', () => {
+  const pi = { harness: 'pi', provider: 'p', account: 'p', model: 'm', effort: 'low' };
+  const was = process.env.PI_DURABLE_PI;
+  try {
+    process.env.PI_DURABLE_PI = '/bin/sh'; assert.equal(installed(pi), true, 'an executable path');
+    process.env.PI_DURABLE_PI = '/nonexistent/pi'; assert.equal(installed(pi), false, 'a missing path');
+    process.env.PI_DURABLE_PI = 'sh'; assert.equal(installed(pi), true, 'a command on PATH');
+    assert.equal(installed(pi, { env: { PATH: '' } }), false, 'not on an empty PATH');
+  } finally { if (was === undefined) delete process.env.PI_DURABLE_PI; else process.env.PI_DURABLE_PI = was; }
 });

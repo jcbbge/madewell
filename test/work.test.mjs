@@ -299,7 +299,7 @@ test('prescriptions: each job runs on its own tier card and effort', t => run(t,
   assert.deepEqual([by('Orion').model, by('Orion').thinking], ['a/deep-a', 'high'], 'check design is deep');
   assert.deepEqual([by('Sirius').model, by('Sirius').thinking], ['a/code-a', 'low'], 'the maker only executes: coding tier, low effort');
   assert.deepEqual([by('Aldebaran').model, by('Aldebaran').thinking], ['a/fast-a', 'low'], 'the runner only executes: fast tier');
-  assert.equal(by('intake').model, 'a/fast-a');
+  assert.equal(by('intake').model, 'a/deep-a', 'the receiving job asks its own questions, on its own card');
   const impl = (await store.get(id)).attempts.find(a => a.step === 'implement');
   assert.equal(impl.card.model, 'code-a');
   assert.equal(impl.access, 'make');
@@ -328,7 +328,7 @@ test('a usage limit on a judgment call swaps too', t => run(t, { limitOnce: { in
   const id = await store.create('Build it', 'source', cwd, { delivery: true });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const intakes = log().filter(c => c.role === 'intake');
-  assert.deepEqual(intakes.slice(0, 2).map(c => c.model), ['a/fast-a', 'b/fast-b']);
+  assert.deepEqual(intakes.slice(0, 2).map(c => c.model), ['a/deep-a', 'b/deep-b']);
   assert.ok((await store.get(id)).events.some(e => e.type === 'quota' && e.account === 'a'));
 }));
 
@@ -354,4 +354,32 @@ test('account marks: concurrent marks both land, and a mark never moves a reset 
   await Promise.all([store.markExhausted('a', t2), store.markExhausted('b', t1)]);
   await store.markExhausted('a', t1);
   assert.deepEqual(await store.exhausted(), { a: t2, b: t1 });
+}));
+
+test('NQ: notes and assumptions never count as questions; a clear handoff with notes runs at once', t => run(t, { intakeNotes: ['Non-string input is unspecified; I will report it.'] }, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  assert.equal(log().filter(c => c.role === 'originator').length, 0, 'no originator call for notes');
+  const turn = (await store.get(id)).exchanges[0].turns[0];
+  assert.deepEqual(turn.notes, ['Non-string input is unspecified; I will report it.']);
+  assert.equal(turn.clear, true);
+}));
+
+test('a blocked maker is a question for the Arbiter: pre-existing → prerequisite, then back to making, not checking', t => run(t, { blockedOnce: { Sirius: 1 }, arbiter: [{ cause: 'pre-existing', answer: 'fix the test script', evidence: 'in the first commit' }] }, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id);
+  assert.equal(w.failures[0].step, 'implement');
+  assert.equal(w.failures[0].ruling.cause, 'pre-existing');
+  assert.ok(w.failures[0].prerequisite, 'a prerequisite thread fixed it');
+  const sirius = w.attempts.filter(a => a.step === 'implement');
+  assert.deepEqual(sirius.map(a => a.status), ['blocked', 'accepted'], 'the maker ran again after the fix');
+  assert.equal(w.attempts.filter(a => a.step === 'verify').length, 1, 'the checks ran once, after the making');
+}));
+
+test('a blocked maker ruled "implementation" goes back to the planner', t => run(t, { blockedOnce: { Sirius: 1 }, arbiter: [{ cause: 'implementation', answer: 'the plan names a file that does not exist', evidence: '' }] }, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const plans = (await store.get(id)).attempts.filter(a => a.step === 'plan');
+  assert.equal(plans.length, 2, 'planning ran again');
 }));

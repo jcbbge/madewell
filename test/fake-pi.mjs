@@ -8,7 +8,7 @@ let prompt = '';
 for await (const chunk of process.stdin) prompt += chunk;
 const path = process.env.FAKE_PI_STATE, state = JSON.parse(readFileSync(path, 'utf8'));
 const originator = (system.match(/^You are ([\w-]+), who handed over this work\./) ?? [])[1] ?? null;
-const role = /You are the assigned worker in (?:read-only )?intake/.test(system) ? 'intake'
+const role = /You are the assigned worker[^.]*intake/.test(system) ? 'intake'
   : originator ? 'originator'
   : /You are the Arbiter/.test(system) ? 'arbiter'
   : (system.match(/^You are (\w+)\./) ?? [])[1] ?? 'unknown';
@@ -27,7 +27,7 @@ if (limited) {
 }
 if (role === 'intake') {
   const q = take('intakeQuestions');
-  text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], ambiguities: [] });
+  text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], notes: state.intakeNotes ?? [] });
 } else if (role === 'originator') text = JSON.stringify(take('originator') ?? { answer: 'Use the source.', unresolvedAuthority: false });
 else if (role === 'arbiter') text = JSON.stringify(take('arbiter') ?? { cause: 'undetermined', answer: 'unclear', evidence: '' });
 else if (role === 'Aldebaran') {
@@ -35,7 +35,8 @@ else if (role === 'Aldebaran') {
   text = `ran tests\n${JSON.stringify({ outcome, summary: outcome, failures: outcome === 'pass' ? [] : [{ test: 't1', expected: 'ok', observed: 'boom' }] })}`;
 } else {
   if (state.hang?.[role] > 0) { state.hang[role]--; writeFileSync(path, JSON.stringify(state)); appendFileSync(path + '.log', JSON.stringify({ hanging: role, pid: process.pid }) + '\n'); setInterval(() => {}, 1000); await new Promise(() => {}); }
-  text = `${role} done${/You were interrupted/.test(prompt) ? ' (continued)' : ''}`;
+  if (state.blockedOnce?.[role] > 0) { state.blockedOnce[role]--; text = `${role} stopped\n${JSON.stringify({ blocked: 'npm test cannot load the test folder' })}`; }
+  else text = `${role} done${/You were interrupted/.test(prompt) ? ' (continued)' : ''}`;
 }
 writeFileSync(path, JSON.stringify(state));
 const out = e => process.stdout.write(JSON.stringify(e) + '\n');

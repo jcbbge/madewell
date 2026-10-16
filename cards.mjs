@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { isAbsolute } from 'node:path';
+import { readFileSync, accessSync, statSync, constants } from 'node:fs';
+import { isAbsolute, join, delimiter } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildPiArgs, progressExtension as defaultProgressExtension } from './pi-runtime.mjs';
 import { summarizePi } from './pi-stream.mjs';
@@ -96,6 +96,15 @@ export const binaryFor = harness => ({
   claude: process.env.PI_DURABLE_CLAUDE || 'claude',
   codex: process.env.PI_DURABLE_CODEX || 'codex',
 })[harness];
+
+// Is this card's harness installed here? A command name is looked up on PATH; a path must be executable.
+// Prescriptions list every card anyone might have; each machine uses the ones it can run.
+export function installed(card, { env = process.env } = {}) {
+  const command = binaryFor(card.harness);
+  const runnable = path => { try { accessSync(path, constants.X_OK); return statSync(path).isFile(); } catch { return false; } };
+  if (command.includes('/')) return runnable(command);
+  return (env.PATH ?? '').split(delimiter).filter(Boolean).some(dir => runnable(join(dir, command)));
+}
 
 // One headless run of a card. The prompt always goes on stdin: `claude -p` and `pi --print`
 // read it when no prompt argument is given, and `codex exec ... -` reads it explicitly.

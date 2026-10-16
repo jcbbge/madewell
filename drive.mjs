@@ -7,7 +7,7 @@ import { ARBITER } from './pi-runtime.mjs';
 import { callCard } from './pi-call.mjs';
 import { parseResponse } from './pi-stream.mjs';
 import { currentExchange } from './nq.mjs';
-import { loadPrescriptions, cardsFor, pickCard } from './cards.mjs';
+import { loadPrescriptions, cardsFor, pickCard, installed } from './cards.mjs';
 
 const home = dirname(fileURLToPath(import.meta.url));
 const MAX_LAUNCHES = 3;
@@ -19,7 +19,7 @@ const guidance = {
   challenge: 'Challenge the accepted idea against the actual workspace. Name concrete defects, missing constraints and unnecessary scope; recommend a bounded correction or explain why the approach holds. Do not implement.',
   plan: 'Inspect the workspace and the accepted discovery, idea and challenge. Produce an executable specification: Making / Not making / Done when / Waits on, exact paths, instructions, dependencies and what must be verified. Resolve every design choice here: the implementer and the verifier only execute. Do not implement.',
   'test-plan': 'From the accepted plan, independently of implementation, write the checks for this work unit only (files in the workspace) and the exact commands that run them with their expected results. The checks prove the intent of the plan, not only that code runs. Do not write product code.',
-  implement: 'Execute the accepted plan exactly as written. You execute: you do not design, plan or improvise, and you never change the plan, its scope or the tests. If the plan is wrong or a step cannot be done as written, stop and report it. Report changed paths and what you checked.',
+  implement: 'Execute the accepted plan exactly as written. You execute: you do not design, plan or improvise, and you never change the plan, its scope or the tests. Report changed paths and what you checked. If the plan is wrong or a step cannot be done as written, stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you.',
   verify: 'Run only the commands named in the accepted test plan for this work unit, in order: never the whole suite. You execute: you do not fix, retry, broaden or invent commands, and never edit product code or tests. End your answer with ONLY a JSON object on its own: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.',
 };
 
@@ -42,7 +42,13 @@ function overrideCard(model) {
 export async function drive(store, id, { delivery = false, model = '', prescriptions = loadPrescriptions(), call = callCard, log = console.log } = {}) {
   const foundation = await readFile(join(home, 'FOUNDATION.md'), 'utf8');
   const record = name => join(store.directory, 'calls', `${name}-${randomUUID()}`);
-  const cardsOf = (job, fromJob) => model ? [overrideCard(model)] : cardsFor(prescriptions, job, { fromJob });
+  // Only cards whose harness is installed here count; a tier with none installed is a clear error, not a hang.
+  const cardsOf = (job, fromJob) => {
+    if (model) return [overrideCard(model)];
+    const all = cardsFor(prescriptions, job, { fromJob }), here = all.filter(card => installed(card));
+    if (!here.length) throw new Error(`${job}: none of its cards' harnesses is installed (${[...new Set(all.map(c => c.harness))].join(', ')}). Install one, or edit prescriptions.json.`);
+    return here;
+  };
   const accessOf = job => prescriptions.jobs[job]?.access ?? 'read';
   // The first card whose account has quota. `avoid`: accounts that just hit a limit here, never picked again
   // for this job whatever their reported reset says, so a swap always changes provider account.
@@ -132,6 +138,11 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         await store.redrive(id, attempt.id); await store.execute(id, attempt.id); continue;
       }
       if (attempt?.status === 'reported') {
+        if (step.name === 'implement') {
+          let report = null;
+          try { report = parseResponse(attempt.output); } catch {}
+          if (typeof report?.blocked === 'string' && report.blocked.trim()) { await store.openFailure(id, attempt.id, `The maker could not execute the plan: ${report.blocked}`); log('implement: blocked → question for the Arbiter'); continue; }
+        }
         if (step.name === 'verify') {
           let verdict;
           try { verdict = parseResponse(attempt.output); } catch { verdict = { outcome: 'fail', summary: 'Verifier did not return a verdict', raw: attempt.output }; }
@@ -149,8 +160,8 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         continue;
       }
       if (x.status === 'awaiting-worker') {
-        const reply = await judge('intake', step.name, 'intake', undefined, { cwd: w.cwd, name: `${step.name}-nq`,
-          system: 'You are the assigned worker in read-only intake, not execution. Do not infer your execution tools from the limited tools in this intake: test-plan execution has bash/write/edit; verify execution has bash. The coordinator handles reassignment, not the worker. Return ONLY JSON {intent:string, questions:string[], ambiguities:string[]}. Empty arrays confirm readiness. Ask only about material missing information or authority that the accepted dossier and workspace cannot settle.',
+        const reply = await judge('intake', step.name, 'intake', step.name, { cwd: w.cwd, name: `${step.name}-nq`,
+          system: 'You are the assigned worker for this step, in read-only intake before you execute. Do not infer your execution tools from the limited tools in this intake: test-plan execution has bash/write/edit; verify execution has bash. The coordinator handles reassignment, not the worker. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. questions: only what blocks you from executing and cannot be settled from the packet, the workspace or the answers already in the exchange; never repeat a question the exchange has answered. notes: your assumptions and anything already settled; notes never block. An empty questions array confirms readiness.',
           prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'nq')) });
         await store.nq(id, x.id, parseResponse(reply), x.worker);
         continue;
@@ -191,7 +202,7 @@ async function arbitrate(w, failure, { ask }) {
     priorRulings: w.failures.filter(f => f.ruling).map(f => f.ruling) }, null, 2);
   try {
     const verdict = parseResponse(await ask({ cwd: w.cwd, name: 'arbiter', prompt,
-      system: `You are the ${ARBITER.role}. ${ARBITER.duty} Inspect the actual code, tests and history; you may run the tests. Decide exactly one cause: "pre-existing" (a defect that existed before this work), "implementation" (the new code is wrong), "test" (the test is wrong). If the evidence does not decide it, answer "undetermined". Return ONLY JSON {"cause":"pre-existing"|"implementation"|"test"|"undetermined","answer":string,"evidence":string}. The answer is what the responsible party must do.` }));
+      system: `You are the ${ARBITER.role}. ${ARBITER.duty} Inspect the actual code, tests and history; you may run the tests. The failure is either a failed check or a maker that could not execute the plan. Decide exactly one cause: "pre-existing" (a defect that existed before this work), "implementation" (the new code or the plan it follows is wrong), "test" (the test is wrong). If the evidence does not decide it, answer "undetermined". Return ONLY JSON {"cause":"pre-existing"|"implementation"|"test"|"undetermined","answer":string,"evidence":string}. The answer is what the responsible party must do.` }));
     return { cause: CAUSES.includes(verdict.cause) ? verdict.cause : 'undetermined', answer: verdict.answer ?? '', evidence: verdict.evidence ?? '', by: ARBITER.role };
   } catch (error) {
     if (error instanceof QuotaOut) throw error;

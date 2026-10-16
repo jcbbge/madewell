@@ -12,6 +12,6 @@
     "challenge": { "tier": "deep", "access": "read" }, "plan": { "tier": "deep", "access": "read" },
     "test-plan": { "tier": "deep", "access": "checks" }, "implement": { "tier": "coding", "access": "make" },
     "verify": { "tier": "fast", "access": "run" }, "arbitrate": { "tier": "deep", "access": "run" },
-    "intake": { "tier": "fast", "access": "read" }, "originator": { "tier": "inherit", "access": "read" }
+    "intake": { "tier": "inherit", "access": "read" }, "originator": { "tier": "inherit", "access": "read" }
   }
 }

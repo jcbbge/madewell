@@ -26,12 +26,14 @@ you ── chat ──▶ pi (your pi: extensions, skills, settings, login)
 ## Install
 
 ```sh
-cd ~/madewell-pi-durable && npm install      # tracks @latest pi-durable / pi-ai / chord; no lockfile
-npm link                                      # optional: pi-durable on PATH
-pi install ~/madewell-pi-durable              # adds durable_work to pi; /reload open sessions
+git clone https://github.com/jcbbge/madewell.git && cd madewell
+git checkout fold                 # until the fold lands on main
+npm install                       # tracks @latest pi-durable / pi-ai / chord; no lockfile
+npm link                          # optional: pi-durable on PATH
+pi install "$PWD"                 # adds durable_work to pi; /reload open sessions
 ```
 
-Update the upstream packages any time with `npm run update`. Requires Node ≥ 22.19 and the harnesses your prescriptions name (`claude`, `codex`, `pi`) on PATH.
+Requires Node ≥ 22.19 and at least one harness, signed in: Claude Code (`claude`), Codex (`codex`) or pi (`pi`, any provider). Each job uses the first card in its tier whose harness is installed and whose provider account has quota, so one harness is enough and more harnesses mean more room to swap. Edit `prescriptions.json` to change which cards each job may use. Update the upstream packages any time with `npm run update`.
 
 ## Use
 
@@ -52,9 +54,9 @@ Stores live under `~/.local/share/pi-durable/workspaces/<hash>` per workspace (`
 
 Starting pi starts it: http://localhost:7788, for as long as that pi session runs. The footer reads `durable ✓ · localhost:7788` when Pi Durable is connected. (`pi-durable serve` runs it without pi.)
 
-Every workspace store, every thread: the phase rail with the current position and rounds, what is in flight right now (agent, pid, elapsed, time since last output, live tool calls and output, tokens, cost), a swimlane of who did what when (phases, intake, manager, Arbiter, you), latency per phase / judgment call / tool, and every transition. A worker is flagged **silent** after 5 minutes without output, **worker dead** if its process is gone, **no driver** if nothing is driving.
+Every workspace store, every thread: the phase rail with the current position and rounds, what is in flight right now (agent, pid, elapsed, time since last output, live tool calls and output, tokens, cost), a swimlane of who did what when (phases, intake, originator, Arbiter, you), latency per phase / judgment call / tool, and every transition. A worker is flagged **silent** after 5 minutes without output, **worker dead** if its process is gone, **no driver** if nothing is driving.
 
-On hive: `ssh hive`, run `pi`, open http://localhost:7789 on the Mac (the hive entry in `~/.ssh/config` forwards it).
+On a remote machine, forward the port over ssh (for example `ssh -L 7789:localhost:7788 <host>`) and open http://localhost:7789.
 
 ## Test
 

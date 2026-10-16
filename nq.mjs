@@ -25,9 +25,11 @@ export function workerReply(work, id, actor, response) {
   if (x.worker !== actor) throw new Error('Only the delegated worker can answer intake');
   if (x.status !== 'awaiting-worker') throw new Error('No worker response is due');
   text(response?.intent, 'Understanding');
-  const questions = [...(response.questions ?? []), ...(response.ambiguities ?? [])].filter(q => typeof q === 'string' && q.trim());
+  // Only questions block. Assumptions and points already answered are notes: they travel, they don't count as a round.
+  const strings = list => (Array.isArray(list) ? list : []).filter(q => typeof q === 'string' && q.trim());
+  const questions = strings(response.questions), notes = [...strings(response.notes), ...strings(response.ambiguities)];
   const clear = questions.length === 0;
-  x.turns.push({ type: 'worker', actor, at: new Date().toISOString(), intent: response.intent, questions, clear });
+  x.turns.push({ type: 'worker', actor, at: new Date().toISOString(), intent: response.intent, questions, notes, clear });
   if (clear) x.status = 'clear';
   else if (x.rounds >= 3 || x.humanAnswered) {
     x.status = 'human-hold';

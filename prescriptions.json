@@ -29,7 +29,7 @@
     "implement": { "tier": "coding", "access": "make" },
     "verify": { "tier": "fast", "access": "run" },
     "arbitrate": { "tier": "deep", "access": "run" },
-    "intake": { "tier": "fast", "access": "read" },
+    "intake": { "tier": "inherit", "access": "read" },
     "originator": { "tier": "inherit", "access": "read" }
   }
 }
