@@ -421,3 +421,11 @@ test('authority: when the source cannot settle it, the work holds for the human'
   assert.equal((await drive(store, id, quiet)).status, 'held');
   assert.equal((await store.get(id)).hold.kind, 'nq');
 }));
+
+test('a prerequisite carries the authorization of its pre-existing ruling, with its limits', t => run(t, { verify: ['fail', 'pass', 'pass'], arbiter: [{ cause: 'pre-existing', answer: 'fix the test script', evidence: '' }] }, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const child = await store.get((await store.list()).find(t => t !== id));
+  assert.match(child.source, /pre-existing ruling authorizes this repair inside the workspace/);
+  assert.match(child.source, /still the operator's/);
+}));

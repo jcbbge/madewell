@@ -60,6 +60,10 @@ Every job is a fresh session. The maker never writes or runs its own check.
 9. **One worktree per work unit, for now.** A VM or sandbox per unit is the likely direction, but
    that infrastructure isn't built until the industry settles. The QA problem comes first: a
    running copy of the unit's app to open in a browser.
+10. **A pre-existing ruling authorizes its fix.** When the Arbiter rules a failure pre-existing, that
+    ruling authorizes the fix item to repair the defect inside the workspace, with reversible changes and
+    no new dependencies. Destructive, irreversible, production, money, credentials or anything outside
+    the workspace is still the operator's.
 
 ## The NQ protocol (required at every handoff)
 
