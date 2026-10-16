@@ -7,19 +7,20 @@ const system = arg('--append-system-prompt') ?? '';
 let prompt = '';
 for await (const chunk of process.stdin) prompt += chunk;
 const path = process.env.FAKE_PI_STATE, state = JSON.parse(readFileSync(path, 'utf8'));
+const originator = (system.match(/^You are ([\w-]+), who handed over this work\./) ?? [])[1] ?? null;
 const role = /You are the assigned worker in (?:read-only )?intake/.test(system) ? 'intake'
-  : /You manage this work/.test(system) ? 'manager'
+  : originator ? 'originator'
   : /You are the Arbiter/.test(system) ? 'arbiter'
   : (system.match(/^You are (\w+)\./) ?? [])[1] ?? 'unknown';
 const take = key => { const list = state[key] ?? []; const value = list.length > 1 ? list.shift() : list[0]; return value; };
 state.calls = (state.calls ?? 0) + 1;
-appendFileSync(path + '.log', JSON.stringify({ n: state.calls, role, sessionId: arg('--session-id'), tools: arg('--tools'), continued: /You were interrupted/.test(prompt), worker: process.env.PI_DURABLE_WORKER ?? null }) + '\n');
+appendFileSync(path + '.log', JSON.stringify({ n: state.calls, role, sessionId: arg('--session-id'), tools: arg('--tools'), as: originator, prompt, continued: /You were interrupted/.test(prompt), worker: process.env.PI_DURABLE_WORKER ?? null }) + '\n');
 
 let text;
 if (role === 'intake') {
   const q = take('intakeQuestions');
   text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], ambiguities: [] });
-} else if (role === 'manager') text = JSON.stringify(take('manager') ?? { answer: 'Use the source.', unresolvedAuthority: false });
+} else if (role === 'originator') text = JSON.stringify(take('originator') ?? { answer: 'Use the source.', unresolvedAuthority: false });
 else if (role === 'arbiter') text = JSON.stringify(take('arbiter') ?? { cause: 'undetermined', answer: 'unclear', evidence: '' });
 else if (role === 'Aldebaran') {
   const outcome = take('verify') ?? 'pass';

@@ -15,7 +15,7 @@ you ── chat ──▶ pi (your pi: extensions, skills, settings, login)
 
 - **The state** is the work record in SQLite: objective, source, phase, round, briefs, NQ exchanges, attempts, failures, holds. Every change is a Pi Durable commit.
 - **Agents are pi.** Every worker loads your own pi configuration. Tool ceilings per phase are pi `--tools` allowlists (implementer: everything).
-- **NQ.** Before a phase executes, the worker states its understanding and asks; the manager answers. Three rounds still unclear, or missing authority → human.
+- **NQ.** Before a phase executes, the worker states its understanding and asks; the originating agent answers, headless, as the role that made the handoff (the dispatcher for discovery, the previous phase normally, the Arbiter after a failure ruling), from its own handoff. The executing worker gets the whole exchange. Three rounds still unclear (the handoff is ambiguous or wrong), or missing authority → human.
 - **A failed test is a question.** The Arbiter decides whose: bad test → Orion, bad implementation → Cassiopeia replans, pre-existing bug → a linked prerequisite thread. Undetermined → you. Three failed corrections → you.
 - **Recovery is redrive.** Kill anything. Drive again: Pi Durable re-enters the interrupted phase and the worker continues its own pi session.
 - **Discovery never authorizes delivery.** Building needs `delivery: true` (recorded on the work).

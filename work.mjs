@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, writeFile, rename, unlink, realpath } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import * as nq from './nq.mjs';
-import { STEPS, stepIndex, buildPiArgs } from './pi-runtime.mjs';
+import { STEPS, ARBITER, stepIndex, buildPiArgs } from './pi-runtime.mjs';
 import { runPi } from './pi-call.mjs';
 import { publishWork } from './observe.mjs';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
@@ -13,6 +13,8 @@ import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite
 export { STEPS };
 export const hash = text => createHash('sha256').update(text).digest('hex');
 export const CAUSES = ['pre-existing', 'implementation', 'test'];
+// Whoever handed the work over: the person or concierge that dispatched it, before any phase has handed off.
+export const DISPATCHER = 'dispatcher';
 // A failed test is answered by: test → test architect (Orion), implementation → planner (Cassiopeia),
 // pre-existing → a linked prerequisite thread. Undetermined → the human.
 export const MAX_CORRECTIONS = 3;
@@ -193,21 +195,24 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         event(w, 'brief-sealed', { step: s.name, round: w.round });
       });
     },
-    async delegate(id, manager, worker) { return change(id, w => nq.delegate(w, step(w).name, manager, worker)); },
+    // The answering party is never chosen by the caller: it is whoever made this handoff.
+    async delegate(id, worker) { return change(id, w => nq.delegate(w, step(w).name, originatorOf(w).role, worker)); },
+    async originator(id) { const w = await this.get(id); step(w); return originatorOf(w); },
     async nq(id, exchangeId, response, actor) { return change(id, w => nq.workerReply(w, exchangeId, actor, response)); },
-    async answer(id, exchangeId, actor, text) { return change(id, w => nq.managerReply(w, exchangeId, actor, text)); },
-    // A judgment call (intake, manager, Arbiter) on the timeline, with its latency.
+    async answer(id, exchangeId, actor, text) { return change(id, w => nq.originatorReply(w, exchangeId, actor, text)); },
+    // A judgment call (intake, originator, Arbiter) on the timeline, with its latency.
     async note(id, type, details) { return change(id, w => { event(w, type, details); }); },
     async holdQuestion(id, exchangeId, reason) {
       return change(id, w => {
         const x = w.exchanges.find(x => x.id === exchangeId);
-        if (x?.status !== 'awaiting-manager') throw new Error('No manager question is due');
+        if (x?.status !== 'awaiting-originator') throw new Error('No originator question is due');
         x.status = 'human-hold';
         w.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), reason: requireText(reason, 'Hold reason'), questions: x.turns.at(-1)?.questions ?? [] };
       });
     },
     async packet(id, purpose = 'execute') {
       const w = await this.get(id), s = step(w), b = w.briefs[s.name];
+      if (purpose === 'originator') return originatorPacket(w, s);
       if (!b) throw new Error(`Seal a brief for ${s.name} first`);
       return makePacket(w, s, b, purpose);
     },
@@ -318,15 +323,48 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
   };
 }
 
+// Who handed this step its work, and what that handoff was. The originator answers intake questions.
+// - after a failure ruling rewound the work here: the Arbiter, from its ruling;
+// - otherwise the previous step's role, from its latest accepted output;
+// - before any handoff (discover): the dispatcher, from the objective and source only.
+export function originatorOf(w) {
+  const s = STEPS[w.position];
+  const ruled = w.notes.findLast(n => n.round === w.round && n.failureId && n.to === s.role);
+  if (ruled) {
+    const f = w.failures.find(f => f.id === ruled.failureId);
+    return { role: ARBITER.role, basis: 'ruling', failureId: f.id,
+      handoff: `Verifier report:\n${f.report}\n\nRuling (${f.ruling.cause}, by ${f.ruling.by}):\n${f.ruling.answer}\n\nEvidence:\n${f.ruling.evidence || '(none)'}` };
+  }
+  const prev = STEPS[w.position - 1], a = prev && w.attempts.findLast(a => a.step === prev.name && a.status === 'accepted');
+  if (a) return { role: prev.role, basis: 'handoff', step: prev.name, attemptId: a.id, handoff: a.output ?? '' };
+  // A prerequisite thread was handed over by the Arbiter's ruling, which its source carries.
+  if (w.parentId && !w.attempts.some(a => a.status === 'accepted')) return { role: ARBITER.role, basis: 'source' };
+  return { role: DISPATCHER, basis: 'source' };
+}
+const describe = ({ handoff, ...o }) => o;
+
 function makePacket(w, s, b, purpose) {
   const accepted = STEPS.slice(0, w.position).map(p => w.attempts.findLast(a => a.step === p.name && a.status === 'accepted')).filter(Boolean)
     .map(a => ({ step: a.step, role: a.role, round: a.round, output: a.output }));
+  const x = nq.currentExchange(w, s.name);
   return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, step: s, round: w.round,
     brief: b.text, accepted, questionsForYou: w.notes.filter(n => n.to === s.role && n.round === w.round),
-    exchange: purpose === 'nq' ? nq.currentExchange(w, s.name)?.turns ?? [] : undefined,
+    // The whole NQ exchange travels with the work: intake and execution both read it.
+    originator: describe(originatorOf(w)), exchange: x?.turns ?? [],
     instruction: purpose === 'nq'
-      ? 'Read the exchange, including manager or human answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], ambiguities:string[]}. Empty arrays mean you understand and can execute. Do not do the work yet.'
-      : 'Execute only this step. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.' }, null, 2);
+      ? 'Read the exchange, including the originator\'s or the operator\'s answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], ambiguities:string[]}. Empty arrays mean you understand and can execute. Do not do the work yet.'
+      : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.' }, null, 2);
+}
+
+// The originator sees what it handed over, the source, and the questions: never the receiving step's own brief or later work.
+function originatorPacket(w, s) {
+  const o = originatorOf(w), x = nq.currentExchange(w, s.name);
+  if (!x || x.originator !== o.role) throw new Error('No exchange awaits this originator');
+  return JSON.stringify({ purpose: 'originator', threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source,
+    receivingStep: s, round: w.round, originator: describe(o), handoff: o.handoff, exchange: x.turns, questions: x.turns.at(-1)?.questions ?? [],
+    instruction: o.handoff === undefined
+      ? 'You dispatched this work. Answer from the objective and source only.'
+      : 'Answer from your own handoff (and the source). Do not change your handoff or the work; clarify what you meant.' }, null, 2);
 }
 
 // The model reads files, not a pasted transcript that a transport may truncate.
@@ -336,8 +374,11 @@ export async function provisionPacket(directory, key, serialized) {
   await mkdir(folder, { recursive: true });
   const save = async (name, text) => { const path = join(folder, name); await writeFile(path, text); return path; };
   const accepted = [];
-  for (const [i, c] of packet.accepted.entries()) accepted.push({ step: c.step, role: c.role, path: await save(`ACCEPTED-${i}-${c.step}.md`, c.output ?? '') });
-  const { source, brief, accepted: _a, ...rest } = packet;
-  return JSON.stringify({ ...rest, source: await save('SOURCE.md', source), brief: await save('BRIEF.md', brief), accepted,
-    read: 'Read the brief, the source and the accepted contributions at these paths before you respond.' }, null, 2);
+  for (const [i, c] of (packet.accepted ?? []).entries()) accepted.push({ step: c.step, role: c.role, path: await save(`ACCEPTED-${i}-${c.step}.md`, c.output ?? '') });
+  const { source, brief, handoff, accepted: _a, ...rest } = packet;
+  const files = { source: await save('SOURCE.md', source) };
+  if (brief !== undefined) files.brief = await save('BRIEF.md', brief);
+  if (handoff !== undefined) files.handoff = await save('HANDOFF.md', handoff);
+  return JSON.stringify({ ...rest, ...files, accepted,
+    read: `Read the ${Object.keys(files).join(', ')}${accepted.length ? ' and the accepted contributions' : ''} at these paths before you respond.` }, null, 2);
 }
