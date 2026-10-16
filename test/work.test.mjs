@@ -383,3 +383,11 @@ test('a blocked maker ruled "implementation" goes back to the planner', t => run
   const plans = (await store.get(id)).attempts.filter(a => a.step === 'plan');
   assert.equal(plans.length, 2, 'planning ran again');
 }));
+
+test('pre-existing defects nested past the cap hold for the human instead of opening prerequisites forever', t => run(t, { verify: ['fail'], arbiter: [{ cause: 'pre-existing', answer: 'older defect', evidence: '' }] }, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const result = await drive(store, id, quiet);
+  assert.equal(result.status, 'held');
+  assert.match(result.reason, /prerequisites deep/);
+  assert.equal((await store.list()).length, 3, 'the original plus two nested prerequisites, no more');
+}));

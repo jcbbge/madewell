@@ -20,6 +20,8 @@ export const DISPATCHER = 'dispatcher';
 // A failed test is answered by: test → test architect (Orion), implementation → planner (Cassiopeia),
 // pre-existing → a linked prerequisite thread. Undetermined → the human.
 export const MAX_CORRECTIONS = 3;
+// A pre-existing defect inside a prerequisite opens another prerequisite; past this depth the work holds for the human.
+export const MAX_PREREQUISITE_DEPTH = 2;
 const requireText = (text, name) => { if (typeof text !== 'string' || !text.trim()) throw new Error(`${name} must be nonempty`); return text; };
 const Catalog = defineDoc({ kind: 'work.catalog', version: 1, scope: 'conversation', history: 'latest', fork: 'initial', initial: () => ({ threads: [] }) });
 const Work = defineDoc({ kind: 'work.thread', version: 1, scope: 'conversation', history: 'rewindable', fork: 'asOf', initial: () => ({}) });
@@ -190,9 +192,16 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
     const question = `Test failure ${failure.id}. Verifier report:\n${failure.report}\n\nRuling (${ruling.cause}, by ${ruling.by}):\n${ruling.answer}`;
     if (ruling.cause === 'test') rewind(w, stepIndex('test-plan'), { to: 'Orion', failureId: failure.id, text: question });
     else if (ruling.cause === 'implementation') rewind(w, stepIndex('plan'), { to: 'Cassiopeia', failureId: failure.id, text: question });
+    else if (ruling.cause === 'pre-existing' && (w.depth ?? 0) >= MAX_PREREQUISITE_DEPTH) {
+      failure.status = 'held';
+      w.hold = { kind: 'failure', ref: failure.id, at: new Date().toISOString(),
+        reason: `Another pre-existing defect ${(w.depth ?? 0) + 1} prerequisites deep: something upstream is wrong. ${ruling.answer}`.trim() };
+      event(w, 'prerequisite-depth', { failureId: failure.id, depth: w.depth });
+      return { cause: 'held' };
+    }
     else if (ruling.cause === 'pre-existing') {
       const child = await createIn(tx, fresh(`Fix the pre-existing defect blocking thread ${w.id}: ${ruling.answer.slice(0, 400)}`,
-        `${w.source}\n\n## Prerequisite of thread ${w.id}\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, delivery: true }));
+        `${w.source}\n\n## Prerequisite of thread ${w.id}\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, delivery: true }));
       w.waitsOn = child; failure.prerequisite = child;
       // Back to where the defect stopped the work: the making (a blocked maker) or the checks.
       const back = STEPS[stepIndex(failure.step ?? 'verify')];
