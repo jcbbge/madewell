@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdir, readFile, writeFile, readdir, access, symlink } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, readdir, access, symlink, realpath } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { machine, runCli, repo } from './harness-fakes.mjs';
@@ -90,7 +90,8 @@ test('start: creates the unit in the workspace\'s store and drives it in the bac
   assert.ok(Number.isSafeInteger(out.id) && out.id > 0);
   assert.equal(out.delivery, false);
   assert.match(out.store, /pi-durable\/workspaces\/[0-9a-f]{64}$/, 'the same per-workspace store pi uses');
-  assert.equal(out.status, `pi-durable status ${out.id} --workspace ${JSON.stringify(workspace)}`);
+  // start resolves the workspace's real path (macOS temp dirs are /var → /private/var)
+  assert.equal(out.status, `pi-durable status ${out.id} --workspace ${JSON.stringify(await realpath(workspace))}`);
   assert.ok(out.launched.pid > 0);
 
   let view;
