@@ -9,6 +9,7 @@ for await (const chunk of process.stdin) prompt += chunk;
 const path = process.env.FAKE_PI_STATE, state = JSON.parse(readFileSync(path, 'utf8'));
 const originator = (system.match(/^You are ([\w-]+), who handed over this work\./) ?? [])[1] ?? null;
 const role = /You are the assigned worker[^.]*intake/.test(system) ? 'intake'
+  : /^You are the dispatcher, who dispatched this work for the operator/.test(system) ? 'authority'
   : originator ? 'originator'
   : /You are the Arbiter/.test(system) ? 'arbiter'
   : (system.match(/^You are (\w+)\./) ?? [])[1] ?? 'unknown';
@@ -28,7 +29,8 @@ if (limited) {
 if (role === 'intake') {
   const q = take('intakeQuestions');
   text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], notes: state.intakeNotes ?? [] });
-} else if (role === 'originator') text = JSON.stringify(take('originator') ?? { answer: 'Use the source.', unresolvedAuthority: false });
+} else if (role === 'authority') text = JSON.stringify(take('authority') ?? { answer: 'The source does not settle it.', unresolvedAuthority: true });
+else if (role === 'originator') text = JSON.stringify(take('originator') ?? { answer: 'Use the source.', unresolvedAuthority: false });
 else if (role === 'arbiter') text = JSON.stringify(take('arbiter') ?? { cause: 'undetermined', answer: 'unclear', evidence: '' });
 else if (role === 'Aldebaran') {
   const outcome = take('verify') ?? 'pass';

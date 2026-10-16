@@ -173,8 +173,19 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, name: `${step.name}-originator`,
           system: originatorSystem(x.originator),
           prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
-        if (reply.unresolvedAuthority) { await store.holdQuestion(id, x.id, reply.answer); continue; }
-        await store.answer(id, x.id, x.originator, reply.answer);
+        let answer = reply.answer;
+        if (reply.unresolvedAuthority) {
+          // Only the operator holds authority, but the operator's source is on hand: the dispatcher reads it
+          // first. The work holds for the operator only when the source cannot settle it.
+          const ruling = x.originator === DISPATCHER ? reply : parseResponse(await judge('authority', step.name, 'originator', 'discover', {
+            cwd: w.cwd, name: `${step.name}-authority`, system: AUTHORITY_SYSTEM,
+            prompt: await provisionPacket(store.directory, randomUUID(), JSON.stringify({ purpose: 'authority', threadId: w.id, workspace: w.cwd,
+              objective: w.objective, source: w.source, questions: x.turns.at(-1)?.questions ?? [], handoff: reply.answer,
+              instruction: 'The handoff file holds what the originator said. Decide from the objective and source only.' })) }));
+          if (ruling.unresolvedAuthority) { await store.holdQuestion(id, x.id, ruling.answer); continue; }
+          if (ruling !== reply) answer = `${reply.answer}\n\nAuthority, settled by the dispatcher from the operator's source: ${ruling.answer}`;
+        }
+        await store.answer(id, x.id, x.originator, answer);
         continue;
       }
       if (x.status !== 'clear') return finish('question', `${step.name}: exchange ${x.id} is ${x.status}`);
@@ -188,6 +199,8 @@ export async function drive(store, id, { delivery = false, model = '', prescript
     throw error;
   }
 }
+
+const AUTHORITY_SYSTEM = `You are the ${DISPATCHER}, who dispatched this work for the operator. An agent said only the operator can authorize something. You hold the operator's own words: the objective and source. If they authorize it, explicitly or as a necessary part of what they ask for, say so and what is authorized. If they forbid it, say so. If they leave it genuinely open, or it is destructive, irreversible, touches production, money, credentials or anything outside this workspace, it is the operator's: set unresolvedAuthority:true and state the decision in one sentence with your recommendation. Never invent authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}.`;
 
 const originatorSystem = role => `You are ${role}, who handed over this work. ${role === DISPATCHER
   ? 'You dispatched it on behalf of the person who asked for it: answer from the objective and source only.'

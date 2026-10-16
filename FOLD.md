@@ -75,6 +75,12 @@ Every transition of work between agents runs NQ. It cannot be turned off.
    wrong. The work stops on a hold and flags the operator automatically. No fourth round, and no
    switching agents to get around it.
 
+**Authority.** When the originator says only the operator can authorize something, the dispatcher
+first reads the operator's own source. If the source authorizes it (explicitly, or as a necessary part
+of what it asks for) or forbids it, the dispatcher answers and the work goes on. It holds for the
+operator only when the source leaves it open, or it is destructive, irreversible, or touches
+production, money, credentials or anything outside the workspace.
+
 The exchange is durable Pi Durable state. It survives a crash, a harness swap mid-exchange
 doesn't use up a round, and the whole exchange reaches the agent that executes.
 

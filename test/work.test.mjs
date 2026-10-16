@@ -400,3 +400,24 @@ test('a blocked check designer goes to the Arbiter, not the operator: pre-existi
   assert.deepEqual(w.attempts.filter(a => a.step === 'test-plan').map(a => a.status), ['blocked', 'accepted']);
   assert.equal(w.hold, null);
 }));
+
+const askAtPlan = { intakeQuestions: [null, null, null, 'May I edit package.json to fix the test script?', null] };
+
+test('authority: when the source settles it, the dispatcher answers and nothing waits on the human', t => run(t, { ...askAtPlan,
+  originator: [{ answer: 'Only the operator can approve editing package.json.', unresolvedAuthority: true }],
+  authority: [{ answer: 'The source asks for tests that run with npm test, so fixing the test script is part of the request.', unresolvedAuthority: false }],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  assert.equal(log().filter(c => c.role === 'authority').length, 1);
+  const x = (await store.get(id)).exchanges.find(e => e.turns.some(t => t.type === 'originator'));
+  assert.match(x.turns.find(t => t.type === 'originator').text, /settled by the dispatcher from the operator's source/);
+}));
+
+test('authority: when the source cannot settle it, the work holds for the human', t => run(t, { ...askAtPlan,
+  originator: [{ answer: 'Only the operator can approve this.', unresolvedAuthority: true }],
+}, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'held');
+  assert.equal((await store.get(id)).hold.kind, 'nq');
+}));
