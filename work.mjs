@@ -91,7 +91,9 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
             `${last.workspace?.uncommitted?.length ? `; uncommitted: ${last.workspace.uncommitted.join(', ')}` : ''}. ` +
             'Inspect the workspace and your step\'s task list first; continue the assignment and do not redo finished parts.'
           : '';
-        const prompt = continuing
+        const prompt = prior.askVerdict && continuing
+          ? 'Your answer had no verdict. Do not run anything again. Reply with ONLY the JSON verdict for the checks you already ran: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.'
+          : continuing
           ? 'You were interrupted mid-assignment. Continue the same assignment from where you stopped. Inspect the workspace first; do not redo finished parts.'
           : await provisionPacket(directory, attemptId, prior.packet) + pickup;
         let queue = Promise.resolve(), timer;
@@ -275,6 +277,16 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       });
     },
     // A failed worker is redriven on the same pi session: same step, same packet.
+    // The check runner reported without a verdict: continue its own session and ask only for the verdict.
+    async askVerdict(id, attemptId) {
+      return change(id, async (w, tx) => {
+        const a = w.attempts.find(a => a.id === attemptId);
+        if (a?.step !== 'verify' || a.status !== 'reported') throw new Error('Only a reported verify step is asked for its verdict');
+        Object.assign(a, { status: 'running', askVerdict: true });
+        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+        event(w, 'verdict-asked', { attemptId });
+      });
+    },
     async redrive(id, attemptId) {
       return change(id, async (w, tx) => {
         const a = w.attempts.find(a => a.id === attemptId);

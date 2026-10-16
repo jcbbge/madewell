@@ -34,6 +34,8 @@ else if (role === 'originator') text = JSON.stringify(take('originator') ?? { an
 else if (role === 'arbiter') text = JSON.stringify(take('arbiter') ?? { cause: 'undetermined', answer: 'unclear', evidence: '' });
 else if (role === 'Aldebaran') {
   const outcome = take('verify') ?? 'pass';
+  if (state.noVerdictOnce > 0 && !/had no verdict/.test(prompt)) { state.noVerdictOnce--; writeFileSync(path, JSON.stringify(state)); text = "Verification passed: all named checks came back as expected. I changed nothing."; }
+  else
   text = `ran tests\n${JSON.stringify({ outcome, summary: outcome, failures: outcome === 'pass' ? [] : [{ test: 't1', expected: 'ok', observed: 'boom' }] })}`;
 } else {
   if (state.hang?.[role] > 0) { state.hang[role]--; writeFileSync(path, JSON.stringify(state)); appendFileSync(path + '.log', JSON.stringify({ hanging: role, pid: process.pid }) + '\n'); setInterval(() => {}, 1000); await new Promise(() => {}); }

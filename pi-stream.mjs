@@ -12,10 +12,18 @@ export function summarizePi(raw) {
   };
 }
 
+// The answer's JSON is its last JSON object. A report may quote code with braces before it,
+// so take the last fenced json block, else the last '{' that starts a complete object.
 export function parseResponse(text) {
   const body = text.trim().replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
   try { return JSON.parse(body); } catch {}
-  const start = body.indexOf('{'), end = body.lastIndexOf('}');
-  if (start >= 0 && end > start) return JSON.parse(body.slice(start, end + 1));
+  for (const block of [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map(m => m[1].trim()).reverse()) {
+    try { const v = JSON.parse(block); if (v && typeof v === 'object') return v; } catch {}
+  }
+  const end = body.lastIndexOf('}');
+  for (let i = body.lastIndexOf('{', end); i >= 0; i = body.lastIndexOf('{', i - 1)) {
+    try { const v = JSON.parse(body.slice(i, end + 1)); if (v && typeof v === 'object') return v; } catch {}
+    if (i === 0) break;
+  }
   throw new Error('Response is not JSON');
 }

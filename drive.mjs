@@ -145,7 +145,12 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         }
         if (step.name === 'verify') {
           let verdict;
-          try { verdict = parseResponse(attempt.output); } catch { verdict = { outcome: 'fail', summary: 'Verifier did not return a verdict', raw: attempt.output }; }
+          try { verdict = parseResponse(attempt.output); } catch {}
+          // No verdict is a malformed handoff, not a failed check: ask the same session for it.
+          if (!['pass', 'fail'].includes(verdict?.outcome)) {
+            if ((attempt.launches ?? 0) >= MAX_LAUNCHES) return finish('worker-failing', 'verify: the check runner gave no verdict');
+            await store.askVerdict(id, attempt.id); log('verify: no verdict → asking the runner for it'); await store.execute(id, attempt.id); continue;
+          }
           if (verdict.outcome !== 'pass') { await store.openFailure(id, attempt.id, attempt.output); log('verify: test failed → question for the Arbiter'); continue; }
         }
         await store.accept(id, attempt.id);

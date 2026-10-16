@@ -429,3 +429,15 @@ test('a prerequisite carries the authorization of its pre-existing ruling, with 
   assert.match(child.source, /pre-existing ruling authorizes this repair inside the workspace/);
   assert.match(child.source, /still the operator's/);
 }));
+
+test('a check runner that reports without a verdict is asked for it, never sent to the Arbiter', t => run(t, { noVerdictOnce: 1 }, async ({ store, cwd, log }) => {
+  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id);
+  assert.equal(w.failures.length, 0, 'no failure, no Arbiter');
+  assert.ok(w.events.some(e => e.type === 'verdict-asked'));
+  const runs = log().filter(c => c.role === 'Aldebaran');
+  assert.equal(runs.length, 2);
+  assert.match(runs[1].prompt, /had no verdict/);
+  assert.equal(runs[1].sessionId, runs[0].sessionId, 'the same session is asked');
+}));
