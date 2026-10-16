@@ -14,6 +14,8 @@
     "pi-call.mjs",
     "pi-stream.mjs",
     "pi-runtime.mjs",
+    "cards.mjs",
+    "prescriptions.json",
     "child-environment.mjs",
     "work-progress.mjs",
     "FOUNDATION.md",
