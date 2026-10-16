@@ -81,12 +81,14 @@ const CLAUDE_ACCESS = {
   make: ['--dangerously-skip-permissions'],
   run: ['--permission-mode', 'dontAsk', '--tools', 'Read,Grep,Glob,Bash', '--allowedTools', 'Bash'],
 };
-const CODEX_SANDBOX = { read: 'read-only', checks: 'workspace-write', make: 'workspace-write', run: 'workspace-write' };
+// Parity with Claude Code and pi, which run writing jobs without an OS sandbox (the brief and the write rule
+// bound them): workspace-write blocked real work (npm writes its cache outside the workspace). Read stays read-only.
+const CODEX_SANDBOX = { read: 'read-only', checks: 'danger-full-access', make: 'danger-full-access', run: 'danger-full-access' };
 const NOTES = {
   claude: { run: ['run: no Edit/Write tools, but Bash can still write files; the brief forbids edits'] },
   codex: {
-    run: ['run: codex has no "tests only" mode; workspace-write lets the model edit, so the brief forbids edits'],
-    checks: ['checks: workspace-write allows any edit inside the workspace; the trade write rule is checked elsewhere'],
+    run: ['run: no OS sandbox (parity with claude and pi); the brief forbids edits'],
+    checks: ['checks: no OS sandbox (parity with claude and pi); the write rule is checked elsewhere'],
   },
   pi: { run: ['run: bash can still write files; the brief forbids edits'] },
 };

@@ -110,7 +110,7 @@ test('buildLaunch claude: print + stream-json, model, effort, permissions per ac
 });
 
 test('buildLaunch codex: exec --json, model, reasoning effort, sandbox per access, prompt on stdin', () => {
-  const sandbox = { read: 'read-only', checks: 'workspace-write', make: 'workspace-write', run: 'workspace-write' };
+  const sandbox = { read: 'read-only', checks: 'danger-full-access', make: 'danger-full-access', run: 'danger-full-access' };
   for (const [access, mode] of Object.entries(sandbox)) {
     assert.deepEqual(buildLaunch(card('codex'), { access }).args, ['exec', '--json', '--skip-git-repo-check', '-m', 'gpt-6-astra',
       '-c', 'model_reasoning_effort="high"', '-c', 'approval_policy="never"', '-s', mode, '-'], access);
@@ -119,9 +119,9 @@ test('buildLaunch codex: exec --json, model, reasoning effort, sandbox per acces
   assert.ok(sys.includes('developer_instructions="Say \\"hi\\"\\nthen stop."'));
   const resumed = buildLaunch(card('codex'), { access: 'make', sessionId: '01a145d5-c83d-7200-b2ce-14f19c1ec0b2' }).args;
   assert.deepEqual(resumed.slice(0, 3), ['exec', 'resume', '--json']);
-  assert.ok(resumed.includes('sandbox_mode="workspace-write"') && !resumed.includes('-s'));
+  assert.ok(resumed.includes('sandbox_mode="danger-full-access"') && !resumed.includes('-s'));
   assert.deepEqual(resumed.slice(-2), ['01a145d5-c83d-7200-b2ce-14f19c1ec0b2', '-']);
-  assert.match(buildLaunch(card('codex'), { access: 'run' }).notes.join('\n'), /no "tests only" mode/);
+  assert.match(buildLaunch(card('codex'), { access: 'run' }).notes.join('\n'), /no OS sandbox/);
   process.env.PI_DURABLE_CODEX = '/fake/codex';
   try { assert.equal(buildLaunch(card('codex'), { access: 'read' }).command, '/fake/codex'); } finally { delete process.env.PI_DURABLE_CODEX; }
 });
