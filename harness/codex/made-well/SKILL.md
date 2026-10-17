@@ -19,7 +19,7 @@ workspace's record, the same one pi and Claude Code see.
 ## Start a unit
 
 1. Write the source to a file: the person's request in their own words, then the facts, paths,
-   scope, constraints and what "done" means.
+   scope, constraints and what "done" means (checks of the work itself, never `pi-durable doctor`: see DISPATCH.md).
 2. Ask yourself whether the person authorized building, not only looking. Only then add `--delivery`.
 
         pi-durable start --objective "<one line>" --source-file <file> --workspace <dir> [--delivery]

@@ -6,6 +6,7 @@ import * as nq from './nq.mjs';
 import { STEPS, ARBITER, stepIndex, progressExtension } from './pi-runtime.mjs';
 import { runCard } from './pi-call.mjs';
 import { buildLaunch } from './cards.mjs';
+import { LABELS, FORMAT, checkDeliverable } from './deliverable.mjs';
 import { publishWork } from './observe.mjs';
 import { sendAlert } from './alert.mjs';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
@@ -91,7 +92,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         if (!card) throw new Error(`Attempt ${attemptId} has no card`);
         // Same card: continue its own session. Codex can only continue a session it has already named.
         const continuing = resumed && (card.harness !== 'codex' || Boolean(prior.harnessSession));
-        const launch = buildLaunch(card, { access: prior.access, sessionDir: join(directory, 'sessions', attemptId),
+        const launch = buildLaunch(card, { access: prior.askRestate ? 'read' : prior.access, sessionDir: join(directory, 'sessions', attemptId),
           sessionId: card.harness === 'codex' ? (continuing ? prior.harnessSession : undefined) : prior.harnessSession ?? prior.sessionId,
           resume: continuing, progressExtension: card.harness === 'pi' ? progressExtension : undefined, readDirs: [directory],
           system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope. ${SUBAGENT_RULE}` });
@@ -103,7 +104,9 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
             `${last.workspace?.uncommitted?.length ? `; uncommitted: ${last.workspace.uncommitted.join(', ')}` : ''}. ` +
             'Inspect the workspace and your step\'s task list first; continue the assignment and do not redo finished parts.'
           : '';
-        const prompt = prior.askVerdict && continuing
+        const prompt = prior.askRestate
+          ? restatePrompt(prior.step, prior.askRestate, { continuing, output: prior.revisions.at(-1).output })
+          : prior.askVerdict && continuing
           ? 'Your answer had no verdict. Do not run anything again. Reply with ONLY the JSON verdict for the checks you already ran: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.'
           : continuing
           ? 'You were interrupted mid-assignment. Continue the same assignment from where you stopped. Inspect the workspace first; do not redo finished parts.'
@@ -156,6 +159,12 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
           a.error = result.ok ? '' : result.limit ? `usage limit: ${result.limit.message}`
             : (result.signal ?? result.error) || `${card.harness} exited ${result.code}`;
           event(w, a.status, { attemptId, step: a.step, ...(result.limit ? { limit: result.limit } : {}) });
+          if (a.askRestate && result.ok) {
+            // The restated deliverable answers the receiving step's question; a human answer is confirmed by the receiver's own intake.
+            const rx = w.exchanges.find(x => x.id === a.askRestate.exchangeId);
+            if (!a.askRestate.human && rx?.status === 'awaiting-originator') nq.originatorReply(w, rx.id, a.role, `Restated in full as revision ${a.revisions.length} of attempt ${a.id}; the restated deliverable is the hand-off.`);
+            a.restatedFor = rx.turns.length; a.askRestate = null;
+          }
           return terminal({ status: a.status });
         }, ctx);
         await publish(workId);
@@ -322,6 +331,29 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         event(w, 'verdict-asked', { attemptId });
       });
     },
+    // A hand-off missing its required parts opens the receiving step's own exchange early; the receiving step's agent asks.
+    async refuse(id, attemptId, worker, missing) {
+      return change(id, w => {
+        const a = w.attempts.find(a => a.id === attemptId), s = step(w);
+        if (!a || a.step !== s.name || a.round !== w.round || a.status !== 'reported' || !STEPS[w.position + 1]) throw new Error('Only the current reported step can be refused');
+        const id = nq.delegate(w, STEPS[w.position + 1].name, s.role, worker, { kind: 'step', id: attemptId });
+        event(w, 'handoff-refused', { attemptId, step: a.step, missing });
+        return id;
+      });
+    },
+    async refusalPacket(id, attemptId) { return refusalPacket(await this.get(id), attemptId); },
+    // The receiving step asked the reporting worker for what its report lacks: continue its own session, read-only, for the restated deliverable.
+    async askRestate(id, attemptId) {
+      return change(id, async (w, tx) => {
+        const a = w.attempts.find(a => a.id === attemptId), rx = nq.findExchange(w, x => nq.isStep(x) && x.subject?.id === attemptId);
+        if (!a || !LABELS[a.step] && a.step !== 'test-plan' || a.status !== 'reported' || !rx) throw new Error('Only a reported plan, test-plan or implement hand-off with a refusal is asked to restate');
+        const missing = checkDeliverable(a.step, a.output ?? '', w.cwd).missing, last = rx.turns.at(-1);
+        a.revisions = [...(a.revisions ?? []), { output: a.output, at: new Date().toISOString(), missing }];
+        Object.assign(a, { status: 'running', askRestate: { exchangeId: rx.id, questions: rx.turns.findLast(t => t.type === 'worker')?.questions ?? [], human: last?.type === 'human' ? last.text : null, missing } });
+        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+        event(w, 'restate-asked', { attemptId, missing });
+      });
+    },
     async redrive(id, attemptId) {
       return change(id, async (w, tx) => {
         const a = w.attempts.find(a => a.id === attemptId);
@@ -384,6 +416,11 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       return change(id, w => {
         const a = w.attempts.find(a => a.id === attemptId), s = step(w);
         if (!a || a.step !== s.name || a.round !== w.round || a.status !== 'reported') throw new Error('Only the current reported step can be handed off');
+        if (LABELS[a.step] || a.step === 'test-plan') {
+          const { missing, testPlan } = checkDeliverable(a.step, a.output ?? '', w.cwd);
+          if (missing.length) throw new Error(`A hand-off missing its required parts is refused: ${missing.join('; ')}`);
+          if (testPlan) a.testPlan = testPlan;
+        }
         a.status = 'accepted'; w.position++;
         event(w, 'handoff', { attemptId, from: s.name, to: STEPS[w.position]?.name ?? 'complete' });
         if (w.position === STEPS.length) { w.completion = 'verified'; event(w, 'complete'); }
@@ -472,13 +509,28 @@ function makePacket(w, s, b, purpose) {
   const accepted = STEPS.slice(0, w.position).map(p => w.attempts.findLast(a => a.step === p.name && a.status === 'accepted')).filter(Boolean)
     .map(a => ({ step: a.step, role: a.role, round: a.round, output: a.output }));
   const x = nq.currentExchange(w, s.name);
+  // A step that runs again gets its own last accepted deliverable, to restate with the changes applied.
+  const own = LABELS[s.name] || s.name === 'test-plan' ? w.attempts.findLast(a => a.step === s.name && a.status === 'accepted') : null;
+  const plan = s.name === 'verify' ? w.attempts.findLast(a => a.step === 'test-plan' && a.status === 'accepted') : null;
   return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, step: s, round: w.round,
-    brief: b.text, accepted, questionsForYou: w.notes.filter(n => n.to === s.role && n.round === w.round),
+    brief: b.text, accepted,
+    ...(own ? { previous: { round: own.round, output: own.output } } : {}),
+    ...(s.name === 'verify' ? { testPlan: plan?.testPlan ? { attemptId: plan.id, round: plan.round, scripts: plan.testPlan.scripts, evidence: plan.testPlan.evidence } : null } : {}),
+    questionsForYou: w.notes.filter(n => n.to === s.role && n.round === w.round),
     // The whole NQ exchange travels with the work: intake and execution both read it.
     originator: describe(originatorOf(w)), exchange: x?.turns ?? [],
     instruction: purpose === 'nq'
       ? 'Read the exchange, including the originator\'s or the operator\'s answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. questions: only what blocks you from executing and cannot be settled from the packet, the workspace or the answers already in the exchange; never repeat a question the exchange has answered. notes: your assumptions and anything already settled; notes never block. An empty questions array confirms readiness. Do not do the work yet.'
-      : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.' }, null, 2);
+      : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.'
+        + (own ? ' Your previous accepted deliverable is in "previous": your report is the complete current deliverable with every required part, never a report of what changed.' : '') }, null, 2);
+}
+
+// The restate re-ask: only the missing parts are asked for, so the step is never re-run.
+export function restatePrompt(step, ask, { continuing, output }) {
+  return [`Your report was refused at hand-off: it lacks required parts (${ask.missing.join('; ')}).`,
+    ask.human ? `The operator answered: ${ask.human}` : ask.questions?.length ? `The receiving step asks:\n${ask.questions.map(q => `- ${q}`).join('\n')}` : null,
+    `Do not run, write or change anything: reply only. Restate your complete deliverable in full, with the changes you already made applied, never a report of what changed. ${FORMAT[step]}`,
+    continuing ? null : `Your refused report:\n${output}`].filter(Boolean).join('\n\n');
 }
 
 // One transcript file per card and launch: a swap never appends to the outgoing harness's stream.
@@ -501,6 +553,17 @@ function originatorPacket(w, s) {
     instruction: o.handoff === undefined
       ? (o.role === ARBITER.role ? 'Your ruling created this prerequisite work; it is in the source. Answer from it.' : 'You dispatched this work. Answer from the objective and source only.')
       : 'Answer from your own handoff (and the source). Do not change your handoff or the work; clarify what you meant.' }, null, 2);
+}
+
+// The receiving step asks the reporting worker for what its report lacks; it sees the report and the list, never the brief.
+function refusalPacket(w, attemptId) {
+  const a = w.attempts.find(a => a.id === attemptId), rx = nq.findExchange(w, x => nq.isStep(x) && x.subject?.id === attemptId);
+  if (!a || !rx) throw new Error('No refused hand-off');
+  return JSON.stringify({ purpose: 'refusal', threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source,
+    reportingStep: STEPS[stepIndex(a.step)], receivingStep: STEPS[stepIndex(a.step) + 1], round: w.round,
+    required: LABELS[a.step] ?? [FORMAT['test-plan']], missing: checkDeliverable(a.step, a.output ?? '', w.cwd).missing,
+    handoff: a.output, exchange: rx.turns,
+    instruction: 'The handoff file is the report you are about to receive. Ask the reporting worker, as questions, for exactly what the missing list names. Return ONLY JSON {intent:string, questions:string[], notes:string[]}.' }, null, 2);
 }
 
 // The Arbiter's question goes back to whoever's failed step raised it: the check runner, or the maker or check designer that was blocked.
@@ -530,10 +593,11 @@ export async function provisionPacket(directory, key, serialized) {
   const save = async (name, text) => { const path = join(folder, name); await writeFile(path, text); return path; };
   const accepted = [];
   for (const [i, c] of (packet.accepted ?? []).entries()) accepted.push({ step: c.step, role: c.role, path: await save(`ACCEPTED-${i}-${c.step}.md`, c.output ?? '') });
-  const { source, brief, handoff, accepted: _a, ...rest } = packet;
+  const { source, brief, handoff, previous, accepted: _a, ...rest } = packet;
   const files = { source: await save('SOURCE.md', source) };
   if (brief !== undefined) files.brief = await save('BRIEF.md', brief);
   if (handoff !== undefined) files.handoff = await save('HANDOFF.md', handoff);
-  return JSON.stringify({ ...rest, ...files, accepted,
+  if (previous !== undefined) files.previous = await save('PREVIOUS.md', previous.output ?? '');
+  return JSON.stringify({ ...rest, ...files, ...(previous !== undefined ? { previousRound: previous.round } : {}), accepted,
     read: `Read the ${Object.keys(files).join(', ')}${accepted.length ? ' and the accepted contributions' : ''} at these paths before you respond.` }, null, 2);
 }

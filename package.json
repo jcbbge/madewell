@@ -15,6 +15,7 @@
     "drive.mjs",
     "observe.mjs",
     "nq.mjs",
+    "deliverable.mjs",
     "pi-call.mjs",
     "pi-stream.mjs",
     "pi-runtime.mjs",

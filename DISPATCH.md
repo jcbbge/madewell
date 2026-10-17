@@ -31,3 +31,4 @@ Otherwise you are the **dispatcher** for the person in front of you.
   plain words, with the options and your recommendation.
 - **If Made Well cannot run here** (`pi-durable doctor` says nothing can run), say so plainly and ask
   the person how they want to proceed; do not quietly do the work yourself.
+- **Doctor is a preflight, never a done-when.** `pi-durable doctor` says whether anything can run here; a unit's "done" names checks of the work itself, never doctor.

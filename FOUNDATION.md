@@ -164,6 +164,9 @@ The exchange itself:
 | Codex hook | yes | no | UNKNOWN: no hook surface was verified |
 | `make` card's Agent tool (`cards.mjs`), the Bash route to `claude -p` or `pi` | yes | the prompt rule only | no: no enforcement |
 | Several work items started at once in one workspace (cross-process `owner.lock`) | no | no | no: a separate unit |
+| A hand-off missing its required parts is refused as the receiving step's intake question: one exchange, one count | yes | yes | yes (test/handoff.test.mjs) |
+| A plan's or implementation report's parts are complete, not only present | yes | no: labels only | no |
+| A real model restates its whole deliverable after a rewind | yes | prompts and the refusal | no: fake-pi proves the plumbing only |
 
 ### A failed test is a question; the Arbiter decides whose
 

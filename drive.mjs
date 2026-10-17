@@ -6,21 +6,23 @@ import { STEPS, provisionPacket, CAUSES, DISPATCHER, SUBAGENT_RULE } from './wor
 import { ARBITER } from './pi-runtime.mjs';
 import { callCard } from './pi-call.mjs';
 import { parseResponse } from './pi-stream.mjs';
-import { currentExchange, findExchange } from './nq.mjs';
+import { currentExchange, findExchange, isStep } from './nq.mjs';
 import { loadPrescriptions, cardsFor, pickCard, installed } from './cards.mjs';
+import { checkDeliverable, FORMAT } from './deliverable.mjs';
 
 const home = dirname(fileURLToPath(import.meta.url));
 const MAX_LAUNCHES = 3;
 const UNKNOWN_RESET_MS = 60 * 60_000; // a limit with no reset time is treated as out for an hour
 const MIN_OUT_MS = 5 * 60_000; // a reported reset in the past or 'in ~0 min' still keeps the account out briefly
+const deliverable = step => ` Your answer is your complete current deliverable every time, never a report of what changed: if your packet has a previous deliverable, restate it in full with the changes applied. ${FORMAT[step]}`;
 const guidance = {
   discover: 'Inspect the supplied source and workspace. Identify the requested deliverable, scope, uncertainties and acceptance conditions. Do not implement.',
   ideate: 'Use the accepted discovery. Shape the outcome and bounded options. Recommend the smallest useful approach across developer, user and agentic experience. Do not implement.',
   challenge: 'Challenge the accepted idea against the actual workspace. Name concrete defects, missing constraints and unnecessary scope; recommend a bounded correction or explain why the approach holds. Do not implement.',
-  plan: 'Inspect the workspace and the accepted discovery, idea and challenge. Produce an executable specification: Making / Not making / Done when / Waits on, exact paths, instructions, dependencies and what must be verified. Resolve every design choice here: the implementer and the verifier only execute. Do not implement.',
-  'test-plan': 'From the accepted plan, independently of implementation, write the checks for this work unit only (files in the workspace) and the exact commands that run them with their expected results. The checks prove the intent of the plan, not only that code runs. Do not write product code. If something already broken in the workspace, or a wrong plan, stops you from doing your step as written, do not work around it and do not hand it to the operator: stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you. The Arbiter decides whose it is.',
-  implement: 'Execute the accepted plan exactly as written. You execute: you do not design, plan or improvise, and you never change the plan, its scope or the tests. Report changed paths and what you checked. If the plan is wrong or a step cannot be done as written, stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you.',
-  verify: 'Run only the commands named in the accepted test plan for this work unit, in order: never the whole suite. You execute: you do not fix, retry, broaden or invent commands, and never edit product code or tests. End your answer with ONLY a JSON object on its own: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.',
+  plan: 'Inspect the workspace and the accepted discovery, idea and challenge. Produce an executable specification: Making / Not making / Done when / Waits on, exact paths, instructions, dependencies and what must be verified. Resolve every design choice here: the implementer and the verifier only execute. Do not implement.' + deliverable('plan'),
+  'test-plan': 'From the accepted plan, independently of implementation, write the checks for this work unit only (files in the workspace, or at absolute paths outside it such as your packet folder; list every one) and the exact commands that run them with their expected results. The checks prove the intent of the plan, not only that code runs. Do not write product code. If something already broken in the workspace, or a wrong plan, stops you from doing your step as written, do not work around it and do not hand it to the operator: stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you. The Arbiter decides whose it is.' + deliverable('test-plan'),
+  implement: 'Execute the accepted plan exactly as written. You execute: you do not design, plan or improvise, and you never change the plan, its scope or the tests. Report changed paths and what you checked. If the plan is wrong or a step cannot be done as written, stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you.' + deliverable('implement'),
+  verify: 'Run only the commands in your packet\'s testPlan.scripts, in order, from the workspace; before each, check its file\'s sha256 against the packet and report a mismatch as a failure for this work unit, in order: never the whole suite. You execute: you do not fix, retry, broaden or invent commands, and never edit product code or tests. End your answer with ONLY a JSON object on its own: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.',
 };
 
 class QuotaOut extends Error {
@@ -164,6 +166,26 @@ export async function drive(store, id, { delivery = false, model = '', prescript
           try { report = parseResponse(attempt.output); } catch {}
           if (typeof report?.blocked === 'string' && report.blocked.trim()) { await store.openFailure(id, attempt.id, `${step.role} (${step.name}) could not do the step as written: ${report.blocked}`); log(`${step.name}: blocked → question for the Arbiter`); continue; }
         }
+        if (['plan', 'test-plan', 'implement'].includes(step.name)) {
+          // A hand-off missing its required parts is the receiving step's question; the reporting worker restates its whole deliverable.
+          const { missing } = checkDeliverable(step.name, attempt.output ?? '', w.cwd);
+          if (missing.length) {
+            const rx = findExchange(w, x => isStep(x) && x.subject?.id === attempt.id), next = STEPS[w.position + 1];
+            if (!rx) { await store.refuse(id, attempt.id, `${next.role}-${randomUUID()}`, missing); log(`${step.name}: hand-off refused (${missing.join('; ')}) → ${next.role} asks`); continue; }
+            const restate = async () => { await store.askRestate(id, attempt.id); log(`${step.name}: asking ${step.role} to restate its deliverable`); await store.execute(id, attempt.id); };
+            if (rx.status === 'awaiting-worker' && rx.turns.at(-1)?.type === 'human' && attempt.restatedFor !== rx.turns.length) { await restate(); continue; }
+            if (rx.status === 'awaiting-worker') {
+              const asked = parseResponse(await judge('refusal', next.name, 'intake', next.name, { cwd: w.cwd, name: `${next.name}-refusal`, system: REFUSAL_SYSTEM,
+                prompt: await provisionPacket(store.directory, randomUUID(), await store.refusalPacket(id, attempt.id)) }));
+              const questions = (Array.isArray(asked.questions) ? asked.questions : []).filter(q => typeof q === 'string' && q.trim());
+              await store.nq(id, rx.id, { intent: typeof asked.intent === 'string' && asked.intent.trim() ? asked.intent : 'The hand-off lacks required parts.',
+                questions: questions.length ? questions : missing.map(m => `The hand-off lacks: ${m}. Restate the complete deliverable with it.`), notes: asked.notes }, rx.worker);
+              continue;
+            }
+            if (rx.status === 'awaiting-originator') { await restate(); continue; }
+            return finish('question', `${step.name}: exchange ${rx.id} is ${rx.status}`);
+          }
+        }
         if (step.name === 'verify') {
           let verdict;
           try { verdict = parseResponse(attempt.output); } catch {}
@@ -249,6 +271,8 @@ export async function drive(store, id, { delivery = false, model = '', prescript
   }
 }
 
+const REFUSAL_SYSTEM = 'You receive this hand-off next. The driver checked the report you are about to receive and found required parts missing or invalid; they are listed in the packet. Read the report (the handoff file). Ask the reporting worker for what is missing, as questions, and nothing else. Return ONLY JSON {intent:string, questions:string[], notes:string[]}.';
+
 const AUTHORITY_SYSTEM = `You are the ${DISPATCHER}, who dispatched this work for the operator. An agent said only the operator can authorize something. You hold the operator's own words: the objective and source. If they authorize it, explicitly or as a necessary part of what they ask for, say so and what is authorized. If they forbid it, say so. If they leave it genuinely open, or it is destructive, irreversible, touches production, money, credentials or anything outside this workspace, it is the operator's: set unresolvedAuthority:true and state the decision in one sentence with your recommendation. Never invent authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If you cannot decide without asking the originator what it meant, return ONLY JSON {"questions":[string]} instead: the originator answers, then you decide.`;
 
 const originatorSystem = (role, carried = false) => `You are ${role}, who handed over this work. ${role === DISPATCHER
@@ -260,7 +284,7 @@ const originatorSystem = (role, carried = false) => `You are ${role}, who handed
 async function arbitrate(w, failure, exchange, { ask }) {
   const byStep = name => w.attempts.findLast(a => a.step === name && a.status === 'accepted')?.output ?? '(none)';
   const prompt = JSON.stringify({ objective: w.objective, workspace: w.cwd, failure: failure.report,
-    plan: byStep('plan'), testPlan: byStep('test-plan'), implementation: byStep('implement'),
+    plan: byStep('plan'), testPlan: byStep('test-plan'), testScripts: w.attempts.findLast(a => a.step === 'test-plan' && a.status === 'accepted')?.testPlan ?? null, implementation: byStep('implement'),
     priorRulings: w.failures.filter(f => f.ruling).map(f => f.ruling), exchange }, null, 2);
   try {
     const verdict = parseResponse(await ask({ cwd: w.cwd, name: 'arbiter', prompt,
