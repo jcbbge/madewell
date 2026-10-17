@@ -167,7 +167,7 @@ test('NQ: a mid-pipeline question is answered by the previous role, from its acc
   assert.equal(calls[0].as, 'Cassiopeia');
   const { packet, text } = handoffOf(calls[0]);
   assert.equal(text, w.attempts.find(a => a.step === 'plan' && a.status === 'accepted').output, 'the originator answers from its own accepted output');
-  assert.equal(text, 'Cassiopeia done');
+  assert.match(text, /^Cassiopeia done\nMaking:/);
   assert.deepEqual(packet.questions, ['Which test runner?']);
   assert.equal(packet.brief, undefined, 'the originator does not get the receiving step\'s brief');
   assert.deepEqual(x.turns.map(t => [t.type, t.actor]).slice(0, 2), [['worker', x.worker], ['originator', 'Cassiopeia']]);
@@ -278,7 +278,7 @@ test('crash: kill -9 the driver mid-implementation; driving again continues the 
     const w = await store.get(id), impl = w.attempts.find(a => a.step === 'implement');
     assert.equal(w.completion, 'verified');
     assert.equal(impl.launches, 2);
-    assert.equal(impl.output, 'Sirius done (continued)');
+    assert.match(impl.output, /^Sirius done \(continued\)\nChanged paths:/);
     const sirius = s.log().filter(c => c.role === 'Sirius');
     assert.equal(sirius.length, 2);
     assert.equal(sirius[0].sessionId, sirius[1].sessionId, 'same pi session');
