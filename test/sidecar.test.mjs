@@ -23,7 +23,7 @@ const fixture = () => ({ at: now, base: '/data', stores: [{ dir: '/data', worksp
       questions: ['May I remove the old spreadsheet export, or must it keep working for the finance team until they move over?'] } }),
   unit(2, { objective: 'Speed up the search results page', state: 'waiting-on-prerequisite', current: { name: 'verify' }, waitsOn: 4 }),
   unit(3, { objective: 'Rename the billing settings screen', state: 'question', current: { name: 'test-plan' },
-    exchange: { id: 'x3', status: 'awaiting-originator', originator: 'Cassiopeia', rounds: 1 },
+    exchange: { id: 'x3', status: 'awaiting-originator', originator: 'Cassiopeia', answered: 1 },
     record: { attempts: [], exchanges: [{ id: 'x3', turns: [{ type: 'worker', at: ago(4) }, { type: 'originator', at: ago(3) }, { type: 'worker', at: ago(2) }] }] } }),
   unit(4, { objective: 'Fix the pre-existing defect blocking thread 2: the cache key ignores the locale', state: 'working', parentId: 2, depth: 1,
     current: { name: 'implement' }, attempt: { id: 'a4', role: 'Sirius', state: 'running' },
@@ -53,7 +53,7 @@ test('sidecar: decision card, rail, card label, question round, nested fix, swap
   at('ideation · [planning] · implementation · verification');
   at('ideation · planning · [implementation] · verification');
   at('Now: Make on Codex · gpt-6.1-sol, for 12m');
-  at('Questions: round 2 of 3');
+  at('Questions: turn 2 of 3');
   assert.ok(at('#2 Speed up the search results page') < at('Paused until fix #4 is done, then Run the check again.') && at('Paused until fix #4') < at('#4 Fix the pre-existing'));
   assert.match(frame, /\n {5}#4 Fix the pre-existing defect blocking #2/, 'the fix item is nested under the unit that waits on it');
   at('Switched Make from Claude Code · claude-sonnet-5-5 to Codex · gpt-6.1-sol (anthropic');
@@ -102,4 +102,34 @@ test('sidecar: failure holds name the cause, other stores carry WORK_DATA, and a
   const s = await sidecarSnapshot({ base, now });
   assert.deepEqual(s.accounts, { anthropic: resetsAt, openai: resetsAt + 60_000 });
   assert.match(renderSidecar(s, { now }), /ACCOUNTS\n {2}anthropic: out of quota until .*\n {2}openai: out of quota/);
+});
+
+// Thread 17 plan, test 7l: a hold is the first thing in the pane, in red, and its card says why in turns.
+const heldOn = (threadId, step, hold) => unit(threadId, { objective: `Unit ${threadId}`, state: 'human-hold', current: { name: step }, hold: { kind: 'nq', ref: `x${threadId}`, at: ago(3), ...hold } });
+const holds = () => ({ at: now, base: '/data', stores: [{ dir: '/data', workspace: '/work/shop', driver: { alive: true }, threads: [
+  heldOn(1, 'plan', { cause: 'turns', originator: 'Polaris', receiver: 'Cassiopeia-1', questionId: null, refs: ['x1'], questions: ['What does fast mean?'],
+    reason: "plan: questions remain after three turns on the handoff from Polaris: its spec or the receiver's scope is wrong or unclear" }),
+  heldOn(2, 'test-plan', { cause: 'after-human', originator: 'Cassiopeia', receiver: 'Orion-1', questionId: null, refs: ['x2'], questions: ['Which runner?'],
+    reason: "test-plan: questions remain after the human's answer" }),
+  heldOn(3, 'implement', { cause: 'authority', originator: 'Orion', receiver: 'Sirius-1', refs: ['x3'], questions: ['May I edit package.json?'],
+    reason: 'The source does not say whether package.json may change. Recommend allowing the test script only.' }),
+  unit(4, { objective: 'Rename the billing screen', state: 'working', current: { name: 'implement' }, attempt: { id: 'a4', role: 'Sirius', state: 'running' } }),
+] }], accounts: {} });
+
+test('sidecar: any hold puts "N HELD" on the top line, red when color is on; nothing held, no such line', () => {
+  assert.equal(renderSidecar(holds(), { width: 80, now }).split('\n')[0], '3 HELD: #1, #2, #3');
+  assert.equal(renderSidecar(holds(), { width: 80, now, color: true }).split('\n')[0], '\x1b[31m3 HELD: #1, #2, #3\x1b[0m');
+  assert.equal(renderSidecar(fixture(), { width: 80, now }).split('\n')[0], '1 HELD: #1', 'an older hold with no cause still counts');
+  const calm = holds(); calm.stores[0].threads = calm.stores[0].threads.filter(u => !u.hold);
+  assert.doesNotMatch(renderSidecar(calm, { width: 80, now, color: true }), /HELD|\x1b\[31m/);
+});
+
+test('sidecar: the decision card says why from the hold cause', () => {
+  const flat = renderSidecar(holds(), { width: 80, now }).replace(/ *\n */g, ' ');
+  assert.match(flat, /#1 Unit 1 Stopped: Questions still open after three turns/);
+  assert.match(flat, /#2 Unit 2 Stopped: Still unclear after your answer/);
+  assert.match(flat, /#3 Unit 3 Stopped: Only you can authorize this\./);
+  assert.match(flat, /Suggested: The source does not say whether package\.json may change/);
+  assert.doesNotMatch(flat, /rounds? of answers/, 'turns, not rounds');
+  for (const width of [60, 80, 120]) for (const line of renderSidecar(holds(), { width, now }).split('\n')) assert.ok(line.length <= width, line);
 });

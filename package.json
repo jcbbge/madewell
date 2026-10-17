@@ -47,7 +47,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs",
+    "test": "PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs",
     "update": "npm install --no-save @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest"
   },
   "engines": {

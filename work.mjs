@@ -7,6 +7,7 @@ import { STEPS, ARBITER, stepIndex, progressExtension } from './pi-runtime.mjs';
 import { runCard } from './pi-call.mjs';
 import { buildLaunch } from './cards.mjs';
 import { publishWork } from './observe.mjs';
+import { sendAlert } from './alert.mjs';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { Harness, createRegistry, defineDoc, defineExtension, defineTask } from '@earendil-works/pi-durable';
@@ -14,6 +15,8 @@ import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite
 
 export { STEPS };
 export const hash = text => createHash('sha256').update(text).digest('hex');
+// A worker whose tools can start a sub-agent anyway originates an NQ exchange and answers for it.
+export const SUBAGENT_RULE = 'If your tools can start another agent anyway, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.';
 export const CAUSES = ['pre-existing', 'implementation', 'test'];
 // Whoever handed the work over: the person or concierge that dispatched it, before any phase has handed off.
 export const DISPATCHER = 'dispatcher';
@@ -53,6 +56,15 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
     const w = await harness.snapshot(Work, id, context);
     if (w?.id) await publishWork(directory, w);
   }).catch(e => console.error(`view not refreshed (work is committed): ${e.message}`)));
+  // A hold alerts the human once: the record says which hold was alerted, so a redriven or repeated drive sends nothing twice.
+  let alerts = Promise.resolve();
+  const alertIfNew = id => (alerts = alerts.then(async () => {
+    const w = await harness.snapshot(Work, id, context);
+    if (!w?.hold || w.events.some(e => e.type === 'alerted' && e.holdAt === w.hold.at)) return;
+    const sent = await sendAlert({ threadId: id, workspace: w.cwd, objective: w.objective, hold: w.hold }, process.env);
+    await harness.commit(async tx => { event(await tx.doc(Work, id), 'alerted', { holdAt: w.hold.at, channel: sent.channel, ok: sent.ok }); }, context);
+    await publish(id);
+  }).catch(e => console.error(`alert not recorded (work is committed): ${e.message}`)));
   const event = (w, type, details = {}) => { w.events.push({ at: new Date().toISOString(), type, pid: process.pid, ...details }); };
 
   const Attempt = defineTask({
@@ -82,7 +94,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         const launch = buildLaunch(card, { access: prior.access, sessionDir: join(directory, 'sessions', attemptId),
           sessionId: card.harness === 'codex' ? (continuing ? prior.harnessSession : undefined) : prior.harnessSession ?? prior.sessionId,
           resume: continuing, progressExtension: card.harness === 'pi' ? progressExtension : undefined, readDirs: [directory],
-          system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope.` });
+          system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope. ${SUBAGENT_RULE}` });
         // After a swap the new card starts fresh: transcripts don't cross harnesses, the workspace and record do.
         const last = prior.swaps?.at(-1);
         const pickup = last
@@ -171,11 +183,12 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
       return r === undefined ? undefined : JSON.parse(JSON.stringify(r));
     }, context);
     await publish(id);
+    await alertIfNew(id);
     return result;
   };
   const step = w => { const s = STEPS[w.position]; if (!s) throw new Error('Thread is complete'); return s; };
   const fresh = (objective, source, cwd, extra = {}) => ({ objective, source, cwd, position: 0, round: 0, briefs: {}, briefHistory: [],
-    exchanges: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, delivery: false, completion: null, events: [], ...extra });
+    exchanges: [], asked: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, delivery: false, completion: null, events: [], ...extra });
   const createIn = async (tx, fields) => {
     const c = await tx.createConversation({ ownership: { kind: 'ownerless' } });
     Object.assign(await tx.doc(Work, c.id), { id: c.id, ...fields });
@@ -191,12 +204,14 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
   };
   const route = async (w, tx, failure, ruling) => {
     failure.ruling = ruling; failure.status = 'answered';
+    // A question carried across hand-offs survives a rewind only if the ruling itself carries it.
+    w.asked = (w.asked ?? []).filter(e => nq.norm(ruling.answer).includes(nq.norm(e.text)));
     const question = `Test failure ${failure.id}. Verifier report:\n${failure.report}\n\nRuling (${ruling.cause}, by ${ruling.by}):\n${ruling.answer}`;
     if (ruling.cause === 'test') rewind(w, stepIndex('test-plan'), { to: 'Orion', failureId: failure.id, text: question });
     else if (ruling.cause === 'implementation') rewind(w, stepIndex('plan'), { to: 'Cassiopeia', failureId: failure.id, text: question });
     else if (ruling.cause === 'pre-existing' && (w.depth ?? 0) >= MAX_PREREQUISITE_DEPTH) {
       failure.status = 'held';
-      w.hold = { kind: 'failure', ref: failure.id, at: new Date().toISOString(),
+      w.hold = { kind: 'failure', ref: failure.id, at: new Date().toISOString(), cause: 'depth', originator: null, receiver: ARBITER.role, refs: [],
         reason: `Another pre-existing defect ${(w.depth ?? 0) + 1} prerequisites deep: something upstream is wrong. ${ruling.answer}`.trim() };
       event(w, 'prerequisite-depth', { failureId: failure.id, depth: w.depth });
       return { cause: 'held' };
@@ -218,7 +233,8 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
   if (resume) harness.resume(); // redrive: any step a dead process left running continues now
   return {
     directory,
-    async close() { await views; try { await harness.close(context); } finally { await lock.close(); await unlink(lockPath).catch(() => {}); } },
+    alertPending: alertIfNew,
+    async close() { await views; await alerts; try { await harness.close(context); } finally { await lock.close(); await unlink(lockPath).catch(() => {}); } },
     async list() { return (await harness.snapshot(Catalog, root.id, context))?.threads ?? []; },
     async get(id) { const w = await harness.snapshot(Work, id, context); if (!w?.id) throw new Error(`Unknown thread ${id}`); return w; },
     async create(objective, source, cwd, { delivery = false } = {}) {
@@ -241,15 +257,34 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
     async delegate(id, worker) { return change(id, w => nq.delegate(w, step(w).name, originatorOf(w).role, worker)); },
     async originator(id) { const w = await this.get(id); step(w); return originatorOf(w); },
     async nq(id, exchangeId, response, actor) { return change(id, w => nq.workerReply(w, exchangeId, actor, response)); },
-    async answer(id, exchangeId, actor, text) { return change(id, w => nq.originatorReply(w, exchangeId, actor, text)); },
+    async answer(id, exchangeId, actor, text, same = []) { return change(id, w => nq.originatorReply(w, exchangeId, actor, text, same)); },
+    // A failed check or a blocked maker hands its question to the Arbiter: an NQ exchange the failing attempt's role originates.
+    async delegateFailure(id, failureId, worker) {
+      return change(id, w => {
+        const f = w.failures.find(f => f.id === failureId);
+        if (!f) throw new Error('Unknown failure');
+        return nq.delegate(w, 'arbitrate', w.attempts.find(a => a.id === f.attemptId).role, worker, { kind: 'failure', id: failureId });
+      });
+    },
+    // The originator said only the operator can authorize something: the dispatcher, who holds the operator's source, is consulted.
+    async delegateAuthority(id, parentId, originatorRole, worker, handoff) {
+      return change(id, w => {
+        const parent = w.exchanges.find(x => x.id === parentId);
+        if (!parent) throw new Error('Unknown exchange');
+        return nq.delegate(w, 'authority', originatorRole, worker, { kind: 'authority', parent: parentId, turn: parent.turns.length, handoff });
+      });
+    },
+    async failurePacket(id, failureId, purpose = 'originator') { return failurePacket(await this.get(id), failureId, purpose); },
+    async authorityPacket(id, axId, purpose = 'originator') { return authorityPacket(await this.get(id), axId, purpose); },
     // A judgment call (intake, originator, Arbiter) on the timeline, with its latency.
     async note(id, type, details) { return change(id, w => { event(w, type, details); }); },
-    async holdQuestion(id, exchangeId, reason) {
+    async holdQuestion(id, exchangeId, reason, cause = 'authority') {
       return change(id, w => {
         const x = w.exchanges.find(x => x.id === exchangeId);
         if (x?.status !== 'awaiting-originator') throw new Error('No originator question is due');
         x.status = 'human-hold';
-        w.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), reason: requireText(reason, 'Hold reason'), questions: x.turns.at(-1)?.questions ?? [] };
+        w.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), cause, originator: x.originator, receiver: x.worker, questionId: null, refs: [x.id],
+          reason: requireText(reason, 'Hold reason'), questions: x.turns.at(-1)?.questions ?? [] };
       });
     },
     async packet(id, purpose = 'execute') {
@@ -367,7 +402,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         const corrections = w.failures.filter(f => f.status !== 'withdrawn').length - 1;
         if (corrections >= MAX_CORRECTIONS) {
           failure.status = 'held';
-          w.hold = { kind: 'failure', ref: failure.id, at: failure.at, reason: `Tests still failing after ${corrections} corrections` };
+          w.hold = { kind: 'failure', ref: failure.id, at: failure.at, cause: 'corrections', originator: null, receiver: ARBITER.role, refs: [], reason: `Tests still failing after ${corrections} corrections` };
         }
         event(w, 'test-failed', { failureId: failure.id, corrections });
         return failure;
@@ -380,7 +415,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         if (!CAUSES.includes(ruling.cause)) {
           f.status = 'held';
           f.ruling = { ...ruling, cause: 'undetermined' };
-          w.hold = { kind: 'failure', ref: f.id, at: new Date().toISOString(), reason: `Arbiter could not determine the cause: ${ruling.answer ?? ''}`.trim() };
+          w.hold = { kind: 'failure', ref: f.id, at: new Date().toISOString(), cause: 'undetermined', originator: null, receiver: ARBITER.role, refs: [], reason: `Arbiter could not determine the cause: ${ruling.answer ?? ''}`.trim() };
           event(w, 'failure-undetermined', { failureId });
           return { cause: 'undetermined' };
         }
@@ -461,9 +496,30 @@ function originatorPacket(w, s) {
   if (!x || x.originator !== o.role) throw new Error('No exchange awaits this originator');
   return JSON.stringify({ purpose: 'originator', threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source,
     receivingStep: s, round: w.round, originator: describe(o), handoff: o.handoff, exchange: x.turns, questions: x.turns.at(-1)?.questions ?? [],
+    // What earlier hand-offs already answered, so a question repeated in other words can be recognised.
+    carried: (w.asked ?? []).map(({ id, text, turns }) => ({ id, text, turns })),
     instruction: o.handoff === undefined
       ? (o.role === ARBITER.role ? 'Your ruling created this prerequisite work; it is in the source. Answer from it.' : 'You dispatched this work. Answer from the objective and source only.')
       : 'Answer from your own handoff (and the source). Do not change your handoff or the work; clarify what you meant.' }, null, 2);
+}
+
+// The Arbiter's question goes back to whoever's failed step raised it: the check runner, or the maker or check designer that was blocked.
+function failurePacket(w, failureId, purpose) {
+  const f = w.failures.find(f => f.id === failureId), fx = nq.findExchange(w, x => x.subject?.kind === 'failure' && x.subject.id === failureId);
+  if (!f || !fx) throw new Error('No failure exchange');
+  const a = w.attempts.find(a => a.id === f.attemptId);
+  return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, failingStep: f.step, round: w.round,
+    originator: { role: fx.originator, basis: 'failure', step: f.step }, handoff: a?.output || f.report, exchange: fx.turns, questions: fx.turns.at(-1)?.questions ?? [],
+    instruction: 'The Arbiter is ruling on a failure of your step and asked questions. Answer from your own report (the handoff file) and the source. Do not change your report or the work; clarify what you meant.' }, null, 2);
+}
+
+// The dispatcher's question goes back to the agent that said only the operator could authorize something.
+function authorityPacket(w, axId, purpose) {
+  const ax = w.exchanges.find(x => x.id === axId);
+  if (ax?.subject?.kind !== 'authority') throw new Error('No authority exchange');
+  return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, round: w.round,
+    originator: { role: ax.originator, basis: 'authority' }, handoff: ax.subject.handoff, exchange: ax.turns, questions: ax.turns.at(-1)?.questions ?? [],
+    instruction: 'You said only the operator can authorize something. The dispatcher, who holds the operator\'s source, asked what you meant. Answer from your own handoff (the handoff file) and the source. Do not change your handoff or the work.' }, null, 2);
 }
 
 // The model reads files, not a pasted transcript that a transport may truncate.

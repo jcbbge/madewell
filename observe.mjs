@@ -2,6 +2,7 @@ import { mkdir, writeFile, rename, readFile, readdir, stat } from 'node:fs/promi
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { STEPS } from './pi-runtime.mjs';
+import { isStep } from './nq.mjs';
 
 const cardView = c => c && { harness: c.harness, provider: c.provider, account: c.account, model: c.model, effort: c.effort };
 
@@ -11,8 +12,9 @@ export async function publishWork(directory, w) {
   await mkdir(folder, { recursive: true, mode: 0o700 });
   const current = STEPS[w.position] ?? null;
   const a = current && w.attempts.findLast(a => a.step === current.name && a.round === w.round);
-  const x = current && (w.exchanges ?? []).findLast(x => x.step === current.name && x.round === w.round);
+  const x = current && (w.exchanges ?? []).findLast(x => isStep(x) && x.step === current.name && x.round === w.round);
   const failure = w.failures.findLast(f => ['open', 'held'].includes(f.status));
+  const alerted = w.hold && w.events.findLast(e => e.type === 'alerted' && e.holdAt === w.hold.at);
   let state = 'ready', next = 'Drive the work.', owner = 'driver';
   if (w.completion) { state = 'done'; next = 'Complete: every phase handed off and the tests pass.'; owner = null; }
   else if (w.hold) { state = 'human-hold'; next = w.hold.kind === 'failure' ? 'Answer the failed test: pre-existing | implementation | test, with instructions.' : 'Answer the worker\'s questions.'; owner = 'human'; }
@@ -31,7 +33,9 @@ export async function publishWork(directory, w) {
     questions: w.hold?.questions ?? (x?.status === 'awaiting-originator' ? x.turns.at(-1)?.questions ?? [] : []),
     hold: w.hold, failure: failure ? { id: failure.id, status: failure.status, report: failure.report.slice(-1500) } : null,
     lastRuling: w.failures.findLast(f => f.ruling)?.ruling ?? null,
-    exchange: x ? { id: x.id, status: x.status, originator: x.originator, rounds: x.rounds } : null,
+    exchange: x ? { id: x.id, status: x.status, originator: x.originator, answered: x.rounds } : null,
+    // The alert sent for the hold that stands now, or null: the record's own `alerted` event.
+    alert: alerted ? { holdAt: alerted.holdAt, channel: alerted.channel, ok: alerted.ok } : null,
     attempt: a ? { id: a.id, role: a.role, state: a.status, launches: a.launches ?? 0, progress: a.progress, error: a.error || null } : null,
     lastEvent: w.events.at(-1) ?? null, ownerPid: w.events.at(-1)?.pid ?? null,
     // The full timeline for the dashboard: everything that happened, minus packet and source text.
@@ -42,7 +46,7 @@ export async function publishWork(directory, w) {
         error: a.error || null, exitCode: a.exitCode ?? null, outputHead: (a.output ?? '').slice(0, 800),
         card: a.card ? cardView(a.card) : null,
         swaps: (a.swaps ?? []).map(s => ({ from: cardView(s.from), to: cardView(s.to), at: s.at, account: s.limit?.account ?? null, resetsAt: s.limit?.resetsAt ?? null })) })),
-      exchanges: (w.exchanges ?? []).map(x => ({ id: x.id, step: x.step, round: x.round, status: x.status, rounds: x.rounds,
+      exchanges: (w.exchanges ?? []).map(x => ({ id: x.id, step: x.step, round: x.round, status: x.status, answered: x.rounds, subject: x.subject ?? { kind: 'step' },
         turns: x.turns.map(t => ({ type: t.type, at: t.at, questions: t.questions ?? [], clear: t.clear ?? null, text: (t.text ?? '').slice(0, 400) })) })),
       failures: w.failures.map(f => ({ id: f.id, status: f.status, at: f.at, round: f.round, ruling: f.ruling ?? null, prerequisite: f.prerequisite ?? null, report: f.report.slice(-1200) })),
       notes: w.notes.map(n => ({ to: n.to, round: n.round, at: n.at, failureId: n.failureId })),
@@ -73,9 +77,12 @@ export async function observe(directory, id = null) {
   return result.sort((a, b) => a.threadId - b.threadId);
 }
 
+// A hold is the first thing anyone reads: one line per held item, then held items ahead of the rest.
+const holdLine = w => `HOLD #${w.threadId}: ${w.hold.reason} — alert: ${w.alert?.channel ? `${w.alert.channel} ${w.alert.ok ? 'ok' : 'failed'}` : 'not sent'}`;
 export function render(works) {
   if (!works.length) return 'No work yet.';
-  return works.map(w => [
+  const held = works.filter(w => w.hold && !w.done);
+  return [...(held.length ? [held.map(holdLine).join('\n')] : []), ...[...held, ...works.filter(w => !held.includes(w))].map(w => [
     `WORK ${w.threadId}${w.parentId ? ` (prerequisite of ${w.parentId})` : ''} — ${w.done ? 'DONE' : w.state.toUpperCase()} — round ${w.round}`,
     w.objective,
     ...w.checklist.map(s => `  ${s.state === 'done' ? '[x]' : '[ ]'} ${s.name} (${s.role})${s.state !== 'done' && s.state !== 'pending' ? ` — ${s.state}` : ''}`),
@@ -85,7 +92,7 @@ export function render(works) {
     ...(w.lastRuling ? [`LAST RULING: ${w.lastRuling.cause} by ${w.lastRuling.by} — ${String(w.lastRuling.answer).slice(0, 400)}`] : []),
     ...(w.attempt?.error ? [`WORKER ERROR: ${w.attempt.error.slice(0, 400)}`] : []),
     `Store: ${w.evidence.store} | view ${w.projectedAt}`,
-  ].join('\n')).join('\n\n');
+  ].join('\n'))].join('\n\n');
 }
 
 export async function watchWork(directory, id, { jsonOutput = false, output = process.stdout, signal } = {}) {

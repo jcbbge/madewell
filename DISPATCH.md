@@ -21,5 +21,13 @@ Otherwise you are the **dispatcher** for the person in front of you.
 - **Keep watch, don't hover.** `pi-durable sidecar` (in a pane) or `pi-durable status` show what runs
   and what waits on the person. When a unit holds for them, bring them its decision in plain words,
   with the options and the recommendation, and pass their answer back. Never redo a worker's job.
+- **Starting a unit is an NQ exchange you originate.** A headless dispatcher answers Vega's questions
+  from your source alone, so the source must be complete. Any sub-agent you spawn is an NQ exchange you
+  answer for, with the same three-turn rule.
+- **Reading a hold.** `status` lists holds first. A hold names who handed the work over (the
+  originator), who asked (the receiver) and the cause: `turns` or `after-human` (the questions stayed
+  open: the spec or the receiver's scope is wrong), `authority` (only the person can authorize it),
+  `corrections`, `undetermined` or `depth` (a failed check). Bring it to the person as a decision, in
+  plain words, with the options and your recommendation.
 - **If Made Well cannot run here** (`pi-durable doctor` says nothing can run), say so plainly and ask
   the person how they want to proceed; do not quietly do the work yourself.

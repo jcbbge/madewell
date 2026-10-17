@@ -75,8 +75,9 @@ function decision(w) {
     answer: [`drive ${w.threadId} --delivery --background`], note: 'Run it to authorize building.' };
   const card = { asks: hold.questions ?? [], suggests: hold.recommendation ?? null, said: null };
   if (hold.kind === 'nq') {
-    if (/three answers/.test(reason)) card.stopped = `Questions still open after three rounds of answers (${JOB[w.current?.name] ?? 'this job'}).`;
-    else if (/after the human answer/.test(reason)) card.stopped = `Still unclear after your answer (${JOB[w.current?.name] ?? 'this job'}).`;
+    const cause = hold.cause ?? (/three (answers|turns)/.test(reason) ? 'turns' : /after the human('s)? answer/.test(reason) ? 'after-human' : 'authority');
+    if (cause === 'turns') card.stopped = `Questions still open after three turns (${JOB[w.current?.name] ?? 'this job'}).`;
+    else if (cause === 'after-human') card.stopped = `Still unclear after your answer (${JOB[w.current?.name] ?? 'this job'}).`;
     else { card.stopped = 'Only you can authorize this.'; card.suggests ??= reason; }
   } else {
     const corrections = reason.match(/after (\d+) corrections/);
@@ -139,8 +140,8 @@ function unitBlock(unit, all, width, now, indent, label) {
   if (j.health === 'silent') out.push(...wrap(`No output for ${span(j.silentFor)}.`, width, pad));
   if (j.health === 'worker-dead') out.push(...wrap('Its process is gone; drive it again.', width, pad));
   const x = w.exchange;
-  if (w.state === 'question' && x) out.push(...wrap(`Questions: round ${Math.min(x.rounds + 1, 3)} of 3, waiting for an answer from whoever handed it over.`, width, pad, { maxLines: 2 }));
-  else if (w.state === 'intake' && x?.rounds > 0) out.push(...wrap(`Questions: round ${x.rounds} of 3 answered; reading the answer.`, width, pad, { maxLines: 2 }));
+  if (w.state === 'question' && x) out.push(...wrap(`Questions: turn ${Math.min(x.answered + 1, 3)} of 3, waiting for an answer from whoever handed it over.`, width, pad, { maxLines: 2 }));
+  else if (w.state === 'intake' && x?.answered > 0) out.push(...wrap(`Questions: turn ${x.answered} of 3 answered; reading the answer.`, width, pad, { maxLines: 2 }));
   else if (w.state === 'intake') out.push(...wrap('Reading its brief before starting.', width, pad));
   if (w.state === 'stopped') { out.push(...wrap('Nothing is running it. Continue it with:', width, pad)); out.push(...command(cli(unit, `drive ${w.threadId} --background`), width, pad + '$ ')); }
   if (w.state === 'worker-failed') { out.push(...wrap('The job stopped with an error. Drive it again:', width, pad)); out.push(...command(cli(unit, `drive ${w.threadId} --background`), width, pad + '$ ')); }
@@ -189,7 +190,10 @@ export function renderSidecar(snap, { width = 80, now = snap?.at ?? Date.now(), 
     const mark = u.w.record?.completion && u.w.record.completion !== 'verified' ? `${u.w.record.completion}` : 'done';
     return `  ${clip(`${label(u)} ${mark}${when} · ${plain(u.w.objective)}`, width - 2)}`;
   }));
-  return lines.map((l, i) => { l = clip(l, width); return color && heads.has(i) ? `\x1b[1m${l}\x1b[0m` : l; }).join('\n');
+  // Any hold is the first line of the frame, in red when color is on.
+  const held = units.filter(u => !u.w.done && u.w.hold).map(u => `#${u.w.threadId}`);
+  const banner = held.length ? [color ? `\x1b[31m${clip(`${held.length} HELD: ${held.join(', ')}`, width)}\x1b[0m` : clip(`${held.length} HELD: ${held.join(', ')}`, width)] : [];
+  return [...banner, ...lines.map((l, i) => { l = clip(l, width); return color && heads.has(i) ? `\x1b[1m${l}\x1b[0m` : l; })].join('\n');
 }
 
 // Quota belongs to provider accounts: the shared accounts.json at the data root, plus any store's own.

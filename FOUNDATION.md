@@ -90,7 +90,7 @@ Completeness is relative to the recipient's job, not document size. A read-only 
 
 Distinguish genuinely new information encountered during execution from information the sender should already have supplied. The former invokes the contingency path; the latter is an exchange-provisioning defect to repair. NQ confirms readiness and understanding; it is not a substitute for sender preparation. Independent acceptance establishes whether delivered work satisfies its contract; understanding, delivery, and acceptance remain distinct.
 
-**DOCTRINE:** this universal exchange obligation is foundational and role-scaled. A common specification and comprehensive enforcement across all exchange types remain to be implemented and demonstrated; existing delegation-bound NQ does not prove universal coverage. The obligation does not mandate another agent, document, or ceremonial round for every small message.
+**DOCTRINE:** this universal exchange obligation is foundational and role-scaled. A common specification and comprehensive enforcement across all exchange types remain to be implemented and demonstrated; NQ now covers every hand-off the driver makes (see "Every agent-to-agent hand-off is an NQ exchange", with its required / implemented / demonstrated table); a sub-agent a worker spawns is covered by the worker's prompt only, and no harness hook enforces it. The obligation does not mandate another agent, document, or ceremonial round for every small message.
 
 ### One work record for execution and updates
 
@@ -104,17 +104,66 @@ Keep this a minimal backstop on the existing work record, not repeated agent pol
 
 During an operator-authorized autonomous delivery cycle, the issuer checks in-flight assignments every **15 minutes**, never allowing more than30minutes between checks. This oversight cadence is distinct from the worker's30-minute meaningful-progress silence window. A returned or stopped worker requires the issuer to inspect evidence, resolve ordinary blockers, and continue or reassign authorized work—not end the mission. Resolve ordinary choices against developer experience, agentic experience, and user experience together. This authority does not waive safety boundaries, independent acceptance, or evidence requirements, and does not authorize killing/retrying by elapsed time. **DOCTRINE:** issuer behavior; no unattended scheduler is claimed.
 
-### NQ precedes delegated execution
+### Every agent-to-agent hand-off is an NQ exchange
 
-The recipient establishes its understanding of purpose and raises questions or ambiguities before executing. The originating agent answers: a fresh headless call playing the role that made the handoff, answering from its own accepted handoff and the source. Before any phase has handed off, that is the dispatcher, from the objective and source; normally it is the previous phase's role; after a failure ruling sends the work back, it is the Arbiter, from its ruling. The originator clarifies what it handed over and never changes its handoff or the work; when only the operator can answer, it says so and the work holds for the human. The recipient confirms whether anything remains unresolved.
+**Operator ruling, 2026-10-16, verbatim:**
+
+> "This is the NQ protocol. Every turn is one round. Agent A delivers the initial to B; if B has a question, that's one turn. Agent A responds; if B has a question, that's two turns. Agent A responds; if B has a question, that's three turns. If after three turns the agent is still asking questions then the issue is that their scope is not properly configured. The spec is not designed correctly. Something is wrong if the agent has to keep asking questions. So at that point, human is alerted."
+
+> "The pipeline process is one unit of work. One unit of work traverses the four phases. Discovery is a queue. Delivery is a queue. Once a work item is started, it progresses through the four phases. You can fire these off parallel and asynchronously. It doesn't stop the whole operation. It stops the process of the single work unit. Stop saying phase, stop saying unit. It's every interaction from an agent to an agent: NQ protocol. Any interaction, I don't care if it's at the beginning, at the end, at the start, at the finish, for one unit, for one queue, for the whole process. Every interaction from one agent to another follows the NQ protocol. If an agent is spawning another agent: NQ protocol. There's no ifs, no ands, no buts, no other way around it. Agent to agent: NQ protocol. That needs to be codified, baked into Made Well, then put into pi or Claude Code, I don't care how you do it, but that is the requirement."
+
+> "If an agent spawns another agent, they are responsible. This is a top-down cascade."
+
+**The law.** Every interaction in which one agent hands anything to another agent is an NQ exchange:
+
+- the sender states what it is handing over;
+- the receiver states its understanding and either has no questions (clear: it proceeds) or asks;
+- the sender answers; that completes one turn;
+- after three turns, if the receiver still has questions, the spec or the receiver's scope is wrong: that one work item holds and the human is alerted. Other work items are untouched.
+
+No interaction is exempt. The covered interactions:
+
+- a phase hand-off to the next phase's worker;
+- the dispatcher's hand-off to the first worker: the dispatcher answers from the operator's source alone, so the source must be complete;
+- the Arbiter's ruling to the responsible worker, which confirms it understands or asks;
+- a failed check, or a maker or check designer that could not do its step, handed to the Arbiter: the failing step is the originator and answers the Arbiter's questions;
+- an originator's "only the operator can authorize this", handed to the dispatcher, who holds the operator's source: the originator answers the dispatcher's questions;
+- a human answer delivered back to a worker: the worker confirms it understands or asks, and the same count applies;
+- a sub-agent a worker spawns inside its harness: the spawner originates the exchange, answers for it, and puts its understanding, its answers and the result in its report.
+
+Driver code re-prompting a worker that returned a malformed result (the no-verdict re-ask) is not an agent hand-off.
+
+**The count.**
+
+- A turn is one answered question, whether the answer came from the originator or from the human.
+- The same question carried across consecutive hand-offs counts as one question: three answers across hand-offs, and the next raise holds at once. The originator recognises a repeat in other words and says so; the store ignores a tag that does not match.
+- A hold stops only that work item and alerts the human (`alert.mjs`: `PI_DURABLE_ALERT` = `desktop` (default) | `none` | a shell command that receives the hold as JSON). It names the hand-off, who handed the work over, who asked, the cause (`turns`, `after-human`, `authority`, `corrections`, `undetermined`, `depth`) and the questions.
+- The alert is recorded against the hold, so redriving or driving again never sends it twice, and a lost alert is sent on the next drive.
+
+The exchange itself:
 
 - Bind each exchange to its delegation, participants, and fixed brief.
-- Clear understanding with no open questions permits execution; do not manufacture three rounds for a clear brief.
-- Count completed originator answers as clarification rounds, not retries or bare worker submissions.
-- After answer three, allow the recipient to confirm understanding. If questions remain, stop that work on a durable human hold that names the originator: three rounds still unclear means its handoff is ambiguous or wrong. No fourth agent-only round and no actor-switch bypass.
+- Clear understanding with no open questions permits execution; do not manufacture three turns for a clear brief.
+- Only questions block. Assumptions and points already settled are notes: they travel, they do not count as a turn.
+- After turn three, allow the recipient to confirm understanding. If questions remain, stop that work item on a durable human hold that names the originator. No fourth agent-only turn and no actor-switch bypass.
 - The executing recipient receives the whole exchange: its questions, the originator's answers and any human answers.
 - Human clarification and release do not themselves authorize execution: recipient confirmation is still required.
-- Preserve questions, answers, confirmation, escalation, and release as inspectable evidence. A transport retry must not consume a new round or duplicate an effect.
+- Preserve questions, answers, confirmation, escalation, and release as inspectable evidence. A transport retry must not consume a new turn or duplicate an effect.
+
+| Part | Required | Implemented | Demonstrated |
+| --- | --- | --- | --- |
+| Turn counter, human answer as a turn, structured hold | yes | yes | yes (`test/nq-law.test.mjs`) |
+| Same question carried across hand-offs, hold at the fourth raise | yes | yes | yes (`test/nq-ledger.test.mjs`, unit-7 replay) |
+| Recognising a reworded repeat | yes | yes: the originator judges by prompt | no: the test proves the plumbing, not the judgement |
+| Arbiter intake, dispatcher consult | yes | yes | yes |
+| Alert on every hold cause, never awaited, once per hold | yes | yes | yes for the shell command channel (`test/alert.test.mjs`) |
+| Desktop notification, redelivery after a crash | yes | yes | no |
+| Sub-agent rule in worker prompts | yes | yes | prompts only: nothing observes what a worker does |
+| Claude Code sub-agent hook | yes | no | UNKNOWN: whether `SubagentStart` can add context was not verified |
+| pi sub-agent spawn event | yes | no | UNKNOWN: `@earendil-works/pi-coding-agent` was not inspected |
+| Codex hook | yes | no | UNKNOWN: no hook surface was verified |
+| `make` card's Agent tool (`cards.mjs`), the Bash route to `claude -p` or `pi` | yes | the prompt rule only | no: no enforcement |
+| Several work items started at once in one workspace (cross-process `owner.lock`) | no | no | no: a separate unit |
 
 ### A failed test is a question; the Arbiter decides whose
 
@@ -211,7 +260,7 @@ Adding a decision model is permitted for consideration, not mandated or authoriz
 
 **DOCTRINE:** this document's purpose/intent/volition rubric, equal-experience evaluation, token-economic judgment, and prohibition on unapproved foundational changes are binding project instructions, but are not yet comprehensively machine-enforced. Do not claim that loading this document proves compliance.
 
-**Application DOOR:** `work.mjs`, `nq.mjs` and `drive.mjs` enforce the phase sequence, delegation-bound NQ, human holds, Arbiter routing of failed tests, and redrive. `test/work.test.mjs` establishes the cases it exercises; actor labels are trusted local inputs, and tool ceilings per phase are pi `--tools` allowlists, not OS isolation.
+**Application DOOR:** `work.mjs`, `nq.mjs`, `drive.mjs` and `alert.mjs` enforce the phase sequence, NQ on every hand-off the driver makes (phase, Arbiter, authority consult, human answer), human holds with their alert, Arbiter routing of failed tests, and redrive. `test/work.test.mjs` establishes the cases it exercises; actor labels are trusted local inputs, and tool ceilings per phase are pi `--tools` allowlists, not OS isolation.
 
 Any proposed implementation or evaluation must distinguish **required**, **implemented**, and **demonstrated**. Missing enforcement is a named gap to close, not permission to discard the primitive.
 

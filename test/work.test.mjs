@@ -12,6 +12,8 @@ import { drive } from '../drive.mjs';
 const fake = fileURLToPath(new URL('./fake-pi.mjs', import.meta.url));
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
 await chmod(fake, 0o755);
+// No desktop notification from a test run; alert tests set their own channel.
+process.env.PI_DURABLE_ALERT ??= 'none';
 
 async function setup(scenario = {}) {
   const root = await mkdtemp(join(tmpdir(), 'mpd-')), dir = join(root, 'store'), cwd = join(root, 'ws'), state = join(root, 'fake.json');
@@ -236,7 +238,7 @@ test('NQ: three answered rounds with questions open → human hold naming the or
   assert.equal(x.rounds, 3);
   assert.equal(x.status, 'human-hold');
   assert.equal(w.hold.kind, 'nq');
-  assert.match(w.hold.reason, /handoff from Polaris is ambiguous or wrong/);
+  assert.match(w.hold.reason, /questions remain after three turns on the handoff from Polaris/);
   assert.equal(originatorCalls(log).length, 3);
   assert.ok(originatorCalls(log).every(c => c.as === 'Polaris'), 'no actor switch');
   assert.equal((await drive(store, id, quiet)).status, 'held', 'driving again does not bypass the hold');

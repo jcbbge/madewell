@@ -36,7 +36,7 @@ Check status when the person asks or after a while; do not loop on it. `pi-durab
 
 ## When it waits on the person
 
-`status` shows the state `human-hold` and the questions. Put them to the person as they are. Write
+`status` lists holds first (state `human-hold`) with the questions. A hold names who handed the work over, who asked and the cause. Put them to the person as they are. Write
 their answer, in their words, to a file, then:
 
     pi-durable answer <id> <answer-file> --workspace <dir>
