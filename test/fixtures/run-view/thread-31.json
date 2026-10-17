@@ -1,0 +1,1385 @@
+{
+ "schema": "pi-durable.work-view.v2",
+ "threadId": 31,
+ "workspace": "/home/op/madewell",
+ "objective": "Fix the pre-existing defect blocking thread 17: Nothing changes in this NQ unit. Its own checks all pass: 67 pass and 1 skips, the Linux-only test, across the seven planned test files. The `provision ",
+ "projectedAt": "2026-10-17T02:59:53.527Z",
+ "done": true,
+ "state": "done",
+ "next": "Complete: every phase handed off and the tests pass.",
+ "owner": null,
+ "current": null,
+ "position": 7,
+ "round": 2,
+ "parentId": 17,
+ "waitsOn": null,
+ "depth": 1,
+ "progress": {
+  "accepted": 7,
+  "total": 7
+ },
+ "checklist": [
+  {
+   "name": "discover",
+   "role": "Vega",
+   "state": "done"
+  },
+  {
+   "name": "ideate",
+   "role": "Vega",
+   "state": "done"
+  },
+  {
+   "name": "challenge",
+   "role": "Polaris",
+   "state": "done"
+  },
+  {
+   "name": "plan",
+   "role": "Cassiopeia",
+   "state": "done"
+  },
+  {
+   "name": "test-plan",
+   "role": "Orion",
+   "state": "done"
+  },
+  {
+   "name": "implement",
+   "role": "Sirius",
+   "state": "done"
+  },
+  {
+   "name": "verify",
+   "role": "Aldebaran",
+   "state": "done"
+  }
+ ],
+ "questions": [],
+ "hold": null,
+ "failure": null,
+ "lastRuling": {
+  "cause": "test",
+  "answer": "Verifier (Aldebaran): drop the stale scope expectation and re-verify against the current accepted plan. That plan was revised under Arbiter ruling 378dd7da. It requires both the line-113 change and the try/finally guard around lines 114-125, so a change of about 33 lines is in scope. Check scope against plan Done-when 5: only test/provision.test.mjs changes beyond the snapshot, nothing in provision.mjs, cards.mjs, test/harness-fakes.mjs or package.json, nothing staged, and HEAD is 4e96047. Then re-run check 1 (red before) yourself instead of citing Orion. The implementation needs no change.",
+  "evidence": "The verifier's expected value, a one-line edit at :113, comes from the earlier brief. Arbiter ruling 378dd7da replaced it, and the current plan's Making step 1 explicitly specifies the save/delete/try/finally wrap. Its diff spans lines 114-125 plus the guard, so most of the 20+/13- is indentation. `git diff -- test/provision.test.mjs` shows exactly that wrap: line 113 is `machine({ claude: {}, codex: {}, pi: {} })`, the why-comment is present, the restore is in finally, and every assertion is unchanged. `git diff --stat` on provision.mjs, cards.mjs and test/harness-fakes.mjs shows only test/provision.test.mjs. `git diff --cached` is empty and HEAD is 4e96047. `PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/provision.test.mjs` gives 6 pass, 0 fail. The disagreement the verifier saw is between its own stale brief and the revised plan, not inside the plan.",
+  "by": "Arbiter"
+ },
+ "exchange": null,
+ "attempt": null,
+ "lastEvent": {
+  "at": "2026-10-17T02:59:53.526Z",
+  "type": "complete",
+  "pid": 12627
+ },
+ "ownerPid": 12627,
+ "record": {
+  "createdAt": "2026-10-17T02:44:36.524Z",
+  "delivery": true,
+  "completion": "verified",
+  "attempts": [
+   {
+    "id": "898e8e93-3176-4797-b978-b2f56d1e8408",
+    "step": "plan",
+    "role": "Cassiopeia",
+    "round": 0,
+    "actor": "Cassiopeia-f7416f3a-7ec8-432d-aa57-12e4f6ebab15",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205107241,
+      "endedAt": 1792205141614,
+      "pid": 21958,
+      "exit": 0,
+      "record": "attempts/898e8e93-3176-4797-b978-b2f56d1e8408/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-opus-5-5"
+     }
+    ],
+    "createdAt": 1792205107240,
+    "startedAt": 1792205107241,
+    "endedAt": 1792205141614,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "**Plan for thread 31: fix the `provision --host` test, which blocks thread 17**\n\nI checked the code. The product behaves",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-opus-5-5",
+     "effort": "high"
+    },
+    "swaps": []
+   },
+   {
+    "id": "711575d0-fc5c-4394-8685-0d8d96d3cb5d",
+    "step": "test-plan",
+    "role": "Orion",
+    "round": 0,
+    "actor": "Orion-77521431-ee69-4c5d-ac91-91b5ba74819a",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205165497,
+      "endedAt": 1792205198424,
+      "pid": 30870,
+      "exit": 0,
+      "record": "attempts/711575d0-fc5c-4394-8685-0d8d96d3cb5d/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-opus-5-5"
+     }
+    ],
+    "createdAt": 1792205165496,
+    "startedAt": 1792205165497,
+    "endedAt": 1792205198424,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "I wrote no test file and changed nothing in the workspace. The plan's only change is the one-line fix to `test/provision",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-opus-5-5",
+     "effort": "high"
+    },
+    "swaps": []
+   },
+   {
+    "id": "68470f48-25ec-4783-9fbd-d9114f40962a",
+    "step": "implement",
+    "role": "Sirius",
+    "round": 0,
+    "actor": "Sirius-9d7b70e8-662d-4022-ae3d-132ed703c0a7",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205210448,
+      "endedAt": 1792205223288,
+      "pid": 31718,
+      "exit": 0,
+      "record": "attempts/68470f48-25ec-4783-9fbd-d9114f40962a/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-sonnet-5-5"
+     }
+    ],
+    "createdAt": 1792205210436,
+    "startedAt": 1792205210448,
+    "endedAt": 1792205223288,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "I changed `test/provision.test.mjs:113` from `const m = await machine();` to `const m = await machine({ claude: {}, code",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-sonnet-5-5",
+     "effort": "low"
+    },
+    "swaps": []
+   },
+   {
+    "id": "151b4b14-576e-476a-94c5-a832e010f47d",
+    "step": "verify",
+    "role": "Aldebaran",
+    "round": 0,
+    "actor": "Aldebaran-7554e202-8329-44b1-ae85-66515d51c8f3",
+    "status": "failed-test",
+    "launches": 2,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205239724,
+      "endedAt": 1792205296693,
+      "pid": 32341,
+      "exit": 0,
+      "record": "attempts/151b4b14-576e-476a-94c5-a832e010f47d/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-haiku-5-5"
+     },
+     {
+      "n": 2,
+      "startedAt": 1792205296697,
+      "endedAt": 1792205302345,
+      "pid": 34322,
+      "exit": 0,
+      "record": "attempts/151b4b14-576e-476a-94c5-a832e010f47d/launch-2",
+      "toolCalls": null,
+      "card": "claude · claude-haiku-5-5"
+     }
+    ],
+    "createdAt": 1792205239722,
+    "startedAt": 1792205239724,
+    "endedAt": 1792205302345,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "{\"outcome\":\"fail\",\"summary\":\"Checks 1–4 passed: provision.test.mjs 6/6 pass with the PI_DURABLE_* vars unset; the test f",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-haiku-5-5",
+     "effort": "low"
+    },
+    "swaps": []
+   },
+   {
+    "id": "5e0aae70-2b55-4d40-a409-0ba2f2fc62ca",
+    "step": "plan",
+    "role": "Cassiopeia",
+    "round": 1,
+    "actor": "Cassiopeia-1861ce67-317b-4a1d-8927-905f16a1ea14",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205350159,
+      "endedAt": 1792205384867,
+      "pid": 35732,
+      "exit": 0,
+      "record": "attempts/5e0aae70-2b55-4d40-a409-0ba2f2fc62ca/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-opus-5-5"
+     }
+    ],
+    "createdAt": 1792205350158,
+    "startedAt": 1792205350159,
+    "endedAt": 1792205384867,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "**Plan: fixing the `provision --host` test (prerequisite for thread 17), revised under Arbiter ruling 378dd7da**\n\n**What",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-opus-5-5",
+     "effort": "high"
+    },
+    "swaps": []
+   },
+   {
+    "id": "b97cdb90-828e-405a-b716-e7481c5fe2c4",
+    "step": "test-plan",
+    "role": "Orion",
+    "round": 1,
+    "actor": "Orion-e762cb2a-9a80-45af-9dc5-6c7002fc4dd3",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205412365,
+      "endedAt": 1792205467193,
+      "pid": 36641,
+      "exit": 0,
+      "record": "attempts/b97cdb90-828e-405a-b716-e7481c5fe2c4/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-opus-5-5"
+     }
+    ],
+    "createdAt": 1792205412363,
+    "startedAt": 1792205412365,
+    "endedAt": 1792205467193,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "# Orion test plan: the `provision --host` fix (thread 31, round 1)\n\nI wrote no files and changed nothing in the repo. Th",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-opus-5-5",
+     "effort": "high"
+    },
+    "swaps": []
+   },
+   {
+    "id": "df546e65-e3d7-49cd-b93e-3e0448b44e53",
+    "step": "implement",
+    "role": "Sirius",
+    "round": 1,
+    "actor": "Sirius-60dab1d1-c49c-4bf3-aac9-18ade9e09399",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205480573,
+      "endedAt": 1792205576567,
+      "pid": 43234,
+      "exit": 0,
+      "record": "attempts/df546e65-e3d7-49cd-b93e-3e0448b44e53/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-sonnet-5-5"
+     }
+    ],
+    "createdAt": 1792205480571,
+    "startedAt": 1792205480573,
+    "endedAt": 1792205576567,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "The `provision --host` test now passes, and I changed only `test/provision.test.mjs`.\n\n**The edit:** In the `provision -",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-sonnet-5-5",
+     "effort": "low"
+    },
+    "swaps": []
+   },
+   {
+    "id": "699b0861-2f6a-44d8-b78e-87082799f791",
+    "step": "verify",
+    "role": "Aldebaran",
+    "round": 1,
+    "actor": "Aldebaran-317dba9d-e52d-4a3e-9f36-759752b32382",
+    "status": "failed-test",
+    "launches": 2,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205592401,
+      "endedAt": 1792205658030,
+      "pid": 58986,
+      "exit": 0,
+      "record": "attempts/699b0861-2f6a-44d8-b78e-87082799f791/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-haiku-5-5"
+     },
+     {
+      "n": 2,
+      "startedAt": 1792205658032,
+      "endedAt": 1792205662899,
+      "pid": 61192,
+      "exit": 0,
+      "record": "attempts/699b0861-2f6a-44d8-b78e-87082799f791/launch-2",
+      "toolCalls": null,
+      "card": "claude · claude-haiku-5-5"
+     }
+    ],
+    "createdAt": 1792205592399,
+    "startedAt": 1792205592401,
+    "endedAt": 1792205662899,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "{\"outcome\":\"fail\",\"summary\":\"Verification did not pass. Checks 2, 3 and 5 passed, and scope check 6 was clean apart from",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-haiku-5-5",
+     "effort": "low"
+    },
+    "swaps": []
+   },
+   {
+    "id": "39635650-9cbd-4c0a-abe1-6abebb54ae7f",
+    "step": "test-plan",
+    "role": "Orion",
+    "round": 2,
+    "actor": "Orion-55d221dc-e2e9-4cf5-aca1-cabb7f60f987",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205706202,
+      "endedAt": 1792205799160,
+      "pid": 62281,
+      "exit": 0,
+      "record": "attempts/39635650-9cbd-4c0a-abe1-6abebb54ae7f/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-opus-5-5"
+     }
+    ],
+    "createdAt": 1792205706201,
+    "startedAt": 1792205706202,
+    "endedAt": 1792205799160,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "Red-before reproduces on HEAD without touching the tree, and green-after passes in the working tree. Here are the revise",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-opus-5-5",
+     "effort": "high"
+    },
+    "swaps": []
+   },
+   {
+    "id": "1995cc56-d3a5-4e21-8f31-3a614354c72c",
+    "step": "implement",
+    "role": "Sirius",
+    "round": 2,
+    "actor": "Sirius-468c2fb8-a1f4-4243-b10d-fda5b534f92e",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205810837,
+      "endedAt": 1792205915222,
+      "pid": 64173,
+      "exit": 0,
+      "record": "attempts/1995cc56-d3a5-4e21-8f31-3a614354c72c/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-sonnet-5-5"
+     }
+    ],
+    "createdAt": 1792205810836,
+    "startedAt": 1792205810837,
+    "endedAt": 1792205915222,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "The `provision --host` test now passes under the `npm test` environment, and `npm test` is green. I made no commit and s",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-sonnet-5-5",
+     "effort": "low"
+    },
+    "swaps": []
+   },
+   {
+    "id": "598426b8-e76c-4c7c-a862-40f2da3ed78d",
+    "step": "verify",
+    "role": "Aldebaran",
+    "round": 2,
+    "actor": "Aldebaran-0be4ae14-5ecc-482e-95d0-e6bfd293af81",
+    "status": "accepted",
+    "launches": 1,
+    "runs": [
+     {
+      "n": 1,
+      "startedAt": 1792205930977,
+      "endedAt": 1792205993524,
+      "pid": 67271,
+      "exit": 0,
+      "record": "attempts/598426b8-e76c-4c7c-a862-40f2da3ed78d/launch-1",
+      "toolCalls": null,
+      "card": "claude · claude-haiku-5-5"
+     }
+    ],
+    "createdAt": 1792205930975,
+    "startedAt": 1792205930977,
+    "endedAt": 1792205993524,
+    "progress": [],
+    "checkIns": [],
+    "error": null,
+    "exitCode": 0,
+    "outputHead": "All five checks ran as written, in order. Each observed result matches the expected one in the test plan.\n\n- **Check 1 (",
+    "card": {
+     "harness": "claude",
+     "provider": "anthropic",
+     "account": "anthropic",
+     "model": "claude-haiku-5-5",
+     "effort": "low"
+    },
+    "swaps": []
+   }
+  ],
+  "exchanges": [
+   {
+    "id": "2d85f0d5-47ab-4f6b-8a6e-3814a1df98b9",
+    "step": "plan",
+    "round": 0,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:45:07.239Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "3025cca5-4e70-4a59-a0de-3d6bd92d1524",
+    "step": "test-plan",
+    "round": 0,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:46:05.495Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "4c27e1f8-7d38-41cc-9bac-b94ba54cf8ec",
+    "step": "implement",
+    "round": 0,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:46:50.435Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "54ae8e70-5e0a-41da-be18-0a7d7c55bd57",
+    "step": "verify",
+    "round": 0,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:47:19.721Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "bb2d5693-e10d-46dd-9e27-852db8e1a2f3",
+    "step": "plan",
+    "round": 1,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:49:10.156Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "917b6ba8-020f-4041-9730-166fa812daa7",
+    "step": "test-plan",
+    "round": 1,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:50:12.362Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "c8738509-ea33-4b46-8852-7b3b9e45f5a3",
+    "step": "implement",
+    "round": 1,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:51:20.570Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "41040ffb-4bb1-469e-b3c8-68eb5f7270a4",
+    "step": "verify",
+    "round": 1,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:53:12.398Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "84547b94-dab0-4cf5-b106-b8446842d9fb",
+    "step": "test-plan",
+    "round": 2,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:55:06.199Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "5f96dfd6-7df0-43c8-8641-58a35a20f682",
+    "step": "implement",
+    "round": 2,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:56:50.834Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   },
+   {
+    "id": "ef914ad2-d1fe-4e8a-ab83-71fa5a9e768f",
+    "step": "verify",
+    "round": 2,
+    "status": "clear",
+    "rounds": 0,
+    "turns": [
+     {
+      "type": "worker",
+      "at": "2026-10-17T02:58:50.974Z",
+      "questions": [],
+      "clear": true,
+      "text": ""
+     }
+    ]
+   }
+  ],
+  "failures": [
+   {
+    "id": "378dd7da-6cd3-4e37-b354-ab191339e1bd",
+    "status": "answered",
+    "at": "2026-10-17T02:48:22.347Z",
+    "round": 0,
+    "ruling": {
+     "cause": "implementation",
+     "answer": "Revise the plan and the fix. The line-113 change is necessary, but it does not fix the test under `npm test`. That script, already in HEAD 4e96047's package.json, sets PI_DURABLE_CLAUDE=/bin/false and PI_DURABLE_CODEX=/bin/false. `binaryFor` (cards.mjs:96-100) reads those from process.env and ignores the env passed to `installed()`, so the fake PATH is never used. /bin/false does not exist on macOS (only /usr/bin/false does), so claude counts as not installed, gets skipped, and no block is written (1 !== 2). Keep the line-113 change and also neutralise the override inside this test. Save PI_DURABLE_CLAUDE, PI_DURABLE_CODEX and PI_DURABLE_PI, delete them from process.env before the two provisionHost calls, and restore them in a finally block. That is a test-only change. The alternative is to have `installed()` resolve the binary from its `env` argument, but that changes cards.mjs and needs the plan to allow it. Then change the gate so it runs with the npm test environment (`PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/provision.test.mjs`), not with the variables unset.",
+     "evidence": "package.json:50 test script: `PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs`. HEAD's script already had both /bin/false overrides; the working tree only adds PI_DURABLE_ALERT. `ls /bin/false` gives No such file or directory; /usr/bin/false exists. Running test/provision.test.mjs alone with the line-113 change and those variables set gives `not ok 6 - provision --host`, # fail 1. With the variables unset it gives 6/6. cards.mjs:96-109: binaryFor reads process.env.PI_DURABLE_*, and installed() does `if (command.includes('/')) return runnable(command)`, which never looks at the fake PATH. The plan named this leak itself and wrongly ruled that it 'does not cause this failure', and the test plan's gate ran with the variables unset, so it missed the case npm test runs.",
+     "by": "Arbiter"
+    },
+    "prerequisite": null,
+    "report": "{\"outcome\":\"fail\",\"summary\":\"Checks 1–4 passed: provision.test.mjs 6/6 pass with the PI_DURABLE_* vars unset; the test file diff is 1 insertion and 1 deletion; provision.mjs, cards.mjs and harness-fak"
+   },
+   {
+    "id": "298fb7bb-3f6d-40cd-a9a9-e71ee3efe2b5",
+    "status": "answered",
+    "at": "2026-10-17T02:54:22.901Z",
+    "round": 1,
+    "ruling": {
+     "cause": "test",
+     "answer": "Verifier (Aldebaran): drop the stale scope expectation and re-verify against the current accepted plan. That plan was revised under Arbiter ruling 378dd7da. It requires both the line-113 change and the try/finally guard around lines 114-125, so a change of about 33 lines is in scope. Check scope against plan Done-when 5: only test/provision.test.mjs changes beyond the snapshot, nothing in provision.mjs, cards.mjs, test/harness-fakes.mjs or package.json, nothing staged, and HEAD is 4e96047. Then re-run check 1 (red before) yourself instead of citing Orion. The implementation needs no change.",
+     "evidence": "The verifier's expected value, a one-line edit at :113, comes from the earlier brief. Arbiter ruling 378dd7da replaced it, and the current plan's Making step 1 explicitly specifies the save/delete/try/finally wrap. Its diff spans lines 114-125 plus the guard, so most of the 20+/13- is indentation. `git diff -- test/provision.test.mjs` shows exactly that wrap: line 113 is `machine({ claude: {}, codex: {}, pi: {} })`, the why-comment is present, the restore is in finally, and every assertion is unchanged. `git diff --stat` on provision.mjs, cards.mjs and test/harness-fakes.mjs shows only test/provision.test.mjs. `git diff --cached` is empty and HEAD is 4e96047. `PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/provision.test.mjs` gives 6 pass, 0 fail. The disagreement the verifier saw is between its own stale brief and the revised plan, not inside the plan.",
+     "by": "Arbiter"
+    },
+    "prerequisite": null,
+    "report": "{\"outcome\":\"fail\",\"summary\":\"Verification did not pass. Checks 2, 3 and 5 passed, and scope check 6 was clean apart from one discrepancy: the applied change is a try/finally wrap of the whole test bod"
+   }
+  ],
+  "notes": [
+   {
+    "to": "Cassiopeia",
+    "round": 1,
+    "at": "2026-10-17T02:48:49.698Z",
+    "failureId": "378dd7da-6cd3-4e37-b354-ab191339e1bd"
+   },
+   {
+    "to": "Orion",
+    "round": 2,
+    "at": "2026-10-17T02:54:41.303Z",
+    "failureId": "298fb7bb-3f6d-40cd-a9a9-e71ee3efe2b5"
+   }
+  ],
+  "events": [
+   {
+    "at": "2026-10-17T02:44:36.524Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "plan",
+    "round": 0
+   },
+   {
+    "at": "2026-10-17T02:45:07.237Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "plan",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205076525,
+    "endedAt": 1792205107237,
+    "ms": 30712,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/plan-nq-5444f1d5-0d47-489d-92b0-2fe7bd4a03ae"
+   },
+   {
+    "at": "2026-10-17T02:45:07.240Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "898e8e93-3176-4797-b978-b2f56d1e8408",
+    "actor": "Cassiopeia-f7416f3a-7ec8-432d-aa57-12e4f6ebab15",
+    "step": "plan"
+   },
+   {
+    "at": "2026-10-17T02:45:07.241Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "898e8e93-3176-4797-b978-b2f56d1e8408",
+    "step": "plan"
+   },
+   {
+    "at": "2026-10-17T02:45:41.614Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "898e8e93-3176-4797-b978-b2f56d1e8408",
+    "step": "plan"
+   },
+   {
+    "at": "2026-10-17T02:45:41.614Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "898e8e93-3176-4797-b978-b2f56d1e8408",
+    "from": "plan",
+    "to": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:45:41.615Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "test-plan",
+    "round": 0
+   },
+   {
+    "at": "2026-10-17T02:46:05.494Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "test-plan",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205141617,
+    "endedAt": 1792205165494,
+    "ms": 23877,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/test-plan-nq-187b6e82-f837-4e15-a1ee-5a772297e862"
+   },
+   {
+    "at": "2026-10-17T02:46:05.496Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "711575d0-fc5c-4394-8685-0d8d96d3cb5d",
+    "actor": "Orion-77521431-ee69-4c5d-ac91-91b5ba74819a",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:46:05.497Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "711575d0-fc5c-4394-8685-0d8d96d3cb5d",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:46:38.424Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "711575d0-fc5c-4394-8685-0d8d96d3cb5d",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:46:38.424Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "711575d0-fc5c-4394-8685-0d8d96d3cb5d",
+    "from": "test-plan",
+    "to": "implement"
+   },
+   {
+    "at": "2026-10-17T02:46:38.426Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "implement",
+    "round": 0
+   },
+   {
+    "at": "2026-10-17T02:46:50.434Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "implement",
+    "card": "claude · claude-sonnet-5-5",
+    "startedAt": 1792205198428,
+    "endedAt": 1792205210434,
+    "ms": 12006,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/implement-nq-7e58472e-8bb5-4ec8-855d-68c6627814e0"
+   },
+   {
+    "at": "2026-10-17T02:46:50.437Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "68470f48-25ec-4783-9fbd-d9114f40962a",
+    "actor": "Sirius-9d7b70e8-662d-4022-ae3d-132ed703c0a7",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:46:50.448Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "68470f48-25ec-4783-9fbd-d9114f40962a",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:47:03.288Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "68470f48-25ec-4783-9fbd-d9114f40962a",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:47:03.290Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "68470f48-25ec-4783-9fbd-d9114f40962a",
+    "from": "implement",
+    "to": "verify"
+   },
+   {
+    "at": "2026-10-17T02:47:03.292Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "verify",
+    "round": 0
+   },
+   {
+    "at": "2026-10-17T02:47:19.719Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "verify",
+    "card": "claude · claude-haiku-5-5",
+    "startedAt": 1792205223294,
+    "endedAt": 1792205239719,
+    "ms": 16425,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/verify-nq-7571a3be-881c-4903-89f3-0d7618f27404"
+   },
+   {
+    "at": "2026-10-17T02:47:19.722Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "151b4b14-576e-476a-94c5-a832e010f47d",
+    "actor": "Aldebaran-7554e202-8329-44b1-ae85-66515d51c8f3",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:47:19.724Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "151b4b14-576e-476a-94c5-a832e010f47d",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:48:16.694Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "151b4b14-576e-476a-94c5-a832e010f47d",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:48:16.696Z",
+    "type": "verdict-asked",
+    "pid": 12627,
+    "attemptId": "151b4b14-576e-476a-94c5-a832e010f47d"
+   },
+   {
+    "at": "2026-10-17T02:48:16.697Z",
+    "type": "redriven",
+    "pid": 12627,
+    "attemptId": "151b4b14-576e-476a-94c5-a832e010f47d",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:48:22.345Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "151b4b14-576e-476a-94c5-a832e010f47d",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:48:22.347Z",
+    "type": "test-failed",
+    "pid": 12627,
+    "failureId": "378dd7da-6cd3-4e37-b354-ab191339e1bd",
+    "corrections": 0
+   },
+   {
+    "at": "2026-10-17T02:48:49.696Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "arbiter",
+    "step": "verify",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205302349,
+    "endedAt": 1792205329696,
+    "ms": 27347,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/arbiter-43b6c653-f703-429f-abfa-d47a51a7dac6"
+   },
+   {
+    "at": "2026-10-17T02:48:49.698Z",
+    "type": "failure-routed",
+    "pid": 12627,
+    "failureId": "378dd7da-6cd3-4e37-b354-ab191339e1bd",
+    "cause": "implementation",
+    "by": "Arbiter"
+   },
+   {
+    "at": "2026-10-17T02:48:49.701Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "plan",
+    "round": 1
+   },
+   {
+    "at": "2026-10-17T02:49:10.155Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "plan",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205329704,
+    "endedAt": 1792205350155,
+    "ms": 20451,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/plan-nq-eb6e07d0-68a5-40de-aeb6-f85a5a64c125"
+   },
+   {
+    "at": "2026-10-17T02:49:10.158Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "5e0aae70-2b55-4d40-a409-0ba2f2fc62ca",
+    "actor": "Cassiopeia-1861ce67-317b-4a1d-8927-905f16a1ea14",
+    "step": "plan"
+   },
+   {
+    "at": "2026-10-17T02:49:10.159Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "5e0aae70-2b55-4d40-a409-0ba2f2fc62ca",
+    "step": "plan"
+   },
+   {
+    "at": "2026-10-17T02:49:44.867Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "5e0aae70-2b55-4d40-a409-0ba2f2fc62ca",
+    "step": "plan"
+   },
+   {
+    "at": "2026-10-17T02:49:44.869Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "5e0aae70-2b55-4d40-a409-0ba2f2fc62ca",
+    "from": "plan",
+    "to": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:49:44.871Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "test-plan",
+    "round": 1
+   },
+   {
+    "at": "2026-10-17T02:50:12.361Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "test-plan",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205384873,
+    "endedAt": 1792205412361,
+    "ms": 27488,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/test-plan-nq-cd8dd723-b777-4e42-be0b-2a33a731a224"
+   },
+   {
+    "at": "2026-10-17T02:50:12.363Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "b97cdb90-828e-405a-b716-e7481c5fe2c4",
+    "actor": "Orion-e762cb2a-9a80-45af-9dc5-6c7002fc4dd3",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:50:12.365Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "b97cdb90-828e-405a-b716-e7481c5fe2c4",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:51:07.193Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "b97cdb90-828e-405a-b716-e7481c5fe2c4",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:51:07.194Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "b97cdb90-828e-405a-b716-e7481c5fe2c4",
+    "from": "test-plan",
+    "to": "implement"
+   },
+   {
+    "at": "2026-10-17T02:51:07.195Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "implement",
+    "round": 1
+   },
+   {
+    "at": "2026-10-17T02:51:20.567Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "implement",
+    "card": "claude · claude-sonnet-5-5",
+    "startedAt": 1792205467198,
+    "endedAt": 1792205480567,
+    "ms": 13369,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/implement-nq-b5976943-305c-45c7-ae8d-ba5168fb301c"
+   },
+   {
+    "at": "2026-10-17T02:51:20.571Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "df546e65-e3d7-49cd-b93e-3e0448b44e53",
+    "actor": "Sirius-60dab1d1-c49c-4bf3-aac9-18ade9e09399",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:51:20.573Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "df546e65-e3d7-49cd-b93e-3e0448b44e53",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:52:56.567Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "df546e65-e3d7-49cd-b93e-3e0448b44e53",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:52:56.569Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "df546e65-e3d7-49cd-b93e-3e0448b44e53",
+    "from": "implement",
+    "to": "verify"
+   },
+   {
+    "at": "2026-10-17T02:52:56.570Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "verify",
+    "round": 1
+   },
+   {
+    "at": "2026-10-17T02:53:12.396Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "verify",
+    "card": "claude · claude-haiku-5-5",
+    "startedAt": 1792205576575,
+    "endedAt": 1792205592396,
+    "ms": 15821,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/verify-nq-7586864f-1b63-462c-aea9-3d46711b7e97"
+   },
+   {
+    "at": "2026-10-17T02:53:12.399Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "699b0861-2f6a-44d8-b78e-87082799f791",
+    "actor": "Aldebaran-317dba9d-e52d-4a3e-9f36-759752b32382",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:53:12.401Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "699b0861-2f6a-44d8-b78e-87082799f791",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:54:18.030Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "699b0861-2f6a-44d8-b78e-87082799f791",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:54:18.031Z",
+    "type": "verdict-asked",
+    "pid": 12627,
+    "attemptId": "699b0861-2f6a-44d8-b78e-87082799f791"
+   },
+   {
+    "at": "2026-10-17T02:54:18.032Z",
+    "type": "redriven",
+    "pid": 12627,
+    "attemptId": "699b0861-2f6a-44d8-b78e-87082799f791",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:54:22.899Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "699b0861-2f6a-44d8-b78e-87082799f791",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:54:22.901Z",
+    "type": "test-failed",
+    "pid": 12627,
+    "failureId": "298fb7bb-3f6d-40cd-a9a9-e71ee3efe2b5",
+    "corrections": 1
+   },
+   {
+    "at": "2026-10-17T02:54:41.301Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "arbiter",
+    "step": "verify",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205662904,
+    "endedAt": 1792205681301,
+    "ms": 18397,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/arbiter-6f0859f9-60b0-4690-a779-9c8f22592519"
+   },
+   {
+    "at": "2026-10-17T02:54:41.303Z",
+    "type": "failure-routed",
+    "pid": 12627,
+    "failureId": "298fb7bb-3f6d-40cd-a9a9-e71ee3efe2b5",
+    "cause": "test",
+    "by": "Arbiter"
+   },
+   {
+    "at": "2026-10-17T02:54:41.306Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "test-plan",
+    "round": 2
+   },
+   {
+    "at": "2026-10-17T02:55:06.199Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "test-plan",
+    "card": "claude · claude-opus-5-5",
+    "startedAt": 1792205681308,
+    "endedAt": 1792205706199,
+    "ms": 24891,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/test-plan-nq-2574f2ec-cc3a-4546-9887-dc77e563f1f8"
+   },
+   {
+    "at": "2026-10-17T02:55:06.201Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "39635650-9cbd-4c0a-abe1-6abebb54ae7f",
+    "actor": "Orion-55d221dc-e2e9-4cf5-aca1-cabb7f60f987",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:55:06.202Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "39635650-9cbd-4c0a-abe1-6abebb54ae7f",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:56:39.160Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "39635650-9cbd-4c0a-abe1-6abebb54ae7f",
+    "step": "test-plan"
+   },
+   {
+    "at": "2026-10-17T02:56:39.162Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "39635650-9cbd-4c0a-abe1-6abebb54ae7f",
+    "from": "test-plan",
+    "to": "implement"
+   },
+   {
+    "at": "2026-10-17T02:56:39.163Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "implement",
+    "round": 2
+   },
+   {
+    "at": "2026-10-17T02:56:50.832Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "implement",
+    "card": "claude · claude-sonnet-5-5",
+    "startedAt": 1792205799165,
+    "endedAt": 1792205810832,
+    "ms": 11667,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/implement-nq-98389eea-f845-48c4-a674-c99cc24dadf9"
+   },
+   {
+    "at": "2026-10-17T02:56:50.836Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "1995cc56-d3a5-4e21-8f31-3a614354c72c",
+    "actor": "Sirius-468c2fb8-a1f4-4243-b10d-fda5b534f92e",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:56:50.837Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "1995cc56-d3a5-4e21-8f31-3a614354c72c",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:58:35.222Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "1995cc56-d3a5-4e21-8f31-3a614354c72c",
+    "step": "implement"
+   },
+   {
+    "at": "2026-10-17T02:58:35.224Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "1995cc56-d3a5-4e21-8f31-3a614354c72c",
+    "from": "implement",
+    "to": "verify"
+   },
+   {
+    "at": "2026-10-17T02:58:35.226Z",
+    "type": "brief-sealed",
+    "pid": 12627,
+    "step": "verify",
+    "round": 2
+   },
+   {
+    "at": "2026-10-17T02:58:50.973Z",
+    "type": "call",
+    "pid": 12627,
+    "kind": "intake",
+    "step": "verify",
+    "card": "claude · claude-haiku-5-5",
+    "startedAt": 1792205915229,
+    "endedAt": 1792205930973,
+    "ms": 15744,
+    "ok": true,
+    "limit": false,
+    "record": "/data/workspaces/w1/calls/verify-nq-19e84b50-2449-4035-b46b-3bdf8be3742c"
+   },
+   {
+    "at": "2026-10-17T02:58:50.976Z",
+    "type": "assigned",
+    "pid": 12627,
+    "attemptId": "598426b8-e76c-4c7c-a862-40f2da3ed78d",
+    "actor": "Aldebaran-0be4ae14-5ecc-482e-95d0-e6bfd293af81",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:58:50.977Z",
+    "type": "started",
+    "pid": 12627,
+    "attemptId": "598426b8-e76c-4c7c-a862-40f2da3ed78d",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:59:53.524Z",
+    "type": "reported",
+    "pid": 12627,
+    "attemptId": "598426b8-e76c-4c7c-a862-40f2da3ed78d",
+    "step": "verify"
+   },
+   {
+    "at": "2026-10-17T02:59:53.526Z",
+    "type": "handoff",
+    "pid": 12627,
+    "attemptId": "598426b8-e76c-4c7c-a862-40f2da3ed78d",
+    "from": "verify",
+    "to": "complete"
+   },
+   {
+    "at": "2026-10-17T02:59:53.526Z",
+    "type": "complete",
+    "pid": 12627
+   }
+  ]
+ },
+ "evidence": {
+  "store": "/data/workspaces/w1/work.sqlite",
+  "export": "/data/workspaces/w1/exports/thread-31.json"
+ }
+}

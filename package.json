@@ -35,6 +35,7 @@
     "README.md",
     "serve.mjs",
     "sidecar.mjs",
+    "view.mjs",
     "dashboard.html"
   ],
   "pi": {

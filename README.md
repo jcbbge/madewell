@@ -55,17 +55,21 @@ pi-durable doctor [--json]      pi-durable provision [--yes]
 
 Stores live under `~/.local/share/pi-durable/workspaces/<hash>` per workspace (`WORK_DATA` overrides). One process owns a store; a dead owner is replaced automatically on the next drive.
 
-## See it: the live dashboard
+## See it: the run view
 
-Starting pi starts it: http://localhost:7788, for as long as that pi session runs. The footer reads `durable ✓ · localhost:7788` when Pi Durable is connected. (`pi-durable serve` runs it without pi.)
+Starting pi starts it: http://localhost:7788, for as long as that pi session runs. The footer reads `durable ✓ · localhost:7788` when Pi Durable is connected. `pi-durable serve` runs it without pi and opens it in your browser (from a terminal; `--no-open` skips that). It prints the address, and if the dashboard already runs on that port it says so and uses it.
 
-Every workspace store, every thread: the phase rail with the current position and rounds, what is in flight right now (agent, pid, elapsed, time since last output, live tool calls and output, tokens, cost), a swimlane of who did what when (phases, intake, originator, Arbiter, you), latency per phase / judgment call / tool, and every transition. A worker is flagged **silent** after 5 minutes without output, **worker dead** if its process is gone, **no driver** if nothing is driving.
+`serve` shows the workspace you are in (`--workspace <dir>` names another, `--all` shows every workspace store). The page is the end-to-end Made Well picture, drawn from the durable record and nothing else: what is happening now and who holds it; where the work is (discovery, what waits on you, the four delivery stages with how long each took, how many are done); what the operator sees, the same text as the sidecar; six rules checked on the selected item, each with its evidence; the one list of every item (click one to select it); and telemetry: counts, the stops you caused and the minutes waited, checks passed and failed, tokens and cost, minutes per stage, and a log. A figure the record does not hold shows as — and says why when you hover.
+
+Live is the default. **◀ Back**, **Step ▶**, **Play**, **Start over** and the slider (or ← →) replay the selected item over its own record, event by event; Play stops where the item waits on you. **Live** returns.
+
+When an item waits on you, the page asks the question and takes the answer: type it and press **Send answer** (for a failed check, press the cause: pre-existing, implementation or test). The answer is sent through the CLI and the item continues. An item awaiting your go-ahead has **Start building**. If another item's driver owns that store, the button is off and the page shows the command to run instead; it never writes to a store itself, and it accepts an answer only from this machine, from its own page.
 
 On a remote machine, forward the port over ssh (for example `ssh -L 7789:localhost:7788 <host>`) and open http://localhost:7789.
 
 ## Sidecar
 
-Run `pi-durable sidecar` in a pane. It is one plain terminal program, read-only like the dashboard, and shows only what needs you or is moving: what waits on you, each as a decision card with the exact command to answer; what is in progress, with its stage, its job, the harness and model doing it, any question round and the fix items it waits on; any account out of quota and when it resets; and the last few finished units. It redraws on change or every 2 seconds; `q` or Ctrl-C quits. `--once` prints one frame and exits; `--width N` sets the width. Colour is used on a terminal unless `NO_COLOR` is set.
+Run `pi-durable sidecar` in a pane. It is one plain terminal program, read-only like the dashboard, and shows the same text as the run view's "what the operator sees": who needs you (a count and the numbers), each as a decision card with the exact command to answer; NOW, what is running, with its stage, its job, the harness and model doing it, any question turn and the fix items it waits on; TO-DO, the items nobody has started and how to start them; any account out of quota and when it resets; and what finished today. `--workspace <dir>` narrows it to one workspace; by default it shows every store, so a pane never hides a hold. It redraws on change or every 2 seconds; `q` or Ctrl-C quits. `--once` prints one frame and exits; `--width N` sets the width. Colour is used on a terminal unless `NO_COLOR` is set.
 
 It is built for a right-hand third of the screen (60–90 columns). In tmux:
 

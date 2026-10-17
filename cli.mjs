@@ -36,8 +36,8 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   drive <id> [--delivery] [--model provider/model] [--background]
   drive-all <ids...> [--delivery] [--model provider/model] [--background]
   answer <id> <answer.txt> [${CAUSES.join('|')}]   human answer to whatever is held
-  serve [--port 7788] [--host 127.0.0.1]   live dashboard: states, transitions, agents, latency
-  sidecar [--once] [--width N]   terminal view for a pane: what waits on you, what is running
+  serve [--workspace <dir> | --all] [--no-open] [--port 7788] [--host 127.0.0.1]   the run view in the browser
+  sidecar [--workspace <dir>] [--once] [--width N]   terminal view for a pane: what waits on you, what is running
   doctor [--json]                  what can run here: harnesses, sign-in, cards per tier, front doors
   provision [--yes]                install each installed harness's front door (--yes replaces changed files)
   provision --host                 make Made Well how every agent session on this machine works (each harness's global instructions)
@@ -99,14 +99,31 @@ try {
   else if (!command || ['help', '--help'].includes(command)) console.log(usage);
   else if (command === 'serve') {
     const opt = name => { const i = args.indexOf(name); return i < 0 ? undefined : args[i + 1]; };
-    await serve({ port: Number(opt('--port') ?? 7788), host: opt('--host') ?? '127.0.0.1' });
-    await new Promise(() => {});
+    const port = Number(opt('--port') ?? 7788), host = opt('--host') ?? '127.0.0.1';
+    // Scoped to one workspace: --workspace, else everything with --all, else the folder you are in.
+    const scope = workspace ? await realpath(workspace) : args.includes('--all') ? null : await realpath(process.cwd());
+    const url = `http://${host}:${port}/${scope ? `?workspace=${encodeURIComponent(scope)}` : ''}`;
+    const show = () => {
+      console.log(url);
+      if (args.includes('--no-open') || !process.stdout.isTTY) return;
+      const [cmd, ...rest] = process.platform === 'darwin' ? ['open', url] : process.platform === 'win32' ? ['cmd', '/c', 'start', '""', url] : ['xdg-open', url];
+      try { spawn(cmd, rest, { detached: true, stdio: 'ignore' }).on('error', () => {}).unref(); } catch {}
+    };
+    try { await serve({ port, host }); show(); await new Promise(() => {}); }
+    catch (error) {
+      if (error.code !== 'EADDRINUSE') throw error;
+      const running = await fetch(`http://${host}:${port}/api/state`, { signal: AbortSignal.timeout(3000) }).then(r => r.json()).catch(() => null);
+      if (!Array.isArray(running?.stores)) throw new Error(`Port ${port} is in use by something that is not the dashboard; try --port.`);
+      console.log(`Using the dashboard already running on :${port}`);
+      show();
+    }
   }
   else if (command === 'sidecar') {
     const i = args.indexOf('--width'), width = i < 0 ? undefined : Number(args[i + 1]);
     if (width !== undefined && !(width > 0)) throw new Error('--width needs a positive number of columns');
-    if (args.includes('--once')) console.log(renderSidecar(await sidecarSnapshot(), { width: width ?? process.stdout.columns ?? 80, color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR }));
-    else await runSidecar({ width });
+    const scope = workspace ? await realpath(workspace) : null;
+    if (args.includes('--once')) console.log(renderSidecar(await sidecarSnapshot({ workspace: scope }), { width: width ?? process.stdout.columns ?? 80, color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR }));
+    else await runSidecar({ width, workspace: scope });
   }
   else if (command === 'status') {
     const id = args.find(a => a !== '--json'), works = await observe(directory, id ? Number(id) : null);
