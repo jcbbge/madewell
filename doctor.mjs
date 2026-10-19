@@ -1,8 +1,8 @@
 import { execFile } from 'node:child_process';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { accessSync, constants, existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { basename, delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { HARNESSES, binaryFor, installed, loadPrescriptions } from './cards.mjs';
 
@@ -31,12 +31,24 @@ export function frontDoors(env = process.env) {
   return {
     claude: { kind: 'skill', source: join(root, 'harness', 'claude', SKILL), target: join(homes.claude, 'skills', SKILL) },
     codex: { kind: 'skill', source: join(root, 'harness', 'codex', SKILL), target: join(homes.codex, 'skills', SKILL) },
-    pi: { kind: 'package', command: `pi install ${JSON.stringify(root)}`, settings: join(homes.pi, 'settings.json'), home: userHome(env) },
+    pi: { kind: 'package', command: 'pi-durable provision', root, settings: join(homes.pi, 'settings.json'), home: userHome(env) },
   };
 }
 
-// The skill as written for this checkout: {{cli}} becomes the command that reaches this cli.mjs.
-export function renderSkill(text) { return text.replaceAll('{{cli}}', `node ${JSON.stringify(join(root, 'cli.mjs'))}`); }
+// Older templates used a checkout-absolute fallback. Never generate one again.
+export function renderSkill(text) { return text.replaceAll('{{cli}}', 'pi-durable'); }
+
+export function commandState(env = process.env) {
+  for (const folder of (env.PATH ?? '').split(delimiter)) {
+    const path = resolve(folder || '.', 'pi-durable');
+    try {
+      accessSync(path, constants.X_OK);
+      const target = realpathSync(path);
+      return { path, target, state: target === realpathSync(join(root, 'cli.mjs')) ? 'installed' : 'different' };
+    } catch {}
+  }
+  return { path: null, target: null, state: 'missing' };
+}
 
 const readText = path => { try { return readFileSync(path, 'utf8'); } catch { return null; } };
 
@@ -46,18 +58,37 @@ export function skillState(door) {
   return have === null ? 'missing' : have === want ? 'installed' : 'different';
 }
 
-// pi lists packages in its settings; a local path counts when it is a Made Well checkout.
+// Match only our package identity, not arbitrary packages whose name contains “madewell”.
+// The basename fallback identifies an obsolete local registration after its folder was moved.
+export function madeWellPackage(entry, door) {
+  const source = typeof entry === 'string' ? entry : entry?.source;
+  if (typeof source !== 'string') return null;
+  if (/^(npm:|git:|https?:|ssh:)/.test(source)) {
+    return source === `npm:${pkg.name}` || source.startsWith(`npm:${pkg.name}@`)
+      || /^(?:git:|https:\/\/|ssh:\/\/git@)?github\.com[/:]jcbbge\/madewell(?:\.git)?(?:@[^/]+)?$/.test(source)
+      ? { source, path: null } : null;
+  }
+  const path = source.startsWith('~/') ? join(door.home, source.slice(2)) : resolve(dirname(door.settings), source);
+  let name;
+  try { name = JSON.parse(readFileSync(join(path, 'package.json'), 'utf8')).name; } catch {}
+  return name === pkg.name || (!name && basename(path) === pkg.name) ? { source, path } : null;
+}
+
 export function piPackageState(door) {
   let settings;
-  try { settings = JSON.parse(readFileSync(door.settings, 'utf8')); } catch { return 'missing'; }
-  const sources = (settings.packages ?? []).map(p => typeof p === 'string' ? p : p?.source).filter(s => typeof s === 'string');
-  for (const source of sources) {
-    if (/^(npm:|git:|https?:|ssh:)/.test(source)) { if (/madewell/i.test(source)) return 'installed'; continue; }
-    const path = source.startsWith('~/') ? join(door.home, source.slice(2)) : resolve(dirname(door.settings), source);
-    const name = (() => { try { return JSON.parse(readFileSync(join(path, 'package.json'), 'utf8')).name; } catch { return null; } })();
-    if (name === pkg.name) return 'installed';
-  }
-  return 'missing';
+  try { settings = JSON.parse(readFileSync(door.settings, 'utf8')); } catch (error) { return error.code === 'ENOENT' ? 'missing' : 'invalid'; }
+  if (settings.packages !== undefined && !Array.isArray(settings.packages)) return 'invalid';
+  const entries = (settings.packages ?? []).map(entry => ({ entry, match: madeWellPackage(entry, door) })).filter(e => e.match);
+  if (!entries.length) return 'missing';
+  if (entries.length > 1) return 'duplicate';
+  const { entry, match } = entries[0];
+  try {
+    if (!match.path || realpathSync(match.path) !== realpathSync(door.root ?? root)) return 'different';
+  } catch { return 'different'; }
+  // An explicitly filtered extension must include Made Well's entrypoint.
+  if (typeof entry === 'object' && entry.extensions !== undefined
+    && JSON.stringify(entry.extensions) !== JSON.stringify(pkg.pi.extensions)) return 'filtered';
+  return 'installed';
 }
 
 function run(command, args, { env = process.env, timeout = 10_000 } = {}) {
@@ -106,6 +137,9 @@ function claudeGuards(home) {
 export async function doctor({ env = process.env } = {}) {
   const problems = [], notes = [];
   const problem = (what, fix) => problems.push({ what, fix });
+  const installation = commandState(env);
+  if (installation.state !== 'installed') problem(`pi-durable on PATH is ${installation.state === 'different' ? 'from a different installation' : 'missing'}`,
+    'Run npm run setup from this checkout with a writable --prefix; put that prefix/bin on PATH.');
   const [major, minor] = process.versions.node.split('.').map(Number);
   const nodeOk = major > MIN_NODE[0] || (major === MIN_NODE[0] && minor >= MIN_NODE[1]);
   if (!nodeOk) problem(`Node ${process.versions.node} is older than ${MIN_NODE.join('.')}`, 'Install Node 22.19 or newer, then run npm install again.');
@@ -139,8 +173,8 @@ export async function doctor({ env = process.env } = {}) {
       const global = await readFile(hostFiles[harness], 'utf8').catch(() => '');
       h.host = global.includes(hostBlock.trim()) ? 'installed' : global.includes(host.BEGIN) ? 'stale' : 'missing';
       if (h.host !== 'installed') problem(`${h.name} sessions do not work through Made Well by default (host directive ${h.host} in ${hostFiles[harness]})`, 'Run: pi-durable provision --host');
-      if (h.frontDoor === 'missing') problem(`${h.name} has no Made Well front door`, door.kind === 'skill' ? 'Run: pi-durable provision' : `Run: ${door.command}`);
-      if (h.frontDoor === 'different') problem(`${h.name}'s Made Well skill differs from this checkout`, 'Run: pi-durable provision --yes');
+      if (h.frontDoor === 'missing') problem(`${h.name} has no Made Well front door`, 'Run: pi-durable provision');
+      else if (h.frontDoor !== 'installed') problem(`${h.name}'s Made Well ${door.kind} is ${h.frontDoor}`, 'Run: pi-durable provision --yes');
     }
     harnesses[harness] = h;
   }
@@ -165,7 +199,8 @@ export async function doctor({ env = process.env } = {}) {
     if (jobs.length && !tiers[tier].usable) problem(`No card for the ${tier} tier (${jobs.join(', ')}) can run here`, `Install and sign in to one of: ${[...new Set(list.map(c => NAMES[c.harness]))].join(', ')}; or edit prescriptions.json.`);
   }
   const blocked = Object.values(tiers).some(t => t.jobs.length && !t.usable);
-  return { ok: prescriptions !== null && nodeOk && !missing.length && !blocked, node: process.versions.node, nodeOk, missing, prescriptions: prescriptions !== null, harnesses, tiers, problems, notes };
+  const runnable = prescriptions !== null && nodeOk && !missing.length && !blocked;
+  return { ok: runnable && !problems.length && !notes.length, runnable, installation, node: process.versions.node, nodeOk, missing, prescriptions: prescriptions !== null, harnesses, tiers, problems, notes };
 }
 
 const yes = v => v === true ? 'yes' : v === false ? 'no' : 'UNKNOWN';
@@ -183,6 +218,6 @@ export function renderDoctor(r) {
   }
   if (r.problems.length) lines.push('', 'Problems:', ...r.problems.map(p => `  - ${p.what}. ${p.fix}`));
   if (r.notes.length) lines.push('', 'Check:', ...r.notes.map(n => `  - ${n}`));
-  lines.push('', r.ok ? `Every job has a card that can run here.${r.problems.length ? ' Fix the problems above to finish setting up.' : ''}` : 'Not ready: fix the problems above.');
+  lines.push('', r.ok ? 'Every job has a card that can run here; registrations are clean.' : r.runnable ? 'Every job has a runnable card. Finish the setup and checks above.' : 'Not ready: fix the problems above.');
   return lines.join('\n');
 }
