@@ -21,6 +21,31 @@ function matches(target, p) {
 
 const pathAt = (path, cwd) => resolve(cwd ?? process.cwd(), path.startsWith('~/') ? resolve(homedir(), path.slice(2)) : path);
 
+// Only recognize the numeric pi footer, never retain or display arbitrary pane content.
+// Source: pi's interactive/components/footer.js (input/output/cache totals and context percent/window).
+export function paneUsage(capture) {
+  for (const line of capture.replace(/\x1b\[[0-9;]*m/g, '').split('\n').reverse()) {
+    if (!/^\s*(?:[↑↓RW]\d|\$\d|(?:\d+(?:\.\d+)?%|\?)\/)/.test(line)) continue;
+    const context = line.match(/(?:\d+(?:\.\d+)?%|\?)\/\d+(?:\.\d+)?[kM]?\b/);
+    if (!context) continue;
+    const tokens = line.match(/(?:↑|↓|\bR|\bW)\d+(?:\.\d+)?[kM]?\b/g) ?? [];
+    const cost = line.match(/\$\d+(?:\.\d+)?(?: \(sub\))?/);
+    return { context: context[0], tokens: tokens.length ? tokens.join(' ') : null, cost: cost?.[0] ?? null };
+  }
+  return null;
+}
+
+export function changedFiles(porcelain) {
+  const entries = porcelain.split('\0');
+  let count = 0;
+  for (let i = 0; i < entries.length; i++) {
+    if (!entries[i]) continue;
+    count++;
+    if (/[RC]/.test(entries[i].slice(0, 2))) i++;
+  }
+  return count;
+}
+
 export function stepLedger(text) {
   let section = ''; const now = [];
   for (const line of text.split('\n')) {
@@ -72,10 +97,30 @@ async function tmuxTelemetry(w, { exec, now }) {
 export async function delegatedTelemetry(w, { exec = run, read = readFile, now = Date.now() } = {}) {
   const out = await tmuxTelemetry(w, { exec, now });
   if (w.done || w.state === 'dead' || w.delegationState === 'dead') return out;
-  const steps = w.where?.steps ?? (w.workspace ? 'TASKS.md' : null);
-  if (typeof steps === 'string' && steps) {
-    try { out.steps = stepLedger(await read(pathAt(steps, w.workspace), 'utf8')); }
-    catch { out.steps = { unavailable: true }; }
-  }
+  await Promise.all([
+    (async () => {
+      const steps = w.where?.steps ?? (w.workspace ? 'TASKS.md' : null);
+      if (typeof steps !== 'string' || !steps) return;
+      try { out.steps = stepLedger(await read(pathAt(steps, w.workspace), 'utf8')); }
+      catch { out.steps = { unavailable: true }; }
+    })(),
+    (async () => {
+      if (out.tmux?.state !== 'running' || w.worker?.harness !== 'pi') return;
+      try { out.usage = paneUsage(await exec('tmux', ['capture-pane', '-p', '-t', out.tmux.pane, '-S', '-15'])); } catch {}
+    })(),
+    (async () => {
+      const repo = w.where?.repo ?? w.workspace;
+      if (typeof repo !== 'string' || !repo) return;
+      try {
+        const [log, status] = await Promise.all([
+          exec('git', ['--no-optional-locks', '-C', pathAt(repo, w.workspace), 'log', '-1', '--no-show-signature', '--format=%h%x00%ct%x00%s']),
+          exec('git', ['--no-optional-locks', '-C', pathAt(repo, w.workspace), 'status', '--porcelain=v1', '-z'])
+        ]);
+        const [hash, timestamp, subject] = log.trimEnd().split('\0');
+        if (!/^[0-9a-f]+$/.test(hash) || !(Number(timestamp) > 0)) throw new Error('Invalid commit observation');
+        out.repo = { hash, at: Number(timestamp) * 1000, subject, changed: changedFiles(status) };
+      } catch { out.repo = { unavailable: true }; }
+    })()
+  ]);
   return out;
 }

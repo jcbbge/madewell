@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { openStore } from '../work.mjs';
-import { delegatedTelemetry, stepLedger } from '../delegated-telemetry.mjs';
+import { delegatedTelemetry, stepLedger, paneUsage, changedFiles } from '../delegated-telemetry.mjs';
 import { delegatedFields, transitionDelegated, delegatedView } from '../delegated.mjs';
 import { renderSidecar, sidecarSnapshot } from '../sidecar.mjs';
 import { stateAt } from '../view.mjs';
@@ -26,6 +26,9 @@ function adapters({ panes = listing(), foreground = '1 1 zsh\n1 1 pi', fail } = 
     if (file === fail) throw new Error('Unavailable');
     if (file === 'tmux' && args[0] === 'list-panes') return panes;
     if (file === 'ps') return foreground;
+    if (file === 'tmux' && args[0] === 'capture-pane') return 'private pane content must not be retained\n↑12k ↓2.3k R1.2M CH99.6% $0.882 (sub) 25.3%/500k (auto) model\n';
+    if (file === 'git' && args.includes('log')) return `abc1234\0${Math.floor((now - 120000) / 1000)}\0Add telemetry\n`;
+    if (file === 'git' && args.includes('status')) return ' M file.mjs\0R  new.mjs\0old.mjs\0?? new.txt\0';
     throw new Error('Unexpected read');
   } };
 }
@@ -35,7 +38,8 @@ test('exact tmux targets never fall back to an unrelated live pane', async () =>
     const a = adapters();
     const result = await delegatedTelemetry({ ...assignment, where: { tmux: target } }, a);
     assert.equal(result.tmux.state, 'running'); assert.equal(result.tmux.command, 'pi');
-    assert.deepEqual(a.calls.map(c => c[0]), ['tmux', 'ps']);
+    assert.deepEqual(a.calls.map(c => c[0]), ['tmux', 'ps', 'tmux']);
+    assert.equal(a.calls[2][1][0], 'capture-pane');
   }
   const absent = await delegatedTelemetry(assignment, adapters({ panes: listing('some-other-window') }));
   assert.equal(absent.tmux.state, 'dead');
@@ -159,6 +163,47 @@ test('latest worker line and age survive newer sender location events at narrow 
     assert.match(happening, /Update 12s ago/); assert.match(happening, /My latest deliverable is recorded\./);
     assert.doesNotMatch(happening, /not the worker update|First line/);
   }
+});
+
+test('numeric pi footer parsing never retains pane text or invents missing usage', () => {
+  assert.equal(paneUsage('Please set context 25%/500k tomorrow'), null);
+  assert.equal(paneUsage('no stats here'), null);
+  assert.deepEqual(paneUsage('?/500k (auto)'), { context: '?/500k', tokens: null, cost: null });
+  assert.deepEqual(paneUsage('$0.000 (sub) 0.0%/500k (auto)'), { context: '0.0%/500k', tokens: null, cost: '$0.000 (sub)' });
+  assert.deepEqual(paneUsage('\x1b[2m↑12k ↓2.3k R1.2M $0.882 (sub) 25.3%/500k (auto)\x1b[0m'), { context: '25.3%/500k', tokens: '↑12k ↓2.3k R1.2M', cost: '$0.882 (sub)' });
+  assert.equal(changedFiles(''), 0);
+  assert.equal(changedFiles(' M name with\nnewline\0'), 1);
+  assert.equal(changedFiles('R  new\0old\0?? other\0'), 2);
+});
+
+test('HAPPENING NOW shows usage and repo evidence at every pane width without raw pane content', async () => {
+  const w = rootWork(); transitionDelegated(w, 'started', { actor: 'worker', text: 'Understood.' });
+  transitionDelegated(w, 'progress', { actor: 'worker', text: 'The merged gate has four known failures.' });
+  const projected = delegatedView('/data', w), at = Date.now() + 1000, a = adapters();
+  projected.telemetry = await delegatedTelemetry({ ...projected, workspace: '/work' }, { ...a, now: at, read: async () => '## NOW\n- [ ] #3 Add worker telemetry\n## DONE\n- [x] #1 Shipped\n- [x] #2 Shipped\n' });
+  assert.deepEqual(projected.telemetry.usage, { context: '25.3%/500k', tokens: '↑12k ↓2.3k R1.2M', cost: '$0.882 (sub)' });
+  assert.equal(projected.telemetry.repo.changed, 3);
+  assert.ok(!JSON.stringify(projected.telemetry).includes('private pane'));
+  assert.ok(a.calls.filter(([file]) => file === 'git').every(([, args]) => args[0] === '--no-optional-locks'));
+  for (const width of [60, 80, 110, 160]) {
+    const frame = renderSidecar({ at, base: '/data', stores: [{ dir: '/data', threads: [projected] }] }, { width, now: at });
+    assert.ok(frame.split('\n').every(line => line.length <= width));
+    const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0].replace(/[│╭╮╰╯─]/g, ' ').replace(/\s+/g, ' ');
+    for (const value of ['tmux: running', 'Step: implement', '2 done recorded', 'The merged gate has four known failures.', 'context 25.3%/500k', '$0.882 (sub)', 'abc1234', '3 uncommitted']) assert.ok(happening.includes(value), `${width}: ${value}\n${frame}`);
+    assert.doesNotMatch(frame, /private pane|drive 1/);
+  }
+});
+
+test('unavailable footer and git remain unknown; repo hints resolve relative to workspace', async () => {
+  const a = adapters(), w = { ...assignment, workspace: '/work', where: { ...assignment.where, repo: 'code' } };
+  const result = await delegatedTelemetry(w, { ...a, read: async () => '' });
+  assert.ok(a.calls.filter(([file]) => file === 'git').every(([, args]) => args.includes('/work/code')));
+  assert.equal(result.repo.hash, 'abc1234');
+  const unavailable = await delegatedTelemetry(w, { ...adapters({ fail: 'git' }), read: async () => '' });
+  assert.deepEqual(unavailable.repo, { unavailable: true });
+  const shell = adapters({ foreground: '1 1 zsh' });
+  assert.equal((await delegatedTelemetry(assignment, shell)).usage, undefined);
+  assert.ok(!shell.calls.some(([, args]) => args[0] === 'capture-pane'));
 });
 
 test('CLI progress commits to SQLite, survives reopen, and refreshes sidecar hints each time', async t => {

@@ -213,6 +213,9 @@ function delegatedLines(t, v, w, now) {
   if (obs.steps) add(obs.steps.unavailable ? 'Steps: ledger unavailable' : `Steps: ${obs.steps.done} done recorded · NOW ${obs.steps.now.slice(0, 2).join('; ') || 'none recorded'}`);
   const update = eventsOf(v).findLast(e => e.actor === v.worker?.actor && ms(e.at) <= now && typeof e.text === 'string' && e.text.trim());
   if (update) add(`Update ${age(update.at, now)} ago · ${update.actor}: ${latestLine(update.text)}`);
+  const tokens = v._board?.use.tokens.value;
+  if (obs.usage || obs.tmux || Number.isFinite(tokens)) add(`Usage: context ${obs.usage?.context ?? 'UNKNOWN'} · tokens ${obs.usage?.tokens ?? (Number.isFinite(tokens) ? count(tokens) : 'UNKNOWN')} · cost ${obs.usage?.cost ?? 'UNKNOWN'}`);
+  if (obs.repo) add(obs.repo.unavailable ? 'Repo: unavailable' : `Commit: ${obs.repo.hash} · ${age(obs.repo.at, now)} ago · ${obs.repo.changed} uncommitted · ${obs.repo.subject}`);
   return out;
 }
 
