@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { openStore, STEPS } from '../work.mjs';
 import { drive } from '../drive.mjs';
+import { runQueue } from '../queue.mjs';
 
 const fake = fileURLToPath(new URL('./fake-pi.mjs', import.meta.url));
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
@@ -30,7 +31,7 @@ async function run(t, scenario, fn) {
 }
 
 test('happy path: seven phases, seven different agents, handoff is acceptance', t => run(t, {}, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const result = await drive(store, id, quiet);
   assert.equal(result.status, 'complete');
   const w = await store.get(id);
@@ -52,18 +53,48 @@ test('happy path: seven phases, seven different agents, handoff is acceptance', 
   assert.ok(calls.every(c => c.ok && c.ms >= 0));
 }));
 
-test('discovery never authorizes delivery', t => run(t, {}, async ({ store, cwd }) => {
+const twoItems = [{ title: 'Parser', objective: 'Build the parser', text: 'Parse CSV. Done when the parser test passes.' },
+  { title: 'Report', objective: 'Build the report', text: 'Print totals. Done when the report test passes.' }];
+
+test('discovery splits into delivery items that run with no go-ahead, discovery answering their questions', t => run(t, {
+  items: twoItems, intakeQuestions: [null, 'Which delimiter?', null],
+}, async ({ store, cwd, log }) => {
   const id = await store.create('Build it', 'source', cwd);
-  assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
-  assert.equal((await store.get(id)).position, 1);
-  assert.equal((await drive(store, id, { ...quiet, delivery: true })).status, 'complete');
-  assert.equal((await store.get(id)).delivery, true, 'authorization is recorded on the work');
+  assert.equal((await drive(store, id, quiet)).status, 'discovered');
+  const w = await store.get(id);
+  assert.equal(w.completion, 'discovered');
+  assert.equal(w.items.length, 2);
+  assert.deepEqual(await store.queue(), w.items, 'items wait in the order discovery found them');
+  const item = await store.get(w.items[0]);
+  assert.equal(item.objective, 'Build the parser');
+  assert.equal(STEPS[item.position].name, 'ideate');
+  assert.equal((await drive(store, item.id, quiet)).status, 'complete', 'nothing waits on the operator');
+  const [call] = originatorCalls(log);
+  assert.equal(call.as, 'Vega', 'the discovery that found the item answers its questions');
+  assert.match(handoffOf(call).text, /Discovered item 1 of 2: Parser/);
+  assert.deepEqual(await store.queue(), [w.items[1]]);
+}));
+
+test('first: a later discovery run can go first; the order is the operator\'s only say', t => run(t, { items: twoItems }, async ({ store, cwd }) => {
+  const a = await store.create('First request', 'source', cwd), b = await store.create('Second request', 'source', cwd);
+  await drive(store, a, quiet); await drive(store, b, quiet);
+  const [ia, ib] = [(await store.get(a)).items, (await store.get(b)).items];
+  assert.deepEqual(await store.queue(), [...ia, ...ib], 'oldest run first');
+  assert.equal(await store.first(ib[1]), b, 'any item names its run');
+  assert.deepEqual(await store.queue(), [...ib, ...ia]);
+}));
+
+test('a discovery report without items is one delivery item: the whole request', t => run(t, {}, async ({ store, cwd }) => {
+  const id = await store.create('Build it', 'source', cwd);
+  assert.equal((await drive(store, id, quiet)).status, 'discovered');
+  const [item] = (await store.get(id)).items;
+  assert.equal((await store.get(item)).objective, 'Build it');
 }));
 
 test('failed test → Arbiter rules "test" → the test architect answers, then tests re-run', t => run(t, {
   verify: ['fail', 'pass'], arbiter: [{ cause: 'test', answer: 'Test t1 asserts the wrong value; fix it.', evidence: 'spec says ok' }],
 }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id);
   assert.equal(w.failures.length, 1);
@@ -77,7 +108,7 @@ test('failed test → Arbiter rules "test" → the test architect answers, then 
 test('failed test → Arbiter rules "implementation" → back to planning', t => run(t, {
   verify: ['fail', 'pass'], arbiter: [{ cause: 'implementation', answer: 'The parser drops the last field.', evidence: 'x' }],
 }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id);
   assert.deepEqual(w.attempts.filter(a => a.round === 1).map(a => a.step), ['plan', 'test-plan', 'implement', 'verify']);
@@ -87,7 +118,7 @@ test('failed test → Arbiter rules "implementation" → back to planning', t =>
 test('failed test → Arbiter rules "pre-existing" → linked prerequisite thread, then original tests re-run', t => run(t, {
   verify: ['fail', 'pass', 'pass'], arbiter: [{ cause: 'pre-existing', answer: 'The date util was already broken.', evidence: 'git blame' }],
 }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id), child = await store.get(w.failures[0].prerequisite);
   assert.equal(child.parentId, id);
@@ -100,7 +131,7 @@ test('failed test → Arbiter rules "pre-existing" → linked prerequisite threa
 test('Arbiter cannot decide → human hold; the human names the cause and work continues', t => run(t, {
   verify: ['fail', 'pass'], arbiter: [{ cause: 'undetermined', answer: 'Could be the test or the fixture.', evidence: '' }],
 }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const held = await drive(store, id, quiet);
   assert.equal(held.status, 'held');
   assert.equal((await store.get(id)).hold.kind, 'failure');
@@ -113,7 +144,7 @@ test('Arbiter cannot decide → human hold; the human names the cause and work c
 test('three corrections still failing → human hold', t => run(t, {
   verify: ['fail', 'fail', 'fail', 'fail'], arbiter: [{ cause: 'test', answer: 'fix the test', evidence: '' }],
 }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const result = await drive(store, id, quiet);
   assert.equal(result.status, 'held');
   const w = await store.get(id);
@@ -132,19 +163,16 @@ test('NQ: questions get originator answers', t => run(t, {
   assert.equal(x.status, 'clear');
 }));
 
-test('NQ: unresolved authority → human answers → worker confirms → continues', t => run(t, {
+test('NQ: the originator always answers; before three rounds nothing holds for the human', t => run(t, {
   intakeQuestions: ['May I drop the table?', null],
   originator: [{ answer: 'Only the operator can approve dropping data.', unresolvedAuthority: true }],
 }, async ({ store, cwd }) => {
   const id = await store.create('Build it', 'source', cwd);
-  assert.equal((await drive(store, id, quiet)).status, 'held');
-  assert.equal((await store.get(id)).hold.kind, 'nq');
-  await store.human(id, { text: 'No dropping. Migrate in place.' });
-  const packet = JSON.parse(await store.packet(id, 'nq'));
-  assert.deepEqual(packet.exchange.map(t => t.type), ['worker', 'human']);
-  assert.equal(packet.exchange.at(-1).text, 'No dropping. Migrate in place.', 'the resumed worker receives the human answer');
-  assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
-  assert.deepEqual((await store.get(id)).exchanges[0].turns.map(t => t.type), ['worker', 'human', 'worker']);
+  await drive(store, id, quiet);
+  const w = await store.get(id);
+  assert.equal(w.hold, null);
+  assert.deepEqual(w.exchanges[0].turns.map(t => t.type), ['worker', 'originator', 'worker']);
+  assert.equal(w.exchanges[0].status, 'clear');
 }));
 
 // NQ: the originating agent answers. Who that is depends on who made the handoff.
@@ -155,7 +183,7 @@ test('NQ: a mid-pipeline question is answered by the previous role, from its acc
   intakeQuestions: [null, null, null, null, 'Which test runner?', null],
   originator: [{ answer: 'node:test, as the plan says.', unresolvedAuthority: false }],
 }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id), x = w.exchanges.find(x => x.step === 'test-plan');
   assert.equal(x.originator, 'Cassiopeia', 'the planner handed test design its work');
@@ -177,7 +205,7 @@ test('NQ: discovery questions are answered by the dispatcher, from objective and
   intakeQuestions: ['Which file format?', null],
 }, async ({ store, cwd, log }) => {
   const id = await store.create('Build it', 'CSV only, please.', cwd);
-  assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
+  assert.equal((await drive(store, id, quiet)).status, 'discovered');
   const x = (await store.get(id)).exchanges[0];
   assert.equal(x.step, 'discover');
   assert.equal(x.originator, 'dispatcher');
@@ -195,7 +223,7 @@ test('NQ: after a failure rewind, the Arbiter answers from its ruling', t => run
   intakeQuestions: [null, null, null, null, null, null, null, 'Which assertion is wrong?', null],
   originator: [{ answer: 'The expected value in t1.', unresolvedAuthority: false }],
 }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id), x = w.exchanges.find(x => x.step === 'test-plan' && x.round === 1);
   assert.equal(x.originator, 'Arbiter');
@@ -228,7 +256,7 @@ test('NQ: the executing worker receives the whole exchange, including the origin
 test('NQ: three answered rounds with questions open → human hold naming the originator, no fourth round', t => run(t, {
   intakeQuestions: [null, null, null, 'What does "fast" mean?'],
 }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const result = await drive(store, id, quiet);
   assert.equal(result.status, 'held');
   const w = await store.get(id), x = w.exchanges.find(x => x.step === 'plan');
@@ -245,7 +273,7 @@ test('NQ: three answered rounds with questions open → human hold naming the or
 }));
 
 test('NQ: a clear intake executes immediately with zero originator calls', t => run(t, {}, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id);
   assert.equal(originatorCalls(log).length, 0);
@@ -257,7 +285,7 @@ test('crash: kill -9 the driver mid-implementation; driving again continues the 
   const s = await setup({ hang: { Sirius: 1 } });
   const env = { ...process.env, WORK_DATA: s.dir };
   let store = await openStore(s.dir);
-  const id = await store.create('Build it', 'source', s.cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', s.cwd, { kind: 'delivery' });
   await store.close();
   const first = spawn(process.execPath, [cli, 'drive', String(id)], { env, stdio: 'ignore' });
   let hung;
@@ -292,7 +320,7 @@ test('a live owner keeps a second process out of the store', async () => {
 });
 
 test('prescriptions: each job runs on its own tier card and effort', t => run(t, {}, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const by = role => log().find(c => c.role === role);
   assert.deepEqual([by('Cassiopeia').model, by('Cassiopeia').thinking], ['a/deep-a', 'high'], 'planning is deep');
@@ -306,7 +334,7 @@ test('prescriptions: each job runs on its own tier card and effort', t => run(t,
 }));
 
 test('a usage limit mid-step swaps to another provider account and the work finishes, no human', t => run(t, { limitOnce: { Sirius: 1 } }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const result = await drive(store, id, quiet);
   assert.equal(result.status, 'complete', JSON.stringify(result));
   const w = await store.get(id), impl = w.attempts.find(a => a.step === 'implement');
@@ -325,7 +353,7 @@ test('a usage limit mid-step swaps to another provider account and the work fini
 }));
 
 test('a usage limit on a judgment call swaps too', t => run(t, { limitOnce: { intake: 1 } }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const intakes = log().filter(c => c.role === 'intake');
   assert.deepEqual(intakes.slice(0, 2).map(c => c.model), ['a/deep-a', 'b/deep-b']);
@@ -333,7 +361,7 @@ test('a usage limit on a judgment call swaps too', t => run(t, { limitOnce: { in
 }));
 
 test('every account out: the drive stops as out-of-quota, nothing is held for a human', t => run(t, {}, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const later = Date.now() + 3_600_000;
   await store.markExhausted('a', later); await store.markExhausted('b', later + 60_000);
   const result = await drive(store, id, quiet);
@@ -342,8 +370,26 @@ test('every account out: the drive stops as out-of-quota, nothing is held for a 
   assert.equal((await store.get(id)).hold, null);
 }));
 
+test('the runner never stops for quota: every account out, it waits for the first reset and carries on', async () => {
+  const s = await setup({});
+  let store = await openStore(s.dir);
+  const id = await store.create('Build it', 'source', s.cwd);
+  const back = Date.now() + 1200;
+  await store.markExhausted('a', back); await store.markExhausted('b', back + 60_000);
+  await store.close();
+  const startedAt = Date.now();
+  assert.equal((await runQueue(s.dir, { poll: 100, log: () => {} })).status, 'idle');
+  assert.ok(Date.now() - startedAt >= 1000, 'it waited for the reset');
+  store = await openStore(s.dir);
+  try {
+    const w = await store.get(id);
+    assert.equal(w.completion, 'discovered');
+    assert.equal((await store.get(w.items[0])).completion, 'verified', 'the item was delivered after the reset, with nobody restarting anything');
+  } finally { await store.close(); }
+});
+
 test('a limit reporting "~0 min" never swaps back onto the same account', t => run(t, { limitOnce: { Sirius: 1 }, limitMinutes: 0 }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   assert.deepEqual(log().filter(c => c.role === 'Sirius').map(c => c.model), ['a/code-a', 'b/code-b']);
   assert.ok((await store.exhausted()).a >= Date.now() + 4 * 60_000, 'an account that just hit a limit stays out for a while');
@@ -357,7 +403,7 @@ test('account marks: concurrent marks both land, and a mark never moves a reset 
 }));
 
 test('NQ: notes and assumptions never count as questions; a clear handoff with notes runs at once', t => run(t, { intakeNotes: ['Non-string input is unspecified; I will report it.'] }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   assert.equal(log().filter(c => c.role === 'originator').length, 0, 'no originator call for notes');
   const turn = (await store.get(id)).exchanges[0].turns[0];
@@ -366,7 +412,7 @@ test('NQ: notes and assumptions never count as questions; a clear handoff with n
 }));
 
 test('a blocked maker is a question for the Arbiter: pre-existing → prerequisite, then back to making, not checking', t => run(t, { blockedOnce: { Sirius: 1 }, arbiter: [{ cause: 'pre-existing', answer: 'fix the test script', evidence: 'in the first commit' }] }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id);
   assert.equal(w.failures[0].step, 'implement');
@@ -378,14 +424,14 @@ test('a blocked maker is a question for the Arbiter: pre-existing → prerequisi
 }));
 
 test('a blocked maker ruled "implementation" goes back to the planner', t => run(t, { blockedOnce: { Sirius: 1 }, arbiter: [{ cause: 'implementation', answer: 'the plan names a file that does not exist', evidence: '' }] }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const plans = (await store.get(id)).attempts.filter(a => a.step === 'plan');
   assert.equal(plans.length, 2, 'planning ran again');
 }));
 
 test('pre-existing defects nested past the cap hold for the human instead of opening prerequisites forever', t => run(t, { verify: ['fail'], arbiter: [{ cause: 'pre-existing', answer: 'older defect', evidence: '' }] }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const result = await drive(store, id, quiet);
   assert.equal(result.status, 'held');
   assert.match(result.reason, /prerequisites deep/);
@@ -393,7 +439,7 @@ test('pre-existing defects nested past the cap hold for the human instead of ope
 }));
 
 test('a blocked check designer goes to the Arbiter, not the operator: pre-existing → prerequisite → back to writing the checks', t => run(t, { blockedOnce: { Orion: 1 }, arbiter: [{ cause: 'pre-existing', answer: 'fix the test script', evidence: 'first commit' }] }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id);
   assert.equal(w.failures[0].step, 'test-plan');
@@ -401,29 +447,8 @@ test('a blocked check designer goes to the Arbiter, not the operator: pre-existi
   assert.equal(w.hold, null);
 }));
 
-const askAtPlan = { intakeQuestions: [null, null, null, 'May I edit package.json to fix the test script?', null] };
-
-test('authority: when the source settles it, the dispatcher answers and nothing waits on the human', t => run(t, { ...askAtPlan,
-  originator: [{ answer: 'Only the operator can approve editing package.json.', unresolvedAuthority: true }],
-  authority: [{ answer: 'The source asks for tests that run with npm test, so fixing the test script is part of the request.', unresolvedAuthority: false }],
-}, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
-  assert.equal((await drive(store, id, quiet)).status, 'complete');
-  assert.equal(log().filter(c => c.role === 'authority').length, 1);
-  const x = (await store.get(id)).exchanges.find(e => e.turns.some(t => t.type === 'originator'));
-  assert.match(x.turns.find(t => t.type === 'originator').text, /settled by the dispatcher from the operator's source/);
-}));
-
-test('authority: when the source cannot settle it, the work holds for the human', t => run(t, { ...askAtPlan,
-  originator: [{ answer: 'Only the operator can approve this.', unresolvedAuthority: true }],
-}, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
-  assert.equal((await drive(store, id, quiet)).status, 'held');
-  assert.equal((await store.get(id)).hold.kind, 'nq');
-}));
-
 test('a prerequisite carries the authorization of its pre-existing ruling, with its limits', t => run(t, { verify: ['fail', 'pass', 'pass'], arbiter: [{ cause: 'pre-existing', answer: 'fix the test script', evidence: '' }] }, async ({ store, cwd }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const child = await store.get((await store.list()).find(t => t !== id));
   assert.match(child.source, /pre-existing ruling authorizes this repair inside the workspace/);
@@ -431,7 +456,7 @@ test('a prerequisite carries the authorization of its pre-existing ruling, with 
 }));
 
 test('a check runner that reports without a verdict is asked for it, never sent to the Arbiter', t => run(t, { noVerdictOnce: 1 }, async ({ store, cwd, log }) => {
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   assert.equal((await drive(store, id, quiet)).status, 'complete');
   const w = await store.get(id);
   assert.equal(w.failures.length, 0, 'no failure, no Arbiter');

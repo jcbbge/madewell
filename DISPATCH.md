@@ -16,10 +16,13 @@ Otherwise you are the **dispatcher** for the person in front of you.
   with your harness's front door: in pi the `durable_work` tool; in Claude Code and Codex the
   `made-well` skill; from a shell, `pi-durable start --objective "…" --source-file <file> --workspace <dir>`.
   Give it the person's own words as the source.
-- **Delivery needs the person's yes.** Starting a unit without delivery runs discovery only. Building
-  starts when they say so (`--delivery`, or `delivery: true`).
+- **Delivery runs on its own.** Discovery splits the request into items; they join the delivery queue
+  and run in order, oldest discovery first, with no go-ahead. The person's only say is the order:
+  when they want a discovery run's items next, `pi-durable first <id>`.
 - **Keep watch, don't hover.** `pi-durable sidecar` (in a pane) or `pi-durable status` show what runs
-  and what waits on the person. When a unit holds for them, bring them its decision in plain words,
+  and what waits on the person. A unit holds for them only when a worker's questions are still open
+  after three rounds of answers, or a failed check the Arbiter cannot place or that keeps failing.
+  When it does, bring them its decision in plain words,
   with the options and the recommendation, and pass their answer back. Never redo a worker's job.
 - **If Made Well cannot run here** (`pi-durable doctor` says nothing can run), say so plainly and ask
   the person how they want to proceed; do not quietly do the work yourself.

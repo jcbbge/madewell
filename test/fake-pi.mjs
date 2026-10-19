@@ -9,7 +9,6 @@ for await (const chunk of process.stdin) prompt += chunk;
 const path = process.env.FAKE_PI_STATE, state = JSON.parse(readFileSync(path, 'utf8'));
 const originator = (system.match(/^You are ([\w-]+), who handed over this work\./) ?? [])[1] ?? null;
 const role = /You are the assigned worker[^.]*intake/.test(system) ? 'intake'
-  : /^You are the dispatcher, who dispatched this work for the operator/.test(system) ? 'authority'
   : originator ? 'originator'
   : /You are the Arbiter/.test(system) ? 'arbiter'
   : (system.match(/^You are (\w+)\./) ?? [])[1] ?? 'unknown';
@@ -29,8 +28,7 @@ if (limited) {
 if (role === 'intake') {
   const q = take('intakeQuestions');
   text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], notes: state.intakeNotes ?? [] });
-} else if (role === 'authority') text = JSON.stringify(take('authority') ?? { answer: 'The source does not settle it.', unresolvedAuthority: true });
-else if (role === 'originator') text = JSON.stringify(take('originator') ?? { answer: 'Use the source.', unresolvedAuthority: false });
+} else if (role === 'originator') text = JSON.stringify(take('originator') ?? { answer: 'Use the source.' });
 else if (role === 'arbiter') text = JSON.stringify(take('arbiter') ?? { cause: 'undetermined', answer: 'unclear', evidence: '' });
 else if (role === 'Aldebaran') {
   const outcome = take('verify') ?? 'pass';
@@ -40,6 +38,7 @@ else if (role === 'Aldebaran') {
 } else {
   if (state.hang?.[role] > 0) { state.hang[role]--; writeFileSync(path, JSON.stringify(state)); appendFileSync(path + '.log', JSON.stringify({ hanging: role, pid: process.pid }) + '\n'); setInterval(() => {}, 1000); await new Promise(() => {}); }
   if (state.blockedOnce?.[role] > 0) { state.blockedOnce[role]--; text = `${role} stopped\n${JSON.stringify({ blocked: 'npm test cannot load the test folder' })}`; }
+  else if (role === 'Vega' && state.items && /"name": "discover"/.test(prompt)) text = `found the work\n${JSON.stringify({ items: state.items })}`;
   else text = `${role} done${/You were interrupted/.test(prompt) ? ' (continued)' : ''}`;
 }
 writeFileSync(path, JSON.stringify(state));

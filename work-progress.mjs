@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 // Loaded only into step workers. Reports deliverables to the work record and receives
-// the 30-minute silence check-in. Progress is not acceptance.
+// the 5-minute silence check-in. Progress is not acceptance.
 export default function durableProgress(pi) {
   const attemptId = process.env.PI_DURABLE_ATTEMPT, inbox = process.env.PI_DURABLE_CHECKIN;
   if (!attemptId || !inbox) return;

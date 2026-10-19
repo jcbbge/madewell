@@ -14,7 +14,7 @@ const MAX_LAUNCHES = 3;
 const UNKNOWN_RESET_MS = 60 * 60_000; // a limit with no reset time is treated as out for an hour
 const MIN_OUT_MS = 5 * 60_000; // a reported reset in the past or 'in ~0 min' still keeps the account out briefly
 const guidance = {
-  discover: 'Inspect the supplied source and workspace. Identify the requested deliverable, scope, uncertainties and acceptance conditions. Do not implement.',
+  discover: 'Inspect the supplied source and workspace. Identify the requested deliverable, scope, uncertainties and acceptance conditions, and distill the source into its separate pieces of work, in the order they should be delivered. Do not implement. End your answer with ONLY a JSON object on its own: {"items":[{"title":string,"objective":string,"text":string}]}: each item one coherent piece of work; text carries its purpose, scope and what done means.',
   ideate: 'Use the accepted discovery. Shape the outcome and bounded options. Recommend the smallest useful approach across developer, user and agentic experience. Do not implement.',
   challenge: 'Challenge the accepted idea against the actual workspace. Name concrete defects, missing constraints and unnecessary scope; recommend a bounded correction or explain why the approach holds. Do not implement.',
   plan: 'Inspect the workspace and the accepted discovery, idea and challenge. Produce an executable specification: Making / Not making / Done when / Waits on, exact paths, instructions, dependencies and what must be verified. Resolve every design choice here: the implementer and the verifier only execute. Do not implement.',
@@ -39,7 +39,7 @@ function overrideCard(model) {
 
 // Walks one thread through its phases until it is done or a human is needed.
 // Every job runs on the card its prescription picks; a usage limit moves it to another provider account.
-export async function drive(store, id, { delivery = false, model = '', prescriptions = loadPrescriptions(), call = callCard, log = console.log } = {}) {
+export async function drive(store, id, { model = '', prescriptions = loadPrescriptions(), call = callCard, log = console.log } = {}) {
   const foundation = await readFile(join(home, 'FOUNDATION.md'), 'utf8');
   const record = name => join(store.directory, 'calls', `${name}-${randomUUID()}`);
   // Only cards whose harness is installed here count; a tier with none installed is a clear error, not a hang.
@@ -100,6 +100,7 @@ export async function drive(store, id, { delivery = false, model = '', prescript
   try {
     while (true) {
       let w = await store.get(id);
+      if (w.completion === 'discovered') return finish('discovered', `Discovery found ${w.items.length} item(s); they wait their turn for delivery.`);
       if (w.completion) {
         if (!w.parentId) return finish('complete', 'All phases handed off; tests pass.');
         log(`prerequisite ${id} complete; returning to thread ${w.parentId}`);
@@ -117,8 +118,6 @@ export async function drive(store, id, { delivery = false, model = '', prescript
       }
 
       const step = STEPS[w.position];
-      if (delivery && !w.delivery) { await store.authorize(id); continue; }
-      if (step.name !== 'discover' && !w.delivery) return finish('delivery-authorization-required', 'Discovery is done. Delivery needs explicit authorization (--delivery).');
       if (!w.briefs[step.name]) {
         await store.brief(id, `${step.role}: ${guidance[step.name]}\n\nThe objective and source in the packet define the request; accepted contributions are your dossier. If questionsForYou is not empty, answering it is your assignment this round. Honor the workspace's own instructions. No deployment, commits or new services without authority in the source. Report tangible results and evidence.\n\nGoverning foundation:\n${foundation}`);
         continue;
@@ -153,6 +152,12 @@ export async function drive(store, id, { delivery = false, model = '', prescript
           }
           if (verdict.outcome !== 'pass') { await store.openFailure(id, attempt.id, attempt.output); log('verify: test failed → question for the Arbiter'); continue; }
         }
+        if (step.name === 'discover' && w.kind === 'discovery') {
+          const items = discoveredItems(w, attempt);
+          await store.split(id, attempt.id, items);
+          log(`discover: ${items.length} item(s) found, queued for delivery`);
+          continue;
+        }
         await store.accept(id, attempt.id);
         log(`${step.name}: handed off`);
         continue;
@@ -178,19 +183,8 @@ export async function drive(store, id, { delivery = false, model = '', prescript
         const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, name: `${step.name}-originator`,
           system: originatorSystem(x.originator),
           prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
-        let answer = reply.answer;
-        if (reply.unresolvedAuthority) {
-          // Only the operator holds authority, but the operator's source is on hand: the dispatcher reads it
-          // first. The work holds for the operator only when the source cannot settle it.
-          const ruling = x.originator === DISPATCHER ? reply : parseResponse(await judge('authority', step.name, 'originator', 'discover', {
-            cwd: w.cwd, name: `${step.name}-authority`, system: AUTHORITY_SYSTEM,
-            prompt: await provisionPacket(store.directory, randomUUID(), JSON.stringify({ purpose: 'authority', threadId: w.id, workspace: w.cwd,
-              objective: w.objective, source: w.source, questions: x.turns.at(-1)?.questions ?? [], handoff: reply.answer,
-              instruction: 'The handoff file holds what the originator said. Decide from the objective and source only.' })) }));
-          if (ruling.unresolvedAuthority) { await store.holdQuestion(id, x.id, ruling.answer); continue; }
-          if (ruling !== reply) answer = `${reply.answer}\n\nAuthority, settled by the dispatcher from the operator's source: ${ruling.answer}`;
-        }
-        await store.answer(id, x.id, x.originator, answer);
+        // The originator always answers. Only three rounds with questions still open reach the human (nq.mjs).
+        await store.answer(id, x.id, x.originator, reply.answer);
         continue;
       }
       if (x.status !== 'clear') return finish('question', `${step.name}: exchange ${x.id} is ${x.status}`);
@@ -200,17 +194,25 @@ export async function drive(store, id, { delivery = false, model = '', prescript
       await store.execute(id, attemptId);
     }
   } catch (error) {
-    if (error instanceof QuotaOut) return finish('out-of-quota', error.message);
+    if (error instanceof QuotaOut) return { ...await finish('out-of-quota', error.message), resetsAt: error.resetsAt };
     throw error;
   }
 }
 
-const AUTHORITY_SYSTEM = `You are the ${DISPATCHER}, who dispatched this work for the operator. An agent said only the operator can authorize something. You hold the operator's own words: the objective and source. If they authorize it, explicitly or as a necessary part of what they ask for, say so and what is authorized. If they forbid it, say so. If they leave it genuinely open, or it is destructive, irreversible, touches production, money, credentials or anything outside this workspace, it is the operator's: set unresolvedAuthority:true and state the decision in one sentence with your recommendation. Never invent authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}.`;
-
 const originatorSystem = role => `You are ${role}, who handed over this work. ${role === DISPATCHER
   ? 'You dispatched it on behalf of the person who asked for it: answer from the objective and source only.'
   : role === ARBITER.role ? 'Your ruling on a failed test sent it here: answer from that ruling and the verifier report.'
-  : 'Your accepted handoff output is in the packet: answer from it and the source.'} The receiving worker asked questions before executing. Clarify what you handed over; never change your handoff or the work, and never invent operator authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If only the operator can answer, set unresolvedAuthority:true and say what is needed.`;
+  : 'Your accepted handoff output is in the packet: answer from it and the source.'} The receiving worker asked questions before executing. Answer every question from what you handed over and the source; never change your handoff or the work. Return ONLY JSON {answer:string}.`;
+
+// The items a discovery report ends with. A report without them is one item: the whole request.
+function discoveredItems(w, attempt) {
+  let report = null;
+  try { report = parseResponse(attempt.output); } catch {}
+  const items = (Array.isArray(report?.items) ? report.items : [])
+    .filter(i => typeof i?.objective === 'string' && i.objective.trim())
+    .map(i => ({ title: String(i.title ?? i.objective).trim(), objective: i.objective.trim(), text: String(i.text ?? '').trim() }));
+  return items.length ? items : [{ title: w.objective, objective: w.objective, text: 'Discovery named no separate items: this is the whole request.' }];
+}
 
 // A failed test is a question. The Arbiter decides whose question it is.
 async function arbitrate(w, failure, { ask }) {

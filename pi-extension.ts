@@ -101,14 +101,13 @@ export default function durable(pi: ExtensionAPI) {
   });
   pi.registerTool({
     name: 'durable_work', label: 'Durable work',
-    description: 'Run work through Made Well on Pi Durable: separate pi agents per phase (discover, ideate, challenge, plan, test-plan, implement, verify), state committed to SQLite, crash-proof. start: new work from the objective (delivery:true only when the user authorized building, not just discovery). resume: drive existing work again (also continues after a crash). status: current state. inspect: objective, step, holds, failures. answer: the human answer to a held question; for a failed test give cause = pre-existing | implementation | test. Starting launches a background driver; that is not completion.',
+    description: 'Run work through Made Well on Pi Durable: separate pi agents per phase (discover, ideate, challenge, plan, test-plan, implement, verify), state committed to SQLite, crash-proof. start: new work from the objective; discovery splits it into items, which join the delivery queue and run on their own, oldest first, with no go-ahead. first: deliver this discovery run next, the operator\'s call. resume: start the runner again (also continues after a crash). status: current state. inspect: objective, step, holds, failures. answer: the human answer to a held question; for a failed test give cause = pre-existing | implementation | test. Starting launches a background runner; that is not completion.',
     parameters: Type.Object({
-      action: Type.Union(['start', 'resume', 'status', 'inspect', 'answer'].map(x => Type.Literal(x))),
+      action: Type.Union(['start', 'first', 'resume', 'status', 'inspect', 'answer'].map(x => Type.Literal(x))),
       id: Type.Optional(Type.Integer({ minimum: 1 })),
       objective: Type.Optional(Type.String()),
       workspace: Type.Optional(Type.String()),
       context: Type.Optional(Type.String({ description: 'Facts, paths, scope, constraints and done-when for the work.' })),
-      delivery: Type.Optional(Type.Boolean({ description: 'True only when the user authorized implementation.' })),
       text: Type.Optional(Type.String({ description: 'answer: the user\'s answer, in their words.' })),
       cause: Type.Optional(Type.Union(CAUSES.map(x => Type.Literal(x)))),
     }),
@@ -123,15 +122,13 @@ export default function durable(pi: ExtensionAPI) {
         const turns = ctx.sessionManager.getBranch().filter((e: any) => e.type === 'message' && e.message?.role === 'user')
           .map((e: any) => typeof e.message.content === 'string' ? e.message.content : e.message.content.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('\n'));
         const intake = await invoke('pi-bridge.mjs', [], { action: 'create', workspace, objective: params.objective,
-          source: `User conversation (verbatim):\n${turns.map((t: string, i: number) => `[User turn ${i + 1}]\n${t}`).join('\n\n')}\n\nContext:\n${params.context ?? '(none)'}\n\nDelivery authorized: ${params.delivery === true}`,
-          requestId: `${ctx.sessionManager.getSessionId()}:${callId}`, delivery: params.delivery === true }, directory);
-        id = intake.id; attach(id!);
-      }
-      if (params.action === 'start' || params.action === 'resume') {
-        if (!id) throw new Error('No work selected; start one or pass id');
-        attach(id);
-        result = await invoke('cli.mjs', ['drive', String(id), '--background', ...(params.delivery ? ['--delivery'] : [])], undefined, directory);
-        result = { id, launched: result, note: 'Driver running in the background. The footer shows progress; status reports it.' };
+          source: `User conversation (verbatim):\n${turns.map((t: string, i: number) => `[User turn ${i + 1}]\n${t}`).join('\n\n')}\n\nContext:\n${params.context ?? '(none)'}`,
+          requestId: `${ctx.sessionManager.getSessionId()}:${callId}` }, directory);
+        if (intake.id) { id = intake.id; attach(id!); }
+        result = { ...intake, runner: await invoke('cli.mjs', ['run', '--background'], undefined, directory),
+          note: intake.id ? 'Discovery runs now; its items then run on their own. The footer shows progress; status reports it.' : 'The runner is busy; it takes this request between steps.' };
+      } else if (params.action === 'resume') {
+        result = { runner: await invoke('cli.mjs', ['run', '--background'], undefined, directory), note: 'The runner continues everything not settled.' };
       } else if (params.action === 'status') {
         await refresh();
         result = views.filter(w => !params.id || w.threadId === params.id).map(compact);
@@ -140,8 +137,8 @@ export default function durable(pi: ExtensionAPI) {
         if (params.action === 'answer' && !params.text?.trim()) throw new Error('answer needs the user\'s text');
         result = await invoke('pi-bridge.mjs', [], { action: params.action, id, text: params.text, cause: params.cause }, directory);
         attach(id);
-        // An answered hold continues on its own; no second instruction needed.
-        if (params.action === 'answer') result = { answered: result, driver: await invoke('cli.mjs', ['drive', String(id), '--background'], undefined, directory) };
+        // An answered hold, or a new order, continues on its own; no second instruction needed.
+        if (params.action === 'answer' || params.action === 'first') result = { result, runner: await invoke('cli.mjs', ['run', '--background'], undefined, directory) };
       }
       await refresh();
       return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }], details: { id, action: params.action, directory } };

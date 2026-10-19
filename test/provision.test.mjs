@@ -15,8 +15,9 @@ test('front doors: each skill is a native SKILL.md with name and description, te
     const keys = front[1].split('\n').map(l => /^([\w-]+):/.exec(l)?.[1]).filter(Boolean);
     assert.deepEqual(keys, ['name', 'description'], `${harness}: only keys both harnesses accept`);
     assert.match(front[1], /^name: made-well$/m);
-    for (const verb of ['start --objective', '--source-file', '--delivery', 'status <id>', 'answer <id>', 'pre-existing', 'implementation', 'test', 'drive <id> --background', 'show <id>', 'doctor'])
+    for (const verb of ['start --objective', '--source-file', 'first <id>', 'status <id>', 'answer <id>', 'pre-existing', 'implementation', 'test', 'run --background', 'show <id>', 'doctor'])
       assert.ok(text.includes(verb), `${harness}: teaches ${verb}`);
+    assert.ok(!text.includes('--delivery'), `${harness}: no go-ahead to ask for`);
     assert.ok(text.includes('{{cli}}'), `${harness}: the fallback command is filled in at install`);
     assert.doesNotMatch(text, /\/(home|Users)\/\w/, `${harness}: no machine paths`);
   }
@@ -88,22 +89,24 @@ test('start: creates the unit in the workspace\'s store and drives it in the bac
   assert.equal(started.code, 0, started.stderr);
   const out = JSON.parse(started.stdout);
   assert.ok(Number.isSafeInteger(out.id) && out.id > 0);
-  assert.equal(out.delivery, false);
   assert.match(out.store, /pi-durable\/workspaces\/[0-9a-f]{64}$/, 'the same per-workspace store pi uses');
   // start resolves the workspace's real path (macOS temp dirs are /var → /private/var)
   assert.equal(out.status, `pi-durable status ${out.id} --workspace ${JSON.stringify(await realpath(workspace))}`);
-  assert.ok(out.launched.pid > 0);
+  assert.ok(out.runner.pid > 0, 'start launches the runner');
 
   let view;
   for (let i = 0; i < 300; i++) {
     const r = await runCli(['status', String(out.id), '--json', '--workspace', workspace], env);
     view = JSON.parse(r.stdout)[0];
-    if (view?.state === 'delivery-authorization-required' || await exists(join(out.store, 'runs', `${out.launched.runId}.exit.json`))) break;
+    if (await exists(join(out.store, 'runs', `${out.runner.runId}.exit.json`))) break;
     await new Promise(r => setTimeout(r, 100));
   }
-  assert.equal(view.state, 'delivery-authorization-required', 'discovery ran; building waits for authorization');
-  assert.equal(view.objective, 'Look into it');
-  const exit = JSON.parse(await readFile(join(out.store, 'runs', `${out.launched.runId}.exit.json`), 'utf8'));
+  assert.equal(view.state, 'done', 'discovery ran');
+  assert.equal(view.items.length, 1);
+  const item = JSON.parse((await runCli(['status', String(view.items[0]), '--json', '--workspace', workspace], env)).stdout)[0];
+  assert.equal(item.state, 'done', 'its item was delivered by the runner, with no go-ahead');
+  assert.equal(item.from, out.id);
+  const exit = JSON.parse(await readFile(join(out.store, 'runs', `${out.runner.runId}.exit.json`), 'utf8'));
   assert.equal(exit.exitCode, 0);
   assert.equal(JSON.parse((await runCli(['list'], env)).stdout).length, 0, 'the shared store is not where it went');
 });

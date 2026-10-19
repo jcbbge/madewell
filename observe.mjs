@@ -14,7 +14,8 @@ export async function publishWork(directory, w) {
   const x = current && (w.exchanges ?? []).findLast(x => x.step === current.name && x.round === w.round);
   const failure = w.failures.findLast(f => ['open', 'held'].includes(f.status));
   let state = 'ready', next = 'Drive the work.', owner = 'driver';
-  if (w.completion) { state = 'done'; next = 'Complete: every phase handed off and the tests pass.'; owner = null; }
+  if (w.completion === 'discovered') { state = 'done'; next = `Discovered ${w.items?.length ?? 0} item(s); they run in turn.`; owner = null; }
+  else if (w.completion) { state = 'done'; next = 'Complete: every phase handed off and the tests pass.'; owner = null; }
   else if (w.hold) { state = 'human-hold'; next = w.hold.kind === 'failure' ? 'Answer the failed test: pre-existing | implementation | test, with instructions.' : 'Answer the worker\'s questions.'; owner = 'human'; }
   else if (w.waitsOn) { state = 'waiting-on-prerequisite'; next = `Prerequisite thread ${w.waitsOn} must finish; then the tests re-run.`; owner = `thread ${w.waitsOn}`; }
   else if (failure) { state = 'test-failed'; next = 'The Arbiter decides whose question the failure is.'; owner = 'Arbiter'; }
@@ -22,9 +23,9 @@ export async function publishWork(directory, w) {
   else if (a?.status === 'failed') { state = 'worker-failed'; next = 'Drive again to redrive the same worker session.'; owner = 'driver'; }
   else if (x?.status === 'awaiting-originator') { state = 'question'; next = `${x.originator}, who handed over this work, answers the worker's questions.`; owner = x.originator; }
   else if (x?.status === 'awaiting-worker') { state = 'intake'; next = 'The worker confirms understanding or asks.'; owner = current.role; }
-  else if (current && current.name !== 'discover' && !w.delivery) { state = 'delivery-authorization-required'; next = 'Authorize delivery to continue past discovery.'; owner = 'operator'; }
+  else if (w.kind === 'delivery' && w.from && !a && !x) { state = 'queued'; next = 'Waits its turn in the delivery queue.'; owner = 'runner'; }
   const view = {
-    schema: 'pi-durable.work-view.v2', threadId: w.id, workspace: w.cwd, objective: w.objective.slice(0, 300), projectedAt: new Date().toISOString(),
+    schema: 'pi-durable.work-view.v2', threadId: w.id, kind: w.kind ?? null, from: w.from ?? null, items: w.items ?? null, workspace: w.cwd, objective: w.objective.slice(0, 300), projectedAt: new Date().toISOString(),
     done: Boolean(w.completion), state, next, owner, current, position: w.position, round: w.round, parentId: w.parentId, waitsOn: w.waitsOn, depth: w.depth ?? 0,
     progress: { accepted: w.completion ? STEPS.length : w.position, total: STEPS.length },
     checklist: STEPS.map((s, i) => ({ name: s.name, role: s.role, state: i < w.position || w.completion ? 'done' : i === w.position ? state : 'pending' })),
@@ -36,7 +37,7 @@ export async function publishWork(directory, w) {
     lastEvent: w.events.at(-1) ?? null, ownerPid: w.events.at(-1)?.pid ?? null,
     // The full timeline for the dashboard: everything that happened, minus packet and source text.
     record: {
-      createdAt: w.events[0]?.at ?? null, delivery: w.delivery, completion: w.completion,
+      createdAt: w.events[0]?.at ?? null, delivery: w.kind !== 'discovery', completion: w.completion,
       attempts: w.attempts.map(a => ({ id: a.id, step: a.step, role: a.role, round: a.round, actor: a.actor, status: a.status, launches: a.launches ?? 0,
         runs: a.runs ?? [], createdAt: a.createdAt, startedAt: a.startedAt ?? null, endedAt: a.endedAt ?? null, progress: a.progress, checkIns: a.checkIns,
         error: a.error || null, exitCode: a.exitCode ?? null, outputHead: (a.output ?? '').slice(0, 800),
