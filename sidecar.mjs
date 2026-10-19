@@ -21,7 +21,7 @@ export function renderPlainSidecar(snap, { width = 80, now = snap?.at ?? Date.no
 }
 
 // Preserve the operator's terminal board, fed by the same state derivation as replay and the page.
-export function renderBoard(snap, { width = 80, height, now = snap?.at ?? Date.now(), color = false, narration = null } = {}) {
+export function renderBoard(snap, { width = 80, height, now = snap?.at ?? Date.now(), color = false, narration = null, selected = null, detail = false } = {}) {
   const v = runView(snap, { at: now });
   const stores = (snap?.stores ?? []).map(store => ({ ...store, threads: v.units.filter(u => u.storeDir === store.dir).map(u => {
     const s = u.s;
@@ -31,11 +31,11 @@ export function renderBoard(snap, { width = 80, height, now = snap?.at ?? Date.n
       _board: { state: s, rules: ruleSet(u, now), times: stageMinutes(u.w, now),
         wait: operatorWait(u.w, now), use: usage(u, now), checks: checks(u, now) } };
   }) }));
-  return terminalBoard({ ...snap, at: now, stores }, { width, height, now, color, narration });
+  return terminalBoard({ ...snap, at: now, stores }, { width, height, now, color, narration, selected, detail });
 }
 export const renderSidecar = renderBoard;
 
-// Live panes scroll rather than silently discarding evidence; --once emits every line.
+// Paging belongs only to a selected record's expanded evidence, never the overview.
 export function sidecarPage(frame, { rows, width = 80, offset = 0 } = {}) {
   const lines = frame.split('\n');
   if (!Number.isSafeInteger(rows) || rows < 2 || lines.length <= rows) return { text: frame, offset: 0, max: 0 };
@@ -68,6 +68,7 @@ export async function sidecarSnapshot({ base = dataDirectory(), now = Date.now()
 export async function runSidecar({ base = dataDirectory(), output = process.stdout, input = process.stdin, width, height, intervalMs = 2000, env = process.env, workspace = null, signal } = {}) {
   const tty = Boolean(output.isTTY), color = tty && !env.NO_COLOR, watcher = new AbortController();
   let previous = '', busy = false, again = false, ended = false, offset = 0, max = 0, pending;
+  let records = [], selectedIndex = -1, expanded = false;
   const draw = async (force = false) => {
     if (ended) return;
     if (busy) { again = true; return; }
@@ -75,10 +76,16 @@ export async function runSidecar({ base = dataDirectory(), output = process.stdo
     try {
       const columns = width ?? output.columns ?? 80;
       let frame;
-      try { frame = renderSidecar(await sidecarSnapshot({ base, workspace }), { width: columns, height: height ?? output.rows ?? 53, color }); }
-      catch (e) { frame = `Cannot read the work right now: ${e.message}`; }
+      try {
+        const snap = await sidecarSnapshot({ base, workspace });
+        const old = records[selectedIndex];
+        records = snap.stores.flatMap(store => store.threads.map(w => ({ storeDir: store.dir, threadId: w.threadId })));
+        if (old) selectedIndex = records.findIndex(r => r.storeDir === old.storeDir && r.threadId === old.threadId);
+        if (selectedIndex < 0) expanded = false;
+        frame = renderSidecar(snap, { width: columns, height: height ?? output.rows ?? 53, color, selected: records[selectedIndex], detail: expanded });
+      } catch (e) { frame = `Cannot read the work right now: ${e.message}`; }
       if (ended) return;
-      const page = sidecarPage(frame, { rows: output.rows, width: columns, offset });
+      const page = expanded ? sidecarPage(frame, { rows: height ?? output.rows ?? 53, width: columns, offset }) : { text: frame, offset: 0, max: 0 };
       offset = page.offset; max = page.max;
       if (force || page.text !== previous) { previous = page.text; output.write((tty ? '\x1b[H\x1b[2J' : '') + page.text + '\n'); }
     } finally { busy = false; if (again && !ended) { again = false; draw(); } }
@@ -92,7 +99,15 @@ export async function runSidecar({ base = dataDirectory(), output = process.stdo
   const key = bytes => {
     const value = bytes.toString(), page = Math.max(1, (output.rows ?? 24) - 2);
     if (['q', 'Q', '\x03'].includes(value)) return stop();
-    if (['j', '\x1b[B'].includes(value)) offset++;
+    if (['\r', '\n'].includes(value) && records.length) {
+      if (selectedIndex < 0) selectedIndex = 0;
+      expanded = !expanded; offset = 0;
+    } else if (value === '\x1b') { expanded = false; offset = 0; }
+    else if (!expanded && ['j', 'k', '\x1b[B', '\x1b[A'].includes(value) && records.length) {
+      const down = ['j', '\x1b[B'].includes(value);
+      selectedIndex = selectedIndex < 0 ? down ? 0 : records.length - 1 : (selectedIndex + (down ? 1 : -1) + records.length) % records.length;
+    }
+    else if (['j', '\x1b[B'].includes(value)) offset++;
     else if (['k', '\x1b[A'].includes(value)) offset--;
     else if ([' ', '\x1b[6~'].includes(value)) offset += page;
     else if (value === '\x1b[5~') offset -= page;

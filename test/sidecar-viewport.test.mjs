@@ -31,6 +31,22 @@ test('overview budgets keep all sections visible and NOW below forty percent', (
   }
 });
 
+test('five records use two lines each; selection alone expands one record', () => {
+  const fixture = viewportFixture();
+  const frame = renderSidecar(fixture, { width: 106, height: 53, now });
+  const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0];
+  const bodies = happening.split('\n').filter(line => line.startsWith('│ '));
+  assert.equal(bodies.length, 10);
+  for (let id = 1; id <= 5; id++) {
+    assert.ok(happening.includes(`#${id} Work item ${id}`));
+    assert.ok(happening.includes(`team:worker-${id}`));
+  }
+  assert.match(happening, /NOW #3 Finish item/); assert.match(happening, /ctx 25.3%/);
+  const detail = renderSidecar(fixture, { width: 106, height: 53, now, selected: { storeDir: '/data', threadId: 3 }, detail: true });
+  assert.match(detail, /#3 · DETAILS/); assert.match(detail, /Delivered item 3/);
+  assert.doesNotMatch(detail, /Work item [1245]|WHERE THE WORK IS|MACHINE/);
+});
+
 test('106x53 overview with five live records fits without scrolling', () => {
   const frame = renderSidecar(viewportFixture(), { width: 106, height: 53, now });
   assert.ok(frame.split('\n').length <= 53); assert.match(frame.split('\n')[0], /5 running/);

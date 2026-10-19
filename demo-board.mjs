@@ -248,6 +248,29 @@ function runningLines(t, unit, label, w, now) {
   return lines;
 }
 
+const workerUpdate = (v, now) => eventsOf(v).findLast(e => e.actor === v.worker?.actor && ms(e.at) <= now && typeof e.text === 'string' && e.text.trim());
+
+function compactLines(t, unit, label, width, now) {
+  const v = unit.w, obs = v.telemetry ?? {}, c = v.worker ?? now_(v).card;
+  const worker = v.worker?.actor ?? ROLE[v.current?.name] ?? 'worker';
+  const observed = obs.tmux?.state;
+  const state = observed === 'running' && v.state === 'working' ? 'running' : observed && observed !== v.state ? `${v.state}/${observed}` : v.state;
+  const stateAge = `${state} · ${age(v.lastEvent?.at, now)}`;
+  const where = typeof v.where === 'string' ? v.where : v.where?.tmux ?? v._board?.state.call?.where?.tmux ?? '';
+  const whoWidth = Math.max(12, Math.floor(width * 0.29)), whereWidth = Math.min(where.length, Math.floor(width * 0.2));
+  const stateWidth = Math.min(stateAge.length, Math.floor(width * 0.25));
+  const nameWidth = Math.max(8, width - whoWidth - whereWidth - stateWidth - 9);
+  const first = [clip(`${label} ${plain(v.objective)}`, nameWidth), clip(`${worker} on ${cardLabel(c)}`, whoWidth), clip(stateAge, stateWidth), clip(where, whereWidth)].filter(Boolean).join(' · ');
+  const step = obs.steps?.now?.[0] ?? v.current?.name ?? 'no step';
+  const update = workerUpdate(v, now), message = v.hold?.questions?.[0] ? `? ${v.hold.questions[0]}` : update ? latestLine(update.text) : '';
+  const context = obs.usage?.context?.match(/^\d+(?:\.\d+)?%/)?.[0];
+  const suffix = [context ? `ctx ${context}` : '', obs.repo?.hash ? `${obs.repo.hash} ${age(obs.repo.at, now)}` : ''].filter(Boolean);
+  const stepWidth = Math.min(Math.floor(width * 0.28), `NOW ${step}`.length);
+  const messageWidth = Math.max(0, width - stepWidth - suffix.join(' · ').length - 3 * (suffix.length + Number(Boolean(message))));
+  const second = [clip(`NOW ${plain(step)}`, stepWidth), ...(message ? [clip(plain(message), messageWidth)] : []), ...suffix].join(' · ');
+  return [t.ink(fit(first, width)), t.muted(fit(second, width))];
+}
+
 const SPARK = '▁▂▃▄▅▆▇█';
 const gib = b => `${(b / 2 ** 30).toFixed(1)}G`;
 const toneOf = pct => pct == null ? 'faint' : pct < 60 ? 'ok' : pct < 85 ? 'warn' : 'bad';
@@ -303,7 +326,7 @@ const limited = (lines, max) => lines.length <= max ? lines : [...lines.slice(0,
 
 // A height-free render is a full evidence document; live/once panes supply a height.
 // One frame. Pure: the same snapshot, size and time give the same text. `narration` is the demo's step.
-export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date.now(), color = false, narration = null } = {}) {
+export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date.now(), color = false, narration = null, selected = null, detail = false } = {}) {
   width = Math.max(40, Math.floor(width));
   const t = theme(color);
   const many = (snap?.stores ?? []).filter(s => s.threads?.length).length > 1;
@@ -326,10 +349,25 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     t.pill('done', `${today.length} done today`), t.muted(clock(now, now) + ' ')].join(' ');
   out.push(fit(left + ' '.repeat(Math.max(1, width - visible(left) - visible(right))) + right, width));
   if (narration?.controls) out.push(...narration.controls(t, width));
+  const isSelected = u => selected && u.w.threadId === selected.threadId && u.storeDir === selected.storeDir;
+  const picked = units.find(isSelected);
+  if (detail && picked) return panel(t, `${label(picked)} · DETAILS`, picked.w.hold ? decisionLines(t, picked, label(picked), width - 4, now) : runningLines(t, picked, label(picked), width - 4, now), width).join('\n');
 
   // Happening now: the latest thing that happened, what waits on you, what is running.
-  const nowPanel = w => {
+  const nowPanel = (w, compact = false, maxRows = Infinity) => {
     const body = [];
+    if (compact) {
+      const records = [...waiting, ...active];
+      if (records.length > 3 && !records.some(isSelected)) {
+        const count = records.length * 2 <= maxRows ? records.length : Math.max(0, Math.floor((maxRows - 1) / 2));
+        return [...records.slice(0, count).flatMap(u => compactLines(t, u, label(u), w, now)), ...(count < records.length ? [t.muted(`+${records.length - count} more records`)] : [])];
+      }
+      for (const u of records) {
+        const full = isSelected(u) || records.length <= 3;
+        body.push(...(full ? u.w.hold ? decisionLines(t, u, label(u), w, now) : runningLines(t, u, label(u), w, now) : compactLines(t, u, label(u), w, now)));
+      }
+      return body.length ? body : [t.muted('Quiet. Nothing is running and nothing is waiting on you.')];
+    }
     const latest = narration?.step ?? (log.length ? { who: log.at(-1).who, t: log.at(-1).text, d: `${clock(log.at(-1).at, now)}` } : null);
     if (latest) {
       const who = WHO[latest.who] ?? latest.who, badge = t.pill(who === 'you' ? 'you' : who, who.toUpperCase()), indent = visible(badge) + 1;
@@ -487,7 +525,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     out.push(...panel(t, 'LOG', logBody(width - 4, LOG_LINES), width));
   }
   if (Number.isSafeInteger(height) && height > 0) {
-    const budgets = viewportBudgets(height);
+    const budgets = viewportBudgets(height - 1);
     const section = (title, body, size, opts = {}) => panel(t, title, limited(body, size - 2), width, opts);
     const fittedFlow = () => {
       const room = budgets.flow - 2;
@@ -498,7 +536,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
       return [...row(t, bounded([...lanes, doneSpec]), width - 4), ...row(t, bounded(stages), width - 4),
         ...(unplaced.length ? [fit(`Unplaced: ${unplaced.map(u => `${label(u)} ${u.w.state}`).join(' · ')}`, width - 4)] : [])];
     };
-    if (height < 16) {
+    if (height < 17) {
       const summaries = [out[0], `WHERE THE WORK IS · ${open.length} open`, `HAPPENING NOW · ${running.length} running · ${waiting.length} need you`,
         `THE ONE LIST · ${units.length} records`, 'MINUTES PER STAGE · ' + Object.entries(laneMinutes(units[0]?.w ?? {}, now)).map(([k, v]) => `${k} ${minutes(v)}`).join(' · '),
         `RULES · ${rules(units).length} checked on the record`, `TELEMETRY · ${today.length} done today`, `LOG · ${log.length} events`, machineTitle];
@@ -512,9 +550,9 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     const timeSpecs = [{ title: 'MINUTES PER STAGE', body: w => limited(barsBody(w), budgets.time - 2) },
       { title: 'LOG', body: w => limited(logBody(w, budgets.time - 2), budgets.time - 2) }];
     return [out[0], ...section(machineTitle, machineLines(t, snap?.machine, width - 4, { split: width >= 90 }), budgets.machine),
-      ...section('HAPPENING NOW', nowPanel(width - 4), budgets.now, { tone: nowTone, titleTone: nowTitle }),
+      ...section('HAPPENING NOW', nowPanel(width - 4, true, budgets.now - 2), budgets.now, { tone: nowTone, titleTone: nowTitle }),
       ...section('WHERE THE WORK IS', fittedFlow(), budgets.flow),
-      ...row(t, listSpecs, width), ...row(t, timeSpecs, width)]
+      ...row(t, listSpecs, width), ...row(t, timeSpecs, width), t.faint(fit('j/k select · Enter expand · Esc overview · q quit', width))]
       .map(l => fit(l, width).trimEnd()).join('\n');
   }
   return out.map(l => fit(l, width).replace(/ +$/, '')).join('\n');
