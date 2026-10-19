@@ -182,7 +182,7 @@ const SUB = { ideation: 'shape · challenge', planning: 'contract · checks', im
 const WHO = { you: 'you', agent: 'agent', record: 'record', operator: 'you' };
 
 // What a waiting item asks, as a highlighted band: the item, the question, the suggestion, the way to answer.
-function decisionLines(t, unit, label, w, now, action) {
+function decisionLines(t, unit, label, w, now, action, human = false) {
   const d = decision(unit.w), band = t.band('opSoft', 'ink'), bandTitle = t.band('opSoft', 'op'), bandMuted = t.band('opSoft', 'muted');
   const lines = [bandTitle(fit(` ? ${label} ${plain(unit.w.objective)}`, w))];
   const say = (text, style, lead = '   ', max = 3) => wrapText(text, w - lead.length - 1).slice(0, max).forEach((l, i, all) =>
@@ -196,16 +196,40 @@ function decisionLines(t, unit, label, w, now, action) {
     for (const verb of d.answer) lines.push(bandTitle(fit(`   $ ${cli(unit, verb)}`, w)));
   }
   if (unit.w.hold?.at) lines.push(bandMuted(fit(`   waiting ${span(now - ms(unit.w.hold.at))}`, w)));
-  if (unit.w.kind === 'delegated') lines.push(...delegatedLines(t, unit.w, w, now));
+  if (unit.w.kind === 'delegated') lines.push(...delegatedLines(t, unit.w, w, now, human));
   return lines;
 }
 
-const age = (at, now) => !Number.isFinite(ms(at)) ? 'UNKNOWN' : `${Math.max(0, Math.floor((now - ms(at)) / 1000))}s`;
+export const humanAge = (at, now) => {
+  if (!Number.isFinite(ms(at))) return null;
+  const seconds = Math.max(0, Math.floor((now - ms(at)) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 48 ? `${hours}h ${String(minutes % 60).padStart(2, '0')}m` : `${Math.floor(hours / 24)}d ${hours % 24}h`;
+};
+const age = (at, now) => humanAge(at, now) ?? '';
 
 // Observations never replace lifecycle state, and absent hints never imply death or completion.
-function delegatedLines(t, v, w, now) {
+function delegatedLines(t, v, w, now, human = false) {
   const out = [], obs = v.telemetry ?? {};
   const add = text => wrapText(plain(text), w - 2).forEach(l => out.push('  ' + t.muted(l)));
+  if (human) {
+    const step = v.current?.name ?? v.record?.step;
+    if (step && step !== v.worker?.actor && step !== 'UNKNOWN') add(`Step: ${step}`);
+    if (obs.tmux?.state && obs.tmux.state !== 'unknown') add(`tmux: ${obs.tmux.state}${obs.tmux.command ? ` · ${obs.tmux.command}` : ''}`);
+    if (Number.isFinite(obs.tmux?.outputAt)) add(`Activity: ${obs.tmux.outputScope ?? 'output'} ${age(obs.tmux.outputAt, now)} ago`);
+    if (obs.steps && !obs.steps.unavailable) add(`Steps: ${obs.steps.done} done recorded${obs.steps.now.length ? ` · NOW ${obs.steps.now.join('; ')}` : ''}`);
+    const update = workerUpdate(v, now);
+    if (update) add(`Update${humanAge(update.at, now) ? ` ${age(update.at, now)} ago` : ''} · ${update.actor}: ${latestLine(update.text)}`);
+    const usage = [obs.usage?.context && !obs.usage.context.startsWith('?') ? `context ${obs.usage.context}` : '',
+      obs.usage?.tokens ? `tokens ${obs.usage.tokens}` : '', obs.usage?.cost ? `cost ${obs.usage.cost}` : ''].filter(Boolean);
+    if (usage.length) add(`Usage: ${usage.join(' · ')}`);
+    if (obs.repo?.hash) add(`Commit: ${[obs.repo.hash, humanAge(obs.repo.at, now) ? `${age(obs.repo.at, now)} ago` : '',
+      Number.isFinite(obs.repo.changed) ? `${obs.repo.changed} uncommitted` : '', obs.repo.subject].filter(Boolean).join(' · ')}`);
+    return out;
+  }
   add(`Step: ${v.current?.name ?? v.record?.step ?? 'UNKNOWN'}`);
   if (obs.tmux) {
     add(`tmux: ${obs.tmux.state} · ${obs.tmux.command ?? obs.tmux.reason ?? 'pane unavailable'}`);
@@ -221,13 +245,14 @@ function delegatedLines(t, v, w, now) {
 }
 
 // One running item: what it is, which job, on which card, for how long.
-function runningLines(t, unit, label, w, now) {
+function runningLines(t, unit, label, w, now, human = false) {
   if (unit.w.kind === 'delegated') {
     const v = unit.w, ev = v.lastEvent ?? {}, card = v.worker ? `${HARNESS[v.worker.harness] ?? v.worker.harness} · ${v.worker.model}` : '';
-    const out = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(v.objective)}`, w - 2))];
-    out.push('  ' + t.muted(fit(`${v.worker?.actor ?? 'worker'} on ${card}${v.worker?.provider ? ` · ${v.worker.provider}` : ''} · ${ev.state ?? v.state}${ev.at ? ` · ${span(now - ms(ev.at))}` : ''}`, w - 2)));
-    if (v.where?.tmux) out.push('  ' + t.muted(fit(`${v.state === 'dead' || v.telemetry?.tmux?.state === 'dead' ? 'Recorded location' : 'Watch it'}: tmux window ${v.where.tmux}`, w - 2)));
-    out.push(...delegatedLines(t, v, w, now));
+    const location = human && v.where?.tmux ? ` · ${v.where.tmux}` : '';
+    const out = [t.accentBold('▸ ') + t.inkBold(fit(`${clip(`${label} ${plain(v.objective)}`, Math.max(8, w - 2 - location.length))}${location}`, w - 2))];
+    out.push('  ' + t.muted(fit(`${v.worker?.actor ?? 'worker'} on ${card}${v.worker?.provider ? ` · ${v.worker.provider}` : ''} · ${ev.state ?? v.state}${ev.at ? ` · ${human ? age(ev.at, now) : span(now - ms(ev.at))}` : ''}`, w - 2)));
+    if (!human && v.where?.tmux) out.push('  ' + t.muted(fit(`${v.state === 'dead' || v.telemetry?.tmux?.state === 'dead' ? 'Recorded location' : 'Watch it'}: tmux window ${v.where.tmux}`, w - 2)));
+    out.push(...delegatedLines(t, v, w, now, human));
     return out;
   }
   const x = now_(unit.w), lines = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(unit.w.objective)}`, w - 2))];
@@ -352,7 +377,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   if (narration?.controls) out.push(...narration.controls(t, width));
   const isSelected = u => selected && u.w.threadId === selected.threadId && u.storeDir === selected.storeDir;
   const picked = units.find(isSelected);
-  if (detail && picked) return panel(t, `${label(picked)} · DETAILS`, picked.w.hold ? decisionLines(t, picked, label(picked), width - 4, now) : runningLines(t, picked, label(picked), width - 4, now), width).join('\n');
+  if (detail && picked) return panel(t, `${label(picked)} · DETAILS`, picked.w.hold ? decisionLines(t, picked, label(picked), width - 4, now, null, true) : runningLines(t, picked, label(picked), width - 4, now, true), width).join('\n');
 
   // Happening now: the latest thing that happened, what waits on you, what is running.
   const nowPanel = (w, compact = false, maxRows = Infinity) => {
@@ -365,7 +390,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
       }
       for (const u of records) {
         const full = isSelected(u) || records.length <= 3;
-        body.push(...(full ? u.w.hold ? decisionLines(t, u, label(u), w, now) : runningLines(t, u, label(u), w, now) : compactLines(t, u, label(u), w, now)));
+        body.push(...(full ? u.w.hold ? decisionLines(t, u, label(u), w, now, null, true) : runningLines(t, u, label(u), w, now, true) : compactLines(t, u, label(u), w, now)));
       }
       return body.length ? limited(body, maxRows) : [t.muted('Quiet. Nothing is running and nothing is waiting on you.')];
     }
@@ -468,7 +493,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   const stops = units.flatMap(u => operatorStops(u.w, now));
   const stopCount = units.reduce((n, u) => n + (u.w._board?.wait.stops ?? operatorStops(u.w, now).length), 0);
   const waited = units.reduce((n, u) => n + (u.w._board ? u.w._board.wait.minutes * 60_000 : operatorStops(u.w, now).reduce((sum, s) => sum + s.waited, 0)), 0);
-  const tilesBody = w => {
+  const tilesBody = (w, knownOnly = false) => {
     const verify = units.flatMap(u => attemptsOf(u.w).filter(a => a.step === 'verify' && ['accepted', 'failed-test'].includes(a.status)));
     const failed = units.reduce((n, u) => n + (u.w.record?.failures?.length ?? 0), 0);
     const use = units.flatMap(u => attemptsOf(u.w)).map(usage).reduce((a, x) => ({ tokens: a.tokens + x.tokens, cost: a.cost + x.cost }), { tokens: 0, cost: 0 });
@@ -477,7 +502,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     }
     const tiles = [[by('to-do'), 'to-do', 'ink'], [by('task'), 'task', 'accent'], [by('done'), 'done', 'ok'],
       [stopCount, 'stops for you', 'op'], [minutes(waited), 'waited on you', 'op'], [`${verify.filter(a => a.status === 'accepted').length}/${verify.length}`, 'checks passed', 'ok'],
-      [failed, 'checks failed', failed ? 'bad' : 'ink'], [use.tokens == null ? 'UNKNOWN' : count(use.tokens), 'tokens', 'ink'], [use.cost == null ? 'UNKNOWN' : `$${use.cost.toFixed(2)}`, 'spend', 'ink']];
+      [failed, 'checks failed', failed ? 'bad' : 'ink'], [use.tokens == null ? 'UNKNOWN' : count(use.tokens), 'tokens', 'ink'], [use.cost == null ? 'UNKNOWN' : `$${use.cost.toFixed(2)}`, 'spend', 'ink']].filter(([value]) => !knownOnly || value !== 'UNKNOWN');
     // Three tiles a row when the labels fit, two when they would be cut.
     const per = w >= 48 ? 3 : 2, tw = Math.floor((w - 2 * (per - 1)) / per), widths = Array(per).fill(tw), body = [];
     for (let i = 0; i < tiles.length; i += per) {
@@ -547,7 +572,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     }
     const listSpecs = [{ title: 'THE ONE LIST', weight: 1.3, body: w => limited(listBody(w, budgets.list - 2), budgets.list - 2) },
       { title: 'RULES, CHECKED ON THE RECORD', weight: 0.9, body: w => limited(rulesPanel(w), budgets.list - 2) },
-      { title: 'TELEMETRY', weight: 1.1, body: w => limited(tilesBody(w), budgets.list - 2) }];
+      { title: 'TELEMETRY', weight: 1.1, body: w => limited(tilesBody(w, true), budgets.list - 2) }];
     const timeSpecs = [{ title: 'MINUTES PER STAGE', body: w => limited(barsBody(w), budgets.time - 2) },
       { title: 'LOG', body: w => limited(logBody(w, budgets.time - 2), budgets.time - 2) }];
     return [out[0], ...section(machineTitle, machineLines(t, snap?.machine, width - 4, { split: width >= 90 }), budgets.machine),

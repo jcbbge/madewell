@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderSidecar, viewportBudgets } from '../demo-board.mjs';
+import { renderSidecar, viewportBudgets, humanAge } from '../demo-board.mjs';
 
 const now = Date.UTC(2026, 9, 20, 12);
 const before = new Date(now - 3_811_000).toISOString();
@@ -58,6 +58,22 @@ test('dead records leave the live section and remain unaccepted in the one list'
   assert.match(frame.split('\n')[0], /5 running/);
   const list = frame.split('THE ONE LIST')[1]; assert.match(list, /Dead task 1/); assert.match(list, /dead/);
   assert.equal(fixture.stores[0].threads[0].done, false);
+});
+
+test('ages are human and unavailable-only detail lines disappear without inventing metrics', () => {
+  assert.equal(humanAge(before, now), '1h 03m');
+  assert.equal(humanAge(now - 7000, now), '7s');
+  assert.equal(humanAge(null, now), null);
+  const fixture = viewportFixture(1), w = fixture.stores[0].threads[0];
+  w.current.name = w.worker.actor;
+  w.telemetry = { tmux: { state: 'unknown', outputAt: null }, steps: { unavailable: true },
+    repo: { unavailable: true }, usage: { context: '?/500k', tokens: null, cost: null } };
+  const frame = renderSidecar(fixture, { width: 106, height: 53, now });
+  const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0];
+  assert.match(happening, /Update 1h 03m ago/);
+  assert.doesNotMatch(happening, /UNKNOWN|3811s|Usage:|Commit:|Activity:|Steps:|Step: worker-1|Watch it:|Recorded location:/);
+  const headline = happening.split('\n').find(line => line.includes('▸ #1'));
+  assert.match(headline, /team:worker-1/);
 });
 
 test('106x53 overview with five live records fits without scrolling', () => {
