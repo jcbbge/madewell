@@ -51,7 +51,13 @@ export function transitionDelegated(w, action, input = {}) {
     if (c) Object.assign(c, { endedAt: stamp(), outcome, result: w.report });
     w.activeCall = null;
   };
-  if (action === 'human') {
+  if (action === 'dead') {
+    if (actor !== w.sender.actor) throw new Error('Only the assigning agent can record worker death');
+    if (x.subject.handoff !== 'assignment') throw new Error('A reported result must go through its return exchange');
+    nq.noHold(w); body();
+    endCall('dead'); w.closedAt = stamp(); w.delegationState = 'dead';
+    // Terminated is not accepted or completed. Preserve the unfinished work and NQ evidence.
+  } else if (action === 'human') {
     if (actor !== 'human') throw new Error('Human answer must name human');
     nq.humanAnswer(w, x.id, actor, body()); w.delegationState = 'intake';
   } else {
@@ -118,7 +124,7 @@ export function delegatedView(directory, w) {
     objective: w.objective, projectedAt: stamp(), done: Boolean(w.acceptance), state: w.delegationState,
     parentId: w.parentId, current: { name: w.step, role: w.worker.job }, round: w.round,
     sender: w.sender, worker: w.worker, where: w.where, hold: w.hold,
-    owner: w.hold ? 'human' : x.status === 'awaiting-originator' ? x.originator : x.worker,
+    owner: w.hold ? 'human' : w.delegationState === 'dead' ? w.sender.actor : x.status === 'awaiting-originator' ? x.originator : x.worker,
     questions: w.hold?.questions ?? (x.status === 'awaiting-originator' ? x.turns.at(-1)?.questions ?? [] : []),
     exchange: x, lastEvent: w.events.at(-1), next: w.delegationState,
     record: { kind: w.kind, createdAt: w.createdAt, sender: w.sender, worker: w.worker, where: w.where,

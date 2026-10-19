@@ -5,10 +5,11 @@ import { snapshot } from './serve.mjs';
 import { runView, terminalLines, clock, span, ruleSet, stageMinutes, operatorWait, usage, checks } from './view.mjs';
 import { renderSidecar as terminalBoard } from './demo-board.mjs';
 import { machineSample } from './machine.mjs';
+import { delegatedTelemetry } from './delegated-telemetry.mjs';
 
 // The terminal sidecar: one plain program for a pane in any multiplexer. Read-only, like the dashboard:
 // it reads the view files through serve.mjs's snapshot and the accounts files, never a store or its lock.
-// The frame is view.mjs's terminalLines, the same text the run view shows in the browser.
+// The board and plain view share view.mjs's state derivation; live hints are disposable observations.
 export { clock, span };
 
 const PAINT = { h: ['\x1b[1m', '\x1b[0m'], bad: ['\x1b[31m', '\x1b[0m'] };
@@ -55,8 +56,11 @@ export async function readAccounts(base, dirs) {
   return all;
 }
 
-export async function sidecarSnapshot({ base = dataDirectory(), now = Date.now(), workspace = null } = {}) {
+export async function sidecarSnapshot({ base = dataDirectory(), now = Date.now(), workspace = null, telemetry = delegatedTelemetry } = {}) {
   const snap = await snapshot({ base, now, workspace });
+  await Promise.all(snap.stores.flatMap(s => s.threads.filter(w => w.kind === 'delegated').map(async w => {
+    w.telemetry = await telemetry(w, { now });
+  })));
   return { ...snap, accounts: await readAccounts(base, snap.stores.map(s => s.dir)), machine: await machineSample().catch(() => null) };
 }
 

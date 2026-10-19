@@ -41,7 +41,7 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   return <clear|question|answered|human|accepted> <id> <text.txt> --actor <actor>
                                    receive a final report through its NQ exchange (not another reviewer)
   delegate open <assignment.json>   record coordinator-delegated work; never starts an agent
-  delegate <started|clear|question|answered|reported|accepted|sent-back|closed|human> <id> [text.txt] --actor <actor>
+  delegate <started|dead|clear|question|answered|reported|accepted|sent-back|closed|human> <id> [text.txt] --actor <actor>
   run [--background]               the runner: discoveries as they come, then delivery items one at a time
   workspace relocate --from <old-absolute-path> --to <existing-new-path>
                                    rebind and move a stopped store; safe to retry after interruption
@@ -166,7 +166,7 @@ try {
       store = await openStore(directory);
       console.log(JSON.stringify({ id: await store.openDelegated(input), store: directory }));
     } else {
-      const verbs = ['started', 'clear', 'question', 'answered', 'reported', 'accepted', 'sent-back', 'closed', 'human'];
+      const verbs = ['started', 'dead', 'clear', 'question', 'answered', 'reported', 'accepted', 'sent-back', 'closed', 'human'];
       if (!verbs.includes(verb) || !Number.isSafeInteger(Number(target)) || Number(target) < 1) throw new Error('Supply a delegated action and positive work ID');
       const actorAt = rest.indexOf('--actor');
       if (actorAt < 0 || !rest[actorAt + 1]) throw new Error('--actor <actor> is required');

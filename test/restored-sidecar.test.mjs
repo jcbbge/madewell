@@ -14,7 +14,9 @@ function setup(step = 'implement') {
   const act = (verb, actor, text = 'I understand the assignment.') => transitionDelegated(w, verb, { actor, text });
   const frame = (width = 110, color = false) => {
     const now = Date.now() + 1;
-    return renderSidecar({ at: now, base: '/data', machine, stores: [{ dir: '/data', threads: [delegatedView('/data', w)], driver: { alive: false } }], accounts: {} }, { width, color });
+    const view = delegatedView('/data', w);
+    view.telemetry = { tmux: { state: w.delegationState === 'working' ? 'running' : 'stale', command: 'pi' } };
+    return renderSidecar({ at: now, base: '/data', machine, stores: [{ dir: '/data', threads: [view], driver: { alive: false } }], accounts: {} }, { width, color });
   };
   return { w, act, frame };
 }

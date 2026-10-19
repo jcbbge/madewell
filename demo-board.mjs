@@ -192,7 +192,18 @@ function decisionLines(t, unit, label, w, now, action) {
     for (const verb of d.answer) lines.push(bandTitle(fit(`   $ ${cli(unit, verb)}`, w)));
   }
   if (unit.w.hold?.at) lines.push(bandMuted(fit(`   waiting ${span(now - ms(unit.w.hold.at))}`, w)));
+  if (unit.w.kind === 'delegated') lines.push(...delegatedLines(t, unit.w, w, now));
   return lines;
+}
+
+// Observations never replace lifecycle state, and absent hints never imply death or completion.
+function delegatedLines(t, v, w, now) {
+  const out = [], obs = v.telemetry ?? {};
+  const add = text => wrapText(plain(text), w - 2).slice(0, 2).forEach(l => out.push('  ' + t.muted(l)));
+  add(`Step: ${v.current?.name ?? v.record?.step ?? 'UNKNOWN'}`);
+  if (obs.tmux) add(`tmux: ${obs.tmux.state} · ${obs.tmux.command ?? obs.tmux.reason ?? 'pane unavailable'}`);
+  if (v.lastEvent?.text) add(`${v.lastEvent.actor ?? ''}: ${v.lastEvent.text}`);
+  return out;
 }
 
 // One running item: what it is, which job, on which card, for how long.
@@ -202,7 +213,7 @@ function runningLines(t, unit, label, w, now) {
     const out = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(v.objective)}`, w - 2))];
     out.push('  ' + t.muted(fit(`${v.worker?.actor ?? 'worker'} on ${card}${v.worker?.provider ? ` · ${v.worker.provider}` : ''} · ${ev.state ?? v.state}${ev.at ? ` · ${span(now - ms(ev.at))}` : ''}`, w - 2)));
     if (v.where?.tmux) out.push('  ' + t.muted(fit(`Watch it: tmux window ${v.where.tmux}`, w - 2)));
-    if (ev.text) out.push('  ' + t.ink(fit(`${ev.actor ?? ''}: ${plain(ev.text)}`, w - 2)));
+    out.push(...delegatedLines(t, v, w, now));
     return out;
   }
   const x = now_(unit.w), lines = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(unit.w.objective)}`, w - 2))];
@@ -266,7 +277,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   const label = u => `#${u.w.threadId}${many && u.workspace ? ` (${basename(u.workspace)})` : ''}`;
   const waiting = units.filter(u => !u.w.done && WAITING.has(u.w.state) && (u.w.hold || u.w.state !== 'human-hold'));
   const active = units.filter(u => !u.w.done && !WAITING.has(u.w.state) && itemState(u.w) !== 'to-do');
-  const running = units.some(u => u.w._board) ? active.filter(u => u.w.state === 'working') : active;
+  const running = active.filter(u => u.w.kind === 'delegated' ? u.w.telemetry?.tmux?.state === 'running' : u.w._board ? u.w.state === 'working' : true);
   const open = units.filter(u => !u.w.done && itemState(u.w) !== 'to-do');
   const todos = units.filter(u => itemState(u.w) === 'to-do');
   const finished = units.filter(u => itemState(u.w) === 'done');
@@ -367,7 +378,8 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
       const name = t.muted(label(u).padEnd(6)) + (u.w.done ? t.muted(plain(u.w.objective)) : t.ink(plain(u.w.objective)));
       body.push(fit(name, w - visible(pill) - 1) + ' ' + pill);
       const who = u.w.kind === 'delegated' ? `${u.w.worker?.job ?? 'UNKNOWN'} · ${typeof u.w.where === 'string' ? u.w.where : u.w.where?.tmux ?? u.w.where?.window ?? 'location UNKNOWN'} · ${stateWord}` : !u.w.done && u.w.current?.name ? ROLE[u.w.current.name] : '', lane = !u.w.done && u.w.current?.name ? LANE_OF[u.w.current.name] : '';
-      body.push(t.faint(fit(`      ${[kindOf(u.w), who, lane, u.w.waitsOn ? `waits on #${u.w.waitsOn}` : '', u.w.parentId || u.w.from ? `from #${u.w.parentId ?? u.w.from}` : ''].filter(Boolean).join(' · ')}`, w)));
+      const observed = u.w.kind === 'delegated' ? u.w.telemetry?.tmux?.state : null;
+      body.push(t.faint(fit(`      ${[observed ? `${stateWord} · ${observed}` : kindOf(u.w), who, lane, u.w.waitsOn ? `waits on #${u.w.waitsOn}` : '', u.w.parentId || u.w.from ? `from #${u.w.parentId ?? u.w.from}` : ''].filter(Boolean).join(' · ')}`, w)));
     }
     if (rows.length > room) body.push(t.faint(`      … ${rows.length - room} more`));
     return body;
