@@ -1,37 +1,60 @@
 import { realpath } from 'node:fs/promises';
 import { openStore, STEPS } from './work.mjs';
-import { dataDirectory } from './config.mjs';
-import { submit } from './queue.mjs';
+import { dataDirectory, workspaceDataDirectory } from './config.mjs';
+import { submit, assertNotRelocating } from './queue.mjs';
+import { observe } from './observe.mjs';
 
-// Short-lived calls from the pi extension. SQLite is the only work authority.
-export async function request(input, directory = dataDirectory()) {
-  // Changes go through submit: applied now, or left for the runner when it owns the store.
-  if (input.action === 'first') return submit(directory, { type: 'first', id: input.id });
-  if (input.action === 'answer') return submit(directory, { type: 'answer', id: input.id, actor: 'operator', text: input.text, cause: input.cause ?? null });
+// A shell front door cannot infer the calling agent's card. Unknown is not the worker's card.
+export function dispatcherProvenance(input = {}) {
+  return { actor: input.actor ?? 'dispatcher', job: 'dispatcher', harness: input.harness ?? null,
+    provider: input.provider ?? null, model: input.model ?? null, card: input.card ?? null,
+    sessionId: input.sessionId ?? null };
+}
+
+export async function restoreWorkLink(link, cwd, { resolveBinding, dataFor = workspaceDataDirectory } = {}) {
+  resolveBinding ??= async binding => {
+    return (await import('./config.mjs')).resolveWorkspaceBinding(binding);
+  };
+  const saved = link ? await resolveBinding({ workspace: link.workspace, directory: link.directory }) : null;
+  const workspace = await realpath(saved?.workspace ?? cwd), directory = dataFor(workspace);
+  if (saved && saved.directory !== directory) throw new Error('Saved work link belongs to another store; explicitly select the workspace to rebind');
+  return { workspace, directory, id: link?.id, relocated: Boolean(saved && (saved.workspace !== link.workspace || saved.directory !== link.directory)) };
+}
+
+export async function inspectWork(directory, id, { open = openStore } = {}) {
+  await assertNotRelocating(directory);
   let store;
-  try { store = await openStore(directory); }
+  try { store = await open(directory); }
   catch (error) {
-    if (input.action !== 'create' || !/^Store is owned/.test(error.message)) throw error;
-    if (typeof input.source !== 'string' || !input.source.trim()) throw new Error('Nonempty source required');
-    return submit(directory, { type: 'create', objective: input.objective, source: `${input.source}\n\npi-intake:${input.requestId}`, cwd: await realpath(input.workspace) });
+    if (!/^Store is owned by live process/.test(error.message)) throw error;
+    const snapshot = (await observe(directory, id))[0];
+    if (!snapshot) throw new Error(`Work ${id} has no published view yet; retry inspection`);
+    return { id, readOnly: true, projectedAt: snapshot.projectedAt, ...snapshot };
   }
   try {
-    if (input.action === 'create') {
-      if (typeof input.source !== 'string' || !input.source.trim()) throw new Error('Nonempty source required');
-      const cwd = await realpath(input.workspace), marker = `pi-intake:${input.requestId}`;
-      for (const id of await store.list()) {
-        const w = await store.get(id);
-        if (w.source.endsWith(`\n\n${marker}`)) return { id, reused: true }; // a retried tool call is the same work
-      }
-      return { id: await store.create(input.objective, `${input.source}\n\n${marker}`, cwd) };
-    }
-    const w = await store.get(input.id);
-    if (input.action === 'inspect') return {
-      id: w.id, objective: w.objective, workspace: w.cwd, step: STEPS[w.position]?.name ?? w.completion, round: w.round,
-      hold: w.hold, waitsOn: w.waitsOn, failures: w.failures.filter(f => f.status !== 'answered'), lastReport: w.attempts.at(-1)?.output ?? null,
-    };
-    throw new Error(`Unsupported action ${input.action}`);
+    const w = await store.get(id);
+    return { ...w, workspace: w.cwd, step: w.step ?? STEPS[w.position]?.name ?? w.completion,
+      lastReport: w.report ?? w.attempts?.at(-1)?.output ?? null };
   } finally { await store.close(); }
+}
+
+// All changes, busy or idle, use the same requestId and atomic store acknowledgement.
+export async function request(input, directory = dataDirectory(), { submitRequest = submit, open = openStore } = {}) {
+  const common = { requestId: input.requestId };
+  if (input.action === 'create') {
+    if (typeof input.objective !== 'string' || !input.objective.trim()) throw new Error('Nonempty objective required');
+    if (typeof input.source !== 'string' || !input.source.trim()) throw new Error('Nonempty source required');
+    return submitRequest(directory, { ...common, type: 'create', objective: input.objective,
+      source: input.source, cwd: await realpath(input.workspace), dispatcher: dispatcherProvenance(input.dispatcher) });
+  }
+  if (!Number.isSafeInteger(input.id) || input.id <= 0) throw new Error('A positive work ID is required');
+  if (input.action === 'first') return submitRequest(directory, { ...common, type: 'first', id: input.id });
+  if (input.action === 'answer') return submitRequest(directory, { ...common, type: 'answer', id: input.id,
+    actor: 'operator', text: input.text, cause: input.cause ?? null });
+  if (input.action === 'return') return submitRequest(directory, { ...common, type: 'return', id: input.id,
+    action: input.response, actor: input.actor, text: input.text, questions: input.questions });
+  if (input.action === 'inspect') return inspectWork(directory, input.id, { open });
+  throw new Error(`Unsupported action ${input.action}`);
 }
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
