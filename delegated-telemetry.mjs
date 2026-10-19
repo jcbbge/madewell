@@ -47,14 +47,15 @@ export function changedFiles(porcelain) {
 }
 
 export function stepLedger(text) {
-  let section = ''; const now = [];
+  let section = '', done = 0; const now = [];
   for (const line of text.split('\n')) {
     const heading = line.match(/^##\s+(.+?)\s*$/);
     if (heading) section = heading[1].toUpperCase();
     if (section === 'NOW' && /^\s*- \[ \]/.test(line)) now.push(line.replace(/^\s*- \[ \]\s*/, ''));
+    if (section === 'DONE' && /^\s*- \[[xX]\]/.test(line)) done++;
   }
-  // Removed tasks are not proof of completion. Count only checked entries still present.
-  return { now, done: (text.match(/^\s*- \[[xX]\]/gm) ?? []).length };
+  // Removed tasks or checked lines outside DONE are not retained completion evidence.
+  return { now, done };
 }
 
 // Read-only, disposable observations, never lifecycle transitions or completion evidence.
