@@ -1,7 +1,7 @@
 // Real Pi Durable storage; injected launchers and the scripted harness only. No models or listeners.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, rm, unlink, rename } from 'node:fs/promises';
+import { readFile, writeFile, rm, unlink, rename } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { DatabaseSync } from 'node:sqlite';
@@ -365,4 +365,85 @@ test('pending execution packet relocation preserves original bytes and resumes i
   await store.close(); store = await openStore(s.dir, { resume: true }); await store.execute(id, a);
   assert.equal((await store.get(id)).attempts[0].status, 'reported');
   assert.equal(JSON.parse(s.log().find(c => c.role === 'Vega').prompt).workspace, to);
+});
+
+test('nested dispatch is sender-bound, runs assignment and return NQ, records calls and replays no effects', async t => {
+  const s = await fixture(t), id = await s.store.create('Build', 'source', s.cwd);
+  await s.store.brief(id, 'Inspect'); const x = await s.store.delegate(id, 'worker');
+  await assert.rejects(s.store.nestedDispatch(id, { requestId: 'bad', parentCallId: 'invented', receiver, brief: 'Research only' }), /running parent/);
+  let childRuns = 0, nested;
+  const parent = await s.store.call(id, input(x, 'parent'), async () => {
+    const parentCallId = (await s.store.get(id)).activeCall;
+    let asks = 0;
+    nested = await s.store.nestedDispatch(id, { requestId: 'research-1', parentCallId, receiver, brief: 'Research only' }, {
+      intake: () => ({ output: JSON.stringify({ intent: 'Read only', questions: asks++ ? [] : ['Which source?'] }) }),
+      answer: () => ({ output: JSON.stringify({ answer: 'The fixed source' }) }),
+      execute: options => { childRuns++; assert.ok(JSON.parse(options.prompt).exchange.some(t => t.text === 'The fixed source')); return { output: 'Found the evidence' }; },
+      receive: () => ({ output: JSON.stringify(clear) }),
+    });
+    return { output: JSON.stringify(clear) };
+  });
+  assert.equal(nested.status, 'reported'); assert.equal(childRuns, 1);
+  const w = await s.store.get(id), n = w.nested[0];
+  assert.equal(n.sender.actor, 'worker'); assert.equal(n.parentCallId, parent.callId);
+  assert.ok(w.calls.every(c => c.taskId));
+  assert.equal(w.exchanges.find(x => x.id === n.exchangeId).rounds, 1);
+  await s.reopen();
+  const replay = await s.store.nestedDispatch(id, { requestId: 'research-1', parentCallId: parent.callId, receiver, brief: 'Research only' }, {
+    execute: () => { throw new Error('Duplicate nested effect'); },
+  });
+  assert.equal(replay.output, 'Found the evidence'); assert.equal(childRuns, 1);
+});
+
+test('nested questions get three sender answers then hold only that Work before execution', async t => {
+  const s = await fixture(t), id = await s.store.create('Build', 'source', s.cwd);
+  await s.store.brief(id, 'Inspect'); const x = await s.store.delegate(id, 'worker');
+  let answered = 0, executed = 0;
+  await s.store.call(id, input(x, 'parent'), async () => {
+    const parentCallId = (await s.store.get(id)).activeCall;
+    const result = await s.store.nestedDispatch(id, { requestId: 'nested-hold', parentCallId, receiver, brief: 'Research' }, {
+      intake: () => ({ output: JSON.stringify({ intent: 'Blocked', questions: ['Which source?'] }) }),
+      answer: () => { answered++; return { output: JSON.stringify({ answer: 'The source' }) }; },
+      execute: () => { executed++; return { output: 'Must not run' }; },
+    });
+    assert.equal(result.status, 'held'); return { output: JSON.stringify(clear) };
+  });
+  assert.equal(answered, 3); assert.equal(executed, 0);
+  const other = await s.store.create('Other', 'source', s.cwd);
+  assert.equal((await s.store.get(other)).hold, null);
+});
+
+test('direct failure routing refuses an uncleared failure exchange', () => run({ verify: ['fail'] }, async ({ store, cwd }) => {
+  const id = await store.create('Build', 'source', cwd, { kind: 'delivery' });
+  await assert.rejects(drive(store, id, { ...quiet, call: options => {
+    if (/You are the Arbiter, in read-only intake/.test(options.system)) throw new Error('Pause at the failure intake');
+    return { output: JSON.stringify(clear) };
+  } }), /Pause at the failure intake/);
+  const w = await store.get(id), f = w.failures[0];
+  await assert.rejects(store.rule(id, f.id, { cause: 'implementation', answer: 'Bypass attempt', by: 'Arbiter' }), /NQ must clear/);
+  assert.equal((await store.get(id)).round, 0);
+}));
+
+test('execution launch history records the actual Codex session, not its reserved call UUID', async t => {
+  const s = await fixture(t), original = process.env.PI_DURABLE_CODEX;
+  t.after(() => { if (original === undefined) delete process.env.PI_DURABLE_CODEX; else process.env.PI_DURABLE_CODEX = original; });
+  const binary = join(s.root, 'fake-codex.mjs');
+  await writeFile(binary, `#!/usr/bin/env node
+for await (const chunk of process.stdin) {}
+for (const event of [
+  {type:'thread.started',thread_id:'actual-execution-thread'},
+  {type:'item.completed',item:{type:'agent_message',text:'Inspected the source.'}},
+  {type:'turn.completed'}
+]) console.log(JSON.stringify(event));
+`, { mode: 0o755 });
+  process.env.PI_DURABLE_CODEX = binary;
+  const id = await s.store.create('Inspect', 'source', s.cwd);
+  await s.store.brief(id, 'Inspect only'); const x = await s.store.delegate(id, 'worker');
+  await s.store.nq(id, x, clear, 'worker');
+  const attemptId = await s.store.begin(id, 'worker', { ...card, harness: 'codex' }, 'read');
+  await s.store.execute(id, attemptId);
+  const w = await s.store.get(id), a = w.attempts[0], c = w.calls.find(c => c.id === a.callId);
+  assert.equal(a.status, 'reported'); assert.equal(a.harnessSession, 'actual-execution-thread');
+  assert.equal(a.runs[0].sessionId, 'actual-execution-thread');
+  assert.equal(c.runs[0].sessionId, 'actual-execution-thread');
 });

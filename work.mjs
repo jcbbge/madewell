@@ -92,7 +92,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
           const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
           if (resumed && a.runs?.at(-1) && !a.runs.at(-1).endedAt) Object.assign(a.runs.at(-1), { outcome: 'interrupted', interruptedAt: Date.now() });
           a.status = 'running'; a.startedAt ??= Date.now(); a.endedAt = null; a.launches = (a.launches ?? 0) + 1;
-          a.runs = [...(a.runs ?? []), { n: a.launches, callId: a.callId, card: a.card, sessionId: a.harnessSession ?? a.sessionId,
+          a.runs = [...(a.runs ?? []), { n: a.launches, callId: a.callId, card: a.card, sessionId: a.harnessSession ?? (a.card.harness === 'codex' ? null : a.sessionId),
             startedAt: Date.now(), endedAt: null, pid: null, exit: null, where: null, record: join('attempts', attemptId, launchName(a)) }];
           syncAttempt(w, a);
           event(w, resumed ? 'redriven' : 'started', { attemptId, step: a.step });
@@ -144,9 +144,10 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
           // Codex names its session only once it starts: keep it now, so a crash can still continue it.
           if (card.harness === 'codex' && entry.type === 'thread.started' && entry.thread_id) {
             queue = queue.then(() => runtime.commit(async tx => {
-              (await tx.doc(Work, workId)).attempts.find(a => a.id === attemptId).harnessSession = entry.thread_id;
+              const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
+              a.harnessSession = a.runs.at(-1).sessionId = entry.thread_id; syncAttempt(w, a);
               return { status: 'running', checkpoint: { phase: 'execute' } };
-            }, ctx));
+            }, ctx)).then(() => publish(workId));
             return;
           }
           const p = entry.type === 'tool_execution_end' && entry.toolName === 'durable_progress' && !entry.isError ? entry.result?.details?.durableProgress : null;
@@ -173,7 +174,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
           const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
           a.endedAt = Date.now(); a.exitCode = result.code; a.output = result.output;
           a.harnessSession = result.sessionId ?? a.harnessSession ?? null;
-          a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, endedAt: a.endedAt, exit: result.signal ?? result.code, toolCalls: result.toolCalls, card, where: result.where ?? r.where } : r);
+          a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, sessionId: result.sessionId ?? r.sessionId, endedAt: a.endedAt, exit: result.signal ?? result.code, toolCalls: result.toolCalls, card, where: result.where ?? r.where } : r);
           a.limit = result.limit ?? null;
           a.status = result.ok ? 'reported' : 'failed';
           a.error = result.ok ? '' : result.limit ? `usage limit: ${result.limit.message}`
