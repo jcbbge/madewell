@@ -55,9 +55,11 @@ test('pi registration: replaces only known Made Well sources, preserves unrelate
   assert.deepEqual(JSON.parse(await readFile(door.settings, 'utf8')), { theme: 'personal', packages: [other, repo] });
   assert.equal(piPackageState(door), 'installed');
   assert.equal((await registerPi(door)).action, 'present');
-  await writeFile(door.settings, '{bad');
-  await assert.rejects(registerPi(door, { yes: true }), /Invalid pi settings/);
-  assert.equal(await readFile(door.settings, 'utf8'), '{bad', 'never destroy malformed user settings');
+  for (const invalid of ['{bad', 'null', '[]', '{"packages":{}}']) {
+    await writeFile(door.settings, invalid);
+    await assert.rejects(registerPi(door, { yes: true }), /Invalid pi settings/);
+    assert.equal(await readFile(door.settings, 'utf8'), invalid, 'never destroy malformed user settings');
+  }
 });
 
 test('doctor: exact command, duplicate/stale pi sources and filtered extension are not a clean install', async t => {

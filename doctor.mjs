@@ -77,7 +77,8 @@ export function madeWellPackage(entry, door) {
 export function piPackageState(door) {
   let settings;
   try { settings = JSON.parse(readFileSync(door.settings, 'utf8')); } catch (error) { return error.code === 'ENOENT' ? 'missing' : 'invalid'; }
-  if (settings.packages !== undefined && !Array.isArray(settings.packages)) return 'invalid';
+  if (!settings || Array.isArray(settings) || typeof settings !== 'object'
+    || (settings.packages !== undefined && !Array.isArray(settings.packages))) return 'invalid';
   const entries = (settings.packages ?? []).map(entry => ({ entry, match: madeWellPackage(entry, door) })).filter(e => e.match);
   if (!entries.length) return 'missing';
   if (entries.length > 1) return 'duplicate';
