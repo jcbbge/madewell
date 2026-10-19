@@ -2,9 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STEPS, provisionPacket, CAUSES, DISPATCHER, SUBAGENT_RULE } from './work.mjs';
+import { STEPS, identity, CAUSES, DISPATCHER, SUBAGENT_RULE, WORKER_CHANNEL_GUIDE } from './work.mjs';
 import { ARBITER } from './pi-runtime.mjs';
-import { callCard } from './pi-call.mjs';
 import { parseResponse } from './pi-stream.mjs';
 import { currentExchange, findExchange, isStep } from './nq.mjs';
 import { loadPrescriptions, cardsFor, pickCard, installed } from './cards.mjs';
@@ -25,6 +24,7 @@ const guidance = {
   verify: 'Run only the commands in your packet\'s testPlan.scripts, in order, from the workspace; before each, check its file\'s sha256 against the packet and report a mismatch as a failure for this work unit, in order: never the whole suite. You execute: you do not fix, retry, broaden or invent commands, and never edit product code or tests. End your answer with ONLY a JSON object on its own: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.',
 };
 
+class ReplacementIntake extends Error {}
 class QuotaOut extends Error {
   constructor(job, resetsAt) {
     super(`${job}: every account on its cards is out of quota${Number.isFinite(resetsAt) ? ` until ${new Date(resetsAt).toISOString()}` : ''}`);
@@ -41,9 +41,9 @@ function overrideCard(model) {
 
 // Walks one thread through its phases until it is done or a human is needed.
 // Every job runs on the card its prescription picks; a usage limit moves it to another provider account.
-export async function drive(store, id, { model = '', prescriptions = loadPrescriptions(), call = callCard, log = console.log } = {}) {
+export async function drive(store, id, { model = '', prescriptions = loadPrescriptions(), call, log = console.log } = {}) {
   const foundation = await readFile(join(home, 'FOUNDATION.md'), 'utf8');
-  const record = name => join(store.directory, 'calls', `${name}-${randomUUID()}`);
+  let lastCallId = null;
   // Only cards whose harness is installed here count; a tier with none installed is a clear error, not a hang.
   const cardsOf = (job, fromJob) => {
     if (model) return [overrideCard(model)];
@@ -69,24 +69,27 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
     await store.note(id, 'quota', { account: limit.account, resetsAt, message: limit.message, where });
     log(`${where}: ${limit.account} is out of quota until ${new Date(resetsAt).toISOString()}`);
   };
-  // Every judgment call lands on the timeline with who, what, on which card and how long.
-  const timed = async (kind, stepName, options) => {
-    const startedAt = Date.now(), rec = options.record, card = `${options.card.harness} · ${options.card.model}`;
-    try {
-      const result = await call(options);
-      await store.note(id, 'call', { kind, step: stepName, card, startedAt, endedAt: Date.now(), ms: Date.now() - startedAt, ok: !result.limit, limit: Boolean(result.limit), record: rec });
-      return result;
-    } catch (error) {
-      await store.note(id, 'call', { kind, step: stepName, card, startedAt, endedAt: Date.now(), ms: Date.now() - startedAt, ok: false, error: error.message, record: rec });
-      throw error;
-    }
-  };
-  // A judgment call on its job's card. A usage limit swaps to the next card on another account.
-  const judge = async (kind, stepName, job, fromJob, { name, ...options }) => {
+  // Every judgment has a stable exchange/turn identity and a saved Pi Durable result.
+  // Source answers prefer the actual sender card, not today's first card in its former tier.
+  const judge = async (kind, stepName, job, fromJob, { name, exchangeId, ...options }) => {
+    const w = await store.get(id), x = w.exchanges.find(x => x.id === exchangeId) ?? findExchange(w, x => x.step === stepName);
+    if (!x) throw new Error(`No exchange for ${kind}`);
+    const pinned = kind === 'originator' ? x.sender?.card : x.receiver?.card;
     const avoid = [];
     for (;;) {
-      const card = await pick(job, fromJob, avoid);
-      const result = await timed(kind, stepName, { ...options, record: record(name), card, access: accessOf(job), readDirs: [store.directory] });
+      const exhausted = await store.exhausted();
+      const card = pinned && !avoid.includes(pinned.account) && !(exhausted[pinned.account] > Date.now())
+        ? pinned : await pick(job, fromJob, [...avoid, ...(pinned ? [pinned.account] : [])]);
+      if (!installed(card)) throw new Error(`Recorded sender harness ${card.harness} is unavailable`);
+      if (kind !== 'originator' && x.status === 'clear' && pinned && identity(card) !== identity(pinned)) {
+        await store.replaceReceiver(id, x.id, card);
+        throw new ReplacementIntake();
+      }
+      const key = `${x.id}:${x.turns.length}:${kind}:${identity(card)}`;
+      const result = await store.call(id, { key, kind, step: stepName, job, actor: kind === 'originator' ? x.originator : x.worker,
+        exchangeId: x.id, card, options: { ...options, access: accessOf(job), readDirs: [store.directory] } }, call);
+      lastCallId = result.callId;
+      if (result.needsIntake) throw new ReplacementIntake();
       if (!result.limit) return result.output;
       await outOf(result.limit, `${kind} for ${stepName}`);
       avoid.push(result.limit.account, card.account);
@@ -102,14 +105,34 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
   try {
     while (true) {
       let w = await store.get(id);
-      if (w.completion === 'discovered') return finish('discovered', `Discovery found ${w.items.length} item(s); they wait their turn for delivery.`);
+      if (w.archived) return finish('archived', w.archiveReason);
+      if (w.hold) { await store.alertPending(id); return finish('held', w.hold.reason); }
       if (w.completion) {
+        // Returning to the original dispatcher is a handoff, not another reviewer job.
+        if (!w.parentId && !w.returnAccepted) {
+          const rx = findExchange(w, x => x.subject?.kind === 'return');
+          if (!rx) { await store.delegateReturn(id); continue; }
+          if (rx.status === 'awaiting-worker') {
+            const reply = parseResponse(await judge('return-intake', 'return', 'intake', 'discover', { cwd: w.cwd, exchangeId: rx.id, name: 'return',
+              system: 'You are the dispatcher receiving the final report, in read-only intake. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. Ask only unresolved questions about the delivered report against the source. Do not redo the work or invent more scope.',
+              packet: await store.returnPacket(id) }));
+            await store.returnReply(id, { action: reply.questions?.length ? 'question' : 'clear', actor: rx.worker, text: reply.intent,
+              questions: reply.questions, notes: reply.notes }, lastCallId); continue;
+          }
+          if (rx.status === 'awaiting-originator') {
+            const reply = parseResponse(await judge('originator', 'return', 'originator', rx.sender?.job ?? 'discover', { cwd: w.cwd, exchangeId: rx.id, name: 'return-answer',
+              system: originatorSystem(rx.originator), packet: await store.returnPacket(id) }));
+            await store.answer(id, rx.id, rx.originator, reply.answer, reply.same, lastCallId); continue;
+          }
+          if (rx.status === 'clear') { await store.returnReply(id, { action: 'accepted', actor: rx.worker }); continue; }
+          return finish('question', `return: exchange ${rx.id} is ${rx.status}`);
+        }
+        if (w.completion === 'discovered') return finish('discovered', `Discovery found ${w.items.length} item(s); they wait their turn for delivery.`);
         if (!w.parentId) return finish('complete', 'All phases handed off; tests pass.');
         log(`prerequisite ${id} complete; returning to thread ${w.parentId}`);
         await store.release(w.parentId); id = w.parentId; continue;
       }
       if (w.waitsOn) { log(`thread ${id} waits on prerequisite ${w.waitsOn}`); id = w.waitsOn; continue; }
-      if (w.hold) { await store.alertPending(id); return finish('held', w.hold.reason); }
 
       const open = w.failures.find(f => f.status === 'open');
       if (open) {
@@ -118,22 +141,22 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
         if (!fx) { await store.delegateFailure(id, open.id, `Arbiter-${randomUUID()}`); continue; }
         if (fx.status === 'awaiting-originator') {
           const failed = w.attempts.find(a => a.id === open.attemptId);
-          const reply = parseResponse(await judge('originator', 'arbitrate', 'originator', open.step, { cwd: w.cwd, name: 'arbitrate-originator',
-            system: originatorSystem(fx.originator), prompt: await provisionPacket(store.directory, randomUUID(), await store.failurePacket(id, open.id)) }));
+          const reply = parseResponse(await judge('originator', 'arbitrate', 'originator', open.step, { cwd: w.cwd, exchangeId: fx.id, name: 'arbitrate-originator',
+            system: originatorSystem(fx.originator), packet: await store.failurePacket(id, open.id) }));
           log(`arbiter: ${failed?.role ?? fx.originator} answers the Arbiter's questions`);
-          await store.answer(id, fx.id, fx.originator, reply.answer);
+          await store.answer(id, fx.id, fx.originator, reply.answer, reply.same, lastCallId);
           continue;
         }
-        if (fx.status === 'awaiting-worker' || fx.status === 'clear') {
-          const verdict = fx.status === 'clear' ? { ...(fx.turns.at(-1)?.ruling ?? { cause: 'undetermined', answer: 'The ruling was lost.', evidence: '' }) }
-            : await arbitrate(w, open, fx.turns, { ask: options => judge('arbiter', 'verify', 'arbitrate', undefined, options) });
-          if (verdict.questions) {
-            await store.nq(id, fx.id, { intent: 'Arbiter intake', questions: verdict.questions }, fx.worker);
-            log('arbiter: asks the failing step a question');
-            continue;
-          }
-          if (fx.status === 'awaiting-worker') await store.nq(id, fx.id, { intent: `ruling: ${verdict.cause}`, questions: [], ruling: verdict }, fx.worker);
-          const routed = await store.rule(id, open.id, verdict);
+        if (fx.status === 'awaiting-worker') {
+          const reply = parseResponse(await judge('arbiter-intake', 'arbitrate', 'intake', 'arbitrate', { cwd: w.cwd, exchangeId: fx.id, name: 'arbiter-intake',
+            system: 'You are the Arbiter, in read-only intake before ruling. Do not run tests or decide the cause yet. Return ONLY JSON {intent:string, questions:string[], notes:string[]}.',
+            packet: await store.failurePacket(id, open.id, 'nq') }));
+          await store.nq(id, fx.id, reply, fx.worker, lastCallId); continue;
+        }
+        if (fx.status === 'clear') {
+          const verdict = await arbitrate(w, open, fx.turns, { ask: options => judge('arbiter', 'arbitrate', 'arbitrate', undefined, { ...options, exchangeId: fx.id }) });
+          if (verdict.questions) { await store.reopenQuestion(id, fx.id, verdict.questions, lastCallId); continue; }
+          const routed = await store.rule(id, open.id, verdict, lastCallId);
           log(`arbiter: ${routed.cause}${routed.prerequisite ? ` → prerequisite thread ${routed.prerequisite}` : ''}`);
           continue;
         }
@@ -142,17 +165,20 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
 
       const step = STEPS[w.position];
       if (!w.briefs[step.name]) {
-        await store.brief(id, `${step.role}: ${guidance[step.name]}\n\nThe objective and source in the packet define the request; accepted contributions are your dossier. If questionsForYou is not empty, answering it is your assignment this round. Honor the workspace's own instructions. No deployment, commits or new services without authority in the source. Report tangible results and evidence. ${SUBAGENT_RULE}\n\nGoverning foundation:\n${foundation}`);
+        await store.brief(id, `${step.role}: ${guidance[step.name]}\n\nThe objective and source in the packet define the request; accepted contributions are your dossier. If questionsForYou is not empty, answering it is your assignment this round. Honor the workspace's own instructions. No deployment, commits or new services without authority in the source. Report tangible results and evidence. ${SUBAGENT_RULE} ${WORKER_CHANNEL_GUIDE}\n\nGoverning foundation:\n${foundation}`);
         continue;
       }
       const attempt = w.attempts.findLast(a => a.step === step.name && a.round === w.round);
+      if (attempt?.status === 'replacement-intake' && currentExchange(w, step.name)?.status === 'clear') {
+        await store.continueReplacement(id, attempt.id); continue;
+      }
       if (attempt && ['queued', 'running'].includes(attempt.status)) { log(`${step.name}: resuming ${attempt.id}`); await store.execute(id, attempt.id); continue; }
       if (attempt?.status === 'failed' && attempt.limit) {
         await outOf(attempt.limit, step.name, attempt.endedAt ?? Date.now());
         const card = await pick(step.name, undefined, [attempt.limit.account, attempt.card.account]);
         await store.swap(id, attempt.id, card);
         log(`${step.name}: continuing on ${card.harness} · ${card.model}`);
-        await store.execute(id, attempt.id); continue;
+        continue;
       }
       if (attempt?.status === 'failed') {
         if ((attempt.launches ?? 0) >= MAX_LAUNCHES) return finish('worker-failing', `${step.name}: worker failed ${attempt.launches} times: ${attempt.error}`);
@@ -175,10 +201,10 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
             if (rx.status === 'awaiting-worker' && rx.turns.at(-1)?.type === 'human' && attempt.restatedFor !== rx.turns.length) { await restate(); continue; }
             if (rx.status === 'awaiting-worker') {
               const asked = parseResponse(await judge('refusal', next.name, 'intake', next.name, { cwd: w.cwd, name: `${next.name}-refusal`, system: REFUSAL_SYSTEM,
-                prompt: await provisionPacket(store.directory, randomUUID(), await store.refusalPacket(id, attempt.id)) }));
+                exchangeId: rx.id, packet: await store.refusalPacket(id, attempt.id) }));
               const questions = (Array.isArray(asked.questions) ? asked.questions : []).filter(q => typeof q === 'string' && q.trim());
               await store.nq(id, rx.id, { intent: typeof asked.intent === 'string' && asked.intent.trim() ? asked.intent : 'The hand-off lacks required parts.',
-                questions: questions.length ? questions : missing.map(m => `The hand-off lacks: ${m}. Restate the complete deliverable with it.`), notes: asked.notes }, rx.worker);
+                questions: questions.length ? questions : missing.map(m => `The hand-off lacks: ${m}. Restate the complete deliverable with it.`), notes: asked.notes }, rx.worker, lastCallId);
               continue;
             }
             if (rx.status === 'awaiting-originator') { await restate(); continue; }
@@ -208,15 +234,15 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
 
       // NQ before execution: the worker states its understanding; whoever handed it the work answers.
       let x = currentExchange(w, step.name);
-      if (!x || w.attempts.some(a => a.actor === x.worker && a.round === w.round && a.step === step.name)) {
+      if (!x || w.attempts.some(a => a.actor === x.worker && a.round === w.round && a.step === step.name && a.status !== 'replacement-intake')) {
         await store.delegate(id, `${step.role}-${randomUUID()}`);
         continue;
       }
       if (x.status === 'awaiting-worker') {
         const reply = await judge('intake', step.name, 'intake', step.name, { cwd: w.cwd, name: `${step.name}-nq`,
           system: 'You are the assigned worker for this step, in read-only intake before you execute. Do not infer your execution tools from the limited tools in this intake: test-plan execution has bash/write/edit; verify execution has bash. The coordinator handles reassignment, not the worker. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. questions: only what blocks you from executing and cannot be settled from the packet, the workspace or the answers already in the exchange; never repeat a question the exchange has answered. notes: your assumptions and anything already settled; notes never block. An empty questions array confirms readiness.',
-          prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'nq')) });
-        await store.nq(id, x.id, parseResponse(reply), x.worker);
+          packet: await store.packet(id, 'nq') });
+        await store.nq(id, x.id, parseResponse(reply), x.worker, lastCallId);
         continue;
       }
       if (x.status === 'awaiting-originator') {
@@ -228,49 +254,55 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
           const fromJob = o.step ?? (o.role === ARBITER.role ? 'arbitrate' : 'discover');
           const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, name: `${step.name}-originator`,
             system: originatorSystem(x.originator, true),
-            prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
+            packet: await store.packet(id, 'originator') }));
           if (reply.unresolvedAuthority) {
             // Only the operator holds authority, but the operator's source is on hand: the dispatcher reads it
             // first. The work holds for the operator only when the source cannot settle it.
-            if (x.originator === DISPATCHER) await store.holdQuestion(id, x.id, reply.answer, 'authority');
-            else await store.delegateAuthority(id, x.id, x.originator, `dispatcher-${randomUUID()}`, reply.answer);
+            if (x.originator === DISPATCHER) await store.answer(id, x.id, x.originator, reply.answer, reply.same, lastCallId);
+            else await store.delegateAuthority(id, x.id, x.originator, `dispatcher-${randomUUID()}`, reply.answer, lastCallId);
             continue;
           }
-          await store.answer(id, x.id, x.originator, reply.answer, reply.same);
+          await store.answer(id, x.id, x.originator, reply.answer, reply.same, lastCallId);
           continue;
         }
         if (ax.status === 'awaiting-worker') {
-          const ruled = parseResponse(await judge('authority', step.name, 'originator', 'discover', {
+          const reply = parseResponse(await judge('authority-intake', step.name, 'intake', 'discover', { cwd: w.cwd, exchangeId: ax.id, name: 'authority-intake',
+            system: 'You are the dispatcher, in read-only authority intake before deciding. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. Do not decide authority yet.',
+            packet: await store.authorityPacket(id, ax.id, 'nq') }));
+          await store.nq(id, ax.id, reply, ax.worker, lastCallId); continue;
+        }
+        if (ax.status === 'clear' && !ax.decision) {
+          const ruled = parseResponse(await judge('authority', step.name, 'originator', 'discover', { exchangeId: ax.id,
             cwd: w.cwd, name: `${step.name}-authority`, system: AUTHORITY_SYSTEM,
-            prompt: await provisionPacket(store.directory, randomUUID(), JSON.stringify({ purpose: 'authority', threadId: w.id, workspace: w.cwd,
+            packet: JSON.stringify({ purpose: 'authority', threadId: w.id, workspace: w.cwd,
               objective: w.objective, source: w.source, questions: x.turns.at(-1)?.questions ?? [], handoff: ax.subject.handoff, exchange: ax.turns,
-              instruction: 'The handoff file holds what the originator said. Decide from the objective and source only. If you cannot decide without asking the originator what it meant, return ONLY JSON {"questions":[string]}.' })) }));
-          if (Array.isArray(ruled.questions) && ruled.questions.some(q => typeof q === 'string' && q.trim())) await store.nq(id, ax.id, { intent: 'Dispatcher intake', questions: ruled.questions }, ax.worker);
-          else await store.nq(id, ax.id, { intent: `ruling: ${ruled.unresolvedAuthority ? 'the operator decides' : 'authorized by the source'}`, questions: [], ruling: ruled }, ax.worker);
+              instruction: 'The handoff file holds what the originator said. Decide from the objective and source only. If you cannot decide without asking the originator what it meant, return ONLY JSON {"questions":[string]}.' }) }));
+          if (Array.isArray(ruled.questions) && ruled.questions.some(q => typeof q === 'string' && q.trim())) await store.reopenQuestion(id, ax.id, ruled.questions, lastCallId);
+          else await store.decision(id, ax.id, ruled, lastCallId);
           continue;
         }
         if (ax.status === 'awaiting-originator') {
           // The dispatcher's question goes back to the originator, on the originator's own card.
           const o = await store.originator(id);
-          const reply = parseResponse(await judge('originator', step.name, 'originator', o.step ?? 'discover', { cwd: w.cwd, name: `${step.name}-originator`,
-            system: originatorSystem(ax.originator), prompt: await provisionPacket(store.directory, randomUUID(), await store.authorityPacket(id, ax.id)) }));
+          const reply = parseResponse(await judge('originator', step.name, 'originator', o.step ?? (o.role === ARBITER.role ? 'arbitrate' : 'discover'), { cwd: w.cwd, exchangeId: ax.id, name: `${step.name}-originator`,
+            system: originatorSystem(ax.originator), packet: await store.authorityPacket(id, ax.id) }));
           // Nothing escalates further: if this answer also needs the operator, the parent hand-off holds.
-          if (reply.unresolvedAuthority) await store.holdQuestion(id, x.id, reply.answer, 'authority');
-          else await store.answer(id, ax.id, ax.originator, reply.answer);
+          await store.answer(id, ax.id, ax.originator, reply.answer, reply.same, lastCallId);
           continue;
         }
-        const ruling = ax.turns.at(-1)?.ruling ?? { answer: '', unresolvedAuthority: true };
-        if (ruling.unresolvedAuthority) { await store.holdQuestion(id, x.id, ruling.answer, 'authority'); continue; }
+        const ruling = ax.decision ?? { answer: '', unresolvedAuthority: true };
+        if (ruling.unresolvedAuthority) { await store.answer(id, x.id, x.originator, `${ax.subject.handoff}\n\nNot authorized by the operator source: ${ruling.answer}`); continue; }
         await store.answer(id, x.id, x.originator, `${ax.subject.handoff}\n\nAuthority, settled by the dispatcher from the operator's source: ${ruling.answer}`);
         continue;
       }
       if (x.status !== 'clear') return finish('question', `${step.name}: exchange ${x.id} is ${x.status}`);
-      const card = await pick(step.name);
+      const card = x.receiver?.card ?? await pick(step.name);
       const attemptId = await store.begin(id, x.worker, card, accessOf(step.name));
       log(`${step.name}: ${step.role} working on ${card.harness} · ${card.model} (${attemptId})`);
       await store.execute(id, attemptId);
     }
   } catch (error) {
+    if (error instanceof ReplacementIntake) return drive(store, id, { model, prescriptions, call, log });
     if (error instanceof QuotaOut) return { ...await finish('out-of-quota', error.message), resetsAt: error.resetsAt };
     throw error;
   }
@@ -307,7 +339,7 @@ async function arbitrate(w, failure, exchange, { ask }) {
     if (Array.isArray(verdict.questions) && verdict.questions.some(q => typeof q === 'string' && q.trim())) return { questions: verdict.questions.filter(q => typeof q === 'string' && q.trim()) };
     return { cause: CAUSES.includes(verdict.cause) ? verdict.cause : 'undetermined', answer: verdict.answer ?? '', evidence: verdict.evidence ?? '', by: ARBITER.role };
   } catch (error) {
-    if (error instanceof QuotaOut) throw error;
+    if (error instanceof QuotaOut || error instanceof ReplacementIntake || error.callId) throw error;
     return { cause: 'undetermined', answer: `Arbiter could not rule: ${error.message}`, evidence: '', by: ARBITER.role };
   }
 }

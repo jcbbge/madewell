@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { openStore, STEPS } from '../work.mjs';
 import { drive } from '../drive.mjs';
 import { runQueue } from '../queue.mjs';
+import { killMarked } from './drive-helpers.mjs';
 
 const fake = fileURLToPath(new URL('./fake-pi.mjs', import.meta.url));
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
@@ -283,8 +284,9 @@ test('NQ: a clear intake executes immediately with zero originator calls', t => 
   assert.equal(w.events.filter(e => e.type === 'call' && e.kind === 'originator').length, 0);
 }));
 
-test('crash: kill -9 the driver mid-implementation; driving again continues the same pi session', async () => {
+test('crash: kill -9 the driver mid-implementation; driving again continues the same pi session', async t => {
   const s = await setup({ hang: { Sirius: 1 } });
+  t.after(() => killMarked(s.dir));
   const env = { ...process.env, WORK_DATA: s.dir };
   let store = await openStore(s.dir);
   const id = await store.create('Build it', 'source', s.cwd, { kind: 'delivery' });
@@ -293,7 +295,8 @@ test('crash: kill -9 the driver mid-implementation; driving again continues the 
   let hung;
   for (let i = 0; i < 200 && !hung; i++) {
     await new Promise(r => setTimeout(r, 100));
-    hung = (await readFile(s.state + '.log', 'utf8').catch(() => '')).split('\n').filter(Boolean).map(l => JSON.parse(l)).find(e => e.hanging === 'Sirius');
+    // The producer may still be appending its final JSONL record: consume only terminated lines.
+    hung = (await readFile(s.state + '.log', 'utf8').catch(() => '')).split('\n').slice(0, -1).filter(Boolean).map(l => JSON.parse(l)).find(e => e.hanging === 'Sirius');
   }
   assert.ok(hung, 'implementer started');
   first.kill('SIGKILL'); process.kill(hung.pid, 'SIGKILL');
