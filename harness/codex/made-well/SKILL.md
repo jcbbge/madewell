@@ -9,9 +9,8 @@ Made Well runs one unit of work through separate agents, one per phase, and keep
 on disk. You do not do the phases yourself. You start the unit, let it run in the background, report
 its state in plain words, and pass the person's answers back when it waits on them.
 
-Every command below is `pi-durable`. If that is not on PATH, use exactly this instead:
-
-    {{cli}}
+Every command below is `pi-durable`, resolved through PATH. If it is missing, repair the global
+installation; never substitute a checkout-specific absolute path.
 
 Always pass `--workspace <dir>`: the folder the work is about. Every command then uses that
 workspace's record, the same one pi and Claude Code see.
@@ -21,7 +20,17 @@ workspace's record, the same one pi and Claude Code see.
 Write the source to a file: the person's request in their own words, then the facts, paths, scope,
 constraints and what "done" means (checks of the work itself, never `pi-durable doctor`: see DISPATCH.md). Then:
 
-        pi-durable start --objective "<one line>" --source-file <file> --workspace <dir>
+        pi-durable start --objective "<one line>" --source-file <file> --dispatcher-file <sender.json> --request-id <stable-id> --workspace <dir>
+
+`sender.json` records your own provenance: `actor`, `harness`, `provider`, `model`, `sessionId`,
+and `card` (the actual account/effort/model selection when known). Unknown fields are null;
+never substitute the receiving worker's identity. Preserve the source verbatim, not a summary.
+Reuse the same request ID only when retrying the same call; it deduplicates busy and idle intake.
+
+The dispatcher → first worker handoff starts NQ, like every agent-to-agent interaction.
+The receiving worker confirms understanding or asks; the originating dispatcher answers from
+the person's source. After three answered turns, remaining questions hold that work for the
+person. A human answer still requires the receiver's confirmation before execution.
 
 It prints the unit's `id` and starts the runner in the background. Discovery splits the request
 into items; each item joins the delivery queue and runs on its own, oldest discovery first. Nobody
@@ -60,6 +69,18 @@ For a failed check, the answer must name its cause, one of:
 - `test` - the check was wrong; the check designer writes it again
 
         pi-durable answer <id> <answer-file> implementation --workspace <dir>
+
+## Receive a report
+
+A final agent report returned to you is another NQ handoff, not merely a status read. Inspect
+its return exchange with `show`, then use the same record and your original actor:
+
+    pi-durable return clear <id> <understanding.txt> --actor <actor> --request-id <stable-id> --workspace <dir>
+    pi-durable return question <id> <questions.txt> --actor <actor> --request-id <stable-id> --workspace <dir>
+
+The report's originating agent answers questions; the receiver confirms understanding. Three
+answered turns with open questions hold only that work. Deterministic status reads need no
+extra agent or reviewer. `return answered` is for the originating agent's answer, not the receiver.
 
 ## Inspect or resume
 

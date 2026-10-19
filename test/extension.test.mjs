@@ -5,8 +5,6 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { publishWork } from '../observe.mjs';
 
-process.env.PI_DURABLE_PORT = '0'; // the session's dashboard takes any free port, never the operator's
-
 const load = async () => (await import('../pi-extension.ts')).default;
 const fakePi = () => {
   const handlers = {}, tools = [], commands = [];
@@ -66,4 +64,62 @@ test('durable_work status carries each hold (cause, reason, who handed over, who
     if (before === undefined) delete process.env.WORK_DATA; else process.env.WORK_DATA = before;
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('pi start sends full source and actual dispatcher provenance, every mutation has its stable call ID', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'mw-extension-')), previous = process.env.WORK_DATA;
+  process.env.WORK_DATA = join(root, 'data');
+  const calls = [], handlers = {}, tools = [];
+  const api = { on: (e, fn) => { (handlers[e] ??= []).push(fn); }, registerTool: tool => tools.push(tool), registerCommand() {},
+    appendEntry() {}, sendMessage() {}, getThinkingLevel: () => 'high' };
+  const turns = [{ type: 'message', message: { role: 'user', content: 'Keep this exact wording.\n' } },
+    { type: 'message', message: { role: 'assistant', content: 'Not operator source' } },
+    { type: 'message', message: { role: 'user', content: [{ type: 'text', text: 'And this second turn.' }] } }];
+  const ctx = { cwd: root, hasUI: false, model: { provider: 'vendor', id: 'dispatch-model' },
+    sessionManager: { getBranch: () => turns, getSessionId: () => 'dispatch-session' } };
+  const call = async (file, args, input, directory) => { calls.push({ file, args, input, directory }); return file === 'cli.mjs' ? { running: true } : { queued: true, requestId: input.requestId }; };
+  t.after(async () => {
+    for (const fn of handlers.session_shutdown ?? []) await fn({}, ctx);
+    if (previous === undefined) delete process.env.WORK_DATA; else process.env.WORK_DATA = previous;
+    await rm(root, { recursive: true, force: true });
+  });
+  (await load())(api, { call });
+  for (const fn of handlers.session_start) await fn({}, ctx);
+  const tool = tools[0];
+  for (let i = 0; i < 2; i++) {
+    const out = await tool.execute('create-call', { action: 'start', objective: 'Work', context: 'Exact context.' }, undefined, undefined, ctx);
+    assert.equal(JSON.parse(out.content[0].text).queued, true);
+    assert.match(JSON.parse(out.content[0].text).note, /busy/);
+  }
+  const starts = calls.filter(c => c.input?.action === 'create');
+  assert.deepEqual(starts[0], starts[1]);
+  assert.equal(starts[0].input.requestId, 'dispatch-session:create-call');
+  assert.equal(starts[0].input.source, 'User conversation (verbatim):\n[User turn 1]\nKeep this exact wording.\n\n\n[User turn 2]\nAnd this second turn.\n\nContext:\nExact context.');
+  assert.deepEqual(starts[0].input.dispatcher, { actor: 'pi:dispatch-session', job: 'dispatcher', harness: 'pi', provider: 'vendor', model: 'dispatch-model',
+    sessionId: 'dispatch-session', card: { harness: 'pi', provider: 'vendor', model: 'dispatch-model', effort: 'high', account: null }, effort: 'high', account: null });
+  for (const action of ['first', 'answer', 'return']) await tool.execute(`${action}-call`, { action, id: 7, text: 'Response', response: 'question', questions: ['Which evidence?'] }, undefined, undefined, ctx);
+  const changes = calls.filter(c => ['first', 'answer', 'return'].includes(c.input?.action));
+  assert.deepEqual(changes.map(c => c.input.requestId), ['dispatch-session:first-call', 'dispatch-session:answer-call', 'dispatch-session:return-call']);
+  assert.equal(changes.at(-1).input.actor, 'pi:dispatch-session');
+  assert.equal(changes.at(-1).input.response, 'question');
+  assert.equal(calls.filter(c => c.file === 'cli.mjs').length, 5, 'all starts, answers, priority and report returns continue the runner');
+});
+
+test('session startup never opens a web listener or installs a keep-alive server timer', async t => {
+  const { Server } = await import('node:net');
+  const listen = Server.prototype.listen;
+  let listeners = 0;
+  Server.prototype.listen = function () { listeners++; throw new Error('test refuses listeners'); };
+  const root = await mkdtemp(join(tmpdir(), 'mw-no-web-')), previous = process.env.WORK_DATA;
+  process.env.WORK_DATA = join(root, 'data');
+  const pi = fakePi(), ctx = { cwd: root, hasUI: false, sessionManager: { getBranch: () => [] } };
+  t.after(async () => {
+    for (const fn of pi.handlers.session_shutdown ?? []) await fn({}, ctx);
+    Server.prototype.listen = listen;
+    if (previous === undefined) delete process.env.WORK_DATA; else process.env.WORK_DATA = previous;
+    await rm(root, { recursive: true, force: true });
+  });
+  (await load())(pi.api);
+  for (const fn of pi.handlers.session_start) await fn({}, ctx);
+  assert.equal(listeners, 0);
 });

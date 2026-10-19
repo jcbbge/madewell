@@ -7,7 +7,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openStore, STEPS, CAUSES } from './work.mjs';
 import { drive } from './drive.mjs';
-import { submit, runQueue, runnerAlive } from './queue.mjs';
+import { submit, runQueue, runnerAlive, applyRequest, assertNotRelocating, relocateStore } from './queue.mjs';
+import { dispatcherProvenance, inspectWork } from './pi-bridge.mjs';
 import { observe, render, watchWork } from './observe.mjs';
 import { dataDirectory, workspaceDataDirectory } from './config.mjs';
 import { serve } from './serve.mjs';
@@ -21,6 +22,10 @@ const [command, ...given] = process.argv.slice(2);
 const at = given.indexOf('--workspace');
 const workspace = at >= 0 ? given[at + 1] : command === 'start' ? process.cwd() : null;
 const args = at >= 0 ? given.filter((_, i) => i !== at && i !== at + 1) : given;
+const requestAt = args.indexOf('--request-id');
+const requestId = requestAt < 0 ? randomUUID() : args[requestAt + 1];
+if (requestAt >= 0) args.splice(requestAt, 2);
+if (!requestId || requestId.startsWith('--')) { console.error('--request-id needs a stable ID'); process.exit(1); }
 const byWorkspace = workspace !== null && process.env.WORK_DATA === undefined;
 let directory;
 try { directory = byWorkspace ? workspaceDataDirectory(realpathSync(workspace)) : dataDirectory(); }
@@ -33,7 +38,13 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
                                    new work in that workspace (default: here): discovery splits it into items,
                                    which join the delivery queue and run on their own, oldest first
   first <id>                       deliver this discovery's items next (id: the discovery or any of its items)
+  return <clear|question|answered|human|accepted> <id> <text.txt> --actor <actor>
+                                   receive a final report through its NQ exchange (not another reviewer)
+  delegate open <assignment.json>   record coordinator-delegated work; never starts an agent
+  delegate <started|clear|question|answered|reported|accepted|sent-back|closed|human> <id> [text.txt] --actor <actor>
   run [--background]               the runner: discoveries as they come, then delivery items one at a time
+  workspace relocate --from <old-absolute-path> --to <existing-new-path>
+                                   rebind and move a stopped store; safe to retry after interruption
   create <objective.txt> <source.txt> <workspace>
   list | show <id> | report <id> | export <id>
   status [id] [--json] | watch [id] [--json]
@@ -48,6 +59,9 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   provision --host                 make Made Well how every agent session on this machine works (each harness's global instructions)
 
   --workspace <dir> on any command uses that workspace's store (the one pi uses there).
+  --request-id <id> reuses the same intake on a transport retry; never reuse it for a different request.
+  start --dispatcher-file <json> records the sending actor, harness, provider, model, card and sessionId.
+  Unknown dispatcher metadata stays null; it is never borrowed from the receiving worker.
 
 Store: ${directory}
 Phases: ${STEPS.map(s => `${s.name} (${s.role})`).join(' → ')}
@@ -72,12 +86,13 @@ async function background(childArgs, threadIds) {
 }
 
 function startOptions() {
-  const o = { objective: '', source: null, sourceFile: null };
+  const o = { objective: '', source: null, sourceFile: null, dispatcherFile: null };
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--delivery') continue; // no longer needed: delivery follows discovery on its own
     else if (args[i] === '--objective') o.objective = args[++i] ?? '';
     else if (args[i] === '--source') o.source = args[++i] ?? '';
     else if (args[i] === '--source-file') o.sourceFile = args[++i] ?? '';
+    else if (args[i] === '--dispatcher-file') o.dispatcherFile = args[++i] ?? '';
     else throw new Error(`Unknown option ${args[i]}`);
   }
   if (!o.objective.trim()) throw new Error('start needs --objective <text>');
@@ -107,6 +122,7 @@ async function ensureRunner() {
 
 let store;
 try {
+  if (!['workspace', 'status', 'watch', 'sidecar', 'serve', 'help', '--help', 'version', '--version', 'doctor', 'provision'].includes(command)) await assertNotRelocating(directory);
   if (command === '--version' || command === 'version') console.log(JSON.parse(await readFile(join(home, 'package.json'), 'utf8')).version);
   else if (!command || ['help', '--help'].includes(command)) console.log(usage);
   else if (command === 'serve') {
@@ -138,6 +154,42 @@ try {
     else await runSidecar({ width, workspace: scope });
   }
   else if (command === 'demo') await (await import('./demo.mjs')).runDemo();
+  else if (command === 'workspace') {
+    if (args.length !== 5 || args[0] !== 'relocate' || args[1] !== '--from' || args[3] !== '--to') throw new Error('workspace relocate needs --from <old-absolute-path> --to <existing-new-path>');
+    console.log(JSON.stringify(await relocateStore(args[2], args[4]), null, 2));
+  }
+  else if (command === 'delegate') {
+    const [verb, target, ...rest] = args;
+    if (verb === 'open') {
+      const input = JSON.parse(await readFile(target, 'utf8'));
+      if (input.briefFile) input.brief = await readFile(input.briefFile, 'utf8');
+      store = await openStore(directory);
+      console.log(JSON.stringify({ id: await store.openDelegated(input), store: directory }));
+    } else {
+      const verbs = ['started', 'clear', 'question', 'answered', 'reported', 'accepted', 'sent-back', 'closed', 'human'];
+      if (!verbs.includes(verb) || !Number.isSafeInteger(Number(target)) || Number(target) < 1) throw new Error('Supply a delegated action and positive work ID');
+      const actorAt = rest.indexOf('--actor');
+      if (actorAt < 0 || !rest[actorAt + 1]) throw new Error('--actor <actor> is required');
+      const files = rest.filter((_, i) => i !== actorAt && i !== actorAt + 1);
+      if (files.length !== (verb === 'closed' ? 0 : 1)) throw new Error('Supply one text file (none for closed)');
+      const input = { actor: rest[actorAt + 1], ...(files[0] ? { text: await readFile(files[0], 'utf8'), evidence: files[0] } : {}) };
+      store = await openStore(directory);
+      console.log(JSON.stringify(await store.delegated(Number(target), verb, input)));
+    }
+  }
+  else if (command === 'return') {
+    const [action, target, file, flag, actor] = args;
+    if (!['clear', 'question', 'answered', 'human', 'accepted'].includes(action) || !Number.isSafeInteger(Number(target)) || Number(target) < 1 || !file || flag !== '--actor' || !actor || args.length !== 5) throw new Error('return needs an action, positive ID, text file and --actor');
+    const result = await submit(directory, { type: 'return', id: Number(target), action, actor, text: await readFile(file, 'utf8'), requestId }, { accountsFile: accountsFile() });
+    console.log(JSON.stringify({ ...result, runner: await ensureRunner() }, null, 2));
+  }
+  else if (command === 'show' || command === 'report') {
+    const id = Number(args[0]);
+    if (!Number.isSafeInteger(id) || id <= 0 || args.length !== 1) throw new Error('Supply one positive work ID');
+    const w = await inspectWork(directory, id);
+    if (command === 'show') console.log(JSON.stringify(w, null, 2));
+    else console.log(typeof w.lastReport === 'string' ? w.lastReport : JSON.stringify(w.lastReport ?? w.record?.report ?? { readOnly: true, evidence: w.evidence, note: 'No full report in the published snapshot; inspect its evidence.' }, null, 2));
+  }
   else if (command === 'status') {
     const id = args.find(a => a !== '--json'), works = await observe(directory, id ? Number(id) : null);
     console.log(args.includes('--json') ? JSON.stringify(works, null, 2) : render(works));
@@ -157,7 +209,8 @@ try {
     const o = startOptions(), cwd = await realpath(workspace);
     const source = o.source ?? await readFile(o.sourceFile, 'utf8');
     if (!source.trim()) throw new Error('The source is empty');
-    const result = await submit(directory, { type: 'create', objective: o.objective, source, cwd }, { accountsFile: accountsFile() });
+    const dispatcher = dispatcherProvenance(o.dispatcherFile ? JSON.parse(await readFile(o.dispatcherFile, 'utf8')) : undefined);
+    const result = await submit(directory, { type: 'create', objective: o.objective, source, cwd, dispatcher, requestId }, { accountsFile: accountsFile() });
     const where = byWorkspace ? ` --workspace ${JSON.stringify(cwd)}` : '', id = result.id;
     console.log(JSON.stringify({ ...result, workspace: cwd, store: directory, runner: await ensureRunner(),
       ...(id ? { status: `pi-durable status ${id}${where}`, watch: `pi-durable watch ${id}${where}`, inspect: `pi-durable show ${id}${where}` } : { note: 'The runner is busy; it takes this request between steps.' }) }, null, 2));
@@ -166,7 +219,7 @@ try {
     const id = Number(args[0]);
     if (!Number.isSafeInteger(id) || id <= 0 || (command === 'answer' && !args[1])) throw new Error(usage);
     const request = command === 'first' ? { type: 'first', id } : { type: 'answer', id, text: await readFile(args[1], 'utf8'), cause: args[2] ?? null };
-    console.log(JSON.stringify({ ...await submit(directory, request, { accountsFile: accountsFile() }), runner: await ensureRunner() }, null, 2));
+    console.log(JSON.stringify({ ...await submit(directory, { ...request, requestId }, { accountsFile: accountsFile() }), runner: await ensureRunner() }, null, 2));
   }
   else if (command === 'run') {
     if (args.includes('--background')) console.log(JSON.stringify(await ensureRunner(), null, 2));
@@ -186,16 +239,11 @@ try {
       accountsFile: accountsFile() });
     const id = Number(args[0]);
     switch (command) {
-      case 'create': console.log(await store.create(await readFile(args[0], 'utf8'), await readFile(args[1], 'utf8'), args[2], { kind: 'delivery' })); break;
-      case 'list': console.log(JSON.stringify(await store.list())); break;
-      case 'show': {
-        const w = await store.get(id);
-        console.log(JSON.stringify({ id: w.id, objective: w.objective, step: STEPS[w.position]?.name ?? w.completion, round: w.round, hold: w.hold, waitsOn: w.waitsOn,
-          attempts: w.attempts.map(a => ({ id: a.id, step: a.step, role: a.role, round: a.round, status: a.status, launches: a.launches, error: a.error || undefined })),
-          failures: w.failures, exchanges: w.exchanges, events: w.events }, null, 2));
-        break;
+      case 'create': {
+        const result = await applyRequest(store, { type: 'create', objective: await readFile(args[0], 'utf8'), source: await readFile(args[1], 'utf8'), cwd: await realpath(args[2]), kind: 'delivery', dispatcher: dispatcherProvenance(), requestId });
+        console.log(result.id); break;
       }
-      case 'report': { const a = (await store.get(id)).attempts.at(-1); console.log(a?.output ?? 'No output yet'); break; }
+      case 'list': console.log(JSON.stringify(await store.list())); break;
       case 'export': {
         const path = join(directory, 'exports', `thread-${id}.json`);
         await mkdir(dirname(path), { recursive: true });
