@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadPrescriptions, validatePrescriptions, cardsFor, pickCard, buildLaunch, parseRun, clockToEpoch, installed } from '../cards.mjs';
-import { buildPiArgs, progressExtension } from '../pi-runtime.mjs';
+import { STEPS, ARBITER, buildPiArgs, progressExtension } from '../pi-runtime.mjs';
 
 const rx = loadPrescriptions();
 const card = (harness, over = {}) => ({ ...rx.tiers.deep.find(c => c.harness === harness), ...over });
@@ -12,7 +12,7 @@ const flag = (args, name) => { const i = args.indexOf(name); return i < 0 ? unde
 const lines = (...events) => events.map(e => JSON.stringify(e)).join('\n') + '\n';
 const NOW = Date.UTC(2026, 9, 16, 12, 0, 0); // Fri 2026-10-16 12:00 UTC
 
-test('prescriptions: the repo file loads and every tier is Claude, then Codex, then pi', async () => {
+test('prescriptions: the repo file loads and every tier is Claude, then Codex, then pi', async t => {
   for (const [tier, cards] of Object.entries(rx.tiers)) {
     assert.equal(cards[0].harness, 'claude', tier);
     assert.equal(cards[1].harness, 'codex', tier);
@@ -21,9 +21,16 @@ test('prescriptions: the repo file loads and every tier is Claude, then Codex, t
   }
   assert.deepEqual(rx.jobs.implement, { tier: 'coding', access: 'make' });
   const dir = await mkdtemp(join(tmpdir(), 'mpd-rx-')), path = join(dir, 'rx.json');
-  await writeFile(path, JSON.stringify({ tiers: { only: [card('pi')] }, jobs: { verify: { tier: 'only', access: 'run' } } }));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const jobs = Object.fromEntries(Object.entries(rx.jobs).map(([job, spec]) => [job, { ...spec, tier: spec.tier === 'inherit' ? 'inherit' : 'only' }]));
+  await writeFile(path, JSON.stringify({ tiers: { only: [card('pi')] }, jobs }));
+  const previous = process.env.PI_DURABLE_PRESCRIPTIONS;
   process.env.PI_DURABLE_PRESCRIPTIONS = path;
-  try { assert.deepEqual(Object.keys(loadPrescriptions().tiers), ['only']); } finally { delete process.env.PI_DURABLE_PRESCRIPTIONS; }
+  try { assert.deepEqual(Object.keys(loadPrescriptions().tiers), ['only']); }
+  finally {
+    if (previous === undefined) delete process.env.PI_DURABLE_PRESCRIPTIONS;
+    else process.env.PI_DURABLE_PRESCRIPTIONS = previous;
+  }
   await writeFile(path, '{nope');
   assert.throws(() => loadPrescriptions(path), /not JSON/);
   assert.throws(() => loadPrescriptions(join(dir, 'missing.json')), /cannot read \(ENOENT\)/);
@@ -44,6 +51,62 @@ test('prescriptions: validation names what is wrong', () => {
   bad(p => { p.tiers.inherit = p.tiers.deep; }, /"inherit" is reserved/);
   const pi = base(); pi.tiers.deep[2].provider = 'anthropic';
   assert.doesNotThrow(() => validatePrescriptions(pi), 'pi may use any provider');
+});
+
+test('prescriptions: every reachable job is required and execution jobs cannot inherit', () => {
+  const jobs = [...STEPS.map(step => step.name), ARBITER.name, 'intake', 'originator'];
+  assert.deepEqual(Object.keys(rx.jobs).sort(), [...jobs].sort());
+  for (const job of jobs) {
+    const incomplete = structuredClone(rx);
+    delete incomplete.jobs[job];
+    assert.throws(() => validatePrescriptions(incomplete), { message: `Prescriptions prescriptions: missing job "${job}"` });
+    if (job === 'intake' || job === 'originator') continue;
+    const inherited = structuredClone(rx);
+    inherited.jobs[job].tier = 'inherit';
+    assert.throws(() => validatePrescriptions(inherited), /requires an explicit tier/);
+  }
+});
+
+test('prescriptions: external all-pi used tiers resolve every job, inheritance, launch and quota wait', async t => {
+  // This is the REPORT.md recipe: keep each used tier's pi card and omit unused tiers.
+  const custom = structuredClone(rx);
+  const used = [...new Set(Object.values(custom.jobs).map(job => job.tier))].filter(tier => tier !== 'inherit');
+  custom.tiers = Object.fromEntries(used.map(tier => [tier, custom.tiers[tier].filter(c => c.harness === 'pi' && c.provider === 'openai-codex')]));
+  const dir = await mkdtemp(join(tmpdir(), 'mpd-all-pi-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const path = join(dir, 'prescriptions.json');
+  await writeFile(path, JSON.stringify(custom));
+  const previous = process.env.PI_DURABLE_PRESCRIPTIONS;
+  process.env.PI_DURABLE_PRESCRIPTIONS = path;
+  let loaded;
+  try { loaded = loadPrescriptions(); }
+  finally {
+    if (previous === undefined) delete process.env.PI_DURABLE_PRESCRIPTIONS;
+    else process.env.PI_DURABLE_PRESCRIPTIONS = previous;
+  }
+  assert.deepEqual(loaded, custom, 'external file replaces defaults, never merges fallback cards');
+  assert.deepEqual(Object.keys(loaded.tiers).sort(), ['coding', 'deep', 'fast']);
+  assert.deepEqual(loaded.jobs, rx.jobs, 'access and tier map stay unchanged');
+  for (const [job, spec] of Object.entries(loaded.jobs)) {
+    const parents = spec.tier === 'inherit'
+      ? Object.keys(loaded.jobs).filter(name => loaded.jobs[name].tier !== 'inherit') : [undefined];
+    for (const fromJob of parents) {
+      const tier = spec.tier === 'inherit' ? loaded.jobs[fromJob].tier : spec.tier;
+      const expected = rx.tiers[tier].find(c => c.harness === 'pi');
+      const cards = cardsFor(loaded, job, { fromJob });
+      assert.deepEqual(cards, [expected], `${job} from ${fromJob}`);
+      const launch = buildLaunch(cards[0], { access: spec.access, sessionDir: dir });
+      const step = { read: 'discover', checks: 'test-plan', make: 'implement', run: 'verify' }[spec.access];
+      assert.deepEqual(launch.args, [...buildPiArgs({ step, model: `${expected.provider}/${expected.model}`, sessionDir: dir }), '--thinking', expected.effort]);
+      assert.equal(launch.command, process.env.PI_DURABLE_PI || 'pi');
+      assert.equal(pickCard(cards, { now: NOW }).card.harness, 'pi');
+      assert.deepEqual(pickCard(cards, { exhausted: { openai: NOW + 1000 }, now: NOW }), { card: null, resetsAt: NOW + 1000 });
+      assert.deepEqual(pickCard(cards, { exhausted: { openai: null }, now: NOW }), { card: null, resetsAt: null });
+      assert.deepEqual(pickCard(cards, { exhausted: { openai: NOW }, now: NOW }).card, expected);
+    }
+  }
+  loaded.tiers.deep = [];
+  assert.throws(() => validatePrescriptions(loaded), /tier "deep" must be a non-empty list/);
 });
 
 test('cardsFor: tier order, and "inherit" takes the tier of the job that handed off', () => {
@@ -92,7 +155,7 @@ test('buildLaunch pi: today\'s buildPiArgs plus --thinking, for every access lev
 });
 
 test('buildLaunch claude: print + stream-json, model, effort, permissions per access', () => {
-  const base = ['-p', '--verbose', '--output-format', 'stream-json', '--model', 'claude-opus-5-5', '--effort', 'high', '--permission-prompts', 'none'];
+  const base = ['-p', '--verbose', '--output-format', 'stream-json', '--model', 'claude-opus-5-5', '--effort', 'high', '--permission-prompts', 'none', '--disallowedTools', 'Agent,Task'];
   const args = access => buildLaunch(card('claude'), { access }).args;
   assert.deepEqual(args('read'), [...base, '--permission-mode', 'dontAsk', '--tools', 'Read,Grep,Glob']);
   assert.deepEqual(args('checks'), [...base, '--permission-mode', 'acceptEdits', '--tools', 'Read,Grep,Glob,Bash,Edit,Write', '--allowedTools', 'Bash']);
@@ -107,6 +170,16 @@ test('buildLaunch claude: print + stream-json, model, effort, permissions per ac
   assert.match(buildLaunch(card('claude'), { access: 'run' }).notes.join('\n'), /Bash can still write/);
   process.env.PI_DURABLE_CLAUDE = '/fake/claude';
   try { assert.equal(buildLaunch(card('claude'), { access: 'read' }).command, '/fake/claude'); } finally { delete process.env.PI_DURABLE_CLAUDE; }
+});
+
+test('buildLaunch claude: native Agent/Task delegation stays denied for every access and resume', () => {
+  for (const access of ['read', 'checks', 'make', 'run']) {
+    for (const resume of [false, true]) {
+      const { args } = buildLaunch(card('claude'), { access, resume, sessionId: '361cb67f-abf6-44f6-b0ba-1dc7635e9bc6' });
+      assert.equal(flag(args, '--disallowedTools'), 'Agent,Task', `${access} resume=${resume}`);
+      assert.equal(flag(args, resume ? '--resume' : '--session-id'), '361cb67f-abf6-44f6-b0ba-1dc7635e9bc6');
+    }
+  }
 });
 
 test('buildLaunch codex: exec --json, model, reasoning effort, sandbox per access, prompt on stdin', () => {

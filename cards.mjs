@@ -1,7 +1,7 @@
 import { readFileSync, accessSync, statSync, constants } from 'node:fs';
 import { isAbsolute, join, delimiter } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildPiArgs, progressExtension as defaultProgressExtension } from './pi-runtime.mjs';
+import { STEPS, ARBITER, buildPiArgs, progressExtension as defaultProgressExtension } from './pi-runtime.mjs';
 import { summarizePi } from './pi-stream.mjs';
 
 // A card is [harness][provider][model] + effort. `account` is the quota pool a swap must leave:
@@ -45,6 +45,13 @@ export function validatePrescriptions(p, where = 'prescriptions') {
     if (!rx || typeof rx !== 'object') fail(`job "${job}" must be {tier, access}`);
     if (rx.tier !== 'inherit' && !Object.hasOwn(p.tiers, rx.tier)) fail(`job "${job}": unknown tier ${JSON.stringify(rx.tier)}`);
     if (!ACCESS.includes(rx.access)) fail(`job "${job}": access must be one of ${ACCESS.join(', ')} (got ${JSON.stringify(rx.access)})`);
+  }
+  // Reject incomplete files at load time, not halfway through a running work item.
+  for (const job of [...STEPS.map(step => step.name), ARBITER.name, 'intake', 'originator']) {
+    if (!Object.hasOwn(p.jobs, job)) fail(`missing job "${job}"`);
+    if (job !== 'intake' && job !== 'originator' && p.jobs[job].tier === 'inherit') {
+      fail(`job "${job}": requires an explicit tier (no handing-over job is available)`);
+    }
   }
   return p;
 }
@@ -130,7 +137,9 @@ export function buildLaunch(card, { access, system, sessionDir, sessionId, resum
   } else if (card.harness === 'claude') {
     // stream-json under --print requires --verbose (observed: claude 2.1.301 exits 1 without it).
     args = ['-p', '--verbose', '--output-format', 'stream-json', '--model', card.model, '--effort', card.effort,
-      '--permission-prompts', 'none', ...CLAUDE_ACCESS[access]];
+      // Native delegation would bypass Made Well's recorded NQ exchange.
+      // Source: claude --help, --disallowedTools (comma-separated tool denylist).
+      '--permission-prompts', 'none', '--disallowedTools', 'Agent,Task', ...CLAUDE_ACCESS[access]];
     if (system) args.push('--append-system-prompt', system);
     // Claude confines file tools to the working directory; the packet folder must be added.
     if (readDirs.length) args.push('--add-dir', ...readDirs);
