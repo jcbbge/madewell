@@ -262,3 +262,107 @@ test('fresh Codex calls never resume an invented UUID; a lost execution session 
   assert.notEqual(after.worker, 'worker'); assert.equal(after.pickup.reason, 'session-unavailable');
   await assert.rejects(s.store.call(id, { ...input(x, 'illegal-codex-execution', 'arbiter'), card: codex, actor: after.worker }, () => ({ output: 'Must not run' })), /NQ must clear/);
 });
+
+test('an interrupted judgment re-provisions its saved packet after store and workspace relocation', { timeout: 15000 }, async t => {
+  const s = await interruptedCall(t), directory = join(s.root, 'moved-store'), cwd = join(s.root, 'moved-workspace');
+  await rename(s.dir, directory); await rename(s.cwd, cwd);
+  let store = await openStore(directory);
+  t.after(async () => { await store.close(); await rm(s.root, { recursive: true, force: true }); });
+  await store.relocateWorkspace(s.cwd, cwd);
+  await store.close(); store = await openStore(directory, { resume: true });
+  const result = await store.call(s.id, input(s.exchangeId, 'crash-intake'));
+  assert.equal(result.callId, s.callId);
+  const prompt = JSON.parse(s.log()[0].prompt);
+  assert.equal(prompt.workspace, cwd); assert.ok(prompt.source.startsWith(directory));
+  assert.equal(await readFile(prompt.source, 'utf8'), 'source');
+  const saved = (await store.get(s.id)).calls[0];
+  assert.equal(JSON.parse(saved.packetHistory[0].options.packet).workspace, s.cwd);
+});
+
+test('archiving interrupted tasks cancels their actual SQLite tasks without redrive, and future resume never spawns them', { timeout: 15000 }, async t => {
+  const s = await interruptedCall(t);
+  let store = await openStore(s.dir); // never enable scheduling for the archived store
+  t.after(async () => { await store.close(); await rm(s.root, { recursive: true, force: true }); });
+  assert.notEqual(rawTask(s.dir, s.taskId).state.status, 'terminal');
+  assert.equal((await store.get(s.id)).calls[0].outcome, 'running');
+  await store.archiveResolved([s.id], { reason: 'Consolidation resolved the historical request' });
+  const task = rawTask(s.dir, s.taskId);
+  assert.ok(task.abortRequested || task.state.status === 'terminal', 'the task itself is durably cancelled, not just hidden');
+  assert.equal(s.log().length, 0, 'no harness was spawned while cancelling');
+  await store.close(); store = await openStore(s.dir, { resume: true });
+  await waitFor(() => rawTask(s.dir, s.taskId).state.status === 'terminal');
+  assert.equal(s.log().length, 0, 'resume runs abort only, never the archived work');
+  assert.equal((await store.get(s.id)).archived, true);
+  await assert.rejects(readFile(join(s.dir, 'observability', `thread-${s.id}.json`)), /ENOENT/);
+});
+
+test('archive refuses an actually scheduling task even when the store was opened without resume', async t => {
+  const s = await setup(), store = await openStore(s.dir);
+  t.after(async () => { await store.close(); await rm(s.root, { recursive: true, force: true }); });
+  const id = await store.create('Build', 'source', s.cwd);
+  await store.brief(id, 'Inspect'); const x = await store.delegate(id, 'worker');
+  await store.call(id, input(x, 'active'), async () => {
+    await assert.rejects(store.archiveResolved([id], { reason: 'Do not cancel live work' }), /Cannot archive live work/);
+    return { output: JSON.stringify(clear) };
+  });
+  assert.equal((await store.get(id)).archived, undefined);
+});
+
+test('atomic requests dedup create/order/human answer/return and reject changed identity; archive keeps history off queue/views', async t => {
+  const s = await fixture(t);
+  const request = { requestId: 'create-1', type: 'create', objective: 'Build', source: 'verbatim', cwd: s.cwd, dispatcher: { actor: 'front', job: 'dispatcher', card, sessionId: 'session' } };
+  const { id } = await s.store.applyRequest(request);
+  await s.reopen();
+  assert.deepEqual(await s.store.requestReceipt(request.requestId), { id });
+  assert.equal(await s.store.requestReceipt('not-applied'), null);
+  assert.deepEqual(await s.store.applyRequest(request), { id, reused: true });
+  assert.equal((await s.store.applyRequest(Object.fromEntries(Object.entries(request).reverse()))).reused, true, 'property order is not different content');
+  await assert.rejects(s.store.applyRequest({ ...request, source: 'changed' }), /different content/);
+  assert.equal((await s.store.list()).length, 1);
+  assert.equal((await s.store.get(id)).dispatcher.actor, 'front');
+  const first = { type: 'first', requestId: 'first-1', id };
+  await s.store.applyRequest(first); assert.equal((await s.store.applyRequest(first)).reused, true);
+  await s.store.brief(id, 'Inspect'); const x = await s.store.delegate(id, 'worker');
+  for (let i = 0; i < 3; i++) { await s.store.nq(id, x, { intent: 'Need detail', questions: ['Which file?'] }, 'worker'); await s.store.answer(id, x, 'dispatcher', 'Use source'); }
+  await s.store.nq(id, x, { intent: 'Need detail', questions: ['Which file?'] }, 'worker');
+  const answer = { requestId: 'answer-1', type: 'answer', id, text: 'Use inputs.csv' };
+  await s.store.applyRequest(answer); await s.reopen(); await s.store.applyRequest(answer);
+  assert.equal((await s.store.get(id)).exchanges[0].turns.filter(t => t.type === 'human').length, 1);
+  await s.store.nq(id, x, clear, 'worker');
+  await drive(s.store, id, quiet);
+  const rx = (await s.store.get(id)).exchanges.find(x => x.subject?.kind === 'return');
+  const accepted = { requestId: 'return-1', type: 'return', id, action: 'accepted', actor: rx.worker };
+  await s.store.applyRequest(accepted); await s.reopen(); assert.equal((await s.store.applyRequest(accepted)).reused, true);
+  const archived = await s.store.archiveResolved([id], { reason: 'Resolved by consolidation' });
+  assert.deepEqual(archived.ids, [id]); assert.equal((await s.store.get(id)).priorCompletion, 'discovered');
+  await assert.rejects(readFile(join(s.dir, 'observability', `thread-${id}.json`)), /ENOENT/);
+  await s.reopen(); assert.equal((await s.store.get(id)).archived, true);
+  assert.equal((await drive(s.store, id, quiet)).status, 'archived');
+});
+
+test('relocation changes actionable workspace fields, not source/history; retry is harmless', async t => {
+  const s = await fixture(t), source = `Do not rewrite historical ${s.cwd}`;
+  const id = await s.store.create('Build', source, s.cwd);
+  const to = join(s.root, 'moved'); await rename(s.cwd, to);
+  assert.deepEqual((await s.store.relocateWorkspace(s.cwd, to)).ids, [id]);
+  assert.deepEqual((await s.store.relocateWorkspace(s.cwd, to)).ids, []);
+  const w = await s.store.get(id); assert.equal(w.cwd, to); assert.equal(w.source, source);
+  assert.equal(w.events.filter(e => e.type === 'workspace-relocated').length, 1);
+  assert.equal(JSON.parse(await readFile(join(s.dir, 'observability', `thread-${id}.json`), 'utf8')).workspace, to);
+});
+
+test('pending execution packet relocation preserves original bytes and resumes in the new workspace', async t => {
+  const s = await setup(); let store = await openStore(s.dir);
+  t.after(async () => { await store.close(); await rm(s.root, { recursive: true, force: true }); });
+  const id = await store.create('Build', `Historical ${s.cwd}`, s.cwd);
+  await store.brief(id, 'Inspect'); const x = await store.delegate(id, 'worker'); await store.nq(id, x, clear, 'worker');
+  const a = await store.begin(id, 'worker', card, 'read'), original = (await store.get(id)).attempts[0].packet;
+  const to = join(s.root, 'moved'); await rename(s.cwd, to);
+  await store.relocateWorkspace(s.cwd, to);
+  const moved = (await store.get(id)).attempts[0];
+  assert.equal(JSON.parse(moved.packet).workspace, to); assert.equal(moved.packetHistory[0].packet, original);
+  assert.equal(JSON.parse(moved.packet).source, `Historical ${s.cwd}`);
+  await store.close(); store = await openStore(s.dir, { resume: true }); await store.execute(id, a);
+  assert.equal((await store.get(id)).attempts[0].status, 'reported');
+  assert.equal(JSON.parse(s.log().find(c => c.role === 'Vega').prompt).workspace, to);
+});

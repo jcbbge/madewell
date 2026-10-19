@@ -531,6 +531,119 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         });
       }
     },
+    async requestReceipt(requestId) {
+      requireText(requestId, 'Request ID');
+      return (await harness.snapshot(Catalog, root.id, context))?.requests?.[requestId]?.result ?? null;
+    },
+    async applyRequest(request) {
+      requireText(request?.requestId, 'Request ID');
+      const fingerprint = hash(identity(request));
+      const receipt = (await harness.snapshot(Catalog, root.id, context))?.requests?.[request.requestId];
+      if (receipt) {
+        if (receipt.fingerprint !== fingerprint) throw new Error('Request ID was already used for different content');
+        return { ...receipt.result, reused: true };
+      }
+      // Filesystem validation is outside the transaction; the application and acknowledgement are not.
+      let cwd;
+      if (request.type === 'create') {
+        requireText(request.objective, 'Objective'); requireText(request.source, 'Source');
+        cwd = await realpath(request.cwd);
+        if (!['discovery', 'delivery'].includes(request.kind ?? 'discovery')) throw new Error('kind is discovery or delivery');
+      }
+      const result = await harness.commit(async tx => {
+        const catalog = await tx.doc(Catalog, root.id); catalog.requests ??= {};
+        const old = catalog.requests[request.requestId];
+        if (old) {
+          if (old.fingerprint !== fingerprint) throw new Error('Request ID was already used for different content');
+          return { ...old.result, reused: true };
+        }
+        let result;
+        if (request.type === 'create') {
+          const id = await createIn(tx, fresh(request.objective, request.source, cwd,
+            { kind: request.kind ?? 'discovery', dispatcher: request.dispatcher ?? null, intake: { requestId: request.requestId, cwd } }));
+          event(await tx.doc(Work, id), 'created', { requestId: request.requestId }); result = { id };
+        } else {
+          const w = await tx.doc(Work, request.id);
+          if (!w.id) throw new Error('Unknown thread');
+          if (request.type === 'first') {
+            const bucket = w.kind === 'discovery' ? w.id : w.from;
+            if (!bucket) throw new Error('Thread is not in a discovery bucket');
+            catalog.first = [bucket, ...(catalog.first ?? []).filter(id => id !== bucket)]; result = { first: bucket };
+          } else if (request.type === 'answer') {
+            requireText(request.text, 'Answer');
+            if (!w.hold) throw new Error('Nothing is waiting on a human');
+            if (w.hold.kind === 'nq') nq.humanAnswer(w, w.hold.ref, request.actor ?? 'operator', request.text);
+            else {
+              if (!CAUSES.includes(request.cause)) throw new Error('A failed test needs its cause');
+              const f = w.failures.find(f => f.id === w.hold.ref); w.hold = null; f.status = 'open';
+              await route(w, tx, f, { cause: request.cause, answer: request.text, by: request.actor ?? 'operator' });
+            }
+            result = { answered: w.id };
+          } else if (request.type === 'return') result = returnAction(w, request);
+          else throw new Error('Unknown request type');
+          event(w, 'request-applied', { requestId: request.requestId, requestType: request.type });
+        }
+        catalog.requests[request.requestId] = { fingerprint, result, acknowledgedAt: Date.now() };
+        return result;
+      }, context);
+      // A failure here cannot un-acknowledge committed work; opening the store rebuilds views.
+      for (const id of await this.list()) await publish(id);
+      if (result.id ?? result.answered) await alertIfNew(result.id ?? result.answered);
+      return result;
+    },
+    async relocateWorkspace(from, to) {
+      if (!isAbsolute(from)) throw new Error('Source workspace must be absolute');
+      from = resolve(from); to = await realpath(to);
+      const ids = await harness.commit(async tx => {
+        const ids = [], catalog = await tx.doc(Catalog, root.id);
+        for (const id of catalog.threads) {
+          const w = await tx.doc(Work, id), cwd = rebasePath(w.cwd, from, to);
+          if (cwd === w.cwd) continue;
+          w.cwd = cwd;
+          if (w.intake?.cwd) w.intake.cwd = rebasePath(w.intake.cwd, from, to);
+          for (const a of w.attempts ?? []) if (['queued', 'running', 'failed', 'replacement-intake'].includes(a.status)) {
+            a.packetHistory ??= [];
+            a.packetHistory.push({ packet: a.packet, at: Date.now(), reason: 'workspace-relocated' });
+            a.packet = relocatePacket(a.packet, from, to);
+          }
+          for (const c of w.calls ?? []) if (['queued', 'running'].includes(c.outcome) && c.options) {
+            c.packetHistory ??= [];
+            c.packetHistory.push({ options: c.options, at: Date.now(), reason: 'workspace-relocated' });
+            c.options = { ...c.options, cwd,
+              ...(typeof c.options.prompt === 'string' ? { prompt: relocatePacket(c.options.prompt, from, to) } : {}),
+              ...(c.options.packet ? { packet: relocatePacket(c.options.packet, from, to) } : {}) };
+          }
+          event(w, 'workspace-relocated', { from, to }); ids.push(id);
+        }
+        return ids;
+      }, context);
+      for (const id of ids) await publish(id);
+      return { ids };
+    },
+    async archiveResolved(ids, { reason } = {}) {
+      requireText(reason, 'Archive reason');
+      const inspection = await harness.inspect(context);
+      if (inspection.scheduling !== 'paused' && inspection.tasks.some(t => ids.includes(t.record.conversationId))) throw new Error('Cannot archive live work; open the stopped store without resume');
+      await harness.commit(async tx => {
+        for (const id of ids) {
+          const w = await tx.doc(Work, id);
+          if (!w.id) throw new Error('Unknown thread');
+          const pending = (w.attempts ?? []).filter(a => ['queued', 'running'].includes(a.status));
+          const calls = (w.calls ?? []).filter(c => ['queued', 'running'].includes(c.outcome));
+          if ((pending.length || calls.length) && (resume || [...pending, ...calls].some(a => a.pid && alive(a.pid)))) throw new Error('Cannot archive live work; open the stopped store without resume');
+          for (const a of pending) { a.priorStatus = a.status; a.status = 'archived'; }
+          for (const c of calls) { c.priorOutcome = c.outcome; c.outcome = 'archived'; }
+          w.activeCall = null;
+          w.archived = true; w.archivedAt = Date.now(); w.archiveReason = reason;
+          if (!Object.hasOwn(w, 'priorCompletion')) w.priorCompletion = w.completion;
+          w.completion ||= 'archived';
+          event(w, 'history-archived', { reason });
+        }
+      }, context);
+      await cancelArchived(ids);
+      for (const id of ids) await publish(id);
+      return { ids };
+    },
     // kind 'discovery' (the default): discovery splits into delivery items that join the queue.
     // kind 'delivery': one item, every phase in this thread.
     async create(objective, source, cwd, { delivery = false, kind = delivery ? 'delivery' : 'discovery', dispatcher = null } = {}) {
