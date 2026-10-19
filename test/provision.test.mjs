@@ -18,24 +18,26 @@ test('front doors: each skill is a native SKILL.md with name and description, te
     for (const verb of ['start --objective', '--source-file', 'first <id>', 'status <id>', 'answer <id>', 'pre-existing', 'implementation', 'test', 'run --background', 'show <id>', 'doctor'])
       assert.ok(text.includes(verb), `${harness}: teaches ${verb}`);
     assert.ok(!text.includes('--delivery'), `${harness}: no go-ahead to ask for`);
-    assert.ok(text.includes('{{cli}}'), `${harness}: the fallback command is filled in at install`);
+    const { renderSkill } = await import('../doctor.mjs');
+    assert.doesNotMatch(renderSkill(text), /\{\{cli\}\}|node ".+cli\.mjs"/, `${harness}: command-only skills`);
     assert.doesNotMatch(text, /\/(home|Users)\/\w/, `${harness}: no machine paths`);
   }
   assert.match(await readFile(join(repo, 'harness', 'pi', 'README.md'), 'utf8'), /pi install/);
 });
 
-test('provision: writes each installed harness\'s skill, prints pi\'s install command, and is safe to repeat', async () => {
+test('provision: writes skills, registers one local pi package, and is safe to repeat', async () => {
   const m = await machine({ claude: {}, codex: {}, pi: {} });
   const first = await runCli(['provision'], m.env);
   assert.equal(first.code, 0, first.stderr);
   const claudeSkill = join(m.home, '.claude', 'skills', 'made-well', 'SKILL.md'), codexSkill = join(m.home, '.codex', 'skills', 'made-well', 'SKILL.md');
   assert.match(first.stdout, new RegExp(`Claude Code: wrote ${claudeSkill}`));
   assert.match(first.stdout, new RegExp(`Codex: wrote ${codexSkill}`));
-  assert.match(first.stdout, /pi: run — Run: pi install ".+"/);
+  assert.match(first.stdout, /pi: wrote .*settings\.json/);
   const written = await readFile(claudeSkill, 'utf8');
-  assert.ok(written.includes(`node ${JSON.stringify(join(repo, 'cli.mjs'))}`), 'the fallback names this checkout\'s cli');
+  assert.ok(written.includes('pi-durable'));
+  assert.ok(!written.includes(repo), 'no checkout path is embedded in a skill');
   assert.ok(!written.includes('{{cli}}'));
-  assert.equal(await exists(join(m.home, '.pi')), false, 'pi\'s settings are never touched');
+  assert.deepEqual(JSON.parse(await readFile(join(m.home, '.pi', 'agent', 'settings.json'), 'utf8')).packages, [repo]);
 
   const again = await runCli(['provision'], m.env);
   assert.match(again.stdout, /Claude Code: present/);
