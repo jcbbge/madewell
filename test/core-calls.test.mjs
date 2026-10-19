@@ -126,3 +126,66 @@ test('discovery saves meaningful operations, preserved source, inherited provena
   assert.match(packet.originator.handoff ?? item.prerequisiteReturn.handoff, /Verified result/);
   assert.ok(packet.questionsForYou.some(n => n.failureId));
 }));
+
+test('crash before spawn redrives the same Pi Durable call and session, without spending a question turn', { timeout: 15000 }, async t => {
+  const s = await interruptedCall(t), store = await openStore(s.dir, { resume: true });
+  t.after(async () => { await store.close(); await rm(s.root, { recursive: true, force: true }); });
+  const result = await store.call(s.id, input(s.exchangeId, 'crash-intake'));
+  const c = (await store.get(s.id)).calls[0];
+  assert.equal(result.callId, s.callId); assert.equal(c.taskId, s.taskId); assert.equal(c.sessionId, s.sessionId);
+  assert.equal(c.runs.length, 2); assert.equal(c.runs[0].outcome, 'interrupted');
+  assert.equal((await store.get(s.id)).exchanges[0].rounds, 0);
+  assert.equal(s.log().filter(c => c.role === 'intake').length, 1);
+  assert.equal(s.log()[0].sessionId, s.sessionId);
+});
+
+test('call start is committed before spawn; saved output survives reopen and applies once at the bound turn', async t => {
+  const s = await fixture(t), id = await s.store.create('Build', 'verbatim source', s.cwd);
+  await s.store.brief(id, 'Inspect only');
+  const x = await s.store.delegate(id, 'worker');
+  let launches = 0;
+  const result = await s.store.call(id, input(x, 'intake'), async options => {
+    launches++;
+    const w = await s.store.get(id), c = w.calls.find(c => c.id === w.activeCall);
+    assert.equal(c.outcome, 'running'); assert.ok(c.taskId); assert.ok(c.startedAt);
+    assert.equal(c.sessionId, options.sessionId); assert.equal(c.exchangeId, x);
+    await options.onSpawn(123456789, { transport: 'tmux', session: '$1', window: '@2', pane: '%3' });
+    return { output: JSON.stringify({ intent: 'Need a delimiter', questions: ['Which delimiter?'] }) };
+  });
+  const session = (await s.store.get(id)).calls[0].sessionId;
+  await unlink(join(s.dir, 'observability', `thread-${id}.json`));
+  await s.reopen();
+  const replay = await s.store.call(id, input(x, 'intake'), () => { throw new Error('Must not respawn committed output'); });
+  assert.equal(replay.callId, result.callId); assert.equal(launches, 1);
+  assert.equal((await s.store.get(id)).calls[0].sessionId, session);
+  assert.equal(JSON.parse(await readFile(join(s.dir, 'observability', `thread-${id}.json`), 'utf8')).threadId, id, 'reopen repairs a missing view');
+  await s.store.nq(id, x, JSON.parse(result.output), 'worker', result.callId);
+  await s.store.nq(id, x, JSON.parse(result.output), 'worker', result.callId);
+  const a = await s.store.call(id, input(x, 'answer', 'originator', 'dispatcher'), () => ({ output: JSON.stringify({ answer: 'CSV comma.' }) }));
+  await s.reopen(); // output committed, turn not yet applied
+  await s.store.answer(id, x, 'dispatcher', JSON.parse(a.output).answer, [], a.callId);
+  await s.reopen(); // turn committed, caller did not see acknowledgement
+  await s.store.answer(id, x, 'dispatcher', 'CSV comma.', [], a.callId);
+  const w = await s.store.get(id);
+  assert.equal(w.exchanges[0].rounds, 1); assert.equal(w.exchanges[0].turns.length, 2);
+  assert.ok(w.calls.every(c => c.appliedAt));
+  assert.deepEqual(w.calls[0].runs[0].card, card);
+  assert.equal(w.calls[0].runs[0].where.pane, '%3');
+});
+
+test('transport retries keep one call/session and record each launch separately without spending NQ turns', async t => {
+  const s = await fixture(t), id = await s.store.create('Build', 'source', s.cwd);
+  await s.store.brief(id, 'Inspect'); const x = await s.store.delegate(id, 'worker');
+  const sessions = []; let n = 0;
+  const result = await s.store.call(id, input(x, 'retry'), options => {
+    sessions.push(options.sessionId);
+    if (n++ < 2) throw new Error('Transient transport failure');
+    assert.equal(options.resume, true); return { output: JSON.stringify(clear) };
+  });
+  const w = await s.store.get(id), c = w.calls[0];
+  assert.equal(w.calls.length, 1); assert.equal(c.runs.length, 3); assert.equal(new Set(sessions).size, 1);
+  assert.equal(new Set(c.runs.map(r => r.record)).size, 3);
+  assert.equal(w.exchanges[0].rounds, 0);
+  await s.store.nq(id, x, clear, 'worker', result.callId);
+  assert.equal((await s.store.get(id)).exchanges[0].turns.length, 1);
+});
