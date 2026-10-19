@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -109,6 +109,16 @@ test('TASKS hints and workspace fallback show NOW plus only retained checked com
   assert.deepEqual(missing.steps, { unavailable: true });
 });
 
+test('fixture counts only DONE completions and renders the board Steps line', async () => {
+  const text = await readFile(new URL('./fixtures/step-ledger.TASKS.md', import.meta.url), 'utf8');
+  assert.deepEqual(stepLedger(text), { now: ['#7 Check the retained ledger'], done: 2 });
+  const w = rootWork(); transitionDelegated(w, 'started', { actor: 'worker', text: 'Understood.' });
+  const projected = delegatedView('/data', w);
+  projected.telemetry = await delegatedTelemetry({ workspace: '/work' }, { read: async () => text, exec: async () => { throw new Error('No repo'); } });
+  const frame = renderSidecar({ at: now, base: '/data', stores: [{ dir: '/data', threads: [projected] }] }, { width: 106, now });
+  assert.match(frame, /Steps: 2 done · NOW #7 Check the retained ledger/);
+});
+
 test('locate is sender-only, validates hints and persists through the CLI without changing NQ or lifecycle', async t => {
   const root = await mkdtemp(join(tmpdir(), 'delegated-locate-')), data = join(root, 'data'), file = join(root, 'where.json');
   t.after(() => rm(root, { recursive: true, force: true }));
@@ -189,7 +199,7 @@ test('HAPPENING NOW shows usage and repo evidence at every pane width without ra
     const frame = renderSidecar({ at, base: '/data', stores: [{ dir: '/data', threads: [projected] }] }, { width, now: at });
     assert.ok(frame.split('\n').every(line => line.length <= width));
     const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0].replace(/[│╭╮╰╯─]/g, ' ').replace(/\s+/g, ' ');
-    for (const value of ['tmux: running', 'Step: implement', '2 done recorded', 'The merged gate has four known failures.', 'context 25.3%/500k', '$0.882 (sub)', 'abc1234', '3 uncommitted']) assert.ok(happening.includes(value), `${width}: ${value}\n${frame}`);
+    for (const value of ['tmux: running', 'Step: implement', 'Steps: 2 done · NOW', 'The merged gate has four known failures.', 'context 25.3%/500k', '$0.882 (sub)', 'abc1234', '3 uncommitted']) assert.ok(happening.includes(value), `${width}: ${value}\n${frame}`);
     assert.doesNotMatch(frame, /private pane|drive 1/);
   }
 });

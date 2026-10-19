@@ -220,7 +220,7 @@ function delegatedLines(t, v, w, now, human = false) {
     if (step && step !== v.worker?.actor && step !== 'UNKNOWN') add(`Step: ${step}`);
     if (obs.tmux?.state && obs.tmux.state !== 'unknown') add(`tmux: ${obs.tmux.state}${obs.tmux.command ? ` · ${obs.tmux.command}` : ''}`);
     if (Number.isFinite(obs.tmux?.outputAt)) add(`Activity: ${obs.tmux.outputScope ?? 'output'} ${age(obs.tmux.outputAt, now)} ago`);
-    if (obs.steps && !obs.steps.unavailable) add(`Steps: ${obs.steps.done} done recorded${obs.steps.now.length ? ` · NOW ${obs.steps.now.join('; ')}` : ''}`);
+    if (obs.steps && !obs.steps.unavailable) add(`Steps: ${obs.steps.done} done${obs.steps.now.length ? ` · NOW ${obs.steps.now.join('; ')}` : ''}`);
     const update = workerUpdate(v, now);
     if (update) add(`Update${humanAge(update.at, now) ? ` ${age(update.at, now)} ago` : ''} · ${update.actor}: ${latestLine(update.text)}`);
     const usage = [obs.usage?.context && !obs.usage.context.startsWith('?') ? `context ${obs.usage.context}` : '',
@@ -235,7 +235,7 @@ function delegatedLines(t, v, w, now, human = false) {
     add(`tmux: ${obs.tmux.state} · ${obs.tmux.command ?? obs.tmux.reason ?? 'pane unavailable'}`);
     if (obs.tmux.outputScope) add(`Activity: ${obs.tmux.outputScope} ${age(obs.tmux.outputAt, now)} ago`);
   }
-  if (obs.steps) add(obs.steps.unavailable ? 'Steps: ledger unavailable' : `Steps: ${obs.steps.done} done recorded · NOW ${obs.steps.now.slice(0, 2).join('; ') || 'none recorded'}`);
+  if (obs.steps) add(obs.steps.unavailable ? 'Steps: ledger unavailable' : `Steps: ${obs.steps.done} done · NOW ${obs.steps.now.slice(0, 2).join('; ') || 'none recorded'}`);
   const update = eventsOf(v).findLast(e => e.actor === v.worker?.actor && ms(e.at) <= now && typeof e.text === 'string' && e.text.trim());
   if (update) add(`Update ${age(update.at, now)} ago · ${update.actor}: ${latestLine(update.text)}`);
   const tokens = v._board?.use.tokens.value;
@@ -291,9 +291,10 @@ function compactLines(t, unit, label, width, now) {
   const update = workerUpdate(v, now), message = v.hold?.questions?.[0] ? `? ${v.hold.questions[0]}` : update ? latestLine(update.text) : '';
   const context = obs.usage?.context?.match(/^\d+(?:\.\d+)?%/)?.[0];
   const suffix = [context ? `ctx ${context}` : '', obs.repo?.hash ? `${obs.repo.hash} ${age(obs.repo.at, now)}` : ''].filter(Boolean);
-  const stepWidth = Math.min(Math.floor(width * 0.28), `NOW ${step}`.length);
+  const progress = obs.steps && !obs.steps.unavailable ? `Steps: ${obs.steps.done} done · NOW ${plain(step)}` : `NOW ${plain(step)}`;
+  const stepWidth = Math.min(Math.floor(width * 0.42), progress.length);
   const messageWidth = Math.max(0, width - stepWidth - suffix.join(' · ').length - 3 * (suffix.length + Number(Boolean(message))));
-  const second = [clip(`NOW ${plain(step)}`, stepWidth), ...(message ? [clip(plain(message), messageWidth)] : []), ...suffix].join(' · ');
+  const second = [clip(progress, stepWidth), ...(message ? [clip(plain(message), messageWidth)] : []), ...suffix].join(' · ');
   return [t.ink(fit(first, width)), t.muted(fit(second, width))];
 }
 

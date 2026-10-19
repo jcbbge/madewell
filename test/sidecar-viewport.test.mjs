@@ -41,7 +41,7 @@ test('five records use two lines each; selection alone expands one record', () =
     assert.ok(happening.includes(`#${id} Work item ${id}`));
     assert.ok(happening.includes(`team:worker-${id}`));
   }
-  assert.match(happening, /NOW #3 Finish item/); assert.match(happening, /ctx 25.3%/);
+  assert.match(happening, /Steps: 2 done · NOW #3 Finish item/); assert.match(happening, /ctx 25.3%/);
   const detail = renderSidecar(fixture, { width: 106, height: 53, now, selected: { storeDir: '/data', threadId: 3 }, detail: true });
   assert.match(detail, /#3 · DETAILS/); assert.match(detail, /Delivered item 3/);
   assert.doesNotMatch(detail, /Work item [1245]|WHERE THE WORK IS|MACHINE/);

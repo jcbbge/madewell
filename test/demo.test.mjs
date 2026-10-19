@@ -22,7 +22,7 @@ test('demo: delegated observation columns match the live renderer without probes
   for (const width of [60, 80, 110, 160, 241]) {
     const frame = demoFrame(RUN.length, { width, base });
     const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0].replace(/[│╭╮╰╯─]/g, ' ').replace(/\s+/g, ' ');
-    for (const value of ['Step: implement', 'Activity: pane output', '2 done recorded', 'Update 0s ago',
+    for (const value of ['Step: implement', 'Activity: pane output', 'Steps: 2 done · NOW', 'Update 0s ago',
       'The reminder example is ready for the independent check.', 'context 25.3%/500k', '↑12k ↓2.3k R1.2M', '$0.042',
       'abc1234', '3 uncommitted', 'tmux: running', 'tmux: dead', 'tmux: stale', 'tmux: unknown', 'context UNKNOWN']) assert.ok(happening.includes(value), `${width}: ${value}`);
     assert.match(frame, /1 running/);
