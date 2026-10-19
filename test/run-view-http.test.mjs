@@ -131,23 +131,25 @@ test('7i: /api/answer refuses each failed guard on its own with 403, refuses whi
   } finally { await w.close(); }
 });
 
-test('7i: /api/authorize gives the go-ahead through the CLI, only to an item that waits for it', async () => {
+test('7i: completed discovery never waits for /api/authorize; its delivery items are already queued', async () => {
   const w = await world();
   try {
     const { ws, storeDir } = await w.workspace('ws');
     const store = await openStore(storeDir, { resume: true });
-    const id = await store.create('Archive old invoices', 'source', ws, { delivery: false });
-    assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
-    await store.close();
+    let id, items;
+    try {
+      id = await store.create('Archive old invoices', 'source', ws);
+      assert.equal((await drive(store, id, quiet)).status, 'discovered');
+      items = (await store.get(id)).items;
+      assert.deepEqual(await store.queue(), items);
+    } finally { await store.close(); }
     const ok = same(w.port);
     assert.equal((await post(w.port, '/api/authorize', { storeDir, threadId: id }, { ...ok, origin: 'http://evil.test' })).status, 403);
-    const r = await post(w.port, '/api/authorize', { storeDir, threadId: id }, ok);
-    assert.equal(r.status, 200, r.text);
-    assert.equal(r.json.ok, true);
-    await waitFor(async () => (await view(storeDir, id))?.record.events.some(e => e.type === 'delivery-authorized'), 30_000, 'the yes on the record');
-    await waitFor(async () => (await view(storeDir, id))?.state === 'done', 60_000, 'the built item to finish');
-    const again = await post(w.port, '/api/authorize', { storeDir, threadId: id }, ok);
-    assert.notEqual(again.status, 200, 'a finished item waits for no go-ahead');
-    assert.equal(again.json?.ok, false);
+    for (const threadId of [id, ...items]) {
+      const r = await post(w.port, '/api/authorize', { storeDir, threadId }, ok);
+      assert.equal(r.status, 409, r.text);
+      assert.equal(r.json.ok, false);
+    }
+    assert.ok(!(await view(storeDir, id)).record.events.some(e => e.type === 'delivery-authorized'), 'no approval was invented');
   } finally { await w.close(); }
 });

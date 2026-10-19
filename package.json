@@ -36,6 +36,12 @@
     "README.md",
     "serve.mjs",
     "sidecar.mjs",
+    "demo-board.mjs",
+    "demo.mjs",
+    "machine.mjs",
+    "tui.mjs",
+    "queue.mjs",
+    "alert.mjs",
     "view.mjs",
     "dashboard.html"
   ],

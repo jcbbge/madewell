@@ -203,6 +203,7 @@ export function stateAt(w, at) {
   else if (failed) state = 'worker-failed';
   else if (exchangeState === 'question') state = 'question';
   else if (exchangeState === 'intake') state = 'intake';
+  else if (w.kind === 'delivery' && w.from && !attempt) state = 'queued';
   else if (step && step !== 'discover' && !delivery) state = 'delivery-authorization-required';
   else state = 'ready';
   const lastEvent = events.at(-1) ?? null;
@@ -510,10 +511,10 @@ function lanesOf(unit, items, at) {
   const operator = [
     { label: 'Confirm findings', state: 'na', reason: 'not recorded' },
     { label: 'Set order', state: 'na', reason: 'not recorded' },
-    { label: 'Start', state: awaiting ? 'on' : started ? 'done' : 'pending', reason: started ? startNote(unit, at) : awaiting ? 'waiting for your go-ahead' : '' } ];
+    { label: 'Start', state: w?.kind === 'discovery' ? 'na' : awaiting ? 'on' : started ? 'done' : 'pending', reason: w?.kind === 'discovery' ? 'discovery items enter delivery automatically' : started ? startNote(unit, at) : awaiting ? 'waiting for your go-ahead' : '' } ];
   const { minutes, has } = w ? stageMinutes(w, at) : { minutes: {}, has: {} };
   const failing = Boolean(s && (s.failure || s.hold?.kind === 'failure'));
-  const at_ = s ? (s.done ? (r.completion === 'discovered' || w?.kind === 'delegated' ? -1 : STAGES.length) : awaiting || s.step === 'discover' || !s.step ? -1 : STAGES.indexOf(STAGE_OF[s.step])) : -1;
+  const at_ = s ? (s.done && s.delivery && w?.kind !== 'delegated' ? STAGES.length : awaiting || s.step === 'discover' || !s.step ? -1 : STAGES.indexOf(STAGE_OF[s.step])) : -1;
   const delivery = STAGES.map((name, i) => {
     const chips = items.filter(it => !it.done && !it.awaiting && it.stageKey === name).flatMap(it => [`#${it.threadId}`, ...(it.waitsOn?.startsWith('#') ? [`waits ${it.waitsOn}`] : [])]);
     const state = s ? (i < at_ ? 'done' : i === at_ ? (name === 'verification' && failing ? 'fail' : 'on') : 'pending') : 'pending';

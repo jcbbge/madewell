@@ -110,7 +110,7 @@ test('7i: PI_DURABLE_ALERT=none records the hold as alerted on channel none', ()
 async function twoItems(alert) {
   const s = await setup();
   const store = await openStore(s.dir);
-  const a = await store.create('Item A', 'source', s.cwd), b = await store.create('Item B', 'source', s.cwd);
+  const a = await store.create('Item A', 'source', s.cwd, { kind: 'delivery' }), b = await store.create('Item B', 'source', s.cwd, { kind: 'delivery' });
   await store.close();
   await s.script({ askByThread: { [a]: 'Which database should the export use?' } });
   const env = { ...process.env, WORK_DATA: s.dir, PI_DURABLE_ALERT: alert };
@@ -143,7 +143,7 @@ test('7k: drive-all A B: A holds, B completes; a bad id is an error beside a goo
     assert.deepEqual(results(r.stdout).map(x => [x.threadId, x.status]), [[s.a, 'held'], [s.b, 'complete']], r.stderr);
     assert.equal(r.code, 2, 'something waits on the human');
     const store = await openStore(s.dir);
-    const c = await store.create('Item C', 'source', s.cwd);
+    const c = await store.create('Item C', 'source', s.cwd, { kind: 'delivery' });
     await store.close();
     r = await runCli(['drive-all', String(c), '999', '--delivery'], s.env);
     const out = results(r.stdout);

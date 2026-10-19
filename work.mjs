@@ -28,13 +28,14 @@ export const MAX_CORRECTIONS = 3;
 // A pre-existing defect inside a prerequisite opens another prerequisite; past this depth the work holds for the human.
 export const MAX_PREREQUISITE_DEPTH = 2;
 const requireText = (text, name) => { if (typeof text !== 'string' || !text.trim()) throw new Error(`${name} must be nonempty`); return text; };
-const Catalog = defineDoc({ kind: 'work.catalog', version: 1, scope: 'conversation', history: 'latest', fork: 'initial', initial: () => ({ threads: [] }) });
+// threads: every thread in creation order. first: discovery runs the operator put first, most recent first.
+const Catalog = defineDoc({ kind: 'work.catalog', version: 1, scope: 'conversation', history: 'latest', fork: 'initial', initial: () => ({ threads: [], first: [] }) });
 const Work = defineDoc({ kind: 'work.thread', version: 1, scope: 'conversation', history: 'rewindable', fork: 'asOf', initial: () => ({}) });
 const terminal = result => ({ status: 'terminal', outcome: { status: 'completed', result } });
 const alive = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code !== 'ESRCH'; } };
 
 // The store owns one SQLite file. Exactly one process owns it at a time.
-export async function openStore(directory, { checkInMs = 1_800_000, resume = false, accountsFile = null } = {}) {
+export async function openStore(directory, { checkInMs = 300_000, resume = false, accountsFile = null } = {}) {
   directory = resolve(directory);
   accountsFile = accountsFile ? resolve(accountsFile) : join(directory, 'accounts.json');
   let marks = Promise.resolve();
@@ -116,7 +117,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         const checkIn = () => {
           clearTimeout(timer);
           timer = setTimeout(() => { queue = queue.then(async () => {
-            const question = { id: randomUUID(), attemptId, text: 'No deliverable reported for 30 minutes. What prevents the next deliverable, and what support do you need?' };
+            const question = { id: randomUUID(), attemptId, text: `No deliverable reported for ${Math.round(checkInMs / 60_000)} minutes. What prevents the next deliverable, and what support do you need?` };
             await runtime.commit(async tx => { const w = await tx.doc(Work, workId); w.attempts.find(a => a.id === attemptId).checkIns.push({ ...question, at: Date.now() }); event(w, 'check-in', { attemptId }); return { status: 'running', checkpoint: { phase: 'execute' } }; }, ctx);
             await writeFile(inbox + '.tmp', JSON.stringify(question)); await rename(inbox + '.tmp', inbox);
             checkIn();
@@ -198,7 +199,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
   };
   const step = w => { if (w.kind === 'delegated') throw new Error('Delegated work is driven by its assigning agent, not the phase runner'); const s = STEPS[w.position]; if (!s) throw new Error('Thread is complete'); return s; };
   const fresh = (objective, source, cwd, extra = {}) => ({ objective, source, cwd, position: 0, round: 0, briefs: {}, briefHistory: [],
-    exchanges: [], asked: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, delivery: false, completion: null, events: [], ...extra });
+    exchanges: [], asked: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, kind: 'discovery', completion: null, events: [], ...extra });
   const createIn = async (tx, fields) => {
     const c = await tx.createConversation({ ownership: { kind: 'ownerless' } });
     Object.assign(await tx.doc(Work, c.id), { id: c.id, ...fields });
@@ -228,7 +229,7 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
     }
     else if (ruling.cause === 'pre-existing') {
       const child = await createIn(tx, fresh(`Fix the pre-existing defect blocking thread ${w.id}: ${ruling.answer.slice(0, 400)}`,
-        `${w.source}\n\n## Prerequisite of thread ${w.id}\nAuthorized (operator rule, 2026-10-16): the Arbiter's pre-existing ruling authorizes this repair inside the workspace, with reversible changes and no new dependencies. Anything destructive, irreversible, touching production, money, credentials or anything outside the workspace is still the operator's.\nScope: fix only this defect. Thread ${w.id} is unfinished and waits for this fix, so its own checks are expected to fail: this unit's checks test only this fix and must not run or depend on thread ${w.id}'s checks.\n\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, delivery: true }));
+        `${w.source}\n\n## Prerequisite of thread ${w.id}\nAuthorized (operator rule, 2026-10-16): the Arbiter's pre-existing ruling authorizes this repair inside the workspace, with reversible changes and no new dependencies. Anything destructive, irreversible, touching production, money, credentials or anything outside the workspace is still the operator's.\nScope: fix only this defect. Thread ${w.id} is unfinished and waits for this fix, so its own checks are expected to fail: this unit's checks test only this fix and must not run or depend on thread ${w.id}'s checks.\n\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, kind: 'fix' }));
       w.waitsOn = child; failure.prerequisite = child;
       // Back to where the defect stopped the work: the making (a blocked maker) or the checks.
       const back = STEPS[stepIndex(failure.step ?? 'verify')];
@@ -249,9 +250,12 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
     async close() { await views; await alerts; try { await harness.close(context); } finally { await lock.close(); await unlink(lockPath).catch(() => {}); } },
     async list() { return (await harness.snapshot(Catalog, root.id, context))?.threads ?? []; },
     async get(id) { const w = await harness.snapshot(Work, id, context); if (!w?.id) throw new Error(`Unknown thread ${id}`); return w; },
-    async create(objective, source, cwd, { delivery = false } = {}) {
+    // kind 'discovery' (the default): discovery splits into delivery items that join the queue.
+    // kind 'delivery': one item, every phase in this thread.
+    async create(objective, source, cwd, { delivery = false, kind = delivery ? 'delivery' : 'discovery' } = {}) {
       requireText(objective, 'Objective'); requireText(source, 'Source'); cwd = await realpath(cwd);
-      const id = await harness.commit(tx => createIn(tx, fresh(objective, source, cwd, { delivery: delivery === true })), context);
+      if (!['discovery', 'delivery'].includes(kind)) throw new Error('kind is discovery or delivery');
+      const id = await harness.commit(tx => createIn(tx, fresh(objective, source, cwd, { kind })), context);
       await change(id, w => { event(w, 'created'); });
       return id;
     },
@@ -481,8 +485,43 @@ export async function openStore(directory, { checkInMs = 1_800_000, resume = fal
         return route(w, tx, f, { cause, answer: text, by: actor });
       });
     },
-    // The operator authorized building, not just discovery. Recorded on the work, so every later drive honors it.
-    async authorize(id) { return change(id, w => { if (!w.delivery) { w.delivery = true; event(w, 'delivery-authorized'); } }); },
+    // Discovery is handed off as its items: each becomes a delivery item in this run's bucket, in order,
+    // starting at ideation with the discovery report as its handoff.
+    async split(id, attemptId, items) {
+      const ids = await change(id, async (w, tx) => {
+        const a = w.attempts.find(a => a.id === attemptId);
+        if (w.kind !== 'discovery' || STEPS[w.position]?.name !== 'discover' || a?.status !== 'reported') throw new Error('Only a reported discovery is split');
+        if (!items.length) throw new Error('Discovery found no items');
+        a.status = 'accepted'; w.position++;
+        w.items = [];
+        for (const [i, item] of items.entries()) {
+          const handoff = `Discovered item ${i + 1} of ${items.length}: ${item.title}\n\n${item.text}\n\nThe whole discovery report:\n${a.output ?? ''}`;
+          w.items.push(await createIn(tx, fresh(item.objective, w.source, w.cwd, { kind: 'delivery', from: w.id, position: stepIndex('ideate'),
+            discovered: { role: a.role, attemptId: a.id, output: handoff }, events: [{ at: new Date().toISOString(), type: 'created', pid: process.pid, from: w.id }] })));
+        }
+        w.completion = 'discovered';
+        event(w, 'discovered', { attemptId, items: w.items });
+        return w.items;
+      });
+      for (const item of ids) await publish(item);
+      return ids;
+    },
+    // Delivery items waiting to run, in order: buckets the operator put first, then oldest bucket first;
+    // within a bucket, in the order discovery found them.
+    async queue() {
+      const catalog = await harness.snapshot(Catalog, root.id, context), first = catalog?.first ?? [];
+      const items = [];
+      for (const id of catalog?.threads ?? []) { const w = await this.get(id); if (w.kind === 'delivery' && !w.completion) items.push(w); }
+      const rank = w => { const i = first.indexOf(w.from); return i < 0 ? first.length : i; };
+      return items.sort((a, b) => rank(a) - rank(b) || (a.from ?? a.id) - (b.from ?? b.id) || a.id - b.id).map(w => w.id);
+    },
+    // Put a discovery run's bucket first. `ref` is the discovery thread or any item in it.
+    async first(ref) {
+      const w = await this.get(ref), bucket = w.kind === 'discovery' ? w.id : w.from;
+      if (!bucket) throw new Error(`Thread ${ref} is not in a discovery bucket`);
+      await harness.commit(async tx => { const c = await tx.doc(Catalog, root.id); c.first = [bucket, ...(c.first ?? []).filter(b => b !== bucket)]; }, context);
+      return bucket;
+    },
     // A prerequisite finished: its parent stops waiting and re-runs its tests.
     async release(id) {
       return change(id, w => {
@@ -509,6 +548,8 @@ export function originatorOf(w) {
   }
   const prev = STEPS[w.position - 1], a = prev && w.attempts.findLast(a => a.step === prev.name && a.status === 'accepted');
   if (a) return { role: prev.role, basis: 'handoff', step: prev.name, attemptId: a.id, handoff: a.output ?? '' };
+  // A delivery item was handed over by the discovery that found it.
+  if (w.discovered && !w.attempts.some(a => a.status === 'accepted')) return { role: w.discovered.role, basis: 'handoff', step: 'discover', attemptId: w.discovered.attemptId, handoff: w.discovered.output };
   // A prerequisite thread was handed over by the Arbiter's ruling, which its source carries.
   if (w.parentId && !w.attempts.some(a => a.status === 'accepted')) return { role: ARBITER.role, basis: 'source' };
   return { role: DISPATCHER, basis: 'source' };
@@ -516,7 +557,8 @@ export function originatorOf(w) {
 const describe = ({ handoff, ...o }) => o;
 
 function makePacket(w, s, b, purpose) {
-  const accepted = STEPS.slice(0, w.position).map(p => w.attempts.findLast(a => a.step === p.name && a.status === 'accepted')).filter(Boolean)
+  const accepted = STEPS.slice(0, w.position).map(p => w.attempts.findLast(a => a.step === p.name && a.status === 'accepted')
+    ?? (p.name === 'discover' && w.discovered ? { step: 'discover', role: w.discovered.role, round: 0, output: w.discovered.output } : null)).filter(Boolean)
     .map(a => ({ step: a.step, role: a.role, round: a.round, output: a.output }));
   const x = nq.currentExchange(w, s.name);
   // A step that runs again gets its own last accepted deliverable, to restate with the changes applied.

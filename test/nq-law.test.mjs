@@ -42,7 +42,7 @@ test('7b: an authority hold answered by the human → the worker asks again → 
   assert.equal(w.hold.receiver, x.worker);
   assert.ok(Array.isArray(w.hold.refs) && w.hold.refs.includes(x.id));
   await store.human(id, { text: 'No dropping. Migrate in place.' });
-  assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
+  assert.equal((await drive(store, id, quiet)).status, 'discovered');
   w = await store.get(id);
   const after = w.exchanges.find(e => e.id === x.id);
   assert.deepEqual(after.turns.map(t => t.type), ['worker', 'human', 'worker', 'originator', 'worker']);

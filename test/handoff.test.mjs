@@ -356,8 +356,10 @@ test('handoff: scratch unit through the CLI: test-plan → verify → test rulin
     assert.equal(started.code, 0, started.stderr);
     const { id } = JSON.parse(started.stdout);
     const exported = join(s.dir, 'exports', `thread-${id}.json`);
-    const w = await waitFor(async () => { try { return JSON.parse(await readFile(exported, 'utf8')); } catch { return null; } }, 120_000, 'the unit to finish');
-    await waitFor(() => !existsSync(join(s.dir, 'owner.lock')), 30_000, 'the driver to release the store');
+    const discovery = await waitFor(async () => { try { return JSON.parse(await readFile(exported, 'utf8')); } catch { return null; } }, 120_000, 'discovery to finish');
+    await waitFor(() => !existsSync(join(s.dir, 'owner.lock')), 30_000, 'the runner to release the store');
+    assert.equal(discovery.completion, 'discovered');
+    const w = JSON.parse(await readFile(join(s.dir, 'exports', `thread-${discovery.items[0]}.json`), 'utf8'));
     assert.equal(w.completion, 'verified', JSON.stringify(w.hold ?? w.events.at(-1)));
     assert.equal(w.failures[0].ruling.cause, 'test');
     const path = w.attempts.filter(a => ['test-plan', 'verify'].includes(a.step));

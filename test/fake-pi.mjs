@@ -67,6 +67,7 @@ else if (role === 'Aldebaran') {
 } else {
   if (state.hang?.[role] > 0) { state.hang[role]--; save(state); appendFileSync(path + '.log', JSON.stringify({ hanging: role, pid: process.pid }) + '\n'); setInterval(() => {}, 1000); await new Promise(() => {}); }
   if (state.blockedOnce?.[role] > 0) { state.blockedOnce[role]--; text = `${role} stopped\n${JSON.stringify({ blocked: 'npm test cannot load the test folder' })}`; }
+  else if (role === 'Vega' && state.items && /"name": "discover"/.test(prompt)) text = `found the work\n${JSON.stringify({ items: state.items })}`;
   else {
     // A test plan names a script that exists: the default writes it in the workspace (not on a restate, which writes nothing).
     if (role === 'Orion' && !restate) {

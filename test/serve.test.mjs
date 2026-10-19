@@ -16,7 +16,7 @@ test('dashboard: snapshot carries states, transitions, every agent run with timi
   process.env.PI_DURABLE_PI = fake; process.env.FAKE_PI_STATE = join(root, 'f.json');
   process.env.PI_DURABLE_PRESCRIPTIONS = fileURLToPath(new URL('./fixtures/two-accounts.json', import.meta.url));
   const store = await openStore(dir, { resume: true });
-  const id = await store.create('Build it', 'source', cwd, { delivery: true });
+  const id = await store.create('Build it', 'source', cwd, { kind: 'delivery' });
   const result = await drive(store, id, { log: () => {} });
   assert.equal(result.status, 'complete', JSON.stringify(result));
   await store.close();

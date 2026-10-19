@@ -224,16 +224,17 @@ async function answer(base, body) {
   if (failure && !CAUSES.includes(body.cause)) throw fail(400, `A failed check needs the cause: ${CAUSES.join(' | ')}.`);
   const command = unitCommand(t, `answer ${w.threadId} reply.txt${failure ? ` ${body.cause}` : ''}`);
   const env = await childEnvFor(t, command);
+  const lock = await readFile(join(t.storeDir, 'owner.lock'), 'utf8').then(JSON.parse).catch(() => null);
+  if (alive(lock?.pid)) throw fail(409, `Another item's driver owns this store (pid ${lock.pid}). Answer in a terminal:`, { command });
   const dir = await mkdtemp(join(tmpdir(), 'mpd-answer-'));
   try {
     const file = join(dir, 'reply.txt');
     await writeFile(file, text, { mode: 0o600 });
     const done = await runCli(['answer', String(w.threadId), file, ...(failure ? [body.cause] : []), '--workspace', w.workspace], env);
     if (done.code !== 0) throw fail(409, (done.stderr || done.stdout).trim() || 'The answer was not taken.', { command });
-    const driven = await runCli(['drive', String(w.threadId), '--background', '--workspace', w.workspace], env);
-    let driver = null; try { driver = JSON.parse(driven.stdout); } catch {}
-    return { ok: true, answered: (() => { try { return JSON.parse(done.stdout); } catch { return done.stdout.trim(); } })(), driver,
-      ...(driven.code === 0 ? {} : { driveError: driven.stderr.trim() }) };
+    // answer already starts the queue runner; launching a second driver would race it for the store.
+    const answered = JSON.parse(done.stdout);
+    return { ok: true, answered, driver: answered.runner };
   } finally { await rm(dir, { recursive: true, force: true }); }
 }
 

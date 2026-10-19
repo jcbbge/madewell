@@ -7,6 +7,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openStore, STEPS, CAUSES } from './work.mjs';
 import { drive } from './drive.mjs';
+import { submit, runQueue, runnerAlive } from './queue.mjs';
 import { observe, render, watchWork } from './observe.mjs';
 import { dataDirectory, workspaceDataDirectory } from './config.mjs';
 import { serve } from './serve.mjs';
@@ -28,19 +29,23 @@ const backgroundRun = process.env.PI_DURABLE_RUN_ID;
 delete process.env.PI_DURABLE_RUN_ID;
 const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; agents are pi.
 
-  start --objective <text> (--source <text> | --source-file <path>) [--workspace <dir>] [--delivery]
-                                   new work in that workspace (default: here), driven in the background
+  start --objective <text> (--source <text> | --source-file <path>) [--workspace <dir>]
+                                   new work in that workspace (default: here): discovery splits it into items,
+                                   which join the delivery queue and run on their own, oldest first
+  first <id>                       deliver this discovery's items next (id: the discovery or any of its items)
+  run [--background]               the runner: discoveries as they come, then delivery items one at a time
   delegate open <assignment.json>   record delegated work (objective, briefFile, sender, worker, where, workspace)
   delegate <started|clear|question|answered|reported|accepted|sent-back|closed|human> <id> [text.txt] --actor <actor>
                                    record a handoff, question, report or acceptance; never starts an agent
   create <objective.txt> <source.txt> <workspace>
   list | show <id> | report <id> | export <id>
   status [id] [--json] | watch [id] [--json]
-  drive <id> [--delivery] [--model provider/model] [--background]
-  drive-all <ids...> [--delivery] [--model provider/model] [--background]
-  answer <id> <answer.txt> [${CAUSES.join('|')}]   human answer to whatever is held
+  drive <id> [--model provider/model] [--background]
+  drive-all <ids...> [--model provider/model] [--background]
+  answer <id> <answer.txt> [${CAUSES.join('|')}]   human answer to whatever is held; the runner continues it
   serve [--workspace <dir> | --all] [--no-open] [--port 7788] [--host 127.0.0.1]   the run view in the browser
   sidecar [--workspace <dir>] [--once] [--width N]   terminal view for a pane: what waits on you, what is running
+  demo                             one example run stepped through the sidecar: → step, ← back, Enter decides, p plays
   doctor [--json]                  what can run here: harnesses, sign-in, cards per tier, front doors
   provision [--yes]                install each installed harness's front door (--yes replaces changed files)
   provision --host                 make Made Well how every agent session on this machine works (each harness's global instructions)
@@ -49,7 +54,7 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
 
 Store: ${directory}
 Phases: ${STEPS.map(s => `${s.name} (${s.role})`).join(' → ')}
-A failed test is a question; the Arbiter rules who answers it; undetermined comes to you.`;
+A failed check is a question; the Arbiter rules who answers it. status shows anything that waits on you.`;
 
 // A detached driver; its output goes to runs/<id>.log. A --workspace store is found again by the child.
 async function background(childArgs, threadIds) {
@@ -70,9 +75,9 @@ async function background(childArgs, threadIds) {
 }
 
 function startOptions() {
-  const o = { objective: '', source: null, sourceFile: null, delivery: false };
+  const o = { objective: '', source: null, sourceFile: null };
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--delivery') o.delivery = true;
+    if (args[i] === '--delivery') continue; // no longer needed: delivery follows discovery on its own
     else if (args[i] === '--objective') o.objective = args[++i] ?? '';
     else if (args[i] === '--source') o.source = args[++i] ?? '';
     else if (args[i] === '--source-file') o.sourceFile = args[++i] ?? '';
@@ -84,16 +89,23 @@ function startOptions() {
 }
 
 function driveOptions() {
-  const ids = []; let delivery = false, model = '';
+  const ids = []; let model = '';
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--delivery') delivery = true;
+    if (args[i] === '--delivery') continue;
     else if (args[i] === '--background') continue;
     else if (args[i] === '--model') model = args[++i] ?? '';
     else if (args[i].startsWith('--')) throw new Error(`Unknown option ${args[i]}`);
     else ids.push(Number(args[i]));
   }
   if (!ids.length || ids.some(id => !Number.isSafeInteger(id) || id <= 0) || (command === 'drive' && ids.length !== 1)) throw new Error('Supply positive thread IDs (one for drive)');
-  return { ids, delivery, model };
+  return { ids, model };
+}
+
+const accountsFile = () => process.env.WORK_DATA === undefined ? join(dataDirectory(), 'accounts.json') : null;
+// The runner, in the background, unless one is already working this store.
+async function ensureRunner() {
+  if (await runnerAlive(directory)) return { running: true };
+  return background(['run', ...(byWorkspace ? ['--workspace', workspace] : [])], []);
 }
 
 let store;
@@ -147,6 +159,7 @@ try {
       console.log(JSON.stringify(await store.delegated(Number(target), verb, input)));
     }
   }
+  else if (command === 'demo') await (await import('./demo.mjs')).runDemo();
   else if (command === 'status') {
     const id = args.find(a => a !== '--json'), works = await observe(directory, id ? Number(id) : null);
     console.log(args.includes('--json') ? JSON.stringify(works, null, 2) : render(works));
@@ -166,13 +179,20 @@ try {
     const o = startOptions(), cwd = await realpath(workspace);
     const source = o.source ?? await readFile(o.sourceFile, 'utf8');
     if (!source.trim()) throw new Error('The source is empty');
-    store = await openStore(directory, { accountsFile: process.env.WORK_DATA === undefined ? join(dataDirectory(), 'accounts.json') : null });
-    const id = await store.create(o.objective, source, cwd, { delivery: o.delivery });
-    await store.close(); store = undefined;
-    const where = byWorkspace ? ` --workspace ${JSON.stringify(cwd)}` : '';
-    const launched = await background(['drive', String(id), ...(byWorkspace ? ['--workspace', cwd] : []), ...(o.delivery ? ['--delivery'] : [])], [id]);
-    console.log(JSON.stringify({ id, workspace: cwd, delivery: o.delivery, store: directory, launched,
-      status: `pi-durable status ${id}${where}`, watch: `pi-durable watch ${id}${where}`, inspect: `pi-durable show ${id}${where}` }, null, 2));
+    const result = await submit(directory, { type: 'create', objective: o.objective, source, cwd }, { accountsFile: accountsFile() });
+    const where = byWorkspace ? ` --workspace ${JSON.stringify(cwd)}` : '', id = result.id;
+    console.log(JSON.stringify({ ...result, workspace: cwd, store: directory, runner: await ensureRunner(),
+      ...(id ? { status: `pi-durable status ${id}${where}`, watch: `pi-durable watch ${id}${where}`, inspect: `pi-durable show ${id}${where}` } : { note: 'The runner is busy; it takes this request between steps.' }) }, null, 2));
+  }
+  else if (command === 'first' || command === 'answer') {
+    const id = Number(args[0]);
+    if (!Number.isSafeInteger(id) || id <= 0 || (command === 'answer' && !args[1])) throw new Error(usage);
+    const request = command === 'first' ? { type: 'first', id } : { type: 'answer', id, text: await readFile(args[1], 'utf8'), cause: args[2] ?? null };
+    console.log(JSON.stringify({ ...await submit(directory, request, { accountsFile: accountsFile() }), runner: await ensureRunner() }, null, 2));
+  }
+  else if (command === 'run') {
+    if (args.includes('--background')) console.log(JSON.stringify(await ensureRunner(), null, 2));
+    else console.log(JSON.stringify(await runQueue(directory, { accountsFile: accountsFile() }), null, 2));
   }
   else if (['drive', 'drive-all'].includes(command) && args.includes('--background')) {
     const options = driveOptions();
@@ -180,15 +200,15 @@ try {
     console.log(JSON.stringify(await background(childArgs, options.ids), null, 2));
   }
   else {
-    const need = { create: 3, list: 0, show: 1, report: 1, export: 1, drive: 1, 'drive-all': 1, answer: 2 };
+    const need = { create: 3, list: 0, show: 1, report: 1, export: 1, drive: 1, 'drive-all': 1 };
     if (!(command in need) || args.length < need[command]) throw new Error(usage);
     // Usage limits belong to provider accounts, so every workspace's store shares one accounts file
     // (an explicit WORK_DATA store keeps its own).
     store = await openStore(directory, { resume: ['drive', 'drive-all'].includes(command),
-      accountsFile: process.env.WORK_DATA === undefined ? join(dataDirectory(), 'accounts.json') : null });
+      accountsFile: accountsFile() });
     const id = Number(args[0]);
     switch (command) {
-      case 'create': console.log(await store.create(await readFile(args[0], 'utf8'), await readFile(args[1], 'utf8'), args[2])); break;
+      case 'create': console.log(await store.create(await readFile(args[0], 'utf8'), await readFile(args[1], 'utf8'), args[2], { kind: 'delivery' })); break;
       case 'list': console.log(JSON.stringify(await store.list())); break;
       case 'show': {
         const w = await store.get(id);
@@ -204,15 +224,14 @@ try {
         await mkdir(dirname(path), { recursive: true });
         await writeFile(path, JSON.stringify(await store.get(id), null, 2)); console.log(path); break;
       }
-      case 'answer': console.log(JSON.stringify(await store.human(id, { text: await readFile(args[1], 'utf8'), cause: args[2] ?? null }))); break;
       case 'drive': case 'drive-all': {
-        const { ids, delivery, model } = driveOptions();
+        const { ids, model } = driveOptions();
         const results = await Promise.all(ids.map(async threadId => {
-          try { return await drive(store, threadId, { delivery, model, log: text => console.log(`[${threadId}] ${text}`) }); }
+          try { return await drive(store, threadId, { model, log: text => console.log(`[${threadId}] ${text}`) }); }
           catch (error) { console.error(`[${threadId}] ${error.stack ?? error.message}`); return { threadId, status: 'error', reason: error.message }; }
         }));
         console.log(JSON.stringify(results, null, 2));
-        process.exitCode = results.some(r => r.status === 'error') ? 1 : results.every(r => ['complete', 'delivery-authorization-required'].includes(r.status)) ? 0 : 2;
+        process.exitCode = results.some(r => r.status === 'error') ? 1 : results.every(r => ['complete', 'discovered'].includes(r.status)) ? 0 : 2;
         break;
       }
     }

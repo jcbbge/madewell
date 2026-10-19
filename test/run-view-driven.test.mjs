@@ -64,35 +64,24 @@ test('7a: a standing question hold is waiting on you; 30 minutes on, it has wait
   assert.equal(lines[0].cls, 'bad');
 }));
 
-test('7a: discovery only waits for the go-ahead; authorizing it is one stop, counted until the yes', () => run({}, async ({ store, cwd }) => {
-  const id = await store.create('Archive old invoices', 'source', cwd, { delivery: false });
-  assert.equal((await drive(store, id, quiet)).status, 'delivery-authorization-required');
-  let w = await viewOf(store, id);
+test('7a: discovery queues its items without a go-ahead or a counted operator stop', () => run({}, async ({ store, cwd }) => {
+  const id = await store.create('Archive old invoices', 'source', cwd);
+  assert.equal((await drive(store, id, quiet)).status, 'discovered');
+  const w = await viewOf(store, id);
   assert.equal(stateAt(w, end(w)).state, w.state);
-  assert.equal(w.state, 'delivery-authorization-required');
+  assert.equal(w.state, 'done');
   const select = { storeDir: store.directory, threadId: id };
-  let v = runView(snapOf(store, cwd, [w], end(w) + 1000), { select });
-  const it = v.items.find(i => i.threadId === id);
-  assert.deepEqual([it.kind, it.pill, it.who, it.stage, it.waitsOn], ['discovery', 'todo', 'you', 'Operator', 'you']);
-  assert.equal(v.now.who, 'op');
-  assert.equal(v.now.headline, 'Discovery is done. Building needs your go-ahead.');
-  assert.equal(v.now.decide.kind, 'delivery');
-  assert.deepEqual(v.now.decide.options, ['Start building']);
-  assert.equal(node(v, 'Start').state, 'on');
-  assert.equal(v.rules[0].status, 'ok', 'discovery only started nothing without the operator');
-  assert.equal(terminalLines(v, { width: 80 })[0].text, `1 needs you: #${id}`);
-
-  await store.authorize(id);
-  w = await viewOf(store, id);
-  const yes = w.record.events.find(e => e.type === 'delivery-authorized'), handed = w.record.events.find(e => e.type === 'handoff' && e.from === 'discover');
-  v = runView(snapOf(store, cwd, [w], end(w) + 1000), { select });
-  assert.equal(node(v, 'Start').state, 'done');
-  assert.match(node(v, 'Start').reason, /^authorized \d\d:\d\d$/);
-  assert.equal(v.rules[0].status, 'ok');
-  assert.equal(v.rules[0].evidence, node(v, 'Start').reason, 'the evidence is the Start reason');
-  assert.equal(tile(v, 'stops').value, 1, 'the delivery stop');
-  const waited = (ms(yes.at) - ms(handed.at)) / 60_000;
-  assert.ok(Math.abs(tile(v, 'waitedMin').value - waited) < 1, 'the wait from the hand-off to the yes');
+  const v = runView(snapOf(store, cwd, [w], end(w) + 1000), { select });
+  assert.equal(v.now.decide, null, 'discovery needs no delivery approval');
+  assert.equal(node(v, 'Start').state, 'na');
+  assert.equal(tile(v, 'stops').value, 0);
+  assert.equal(tile(v, 'waitedMin').value, 0);
+  assert.ok(v.lanes.delivery.every(lane => lane.state === 'pending'), 'discovery does not pretend delivery ran');
+  assert.equal(terminalLines(v, { width: 80 })[0].text, 'Nothing needs you.');
+  const items = await store.queue();
+  assert.deepEqual(items, w.items);
+  const item = await viewOf(store, items[0]);
+  assert.equal(stateAt(item, end(item)).state, 'queued');
 }));
 
 test('7a + 7d: a corrections hold is a failure hold; the human\'s ruling ends it, and the wait is its interval', () => run({

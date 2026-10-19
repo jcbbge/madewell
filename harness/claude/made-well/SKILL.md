@@ -18,13 +18,23 @@ workspace's record, the same one pi and Codex see.
 
 ## Start a unit
 
-1. Write the source to a file: the person's request in their own words, then the facts, paths,
-   scope, constraints and what "done" means (checks of the work itself, never `pi-durable doctor`: see DISPATCH.md).
-2. Ask yourself whether the person authorized building, not only looking. Only then add `--delivery`.
+Write the source to a file: the person's request in their own words, then the facts, paths, scope,
+constraints and what "done" means (checks of the work itself, never `pi-durable doctor`: see DISPATCH.md). Then:
 
-        pi-durable start --objective "<one line>" --source-file <file> --workspace <dir> [--delivery]
+        pi-durable start --objective "<one line>" --source-file <file> --workspace <dir>
 
-It prints the unit's `id` and starts the driver in the background. Starting is not finishing.
+It prints the unit's `id` and starts the runner in the background. Discovery splits the request
+into items; each item joins the delivery queue and runs on its own, oldest discovery first. Nobody
+approves delivery. Starting is not finishing. If the runner is busy, `start` prints `queued` and
+the runner takes the request between steps.
+
+## Change the order
+
+The person's only say over delivery is the order. When they want a discovery run's items next:
+
+    pi-durable first <id> --workspace <dir>     # <id>: the discovery or any of its items
+
+The item that is running finishes first; the order is read again before each item.
 
 ## Watch it
 
@@ -40,7 +50,8 @@ Check status when the person asks or after a while; do not loop on it. `pi-durab
 their answer, in their words, to a file, then:
 
     pi-durable answer <id> <answer-file> --workspace <dir>
-    pi-durable drive <id> --background --workspace <dir>
+
+The runner continues the work.
 
 For a failed check, the answer must name its cause, one of:
 
@@ -50,17 +61,13 @@ For a failed check, the answer must name its cause, one of:
 
         pi-durable answer <id> <answer-file> implementation --workspace <dir>
 
-If the state is `delivery-authorization-required`, ask the person whether to build. Only on a yes:
-
-    pi-durable drive <id> --delivery --background --workspace <dir>
-
 ## Inspect or resume
 
     pi-durable show <id> --workspace <dir>      # objective, phase, holds, failures, attempts
     pi-durable report <id> --workspace <dir>    # the last worker's report
-    pi-durable drive <id> --background --workspace <dir>   # resume after a crash or a stop
+    pi-durable run --background --workspace <dir>   # resume after a crash or a stop
 
-State `stopped` or `worker-failed` means drive it again; it continues from the saved state.
+State `stopped` or `worker-failed` means start the runner again; it continues from the saved state.
 
 ## If nothing can run
 

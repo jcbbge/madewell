@@ -19,7 +19,7 @@ you ── chat ──▶ pi (your pi: extensions, skills, settings, login)
 - **NQ.** Before a phase executes, the worker states its understanding and asks; the originating agent answers, headless, as the role that made the handoff (the dispatcher for discovery, the previous phase normally, the Arbiter after a failure ruling), from its own handoff. The executing worker gets the whole exchange. Three turns still unclear (the spec or the receiver's scope is wrong), or missing authority → that work item holds and the human is alerted. Every agent-to-agent hand-off follows it: phases, the Arbiter, the authority consult, a human answer.
 - **A failed test is a question.** The Arbiter decides whose: bad test → Orion, bad implementation → Cassiopeia replans, pre-existing bug → a linked prerequisite thread. Undetermined → you. Three failed corrections → you.
 - **Recovery is redrive.** Kill anything. Drive again: Pi Durable re-enters the interrupted phase and the worker continues its own pi session.
-- **Discovery never authorizes delivery.** Building needs `delivery: true` (recorded on the work).
+- **Discovery feeds delivery; nobody approves it.** Discovery splits a request into items. Each item joins the delivery queue as its own thread, starting at ideation with the discovery report as its handoff. One runner per store delivers them one at a time: discovery runs the operator put first (`pi-durable first <id>`), then oldest first, items in the order discovery found them. The order is read again before each item.
 
 [FOUNDATION.md](FOUNDATION.md) governs.
 
@@ -43,9 +43,11 @@ In pi, just say it: *"run this durably: …"*. The agent calls `durable_work sta
 Command line, same store:
 
 ```sh
-pi-durable start --objective <text> (--source <text> | --source-file <path>) [--workspace <dir>] [--delivery]
+pi-durable start --objective <text> (--source <text> | --source-file <path>) [--workspace <dir>]
+pi-durable first <id>      # this discovery run's items go next
+pi-durable run [--background]   # the runner (start, answer and first launch it)
 pi-durable status [id]          pi-durable watch [id]
-pi-durable drive <id> [--delivery] [--model provider/model] [--background]   # --model: force every job onto pi with one model, no swaps
+pi-durable drive <id> [--model provider/model] [--background]   # --model: force every job onto pi with one model, no swaps
 pi-durable answer <id> <answer.txt> [pre-existing|implementation|test]
 pi-durable show <id>            pi-durable report <id>
 pi-durable doctor [--json]      pi-durable provision [--yes]
