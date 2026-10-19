@@ -5,6 +5,11 @@ import { renderSidecar, viewportBudgets, humanAge } from '../demo-board.mjs';
 const now = Date.UTC(2026, 9, 20, 12);
 const before = new Date(now - 3_811_000).toISOString();
 const strip = text => text.replace(/\x1b\[[0-9;]*m/g, '');
+const section = (frame, title) => {
+  const lines = strip(frame).split('\n'), start = lines.findIndex(line => line.startsWith(`╭─ ${title}`));
+  const next = lines.findIndex((line, i) => i > start && line.startsWith('╭─'));
+  return lines.slice(start + 1, next < 0 ? undefined : next).join('\n');
+};
 export function viewportFixture(count = 5) {
   const threads = Array.from({ length: count }, (_, i) => {
     const worker = { actor: `worker-${i + 1}`, job: 'implement', harness: 'pi', provider: 'example', model: 'example-model' };
@@ -34,7 +39,7 @@ test('overview budgets keep all sections visible and NOW below forty percent', (
 test('five records use two lines each; selection alone expands one record', () => {
   const fixture = viewportFixture();
   const frame = renderSidecar(fixture, { width: 106, height: 53, now });
-  const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0];
+  const happening = section(frame, 'HAPPENING NOW');
   const bodies = happening.split('\n').filter(line => line.startsWith('│ '));
   assert.equal(bodies.length, 10);
   for (let id = 1; id <= 5; id++) {
@@ -53,7 +58,7 @@ test('dead records leave the live section and remain unaccepted in the one list'
     w.state = 'dead'; w.telemetry.tmux.state = 'dead'; w.objective = `Dead task ${w.threadId}`;
   }
   const frame = renderSidecar(fixture, { width: 106, height: 53, now });
-  const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0];
+  const happening = section(frame, 'HAPPENING NOW');
   assert.doesNotMatch(happening, /Dead task|tmux: dead|Recorded location/);
   assert.match(frame.split('\n')[0], /5 running/);
   const list = frame.split('THE ONE LIST')[1]; assert.match(list, /Dead task 1/); assert.match(list, /dead/);
@@ -69,11 +74,19 @@ test('ages are human and unavailable-only detail lines disappear without inventi
   w.telemetry = { tmux: { state: 'unknown', outputAt: null }, steps: { unavailable: true },
     repo: { unavailable: true }, usage: { context: '?/500k', tokens: null, cost: null } };
   const frame = renderSidecar(fixture, { width: 106, height: 53, now });
-  const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0];
+  const happening = section(frame, 'HAPPENING NOW');
   assert.match(happening, /Update 1h 03m ago/);
   assert.doesNotMatch(happening, /UNKNOWN|3811s|Usage:|Commit:|Activity:|Steps:|Step: worker-1|Watch it:|Recorded location:/);
   const headline = happening.split('\n').find(line => line.includes('▸ #1'));
   assert.match(headline, /team:worker-1/);
+});
+
+test('pane sections follow work-first reading order with machine figures last', () => {
+  const frame = renderSidecar(viewportFixture(), { width: 106, height: 53, now });
+  let previous = -1;
+  for (const title of ['MADE WELL', 'WHERE THE WORK IS', 'HAPPENING NOW', 'THE ONE LIST', 'MINUTES PER STAGE', 'MACHINE']) {
+    const at = frame.indexOf(title); assert.ok(at > previous, title); previous = at;
+  }
 });
 
 test('106x53 overview with five live records fits without scrolling', () => {

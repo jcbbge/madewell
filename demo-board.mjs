@@ -576,10 +576,11 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
       { title: 'TELEMETRY', weight: 1.1, body: w => limited(tilesBody(w, true), budgets.list - 2) }];
     const timeSpecs = [{ title: 'MINUTES PER STAGE', body: w => limited(barsBody(w), budgets.time - 2) },
       { title: 'LOG', body: w => limited(logBody(w, budgets.time - 2), budgets.time - 2) }];
-    return [out[0], ...section(machineTitle, machineLines(t, snap?.machine, width - 4, { split: width >= 90 }), budgets.machine),
+    return [out[0], ...section('WHERE THE WORK IS', fittedFlow(), budgets.flow),
       ...section('HAPPENING NOW', nowPanel(width - 4, true, budgets.now - 2), budgets.now, { tone: nowTone, titleTone: nowTitle }),
-      ...section('WHERE THE WORK IS', fittedFlow(), budgets.flow),
-      ...row(t, listSpecs, width), ...row(t, timeSpecs, width), t.faint(fit('j/k select · Enter expand · Esc overview · q quit', width))]
+      ...row(t, listSpecs, width), ...row(t, timeSpecs, width),
+      ...section(machineTitle, machineLines(t, snap?.machine, width - 4, { split: width >= 90 }), budgets.machine),
+      t.faint(fit('j/k select · Enter expand · Esc overview · q quit', width))]
       .map(l => fit(l, width).trimEnd()).join('\n');
   }
   return out.map(l => fit(l, width).replace(/ +$/, '')).join('\n');

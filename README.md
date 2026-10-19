@@ -91,7 +91,9 @@ On a remote machine, forward the port over ssh (for example `ssh -L 7789:localho
 
 ## Sidecar
 
-Run `pi-durable sidecar` in a pane. It is one plain terminal program, read-only like the dashboard, and shows the same text as the run view's "what the operator sees": who needs you (a count and the numbers), each as a decision card with the exact command to answer; NOW, what is running, with its stage, its job, the harness and model doing it, any question turn and the fix items it waits on; TO-DO, the items nobody has started and how to start them; any account out of quota and when it resets; and what finished today. `--workspace <dir>` narrows it to one workspace; by default it shows every store, so a pane never hides a hold. It redraws on change or every 2 seconds; `q` or Ctrl-C quits. `--once` prints one frame and exits; `--width N` sets the width. Colour is used on a terminal unless `NO_COLOR` is set.
+Run `pi-durable sidecar` in a pane. The read-only overview fits its height: work lanes first, compact current records, the one list, minutes per stage, then machine figures last. HAPPENING NOW uses at most 40% of rows; overflow is counted rather than pushing other sections off-screen. Busy boards use two lines per record. Dead workers remain in the one list as dead, never at the top as running work.
+
+Use `j/k` or arrows to select a record, Enter to expand its evidence, and Esc to return. Only expanded record detail scrolls (j/k, PgUp/PgDn, Home/End). Three or fewer current records, or the selected record, can show fuller detail inside the overview's budget. `q` or Ctrl-C quits. `--workspace <dir>` narrows the view; otherwise it includes every store. It redraws on changes or every two seconds. `--once` prints one fitted frame; `--width N` and `--height N` set its size. Without a terminal height or LINES, a piped one-shot frame defaults to 53 rows. Colour is used on a terminal unless `NO_COLOR` is set.
 
 It is built for a right-hand third of the screen (60–90 columns). In tmux:
 
