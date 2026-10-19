@@ -34,6 +34,9 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
                                    which join the delivery queue and run on their own, oldest first
   first <id>                       deliver this discovery's items next (id: the discovery or any of its items)
   run [--background]               the runner: discoveries as they come, then delivery items one at a time
+  delegate open <assignment.json>   record delegated work (objective, briefFile, sender, worker, where, workspace)
+  delegate <started|clear|question|answered|reported|accepted|sent-back|closed|human> <id> [text.txt] --actor <actor>
+                                   record a handoff, question, report or acceptance; never starts an agent
   create <objective.txt> <source.txt> <workspace>
   list | show <id> | report <id> | export <id>
   status [id] [--json] | watch [id] [--json]
@@ -137,6 +140,25 @@ try {
     if (args.includes('--once')) console.log(renderSidecar(await sidecarSnapshot({ workspace: scope }), { width: width ?? process.stdout.columns ?? 80, color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR }));
     else await runSidecar({ width, workspace: scope });
   }
+  else if (command === 'delegate') {
+    const [verb, target, ...rest] = args;
+    if (verb === 'open') {
+      const input = JSON.parse(await readFile(target, 'utf8'));
+      if (input.briefFile) input.brief = await readFile(input.briefFile, 'utf8');
+      store = await openStore(directory);
+      console.log(JSON.stringify({ id: await store.openDelegated(input), store: directory }));
+    } else {
+      const verbs = ['started', 'clear', 'question', 'answered', 'reported', 'accepted', 'sent-back', 'closed', 'human'];
+      if (!verbs.includes(verb) || !Number.isSafeInteger(Number(target)) || Number(target) < 1) throw new Error('Supply a delegated action and positive work ID');
+      const actorAt = rest.indexOf('--actor');
+      if (actorAt < 0 || !rest[actorAt + 1]) throw new Error('--actor <actor> is required');
+      const files = rest.filter((_, i) => i !== actorAt && i !== actorAt + 1);
+      if (files.length !== (verb === 'closed' ? 0 : 1)) throw new Error('Supply one text file (none for closed)');
+      const input = { actor: rest[actorAt + 1], ...(files[0] ? { text: await readFile(files[0], 'utf8'), evidence: files[0] } : {}) };
+      store = await openStore(directory);
+      console.log(JSON.stringify(await store.delegated(Number(target), verb, input)));
+    }
+  }
   else if (command === 'demo') await (await import('./demo.mjs')).runDemo();
   else if (command === 'status') {
     const id = args.find(a => a !== '--json'), works = await observe(directory, id ? Number(id) : null);
@@ -190,12 +212,13 @@ try {
       case 'list': console.log(JSON.stringify(await store.list())); break;
       case 'show': {
         const w = await store.get(id);
+        if (w.kind === 'delegated') { console.log(JSON.stringify(w, null, 2)); break; }
         console.log(JSON.stringify({ id: w.id, objective: w.objective, step: STEPS[w.position]?.name ?? w.completion, round: w.round, hold: w.hold, waitsOn: w.waitsOn,
           attempts: w.attempts.map(a => ({ id: a.id, step: a.step, role: a.role, round: a.round, status: a.status, launches: a.launches, error: a.error || undefined })),
           failures: w.failures, exchanges: w.exchanges, events: w.events }, null, 2));
         break;
       }
-      case 'report': { const a = (await store.get(id)).attempts.at(-1); console.log(a?.output ?? 'No output yet'); break; }
+      case 'report': { const w = await store.get(id), a = w.attempts.at(-1); console.log(w.kind === 'delegated' ? w.report?.text ?? 'No report yet' : a?.output ?? 'No output yet'); break; }
       case 'export': {
         const path = join(directory, 'exports', `thread-${id}.json`);
         await mkdir(dirname(path), { recursive: true });

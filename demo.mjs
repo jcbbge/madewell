@@ -1,6 +1,5 @@
-import { renderSidecar } from './demo-board.mjs';
-import { panel, visible } from './tui.mjs';
-import { machineSample } from './machine.mjs';
+import { renderBoard, sidecarPage } from './sidecar.mjs';
+import { panel, visible, theme, wrapText } from './tui.mjs';
 
 // The demo: one run end to end, stepped through the real board. A discovery run turns a voice memo into
 // to-dos; the operator confirms, orders and starts one; it goes through the four delivery stages, a check
@@ -36,6 +35,7 @@ function check(u, step, state) {
 function start(s, id, step, card) {
   const u = get(s, id), a = { id: `a${++s.seq}`, step, actor: `agent-${s.seq}`, status: 'running', startedAt: at(s), createdAt: at(s), card, health: 'ok', stats: [] };
   u.record.attempts.push(a); u.attempt = { id: a.id }; u.current = { name: step }; u.state = 'working'; check(u, step, 'current');
+  ev(s, id, 'brief-sealed', { step, round: 0 });
   ev(s, id, 'started', { attemptId: a.id, step });
 }
 function progress(s, id, text) { const u = get(s, id); ev(s, id, 'progress', { attemptId: u.attempt?.id, deliverable: text }); }
@@ -110,7 +110,7 @@ export const RUN = [
       u.record.failures.push({ id: 'f1', status: 'open', at: iso(s, s.m) }); ev(s, 103, 'test-failed', { failureId: 'f1' }); } },
   { m: 143, who: 'agent', t: 'Whose problem is it? It was already there', d: 'The judge rules the failure pre-existing: the wholesale price list is out of date. A fix item #109 is made, and #103 waits on it, keeping its place.',
     a: s => { const u = get(s, 103), f = u.record.failures[0];
-      Object.assign(f, { status: 'answered', ruling: { cause: 'pre-existing' } }); u.failure.status = 'answered'; ev(s, 103, 'failure-routed', { failureId: 'f1', cause: 'pre-existing' });
+      Object.assign(f, { status: 'answered', prerequisite: 109, ruling: { cause: 'pre-existing' } }); u.failure.status = 'answered'; ev(s, 103, 'failure-routed', { failureId: 'f1', cause: 'pre-existing' });
       Object.assign(u, { state: 'waiting-on-prerequisite', waitsOn: 109 });
       const fix = add(s, 109, 'Update the wholesale price list', { kind: 'fix', parentId: 103 }); fix.record.delivery = true;
       hold(s, 109, 'The wholesale price list is out of date: 14 October prices are missing. Can you send the current prices so the fix can apply them?',
@@ -121,7 +121,7 @@ export const RUN = [
   { m: 158, who: 'agent', t: 'The fix is made and checked', d: 'Maker updates 14 prices; checker compares every line against the supplier sheet: all match. #109 finishes itself.',
     a: s => { finish(s, 109, 88_000, 0.14, { to: 'verify' }); start(s, 109, 'verify', luna); s.m += 4; finish(s, 109, 52_000, 0.04); complete(s, 109); } },
   { m: 162, who: 'record', t: '#103 is released and checked again', d: 'With its blocker done, #103 goes back to verification with a fresh checker.',
-    a: s => { const u = get(s, 103); Object.assign(u, { waitsOn: null }); ev(s, 103, 'redriven', { step: 'verify' }); start(s, 103, 'verify', luna); } },
+    a: s => { const u = get(s, 103); Object.assign(u, { waitsOn: null }); ev(s, 103, 'prerequisite-done', { child: 109 }); start(s, 103, 'verify', luna); } },
   { m: 168, who: 'agent', t: 'Verification: all 3 checks pass', d: 'Checker re-runs all three checks against the 5 sample orders: all pass.',
     a: s => finish(s, 103, 131_000, 0.10) },
   { m: 168, who: 'record', t: '#103 finishes itself', d: 'A delivery item is done only when its checks pass. Nobody marks it done by hand.',
@@ -141,7 +141,7 @@ const pad2 = n => String(n).padStart(2, '0');
 const hhmm = m => `${pad2(9 + Math.floor(m / 60))}:${pad2(m % 60)}`;
 
 // The demo's step drives the board's own narration: what just happened, what waits on you, the controls.
-export function demoFrame(pos, { width = 120, height, base = Date.UTC(2026, 9, 18, 9, 0), color = false, machine = null } = {}) {
+export function demoFrame(pos, { width = 120, base = Date.UTC(2026, 9, 18, 9, 0), color = false } = {}) {
   pos = Math.max(0, Math.min(RUN.length, pos));
   const cur = RUN[pos], last = pos ? RUN[pos - 1] : null;
   const narration = {
@@ -153,44 +153,52 @@ export function demoFrame(pos, { width = 120, height, base = Date.UTC(2026, 9, 1
       // A key that does nothing at this step is shown dimmed.
       const keys = [['→', 'step', cur && !cur.ask], ['enter', 'decide', Boolean(cur?.ask)], ['←', 'back', pos > 0], ['p', 'play', cur && !cur.ask], ['r', 'start over', true], ['q', 'quit', true]]
         .map(([k, l, live]) => live ? `${t.key(k)} ${t.ink(l)}` : t.faint(` ${k}  ${l}`)).join('   ');
-      const state = !cur ? t.okBold('Run complete · every rule held') : cur.ask ? t.opBold(`Waiting on you: ${cur.ask}`) : t.muted('Running');
+      const state = !cur ? t.okBold('Example complete · missing evidence stays unknown') : cur.ask ? t.opBold(`Waiting on you: ${cur.ask}`) : t.muted('Running');
       const right = `${state}   ${t.muted(`${hhmm(last ? last.m : 0)} · step ${pos} of ${RUN.length}`)}`;
       const inner = w - 4, done = Math.round(inner * pos / RUN.length);
       return panel(t, 'RUN', [keys + ' '.repeat(Math.max(2, inner - visible(keys) - visible(right))) + right, t.accent('█'.repeat(done)) + t.line('░'.repeat(inner - done))], w,
         { tone: cur?.ask ? 'op' : 'line', titleTone: 'inkBold' });
     },
   };
-  return renderSidecar({ ...build(pos, base), machine }, { width, height, color, narration });
+  const t = theme(color), heading = panel(t, narration.title,
+    [narration.step.t, narration.step.d, ...(narration.ask ? [`Waiting on you: ${narration.ask}`, `press enter  ▸ ${narration.opt}`] : [])].flatMap(line => wrapText(line, width - 4)), width);
+  return [...heading, ...narration.controls(t, width), renderBoard(build(pos, base), { width, color })].join('\n');
 }
 
 // The interactive loop: arrows step, Enter decides, p plays (stopping at every decision), r restarts.
 export async function runDemo({ output = process.stdout, input = process.stdin, start = 0 } = {}) {
   const d = new Date(); d.setHours(9, 0, 0, 0);
   const base = d.getTime(), tty = Boolean(output.isTTY), color = tty && !process.env.NO_COLOR;
-  let pos = start, timer = null, machine = await machineSample().catch(() => null);
-  // The machine panel is the real box, sampled every two seconds while the demo runs.
-  const meters = setInterval(async () => { machine = await machineSample().catch(() => machine); draw(); }, 2000);
+  let pos = start, timer = null, offset = 0, max = 0;
   const draw = () => {
-    let frame = demoFrame(pos, { width: output.columns ?? 120, height: output.rows, base, color, machine });
-    const rows = output.rows;
-    if (rows && frame.split('\n').length > rows) frame = frame.split('\n').slice(0, rows).join('\n');
-    output.write((tty ? '\x1b[H\x1b[2J' : '') + frame);
+    const width = output.columns ?? 120;
+    const frame = sidecarPage(demoFrame(pos, { width, base, color }), { rows: output.rows, width, offset });
+    offset = frame.offset; max = frame.max;
+    output.write((tty ? '\x1b[H\x1b[2J' : '') + frame.text);
   };
   const stop = () => { clearInterval(timer); timer = null; };
-  const go = n => { pos = Math.max(0, Math.min(RUN.length, pos + n)); draw(); };
+  const go = n => { pos = Math.max(0, Math.min(RUN.length, pos + n)); offset = 0; draw(); };
   if (tty) output.write('\x1b[?1049h\x1b[?25l');
   output.on?.('resize', draw);
   draw();
+  let quit, onData;
   await new Promise(resolve => {
-    const quit = () => resolve();
+    quit = () => resolve();
     process.once('SIGINT', quit); process.once('SIGTERM', quit);
     if (!input?.isTTY) return;
     input.setRawMode(true); input.resume();
     // Keys typed quickly arrive together; each one counts. An arrow is three characters.
-    input.on('data', chunk => { const text = chunk.toString(); for (let i = 0; i < text.length;) { const n = text.startsWith('\x1b[', i) ? 3 : 1; press(text.slice(i, i + n)); i += n; } });
+    onData = chunk => { const text = chunk.toString(); for (let i = 0; i < text.length;) { const key = /^(?:\x1b\[[0-9;]*[A-Za-z~]|[\s\S])/.exec(text.slice(i))[0]; press(key); i += key.length; } };
+    input.on('data', onData);
     const press = k => {
       const cur = RUN[pos];
       if (k === 'q' || k === 'Q' || k === '\x03') return quit();
+      if (['j', '\x1b[B', 'k', '\x1b[A', 'g', '\x1b[H', 'G', '\x1b[F', '\x1b[5~', '\x1b[6~'].includes(k)) {
+        const page = Math.max(1, (output.rows ?? 24) - 2);
+        offset = ['g', '\x1b[H'].includes(k) ? 0 : ['G', '\x1b[F'].includes(k) ? max
+          : offset + (k === '\x1b[5~' ? -page : k === '\x1b[6~' ? page : ['j', '\x1b[B'].includes(k) ? 1 : -1);
+        return draw();
+      }
       if (k === '\x1b[C' || k === 'l' || k === 'n') { stop(); if (cur && !cur.ask) go(1); }
       else if (k === '\r' || k === '\n') { stop(); if (cur) go(1); }
       else if (k === '\x1b[D' || k === 'h' || k === 'b') { stop(); go(-1); }
@@ -201,7 +209,8 @@ export async function runDemo({ output = process.stdout, input = process.stdin, 
       }
     };
   });
-  stop(); clearInterval(meters); output.off?.('resize', draw);
-  if (input?.isTTY) { input.setRawMode(false); input.pause(); }
+  stop(); output.off?.('resize', draw);
+  process.off('SIGINT', quit); process.off('SIGTERM', quit);
+  if (input?.isTTY) { input.off('data', onData); input.setRawMode(false); input.pause(); }
   if (tty) output.write('\x1b[?25h\x1b[?1049l');
 }

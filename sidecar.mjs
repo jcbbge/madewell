@@ -2,7 +2,9 @@ import { readFile, watch } from 'node:fs/promises';
 import { join } from 'node:path';
 import { dataDirectory } from './config.mjs';
 import { snapshot } from './serve.mjs';
-import { runView, terminalLines, clock, span } from './view.mjs';
+import { runView, terminalLines, clock, span, ruleSet, stageMinutes, operatorWait, usage, checks } from './view.mjs';
+import { renderSidecar as terminalBoard } from './demo-board.mjs';
+import { machineSample } from './machine.mjs';
 
 // The terminal sidecar: one plain program for a pane in any multiplexer. Read-only, like the dashboard:
 // it reads the view files through serve.mjs's snapshot and the accounts files, never a store or its lock.
@@ -12,9 +14,34 @@ export { clock, span };
 const PAINT = { h: ['\x1b[1m', '\x1b[0m'], bad: ['\x1b[31m', '\x1b[0m'] };
 
 // One frame. Pure: the same snapshot, width and time give the same text.
-export function renderSidecar(snap, { width = 80, now = snap?.at ?? Date.now(), color = false } = {}) {
+export function renderPlainSidecar(snap, { width = 80, now = snap?.at ?? Date.now(), color = false } = {}) {
   const lines = terminalLines(runView(snap, { at: now }), { width });
   return lines.map(l => color && PAINT[l.cls] ? `${PAINT[l.cls][0]}${l.text}${PAINT[l.cls][1]}` : l.text).join('\n');
+}
+
+// Preserve the operator's terminal board, fed by the same state derivation as replay and the page.
+export function renderBoard(snap, { width = 80, height, now = snap?.at ?? Date.now(), color = false, narration = null } = {}) {
+  const v = runView(snap, { at: now });
+  const stores = (snap?.stores ?? []).map(store => ({ ...store, threads: v.units.filter(u => u.storeDir === store.dir).map(u => {
+    const s = u.s;
+    return { ...u.w, state: s.state, done: s.done, hold: s.hold, waitsOn: s.waitsOn,
+      current: { name: s.call?.step ?? s.step }, attempt: s.attempt ? { id: s.attempt.id } : null,
+      exchange: s.exchange ? { ...s.exchange, rounds: s.answered } : null, lastEvent: s.lastEvent,
+      _board: { state: s, rules: ruleSet(u, now), times: stageMinutes(u.w, now),
+        wait: operatorWait(u.w, now), use: usage(u, now), checks: checks(u, now) } };
+  }) }));
+  return terminalBoard({ ...snap, at: now, stores }, { width, height, now, color, narration });
+}
+export const renderSidecar = renderBoard;
+
+// Live panes scroll rather than silently discarding evidence; --once emits every line.
+export function sidecarPage(frame, { rows, width = 80, offset = 0 } = {}) {
+  const lines = frame.split('\n');
+  if (!Number.isSafeInteger(rows) || rows < 2 || lines.length <= rows) return { text: frame, offset: 0, max: 0 };
+  const height = rows - 1, max = Math.max(0, lines.length - height);
+  offset = Math.min(max, Math.max(0, offset));
+  const footer = `Lines ${offset + 1}-${Math.min(lines.length, offset + height)}/${lines.length} · j/k ↑/↓ PgUp/PgDn Home/End · q quits`;
+  return { text: [...lines.slice(offset, offset + height), footer.slice(0, width)].join('\n'), offset, max };
 }
 
 // Quota belongs to provider accounts: the shared accounts.json at the data root, plus any store's own.
@@ -30,46 +57,59 @@ export async function readAccounts(base, dirs) {
 
 export async function sidecarSnapshot({ base = dataDirectory(), now = Date.now(), workspace = null } = {}) {
   const snap = await snapshot({ base, now, workspace });
-  return { ...snap, accounts: await readAccounts(base, snap.stores.map(s => s.dir)) };
+  return { ...snap, accounts: await readAccounts(base, snap.stores.map(s => s.dir)), machine: await machineSample().catch(() => null) };
 }
 
 // The live loop: clear-screen redraw on change, on resize, or every intervalMs; q or Ctrl-C quits.
-export async function runSidecar({ base = dataDirectory(), output = process.stdout, input = process.stdin, width, intervalMs = 2000, env = process.env, workspace = null } = {}) {
-  const tty = Boolean(output.isTTY), color = tty && !env.NO_COLOR;
-  let previous = '', busy = false, again = false;
+export async function runSidecar({ base = dataDirectory(), output = process.stdout, input = process.stdin, width, intervalMs = 2000, env = process.env, workspace = null, signal } = {}) {
+  const tty = Boolean(output.isTTY), color = tty && !env.NO_COLOR, watcher = new AbortController();
+  let previous = '', busy = false, again = false, ended = false, offset = 0, max = 0, pending;
   const draw = async (force = false) => {
+    if (ended) return;
     if (busy) { again = true; return; }
     busy = true;
     try {
+      const columns = width ?? output.columns ?? 80;
       let frame;
-      try { frame = renderSidecar(await sidecarSnapshot({ base, workspace }), { width: width ?? output.columns ?? 80, color }); }
+      try { frame = renderSidecar(await sidecarSnapshot({ base, workspace }), { width: columns, height: output.rows, color }); }
       catch (e) { frame = `Cannot read the work right now: ${e.message}`; }
-      const rows = output.rows;
-      if (rows && frame.split('\n').length > rows) frame = [...frame.split('\n').slice(0, rows - 1), '… more below: make the pane taller'].join('\n');
-      if (force || frame !== previous) { previous = frame; output.write((tty ? '\x1b[H\x1b[2J' : '') + frame + '\n'); }
-    } finally { busy = false; if (again) { again = false; draw(); } }
+      if (ended) return;
+      const page = sidecarPage(frame, { rows: output.rows, width: columns, offset });
+      offset = page.offset; max = page.max;
+      if (force || page.text !== previous) { previous = page.text; output.write((tty ? '\x1b[H\x1b[2J' : '') + page.text + '\n'); }
+    } finally { busy = false; if (again && !ended) { again = false; draw(); } }
   };
-  const watcher = new AbortController();
-  let pending;
   (async () => {
     try { for await (const _ of watch(base, { recursive: true, signal: watcher.signal })) { clearTimeout(pending); pending = setTimeout(() => draw(), 150); } }
-    catch {} // no data directory yet, or no recursive watch: the timer still redraws
+    catch {} // no directory or recursive watch: the interval still redraws
   })();
-  if (tty) output.write('\x1b[?1049h\x1b[?25l');
-  const resize = () => draw(true);
+  let stop;
+  const done = new Promise(resolve => { stop = resolve; });
+  const key = bytes => {
+    const value = bytes.toString(), page = Math.max(1, (output.rows ?? 24) - 2);
+    if (['q', 'Q', '\x03'].includes(value)) return stop();
+    if (['j', '\x1b[B'].includes(value)) offset++;
+    else if (['k', '\x1b[A'].includes(value)) offset--;
+    else if ([' ', '\x1b[6~'].includes(value)) offset += page;
+    else if (value === '\x1b[5~') offset -= page;
+    else if (['g', '\x1b[H', '\x1b[1~'].includes(value)) offset = 0;
+    else if (['G', '\x1b[F', '\x1b[4~'].includes(value)) offset = max;
+    else return;
+    draw(true);
+  };
+  const resize = () => draw(true), raw = input?.isRaw ?? false;
+  process.once('SIGINT', stop); process.once('SIGTERM', stop);
+  signal?.addEventListener('abort', stop, { once: true });
   output.on?.('resize', resize);
-  await draw(true);
+  if (tty) output.write('\x1b[?1049h\x1b[?25l');
+  if (input?.isTTY) { input.setRawMode(true); input.resume(); input.on('data', key); }
   const timer = setInterval(() => draw(), intervalMs);
-  await new Promise(resolve => {
-    const stop = () => resolve();
-    process.once('SIGINT', stop); process.once('SIGTERM', stop);
-    if (input?.isTTY) {
-      input.setRawMode(true); input.resume();
-      input.on('data', key => { const k = key.toString(); if (k === 'q' || k === 'Q' || k === '\x03') stop(); });
-    }
-  });
-  clearInterval(timer); clearTimeout(pending); watcher.abort();
-  output.off?.('resize', resize);
-  if (input?.isTTY) { input.setRawMode(false); input.pause(); }
-  if (tty) output.write('\x1b[?25h\x1b[?1049l');
+  try { await draw(true); if (signal?.aborted) stop(); await done; }
+  finally {
+    ended = true; clearInterval(timer); clearTimeout(pending); watcher.abort();
+    output.off?.('resize', resize);
+    process.off('SIGINT', stop); process.off('SIGTERM', stop); signal?.removeEventListener('abort', stop);
+    if (input?.isTTY) { input.off('data', key); input.setRawMode(raw); input.pause(); }
+    if (tty) output.write('\x1b[?25h\x1b[?1049l');
+  }
 }

@@ -14,6 +14,7 @@
     "work.mjs",
     "drive.mjs",
     "observe.mjs",
+    "delegated.mjs",
     "nq.mjs",
     "deliverable.mjs",
     "pi-call.mjs",

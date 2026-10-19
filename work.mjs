@@ -8,6 +8,7 @@ import { runCard } from './pi-call.mjs';
 import { buildLaunch } from './cards.mjs';
 import { LABELS, FORMAT, checkDeliverable } from './deliverable.mjs';
 import { publishWork } from './observe.mjs';
+import { delegatedFields, transitionDelegated } from './delegated.mjs';
 import { sendAlert } from './alert.mjs';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import { createModels } from '@earendil-works/pi-ai/models';
@@ -196,7 +197,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     await alertIfNew(id);
     return result;
   };
-  const step = w => { const s = STEPS[w.position]; if (!s) throw new Error('Thread is complete'); return s; };
+  const step = w => { if (w.kind === 'delegated') throw new Error('Delegated work is driven by its assigning agent, not the phase runner'); const s = STEPS[w.position]; if (!s) throw new Error('Thread is complete'); return s; };
   const fresh = (objective, source, cwd, extra = {}) => ({ objective, source, cwd, position: 0, round: 0, briefs: {}, briefHistory: [],
     exchanges: [], asked: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, kind: 'discovery', completion: null, events: [], ...extra });
   const createIn = async (tx, fields) => {
@@ -240,6 +241,8 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     return { cause: ruling.cause, prerequisite: failure.prerequisite ?? null };
   };
 
+  // Rebuild disposable projections even if the previous process died after committing.
+  for (const id of (await harness.snapshot(Catalog, root.id, context))?.threads ?? []) await publish(id);
   if (resume) harness.resume(); // redrive: any step a dead process left running continues now
   return {
     directory,
@@ -256,6 +259,13 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       await change(id, w => { event(w, 'created'); });
       return id;
     },
+    async openDelegated(input) {
+      const fields = delegatedFields(input), cwd = await realpath(input.workspace ?? process.cwd());
+      const id = await harness.commit(tx => createIn(tx, fresh(fields.objective, fields.source, cwd, fields)), context);
+      await change(id, w => event(w, 'delegated-opened', { state: w.delegationState, step: w.step, exchangeId: w.exchangeId }));
+      return id;
+    },
+    async delegated(id, action, input) { return change(id, w => transitionDelegated(w, action, input)); },
     async brief(id, text) {
       requireText(text, 'Brief');
       return change(id, w => {

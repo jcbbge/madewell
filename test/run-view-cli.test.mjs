@@ -1,5 +1,5 @@
 // The run view from the CLI (#78 plan §5, §7 j): serve opens no browser unless asked from a terminal,
-// reuses a dashboard already on its port, and is scoped to a workspace; sidecar --once is terminalLines.
+// reuses a dashboard already on its port, and is scoped to a workspace; sidecar preserves the terminal board.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, chmod, realpath, rm } from 'node:fs/promises';
@@ -93,7 +93,11 @@ test('sidecar --once prints the frame of one workspace with --workspace, and of 
     assert.match(one.stdout, /Alpha objective/);
     assert.doesNotMatch(one.stdout, /Beta objective/);
     const expected = renderSidecar(await sidecarSnapshot({ base: m.base, workspace: alpha }), { width: 80 });
-    assert.equal(one.stdout, `${expected}\n`, 'exactly the frame for that scope');
+    // Machine meters are sampled independently by each read; compare the exact work/layout bytes,
+    // not two different live CPU samples.
+    const withoutMeters = text => text.replace(/╭─ MACHINE[^\n]*\n[\s\S]*?╰[^\n]*\n/, 'MACHINE\n');
+    assert.equal(withoutMeters(one.stdout), withoutMeters(`${expected}\n`), 'same terminal layout and work for that scope');
+    assert.match(one.stdout, /MADE WELL/); assert.match(one.stdout, /MACHINE/); assert.match(one.stdout, /HAPPENING NOW/);
     const both = await runCli(['sidecar', '--once', '--width', '80'], m.env);
     assert.equal(both.code, 0, both.stderr);
     assert.match(both.stdout, /Alpha objective/);
