@@ -189,3 +189,76 @@ test('transport retries keep one call/session and record each launch separately 
   await s.store.nq(id, x, clear, 'worker', result.callId);
   assert.equal((await s.store.get(id)).exchanges[0].turns.length, 1);
 });
+
+test('sender answers stay on the actual historical card after prescription ordering changes', () => run({}, async ({ store, cwd }) => {
+  const prescriptions = loadPrescriptions(); let asked = false, sender;
+  const id = await store.create('Build', 'source', cwd, { kind: 'delivery' });
+  await drive(store, id, { ...quiet, prescriptions, call: async options => {
+    const packet = JSON.parse(options.prompt);
+    if (/who handed over this work/.test(options.system)) { sender = options.card; return { output: JSON.stringify({ answer: 'From the accepted discovery.' }) }; }
+    if (packet.step?.name === 'ideate' && !asked) {
+      asked = true; prescriptions.tiers.deep.reverse();
+      return { output: JSON.stringify({ intent: 'Need one detail', questions: ['Which source?'] }) };
+    }
+    return { output: JSON.stringify(clear) };
+  } });
+  const w = await store.get(id), original = w.attempts.find(a => a.step === 'discover');
+  assert.deepEqual(sender, original.card);
+  assert.equal(sender.account, 'a'); assert.equal(prescriptions.tiers.deep[0].account, 'b');
+  const x = w.exchanges.find(x => x.step === 'ideate');
+  assert.equal(x.sender.card.account, 'a'); assert.equal(x.senderReplacements, undefined);
+}));
+
+test('quota successor confirms the pickup dossier and retains answered turns before execution', () => run({
+  limitOnce: { Sirius: 1 },
+  intakeQuestions: [null, null, null, null, null, 'Which path?', null, 'Which test?', null, null],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build', 'source', cwd, { kind: 'delivery' });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id), a = w.attempts.find(a => a.step === 'implement'), x = w.exchanges.find(x => x.step === 'implement');
+  assert.equal(x.rounds, 2); assert.equal(x.replacements.length, 1);
+  assert.notEqual(x.replacements[0].actor, x.worker);
+  assert.deepEqual(x.turns.filter(t => t.type === 'originator').map(t => t.round), [1, 2]);
+  const replacementIntake = log().filter(c => c.role === 'intake').map(c => JSON.parse(c.prompt)).find(p => p.pickup);
+  assert.equal(replacementIntake.pickup.from.account, 'a');
+  assert.equal(replacementIntake.pickup.lastOutputIsFile, true);
+  assert.match(await readFile(replacementIntake.pickup.lastOutput, 'utf8'), /usage limit/);
+  assert.ok(replacementIntake.exchange.some(t => t.questions?.includes('Which path?')));
+  assert.ok(replacementIntake.pickup.workspace);
+  const execution = w.calls.find(c => c.kind === 'replacement');
+  assert.equal(execution.actor, x.worker); assert.equal(execution.card.account, 'b');
+  assert.ok(JSON.parse(a.packet).exchange.at(-1).clear);
+  assert.ok(x.senderReplacements.some(r => r.reason === 'quota'), 'sender account substitution is explicit too');
+}));
+
+test('a quota-replaced Arbiter has its own readiness before issuing the ruling', () => run({
+  verify: ['fail', 'pass'], limitOnce: { arbiter: 1 }, arbiter: [{ cause: 'test', answer: 'Fix expectation', evidence: 'contract' }],
+}, async ({ store, cwd, log }) => {
+  const id = await store.create('Build', 'source', cwd, { kind: 'delivery' });
+  assert.equal((await drive(store, id, quiet)).status, 'complete');
+  const w = await store.get(id), x = w.exchanges.find(x => x.subject?.kind === 'failure');
+  assert.equal(x.replacements.length, 1); assert.equal(x.rounds, 0);
+  assert.deepEqual(log().filter(c => ['arbiter-intake', 'arbiter'].includes(c.role)).map(c => [c.role, c.limited]),
+    [['arbiter-intake', false], ['arbiter', true], ['arbiter-intake', false], ['arbiter', false]]);
+  assert.equal(x.receiver.card.account, 'b');
+}));
+
+test('fresh Codex calls never resume an invented UUID; a lost execution session requires new intake', async t => {
+  const s = await fixture(t), id = await s.store.create('Build', 'source', s.cwd);
+  await s.store.brief(id, 'Inspect'); const x = await s.store.delegate(id, 'worker');
+  const codex = { ...card, harness: 'codex' };
+  const c = await s.store.call(id, { ...input(x, 'codex-intake'), card: codex }, async options => {
+    assert.equal(options.sessionId, undefined); assert.equal(options.resume, false);
+    options.onLine({ type: 'thread.started', thread_id: 'real-thread' });
+    return { output: JSON.stringify(clear), sessionId: 'real-thread' };
+  });
+  await s.store.nq(id, x, clear, 'worker', c.callId);
+  const result = await s.store.call(id, { ...input(x, 'codex-execution', 'arbiter'), card: codex }, options => {
+    assert.equal(options.sessionId, undefined); throw new Error('Lost before thread.started');
+  });
+  assert.equal(result.needsIntake, true);
+  const after = (await s.store.get(id)).exchanges[0];
+  assert.equal(after.status, 'awaiting-worker'); assert.equal(after.rounds, 0);
+  assert.notEqual(after.worker, 'worker'); assert.equal(after.pickup.reason, 'session-unavailable');
+  await assert.rejects(s.store.call(id, { ...input(x, 'illegal-codex-execution', 'arbiter'), card: codex, actor: after.worker }, () => ({ output: 'Must not run' })), /NQ must clear/);
+});
