@@ -114,7 +114,7 @@ export async function delegatedTelemetry(w, { exec = run, read = readFile, now =
       try {
         const [log, status] = await Promise.all([
           exec('git', ['--no-optional-locks', '-C', pathAt(repo, w.workspace), 'log', '-1', '--no-show-signature', '--format=%h%x00%ct%x00%s']),
-          exec('git', ['--no-optional-locks', '-C', pathAt(repo, w.workspace), 'status', '--porcelain=v1', '-z'])
+          exec('git', ['--no-optional-locks', '-C', pathAt(repo, w.workspace), 'status', '--porcelain=v1', '--untracked-files=all', '-z'])
         ]);
         const [hash, timestamp, subject] = log.trimEnd().split('\0');
         if (!/^[0-9a-f]+$/.test(hash) || !(Number(timestamp) > 0)) throw new Error('Invalid commit observation');

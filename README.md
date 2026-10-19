@@ -75,6 +75,8 @@ An assignment's `where` object may contain `tmux`, `steps` (TASKS.md path), and 
 
 The sidecar samples tmux and foreground process names read-only. Missing exact tmux targets are dead; shell-only panes are stale; unavailable probes are unknown. Only observed live delegated agents count as running. A process is not completion evidence.
 
+Delegated cards show activity age in seconds, the ledger's NOW tasks and retained completion count, latest worker update and age, numeric pi footer context/tokens/printed cost when available, and the workspace repo's last commit plus uncommitted file count. Raw pane content is never retained. On older tmux versions without pane activity, a single-pane window supplies output time; a multi-pane window cannot attribute its activity to one pane and stays unknown. Missing usage is unknown, not zero. `pi-durable demo` exercises these same columns with explicitly synthetic live, dead, stale and unavailable examples; it probes no agents or repos.
+
 ## See it: the run view
 
 Starting pi starts it: http://localhost:7788, for as long as that pi session runs. The footer reads `durable ✓ · localhost:7788` when Pi Durable is connected. `pi-durable serve` runs it without pi and opens it in your browser (from a terminal; `--no-open` skips that). It prints the address, and if the dashboard already runs on that port it says so and uses it.

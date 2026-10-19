@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFile } from 'node:child_process';
@@ -204,6 +204,21 @@ test('unavailable footer and git remain unknown; repo hints resolve relative to 
   const shell = adapters({ foreground: '1 1 zsh' });
   assert.equal((await delegatedTelemetry(assignment, shell)).usage, undefined);
   assert.ok(!shell.calls.some(([, args]) => args[0] === 'capture-pane'));
+});
+
+test('repo observation counts individual untracked files, not collapsed directories', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'delegated-repo-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await exec('git', ['init', root]);
+  await writeFile(join(root, 'tracked.txt'), 'original');
+  await exec('git', ['-C', root, 'add', 'tracked.txt']);
+  await exec('git', ['-C', root, '-c', 'user.name=Example', '-c', 'user.email=example@example.invalid', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', 'commit', '-m', 'Example baseline']);
+  await writeFile(join(root, 'tracked.txt'), 'modified');
+  await mkdir(join(root, 'nested'));
+  await writeFile(join(root, 'nested', 'one.txt'), 'one'); await writeFile(join(root, 'nested', 'two.txt'), 'two');
+  const observed = await delegatedTelemetry({ workspace: root }, { read: async () => '' });
+  assert.equal(observed.repo.changed, 3); assert.match(observed.repo.hash, /^[a-f0-9]+$/);
+  assert.equal(observed.repo.subject, 'Example baseline');
 });
 
 test('CLI progress commits to SQLite, survives reopen, and refreshes sidecar hints each time', async t => {
