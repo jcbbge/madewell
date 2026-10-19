@@ -47,6 +47,19 @@ test('five records use two lines each; selection alone expands one record', () =
   assert.doesNotMatch(detail, /Work item [1245]|WHERE THE WORK IS|MACHINE/);
 });
 
+test('dead records leave the live section and remain unaccepted in the one list', () => {
+  const fixture = viewportFixture(7);
+  for (const w of fixture.stores[0].threads.slice(0, 2)) {
+    w.state = 'dead'; w.telemetry.tmux.state = 'dead'; w.objective = `Dead task ${w.threadId}`;
+  }
+  const frame = renderSidecar(fixture, { width: 106, height: 53, now });
+  const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0];
+  assert.doesNotMatch(happening, /Dead task|tmux: dead|Recorded location/);
+  assert.match(frame.split('\n')[0], /5 running/);
+  const list = frame.split('THE ONE LIST')[1]; assert.match(list, /Dead task 1/); assert.match(list, /dead/);
+  assert.equal(fixture.stores[0].threads[0].done, false);
+});
+
 test('106x53 overview with five live records fits without scrolling', () => {
   const frame = renderSidecar(viewportFixture(), { width: 106, height: 53, now });
   assert.ok(frame.split('\n').length <= 53); assert.match(frame.split('\n')[0], /5 running/);

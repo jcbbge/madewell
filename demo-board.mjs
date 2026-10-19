@@ -94,6 +94,7 @@ const eventsOf = w => w.record?.events ?? [];
 const dropped = w => eventsOf(w).some(e => e.type === 'operator-cancelled');
 const itemState = w => w.kind === 'delegated' ? w.done ? 'done' : 'task' : w.state === 'queued' ? 'to-do' : w.done ? (dropped(w) ? 'dropped' : 'done') : w.state === 'ready' && !attemptsOf(w).length ? 'to-do' : 'task';
 const kindOf = w => w.kind ?? (w.parentId ? 'fix' : w.record?.delivery ? 'delivery' : 'discovery');
+const isDead = w => w.state === 'dead' || w.telemetry?.tmux?.state === 'dead';
 const runMs = (a, now) => Number.isFinite(a.startedAt) ? (a.endedAt ?? (['queued', 'running'].includes(a.status) ? now : a.startedAt)) - a.startedAt : 0;
 const minutes = v => v < 3_600_000 ? `${Math.round(v / 60_000)}m` : span(v);
 const count = n => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
@@ -335,7 +336,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   const waiting = units.filter(u => !u.w.done && WAITING.has(u.w.state) && (u.w.hold || u.w.state !== 'human-hold'));
   const active = units.filter(u => !u.w.done && !WAITING.has(u.w.state) && itemState(u.w) !== 'to-do');
   const running = active.filter(u => u.w.kind === 'delegated' ? u.w.telemetry?.tmux?.state === 'running' : u.w._board ? u.w.state === 'working' : true);
-  const open = units.filter(u => !u.w.done && itemState(u.w) !== 'to-do');
+  const open = units.filter(u => !u.w.done && !isDead(u.w) && itemState(u.w) !== 'to-do');
   const todos = units.filter(u => itemState(u.w) === 'to-do');
   const finished = units.filter(u => itemState(u.w) === 'done');
   const today = finished.filter(u => new Date(ms(u.w.lastEvent?.at)).toDateString() === new Date(now).toDateString());
@@ -357,7 +358,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   const nowPanel = (w, compact = false, maxRows = Infinity) => {
     const body = [];
     if (compact) {
-      const records = [...waiting, ...active];
+      const records = [...waiting, ...active].filter(u => !isDead(u.w));
       if (records.length > 3 && !records.some(isSelected)) {
         const count = records.length * 2 <= maxRows ? records.length : Math.max(0, Math.floor((maxRows - 1) / 2));
         return [...records.slice(0, count).flatMap(u => compactLines(t, u, label(u), w, now)), ...(count < records.length ? [t.muted(`+${records.length - count} more records`)] : [])];
@@ -366,7 +367,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
         const full = isSelected(u) || records.length <= 3;
         body.push(...(full ? u.w.hold ? decisionLines(t, u, label(u), w, now) : runningLines(t, u, label(u), w, now) : compactLines(t, u, label(u), w, now)));
       }
-      return body.length ? body : [t.muted('Quiet. Nothing is running and nothing is waiting on you.')];
+      return body.length ? limited(body, maxRows) : [t.muted('Quiet. Nothing is running and nothing is waiting on you.')];
     }
     const latest = narration?.step ?? (log.length ? { who: log.at(-1).who, t: log.at(-1).text, d: `${clock(log.at(-1).at, now)}` } : null);
     if (latest) {
@@ -445,7 +446,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     if (!rows.length) body.push(t.muted('The list is empty.'));
     const room = Math.max(1, Math.floor((max - 2) / 2));
     for (const u of rows.slice(0, room)) {
-      const st = itemState(u.w), stateWord = u.w.kind === 'delegated' ? u.w._board?.state.delegationState ?? u.w.state : st, asks = WAITING.has(u.w.state) && !u.w.done;
+      const st = itemState(u.w), stateWord = isDead(u.w) ? 'dead' : u.w.kind === 'delegated' ? u.w._board?.state.delegationState ?? u.w.state : st, asks = WAITING.has(u.w.state) && !u.w.done;
       const pill = asks ? t.pill('you', 'needs you') : t.pill({ 'to-do': 'todo', task: 'task', done: 'done', dropped: 'dropped' }[st], stateWord);
       const name = t.muted(label(u).padEnd(6)) + (u.w.done ? t.muted(plain(u.w.objective)) : t.ink(plain(u.w.objective)));
       body.push(fit(name, w - visible(pill) - 1) + ' ' + pill);
