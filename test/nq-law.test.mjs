@@ -28,15 +28,15 @@ test('7a: three answered turns with questions open → a structured hold on that
   assert.equal(w.attempts.filter(a => a.step === 'plan').length, 0, 'nothing executed');
 }));
 
-test('7b: an authority hold answered by the human → the worker asks again → its originator answers; no immediate hold', () => run({
-  intakeQuestions: ['May I drop the table?', 'Which schema holds the orders table?', null],
-  originator: [{ answer: 'Only the operator can approve dropping data.', unresolvedAuthority: true }, { answer: 'The public schema, per the source.', unresolvedAuthority: false }],
+test('7b: unresolved authority gets three originator answers before a human hold; the human answer still needs confirmation', () => run({
+  intakeQuestions: ['May I drop the table?', 'Can I delete its rows?', 'Can I remove the data?', 'Still need authorization?', null],
+  originator: [{ answer: 'Only the operator can approve dropping data; do not drop it.', unresolvedAuthority: true }],
 }, async ({ store, cwd, log }) => {
   const id = await store.create('Build it', 'source', cwd);
   assert.equal((await drive(store, id, quiet)).status, 'held');
   let w = await store.get(id);
   const x = stepExchanges(w)[0];
-  assert.equal(w.hold.cause, 'authority');
+  assert.equal(w.hold.cause, 'turns');
   assert.equal(w.hold.ref, x.id);
   assert.equal(w.hold.originator, 'dispatcher');
   assert.equal(w.hold.receiver, x.worker);
@@ -45,10 +45,10 @@ test('7b: an authority hold answered by the human → the worker asks again → 
   assert.equal((await drive(store, id, quiet)).status, 'discovered');
   w = await store.get(id);
   const after = w.exchanges.find(e => e.id === x.id);
-  assert.deepEqual(after.turns.map(t => t.type), ['worker', 'human', 'worker', 'originator', 'worker']);
-  assert.equal(after.turns[1].round, 1, 'the human answer is a turn');
-  assert.equal(after.rounds, 2, 'human and originator answers both count');
-  assert.equal(originatorCalls(log).length, 2, 'the question after the human answer went to the originator');
+  assert.deepEqual(after.turns.map(t => t.type), ['worker', 'originator', 'worker', 'originator', 'worker', 'originator', 'worker', 'human', 'worker']);
+  assert.equal(after.turns[7].round, 4, 'the human answer is a turn');
+  assert.equal(after.rounds, 4, 'human and originator answers both count');
+  assert.equal(originatorCalls(log).length, 3, 'three originator answers come before the human');
   assert.equal(w.hold, null);
 }));
 
@@ -89,14 +89,16 @@ test('7c: the Arbiter asks before ruling → the failing check runner answers �
   assert.deepEqual(fx.turns.map(t => t.type), ['worker', 'originator', 'worker']);
   assert.deepEqual(fx.turns[0].questions, ['Which fixture did t1 load when it failed?']);
   assert.equal(fx.turns[1].text, 't1 loaded fixtures/old.json.');
-  assert.equal(fx.turns[2].ruling.cause, 'test', 'the ruling travels on the Arbiter\'s turn');
+  assert.equal(fx.decision.cause, 'test', 'the ruling is separate from the Arbiter\'s readiness turn');
+  assert.equal(fx.turns[2].ruling, undefined, 'readiness is not retroactively relabelled execution');
   const [o] = originatorCalls(log);
   assert.equal(originatorCalls(log).length, 1);
   assert.equal(o.as, 'Aldebaran');
   assert.match(handoffText(o), /"outcome":"fail"/, 'the check runner answers from its own report');
   const rulings = calls(log, 'arbiter');
-  assert.equal(rulings.length, 2);
-  assert.ok(JSON.parse(rulings[1].prompt).exchange.some(t => t.type === 'originator' && t.text === 't1 loaded fixtures/old.json.'), 'the Arbiter rules with the answer in hand');
+  assert.equal(rulings.length, 1, 'ruling execution is separate from readiness');
+  assert.equal(calls(log, 'arbiter-intake').length, 2);
+  assert.ok(JSON.parse(rulings[0].prompt).exchange.some(t => t.type === 'originator' && t.text === 't1 loaded fixtures/old.json.'), 'the Arbiter rules with the answer in hand');
   assert.equal(f.ruling.cause, 'test');
   assert.ok(!w.events.some(e => e.type === 'failure-undetermined'), 'questions are never an undetermined ruling');
   assert.equal(stepExchanges(w).find(x => x.step === 'test-plan' && x.round === 1).originator, 'Arbiter');
@@ -136,7 +138,8 @@ test('7d: the Arbiter still asking after three turns → a nq hold on the failur
   assert.equal(w.failures[0].ruling.cause, 'test');
   assert.equal(w.failures[0].ruling.by, 'Arbiter');
   assert.deepEqual(w.exchanges.find(x => x.id === fx.id).turns.slice(-2).map(t => t.type), ['human', 'worker']);
-  assert.equal(calls(log, 'arbiter').length, 5);
+  assert.equal(calls(log, 'arbiter-intake').length, 5);
+  assert.equal(calls(log, 'arbiter').length, 1, 'no ruling executed before readiness');
 }));
 
 const askAtPlan = [null, null, null, 'May I edit package.json to fix the test script?', null];
@@ -160,8 +163,9 @@ test('7e: the dispatcher asks the originator before ruling on authority → answ
   assert.deepEqual(ax.turns.map(t => t.type), ['worker', 'originator', 'worker']);
   assert.deepEqual(ax.turns[0].questions, ['Does the handoff mean the whole package.json or only its test script?']);
   assert.equal(ax.turns[1].text, 'I meant only the "test" script line.');
-  assert.match(ax.turns[2].ruling.answer, /part of the request/);
-  assert.equal(calls(log, 'authority').length, 2);
+  assert.match(ax.decision.answer, /part of the request/);
+  assert.equal(calls(log, 'authority-intake').length, 2);
+  assert.equal(calls(log, 'authority').length, 1, 'authority is decided only after readiness');
   const os = originatorCalls(log);
   assert.deepEqual(os.map(c => c.as), ['Polaris', 'Polaris']);
   assert.equal(handoffText(os[1]), 'Only the operator can approve editing package.json.', 'the originator answers the dispatcher from what it said');
@@ -170,23 +174,24 @@ test('7e: the dispatcher asks the originator before ruling on authority → answ
   assert.equal(w.hold, null);
 }));
 
-test('7e: the originator answering the dispatcher also needs the operator → hold with cause authority, no second consult', () => run({
+test('7e: the originator answering the dispatcher gets three turns before the authority consult holds, no recursive consult', () => run({
   intakeQuestions: askAtPlan,
   originator: [{ answer: 'Only the operator can approve this.', unresolvedAuthority: true }],
   authority: [{ questions: ['What exactly did you hand over about package.json?'] }],
 }, async ({ store, cwd, log }) => {
   const id = await store.create('Build it', 'source', cwd, { delivery: true });
   assert.equal((await drive(store, id, quiet)).status, 'held');
-  const w = await store.get(id), x = stepExchanges(w).find(x => x.step === 'plan');
+  const w = await store.get(id), ax = w.exchanges.find(x => x.subject?.kind === 'authority');
   assert.equal(w.hold.kind, 'nq');
-  assert.equal(w.hold.cause, 'authority');
-  assert.equal(w.hold.ref, x.id, 'the parent hand-off holds');
-  assert.equal(w.hold.reason, 'Only the operator can approve this.');
-  assert.equal(calls(log, 'authority').length, 1);
-  assert.equal(originatorCalls(log).length, 2);
+  assert.equal(w.hold.cause, 'turns');
+  assert.equal(w.hold.ref, ax.id, 'only the unresolved consult holds');
+  assert.equal(ax.rounds, 3);
+  assert.equal(calls(log, 'authority').length, 0, 'no authority decision before readiness');
+  assert.equal(calls(log, 'authority-intake').length, 4);
+  assert.equal(originatorCalls(log).length, 4, 'initial handoff plus three consult answers');
   assert.equal((await drive(store, id, quiet)).status, 'held');
-  assert.equal(calls(log, 'authority').length, 1, 'nothing escalates further');
-  assert.equal(originatorCalls(log).length, 2);
+  assert.equal(calls(log, 'authority').length, 0, 'nothing escalates further');
+  assert.equal(originatorCalls(log).length, 4);
 }));
 
 const SUBAGENT = 'Do not delegate or change scope. If your tools can start another agent anyway, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.';

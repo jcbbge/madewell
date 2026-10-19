@@ -61,12 +61,13 @@ test('7i: a turns hold alerts once; after the human answers, an after-human hold
   assert.deepEqual(alerted(w).map(e => e.holdAt), [all[0].hold.at, all[1].hold.at]);
 }));
 
-test('7i: an authority hold alerts once', () => withAlerts({
+test('7i: unresolved authority alerts once after three originator answers', () => withAlerts({
   intakeQuestions: ['May I drop the table?'],
   originator: [{ answer: 'Only the operator can approve dropping data.', unresolvedAuthority: true }],
 }, async ({ store, cwd, got }) => {
   const id = await store.create('Build it', 'source', cwd);
-  await alertsOnce(store, id, got, 'authority');
+  const w = await alertsOnce(store, id, got, 'turns');
+  assert.equal(w.exchanges[0].rounds, 3, 'authority does not bypass the three originator turns');
 }));
 
 const failureHold = w => { assert.equal(w.hold.kind, 'failure'); assert.equal(w.hold.originator, null); assert.equal(w.hold.receiver, 'Arbiter'); assert.deepEqual(w.hold.refs, []); };
