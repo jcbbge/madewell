@@ -1,0 +1,6 @@
+{
+  "name": "doctor-native-fixture",
+  "private": true,
+  "type": "module",
+  "pi": { "extensions": ["./shim.ts", "./excluded.ts"] }
+}

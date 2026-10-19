@@ -15,6 +15,7 @@
     "drive.mjs",
     "observe.mjs",
     "nq.mjs",
+    "deliverable.mjs",
     "pi-call.mjs",
     "pi-stream.mjs",
     "pi-runtime.mjs",
@@ -34,6 +35,13 @@
     "README.md",
     "serve.mjs",
     "sidecar.mjs",
+    "demo-board.mjs",
+    "demo.mjs",
+    "machine.mjs",
+    "tui.mjs",
+    "queue.mjs",
+    "alert.mjs",
+    "view.mjs",
     "dashboard.html"
   ],
   "pi": {
@@ -47,7 +55,7 @@
   },
   "type": "module",
   "scripts": {
-    "test": "PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs",
+    "test": "PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs",
     "update": "npm install --no-save @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest"
   },
   "engines": {

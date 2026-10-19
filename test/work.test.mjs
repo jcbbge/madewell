@@ -13,6 +13,8 @@ import { runQueue } from '../queue.mjs';
 const fake = fileURLToPath(new URL('./fake-pi.mjs', import.meta.url));
 const cli = fileURLToPath(new URL('../cli.mjs', import.meta.url));
 await chmod(fake, 0o755);
+// No desktop notification from a test run; alert tests set their own channel.
+process.env.PI_DURABLE_ALERT ??= 'none';
 
 async function setup(scenario = {}) {
   const root = await mkdtemp(join(tmpdir(), 'mpd-')), dir = join(root, 'store'), cwd = join(root, 'ws'), state = join(root, 'fake.json');
@@ -193,7 +195,7 @@ test('NQ: a mid-pipeline question is answered by the previous role, from its acc
   assert.equal(calls[0].as, 'Cassiopeia');
   const { packet, text } = handoffOf(calls[0]);
   assert.equal(text, w.attempts.find(a => a.step === 'plan' && a.status === 'accepted').output, 'the originator answers from its own accepted output');
-  assert.equal(text, 'Cassiopeia done');
+  assert.match(text, /^Cassiopeia done\nMaking:/);
   assert.deepEqual(packet.questions, ['Which test runner?']);
   assert.equal(packet.brief, undefined, 'the originator does not get the receiving step\'s brief');
   assert.deepEqual(x.turns.map(t => [t.type, t.actor]).slice(0, 2), [['worker', x.worker], ['originator', 'Cassiopeia']]);
@@ -264,7 +266,7 @@ test('NQ: three answered rounds with questions open → human hold naming the or
   assert.equal(x.rounds, 3);
   assert.equal(x.status, 'human-hold');
   assert.equal(w.hold.kind, 'nq');
-  assert.match(w.hold.reason, /handoff from Polaris is ambiguous or wrong/);
+  assert.match(w.hold.reason, /questions remain after three turns on the handoff from Polaris/);
   assert.equal(originatorCalls(log).length, 3);
   assert.ok(originatorCalls(log).every(c => c.as === 'Polaris'), 'no actor switch');
   assert.equal((await drive(store, id, quiet)).status, 'held', 'driving again does not bypass the hold');
@@ -304,7 +306,7 @@ test('crash: kill -9 the driver mid-implementation; driving again continues the 
     const w = await store.get(id), impl = w.attempts.find(a => a.step === 'implement');
     assert.equal(w.completion, 'verified');
     assert.equal(impl.launches, 2);
-    assert.equal(impl.output, 'Sirius done (continued)');
+    assert.match(impl.output, /^Sirius done \(continued\)\nChanged paths:/);
     const sirius = s.log().filter(c => c.role === 'Sirius');
     assert.equal(sirius.length, 2);
     assert.equal(sirius[0].sessionId, sirius[1].sessionId, 'same pi session');

@@ -29,8 +29,10 @@ function invoke(file: string, args: string[], input: unknown, directory: string)
     child.stdin.end(input === undefined ? undefined : JSON.stringify(input));
   });
 }
+// A hold names who handed the work over, who asked and why, and what alert the person got; it goes to them as it is.
 const compact = (w: any) => ({ id: w.threadId, state: w.state, done: w.done, step: w.current?.name, role: w.current?.role, round: w.round,
-  progress: w.progress, next: w.next, owner: w.owner, questions: w.questions, failure: w.failure, lastRuling: w.lastRuling, waitsOn: w.waitsOn, driverAlive: w.driverAlive });
+  progress: w.progress, next: w.next, owner: w.owner, questions: w.questions, failure: w.failure, lastRuling: w.lastRuling, waitsOn: w.waitsOn, driverAlive: w.driverAlive,
+  hold: w.hold ? { cause: w.hold.cause, reason: w.hold.reason, originator: w.hold.originator, receiver: w.hold.receiver, questions: w.hold.questions } : null, alert: w.alert ?? null });
 
 export default function durable(pi: ExtensionAPI) {
   // Step workers are plain pi with this package installed too; the work tool is not theirs.
@@ -131,7 +133,7 @@ export default function durable(pi: ExtensionAPI) {
         result = { runner: await invoke('cli.mjs', ['run', '--background'], undefined, directory), note: 'The runner continues everything not settled.' };
       } else if (params.action === 'status') {
         await refresh();
-        result = views.filter(w => !params.id || w.threadId === params.id).map(compact);
+        result = views.filter(w => !params.id || w.threadId === params.id).sort((a, b) => Number(Boolean(b.hold)) - Number(Boolean(a.hold))).map(compact);
       } else {
         if (!id) throw new Error('No work selected');
         if (params.action === 'answer' && !params.text?.trim()) throw new Error('answer needs the user\'s text');

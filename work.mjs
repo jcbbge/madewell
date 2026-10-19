@@ -6,7 +6,9 @@ import * as nq from './nq.mjs';
 import { STEPS, ARBITER, stepIndex, progressExtension } from './pi-runtime.mjs';
 import { runCard } from './pi-call.mjs';
 import { buildLaunch } from './cards.mjs';
+import { LABELS, FORMAT, checkDeliverable } from './deliverable.mjs';
 import { publishWork } from './observe.mjs';
+import { sendAlert } from './alert.mjs';
 import { BACKGROUND_CONTEXT as context } from '@earendil-works/chord/context';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { Harness, createRegistry, defineDoc, defineExtension, defineTask } from '@earendil-works/pi-durable';
@@ -14,6 +16,8 @@ import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite
 
 export { STEPS };
 export const hash = text => createHash('sha256').update(text).digest('hex');
+// A worker whose tools can start a sub-agent anyway originates an NQ exchange and answers for it.
+export const SUBAGENT_RULE = 'If your tools can start another agent anyway, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.';
 export const CAUSES = ['pre-existing', 'implementation', 'test'];
 // Whoever handed the work over: the person or concierge that dispatched it, before any phase has handed off.
 export const DISPATCHER = 'dispatcher';
@@ -54,6 +58,15 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     const w = await harness.snapshot(Work, id, context);
     if (w?.id) await publishWork(directory, w);
   }).catch(e => console.error(`view not refreshed (work is committed): ${e.message}`)));
+  // A hold alerts the human once: the record says which hold was alerted, so a redriven or repeated drive sends nothing twice.
+  let alerts = Promise.resolve();
+  const alertIfNew = id => (alerts = alerts.then(async () => {
+    const w = await harness.snapshot(Work, id, context);
+    if (!w?.hold || w.events.some(e => e.type === 'alerted' && e.holdAt === w.hold.at)) return;
+    const sent = await sendAlert({ threadId: id, workspace: w.cwd, objective: w.objective, hold: w.hold }, process.env);
+    await harness.commit(async tx => { event(await tx.doc(Work, id), 'alerted', { holdAt: w.hold.at, channel: sent.channel, ok: sent.ok }); }, context);
+    await publish(id);
+  }).catch(e => console.error(`alert not recorded (work is committed): ${e.message}`)));
   const event = (w, type, details = {}) => { w.events.push({ at: new Date().toISOString(), type, pid: process.pid, ...details }); };
 
   const Attempt = defineTask({
@@ -80,10 +93,10 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         if (!card) throw new Error(`Attempt ${attemptId} has no card`);
         // Same card: continue its own session. Codex can only continue a session it has already named.
         const continuing = resumed && (card.harness !== 'codex' || Boolean(prior.harnessSession));
-        const launch = buildLaunch(card, { access: prior.access, sessionDir: join(directory, 'sessions', attemptId),
+        const launch = buildLaunch(card, { access: prior.askRestate ? 'read' : prior.access, sessionDir: join(directory, 'sessions', attemptId),
           sessionId: card.harness === 'codex' ? (continuing ? prior.harnessSession : undefined) : prior.harnessSession ?? prior.sessionId,
           resume: continuing, progressExtension: card.harness === 'pi' ? progressExtension : undefined, readDirs: [directory],
-          system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope.` });
+          system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope. ${SUBAGENT_RULE}` });
         // After a swap the new card starts fresh: transcripts don't cross harnesses, the workspace and record do.
         const last = prior.swaps?.at(-1);
         const pickup = last
@@ -92,7 +105,9 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
             `${last.workspace?.uncommitted?.length ? `; uncommitted: ${last.workspace.uncommitted.join(', ')}` : ''}. ` +
             'Inspect the workspace and your step\'s task list first; continue the assignment and do not redo finished parts.'
           : '';
-        const prompt = prior.askVerdict && continuing
+        const prompt = prior.askRestate
+          ? restatePrompt(prior.step, prior.askRestate, { continuing, output: prior.revisions.at(-1).output })
+          : prior.askVerdict && continuing
           ? 'Your answer had no verdict. Do not run anything again. Reply with ONLY the JSON verdict for the checks you already ran: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.'
           : continuing
           ? 'You were interrupted mid-assignment. Continue the same assignment from where you stopped. Inspect the workspace first; do not redo finished parts.'
@@ -145,6 +160,12 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
           a.error = result.ok ? '' : result.limit ? `usage limit: ${result.limit.message}`
             : (result.signal ?? result.error) || `${card.harness} exited ${result.code}`;
           event(w, a.status, { attemptId, step: a.step, ...(result.limit ? { limit: result.limit } : {}) });
+          if (a.askRestate && result.ok) {
+            // The restated deliverable answers the receiving step's question; a human answer is confirmed by the receiver's own intake.
+            const rx = w.exchanges.find(x => x.id === a.askRestate.exchangeId);
+            if (!a.askRestate.human && rx?.status === 'awaiting-originator') nq.originatorReply(w, rx.id, a.role, `Restated in full as revision ${a.revisions.length} of attempt ${a.id}; the restated deliverable is the hand-off.`);
+            a.restatedFor = rx.turns.length; a.askRestate = null;
+          }
           return terminal({ status: a.status });
         }, ctx);
         await publish(workId);
@@ -172,11 +193,12 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       return r === undefined ? undefined : JSON.parse(JSON.stringify(r));
     }, context);
     await publish(id);
+    await alertIfNew(id);
     return result;
   };
   const step = w => { const s = STEPS[w.position]; if (!s) throw new Error('Thread is complete'); return s; };
   const fresh = (objective, source, cwd, extra = {}) => ({ objective, source, cwd, position: 0, round: 0, briefs: {}, briefHistory: [],
-    exchanges: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, kind: 'discovery', completion: null, events: [], ...extra });
+    exchanges: [], asked: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, kind: 'discovery', completion: null, events: [], ...extra });
   const createIn = async (tx, fields) => {
     const c = await tx.createConversation({ ownership: { kind: 'ownerless' } });
     Object.assign(await tx.doc(Work, c.id), { id: c.id, ...fields });
@@ -192,12 +214,14 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
   };
   const route = async (w, tx, failure, ruling) => {
     failure.ruling = ruling; failure.status = 'answered';
+    // A question carried across hand-offs survives a rewind only if the ruling itself carries it.
+    w.asked = (w.asked ?? []).filter(e => nq.norm(ruling.answer).includes(nq.norm(e.text)));
     const question = `Test failure ${failure.id}. Verifier report:\n${failure.report}\n\nRuling (${ruling.cause}, by ${ruling.by}):\n${ruling.answer}`;
     if (ruling.cause === 'test') rewind(w, stepIndex('test-plan'), { to: 'Orion', failureId: failure.id, text: question });
     else if (ruling.cause === 'implementation') rewind(w, stepIndex('plan'), { to: 'Cassiopeia', failureId: failure.id, text: question });
     else if (ruling.cause === 'pre-existing' && (w.depth ?? 0) >= MAX_PREREQUISITE_DEPTH) {
       failure.status = 'held';
-      w.hold = { kind: 'failure', ref: failure.id, at: new Date().toISOString(),
+      w.hold = { kind: 'failure', ref: failure.id, at: new Date().toISOString(), cause: 'depth', originator: null, receiver: ARBITER.role, refs: [],
         reason: `Another pre-existing defect ${(w.depth ?? 0) + 1} prerequisites deep: something upstream is wrong. ${ruling.answer}`.trim() };
       event(w, 'prerequisite-depth', { failureId: failure.id, depth: w.depth });
       return { cause: 'held' };
@@ -219,12 +243,13 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
   if (resume) harness.resume(); // redrive: any step a dead process left running continues now
   return {
     directory,
-    async close() { await views; try { await harness.close(context); } finally { await lock.close(); await unlink(lockPath).catch(() => {}); } },
+    alertPending: alertIfNew,
+    async close() { await views; await alerts; try { await harness.close(context); } finally { await lock.close(); await unlink(lockPath).catch(() => {}); } },
     async list() { return (await harness.snapshot(Catalog, root.id, context))?.threads ?? []; },
     async get(id) { const w = await harness.snapshot(Work, id, context); if (!w?.id) throw new Error(`Unknown thread ${id}`); return w; },
     // kind 'discovery' (the default): discovery splits into delivery items that join the queue.
     // kind 'delivery': one item, every phase in this thread.
-    async create(objective, source, cwd, { kind = 'discovery' } = {}) {
+    async create(objective, source, cwd, { delivery = false, kind = delivery ? 'delivery' : 'discovery' } = {}) {
       requireText(objective, 'Objective'); requireText(source, 'Source'); cwd = await realpath(cwd);
       if (!['discovery', 'delivery'].includes(kind)) throw new Error('kind is discovery or delivery');
       const id = await harness.commit(tx => createIn(tx, fresh(objective, source, cwd, { kind })), context);
@@ -245,9 +270,36 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     async delegate(id, worker) { return change(id, w => nq.delegate(w, step(w).name, originatorOf(w).role, worker)); },
     async originator(id) { const w = await this.get(id); step(w); return originatorOf(w); },
     async nq(id, exchangeId, response, actor) { return change(id, w => nq.workerReply(w, exchangeId, actor, response)); },
-    async answer(id, exchangeId, actor, text) { return change(id, w => nq.originatorReply(w, exchangeId, actor, text)); },
+    async answer(id, exchangeId, actor, text, same = []) { return change(id, w => nq.originatorReply(w, exchangeId, actor, text, same)); },
+    // A failed check or a blocked maker hands its question to the Arbiter: an NQ exchange the failing attempt's role originates.
+    async delegateFailure(id, failureId, worker) {
+      return change(id, w => {
+        const f = w.failures.find(f => f.id === failureId);
+        if (!f) throw new Error('Unknown failure');
+        return nq.delegate(w, 'arbitrate', w.attempts.find(a => a.id === f.attemptId).role, worker, { kind: 'failure', id: failureId });
+      });
+    },
+    // The originator said only the operator can authorize something: the dispatcher, who holds the operator's source, is consulted.
+    async delegateAuthority(id, parentId, originatorRole, worker, handoff) {
+      return change(id, w => {
+        const parent = w.exchanges.find(x => x.id === parentId);
+        if (!parent) throw new Error('Unknown exchange');
+        return nq.delegate(w, 'authority', originatorRole, worker, { kind: 'authority', parent: parentId, turn: parent.turns.length, handoff });
+      });
+    },
+    async failurePacket(id, failureId, purpose = 'originator') { return failurePacket(await this.get(id), failureId, purpose); },
+    async authorityPacket(id, axId, purpose = 'originator') { return authorityPacket(await this.get(id), axId, purpose); },
     // A judgment call (intake, originator, Arbiter) on the timeline, with its latency.
     async note(id, type, details) { return change(id, w => { event(w, type, details); }); },
+    async holdQuestion(id, exchangeId, reason, cause = 'authority') {
+      return change(id, w => {
+        const x = w.exchanges.find(x => x.id === exchangeId);
+        if (x?.status !== 'awaiting-originator') throw new Error('No originator question is due');
+        x.status = 'human-hold';
+        w.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), cause, originator: x.originator, receiver: x.worker, questionId: null, refs: [x.id],
+          reason: requireText(reason, 'Hold reason'), questions: x.turns.at(-1)?.questions ?? [] };
+      });
+    },
     async packet(id, purpose = 'execute') {
       const w = await this.get(id), s = step(w), b = w.briefs[s.name];
       if (purpose === 'originator') return originatorPacket(w, s);
@@ -281,6 +333,29 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         Object.assign(a, { status: 'running', askVerdict: true });
         a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
         event(w, 'verdict-asked', { attemptId });
+      });
+    },
+    // A hand-off missing its required parts opens the receiving step's own exchange early; the receiving step's agent asks.
+    async refuse(id, attemptId, worker, missing) {
+      return change(id, w => {
+        const a = w.attempts.find(a => a.id === attemptId), s = step(w);
+        if (!a || a.step !== s.name || a.round !== w.round || a.status !== 'reported' || !STEPS[w.position + 1]) throw new Error('Only the current reported step can be refused');
+        const id = nq.delegate(w, STEPS[w.position + 1].name, s.role, worker, { kind: 'step', id: attemptId });
+        event(w, 'handoff-refused', { attemptId, step: a.step, missing });
+        return id;
+      });
+    },
+    async refusalPacket(id, attemptId) { return refusalPacket(await this.get(id), attemptId); },
+    // The receiving step asked the reporting worker for what its report lacks: continue its own session, read-only, for the restated deliverable.
+    async askRestate(id, attemptId) {
+      return change(id, async (w, tx) => {
+        const a = w.attempts.find(a => a.id === attemptId), rx = nq.findExchange(w, x => nq.isStep(x) && x.subject?.id === attemptId);
+        if (!a || !LABELS[a.step] && a.step !== 'test-plan' || a.status !== 'reported' || !rx) throw new Error('Only a reported plan, test-plan or implement hand-off with a refusal is asked to restate');
+        const missing = checkDeliverable(a.step, a.output ?? '', w.cwd).missing, last = rx.turns.at(-1);
+        a.revisions = [...(a.revisions ?? []), { output: a.output, at: new Date().toISOString(), missing }];
+        Object.assign(a, { status: 'running', askRestate: { exchangeId: rx.id, questions: rx.turns.findLast(t => t.type === 'worker')?.questions ?? [], human: last?.type === 'human' ? last.text : null, missing } });
+        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+        event(w, 'restate-asked', { attemptId, missing });
       });
     },
     async redrive(id, attemptId) {
@@ -345,6 +420,11 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       return change(id, w => {
         const a = w.attempts.find(a => a.id === attemptId), s = step(w);
         if (!a || a.step !== s.name || a.round !== w.round || a.status !== 'reported') throw new Error('Only the current reported step can be handed off');
+        if (LABELS[a.step] || a.step === 'test-plan') {
+          const { missing, testPlan } = checkDeliverable(a.step, a.output ?? '', w.cwd);
+          if (missing.length) throw new Error(`A hand-off missing its required parts is refused: ${missing.join('; ')}`);
+          if (testPlan) a.testPlan = testPlan;
+        }
         a.status = 'accepted'; w.position++;
         event(w, 'handoff', { attemptId, from: s.name, to: STEPS[w.position]?.name ?? 'complete' });
         if (w.position === STEPS.length) { w.completion = 'verified'; event(w, 'complete'); }
@@ -363,7 +443,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         const corrections = w.failures.filter(f => f.status !== 'withdrawn').length - 1;
         if (corrections >= MAX_CORRECTIONS) {
           failure.status = 'held';
-          w.hold = { kind: 'failure', ref: failure.id, at: failure.at, reason: `Tests still failing after ${corrections} corrections` };
+          w.hold = { kind: 'failure', ref: failure.id, at: failure.at, cause: 'corrections', originator: null, receiver: ARBITER.role, refs: [], reason: `Tests still failing after ${corrections} corrections` };
         }
         event(w, 'test-failed', { failureId: failure.id, corrections });
         return failure;
@@ -376,7 +456,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         if (!CAUSES.includes(ruling.cause)) {
           f.status = 'held';
           f.ruling = { ...ruling, cause: 'undetermined' };
-          w.hold = { kind: 'failure', ref: f.id, at: new Date().toISOString(), reason: `Arbiter could not determine the cause: ${ruling.answer ?? ''}`.trim() };
+          w.hold = { kind: 'failure', ref: f.id, at: new Date().toISOString(), cause: 'undetermined', originator: null, receiver: ARBITER.role, refs: [], reason: `Arbiter could not determine the cause: ${ruling.answer ?? ''}`.trim() };
           event(w, 'failure-undetermined', { failureId });
           return { cause: 'undetermined' };
         }
@@ -421,9 +501,9 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     async queue() {
       const catalog = await harness.snapshot(Catalog, root.id, context), first = catalog?.first ?? [];
       const items = [];
-      for (const id of catalog?.threads ?? []) { const w = await this.get(id); if (w.kind === 'delivery' && w.from && !w.completion) items.push(w); }
+      for (const id of catalog?.threads ?? []) { const w = await this.get(id); if (w.kind === 'delivery' && !w.completion) items.push(w); }
       const rank = w => { const i = first.indexOf(w.from); return i < 0 ? first.length : i; };
-      return items.sort((a, b) => rank(a) - rank(b) || a.from - b.from || a.id - b.id).map(w => w.id);
+      return items.sort((a, b) => rank(a) - rank(b) || (a.from ?? a.id) - (b.from ?? b.id) || a.id - b.id).map(w => w.id);
     },
     // Put a discovery run's bucket first. `ref` is the discovery thread or any item in it.
     async first(ref) {
@@ -471,13 +551,28 @@ function makePacket(w, s, b, purpose) {
     ?? (p.name === 'discover' && w.discovered ? { step: 'discover', role: w.discovered.role, round: 0, output: w.discovered.output } : null)).filter(Boolean)
     .map(a => ({ step: a.step, role: a.role, round: a.round, output: a.output }));
   const x = nq.currentExchange(w, s.name);
+  // A step that runs again gets its own last accepted deliverable, to restate with the changes applied.
+  const own = LABELS[s.name] || s.name === 'test-plan' ? w.attempts.findLast(a => a.step === s.name && a.status === 'accepted') : null;
+  const plan = s.name === 'verify' ? w.attempts.findLast(a => a.step === 'test-plan' && a.status === 'accepted') : null;
   return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, step: s, round: w.round,
-    brief: b.text, accepted, questionsForYou: w.notes.filter(n => n.to === s.role && n.round === w.round),
+    brief: b.text, accepted,
+    ...(own ? { previous: { round: own.round, output: own.output } } : {}),
+    ...(s.name === 'verify' ? { testPlan: plan?.testPlan ? { attemptId: plan.id, round: plan.round, scripts: plan.testPlan.scripts, evidence: plan.testPlan.evidence } : null } : {}),
+    questionsForYou: w.notes.filter(n => n.to === s.role && n.round === w.round),
     // The whole NQ exchange travels with the work: intake and execution both read it.
     originator: describe(originatorOf(w)), exchange: x?.turns ?? [],
     instruction: purpose === 'nq'
       ? 'Read the exchange, including the originator\'s or the operator\'s answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. questions: only what blocks you from executing and cannot be settled from the packet, the workspace or the answers already in the exchange; never repeat a question the exchange has answered. notes: your assumptions and anything already settled; notes never block. An empty questions array confirms readiness. Do not do the work yet.'
-      : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.' }, null, 2);
+      : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.'
+        + (own ? ' Your previous accepted deliverable is in "previous": your report is the complete current deliverable with every required part, never a report of what changed.' : '') }, null, 2);
+}
+
+// The restate re-ask: only the missing parts are asked for, so the step is never re-run.
+export function restatePrompt(step, ask, { continuing, output }) {
+  return [`Your report was refused at hand-off: it lacks required parts (${ask.missing.join('; ')}).`,
+    ask.human ? `The operator answered: ${ask.human}` : ask.questions?.length ? `The receiving step asks:\n${ask.questions.map(q => `- ${q}`).join('\n')}` : null,
+    `Do not run, write or change anything: reply only. Restate your complete deliverable in full, with the changes you already made applied, never a report of what changed. ${FORMAT[step]}`,
+    continuing ? null : `Your refused report:\n${output}`].filter(Boolean).join('\n\n');
 }
 
 // One transcript file per card and launch: a swap never appends to the outgoing harness's stream.
@@ -495,9 +590,41 @@ function originatorPacket(w, s) {
   if (!x || x.originator !== o.role) throw new Error('No exchange awaits this originator');
   return JSON.stringify({ purpose: 'originator', threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source,
     receivingStep: s, round: w.round, originator: describe(o), handoff: o.handoff, exchange: x.turns, questions: x.turns.at(-1)?.questions ?? [],
+    // What earlier hand-offs already answered, so a question repeated in other words can be recognised.
+    carried: (w.asked ?? []).map(({ id, text, turns }) => ({ id, text, turns })),
     instruction: o.handoff === undefined
       ? (o.role === ARBITER.role ? 'Your ruling created this prerequisite work; it is in the source. Answer from it.' : 'You dispatched this work. Answer from the objective and source only.')
       : 'Answer from your own handoff (and the source). Do not change your handoff or the work; clarify what you meant.' }, null, 2);
+}
+
+// The receiving step asks the reporting worker for what its report lacks; it sees the report and the list, never the brief.
+function refusalPacket(w, attemptId) {
+  const a = w.attempts.find(a => a.id === attemptId), rx = nq.findExchange(w, x => nq.isStep(x) && x.subject?.id === attemptId);
+  if (!a || !rx) throw new Error('No refused hand-off');
+  return JSON.stringify({ purpose: 'refusal', threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source,
+    reportingStep: STEPS[stepIndex(a.step)], receivingStep: STEPS[stepIndex(a.step) + 1], round: w.round,
+    required: LABELS[a.step] ?? [FORMAT['test-plan']], missing: checkDeliverable(a.step, a.output ?? '', w.cwd).missing,
+    handoff: a.output, exchange: rx.turns,
+    instruction: 'The handoff file is the report you are about to receive. Ask the reporting worker, as questions, for exactly what the missing list names. Return ONLY JSON {intent:string, questions:string[], notes:string[]}.' }, null, 2);
+}
+
+// The Arbiter's question goes back to whoever's failed step raised it: the check runner, or the maker or check designer that was blocked.
+function failurePacket(w, failureId, purpose) {
+  const f = w.failures.find(f => f.id === failureId), fx = nq.findExchange(w, x => x.subject?.kind === 'failure' && x.subject.id === failureId);
+  if (!f || !fx) throw new Error('No failure exchange');
+  const a = w.attempts.find(a => a.id === f.attemptId);
+  return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, failingStep: f.step, round: w.round,
+    originator: { role: fx.originator, basis: 'failure', step: f.step }, handoff: a?.output || f.report, exchange: fx.turns, questions: fx.turns.at(-1)?.questions ?? [],
+    instruction: 'The Arbiter is ruling on a failure of your step and asked questions. Answer from your own report (the handoff file) and the source. Do not change your report or the work; clarify what you meant.' }, null, 2);
+}
+
+// The dispatcher's question goes back to the agent that said only the operator could authorize something.
+function authorityPacket(w, axId, purpose) {
+  const ax = w.exchanges.find(x => x.id === axId);
+  if (ax?.subject?.kind !== 'authority') throw new Error('No authority exchange');
+  return JSON.stringify({ purpose, threadId: w.id, workspace: w.cwd, objective: w.objective, source: w.source, round: w.round,
+    originator: { role: ax.originator, basis: 'authority' }, handoff: ax.subject.handoff, exchange: ax.turns, questions: ax.turns.at(-1)?.questions ?? [],
+    instruction: 'You said only the operator can authorize something. The dispatcher, who holds the operator\'s source, asked what you meant. Answer from your own handoff (the handoff file) and the source. Do not change your handoff or the work.' }, null, 2);
 }
 
 // The model reads files, not a pasted transcript that a transport may truncate.
@@ -508,10 +635,11 @@ export async function provisionPacket(directory, key, serialized) {
   const save = async (name, text) => { const path = join(folder, name); await writeFile(path, text); return path; };
   const accepted = [];
   for (const [i, c] of (packet.accepted ?? []).entries()) accepted.push({ step: c.step, role: c.role, path: await save(`ACCEPTED-${i}-${c.step}.md`, c.output ?? '') });
-  const { source, brief, handoff, accepted: _a, ...rest } = packet;
+  const { source, brief, handoff, previous, accepted: _a, ...rest } = packet;
   const files = { source: await save('SOURCE.md', source) };
   if (brief !== undefined) files.brief = await save('BRIEF.md', brief);
   if (handoff !== undefined) files.handoff = await save('HANDOFF.md', handoff);
-  return JSON.stringify({ ...rest, ...files, accepted,
+  if (previous !== undefined) files.previous = await save('PREVIOUS.md', previous.output ?? '');
+  return JSON.stringify({ ...rest, ...files, ...(previous !== undefined ? { previousRound: previous.round } : {}), accepted,
     read: `Read the ${Object.keys(files).join(', ')}${accepted.length ? ' and the accepted contributions' : ''} at these paths before you respond.` }, null, 2);
 }

@@ -38,6 +38,7 @@ test('dashboard: snapshot carries states, transitions, every agent run with timi
     const api = await (await fetch(`http://127.0.0.1:${port}/api/state`)).json();
     assert.equal(api.stores[0].threads[0].threadId, id);
     const html = await (await fetch(`http://127.0.0.1:${port}/`)).text();
-    assert.match(html, /Pi Durable · Live/);
+    assert.match(html, /Made Well/, 'the run view (#78) replaced the old dashboard page');
+    assert.match(html, /\/view\.mjs/);
   } finally { server.close(); }
 });

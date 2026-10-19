@@ -19,7 +19,7 @@ workspace's record, the same one pi and Codex see.
 ## Start a unit
 
 Write the source to a file: the person's request in their own words, then the facts, paths, scope,
-constraints and what "done" means. Then:
+constraints and what "done" means (checks of the work itself, never `pi-durable doctor`: see DISPATCH.md). Then:
 
         pi-durable start --objective "<one line>" --source-file <file> --workspace <dir>
 
@@ -46,7 +46,7 @@ Check status when the person asks or after a while; do not loop on it. `pi-durab
 
 ## When it waits on the person
 
-`status` shows the state `human-hold` and the questions. Put them to the person as they are. Write
+`status` lists holds first (state `human-hold`) with the questions. A hold names who handed the work over, who asked and the cause. Put them to the person as they are. Write
 their answer, in their words, to a file, then:
 
     pi-durable answer <id> <answer-file> --workspace <dir>

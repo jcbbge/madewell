@@ -113,17 +113,24 @@ test('start: creates the unit in the workspace\'s store and drives it in the bac
 
 test('provision --host: puts the Made Well directive into each installed harness\'s global instructions, once, and keeps the rest', async () => {
   const { provisionHost, BEGIN, END, globalFiles } = await import('../provision.mjs');
-  const m = await machine();
-  const files = globalFiles(m.env);
-  await mkdir(dirname(files.claude), { recursive: true });
-  await writeFile(files.claude, '# My own rules\n\nBe kind.\n');
-  const first = await provisionHost({ env: m.env });
-  const claude = await readFile(files.claude, 'utf8');
-  assert.match(claude, /^# My own rules\n\nBe kind\.\n/, 'the person\'s own instructions stay first and untouched');
-  assert.equal(claude.split(BEGIN).length, 2, 'exactly one block');
-  assert.match(claude, /you are the \*\*dispatcher\*\*/);
-  const again = await provisionHost({ env: m.env });
-  assert.ok(again.filter(a => a.action !== 'skipped').every(a => a.action === 'present'), 'repeating changes nothing');
-  assert.equal((await readFile(files.claude, 'utf8')).split(END).length, 2);
-  assert.ok(first.some(a => a.harness === 'codex'));
+  const m = await machine({ claude: {}, codex: {}, pi: {} });
+  const saved = Object.fromEntries(['PI_DURABLE_CLAUDE', 'PI_DURABLE_CODEX', 'PI_DURABLE_PI'].map(k => [k, process.env[k]]));
+  // binaryFor reads PI_DURABLE_* from process.env, not m.env; npm test sets them, so clear them to let m.env's PATH decide.
+  for (const k of Object.keys(saved)) delete process.env[k];
+  try {
+    const files = globalFiles(m.env);
+    await mkdir(dirname(files.claude), { recursive: true });
+    await writeFile(files.claude, '# My own rules\n\nBe kind.\n');
+    const first = await provisionHost({ env: m.env });
+    const claude = await readFile(files.claude, 'utf8');
+    assert.match(claude, /^# My own rules\n\nBe kind\.\n/, 'the person\'s own instructions stay first and untouched');
+    assert.equal(claude.split(BEGIN).length, 2, 'exactly one block');
+    assert.match(claude, /you are the \*\*dispatcher\*\*/);
+    const again = await provisionHost({ env: m.env });
+    assert.ok(again.filter(a => a.action !== 'skipped').every(a => a.action === 'present'), 'repeating changes nothing');
+    assert.equal((await readFile(files.claude, 'utf8')).split(END).length, 2);
+    assert.ok(first.some(a => a.harness === 'codex'));
+  } finally {
+    for (const [k, v] of Object.entries(saved)) { if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  }
 });

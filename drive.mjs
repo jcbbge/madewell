@@ -2,25 +2,27 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { STEPS, provisionPacket, CAUSES, DISPATCHER } from './work.mjs';
+import { STEPS, provisionPacket, CAUSES, DISPATCHER, SUBAGENT_RULE } from './work.mjs';
 import { ARBITER } from './pi-runtime.mjs';
 import { callCard } from './pi-call.mjs';
 import { parseResponse } from './pi-stream.mjs';
-import { currentExchange } from './nq.mjs';
+import { currentExchange, findExchange, isStep } from './nq.mjs';
 import { loadPrescriptions, cardsFor, pickCard, installed } from './cards.mjs';
+import { checkDeliverable, FORMAT } from './deliverable.mjs';
 
 const home = dirname(fileURLToPath(import.meta.url));
 const MAX_LAUNCHES = 3;
 const UNKNOWN_RESET_MS = 60 * 60_000; // a limit with no reset time is treated as out for an hour
 const MIN_OUT_MS = 5 * 60_000; // a reported reset in the past or 'in ~0 min' still keeps the account out briefly
+const deliverable = step => ` Your answer is your complete current deliverable every time, never a report of what changed: if your packet has a previous deliverable, restate it in full with the changes applied. ${FORMAT[step]}`;
 const guidance = {
   discover: 'Inspect the supplied source and workspace. Identify the requested deliverable, scope, uncertainties and acceptance conditions, and distill the source into its separate pieces of work, in the order they should be delivered. Do not implement. End your answer with ONLY a JSON object on its own: {"items":[{"title":string,"objective":string,"text":string}]}: each item one coherent piece of work; text carries its purpose, scope and what done means.',
   ideate: 'Use the accepted discovery. Shape the outcome and bounded options. Recommend the smallest useful approach across developer, user and agentic experience. Do not implement.',
   challenge: 'Challenge the accepted idea against the actual workspace. Name concrete defects, missing constraints and unnecessary scope; recommend a bounded correction or explain why the approach holds. Do not implement.',
-  plan: 'Inspect the workspace and the accepted discovery, idea and challenge. Produce an executable specification: Making / Not making / Done when / Waits on, exact paths, instructions, dependencies and what must be verified. Resolve every design choice here: the implementer and the verifier only execute. Do not implement.',
-  'test-plan': 'From the accepted plan, independently of implementation, write the checks for this work unit only (files in the workspace) and the exact commands that run them with their expected results. The checks prove the intent of the plan, not only that code runs. Do not write product code. If something already broken in the workspace, or a wrong plan, stops you from doing your step as written, do not work around it and do not hand it to the operator: stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you. The Arbiter decides whose it is.',
-  implement: 'Execute the accepted plan exactly as written. You execute: you do not design, plan or improvise, and you never change the plan, its scope or the tests. Report changed paths and what you checked. If the plan is wrong or a step cannot be done as written, stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you.',
-  verify: 'Run only the commands named in the accepted test plan for this work unit, in order: never the whole suite. You execute: you do not fix, retry, broaden or invent commands, and never edit product code or tests. End your answer with ONLY a JSON object on its own: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.',
+  plan: 'Inspect the workspace and the accepted discovery, idea and challenge. Produce an executable specification: Making / Not making / Done when / Waits on, exact paths, instructions, dependencies and what must be verified. Resolve every design choice here: the implementer and the verifier only execute. Do not implement.' + deliverable('plan'),
+  'test-plan': 'From the accepted plan, independently of implementation, write the checks for this work unit only (files in the workspace, or at absolute paths outside it such as your packet folder; list every one) and the exact commands that run them with their expected results. The checks prove the intent of the plan, not only that code runs. Do not write product code. If something already broken in the workspace, or a wrong plan, stops you from doing your step as written, do not work around it and do not hand it to the operator: stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you. The Arbiter decides whose it is.' + deliverable('test-plan'),
+  implement: 'Execute the accepted plan exactly as written. You execute: you do not design, plan or improvise, and you never change the plan, its scope or the tests. Report changed paths and what you checked. If the plan is wrong or a step cannot be done as written, stop, change nothing more, and end your answer with ONLY a JSON object on its own: {"blocked":string} saying exactly what stops you.' + deliverable('implement'),
+  verify: 'Run only the commands in your packet\'s testPlan.scripts, in order, from the workspace; before each, check its file\'s sha256 against the packet and report a mismatch as a failure for this work unit, in order: never the whole suite. You execute: you do not fix, retry, broaden or invent commands, and never edit product code or tests. End your answer with ONLY a JSON object on its own: {"outcome":"pass"|"fail","summary":string,"failures":[{"test":string,"expected":string,"observed":string}]}.',
 };
 
 class QuotaOut extends Error {
@@ -107,19 +109,40 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
         await store.release(w.parentId); id = w.parentId; continue;
       }
       if (w.waitsOn) { log(`thread ${id} waits on prerequisite ${w.waitsOn}`); id = w.waitsOn; continue; }
-      if (w.hold) return finish('held', w.hold.reason);
+      if (w.hold) { await store.alertPending(id); return finish('held', w.hold.reason); }
 
       const open = w.failures.find(f => f.status === 'open');
       if (open) {
-        const verdict = await arbitrate(w, open, { ask: options => judge('arbiter', 'verify', 'arbitrate', undefined, options) });
-        const routed = await store.rule(id, open.id, verdict);
-        log(`arbiter: ${routed.cause}${routed.prerequisite ? ` → prerequisite thread ${routed.prerequisite}` : ''}`);
-        continue;
+        // The failure is a hand-off from the failing step to the Arbiter: an NQ exchange, with the same three turns.
+        const fx = findExchange(w, x => x.subject?.kind === 'failure' && x.subject.id === open.id);
+        if (!fx) { await store.delegateFailure(id, open.id, `Arbiter-${randomUUID()}`); continue; }
+        if (fx.status === 'awaiting-originator') {
+          const failed = w.attempts.find(a => a.id === open.attemptId);
+          const reply = parseResponse(await judge('originator', 'arbitrate', 'originator', open.step, { cwd: w.cwd, name: 'arbitrate-originator',
+            system: originatorSystem(fx.originator), prompt: await provisionPacket(store.directory, randomUUID(), await store.failurePacket(id, open.id)) }));
+          log(`arbiter: ${failed?.role ?? fx.originator} answers the Arbiter's questions`);
+          await store.answer(id, fx.id, fx.originator, reply.answer);
+          continue;
+        }
+        if (fx.status === 'awaiting-worker' || fx.status === 'clear') {
+          const verdict = fx.status === 'clear' ? { ...(fx.turns.at(-1)?.ruling ?? { cause: 'undetermined', answer: 'The ruling was lost.', evidence: '' }) }
+            : await arbitrate(w, open, fx.turns, { ask: options => judge('arbiter', 'verify', 'arbitrate', undefined, options) });
+          if (verdict.questions) {
+            await store.nq(id, fx.id, { intent: 'Arbiter intake', questions: verdict.questions }, fx.worker);
+            log('arbiter: asks the failing step a question');
+            continue;
+          }
+          if (fx.status === 'awaiting-worker') await store.nq(id, fx.id, { intent: `ruling: ${verdict.cause}`, questions: [], ruling: verdict }, fx.worker);
+          const routed = await store.rule(id, open.id, verdict);
+          log(`arbiter: ${routed.cause}${routed.prerequisite ? ` → prerequisite thread ${routed.prerequisite}` : ''}`);
+          continue;
+        }
+        return finish('question', `arbitrate: exchange ${fx.id} is ${fx.status}`);
       }
 
       const step = STEPS[w.position];
       if (!w.briefs[step.name]) {
-        await store.brief(id, `${step.role}: ${guidance[step.name]}\n\nThe objective and source in the packet define the request; accepted contributions are your dossier. If questionsForYou is not empty, answering it is your assignment this round. Honor the workspace's own instructions. No deployment, commits or new services without authority in the source. Report tangible results and evidence.\n\nGoverning foundation:\n${foundation}`);
+        await store.brief(id, `${step.role}: ${guidance[step.name]}\n\nThe objective and source in the packet define the request; accepted contributions are your dossier. If questionsForYou is not empty, answering it is your assignment this round. Honor the workspace's own instructions. No deployment, commits or new services without authority in the source. Report tangible results and evidence. ${SUBAGENT_RULE}\n\nGoverning foundation:\n${foundation}`);
         continue;
       }
       const attempt = w.attempts.findLast(a => a.step === step.name && a.round === w.round);
@@ -141,6 +164,26 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
           let report = null;
           try { report = parseResponse(attempt.output); } catch {}
           if (typeof report?.blocked === 'string' && report.blocked.trim()) { await store.openFailure(id, attempt.id, `${step.role} (${step.name}) could not do the step as written: ${report.blocked}`); log(`${step.name}: blocked → question for the Arbiter`); continue; }
+        }
+        if (['plan', 'test-plan', 'implement'].includes(step.name)) {
+          // A hand-off missing its required parts is the receiving step's question; the reporting worker restates its whole deliverable.
+          const { missing } = checkDeliverable(step.name, attempt.output ?? '', w.cwd);
+          if (missing.length) {
+            const rx = findExchange(w, x => isStep(x) && x.subject?.id === attempt.id), next = STEPS[w.position + 1];
+            if (!rx) { await store.refuse(id, attempt.id, `${next.role}-${randomUUID()}`, missing); log(`${step.name}: hand-off refused (${missing.join('; ')}) → ${next.role} asks`); continue; }
+            const restate = async () => { await store.askRestate(id, attempt.id); log(`${step.name}: asking ${step.role} to restate its deliverable`); await store.execute(id, attempt.id); };
+            if (rx.status === 'awaiting-worker' && rx.turns.at(-1)?.type === 'human' && attempt.restatedFor !== rx.turns.length) { await restate(); continue; }
+            if (rx.status === 'awaiting-worker') {
+              const asked = parseResponse(await judge('refusal', next.name, 'intake', next.name, { cwd: w.cwd, name: `${next.name}-refusal`, system: REFUSAL_SYSTEM,
+                prompt: await provisionPacket(store.directory, randomUUID(), await store.refusalPacket(id, attempt.id)) }));
+              const questions = (Array.isArray(asked.questions) ? asked.questions : []).filter(q => typeof q === 'string' && q.trim());
+              await store.nq(id, rx.id, { intent: typeof asked.intent === 'string' && asked.intent.trim() ? asked.intent : 'The hand-off lacks required parts.',
+                questions: questions.length ? questions : missing.map(m => `The hand-off lacks: ${m}. Restate the complete deliverable with it.`), notes: asked.notes }, rx.worker);
+              continue;
+            }
+            if (rx.status === 'awaiting-originator') { await restate(); continue; }
+            return finish('question', `${step.name}: exchange ${rx.id} is ${rx.status}`);
+          }
         }
         if (step.name === 'verify') {
           let verdict;
@@ -177,14 +220,48 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
         continue;
       }
       if (x.status === 'awaiting-originator') {
-        // A fresh headless call plays the party that made this handoff, on that party's own card.
-        const o = await store.originator(id);
-        const fromJob = o.step ?? (o.role === ARBITER.role ? 'arbitrate' : 'discover');
-        const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, name: `${step.name}-originator`,
-          system: originatorSystem(x.originator),
-          prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
-        // The originator always answers. Only three rounds with questions still open reach the human (nq.mjs).
-        await store.answer(id, x.id, x.originator, reply.answer);
+        // The dispatcher's consult on authority, if one is open for this question: an NQ exchange the originator answers for.
+        const ax = findExchange(w, e => e.subject?.kind === 'authority' && e.subject.parent === x.id && e.subject.turn === x.turns.length);
+        if (!ax) {
+          // A fresh headless call plays the party that made this handoff, on that party's own card.
+          const o = await store.originator(id);
+          const fromJob = o.step ?? (o.role === ARBITER.role ? 'arbitrate' : 'discover');
+          const reply = parseResponse(await judge('originator', step.name, 'originator', fromJob, { cwd: w.cwd, name: `${step.name}-originator`,
+            system: originatorSystem(x.originator, true),
+            prompt: await provisionPacket(store.directory, randomUUID(), await store.packet(id, 'originator')) }));
+          if (reply.unresolvedAuthority) {
+            // Only the operator holds authority, but the operator's source is on hand: the dispatcher reads it
+            // first. The work holds for the operator only when the source cannot settle it.
+            if (x.originator === DISPATCHER) await store.holdQuestion(id, x.id, reply.answer, 'authority');
+            else await store.delegateAuthority(id, x.id, x.originator, `dispatcher-${randomUUID()}`, reply.answer);
+            continue;
+          }
+          await store.answer(id, x.id, x.originator, reply.answer, reply.same);
+          continue;
+        }
+        if (ax.status === 'awaiting-worker') {
+          const ruled = parseResponse(await judge('authority', step.name, 'originator', 'discover', {
+            cwd: w.cwd, name: `${step.name}-authority`, system: AUTHORITY_SYSTEM,
+            prompt: await provisionPacket(store.directory, randomUUID(), JSON.stringify({ purpose: 'authority', threadId: w.id, workspace: w.cwd,
+              objective: w.objective, source: w.source, questions: x.turns.at(-1)?.questions ?? [], handoff: ax.subject.handoff, exchange: ax.turns,
+              instruction: 'The handoff file holds what the originator said. Decide from the objective and source only. If you cannot decide without asking the originator what it meant, return ONLY JSON {"questions":[string]}.' })) }));
+          if (Array.isArray(ruled.questions) && ruled.questions.some(q => typeof q === 'string' && q.trim())) await store.nq(id, ax.id, { intent: 'Dispatcher intake', questions: ruled.questions }, ax.worker);
+          else await store.nq(id, ax.id, { intent: `ruling: ${ruled.unresolvedAuthority ? 'the operator decides' : 'authorized by the source'}`, questions: [], ruling: ruled }, ax.worker);
+          continue;
+        }
+        if (ax.status === 'awaiting-originator') {
+          // The dispatcher's question goes back to the originator, on the originator's own card.
+          const o = await store.originator(id);
+          const reply = parseResponse(await judge('originator', step.name, 'originator', o.step ?? 'discover', { cwd: w.cwd, name: `${step.name}-originator`,
+            system: originatorSystem(ax.originator), prompt: await provisionPacket(store.directory, randomUUID(), await store.authorityPacket(id, ax.id)) }));
+          // Nothing escalates further: if this answer also needs the operator, the parent hand-off holds.
+          if (reply.unresolvedAuthority) await store.holdQuestion(id, x.id, reply.answer, 'authority');
+          else await store.answer(id, ax.id, ax.originator, reply.answer);
+          continue;
+        }
+        const ruling = ax.turns.at(-1)?.ruling ?? { answer: '', unresolvedAuthority: true };
+        if (ruling.unresolvedAuthority) { await store.holdQuestion(id, x.id, ruling.answer, 'authority'); continue; }
+        await store.answer(id, x.id, x.originator, `${ax.subject.handoff}\n\nAuthority, settled by the dispatcher from the operator's source: ${ruling.answer}`);
         continue;
       }
       if (x.status !== 'clear') return finish('question', `${step.name}: exchange ${x.id} is ${x.status}`);
@@ -199,10 +276,14 @@ export async function drive(store, id, { model = '', prescriptions = loadPrescri
   }
 }
 
-const originatorSystem = role => `You are ${role}, who handed over this work. ${role === DISPATCHER
+const REFUSAL_SYSTEM = 'You receive this hand-off next. The driver checked the report you are about to receive and found required parts missing or invalid; they are listed in the packet. Read the report (the handoff file). Ask the reporting worker for what is missing, as questions, and nothing else. Return ONLY JSON {intent:string, questions:string[], notes:string[]}.';
+
+const AUTHORITY_SYSTEM = `You are the ${DISPATCHER}, who dispatched this work for the operator. An agent said only the operator can authorize something. You hold the operator's own words: the objective and source. If they authorize it, explicitly or as a necessary part of what they ask for, say so and what is authorized. If they forbid it, say so. If they leave it genuinely open, or it is destructive, irreversible, touches production, money, credentials or anything outside this workspace, it is the operator's: set unresolvedAuthority:true and state the decision in one sentence with your recommendation. Never invent authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If you cannot decide without asking the originator what it meant, return ONLY JSON {"questions":[string]} instead: the originator answers, then you decide.`;
+
+const originatorSystem = (role, carried = false) => `You are ${role}, who handed over this work. ${role === DISPATCHER
   ? 'You dispatched it on behalf of the person who asked for it: answer from the objective and source only.'
   : role === ARBITER.role ? 'Your ruling on a failed test sent it here: answer from that ruling and the verifier report.'
-  : 'Your accepted handoff output is in the packet: answer from it and the source.'} The receiving worker asked questions before executing. Answer every question from what you handed over and the source; never change your handoff or the work. Return ONLY JSON {answer:string}.`;
+  : 'Your accepted handoff output is in the packet: answer from it and the source.'} The receiving worker asked questions before executing. Clarify what you handed over; never change your handoff or the work, and never invent operator authority. Return ONLY JSON {answer:string, unresolvedAuthority:boolean}. If only the operator can answer, set unresolvedAuthority:true and say what is needed.${carried ? ' If a question repeats one in the packet\'s "carried" list in meaning, in any wording, also list it in "same":[{"question":<the question exactly as asked now>,"id":<the carried id>}].' : ''}`;
 
 // The items a discovery report ends with. A report without them is one item: the whole request.
 function discoveredItems(w, attempt) {
@@ -215,14 +296,15 @@ function discoveredItems(w, attempt) {
 }
 
 // A failed test is a question. The Arbiter decides whose question it is.
-async function arbitrate(w, failure, { ask }) {
+async function arbitrate(w, failure, exchange, { ask }) {
   const byStep = name => w.attempts.findLast(a => a.step === name && a.status === 'accepted')?.output ?? '(none)';
   const prompt = JSON.stringify({ objective: w.objective, workspace: w.cwd, failure: failure.report,
-    plan: byStep('plan'), testPlan: byStep('test-plan'), implementation: byStep('implement'),
-    priorRulings: w.failures.filter(f => f.ruling).map(f => f.ruling) }, null, 2);
+    plan: byStep('plan'), testPlan: byStep('test-plan'), testScripts: w.attempts.findLast(a => a.step === 'test-plan' && a.status === 'accepted')?.testPlan ?? null, implementation: byStep('implement'),
+    priorRulings: w.failures.filter(f => f.ruling).map(f => f.ruling), exchange }, null, 2);
   try {
     const verdict = parseResponse(await ask({ cwd: w.cwd, name: 'arbiter', prompt,
-      system: `You are the ${ARBITER.role}. ${ARBITER.duty} Inspect the actual code, tests and history; you may run the tests. The failure is a failed check, or a maker or check designer that could not do its step as written. Decide exactly one cause: "pre-existing" (a defect that existed before this work), "implementation" (the new code or the plan it follows is wrong), "test" (the test is wrong). If the evidence does not decide it, answer "undetermined". Return ONLY JSON {"cause":"pre-existing"|"implementation"|"test"|"undetermined","answer":string,"evidence":string}. The answer is what the responsible party must do.` }));
+      system: `You are the ${ARBITER.role}. ${ARBITER.duty} Inspect the actual code, tests and history; you may run the tests. The failure is a failed check, or a maker or check designer that could not do its step as written. Decide exactly one cause: "pre-existing" (a defect that existed before this work), "implementation" (the new code or the plan it follows is wrong), "test" (the test is wrong). If the evidence does not decide it, answer "undetermined". Return ONLY JSON {"cause":"pre-existing"|"implementation"|"test"|"undetermined","answer":string,"evidence":string}. The answer is what the responsible party must do. If you cannot decide without asking the failing step a question, return ONLY JSON {"questions":[string]} instead: it answers, then you rule.` }));
+    if (Array.isArray(verdict.questions) && verdict.questions.some(q => typeof q === 'string' && q.trim())) return { questions: verdict.questions.filter(q => typeof q === 'string' && q.trim()) };
     return { cause: CAUSES.includes(verdict.cause) ? verdict.cause : 'undetermined', answer: verdict.answer ?? '', evidence: verdict.evidence ?? '', by: ARBITER.role };
   } catch (error) {
     if (error instanceof QuotaOut) throw error;

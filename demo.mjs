@@ -1,4 +1,4 @@
-import { renderSidecar } from './sidecar.mjs';
+import { renderSidecar } from './demo-board.mjs';
 import { panel, visible } from './tui.mjs';
 import { machineSample } from './machine.mjs';
 

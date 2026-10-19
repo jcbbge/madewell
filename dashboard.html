@@ -1,246 +1,289 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Pi Durable · Live</title>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Made Well</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
+/* Layout: control bar on top; the flow map across; below it three columns — what the operator sees, the item list, the telemetry — stacking on a phone. */
 :root{
-  color-scheme:dark;
-  --bg:#111110;--panel:#1a1a19;--panel-2:#222220;--line:#2e2e2b;--ink:#f0efec;--ink-2:#c3c2b7;--ink-3:#8d8c84;
-  --work:#3987e5;--good:#0ca30c;--warn:#fab219;--serious:#ec835a;--crit:#d03b3b;--idle:#5c5b55;
-  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --bg:#f3f5f8; --panel:#ffffff; --ink:#16202c; --muted:#5d6b7c; --line:#d9dfe7;
+  --accent:#2f5bd3; --accent-soft:#e3eafc;
+  --ok:#1f8a4c; --ok-soft:#e1f3e8; --warn:#b26a00; --warn-soft:#fbefd9; --bad:#c23b32; --bad-soft:#f9e1df;
+  --op:#7a3fb8; --op-soft:#efe5fa;
+  --sans:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
-@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
-  color-scheme:light;--bg:#f4f4f1;--panel:#fcfcfb;--panel-2:#f0efec;--line:#e2e1dc;--ink:#0b0b0b;--ink-2:#52514e;--ink-3:#7c7b75;--work:#2a78d6;--idle:#b9b8b1;
-}}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f141b; --panel:#161d27; --ink:#e6ecf3; --muted:#93a1b3; --line:#283342;
+  --accent:#7d9cf5; --accent-soft:#1d2a47;
+  --ok:#4cc483; --ok-soft:#14301f; --warn:#e8a53c; --warn-soft:#352812; --bad:#ef7268; --bad-soft:#3a1a18;
+  --op:#b98cf0; --op-soft:#2b1d3d; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f141b; --panel:#161d27; --ink:#e6ecf3; --muted:#93a1b3; --line:#283342;
+  --accent:#7d9cf5; --accent-soft:#1d2a47;
+  --ok:#4cc483; --ok-soft:#14301f; --warn:#e8a53c; --warn-soft:#352812; --bad:#ef7268; --bad-soft:#3a1a18;
+  --op:#b98cf0; --op-soft:#2b1d3d; color-scheme:dark;}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
-h1{font-size:14px;margin:0;font-weight:650;letter-spacing:.01em}
-.mut{color:var(--ink-3)}.sm{font-size:12px}.mono{font-family:var(--mono)}
-.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);font-size:12px;white-space:nowrap}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--idle);flex:none}
-.s-work .dot,.dot.s-work{background:var(--work)}.s-good .dot,.dot.s-good{background:var(--good)}.s-warn .dot,.dot.s-warn{background:var(--warn)}.s-serious .dot,.dot.s-serious{background:var(--serious)}.s-crit .dot,.dot.s-crit{background:var(--crit)}
-.s-work .dot{animation:pulse 1.6s ease-in-out infinite}@keyframes pulse{50%{opacity:.35}}
-@media (prefers-reduced-motion:reduce){.s-work .dot{animation:none}}
-select{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px;font:inherit;max-width:420px}
-main{display:grid;grid-template-columns:270px minmax(0,1fr);min-height:calc(100vh - 50px)}
-nav{border-right:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:8px;overflow:auto}
-.thread{all:unset;cursor:pointer;display:block;padding:10px 11px;border-radius:9px;background:var(--panel);border:1px solid var(--line)}
-.thread[aria-current="true"]{border-color:var(--work);box-shadow:inset 3px 0 0 var(--work)}
-.thread .obj{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin:4px 0 6px;color:var(--ink-2)}
-section{padding:16px 20px;border-bottom:1px solid var(--line)}
-h2{font-size:11px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px}
-.big{font-size:20px;font-weight:650;margin:0 0 4px}
-.banner{margin:14px 20px 0;padding:12px 14px;border-radius:10px;border:1px solid var(--warn);background:color-mix(in srgb,var(--warn) 10%,var(--panel))}
-.banner.crit{border-color:var(--crit);background:color-mix(in srgb,var(--crit) 10%,var(--panel))}
-.rail{display:flex;gap:6px;flex-wrap:wrap;align-items:stretch}
-.node{flex:1 1 110px;min-width:104px;padding:9px 10px;border-radius:9px;background:var(--panel);border:1px solid var(--line);position:relative}
-.node .r{font-size:11px;color:var(--ink-3)}.node .n{font-weight:600}
-.node.done{border-color:color-mix(in srgb,var(--good) 55%,var(--line))}
-.node.cur{border-color:var(--work);box-shadow:0 0 0 1px var(--work)}
-.node.side{flex:0 1 120px;border-style:dashed}
-.loops{margin-top:10px;display:flex;flex-direction:column;gap:4px}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
-.kv{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
-.kv div b{display:block;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}.kv div span{font-size:11px;color:var(--ink-3)}
-.tail{list-style:none;margin:8px 0 0;padding:0;max-height:240px;overflow:auto;font-family:var(--mono);font-size:11.5px}
-.tail li{padding:3px 0;border-top:1px solid var(--line);display:flex;gap:8px}
-.tail .k{flex:none;width:62px;color:var(--ink-3)}
-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-.scroll{overflow-x:auto;max-width:100%}
-section{min-width:0}
-th{text-align:left;font-size:11px;font-weight:600;color:var(--ink-3);padding:0 10px 6px 0;white-space:nowrap}
-td{padding:6px 10px 6px 0;border-top:1px solid var(--line);vertical-align:top}
-td.num,th.num{text-align:right}
-.swim{width:100%;overflow-x:auto}
-.swim svg{display:block;min-width:640px}
-.swim text{fill:var(--ink-2);font-size:11px}
-.swim .axis{stroke:var(--line)}
-.swim rect.bar{rx:3}
-.swim rect.hit{fill:transparent}
-.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--ink-2)}
-.legend span{display:inline-flex;align-items:center;gap:6px}
-.legend i{width:14px;height:8px;border-radius:2px;display:inline-block}
-#tip{position:fixed;pointer-events:none;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;max-width:360px;display:none;z-index:9;box-shadow:0 6px 20px #0006}
-.events{max-height:360px;overflow:auto}
-.empty{padding:40px 20px;color:var(--ink-3)}
-details summary{cursor:pointer;color:var(--ink-2)}
-@media (max-width:820px){main{grid-template-columns:minmax(0,1fr)}select{max-width:100%}nav{border-right:0;border-bottom:1px solid var(--line);flex-direction:row;overflow-x:auto}.thread{min-width:220px}.kv{grid-template-columns:repeat(2,1fr)}}
-</style>
-</head>
-<body>
-<header>
-  <h1>Pi Durable · Live</h1>
-  <span id="conn" class="chip"><span class="dot"></span><span>connecting</span></span>
-  <select id="store" aria-label="Workspace store"></select>
-  <span id="driver" class="chip"></span>
-  <span id="age" class="mut sm"></span>
-</header>
-<main>
-  <nav id="threads" aria-label="Threads"></nav>
-  <div id="view"><div class="empty">Waiting for state…</div></div>
-</main>
-<div id="tip" role="tooltip"></div>
-<script>
-const STEPS = ['discover','ideate','challenge','plan','test-plan','implement','verify'];
-const ROLES = { discover:'Vega', ideate:'Vega', challenge:'Polaris', plan:'Cassiopeia', 'test-plan':'Orion', implement:'Sirius', verify:'Aldebaran' };
-const LANES = ['Vega','Polaris','Cassiopeia','Orion','Sirius','Aldebaran','Arbiter','Manager','Intake','Human'];
-let state = null, storeIdx = 0, selected = null, lastAt = 0;
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const ms = v => v == null ? '–' : v < 1000 ? `${Math.round(v)}ms` : v < 60000 ? `${(v/1000).toFixed(1)}s` : v < 3600000 ? `${Math.floor(v/60000)}m ${Math.round(v%60000/1000)}s` : `${Math.floor(v/3600000)}h ${Math.round(v%3600000/60000)}m`;
-const t = v => typeof v === 'string' ? Date.parse(v) : v;
-const clock = v => v ? new Date(t(v)).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '–';
-// status → [class, icon, label]
-const STATUS = {
-  done:['s-good','✓','done'], accepted:['s-good','✓','handed off'], reported:['s-good','✓','reported'],
-  working:['s-work','●','working'], running:['s-work','●','running'], queued:['s-work','◌','queued'], intake:['s-work','?','intake'], question:['s-work','?','question'], ready:['','○','ready'],
-  'human-hold':['s-warn','✋','waiting on you'], 'delivery-authorization-required':['s-warn','✋','needs delivery OK'], 'waiting-on-prerequisite':['s-warn','⧗','waiting on prerequisite'],
-  'test-failed':['s-serious','✗','test failed'], 'failed-test':['s-serious','✗','test failed'], failed:['s-serious','✗','failed'], 'worker-failed':['s-serious','✗','worker failed'],
-  stopped:['s-crit','■','stopped · no driver'], silent:['s-crit','…','silent'], 'worker-dead':['s-crit','†','worker process dead'], 'no-driver':['s-crit','■','no driver'], ok:['s-work','●','active'],
-};
-const chip = (s, extra = '') => { const [c, i, l] = STATUS[s] ?? ['', '', s]; const icon = ['●', '◌', '○', '·'].includes(i) ? '' : `${esc(i)} `; return `<span class="chip ${c}"><span class="dot"></span>${icon}${esc(l)}${extra}</span>`; };
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:14px}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:baseline;justify-content:space-between}
+h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;max-width:70ch}
+.tag{font:500 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--warn);background:var(--warn-soft);padding:3px 8px;border-radius:4px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;min-width:0}
+.panel h2{font-size:11px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:600 13px var(--sans);border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;border-radius:6px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+button:disabled{opacity:.45;cursor:default}
+.clock{font:500 13px var(--mono);color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden;flex-basis:100%}
+.progress>i{display:block;height:100%;background:var(--accent);width:0;transition:width .25s}
+.now{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:start}
+.who{font:600 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;border-radius:4px;white-space:nowrap}
+.who.agent{background:var(--accent-soft);color:var(--accent)}
+.who.op{background:var(--op-soft);color:var(--op)}
+.who.sys{background:var(--line);color:var(--muted)}
+.nowtext{font-size:16px;font-weight:600;min-width:0}
+.nowdetail{grid-column:2;color:var(--muted);min-width:0}
+.decide{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px;padding:10px;border-radius:6px;background:var(--op-soft)}
+.decide b{color:var(--op)}
+.decide button{border-color:var(--op);color:var(--op)}
+.decide button.go{background:var(--op);color:var(--panel)}
+.flow{overflow-x:auto}
+.lanes{display:grid;grid-template-columns:minmax(330px,1.6fr) minmax(110px,.5fr) minmax(420px,2fr) minmax(70px,.3fr);gap:10px;min-width:960px}
+.lane{border:1px dashed var(--line);border-radius:8px;padding:10px}
+.lane h3{margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.lane.op h3{color:var(--op)}
+.nodes{display:flex;flex-wrap:wrap;gap:6px}
+.node{font:500 12px var(--sans);padding:6px 9px;border-radius:5px;border:1px solid var(--line);color:var(--muted);background:var(--panel);transition:all .2s}
+.node.done{color:var(--ok);border-color:var(--ok);background:var(--ok-soft)}
+.node.on{color:var(--panel);background:var(--accent);border-color:var(--accent);font-weight:700}
+.node.on.opn{background:var(--op);border-color:var(--op)}
+.node.fail{color:var(--bad);border-color:var(--bad);background:var(--bad-soft)}
+.stage{flex:1 1 90px;border:1px solid var(--line);border-radius:6px;padding:8px;min-width:90px}
+.stage .nm{font-weight:700;font-size:13px}
+.stage .st{font:500 11px var(--mono);color:var(--muted);margin-top:2px}
+.stage.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.stage.on .nm{color:var(--accent)}
+.stage.done{border-color:var(--ok)}
+.stage.done .nm{color:var(--ok)}
+.stage.fail{border-color:var(--bad)}
+.stage.fail .nm{color:var(--bad)}
+.stages{display:flex;gap:6px}
+.chip{display:inline-block;margin-top:6px;font:600 11px var(--mono);padding:2px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent)}
+.donebox{font:700 22px var(--sans);color:var(--ok);text-align:center;padding-top:14px}
+.grid{display:grid;grid-template-columns:1.05fr 1fr 1.15fr;gap:14px}
+@media (max-width:980px){.grid{grid-template-columns:1fr}}
+.term{font:13px/1.55 var(--mono);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;min-height:240px}
+.term .h{font-weight:600}
+.term .q{color:var(--op);font-weight:600}
+.term .ok{color:var(--ok)}
+.term .bad{color:var(--bad)}
+.term .dim{color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font:600 10px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line)}
+td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+td.id{font:500 12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{font:600 10px var(--mono);text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.p-todo{background:var(--line);color:var(--muted)}
+.p-task{background:var(--accent-soft);color:var(--accent)}
+.p-done{background:var(--ok-soft);color:var(--ok)}
+.p-dropped{background:var(--bad-soft);color:var(--bad)}
+.kind{color:var(--muted);font-size:11px}
+tr.flash td{animation:flash 1.2s ease-out}
+@keyframes flash{from{background:var(--accent-soft)}to{background:transparent}}
+.tablewrap{overflow-x:auto}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.m{border:1px solid var(--line);border-radius:6px;padding:8px}
+.m .v{font:600 20px var(--mono);font-variant-numeric:tabular-nums}
+.m .l{font-size:11px;color:var(--muted)}
+.bars{display:grid;gap:5px;margin-bottom:12px}
+.bar{display:grid;grid-template-columns:104px 1fr 54px;gap:8px;align-items:center;font-size:12px}
+.bar .t{height:10px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar .t i{display:block;height:100%;background:var(--accent)}
+.bar .t i.opw{background:var(--op)}
+.bar .n{font:500 11px var(--mono);text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.log{font:12px/1.5 var(--mono);max-height:320px;overflow:auto;border-top:1px solid var(--line);padding-top:8px}
+.log div{display:grid;grid-template-columns:44px 74px 1fr;gap:6px;padding:2px 0}
+.log .t{color:var(--muted);font-variant-numeric:tabular-nums}
+.log .w{font-weight:600}
+.log .w.op{color:var(--op)} .log .w.agent{color:var(--accent)} .log .w.sys{color:var(--muted)}
+.log div.new{animation:flash 1.2s ease-out}
+.rules{display:grid;gap:6px}
+.rule{display:grid;grid-template-columns:22px 1fr;gap:6px;font-size:13px}
+.rule .s{font:700 13px var(--mono)}
+.rule .s.ok{color:var(--ok)} .rule .s.pend{color:var(--muted)} .rule .s.bad{color:var(--bad)}
+.note{color:var(--muted);font-size:12px;margin-top:8px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></head><body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title">Made Well</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+  </header>
+  <div class="panel">
+    <div class="controls">
+      <button id="live" type="button" class="primary">Live</button>
+      <button id="back" type="button">◀ Back</button>
+      <button id="step" type="button">Step ▶</button>
+      <button id="play" type="button">Play</button>
+      <button id="reset" type="button">Start over</button>
+      <input type="range" id="scrub" min="0" max="0" value="0" step="1" aria-label="Position in the record">
+      <span class="clock" id="clock">live</span>
+      <div class="progress"><i id="prog"></i></div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Happening now</h2>
+    <div class="now" id="now"></div>
+    <p class="note" id="reply" role="status"></p>
+  </div>
+  <div class="panel flow">
+    <h2>Where the work is</h2>
+    <div class="lanes">
+      <div class="lane"><h3>Discovery</h3><div class="nodes" id="dnodes"></div><div id="dchip"></div></div>
+      <div class="lane op"><h3>Operator</h3><div class="nodes" id="onodes"></div><div id="ochip"></div></div>
+      <div class="lane"><h3>Delivery</h3><div class="stages" id="stages"></div></div>
+      <div class="lane"><h3>Done</h3><div id="donecount" class="donebox">0</div></div>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="panel">
+      <h2>What the operator sees · <span style="font-family:var(--mono);text-transform:none;letter-spacing:0">mw</span></h2>
+      <div class="term" id="view"></div>
+      <h2 style="margin-top:14px">Rules, checked on this run</h2>
+      <div class="rules" id="rules"></div>
+    </div>
+    <div class="panel">
+      <h2>The one list</h2>
+      <div class="tablewrap"><table><thead><tr><th>#</th><th>Item</th><th>State</th></tr></thead><tbody id="list"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>Telemetry</h2>
+      <div class="metrics" id="metrics"></div>
+      <div class="bars" id="bars"></div>
+      <div class="log" id="log"></div>
+      <p class="note">Every figure comes from the durable record. — means the record does not hold it; hover for why.</p>
+    </div>
+  </div>
+</div>
+<script type="module">
+import { runView, renderPanels, timeline } from '/view.mjs';
 
-function connect() {
-  const es = new EventSource('/api/stream');
-  es.onopen = () => setConn('s-good', 'live');
-  es.onmessage = e => { state = JSON.parse(e.data); lastAt = Date.now(); render(); };
-  es.onerror = () => { setConn('s-crit', 'reconnecting'); };
+const $ = id => document.getElementById(id);
+const PANELS = ['now', 'dnodes', 'dchip', 'onodes', 'ochip', 'stages', 'donecount', 'view', 'rules', 'list', 'metrics', 'bars', 'log', 'clock'];
+const shown = {};
+let snap = null, receivedAt = 0, live = true, frozen = null, k = 0, timer = null;
+let selection = fromHash();
+
+function fromHash() {
+  const h = new URLSearchParams(location.hash.slice(1)), thread = Number(h.get('thread'));
+  return h.get('store') && Number.isSafeInteger(thread) ? { storeDir: h.get('store'), threadId: thread } : null;
 }
-const setConn = (c, l) => { $('#conn').className = `chip ${c}`; $('#conn span:last-child').textContent = l; };
-setInterval(() => { if (lastAt) $('#age').textContent = `updated ${ms(Date.now() - lastAt)} ago`; }, 1000);
+const toHash = s => `#store=${encodeURIComponent(s.storeDir)}&thread=${s.threadId}`;
+
+// The width of the terminal panel, in characters of the mono font.
+const probe = document.createElement('span');
+probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:13px/1.55 var(--mono)';
+probe.textContent = '0'.repeat(40);
+document.body.append(probe);
+const termWidth = () => Math.max(30, Math.floor(($('view').clientWidth - 26) / (probe.getBoundingClientRect().width / 40)) || 80);
+
+// The view at one moment: now, or a point in the record of the selected item.
+function build() {
+  const base = live ? snap && { ...snap, at: snap.at + (Date.now() - receivedAt) } : frozen;
+  if (!base) return null;
+  const first = runView(base, { select: selection });
+  if (live || !first.selected) return { v: first, n: first.step.n };
+  const times = timeline(first.units.find(u => u.storeDir === first.selected.storeDir && u.w.threadId === first.selected.threadId).w);
+  k = Math.max(0, Math.min(k, times.length));
+  const at = k === 0 ? times[0] - 1 : times[k - 1];
+  return { v: runView(base, { at, select: first.selected }), n: times.length };
+}
 
 function render() {
-  const stores = state.stores;
-  const sel = $('#store');
-  const opts = stores.map((s, i) => `<option value="${i}">${esc(s.workspace ?? s.dir)}</option>`).join('');
-  if (sel.dataset.v !== opts) { sel.innerHTML = opts || '<option>no stores yet</option>'; sel.dataset.v = opts; sel.value = String(storeIdx); }
-  const store = stores[storeIdx] ?? stores[0];
-  if (!store) { $('#threads').innerHTML = ''; $('#view').innerHTML = `<div class="empty">No durable work yet under ${esc(state.base)}.</div>`; $('#driver').innerHTML = ''; return; }
-  $('#driver').className = `chip ${store.driver.alive ? 's-good' : ''}`;
-  $('#driver').innerHTML = `<span class="dot"></span>${store.driver.alive ? `driver pid ${store.driver.pid}` : 'no driver running'}`;
-  const threads = store.threads;
-  if (!threads.some(w => w.threadId === selected)) selected = (threads.find(w => !w.done) ?? threads[0])?.threadId ?? null;
-  $('#threads').innerHTML = threads.map(w => `<button class="thread" aria-current="${w.threadId === selected}" data-id="${w.threadId}">
-      <div style="display:flex;justify-content:space-between;gap:8px"><b>#${w.threadId}</b>${chip(w.state)}</div>
-      <div class="obj">${esc(w.objective)}</div>
-      <div class="mut sm">${w.done ? 'complete' : `${esc(w.current?.name ?? '')} · ${w.progress.accepted}/${w.progress.total}`} · round ${w.round}${w.parentId ? ` · prerequisite of #${w.parentId}` : ''}${w.waitsOn ? ` · waits on #${w.waitsOn}` : ''}</div>
-    </button>`).join('');
-  const w = threads.find(x => x.threadId === selected);
-  $('#view').innerHTML = w ? threadView(w, store) : '<div class="empty">No threads.</div>';
-}
-document.addEventListener('click', e => { const b = e.target.closest('.thread'); if (b) { selected = Number(b.dataset.id); render(); } });
-$('#store').addEventListener('change', e => { storeIdx = Number(e.target.value); selected = null; render(); });
-
-function threadView(w, store) {
-  const r = w.record, now = state.at;
-  const live = r.attempts.filter(a => ['queued','running'].includes(a.status));
-  let html = '';
-  if (w.hold) {
-    const failure = w.hold.kind === 'failure';
-    html += `<div class="banner ${failure ? 'crit' : ''}"><b>✋ Waiting on you.</b> ${esc(w.hold.reason)}
-      ${(w.hold.questions ?? []).map(q => `<div>• ${esc(q)}</div>`).join('')}
-      ${failure && w.failure ? `<details style="margin-top:6px"><summary>Failed test report</summary><pre class="mono sm" style="white-space:pre-wrap">${esc(w.failure.report)}</pre></details>` : ''}
-      <div class="mut sm" style="margin-top:6px">Answer in pi (“answer durable work #${w.threadId}: …${failure ? ' — cause: pre-existing | implementation | test' : ''}”) or <span class="mono">pi-durable answer ${w.threadId} answer.txt${failure ? ' &lt;cause&gt;' : ''}</span>. Held since ${clock(w.hold.at)} (${ms(now - t(w.hold.at))}).</div></div>`;
+  const built = build();
+  if (!built) return;
+  const { v, n } = built;
+  if (v.selected) {
+    $('title').textContent = `Made Well · #${v.selected.threadId}`;
+    $('sub').textContent = `${v.selected.objective} — ${(v.selected.workspace ?? '').split('/').filter(Boolean).pop() ?? ''}`;
   }
-  html += `<section><h2>Now</h2><p class="big">${chip(w.state)}</p><div>${esc(w.next)}</div><div class="mut sm">Responsible: ${esc(w.owner ?? 'nobody, complete')} · ${esc(w.objective)}</div></section>`;
-  html += `<section><h2>Phases · round ${w.round}</h2>${rail(w)}</section>`;
-  html += `<section><h2>In flight (${live.length})</h2>${live.length ? `<div class="cards">${live.map(a => liveCard(a, now)).join('')}</div>` : '<div class="mut">No worker is running.</div>'}</section>`;
-  html += `<section><h2>Timeline · who did what, when</h2>${swimlanes(w, now)}</section>`;
-  html += `<section><h2>Latency, tools and spend</h2>${latency(w)}</section>`;
-  html += `<section><h2>Transitions</h2><div class="events"><table><thead><tr><th>time</th><th>event</th><th>details</th></tr></thead><tbody>${[...r.events].reverse().map(e => `<tr><td class="mono sm">${clock(e.at)}</td><td>${esc(e.type)}</td><td class="sm mut">${esc(eventText(e))}</td></tr>`).join('')}</tbody></table></div></section>`;
-  return html;
-}
-
-function rail(w) {
-  const r = w.record;
-  const nodes = STEPS.map((s, i) => {
-    const pos = w.position ?? w.progress.accepted, done = w.done || i < pos, cur = !w.done && i === pos;
-    const tries = r.attempts.filter(a => a.step === s);
-    return `<div class="node ${done ? 'done' : ''} ${cur ? 'cur' : ''}"><div class="r">${ROLES[s]}</div><div class="n">${s}</div>
-      <div class="sm ${cur ? '' : 'mut'}">${done ? '✓ handed off' : cur ? esc((STATUS[w.state] ?? [,,w.state])[2]) : 'pending'}${tries.length > 1 ? ` · ${tries.length} attempts` : ''}</div></div>`;
-  }).join('');
-  const arb = r.failures.length;
-  const side = `<div class="node side ${w.state === 'test-failed' ? 'cur' : ''}"><div class="r">Arbiter</div><div class="n">rulings</div><div class="sm mut">${arb ? `${r.failures.filter(f => f.ruling).length}/${arb} ruled` : 'no failures'}</div></div>
-    <div class="node side ${w.hold ? 'cur' : ''}"><div class="r">Human</div><div class="n">you</div><div class="sm mut">${w.hold ? '✋ needed now' : 'not needed'}</div></div>`;
-  const loops = r.failures.map((f, i) => `<div class="sm">${chip(f.status === 'held' ? 'human-hold' : f.ruling ? 'accepted' : 'test-failed')} failure ${i + 1} · round ${f.round} → ${f.ruling ? `<b>${esc(f.ruling.cause)}</b> by ${esc(f.ruling.by)}: ${esc(String(f.ruling.answer).slice(0, 220))}` : 'awaiting ruling'}${f.prerequisite ? ` · prerequisite #${f.prerequisite}` : ''}</div>`).join('');
-  return `<div class="rail">${nodes}${side}</div>${loops ? `<div class="loops">${loops}</div>` : ''}`;
-}
-
-function liveCard(a, now) {
-  const st = a.stats?.at(-1) ?? {}, run = a.runs?.at(-1) ?? {};
-  const health = a.health ?? 'ok';
-  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(a.role)} · ${esc(a.step)}</b>${chip(health, health === 'silent' ? ` ${ms(a.silentFor)}` : '')}</div>
-    <div class="mut sm">attempt ${esc(a.id.slice(0, 8))} · launch ${a.launches} · pid ${run.pid ?? '–'} ${st.pidAlive === false ? '(dead)' : ''} · started ${clock(run.startedAt)}</div>
-    <div class="kv"><div><b>${ms(now - (run.startedAt ?? now))}</b><span>elapsed</span></div><div><b>${ms(a.silentFor)}</b><span>since last output</span></div><div><b>${st.tools ?? 0}</b><span>tool calls (${ms(st.toolMs)})</span></div><div><b>${(st.tokens ?? 0).toLocaleString()}</b><span>tokens · $${(st.cost ?? 0).toFixed(3)}</span></div></div>
-    ${st.inFlightTools?.length ? `<div class="sm">running now: <span class="mono">${esc(st.inFlightTools.join(', '))}</span></div>` : ''}
-    ${a.progress?.length ? `<div class="sm">deliverables: ${a.progress.map(p => esc(p.deliverable)).join(' · ')}</div>` : ''}
-    <ul class="tail">${(st.recent ?? []).slice().reverse().map(e => `<li><span class="k">${e.kind === 'tool' ? (e.state === 'running' ? '▶ ' : e.state === 'error' ? '✗ ' : '✓ ') + esc(e.tool) : esc(e.kind)}</span><span>${esc(e.text ?? e.args ?? '')}${e.ms != null ? ` <span class="mut">${ms(e.ms)}</span>` : ''}</span></li>`).join('') || '<li class="mut">no output yet</li>'}</ul></div>`;
-}
-
-function swimlanes(w, now) {
-  const r = w.record, bars = [];
-  for (const a of r.attempts) for (const [i, run] of (a.runs ?? []).entries()) {
-    const status = run.endedAt ? (a.status === 'failed' && i === a.runs.length - 1 ? 'failed' : a.status === 'failed-test' ? 'failed-test' : 'done') : (a.health && a.health !== 'ok' ? a.health : 'running');
-    bars.push({ lane: a.role, start: run.startedAt, end: run.endedAt ?? now, status, label: `${a.step} · launch ${run.n}`, detail: `${a.role} · ${a.step} · round ${a.round}<br>${clock(run.startedAt)} → ${run.endedAt ? clock(run.endedAt) : 'now'} (${ms((run.endedAt ?? now) - run.startedAt)})<br>status: ${esc(a.status)}${a.error ? `<br>${esc(a.error)}` : ''}${a.stats?.[i] ? `<br>${a.stats[i].tools} tools · ${a.stats[i].tokens.toLocaleString()} tokens` : ''}` });
+  const p = renderPanels(v, { termWidth: termWidth() });
+  const typed = $('answer'), keep = typed && { value: typed.value, focus: document.activeElement === typed, at: typed.selectionStart };
+  for (const id of PANELS) {
+    if (shown[id] === p[id]) continue;
+    const el = $(id), before = el.children.length;
+    el.innerHTML = p[id]; shown[id] = p[id];
+    if (id === 'log') { [...el.children].slice(before).forEach(c => c.classList.add('new')); el.scrollTop = el.scrollHeight; }
   }
-  for (const e of r.events.filter(e => e.type === 'call')) {
-    const lane = { intake: 'Intake', manager: 'Manager', arbiter: 'Arbiter' }[e.kind] ?? 'Manager';
-    bars.push({ lane, start: e.startedAt, end: e.endedAt, status: e.ok ? 'done' : 'failed', label: `${e.kind} · ${e.step}`, detail: `${e.kind} for ${esc(e.step)}<br>${ms(e.ms)}${e.ok ? '' : `<br>${esc(e.error)}`}` });
-  }
-  if (w.hold) bars.push({ lane: 'Human', start: t(w.hold.at), end: now, status: 'human-hold', label: 'waiting on you', detail: esc(w.hold.reason) });
-  if (!bars.length) return '<div class="mut">Nothing has run yet.</div>';
-  const t0 = Math.min(...bars.map(b => b.start)), t1 = Math.max(now, ...bars.map(b => b.end));
-  const lanes = LANES.filter(l => bars.some(b => b.lane === l));
-  const W = 1000, L = 92, row = 26, H = lanes.length * row + 24, x = v => L + (W - L - 8) * (v - t0) / Math.max(1, t1 - t0);
-  const fill = s => `var(--${(STATUS[s]?.[0] ?? 's-idle').replace('s-', '')})`;
-  const ticks = Array.from({ length: 6 }, (_, i) => t0 + (t1 - t0) * i / 5);
-  const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Swimlane timeline of agents">
-    ${ticks.map(v => `<line class="axis" x1="${x(v)}" x2="${x(v)}" y1="0" y2="${H - 18}"/><text x="${x(v)}" y="${H - 4}" text-anchor="middle">${clock(v)}</text>`).join('')}
-    ${lanes.map((l, i) => `<text x="0" y="${i * row + 17}">${l}</text><line class="axis" x1="${L}" x2="${W}" y1="${i * row + row}" y2="${i * row + row}"/>`).join('')}
-    ${bars.map((b, j) => { const i = lanes.indexOf(b.lane), x0 = x(b.start), w_ = Math.max(3, x(b.end) - x0);
-      return `<rect class="bar" x="${x0}" y="${i * row + 6}" width="${w_}" height="${row - 12}" fill="${fill(b.status)}" rx="3"/><rect class="hit" data-tip="${j}" x="${x0 - 3}" y="${i * row}" width="${w_ + 6}" height="${row}"/>`; }).join('')}
-    <line x1="${x(now)}" x2="${x(now)}" y1="0" y2="${H - 18}" stroke="var(--ink-3)" stroke-dasharray="3 3"/>
-  </svg>`;
-  window.__bars = bars;
-  return `<div class="swim">${svg}</div><div class="legend">${[['done','handed off / ok'],['running','working'],['human-hold','waiting on you'],['failed','failed'],['silent','stuck / dead']].map(([s, l]) => `<span><i style="background:${fill(s)}"></i>${l}</span>`).join('')}</div>`;
+  if (keep && $('answer')) { $('answer').value = keep.value; if (keep.focus) { $('answer').focus(); $('answer').setSelectionRange(keep.at, keep.at); } }
+  $('prog').style.width = p.prog;
+  $('scrub').max = n; $('scrub').value = live ? n : k;
+  $('live').classList.toggle('primary', live); $('step').classList.toggle('primary', !live);
+  $('step').disabled = live || k >= n; $('back').disabled = !live && k <= 0;
+  $('play').textContent = timer ? 'Pause' : 'Play';
+  if (!live && timer && (['human-hold', 'delivery-authorization-required'].includes(v.selected?.state) || k >= n)) stop();
+  document.querySelectorAll('#list tr[data-store]').forEach(tr => {
+    const key = `${tr.dataset.store}|${tr.dataset.thread}|${tr.textContent}`;
+    if (shown.rows && shown.rows[`${tr.dataset.store}|${tr.dataset.thread}`] !== key) tr.classList.add('flash');
+    (shown.next ??= {})[`${tr.dataset.store}|${tr.dataset.thread}`] = key;
+  });
+  shown.rows = shown.next; shown.next = {};
 }
-document.addEventListener('pointermove', e => {
-  const hit = e.target.closest?.('[data-tip]'), tip = $('#tip');
-  if (!hit) { tip.style.display = 'none'; return; }
-  const b = window.__bars?.[Number(hit.dataset.tip)]; if (!b) return;
-  tip.innerHTML = `<b>${esc(b.label)}</b><br>${b.detail}`; tip.style.display = 'block';
-  tip.style.left = Math.min(innerWidth - 380, e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 14) + 'px';
+
+function freeze(at) { if (live) { frozen = { ...snap, at: snap.at + (Date.now() - receivedAt) }; live = false; k = at; } }
+function stop() { clearInterval(timer); timer = null; }
+function goLive() { stop(); live = true; render(); }
+function steps() { const b = build(); return b ? b.n : 0; }
+function go(to) { if (live) freeze(steps()); k = to; render(); }
+
+$('live').onclick = goLive;
+$('back').onclick = () => { if (live) { freeze(steps()); } k = Math.max(0, k - 1); render(); };
+$('step').onclick = () => { if (!live) { k++; render(); } };
+$('reset').onclick = () => { stop(); if (live) freeze(0); k = 0; render(); };
+$('scrub').oninput = e => { stop(); go(Number(e.target.value)); };
+$('play').onclick = () => {
+  if (timer) { stop(); render(); return; }
+  if (live) freeze(0);
+  if (k >= steps()) k = 0;
+  timer = setInterval(() => { k++; render(); }, 700);
+  render();
+};
+addEventListener('keydown', e => {
+  if (['TEXTAREA', 'INPUT'].includes(document.activeElement?.tagName) && document.activeElement.id !== 'scrub') return;
+  if (e.key === 'ArrowLeft') $('back').click(); else if (e.key === 'ArrowRight') $('step').click();
+});
+addEventListener('hashchange', () => { selection = fromHash(); if (!live) k = steps(); render(); });
+addEventListener('resize', () => { delete shown.view; render(); });
+$('list').addEventListener('click', e => {
+  const tr = e.target.closest('tr[data-store]');
+  if (tr) location.hash = toHash({ storeDir: tr.dataset.store, threadId: tr.dataset.thread });
 });
 
-function latency(w) {
-  const r = w.record, rows = STEPS.map(s => {
-    const as = r.attempts.filter(a => a.step === s), runs = as.flatMap(a => (a.runs ?? []).map((run, i) => ({ run, st: a.stats?.[i] })));
-    if (!as.length) return '';
-    const wall = runs.reduce((n, { run }) => n + ((run.endedAt ?? state.at) - run.startedAt), 0);
-    const sum = k => runs.reduce((n, { st }) => n + (st?.[k] ?? 0), 0);
-    return `<tr><td>${s}</td><td>${ROLES[s]}</td><td class="num">${as.length}</td><td class="num">${runs.length}</td><td class="num">${ms(wall)}</td><td class="num">${sum('tools')}</td><td class="num">${ms(sum('toolMs'))}</td><td class="num">${sum('tokens').toLocaleString()}</td><td class="num">$${sum('cost').toFixed(3)}</td></tr>`;
-  }).join('');
-  const calls = r.events.filter(e => e.type === 'call'), kinds = [...new Set(calls.map(c => c.kind))];
-  const pct = (xs, p) => { const s = [...xs].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(p * s.length))]; };
-  const callRows = kinds.map(k => { const xs = calls.filter(c => c.kind === k).map(c => c.ms); return `<tr><td>${k}</td><td class="num">${xs.length}</td><td class="num">${ms(pct(xs, .5))}</td><td class="num">${ms(Math.max(...xs))}</td><td class="num">${calls.filter(c => c.kind === k && !c.ok).length}</td></tr>`; }).join('');
-  const tools = {};
-  for (const a of r.attempts) for (const st of a.stats ?? []) for (const [name, v] of Object.entries(st?.byTool ?? {})) { const x = (tools[name] ??= { count: 0, ms: 0, errors: 0 }); x.count += v.count; x.ms += v.ms; x.errors += v.errors; }
-  const toolRows = Object.entries(tools).sort((a, b) => b[1].ms - a[1].ms).map(([n, v]) => `<tr><td class="mono">${esc(n)}</td><td class="num">${v.count}</td><td class="num">${ms(v.ms)}</td><td class="num">${ms(v.ms / v.count)}</td><td class="num">${v.errors}</td></tr>`).join('');
-  return `<div class="scroll"><table><thead><tr><th>phase</th><th>agent</th><th class="num">attempts</th><th class="num">launches</th><th class="num">wall time</th><th class="num">tools</th><th class="num">tool time</th><th class="num">tokens</th><th class="num">cost</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="cards" style="margin-top:14px"><div class="card"><h2>Judgment calls</h2>${callRows ? `<table><thead><tr><th>kind</th><th class="num">count</th><th class="num">p50</th><th class="num">max</th><th class="num">failed</th></tr></thead><tbody>${callRows}</tbody></table>` : '<div class="mut">none yet</div>'}</div>
-    <div class="card"><h2>Tools</h2>${toolRows ? `<table><thead><tr><th>tool</th><th class="num">calls</th><th class="num">total</th><th class="num">avg</th><th class="num">errors</th></tr></thead><tbody>${toolRows}</tbody></table>` : '<div class="mut">none yet</div>'}</div></div>`;
-}
+// The decide box: answer the held item, then let it continue; or give the go-ahead.
+$('now').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'), box = e.target.closest('.decide');
+  if (!b || !box || b.disabled) return;
+  const path = b.dataset.act === 'authorize' ? '/api/authorize' : '/api/answer';
+  const body = { storeDir: box.dataset.store, threadId: Number(box.dataset.thread) };
+  if (b.dataset.act === 'answer') { body.text = $('answer')?.value ?? ''; if (b.dataset.cause) body.cause = b.dataset.cause; }
+  box.querySelectorAll('button').forEach(x => { x.disabled = true; });
+  try {
+    const r = await fetch(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const reply = await r.json().catch(() => ({ ok: false, error: `The server answered ${r.status}.` }));
+    $('reply').textContent = reply.ok ? 'Answered; it continues.' : `${reply.error ?? 'Not taken.'}${reply.command ? ` ${reply.command}` : ''}`;
+  } catch (err) { $('reply').textContent = `Could not reach the server: ${err.message}`; }
+  render();
+});
 
-function eventText(e) {
-  const { at, type, pid, ...rest } = e;
-  if (type === 'call') return `${e.kind} for ${e.step}: ${ms(e.ms)}${e.ok ? '' : ` — ${e.error}`}`;
-  return Object.entries(rest).map(([k, v]) => `${k}: ${typeof v === 'string' ? v.slice(0, 80) : JSON.stringify(v)}`).join(' · ') + (pid ? ` · pid ${pid}` : '');
-}
-connect();
+const events = new EventSource('/api/stream' + location.search);
+events.onmessage = e => { snap = JSON.parse(e.data); receivedAt = Date.now(); if (live) render(); else if (!frozen) frozen = snap; };
+setInterval(() => { if (live && snap) render(); }, 10_000);
 </script>
-</body>
-</html>
+</body></html>
