@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { STEPS } from './pi-runtime.mjs';
 import { isStep } from './nq.mjs';
+import { delegatedView } from './delegated.mjs';
 
 const cardView = c => c && { harness: c.harness, provider: c.provider, account: c.account, model: c.model, effort: c.effort };
 
@@ -25,11 +26,11 @@ export async function publishWork(directory, w) {
   else if (x?.status === 'awaiting-originator') { state = 'question'; next = `${x.originator}, who handed over this work, answers the worker's questions.`; owner = x.originator; }
   else if (x?.status === 'awaiting-worker') { state = 'intake'; next = 'The worker confirms understanding or asks.'; owner = current.role; }
   else if (current && current.name !== 'discover' && !w.delivery) { state = 'delivery-authorization-required'; next = 'Authorize delivery to continue past discovery.'; owner = 'operator'; }
-  const view = {
+  const view = w.kind === 'delegated' ? delegatedView(directory, w) : {
     schema: 'pi-durable.work-view.v2', threadId: w.id, workspace: w.cwd, objective: w.objective.slice(0, 300), projectedAt: new Date().toISOString(),
-    done: Boolean(w.completion), state, next, owner, current, position: w.position, round: w.round, parentId: w.parentId, waitsOn: w.waitsOn, depth: w.depth ?? 0,
-    progress: { accepted: w.completion ? STEPS.length : w.position, total: STEPS.length },
-    checklist: STEPS.map((s, i) => ({ name: s.name, role: s.role, state: i < w.position || w.completion ? 'done' : i === w.position ? state : 'pending' })),
+    kind: w.kind, from: w.from, done: Boolean(w.completion), state, next, owner, current, position: w.position, round: w.round, parentId: w.parentId, waitsOn: w.waitsOn, depth: w.depth ?? 0,
+    progress: { accepted: w.completion === 'discovered' ? 1 : w.completion ? STEPS.length : w.position, total: w.completion === 'discovered' ? 1 : STEPS.length },
+    checklist: (w.completion === 'discovered' ? STEPS.slice(0, 1) : STEPS).map((s, i) => ({ name: s.name, role: s.role, state: i < w.position || w.completion ? 'done' : i === w.position ? state : 'pending' })),
     questions: w.hold?.questions ?? (x?.status === 'awaiting-originator' ? x.turns.at(-1)?.questions ?? [] : []),
     hold: w.hold, failure: failure ? { id: failure.id, status: failure.status, report: failure.report.slice(-1500) } : null,
     lastRuling: w.failures.findLast(f => f.ruling)?.ruling ?? null,
@@ -40,13 +41,14 @@ export async function publishWork(directory, w) {
     lastEvent: w.events.at(-1) ?? null, ownerPid: w.events.at(-1)?.pid ?? null,
     // The full timeline for the dashboard: everything that happened, minus packet and source text.
     record: {
-      createdAt: w.events[0]?.at ?? null, delivery: w.delivery, completion: w.completion,
+      createdAt: w.events[0]?.at ?? null, kind: w.kind, from: w.from, delivery: w.delivery, completion: w.completion,
+      calls: w.calls ?? [], activeCall: w.activeCall ?? null, operations: w.operations ?? [],
       attempts: w.attempts.map(a => ({ id: a.id, step: a.step, role: a.role, round: a.round, actor: a.actor, status: a.status, launches: a.launches ?? 0,
         runs: a.runs ?? [], createdAt: a.createdAt, startedAt: a.startedAt ?? null, endedAt: a.endedAt ?? null, progress: a.progress, checkIns: a.checkIns,
         error: a.error || null, exitCode: a.exitCode ?? null, outputHead: (a.output ?? '').slice(0, 800),
         card: a.card ? cardView(a.card) : null,
         swaps: (a.swaps ?? []).map(s => ({ from: cardView(s.from), to: cardView(s.to), at: s.at, account: s.limit?.account ?? null, resetsAt: s.limit?.resetsAt ?? null })) })),
-      exchanges: (w.exchanges ?? []).map(x => ({ id: x.id, step: x.step, round: x.round, status: x.status, answered: x.rounds, subject: x.subject ?? { kind: 'step' },
+      exchanges: (w.exchanges ?? []).map(x => ({ id: x.id, step: x.step, round: x.round, status: x.status, answered: x.rounds, originator: x.originator, worker: x.worker, sender: x.sender, receiver: x.receiver, briefHash: x.briefHash, handoffId: x.handoffId, subject: x.subject ?? { kind: 'step' },
         turns: x.turns.map(t => ({ type: t.type, at: t.at, questions: t.questions ?? [], clear: t.clear ?? null, text: (t.text ?? '').slice(0, 400) })) })),
       failures: w.failures.map(f => ({ id: f.id, status: f.status, at: f.at, round: f.round, ruling: f.ruling ?? null, prerequisite: f.prerequisite ?? null, report: f.report.slice(-1200) })),
       notes: w.notes.map(n => ({ to: n.to, round: n.round, at: n.at, failureId: n.failureId })),
@@ -70,7 +72,7 @@ export async function observe(directory, id = null) {
   for (const file of files.filter(f => /^thread-\d+\.json$/.test(f))) {
     const w = await readFile(join(folder, file), 'utf8').then(JSON.parse).catch(() => null);
     if (!w || (id !== null && w.threadId !== id)) continue;
-    const stalled = !w.done && ['working', 'intake', 'question', 'test-failed'].includes(w.state) && !driverAlive;
+    const stalled = w.kind !== 'delegated' && !w.done && ['working', 'intake', 'question', 'test-failed'].includes(w.state) && !driverAlive;
     result.push({ ...w, driverAlive, state: stalled ? 'stopped' : w.state,
       next: stalled ? 'No driver is running. Drive again (or durable_work resume): unfinished work continues from its saved state.' : w.next });
   }
@@ -85,7 +87,8 @@ export function render(works) {
   return [...(held.length ? [held.map(holdLine).join('\n')] : []), ...[...held, ...works.filter(w => !held.includes(w))].map(w => [
     `WORK ${w.threadId}${w.parentId ? ` (prerequisite of ${w.parentId})` : ''} — ${w.done ? 'DONE' : w.state.toUpperCase()} — round ${w.round}`,
     w.objective,
-    ...w.checklist.map(s => `  ${s.state === 'done' ? '[x]' : '[ ]'} ${s.name} (${s.role})${s.state !== 'done' && s.state !== 'pending' ? ` — ${s.state}` : ''}`),
+    ...(w.kind === 'delegated' ? [`Worker: ${w.worker.job} · ${w.worker.harness} · ${w.worker.provider} · ${w.worker.model}`, `Where: ${JSON.stringify(w.where)}`] : []),
+    ...(w.checklist ?? []).map(s => `  ${s.state === 'done' ? '[x]' : '[ ]'} ${s.name} (${s.role})${s.state !== 'done' && s.state !== 'pending' ? ` — ${s.state}` : ''}`),
     `Next: ${w.next}`, `Responsible: ${w.owner ?? 'nobody; complete'}`,
     ...w.questions.map(q => `QUESTION: ${q}`),
     ...(w.failure ? [`FAILED TEST: ${w.failure.report.slice(0, 600)}`] : []),

@@ -75,7 +75,7 @@ export function timeline(w) {
   const add = v => { const m = ms(v); if (Number.isFinite(m)) times.add(m); };
   for (const e of r.events ?? []) { add(e.at); if (e.type === 'call') add(e.startedAt); }
   for (const x of r.exchanges ?? []) for (const t of x.turns ?? []) add(t.at);
-  for (const a of r.attempts ?? []) { add(a.startedAt); add(a.endedAt); }
+  for (const a of [...(r.attempts ?? []), ...(r.calls ?? []), ...(r.operations ?? [])]) { add(a.createdAt); add(a.startedAt); add(a.endedAt); }
   return [...times].sort((a, b) => a - b);
 }
 
@@ -106,8 +106,59 @@ function holdIntervals(w) {
   return out.filter(h => Number.isFinite(h.start)).sort((a, b) => a.start - b.start);
 }
 
+const participantLabel = p => p ? [p.job, p.actor, HARNESS[p.harness] ?? p.harness, p.provider, p.model].filter(Boolean).join(' · ') : 'UNKNOWN';
+const locationLabel = where => typeof where === 'string' ? where : where ? JSON.stringify(where) : 'UNKNOWN (not supplied)';
+
+function delegatedStateAt(w, at) {
+  const r = w.record, events = (r.events ?? []).filter(e => ms(e.at) <= at);
+  const e = events.findLast(e => e.type.startsWith('delegated-')), delegationState = e?.state ?? 'intake';
+  const exchange = (r.exchanges ?? []).find(x => x.id === (e?.exchange?.id ?? e?.exchangeId)) ?? null;
+  const turns = (exchange?.turns ?? []).filter(t => ms(t.at) <= at);
+  const done = ['accepted', 'closed'].includes(delegationState), hold = e?.hold ?? null;
+  const intervals = [];
+  for (const ev of events) if (ev.hold && !intervals.some(i => i.start === ms(ev.hold.at))) {
+    const start = ms(ev.hold.at), released = events.find(v => v.type === 'delegated-human' && ms(v.at) >= start);
+    intervals.push({ start, end: released ? ms(released.at) : Infinity, kind: 'nq' });
+  }
+  return { state: done ? 'done' : hold ? 'human-hold' : delegationState, delegationState,
+    step: e?.step ?? r.step, round: 0, done, hold, exchange, answered: turns.filter(t => t.type !== 'worker').length,
+    completedAt: done ? ms(events.find(v => v.state === 'accepted')?.at) : null,
+    since: ms(e?.at), lastEvent: e, delivery: false, intervals, report: e?.report, acceptance: e?.acceptance };
+}
+
+function delegatedBlock(unit, width, now, label) {
+  const { w, s, at } = unit, r = w.record, lines = [];
+  const add = value => lines.push(...wrap(value, width, '   '));
+  add(`${label} ${w.objective}`);
+  add(`State: ${s.delegationState} · step: ${s.step} · updated ${clock(s.lastEvent?.at, now)}`);
+  add(`Worker: ${participantLabel(w.worker)}`);
+  add(`From: ${participantLabel(w.sender)}`);
+  add(`Where: ${locationLabel(w.where)}`);
+  if (w.parentId) add(`Parent: #${w.parentId}`);
+  if (s.hold) {
+    add(`Stopped: ${s.hold.reason}`);
+    for (const q of s.hold.questions ?? []) add(`? ${q}`);
+    lines.push(...command(cli(unit, `delegate human ${w.threadId} reply.txt --actor human`), width, '   $ '));
+    add('Then the receiving agent confirms understanding; no automatic execution.');
+  }
+  for (const x of r.exchanges ?? []) {
+    if (ms(x.createdAt) > at) continue;
+    add(`Hand-off: ${x.originator} → ${x.worker} (${x.subject?.handoff ?? x.subject?.kind ?? 'UNKNOWN'})`);
+    for (const t of x.turns ?? []) {
+      if (ms(t.at) > at) continue;
+      const content = t.type === 'worker' ? [t.intent, ...(t.questions ?? []).map(q => '? ' + q)].filter(Boolean).join(' · ') : t.text;
+      add(`${clock(t.at, now)} ${t.actor ?? t.type}: ${content ?? 'UNKNOWN'}`);
+    }
+  }
+  if (s.report) { add(`Reported: ${s.report.text}`); if (s.report.evidence) add(`Evidence: ${s.report.evidence}`); }
+  if (s.acceptance) add(`Accepted by ${s.acceptance.actor}: ${s.acceptance.text}`);
+  add(`Details: pi-durable show ${w.threadId} (same workspace/store)`);
+  return lines;
+}
+
 // The one derivation. Inputs are cut to at (ms); the rules follow publishWork's order.
 export function stateAt(w, at) {
+  if (w.kind === 'delegated' || w.record?.kind === 'delegated') return delegatedStateAt(w, at);
   const r = w.record ?? {}, all = r.events ?? [], events = all.filter(e => ms(e.at) <= at);
   const failures = r.failures ?? [];
   let step = 'discover', round = 0, waitsOn = null;
@@ -121,7 +172,7 @@ export function stateAt(w, at) {
       if (e.type === 'failure-routed' && e.cause === 'pre-existing') waitsOn = failures.find(f => f.id === e.failureId)?.prerequisite ?? null;
     } else if (e.type === 'prerequisite-done') waitsOn = null;
   }
-  const completeEvent = events.find(e => e.type === 'complete');
+  const completeEvent = events.find(e => e.type === 'complete' || e.type === 'discovered');
   const done = Boolean(completeEvent);
   const { auth, atCreation } = delivered(r);
   const delivery = Boolean(auth && ms(auth.at) <= at) || atCreation;
@@ -186,6 +237,7 @@ function decision(unit) {
 }
 
 function decisionCard(unit, width, now, label) {
+  if (unit.w.kind === 'delegated') return delegatedBlock(unit, width, now, label);
   const { w, s } = unit, d = decision(unit), out = [];
   out.push(...wrap(`${label} ${plain(w.objective)}`, width, '   ', { maxLines: 2 }));
   out.push(...wrap(d.stopped, width, '   ', { first: '   Stopped: ', maxLines: 3 }));
@@ -220,6 +272,7 @@ function jobNow(unit, live) {
 }
 
 function unitBlock(unit, all, width, now, indent, label) {
+  if (unit.w.kind === 'delegated') return delegatedBlock(unit, width, now, label);
   const { w, s } = unit, out = [], live = unit.live;
   out.push(...wrap(`${label} ${plain(w.objective)}`, width, indent + '   ', { first: indent, maxLines: 1 }));
   const pad = indent + '   ';
@@ -324,8 +377,9 @@ function ruleSet(unit, at) {
   }
   // 6. NQ turns <= 3 before a hold.
   {
+    const missing = atts.filter(a => !(r.exchanges ?? []).some(x => isStepExchange(x) && x.step === a.step && (x.round ?? 0) === (a.round ?? 0)));
     const counts = (r.exchanges ?? []).map(x => (x.turns ?? []).filter(t => ms(t.at) <= at && t.type === 'originator').length), max = Math.max(0, ...counts);
-    rules.push({ label: 'Questions settle in three turns or hold', status: max > 3 ? 'bad' : 'ok', evidence: max > 3 ? `An exchange took ${max} answers; the limit is 3.` : `max ${max} of 3` });
+    rules.push({ label: 'Questions settle in three turns or hold', status: max > 3 ? 'bad' : missing.length || !(r.exchanges ?? []).length ? 'pend' : 'ok', evidence: max > 3 ? `An exchange took ${max} answers; the limit is 3.` : missing.length ? `${missing.length} steps have no recorded intake exchange; coverage unknown` : !(r.exchanges ?? []).length ? 'No exchanges recorded; coverage unknown' : `max ${max} of 3` });
   }
   return rules;
 }
@@ -342,8 +396,15 @@ function stageMinutes(w, at) {
   for (const a of r.attempts ?? []) {
     const start = ms(a.startedAt ?? a.createdAt), stage = STAGE_OF[a.step];
     if (!stage || !(start <= at)) continue;
-    const ended = ms(a.endedAt);
-    minutes[stage] += Math.max(0, Math.min(Number.isFinite(ended) ? ended : at, at) - start) / 60_000; has[stage] = true;
+    // Runs are distinct intervals; gaps between retries are not execution time.
+    const runs = a.runs?.length ? a.runs : [{ startedAt: start, endedAt: a.endedAt }];
+    for (let i = 0; i < runs.length; i++) {
+      const run = runs[i], began = ms(run.startedAt), ended = ms(run.endedAt);
+      const next = ms(runs[i + 1]?.startedAt);
+      const stop = Math.min(Number.isFinite(ended) ? ended : at, Number.isFinite(next) ? next : at, at);
+      if (began <= at) minutes[stage] += Math.max(0, stop - began) / 60_000;
+    }
+    has[stage] = true;
   }
   for (const e of r.events ?? []) {
     if (e.type !== 'call' || !(ms(e.startedAt) <= at) || !Number.isFinite(e.ms)) continue;
@@ -452,7 +513,7 @@ function lanesOf(unit, items, at) {
     { label: 'Start', state: awaiting ? 'on' : started ? 'done' : 'pending', reason: started ? startNote(unit, at) : awaiting ? 'waiting for your go-ahead' : '' } ];
   const { minutes, has } = w ? stageMinutes(w, at) : { minutes: {}, has: {} };
   const failing = Boolean(s && (s.failure || s.hold?.kind === 'failure'));
-  const at_ = s ? (s.done ? STAGES.length : awaiting || s.step === 'discover' || !s.step ? -1 : STAGES.indexOf(STAGE_OF[s.step])) : -1;
+  const at_ = s ? (s.done ? (r.completion === 'discovered' || w?.kind === 'delegated' ? -1 : STAGES.length) : awaiting || s.step === 'discover' || !s.step ? -1 : STAGES.indexOf(STAGE_OF[s.step])) : -1;
   const delivery = STAGES.map((name, i) => {
     const chips = items.filter(it => !it.done && !it.awaiting && it.stageKey === name).flatMap(it => [`#${it.threadId}`, ...(it.waitsOn?.startsWith('#') ? [`waits ${it.waitsOn}`] : [])]);
     const state = s ? (i < at_ ? 'done' : i === at_ ? (name === 'verification' && failing ? 'fail' : 'on') : 'pending') : 'pending';
@@ -470,8 +531,8 @@ export function runView(snap, { at = snap?.at ?? Date.now(), select = null } = {
   const units = [];
   for (const store of snap?.stores ?? []) for (const w of store.threads ?? []) {
     const s = stateAt(w, at);
-    if (live && !store.driver?.alive && ['working', 'intake', 'question', 'test-failed'].includes(s.state)) s.state = 'stopped';
-    const started = (w.record?.attempts ?? []).some(a => !(createdAtOf(a) > at));
+    if (w.kind !== 'delegated' && live && !store.driver?.alive && ['working', 'intake', 'question', 'test-failed'].includes(s.state)) s.state = 'stopped';
+    const started = w.kind === 'delegated' || [...(w.record?.attempts ?? []), ...(w.record?.calls ?? [])].some(a => !(createdAtOf(a) > at));
     units.push({ w, s, storeDir: store.dir, base: snap.base, home, workspace: w.workspace ?? store.workspace, driver: store.driver ?? {}, live, at, started });
   }
   const many = (snap?.stores ?? []).filter(st => st.threads?.length).length > 1;
@@ -483,8 +544,8 @@ export function runView(snap, { at = snap?.at ?? Date.now(), select = null } = {
     const who = needs ? 'you' : s.done ? '' : s.state === 'test-failed' ? 'Arbiter' : s.state === 'waiting-on-prerequisite' ? `#${s.waitsOn}`
       : ['working', 'intake', 'question'].includes(s.state) ? s.attempt?.role && s.state === 'working' ? s.attempt.role : ROLE[s.step] ?? '' : '';
     return { threadId: w.threadId, storeDir: u.storeDir, workspace: u.workspace, objective: plain(w.objective), state: s.state, done: s.done, awaiting, needs,
-      kind: w.parentId ? 'fix' : s.delivery ? 'delivery' : 'discovery', pill: s.done ? 'done' : s.delivery ? 'task' : 'todo', who,
-      stage: s.done ? 'Done' : awaiting ? 'Operator' : STAGE_NAME[stageKey] ?? 'Discovery', stageKey,
+      kind: w.kind === 'delegated' ? 'delegated' : w.parentId ? 'fix' : s.delivery ? 'delivery' : 'discovery', pill: s.done ? 'done' : w.kind === 'delegated' || s.delivery ? 'task' : 'todo', who: w.kind === 'delegated' ? participantLabel(w.worker) : who,
+      stage: w.kind === 'delegated' ? s.delegationState : s.done ? 'Done' : awaiting ? 'Operator' : STAGE_NAME[stageKey] ?? 'Discovery', stageKey,
       waitsOn: needs ? 'you' : s.state === 'waiting-on-prerequisite' ? `#${s.waitsOn}` : '', from: w.parentId ? `#${w.parentId}` : '', lastAt: ms(s.lastEvent?.at) || 0 };
   });
 
@@ -521,6 +582,8 @@ export function runView(snap, { at = snap?.at ?? Date.now(), select = null } = {
 function nowOf(unit, view) {
   if (!unit) return { who: 'sys', headline: 'Nothing here yet', detail: '', decide: null };
   const { w, s } = unit, step = s.step;
+  if (w.kind === 'delegated') return { who: s.hold ? 'op' : s.done ? 'sys' : 'agent',
+    headline: `${s.delegationState}: ${w.objective}`, detail: participantLabel(w.worker) + (w.where ? ` · ${locationLabel(w.where)}` : ''), decide: null };
   const decide = NEEDS.has(s.state) ? decideOf(unit, view) : null;
   switch (s.state) {
     case 'human-hold': return { who: 'op', headline: 'Waiting on you', detail: decision(unit).stopped, decide };
@@ -591,6 +654,7 @@ export function terminalLines(view, { width = 80 } = {}) {
   const today = units.filter(u => u.s.done && Number.isFinite(u.s.completedAt) && new Date(u.s.completedAt).toDateString() === new Date(at).toDateString());
   if (out.at(-1)?.text !== '') out.push({ cls: '', text: '' });
   push(today.length ? wrap(`DONE TODAY: ${today.map(u => u.label).join(', ')}`, width, '  ', { first: '' }) : ['DONE TODAY: none']);
+  for (const u of units.filter(u => u.w.kind === 'delegated' && u.s.done)) push(delegatedBlock(u, width, at, u.label));
   return out.map(l => ({ cls: l.cls, text: clip(l.text, width) }));
 }
 

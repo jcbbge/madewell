@@ -137,7 +137,7 @@ export async function snapshot({ base = dataDirectory(), now = Date.now(), works
         a.stats = [];
         for (const run of a.runs ?? []) {
           const live = !run.endedAt;
-          const st = await launchStats(join(dir, `${run.record}.jsonl`), { tail: live ? 30 : 0, harness: a.card?.harness });
+          const st = await launchStats(join(dir, `${run.record}.jsonl`), { tail: live ? 30 : 0, harness: typeof run.card === 'object' ? run.card.harness : typeof run.card === 'string' ? run.card.split(' · ')[0] : a.card?.harness });
           a.stats.push(st && { ...st, live, pidAlive: live && run.pid ? alive(run.pid) : null });
         }
         const last = a.stats.at(-1);
@@ -151,7 +151,7 @@ export async function snapshot({ base = dataDirectory(), now = Date.now(), works
       w.callStats = {};
       for (const e of w.record?.events ?? []) {
         if (e.type !== 'call' || !e.record) continue;
-        const st = await launchStats(`${isAbsolute(e.record) ? e.record : join(dir, e.record)}.jsonl`, { harness: String(e.card ?? '').split(' · ')[0] || 'pi' });
+        const st = await launchStats(`${isAbsolute(e.record) ? e.record : join(dir, e.record)}.jsonl`, { harness: (typeof e.card === 'object' ? e.card.harness : String(e.card ?? '').split(' · ')[0]) || 'pi' });
         if (st) w.callStats[e.record] = st;
       }
       threads.push(w);
