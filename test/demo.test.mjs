@@ -18,6 +18,19 @@ test('demo: every step uses the shared board inside the window; missing protocol
   assert.match(end, /THE ONE LIST/);
 });
 
+test('demo: delegated observation columns match the live renderer without probes', () => {
+  for (const width of [60, 80, 110, 160, 241]) {
+    const frame = demoFrame(RUN.length, { width, base });
+    const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0].replace(/[│╭╮╰╯─]/g, ' ').replace(/\s+/g, ' ');
+    for (const value of ['Step: implement', 'Activity: pane output', '2 done recorded', 'Update 0s ago',
+      'The reminder example is ready for the independent check.', 'context 25.3%/500k', '↑12k ↓2.3k R1.2M', '$0.042',
+      'abc1234', '3 uncommitted', 'tmux: running', 'tmux: dead', 'tmux: stale', 'tmux: unknown', 'context UNKNOWN']) assert.ok(happening.includes(value), `${width}: ${value}`);
+    assert.match(frame, /1 running/);
+    assert.ok(frame.split('\n').every(line => line.length <= width));
+    assert.equal(frame, demoFrame(RUN.length, { width, base }), 'same fixture is deterministic');
+  }
+});
+
 test('demo: paging reaches the bottom and quitting removes its listeners', async () => {
   const input = new EventEmitter(), output = new EventEmitter();
   Object.assign(input, { isTTY: true, setRawMode() {}, resume() {}, pause() {} });

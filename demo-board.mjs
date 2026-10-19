@@ -204,7 +204,7 @@ const age = (at, now) => !Number.isFinite(ms(at)) ? 'UNKNOWN' : `${Math.max(0, M
 // Observations never replace lifecycle state, and absent hints never imply death or completion.
 function delegatedLines(t, v, w, now) {
   const out = [], obs = v.telemetry ?? {};
-  const add = text => wrapText(plain(text), w - 2).slice(0, 2).forEach(l => out.push('  ' + t.muted(l)));
+  const add = text => wrapText(plain(text), w - 2).forEach(l => out.push('  ' + t.muted(l)));
   add(`Step: ${v.current?.name ?? v.record?.step ?? 'UNKNOWN'}`);
   if (obs.tmux) {
     add(`tmux: ${obs.tmux.state} · ${obs.tmux.command ?? obs.tmux.reason ?? 'pane unavailable'}`);
@@ -225,7 +225,7 @@ function runningLines(t, unit, label, w, now) {
     const v = unit.w, ev = v.lastEvent ?? {}, card = v.worker ? `${HARNESS[v.worker.harness] ?? v.worker.harness} · ${v.worker.model}` : '';
     const out = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(v.objective)}`, w - 2))];
     out.push('  ' + t.muted(fit(`${v.worker?.actor ?? 'worker'} on ${card}${v.worker?.provider ? ` · ${v.worker.provider}` : ''} · ${ev.state ?? v.state}${ev.at ? ` · ${span(now - ms(ev.at))}` : ''}`, w - 2)));
-    if (v.where?.tmux) out.push('  ' + t.muted(fit(`Watch it: tmux window ${v.where.tmux}`, w - 2)));
+    if (v.where?.tmux) out.push('  ' + t.muted(fit(`${v.state === 'dead' || v.telemetry?.tmux?.state === 'dead' ? 'Recorded location' : 'Watch it'}: tmux window ${v.where.tmux}`, w - 2)));
     out.push(...delegatedLines(t, v, w, now));
     return out;
   }

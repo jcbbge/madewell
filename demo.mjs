@@ -62,6 +62,24 @@ function complete(s, id, completion = 'verified') {
   Object.assign(u, { done: true, state: 'done', current: null, attempt: null }); u.record.completion = completion; ev(s, id, 'complete');
 }
 
+// Synthetic observations only: exercise the same delegated columns without tmux,
+// process, filesystem or git probes. Missing metrics remain explicitly unknown.
+function delegatedExample(s, id, state) {
+  const worker = { actor: `worker-${id}`, job: 'implement', harness: 'pi', provider: 'example', model: 'example-model' };
+  const sender = { actor: 'coordinator', job: 'dispatch', harness: 'claude', provider: 'example', model: 'example-model' };
+  const where = { tmux: `demo:worker-${id}`, steps: 'TASKS.md', repo: '.' };
+  const u = add(s, id, `${state} delegated worker · example observations`, { kind: 'delegated',
+    state: 'working', current: { name: 'implement' }, worker, sender, where,
+    telemetry: { tmux: { state, command: state === 'running' ? 'pi' : null, reason: state === 'dead' ? 'recorded tmux target is gone' : 'no agent observed',
+      outputAt: state === 'running' ? at(s) - 7000 : null, outputScope: 'pane output' },
+      steps: { now: ['#3 Send the reminder example'], done: 2 },
+      ...(state === 'running' ? { usage: { context: '25.3%/500k', tokens: '↑12k ↓2.3k R1.2M', cost: '$0.042' },
+        repo: { hash: 'abc1234', at: at(s) - 120000, subject: 'Example reminder change', changed: 3 } } : {}) } });
+  Object.assign(u.record, { kind: 'delegated', step: 'implement', worker, sender, where });
+  ev(s, id, 'delegated-started', { state: 'working', step: 'implement', actor: worker.actor, text: 'I understand the reminder assignment.' });
+  ev(s, id, 'delegated-progress', { state: 'working', step: 'implement', actor: worker.actor, text: 'Two steps delivered; the reminder example is next.' });
+}
+
 // Each step: minutes after 09:00, who, the headline, the detail, and what it does to the record.
 // A step with `ask` waits for the operator: Enter takes the action.
 export const RUN = [
@@ -126,6 +144,15 @@ export const RUN = [
     a: s => finish(s, 103, 131_000, 0.10) },
   { m: 168, who: 'record', t: '#103 finishes itself', d: 'A delivery item is done only when its checks pass. Nobody marks it done by hand.',
     a: s => complete(s, 103) },
+  { m: 170, who: 'record', t: 'Delegated workers use the same board',
+    d: 'Example observations: one live agent, a missing window, a shell-only pane and an unavailable probe. Only the live agent counts as running; none is accepted.',
+    a: s => ['running', 'dead', 'stale', 'unknown'].forEach((state, i) => delegatedExample(s, 110 + i, state)) },
+  { m: 171, who: 'agent', t: 'The worker posts its next tangible result',
+    d: 'Its own words and their age sit beside pane activity, ledger steps, context/tokens, printed cost and code changes. These are example values, not live observations.',
+    a: s => {
+      ev(s, 110, 'delegated-progress', { state: 'working', step: 'implement', actor: 'worker-110', text: 'The reminder example is ready for the independent check.' });
+      ev(s, 111, 'delegated-dead', { state: 'dead', step: 'implement', actor: 'coordinator', text: 'The worker window died without reporting; this is not acceptance.' });
+    } },
 ];
 
 export function build(n, base) {
