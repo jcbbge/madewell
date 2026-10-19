@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+if [ "${PI_DURABLE_WORKER:-}" = 1 ] && [ "${1:-}" = stop-check ]; then exit 0; fi
+
 # constellation — drives one piece of work through the inner loop with the six stars.
 #
 # The piece is the actor. An agent is a profile the piece borrows for one step, and any
