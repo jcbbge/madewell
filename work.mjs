@@ -1,11 +1,12 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, writeFile, rename, unlink, realpath } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { join, resolve, isAbsolute } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import * as nq from './nq.mjs';
 import { STEPS, ARBITER, stepIndex, progressExtension } from './pi-runtime.mjs';
 import { runCard } from './pi-call.mjs';
 import { buildLaunch } from './cards.mjs';
+import { parseResponse } from './pi-stream.mjs';
 import { LABELS, FORMAT, checkDeliverable } from './deliverable.mjs';
 import { publishWork } from './observe.mjs';
 import { sendAlert } from './alert.mjs';
@@ -16,8 +17,12 @@ import { openNodeSqliteStorage } from '@earendil-works/pi-durable/storage/sqlite
 
 export { STEPS };
 export const hash = text => createHash('sha256').update(text).digest('hex');
+// Identity is independent of a caller's object-key insertion order; source hashes remain byte-exact.
+export const identity = value => JSON.stringify(value, (_key, v) => v && typeof v === 'object' && !Array.isArray(v)
+  ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v);
 // A worker whose tools can start a sub-agent anyway originates an NQ exchange and answers for it.
 export const SUBAGENT_RULE = 'If your tools can start another agent anyway, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.';
+export const WORKER_CHANNEL_GUIDE = 'When a worker channel is available, use durable_dispatch (pi) or "$PI_DURABLE_NODE" "$PI_DURABLE_CHANNEL" dispatch <request.json> for any sanctioned nested agent: requestId, receiver (actor/job/card), brief, access. Do not launch an agent by another route. With shell access, report tangible progress using "$PI_DURABLE_NODE" "$PI_DURABLE_CHANNEL" progress <deliverable> <evidence>, and read pending support questions with "$PI_DURABLE_NODE" "$PI_DURABLE_CHANNEL" check-in. A held nested exchange stops only this work; report it, never work around it.';
 export const CAUSES = ['pre-existing', 'implementation', 'test'];
 // Whoever handed the work over: the person or concierge that dispatched it, before any phase has handed off.
 export const DISPATCHER = 'dispatcher';
@@ -56,7 +61,10 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
   let views = Promise.resolve();
   const publish = id => (views = views.then(async () => {
     const w = await harness.snapshot(Work, id, context);
-    if (w?.id) await publishWork(directory, w);
+    if (w?.id) {
+      if (w.archived) await unlink(join(directory, 'observability', `thread-${id}.json`)).catch(e => { if (e.code !== 'ENOENT') throw e; });
+      else await publishWork(directory, w);
+    }
   }).catch(e => console.error(`view not refreshed (work is committed): ${e.message}`)));
   // A hold alerts the human once: the record says which hold was alerted, so a redriven or repeated drive sends nothing twice.
   let alerts = Promise.resolve();
@@ -77,12 +85,16 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       execute: async (task, runtime, ctx) => {
         const { workId, attemptId } = task.input;
         const saved = await harness.snapshot(Work, workId, ctx), prior = saved.attempts.find(a => a.id === attemptId);
+        if (saved.archived) return terminal({ status: 'archived' });
         if (!['queued', 'running'].includes(prior.status)) return terminal({ status: prior.status });
         const resumed = prior.status === 'running';
         await runtime.commit(async tx => {
           const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
-          a.status = 'running'; a.startedAt ??= Date.now(); a.launches = (a.launches ?? 0) + 1;
-          a.runs = [...(a.runs ?? []), { n: a.launches, startedAt: Date.now(), endedAt: null, pid: null, exit: null, record: join('attempts', attemptId, launchName(a)) }];
+          if (resumed && a.runs?.at(-1) && !a.runs.at(-1).endedAt) Object.assign(a.runs.at(-1), { outcome: 'interrupted', interruptedAt: Date.now() });
+          a.status = 'running'; a.startedAt ??= Date.now(); a.endedAt = null; a.launches = (a.launches ?? 0) + 1;
+          a.runs = [...(a.runs ?? []), { n: a.launches, callId: a.callId, card: a.card, sessionId: a.harnessSession ?? a.sessionId,
+            startedAt: Date.now(), endedAt: null, pid: null, exit: null, where: null, record: join('attempts', attemptId, launchName(a)) }];
+          syncAttempt(w, a);
           event(w, resumed ? 'redriven' : 'started', { attemptId, step: a.step });
           return { status: 'running', checkpoint: { phase: 'execute' } };
         }, ctx);
@@ -96,7 +108,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         const launch = buildLaunch(card, { access: prior.askRestate ? 'read' : prior.access, sessionDir: join(directory, 'sessions', attemptId),
           sessionId: card.harness === 'codex' ? (continuing ? prior.harnessSession : undefined) : prior.harnessSession ?? prior.sessionId,
           resume: continuing, progressExtension: card.harness === 'pi' ? progressExtension : undefined, readDirs: [directory],
-          system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope. ${SUBAGENT_RULE}` });
+          system: `You are ${step.role}. ${step.duty} The input is your complete work packet. Do not delegate or change scope. ${SUBAGENT_RULE} ${WORKER_CHANNEL_GUIDE}` });
         // After a swap the new card starts fresh: transcripts don't cross harnesses, the workspace and record do.
         const last = prior.swaps?.at(-1);
         const pickup = last
@@ -113,6 +125,11 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
           ? 'You were interrupted mid-assignment. Continue the same assignment from where you stopped. Inspect the workspace first; do not redo finished parts.'
           : await provisionPacket(directory, attemptId, prior.packet) + pickup;
         let queue = Promise.resolve(), timer;
+        const location = where => (queue = queue.then(() => runtime.commit(async tx => {
+          const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
+          a.runs.at(-1).where = where; syncAttempt(w, a);
+          return { status: 'running', checkpoint: { phase: 'execute' } };
+        }, ctx)).then(() => publish(workId)));
         const checkIn = () => {
           clearTimeout(timer);
           timer = setTimeout(() => { queue = queue.then(async () => {
@@ -145,27 +162,33 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         checkIn();
         let result;
         try {
-          result = await runCard({ card, launch, cwd: saved.cwd, prompt, record: join(channel, launchName({ ...prior, launches: (prior.launches ?? 0) + 1 })), onLine, signal: ctx.abortSignal,
+          result = await runCard({ card, launch, cwd: saved.cwd, prompt, unit: workId, job: prior.step, record: join(channel, launchName({ ...prior, launches: (prior.launches ?? 0) + 1 })), onLine, signal: ctx.abortSignal,
             env: { WORK_DATA: directory, PI_DURABLE_ATTEMPT: attemptId, PI_DURABLE_CHECKIN: inbox },
-            onSpawn: pid => runtime.commit(async tx => { const a = (await tx.doc(Work, workId)).attempts.find(a => a.id === attemptId); a.pid = pid; a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, pid } : r); return { status: 'running', checkpoint: { phase: 'execute' } }; }, ctx).then(() => publish(workId)) });
+            nestedDispatch: (input, callbacks) => store.nestedDispatch(workId, { ...input, parentCallId: prior.callId }, callbacks),
+            onLaunch: where => location(where), onLocation: where => location(where),
+            onSpawn: (pid, where) => runtime.commit(async tx => { const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId); a.pid = pid; Object.assign(a.runs.at(-1), { pid, ...(where ? { where } : {}) }); syncAttempt(w, a); return { status: 'running', checkpoint: { phase: 'execute' } }; }, ctx).then(() => publish(workId)) });
         } finally { clearTimeout(timer); }
         await queue;
         await runtime.commit(async tx => {
           const w = await tx.doc(Work, workId), a = w.attempts.find(a => a.id === attemptId);
           a.endedAt = Date.now(); a.exitCode = result.code; a.output = result.output;
           a.harnessSession = result.sessionId ?? a.harnessSession ?? null;
-          a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, endedAt: a.endedAt, exit: result.signal ?? result.code, toolCalls: result.toolCalls, card: `${card.harness} · ${card.model}` } : r);
+          a.runs = a.runs.map((r, i) => i === a.runs.length - 1 ? { ...r, endedAt: a.endedAt, exit: result.signal ?? result.code, toolCalls: result.toolCalls, card, where: result.where ?? r.where } : r);
           a.limit = result.limit ?? null;
           a.status = result.ok ? 'reported' : 'failed';
           a.error = result.ok ? '' : result.limit ? `usage limit: ${result.limit.message}`
             : (result.signal ?? result.error) || `${card.harness} exited ${result.code}`;
           event(w, a.status, { attemptId, step: a.step, ...(result.limit ? { limit: result.limit } : {}) });
-          if (a.askRestate && result.ok) {
+          const restated = Boolean(a.askRestate && result.ok);
+          if (restated) {
             // The restated deliverable answers the receiving step's question; a human answer is confirmed by the receiver's own intake.
             const rx = w.exchanges.find(x => x.id === a.askRestate.exchangeId);
             if (!a.askRestate.human && rx?.status === 'awaiting-originator') nq.originatorReply(w, rx.id, a.role, `Restated in full as revision ${a.revisions.length} of attempt ${a.id}; the restated deliverable is the hand-off.`);
             a.restatedFor = rx.turns.length; a.askRestate = null;
           }
+          syncAttempt(w, a);
+          if (restated) applyCall(w, a.callId);
+          if (a.step === 'discover' && !a.askRestate) finishOperation(w, 'scope-and-items', { attemptId: a.id, callId: a.callId, output: a.output, record: a.runs.at(-1).record }, a.status);
           return terminal({ status: a.status });
         }, ctx);
         await publish(workId);
@@ -180,8 +203,89 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     },
   });
 
+  // Intake, clarification and decisions are ordinary Pi Durable tasks, on this same Work document.
+  // A saved output is a checkpoint: redrive applies it, never buys another answer.
+  const callers = new Map();
+  const Call = defineTask({
+    name: 'work.call', version: 1, initial: () => ({ phase: 'call' }),
+    phases: { call: async (task, runtime, ctx) => {
+      const { workId, callId } = task.input;
+      const saved = await harness.snapshot(Work, workId, ctx), prior = saved.calls.find(c => c.id === callId);
+      if (saved.archived) return terminal({ outcome: 'archived' });
+      if (prior.result || ['reported', 'limited', 'failed'].includes(prior.outcome)) return terminal({ outcome: prior.outcome });
+      const resumed = prior.runs.length > 0, record = join(directory, 'calls', callId, `launch-${prior.runs.length + 1}`);
+      await runtime.commit(async tx => {
+        const w = await tx.doc(Work, workId), c = w.calls.find(c => c.id === callId);
+        if (c.outcome === 'running' && c.runs.at(-1)) Object.assign(c.runs.at(-1), { outcome: 'interrupted', interruptedAt: Date.now() });
+        c.outcome = 'running'; c.startedAt ??= Date.now(); c.endedAt = null; c.record = record; w.activeCall = c.id;
+        c.runs.push({ n: c.runs.length + 1, card: c.card, sessionId: c.card.harness === 'codex' ? c.harnessSession ?? null : c.harnessSession ?? c.sessionId,
+          startedAt: Date.now(), endedAt: null, pid: null, exit: null, record, where: null });
+        event(w, 'call-started', { callId, kind: c.kind, step: c.step, card: c.card });
+        return { status: 'running', checkpoint: { phase: 'call' } };
+      }, ctx);
+      await publish(workId);
+      let queue = Promise.resolve();
+      const checkpoint = fn => (queue = queue.then(() => runtime.commit(async tx => {
+        const w = await tx.doc(Work, workId), c = w.calls.find(c => c.id === callId); fn(c, w);
+        return { status: 'running', checkpoint: { phase: 'call' } };
+      }, ctx)).then(() => publish(workId)));
+      const location = where => checkpoint(c => { c.where = where; c.runs.at(-1).where = where; });
+      const options = { ...prior.options, system: `${prior.options.system} ${WORKER_CHANNEL_GUIDE}`,
+        card: prior.card, cwd: saved.cwd, record, unit: workId, job: prior.kind,
+        prompt: prior.options.packet ? await provisionPacket(directory, callId, prior.options.packet) : prior.options.prompt,
+        env: { ...prior.options.env, WORK_DATA: directory, PI_DURABLE_ATTEMPT: callId },
+        sessionId: prior.card.harness === 'codex' ? prior.harnessSession ?? undefined : prior.harnessSession ?? prior.sessionId, sessionDir: join(directory, 'sessions', callId),
+        resume: resumed && (prior.card.harness !== 'codex' || Boolean(prior.harnessSession)), signal: ctx.abortSignal,
+        nestedDispatch: (input, callbacks) => store.nestedDispatch(workId, { ...input, parentCallId: callId }, callbacks),
+        onSpawn: (pid, where) => checkpoint(c => { c.pid = pid; c.runs.at(-1).pid = pid; if (where) c.where = c.runs.at(-1).where = where; }),
+        onLaunch: location, onLocation: location,
+        onLine: entry => {
+          if (entry.type === 'thread.started' && entry.thread_id) checkpoint(c => { c.harnessSession = c.runs.at(-1).sessionId = entry.thread_id; });
+          const p = entry.type === 'tool_execution_end' && entry.toolName === 'durable_progress' && !entry.isError ? entry.result?.details?.durableProgress : null;
+          if (p?.attemptId === callId) checkpoint((c, w) => {
+            c.progress ??= [];
+            c.progress.push({ deliverable: p.deliverable, evidence: p.evidence, at: Date.now() });
+            event(w, 'progress', { callId, deliverable: p.deliverable });
+          });
+        } };
+      if (resumed) {
+        const instruction = 'Continue this same saved call from where it stopped. Inspect saved evidence; do not redo completed work. Return the required response shape.';
+        try { options.prompt = JSON.stringify({ ...JSON.parse(options.prompt), resumeInstruction: instruction }); }
+        catch { options.prompt = `${instruction}\n\n${options.prompt}`; }
+      }
+      let result;
+      try {
+        const caller = callers.get(callId);
+        if (caller) result = await caller(options);
+        else {
+          const launch = buildLaunch(prior.card, { access: options.access, system: options.system,
+            sessionId: options.sessionId, sessionDir: options.sessionDir, resume: options.resume, readDirs: [directory] });
+          result = await runCard({ ...options, launch });
+          if (!result.ok && !result.limit) throw new Error(`${prior.card.harness} call failed: ${result.error || result.code}`);
+        }
+        if (!result || !result.limit && typeof result.output !== 'string') throw new Error('Launcher must return output or a quota limit');
+      } catch (error) { if (ctx.abortSignal.aborted) throw error; result = { error: error.message }; }
+      await queue;
+      await runtime.commit(async tx => {
+        const w = await tx.doc(Work, workId), c = w.calls.find(c => c.id === callId);
+        c.endedAt = Date.now(); c.result = JSON.parse(JSON.stringify(result));
+        c.harnessSession = result.sessionId ?? c.harnessSession ?? null;
+        if (c.harnessSession) c.runs.at(-1).sessionId = c.harnessSession;
+        c.outcome = result.limit ? 'limited' : result.error ? 'failed' : 'reported';
+        const r = c.runs.at(-1); r.endedAt = c.endedAt; r.exit = result.signal ?? result.code ?? (result.error ? -1 : 0);
+        r.outcome = c.outcome; r.error = result.error ?? null; r.where = result.where ?? r.where; c.where = r.where;
+        if (w.activeCall === c.id) w.activeCall = null;
+        event(w, 'call', { callId, kind: c.kind, step: c.step, card: `${c.card.harness} · ${c.card.model}`,
+          run: r.n, startedAt: r.startedAt, endedAt: r.endedAt, ms: r.endedAt - r.startedAt, ok: c.outcome === 'reported',
+          limit: Boolean(result.limit), record: c.record });
+        return terminal({ outcome: c.outcome });
+      }, ctx);
+      callers.delete(callId);
+      await publish(workId);
+    } },
+  });
   const registry = createRegistry();
-  registry.install(defineExtension({ name: 'work', tasks: [Attempt] }));
+  registry.install(defineExtension({ name: 'work', tasks: [Attempt, Call] }));
   try { harness = await Harness.open(await openNodeSqliteStorage(join(directory, 'work.sqlite')), { models: createModels(), registry }, context); }
   catch (e) { await lock.close(); await unlink(lockPath); throw e; }
   const root = await harness.root(context);
@@ -196,12 +300,48 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     await alertIfNew(id);
     return result;
   };
-  const step = w => { const s = STEPS[w.position]; if (!s) throw new Error('Thread is complete'); return s; };
+  // Cancellation does not enable the scheduler. Mark every persisted task in archived conversations,
+  // including tasks an older redrive stopped referencing. A later resume can only run their aborts.
+  const cancelArchived = async ids => {
+    const wanted = new Set(ids), tasks = (await harness.inspect(context)).tasks.map(t => t.record).filter(t => wanted.has(t.conversationId));
+    for (const t of tasks) await harness.abortTask(t.id, context);
+    for (const id of ids) {
+      const receipts = [];
+      for (const t of tasks.filter(t => t.conversationId === id)) {
+        const saved = await harness.getTask(t.id, context);
+        if (saved.state.status !== 'terminal' && !saved.abortRequested) throw new Error(`Archive did not cancel task ${t.id}`);
+        receipts.push({ taskId: t.id, status: saved.state.status, abortRequested: saved.abortRequested });
+      }
+      if (receipts.length) await change(id, w => {
+        w.archiveTasks = [...(w.archiveTasks ?? []).filter(r => !receipts.some(t => t.taskId === r.taskId)), ...receipts];
+        event(w, 'history-tasks-cancelled', { taskIds: receipts.map(r => r.taskId) });
+      });
+    }
+  };
+  const step = w => { const s = STEPS[w.position]; if (w.completion || !s) throw new Error('Thread is complete'); return s; };
   const fresh = (objective, source, cwd, extra = {}) => ({ objective, source, cwd, position: 0, round: 0, briefs: {}, briefHistory: [],
-    exchanges: [], asked: [], attempts: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, kind: 'discovery', completion: null, events: [], ...extra });
+    exchanges: [], asked: [], attempts: [], calls: [], activeCall: null, operations: [], failures: [], notes: [], hold: null, waitsOn: null, parentId: null, kind: 'discovery', completion: null, events: [], ...extra });
+  const queueAttempt = async (tx, w, a, kind) => {
+    const previousCall = w.calls?.find(c => c.id === a.callId);
+    if (previousCall?.outcome === 'reported') applyCall(w, previousCall.id);
+    a.callId = randomUUID();
+    a.taskId = await tx.createTask(Attempt, { workId: w.id, attemptId: a.id, callId: a.callId }, { ownership: { kind: 'conversation' }, conversationId: w.id });
+    const x = kind === 'restate' ? w.exchanges.find(x => x.id === a.askRestate.exchangeId) : nq.currentExchange(w, a.step);
+    w.calls ??= [];
+    w.calls.push({ id: a.callId, key: a.callId, taskId: a.taskId, kind, step: a.step, job: a.step, actor: a.actor,
+      card: a.card, access: kind === 'restate' ? 'read' : a.access, sessionId: a.harnessSession ?? a.sessionId, parent: x?.parent ?? null, source: a.id,
+      subject: x?.subject ?? null, exchangeId: x?.id ?? null, turn: x?.turns.length ?? null,
+      briefHash: x?.briefHash ?? null, startedAt: null, endedAt: null, outcome: 'queued', result: null, runs: [], where: null, appliedAt: null });
+    w.activeCall = a.callId;
+  };
   const createIn = async (tx, fields) => {
     const c = await tx.createConversation({ ownership: { kind: 'ownerless' } });
-    Object.assign(await tx.doc(Work, c.id), { id: c.id, ...fields });
+    const w = await tx.doc(Work, c.id);
+    Object.assign(w, { id: c.id, ...fields });
+    if (w.kind === 'discovery') {
+      startOperation(w, 'source-preserved', { hash: hash(w.source) });
+      finishOperation(w, 'source-preserved', { hash: hash(w.source), field: 'source' });
+    }
     (await tx.doc(Catalog, root.id)).threads.push(c.id);
     return c.id;
   };
@@ -228,7 +368,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     }
     else if (ruling.cause === 'pre-existing') {
       const child = await createIn(tx, fresh(`Fix the pre-existing defect blocking thread ${w.id}: ${ruling.answer.slice(0, 400)}`,
-        `${w.source}\n\n## Prerequisite of thread ${w.id}\nAuthorized (operator rule, 2026-10-16): the Arbiter's pre-existing ruling authorizes this repair inside the workspace, with reversible changes and no new dependencies. Anything destructive, irreversible, touching production, money, credentials or anything outside the workspace is still the operator's.\nScope: fix only this defect. Thread ${w.id} is unfinished and waits for this fix, so its own checks are expected to fail: this unit's checks test only this fix and must not run or depend on thread ${w.id}'s checks.\n\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, kind: 'fix' }));
+        `${w.source}\n\n## Prerequisite of thread ${w.id}\nAuthorized (operator rule, 2026-10-16): the Arbiter's pre-existing ruling authorizes this repair inside the workspace, with reversible changes and no new dependencies. Anything destructive, irreversible, touching production, money, credentials or anything outside the workspace is still the operator's.\nScope: fix only this defect. Thread ${w.id} is unfinished and waits for this fix, so its own checks are expected to fail: this unit's checks test only this fix and must not run or depend on thread ${w.id}'s checks.\n\n${question}`, w.cwd, { position: stepIndex('plan'), parentId: w.id, depth: (w.depth ?? 0) + 1, kind: 'fix', dispatcher: w.dispatcher, routedFrom: { sender: failure.sender ?? null, exchange: failure.exchange ?? null, workId: w.id, failureId: failure.id } }));
       w.waitsOn = child; failure.prerequisite = child;
       // Back to where the defect stopped the work: the making (a blocked maker) or the checks.
       const back = STEPS[stepIndex(failure.step ?? 'verify')];
@@ -240,19 +380,163 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     return { cause: ruling.cause, prerequisite: failure.prerequisite ?? null };
   };
 
+  // Projections are disposable: opening the authority repairs a lost post-commit publish.
+  const reopening = (await harness.snapshot(Catalog, root.id, context))?.threads ?? [], archived = [];
+  for (const id of reopening) {
+    const w = await harness.snapshot(Work, id, context);
+    if (w.archived) archived.push(id);
+    await publish(id);
+  }
+  await cancelArchived(archived);
   if (resume) harness.resume(); // redrive: any step a dead process left running continues now
-  return {
+  const store = {
     directory,
     alertPending: alertIfNew,
     async close() { await views; await alerts; try { await harness.close(context); } finally { await lock.close(); await unlink(lockPath).catch(() => {}); } },
     async list() { return (await harness.snapshot(Catalog, root.id, context))?.threads ?? []; },
+    async call(id, input, caller) {
+      requireText(input.key, 'Call key');
+      const exhausted = await this.exhausted();
+      const callId = await change(id, async (w, tx) => {
+        w.calls ??= [];
+        const old = w.calls.find(c => c.key === input.key);
+        if (old) { if (caller) callers.set(old.id, caller); return old.id; }
+        nq.noHold(w);
+        const x = w.exchanges.find(x => x.id === input.exchangeId);
+        if (!x) throw new Error('A call must bind to its exchange');
+        if (input.kind === 'originator') {
+          if (x.status !== 'awaiting-originator' || input.actor !== x.originator) throw new Error('Only the bound sender can answer the pending question');
+          if (x.sender?.card && identity(x.sender.card) !== identity(input.card)
+            && (!(exhausted[x.sender.card.account] > Date.now()) || input.card.account === x.sender.card.account)) throw new Error('A sender card changes only for a recorded quota substitution');
+        } else if (input.kind === 'intake' || input.kind.includes('intake') || input.kind === 'refusal') {
+          if (x.status !== 'awaiting-worker' || input.actor !== x.worker) throw new Error('Only the bound receiver can do pending intake');
+        } else {
+          if (x.status !== 'clear' || input.actor !== x.worker) throw new Error('NQ must clear for this receiver before the call executes');
+          if (x.receiver?.card && identity(x.receiver.card) !== identity(input.card)) throw new Error('A replacement receiver must confirm intake before execution');
+        }
+        const c = { id: randomUUID(), key: input.key, kind: input.kind, step: input.step, job: input.job,
+          actor: input.actor, card: input.card, sessionId: randomUUID(), harnessSession: null,
+          parent: x.parent, source: x.handoffId, subject: x.subject, exchangeId: x.id, turn: x.turns.length,
+          briefHash: x.briefHash, startedAt: null, endedAt: null, outcome: 'queued', result: null,
+          where: null, runs: [], appliedAt: null, options: input.options };
+        c.record = join(directory, 'calls', c.id);
+        if (caller) callers.set(c.id, caller);
+        c.taskId = await tx.createTask(Call, { workId: id, callId: c.id }, { ownership: { kind: 'conversation' }, conversationId: id });
+        w.calls.push(c); w.activeCall = c.id;
+        const p = participant({ card: c.card, step: c.kind === 'originator' ? x.sender?.job ?? c.step : ['authority', 'return'].includes(x.step) ? 'dispatcher' : x.step, sessionId: c.sessionId }, c.actor);
+        if (c.kind === 'originator') {
+          if (x.sender?.card && identity(x.sender.card) !== identity(c.card)) {
+            x.senderReplacements ??= [];
+            x.senderReplacements.push({ from: x.sender, to: p, reason: 'quota', callId: c.id });
+          }
+        } else x.receiver = p;
+        event(w, 'call-assigned', { callId: c.id, kind: c.kind, step: c.step, exchangeId: x.id });
+        return c.id;
+      });
+      const c = (await this.get(id)).calls.find(c => c.id === callId);
+      if (!['reported', 'limited', 'failed'].includes(c.outcome)) await harness.waitForTask(c.taskId, context);
+      const done = (await this.get(id)).calls.find(c => c.id === callId);
+      if (!done.result) throw new Error(`Call task did not return a result: ${done.id}`);
+      if (done.result.error) {
+        const x = (await this.get(id)).exchanges.find(x => x.id === done.exchangeId);
+        if (done.card.harness === 'codex' && !done.harnessSession && x.status === 'clear' && done.kind !== 'originator'
+          && (x.replacements ?? []).filter(r => r.reason === 'session-unavailable').length < 2) {
+          await this.replaceReceiver(id, x.id, done.card, 'session-unavailable');
+          return { needsIntake: true, callId: done.id };
+        }
+        if (done.runs.length < 3) {
+          await change(id, async (w, tx) => {
+            const c = w.calls.find(c => c.id === callId);
+            c.taskIds ??= [c.taskId];
+            c.outcome = 'queued'; c.result = null;
+            c.taskId = await tx.createTask(Call, { workId: id, callId }, { ownership: { kind: 'conversation' }, conversationId: id });
+            c.taskIds.push(c.taskId); w.activeCall = c.id;
+            event(w, 'call-redrive', { callId, taskId: c.taskId });
+          });
+          return this.call(id, input, caller);
+        }
+        throw Object.assign(new Error(done.result.error), { callId });
+      }
+      return { ...done.result, callId: done.id };
+    },
     async get(id) { const w = await harness.snapshot(Work, id, context); if (!w?.id) throw new Error(`Unknown thread ${id}`); return w; },
+    async nestedDispatch(id, input, callbacks = {}) {
+      requireText(input.requestId, 'Nested request ID'); requireText(input.brief, 'Nested brief');
+      if (!input.receiver?.actor || !input.receiver?.job || !input.receiver?.card?.harness || !input.receiver.card.provider || !input.receiver.card.account || !input.receiver.card.model) throw new Error('Nested receiver needs an actor, job and full card');
+      if (!['read', 'run', 'checks', 'make'].includes(input.access ?? 'read')) throw new Error('Unknown nested access');
+      const fingerprint = hash(identity([input.parentCallId, input.receiver, input.brief, input.access ?? 'read']));
+      await change(id, w => {
+        w.nested ??= [];
+        const old = w.nested.find(n => n.requestId === input.requestId);
+        if (old) { if (old.fingerprint !== fingerprint) throw new Error('Nested request ID has different content'); return; }
+        const parent = w.calls?.find(c => c.id === input.parentCallId);
+        if (parent?.outcome !== 'running') throw new Error('Nested sender must be a running parent call');
+        const allowed = { read: ['read'], run: ['read', 'run'], checks: ['read', 'run', 'checks'], make: ['read', 'run', 'checks', 'make'] };
+        if (!(allowed[parent.access ?? parent.options?.access ?? 'read'] ?? []).includes(input.access ?? 'read')) throw new Error('Nested dispatch cannot grant more authority than its parent call');
+        const sender = participant({ card: parent.card, step: parent.job, sessionId: parent.sessionId }, parent.actor);
+        const exchangeId = bindExchange(w, nq.delegate(w, input.receiver.job, sender.actor, input.receiver.actor,
+          { kind: 'nested', id: input.requestId, parent: parent.id }), { ...sender, role: sender.actor, handoff: input.brief }, input.brief);
+        const x = w.exchanges.find(x => x.id === exchangeId); x.parent = parent.id; x.receiver = input.receiver;
+        w.nested.push({ requestId: input.requestId, fingerprint, parentCallId: parent.id, sender, receiver: input.receiver,
+          brief: input.brief, access: input.access ?? 'read', exchangeId, returnExchangeId: null, callId: null, result: null });
+        event(w, 'nested-dispatched', { parentCallId: parent.id, exchangeId, requestId: input.requestId });
+      });
+      for (;;) {
+        const w = await this.get(id), n = w.nested.find(n => n.requestId === input.requestId);
+        if (n.acceptedAt) return { status: 'reported', exchangeId: n.exchangeId, callId: n.callId, output: n.result.output };
+        if (w.hold) return { status: 'held', exchangeId: w.hold.ref, hold: w.hold };
+        const x = w.exchanges.find(x => x.id === (n.returnExchangeId ?? n.exchangeId));
+        const returning = Boolean(n.returnExchangeId);
+        const invoke = async (kind, receiver, callback, system, prompt, access = 'read') => this.call(id, {
+          key: `${input.requestId}:${x.id}:${x.turns.length}:${kind}`, kind, step: x.step, job: receiver.job,
+          actor: receiver.actor, card: receiver.card, exchangeId: x.id,
+          options: { access, system, packet: JSON.stringify(prompt), readDirs: [directory] },
+        }, callback);
+        const packet = { purpose: returning ? 'nested-return' : 'nested', threadId: id, workspace: w.cwd, source: w.source,
+          brief: n.brief, handoff: returning ? n.result.output : n.brief, exchange: x.turns,
+          sender: x.sender, receiver: x.receiver, parentCallId: n.parentCallId, protocol: WORKER_CHANNEL_GUIDE };
+        if (x.status === 'awaiting-worker') {
+          const result = await invoke(returning ? 'nested-return-intake' : 'nested-intake', returning ? n.sender : n.receiver,
+            returning ? callbacks.receive : callbacks.intake,
+            'You are the receiving agent in read-only intake before execution. Return ONLY JSON {intent:string, questions:string[], notes:string[]}.', packet);
+          if (result.limit) return { status: 'limited', exchangeId: x.id, callId: result.callId };
+          await this.nq(id, x.id, parseResponse(result.output), x.worker, result.callId); continue;
+        }
+        if (x.status === 'awaiting-originator') {
+          const result = await invoke('originator', returning ? n.receiver : n.sender, callbacks.answer,
+            'You originated this agent handoff. Answer only from your fixed brief and source; do not change scope. Return ONLY JSON {answer:string}.', packet);
+          if (result.limit) return { status: 'limited', exchangeId: x.id, callId: result.callId };
+          const reply = parseResponse(result.output);
+          await this.answer(id, x.id, x.originator, reply.answer, reply.same, result.callId); continue;
+        }
+        if (x.status !== 'clear') return { status: 'held', exchangeId: x.id, hold: w.hold };
+        if (returning) {
+          await change(id, w => { const n = w.nested.find(n => n.requestId === input.requestId); n.acceptedAt = Date.now();
+            w.activeCall = w.calls.find(c => c.id === n.parentCallId && c.outcome === 'running')?.id ?? null;
+            event(w, 'nested-returned', { exchangeId: x.id, callId: n.callId }); });
+          continue;
+        }
+        const result = await invoke('nested-execute', n.receiver, callbacks.execute,
+          `You are ${n.receiver.job}. Execute only the cleared brief; preserve the complete NQ exchange.`, packet, n.access);
+        if (result.limit) return { status: 'limited', exchangeId: x.id, callId: result.callId };
+        if (result.needsIntake) continue;
+        await change(id, w => {
+          const n = w.nested.find(n => n.requestId === input.requestId), x = w.exchanges.find(x => x.id === n.exchangeId);
+          if (x.status !== 'clear') throw new Error('Nested NQ must clear before execution result');
+          n.result = { output: result.output }; n.callId = result.callId; applyCall(w, result.callId);
+          n.returnExchangeId = bindExchange(w, nq.delegate(w, n.sender.job, n.receiver.actor, n.sender.actor,
+            { kind: 'nested-return', id: input.requestId, parent: n.exchangeId }),
+            { ...n.receiver, role: n.receiver.actor, handoff: result.output }, 'Receive the nested report against the assigned brief.');
+          w.exchanges.find(x => x.id === n.returnExchangeId).receiver = n.sender;
+        });
+      }
+    },
     // kind 'discovery' (the default): discovery splits into delivery items that join the queue.
     // kind 'delivery': one item, every phase in this thread.
-    async create(objective, source, cwd, { delivery = false, kind = delivery ? 'delivery' : 'discovery' } = {}) {
+    async create(objective, source, cwd, { delivery = false, kind = delivery ? 'delivery' : 'discovery', dispatcher = null } = {}) {
       requireText(objective, 'Objective'); requireText(source, 'Source'); cwd = await realpath(cwd);
       if (!['discovery', 'delivery'].includes(kind)) throw new Error('kind is discovery or delivery');
-      const id = await harness.commit(tx => createIn(tx, fresh(objective, source, cwd, { kind })), context);
+      const id = await harness.commit(tx => createIn(tx, fresh(objective, source, cwd, { kind, dispatcher })), context);
       await change(id, w => { event(w, 'created'); });
       return id;
     },
@@ -263,28 +547,106 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         const s = step(w);
         if (w.briefs[s.name]) throw new Error('Brief is sealed for this round');
         w.briefs[s.name] = { text, hash: hash(text), round: w.round };
+        const x = nq.currentExchange(w, s.name);
+        if (x && x.brief == null) Object.assign(x, { brief: text, briefHash: hash(text) });
         event(w, 'brief-sealed', { step: s.name, round: w.round });
       });
     },
     // The answering party is never chosen by the caller: it is whoever made this handoff.
-    async delegate(id, worker) { return change(id, w => nq.delegate(w, step(w).name, originatorOf(w).role, worker)); },
+    async delegate(id, worker) { return change(id, w => {
+      const s = step(w), o = originatorOf(w);
+      return bindExchange(w, nq.delegate(w, s.name, o.role, worker), o, w.briefs[s.name]?.text);
+    }); },
     async originator(id) { const w = await this.get(id); step(w); return originatorOf(w); },
-    async nq(id, exchangeId, response, actor) { return change(id, w => nq.workerReply(w, exchangeId, actor, response)); },
-    async answer(id, exchangeId, actor, text, same = []) { return change(id, w => nq.originatorReply(w, exchangeId, actor, text, same)); },
+    async nq(id, exchangeId, response, actor, callId) { return change(id, w => {
+      if (w.calls?.find(c => c.id === callId)?.appliedAt) return;
+      assertCall(w, callId, exchangeId);
+      const result = nq.workerReply(w, exchangeId, actor, response); applyCall(w, callId);
+      const x = w.exchanges.find(x => x.id === exchangeId);
+      if (w.kind === 'discovery' && x.step === 'discover' && x.status === 'clear') {
+        startOperation(w, 'understanding', { exchangeId }, Date.parse(x.createdAt));
+        finishOperation(w, 'understanding', { exchangeId, callId: callId ?? null, intent: response.intent });
+      }
+      return result;
+    }); },
+    async answer(id, exchangeId, actor, text, same = [], callId) { return change(id, w => {
+      if (w.calls?.find(c => c.id === callId)?.appliedAt) return;
+      assertCall(w, callId, exchangeId);
+      const result = nq.originatorReply(w, exchangeId, actor, text, same); applyCall(w, callId); return result;
+    }); },
+    async replaceReceiver(id, exchangeId, card, reason = 'quota') {
+      return change(id, w => {
+        nq.noHold(w);
+        const x = w.exchanges.find(x => x.id === exchangeId);
+        const outgoing = w.calls?.findLast(c => c.exchangeId === exchangeId && c.outcome === (reason === 'quota' ? 'limited' : 'failed'));
+        if (!x || !outgoing || !['quota', 'session-unavailable'].includes(reason)) throw new Error('A receiver changes only for a recorded quota limit or unavailable session');
+        x.replacements ??= [];
+        x.replacements.push({ receiver: x.receiver, callId: outgoing.id, reason, at: Date.now() });
+        x.pickup = { from: outgoing.card, session: outgoing.harnessSession ?? outgoing.sessionId, reason,
+          lastOutput: outgoing.result?.output ?? '', limit: outgoing.result.limit ?? null, workspace: workspaceState(w.cwd),
+          pendingQuestions: x.turns.findLast(t => t.type === 'worker')?.questions ?? [] };
+        x.worker = `${x.receiver?.job ?? x.step}-${randomUUID()}`;
+        x.receiver = participant({ card, step: x.step }, x.worker); x.status = 'awaiting-worker'; x.decision = null;
+        const nested = w.nested?.find(n => n.exchangeId === x.id);
+        if (nested) nested.receiver = { ...nested.receiver, actor: x.worker, card, sessionId: null };
+        event(w, 'receiver-replaced', { exchangeId, from: outgoing.card, to: card });
+      });
+    },
+    async reopenQuestion(id, exchangeId, questions, callId) {
+      return change(id, w => {
+        if (w.calls?.find(c => c.id === callId)?.appliedAt) return;
+        const x = w.exchanges.find(x => x.id === exchangeId);
+        assertCall(w, callId, exchangeId);
+        nq.noHold(w);
+        if (x?.status !== 'clear') throw new Error('Only a cleared receiver can raise an execution question');
+        x.status = 'awaiting-worker'; x.decision = null;
+        nq.workerReply(w, x.id, x.worker, { intent: 'New information encountered during execution.', questions });
+        applyCall(w, callId);
+      });
+    },
+    async decision(id, exchangeId, ruling, callId) {
+      return change(id, w => {
+        if (w.calls?.find(c => c.id === callId)?.appliedAt) return;
+        assertCall(w, callId, exchangeId);
+        const x = w.exchanges.find(x => x.id === exchangeId);
+        nq.noHold(w);
+        if (x?.status !== 'clear') throw new Error('NQ must clear before a decision');
+        x.decision = { ...ruling, callId: callId ?? null, at: Date.now() }; applyCall(w, callId);
+      });
+    },
+    async delegateReturn(id) { return change(id, finalReturn); },
+    async returnPacket(id) {
+      const w = await this.get(id), x = nq.findExchange(w, x => x.subject?.kind === 'return');
+      if (!x) throw new Error('No final return exchange');
+      return JSON.stringify({ purpose: 'return', threadId: id, workspace: w.cwd, objective: w.objective, source: w.source,
+        sender: x.sender, receiver: w.dispatcher ?? x.receiver, exchange: x.turns, exchangeId: x.id,
+        handoff: w.attempts.filter(a => a.status === 'accepted').map(a => `${a.step}:\n${a.output}`).join('\n\n'),
+        items: w.items ?? [], instruction: 'Receive this final report against the source. State understanding and any unresolved questions; do not redo the work.' });
+    },
+    async returnReply(id, input, callId) { return change(id, w => {
+      if (w.calls?.find(c => c.id === callId)?.appliedAt) return;
+      const x = nq.findExchange(w, x => x.subject?.kind === 'return');
+      assertCall(w, callId, x?.id);
+      const result = returnAction(w, input); applyCall(w, callId); return result;
+    }); },
     // A failed check or a blocked maker hands its question to the Arbiter: an NQ exchange the failing attempt's role originates.
     async delegateFailure(id, failureId, worker) {
       return change(id, w => {
         const f = w.failures.find(f => f.id === failureId);
         if (!f) throw new Error('Unknown failure');
-        return nq.delegate(w, 'arbitrate', w.attempts.find(a => a.id === f.attemptId).role, worker, { kind: 'failure', id: failureId });
+        const a = w.attempts.find(a => a.id === f.attemptId);
+        return bindExchange(w, nq.delegate(w, 'arbitrate', a.role, worker, { kind: 'failure', id: failureId }),
+          { role: a.role, step: a.step, actor: a.actor, card: a.card, sessionId: a.harnessSession ?? a.sessionId, attemptId: a.id, handoff: a.output || f.report }, 'Inspect the failure handoff and confirm readiness before ruling.');
       });
     },
     // The originator said only the operator can authorize something: the dispatcher, who holds the operator's source, is consulted.
-    async delegateAuthority(id, parentId, originatorRole, worker, handoff) {
+    async delegateAuthority(id, parentId, originatorRole, worker, handoff, callId) {
       return change(id, w => {
         const parent = w.exchanges.find(x => x.id === parentId);
         if (!parent) throw new Error('Unknown exchange');
-        return nq.delegate(w, 'authority', originatorRole, worker, { kind: 'authority', parent: parentId, turn: parent.turns.length, handoff });
+        assertCall(w, callId, parentId); applyCall(w, callId);
+        return bindExchange(w, nq.delegate(w, 'authority', originatorRole, worker, { kind: 'authority', parent: parentId, turn: parent.turns.length, handoff }),
+          { ...parent.sender, role: originatorRole, handoff }, 'Read the operator source and confirm readiness before deciding authority.');
       });
     },
     async failurePacket(id, failureId, purpose = 'originator') { return failurePacket(await this.get(id), failureId, purpose); },
@@ -295,6 +657,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       return change(id, w => {
         const x = w.exchanges.find(x => x.id === exchangeId);
         if (x?.status !== 'awaiting-originator') throw new Error('No originator question is due');
+        if (x.rounds < 3) throw new Error('The originator must answer three turns before a human hold');
         x.status = 'human-hold';
         w.hold = { kind: 'nq', ref: x.id, at: new Date().toISOString(), cause, originator: x.originator, receiver: x.worker, questionId: null, refs: [x.id],
           reason: requireText(reason, 'Hold reason'), questions: x.turns.at(-1)?.questions ?? [] };
@@ -312,13 +675,17 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       if (!card?.harness || !card?.model) throw new Error('A card (harness, provider, model) is required');
       return change(id, async (w, tx) => {
         const s = step(w), b = w.briefs[s.name];
+        if (w.waitsOn) throw new Error('Prerequisite completion and return intake are required before execution');
         if (!b) throw new Error(`Seal a brief for ${s.name} first`);
-        nq.readyExchange(w, s.name, actor);
-        if (w.attempts.some(a => a.step === s.name && a.round === w.round && ['queued', 'running'].includes(a.status))) throw new Error('A worker is already on this step');
+        const x = nq.readyExchange(w, s.name, actor);
+        if (x.briefHash && x.briefHash !== b.hash) throw new Error('NQ clearance belongs to a different sealed brief');
+        if (x.receiver?.card && identity(x.receiver.card) !== identity(card)) throw new Error('A replacement card must confirm intake before execution');
+        if (w.attempts.some(a => a.step === s.name && a.round === w.round && ['queued', 'running', 'replacement-intake'].includes(a.status))) throw new Error('A worker is already on this step');
         const a = { id: randomUUID(), step: s.name, role: s.role, round: w.round, actor, card, access, model: `${card.harness} · ${card.provider}/${card.model}`,
           sessionId: randomUUID(), harnessSession: null, swaps: [], status: 'queued',
           packet: makePacket(w, s, b, 'execute'), progress: [], checkIns: [], createdAt: Date.now() };
-        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId: a.id }, { ownership: { kind: 'conversation' }, conversationId: id });
+        await queueAttempt(tx, w, a, 'execute');
+        if (a.step === 'discover') startOperation(w, 'scope-and-items', { attemptId: a.id, callId: a.callId });
         w.attempts.push(a);
         event(w, 'assigned', { attemptId: a.id, actor, step: s.name });
         return a.id;
@@ -331,7 +698,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         const a = w.attempts.find(a => a.id === attemptId);
         if (a?.step !== 'verify' || a.status !== 'reported') throw new Error('Only a reported verify step is asked for its verdict');
         Object.assign(a, { status: 'running', askVerdict: true });
-        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+        await queueAttempt(tx, w, a, 'verdict');
         event(w, 'verdict-asked', { attemptId });
       });
     },
@@ -340,7 +707,9 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       return change(id, w => {
         const a = w.attempts.find(a => a.id === attemptId), s = step(w);
         if (!a || a.step !== s.name || a.round !== w.round || a.status !== 'reported' || !STEPS[w.position + 1]) throw new Error('Only the current reported step can be refused');
-        const id = nq.delegate(w, STEPS[w.position + 1].name, s.role, worker, { kind: 'step', id: attemptId });
+        applyCall(w, a.callId);
+        const id = bindExchange(w, nq.delegate(w, STEPS[w.position + 1].name, s.role, worker, { kind: 'step', id: attemptId }),
+          { role: a.role, actor: a.actor, step: a.step, card: a.card, sessionId: a.harnessSession ?? a.sessionId, attemptId: a.id, handoff: a.output });
         event(w, 'handoff-refused', { attemptId, step: a.step, missing });
         return id;
       });
@@ -354,16 +723,28 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         const missing = checkDeliverable(a.step, a.output ?? '', w.cwd).missing, last = rx.turns.at(-1);
         a.revisions = [...(a.revisions ?? []), { output: a.output, at: new Date().toISOString(), missing }];
         Object.assign(a, { status: 'running', askRestate: { exchangeId: rx.id, questions: rx.turns.findLast(t => t.type === 'worker')?.questions ?? [], human: last?.type === 'human' ? last.text : null, missing } });
-        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+        await queueAttempt(tx, w, a, 'restate');
         event(w, 'restate-asked', { attemptId, missing });
       });
     },
     async redrive(id, attemptId) {
       return change(id, async (w, tx) => {
         const a = w.attempts.find(a => a.id === attemptId);
-        if (a?.status !== 'failed') throw new Error('Only a failed attempt is redriven');
+        nq.noHold(w);
+        if (a?.status !== 'failed' || a.step !== step(w).name || a.round !== w.round) throw new Error('Only the current failed attempt is redriven');
+        if (a.card.harness === 'codex' && !a.harnessSession) {
+          const x = nq.currentExchange(w, a.step);
+          x.replacements ??= [];
+          x.replacements.push({ actor: a.actor, receiver: x.receiver, callId: a.callId, at: Date.now() });
+          x.pickup = { from: a.card, session: null, reason: 'session-unavailable', workspace: workspaceState(w.cwd),
+            lastOutput: a.output ?? '', pendingQuestions: x.turns.findLast(t => t.type === 'worker')?.questions ?? [], taskList: a.progress };
+          a.actor = `${a.role}-${randomUUID()}`; a.sessionId = randomUUID(); a.status = 'replacement-intake';
+          x.worker = a.actor; x.receiver = participant({ card: a.card, step: a.step, sessionId: a.sessionId }, a.actor); x.status = 'awaiting-worker';
+          event(w, 'receiver-replaced', { attemptId, exchangeId: x.id, reason: 'session-unavailable' });
+          return;
+        }
         a.status = 'running'; // 'running' makes the task continue the existing pi session, not start over
-        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+        await queueAttempt(tx, w, a, 'redrive');
         event(w, 'redrive', { attemptId });
       });
     },
@@ -373,14 +754,30 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       if (!card?.harness || !card?.model) throw new Error('A card is required');
       return change(id, async (w, tx) => {
         const a = w.attempts.find(a => a.id === attemptId);
-        if (a?.status !== 'failed' || !a.limit) throw new Error('Only an attempt stopped by a usage limit is swapped');
+        nq.noHold(w);
+        if (a?.status !== 'failed' || !a.limit || a.step !== step(w).name || a.round !== w.round) throw new Error('Only the current attempt stopped by a usage limit is swapped');
         // What the successor needs: the outgoing session, the limit, and the workspace as it was left.
         a.swaps.push({ from: a.card, to: card, limit: a.limit, session: a.harnessSession ?? a.sessionId,
-          workspace: workspaceState(w.cwd), lastOutput: (a.output ?? '').slice(-2000), at: new Date().toISOString() });
+          workspace: workspaceState(w.cwd), lastOutput: a.output ?? '', at: new Date().toISOString() });
         event(w, 'swapped', { attemptId, step: a.step, from: `${a.card.harness} · ${a.card.model}`, to: `${card.harness} · ${card.model}`, account: a.limit.account });
         Object.assign(a, { card, model: `${card.harness} · ${card.provider}/${card.model}`, sessionId: randomUUID(), harnessSession: null,
-          limit: null, error: '', launches: 0, status: 'queued' });
-        a.taskId = await tx.createTask(Attempt, { workId: id, attemptId }, { ownership: { kind: 'conversation' }, conversationId: id });
+          limit: null, error: '', launches: 0, status: 'replacement-intake' });
+        const x = nq.currentExchange(w, a.step);
+        x.replacements ??= [];
+        x.replacements.push({ actor: x.worker, receiver: x.receiver ?? null, callId: a.callId, at: Date.now() });
+        a.actor = `${a.role}-${randomUUID()}`; x.worker = a.actor; x.receiver = participant({ card, step: a.step, sessionId: a.sessionId }, a.actor);
+        x.status = 'awaiting-worker';
+        x.pickup = { ...a.swaps.at(-1), pendingQuestions: x.turns.findLast(t => t.type === 'worker')?.questions ?? [], taskList: a.progress };
+        a.packet = makePacket(w, step(w), w.briefs[a.step], 'execute');
+      });
+    },
+    async continueReplacement(id, attemptId) {
+      return change(id, async (w, tx) => {
+        const a = w.attempts.find(a => a.id === attemptId);
+        if (a?.status !== 'replacement-intake') throw new Error('No replacement awaits intake');
+        nq.readyExchange(w, a.step, a.actor);
+        a.packet = makePacket(w, step(w), w.briefs[a.step], 'execute'); a.status = 'queued';
+        await queueAttempt(tx, w, a, 'replacement');
       });
     },
     // Quota belongs to the provider account: {account: resetsAt epoch ms}. The file can be shared by
@@ -425,6 +822,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
           if (missing.length) throw new Error(`A hand-off missing its required parts is refused: ${missing.join('; ')}`);
           if (testPlan) a.testPlan = testPlan;
         }
+        applyCall(w, a.callId);
         a.status = 'accepted'; w.position++;
         event(w, 'handoff', { attemptId, from: s.name, to: STEPS[w.position]?.name ?? 'complete' });
         if (w.position === STEPS.length) { w.completion = 'verified'; event(w, 'complete'); }
@@ -436,7 +834,8 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
       return change(id, w => {
         const a = w.attempts.find(a => a.id === attemptId);
         // A failed check (verify), or a maker or check designer that could not do its step as written: all are questions.
-        if (!a || !['verify', 'implement', 'test-plan'].includes(a.step) || a.status !== 'reported') throw new Error('A failure comes from a reported verify, implement or test-plan step');
+        if (!a || !['verify', 'implement', 'test-plan'].includes(a.step) || a.status !== 'reported' || a.step !== step(w).name || a.round !== w.round) throw new Error('A failure comes from a reported verify, implement or test-plan step');
+        applyCall(w, a.callId);
         a.status = a.step === 'verify' ? 'failed-test' : 'blocked';
         const failure = { id: randomUUID(), attemptId, step: a.step, report, status: 'open', round: w.round, at: new Date().toISOString() };
         w.failures.push(failure);
@@ -449,10 +848,19 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
         return failure;
       });
     },
-    async rule(id, failureId, ruling) {
+    async rule(id, failureId, ruling, callId) {
       return change(id, async (w, tx) => {
+        if (w.calls?.find(c => c.id === callId)?.appliedAt) return;
         const f = w.failures.find(f => f.id === failureId);
         if (f?.status !== 'open') throw new Error('No open failure question');
+        nq.noHold(w);
+        const fx = nq.findExchange(w, x => x.subject?.kind === 'failure' && x.subject.id === failureId);
+        if (fx?.status !== 'clear') throw new Error('NQ must clear for the Arbiter before ruling');
+        assertCall(w, callId, fx.id);
+        fx.decision = { ...ruling, callId: callId ?? null, at: Date.now() };
+        applyCall(w, callId);
+        f.exchange = exchangeDossier(fx);
+        f.sender = fx.receiver ?? null;
         if (!CAUSES.includes(ruling.cause)) {
           f.status = 'held';
           f.ruling = { ...ruling, cause: 'undetermined' };
@@ -480,16 +888,19 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     async split(id, attemptId, items) {
       const ids = await change(id, async (w, tx) => {
         const a = w.attempts.find(a => a.id === attemptId);
-        if (w.kind !== 'discovery' || STEPS[w.position]?.name !== 'discover' || a?.status !== 'reported') throw new Error('Only a reported discovery is split');
+        if (w.kind !== 'discovery' || STEPS[w.position]?.name !== 'discover' || a?.status !== 'reported' || a.step !== 'discover' || a.round !== w.round) throw new Error('Only a reported discovery is split');
         if (!items.length) throw new Error('Discovery found no items');
+        applyCall(w, a.callId);
         a.status = 'accepted'; w.position++;
+        startOperation(w, 'split', { attemptId });
         w.items = [];
         for (const [i, item] of items.entries()) {
           const handoff = `Discovered item ${i + 1} of ${items.length}: ${item.title}\n\n${item.text}\n\nThe whole discovery report:\n${a.output ?? ''}`;
           w.items.push(await createIn(tx, fresh(item.objective, w.source, w.cwd, { kind: 'delivery', from: w.id, position: stepIndex('ideate'),
-            discovered: { role: a.role, attemptId: a.id, output: handoff }, events: [{ at: new Date().toISOString(), type: 'created', pid: process.pid, from: w.id }] })));
+            dispatcher: w.dispatcher, discovered: { role: a.role, actor: a.actor, card: a.card, sessionId: a.harnessSession ?? a.sessionId, workId: w.id, attemptId: a.id, exchange: exchangeDossier(nq.currentExchange(w, 'discover')), output: handoff }, events: [{ at: new Date().toISOString(), type: 'created', pid: process.pid, from: w.id }] })));
         }
         w.completion = 'discovered';
+        finishOperation(w, 'split', { items: w.items, attemptId });
         event(w, 'discovered', { attemptId, items: w.items });
         return w.items;
       });
@@ -501,7 +912,7 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     async queue() {
       const catalog = await harness.snapshot(Catalog, root.id, context), first = catalog?.first ?? [];
       const items = [];
-      for (const id of catalog?.threads ?? []) { const w = await this.get(id); if (w.kind === 'delivery' && !w.completion) items.push(w); }
+      for (const id of catalog?.threads ?? []) { const w = await this.get(id); if (w.kind === 'delivery' && !w.completion && !w.archived) items.push(w); }
       const rank = w => { const i = first.indexOf(w.from); return i < 0 ? first.length : i; };
       return items.sort((a, b) => rank(a) - rank(b) || (a.from ?? a.id) - (b.from ?? b.id) || a.id - b.id).map(w => w.id);
     },
@@ -514,14 +925,21 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
     },
     // A prerequisite finished: its parent stops waiting and re-runs its tests.
     async release(id) {
-      return change(id, w => {
+      return change(id, async (w, tx) => {
         if (!w.waitsOn) return false;
-        event(w, 'prerequisite-done', { child: w.waitsOn });
+        const child = await tx.doc(Work, w.waitsOn);
+        if (child.completion !== 'verified') throw new Error('Prerequisite must be verified before release');
+        const a = child.attempts.findLast(a => a.status === 'accepted');
+        w.prerequisiteReturn = { role: a.role, actor: a.actor, step: a.step, card: a.card,
+          sessionId: a.harnessSession ?? a.sessionId, workId: child.id, attemptId: a.id, round: w.round,
+          exchange: child.exchanges.map(exchangeDossier), handoff: `Prerequisite ${child.id} completed. Verified result:\n${a.output}\n\nAccepted work:\n${child.attempts.filter(a => a.status === 'accepted').map(a => a.output).join('\n\n')}` };
+        event(w, 'prerequisite-done', { child: w.waitsOn, attemptId: a.id });
         w.waitsOn = null;
         return true;
       });
     },
   };
+  return store;
 }
 
 // Who handed this step its work, and what that handoff was. The originator answers intake questions.
@@ -530,21 +948,111 @@ export async function openStore(directory, { checkInMs = 300_000, resume = false
 // - before any handoff (discover): the dispatcher, from the objective and source only.
 export function originatorOf(w) {
   const s = STEPS[w.position];
+  if (w.prerequisiteReturn?.round === w.round) return { ...w.prerequisiteReturn, basis: 'return' };
   const ruled = w.notes.findLast(n => n.round === w.round && n.failureId && n.to === s.role);
   if (ruled) {
     const f = w.failures.find(f => f.id === ruled.failureId);
-    return { role: ARBITER.role, basis: 'ruling', failureId: f.id,
+    return { role: ARBITER.role, ...f.sender, basis: 'ruling', step: 'arbitrate', failureId: f.id, exchange: f.exchange,
       handoff: `Verifier report:\n${f.report}\n\nRuling (${f.ruling.cause}, by ${f.ruling.by}):\n${f.ruling.answer}\n\nEvidence:\n${f.ruling.evidence || '(none)'}` };
   }
   const prev = STEPS[w.position - 1], a = prev && w.attempts.findLast(a => a.step === prev.name && a.status === 'accepted');
-  if (a) return { role: prev.role, basis: 'handoff', step: prev.name, attemptId: a.id, handoff: a.output ?? '' };
+  if (a) return { role: prev.role, actor: a.actor, card: a.card, sessionId: a.harnessSession ?? a.sessionId,
+    basis: 'handoff', step: prev.name, attemptId: a.id, exchange: exchangeDossier(nq.currentExchange(w, prev.name)), handoff: a.output ?? '' };
   // A delivery item was handed over by the discovery that found it.
-  if (w.discovered && !w.attempts.some(a => a.status === 'accepted')) return { role: w.discovered.role, basis: 'handoff', step: 'discover', attemptId: w.discovered.attemptId, handoff: w.discovered.output };
+  if (w.discovered && !w.attempts.some(a => a.status === 'accepted')) return { ...w.discovered, basis: 'handoff', step: 'discover', handoff: w.discovered.output };
   // A prerequisite thread was handed over by the Arbiter's ruling, which its source carries.
-  if (w.parentId && !w.attempts.some(a => a.status === 'accepted')) return { role: ARBITER.role, basis: 'source' };
-  return { role: DISPATCHER, basis: 'source' };
+  if (w.parentId && !w.attempts.some(a => a.status === 'accepted')) return { role: ARBITER.role, ...w.routedFrom?.sender, step: 'arbitrate', exchange: w.routedFrom?.exchange, basis: 'source' };
+  return { role: DISPATCHER, ...w.dispatcher, basis: 'source' };
 }
 const describe = ({ handoff, ...o }) => o;
+const exchangeDossier = x => x ? Object.fromEntries(['id', 'parent', 'step', 'subject', 'originator', 'worker', 'sender', 'receiver', 'handoffId', 'handoffHash', 'briefHash', 'rounds', 'status', 'turns', 'decision'].map(k => [k, x[k] ?? null])) : null;
+const participant = (o, actor = o?.actor ?? o?.role) => ({ actor: actor ?? null, job: o?.step ?? o?.job ?? o?.role ?? null,
+  harness: o?.card?.harness ?? o?.harness ?? null, provider: o?.card?.provider ?? o?.provider ?? null,
+  model: o?.card?.model ?? o?.model ?? null, card: o?.card ?? null, sessionId: o?.sessionId ?? null });
+function bindExchange(w, id, o, brief = null) {
+  const x = w.exchanges.find(x => x.id === id);
+  Object.assign(x, { parent: o.exchange?.id ?? null, sourceWork: o.workId ?? w.id,
+    handoffId: o.attemptId ?? o.failureId ?? hash(o.handoff ?? w.source), handoffHash: hash(o.handoff ?? w.source),
+    briefHash: brief == null ? null : hash(brief), brief,
+    sender: participant(o), receiver: participant({ step: x.step }, x.worker),
+    priorExchange: o.exchange ?? null });
+  return id;
+}
+const rebasePath = (value, from, to) => typeof value === 'string' && (value === from || value.startsWith(from + '/')) ? to + value.slice(from.length) : value;
+function relocatePacket(serialized, from, to) {
+  if (typeof serialized !== 'string') return serialized;
+  let packet;
+  try { packet = JSON.parse(serialized); } catch { return serialized; }
+  const walk = value => {
+    if (!value || typeof value !== 'object') return value;
+    if (Array.isArray(value)) return value.map(walk);
+    return Object.fromEntries(Object.entries(value).map(([key, v]) => [key,
+      ['workspace', 'cwd', 'path'].includes(key) && typeof v === 'string' ? rebasePath(v, from, to)
+        : ['source', 'handoff', 'brief', 'output', 'text'].includes(key) ? v : walk(v)]));
+  };
+  return JSON.stringify(walk(packet));
+}
+function syncAttempt(w, a) {
+  const c = w.calls?.find(c => c.id === a.callId);
+  if (!c) return;
+  c.startedAt ??= Date.now(); c.endedAt = a.endedAt ?? null;
+  c.outcome = a.status === 'running' ? 'running' : a.limit ? 'limited' : a.status;
+  c.runs = a.runs.filter(r => r.callId === c.id); c.where = c.runs.at(-1)?.where ?? null;
+  c.result = ['reported', 'failed'].includes(a.status) ? { output: a.output, error: a.error, limit: a.limit } : null;
+  c.record = c.runs.at(-1)?.record ?? null;
+  w.activeCall = a.status === 'running' ? c.id : w.activeCall === c.id ? null : w.activeCall;
+}
+function startOperation(w, name, evidence, startedAt = Date.now()) {
+  if (w.kind !== 'discovery') return;
+  const id = `${w.round}:${name}`;
+  if ((w.operations ??= []).some(o => o.id === id)) return;
+  w.operations.push({ id, name, startedAt, endedAt: null, outcome: 'running', evidence });
+  w.events.push({ type: 'operation-started', at: new Date(startedAt).toISOString(), operationId: id, name });
+}
+function finishOperation(w, name, evidence, outcome = 'completed') {
+  const o = w.operations?.find(o => o.id === `${w.round}:${name}`);
+  if (!o) return;
+  Object.assign(o, { endedAt: Date.now(), outcome, evidence });
+  w.events.push({ type: 'operation-completed', at: new Date(o.endedAt).toISOString(), operationId: o.id, name, outcome });
+}
+function assertCall(w, callId, exchangeId) {
+  if (!callId) return;
+  const c = w.calls?.find(c => c.id === callId), x = w.exchanges.find(x => x.id === exchangeId);
+  if (!c || c.outcome !== 'reported' || c.exchangeId !== exchangeId || c.turn !== x?.turns.length) throw new Error('Saved call result does not match this exchange turn');
+}
+function applyCall(w, callId) {
+  if (!callId) return;
+  const c = w.calls?.find(c => c.id === callId);
+  if (!c || c.outcome !== 'reported') throw new Error('Call result must be committed before applying it');
+  c.appliedAt ??= Date.now();
+  const x = w.exchanges.find(x => x.id === c.exchangeId);
+  if (x?.turns.length > c.turn) x.turns.at(-1).callId = c.id;
+}
+function finalReturn(w) {
+  if (!w.completion || w.archived) throw new Error('Only completed work can return a report');
+  const existing = nq.findExchange(w, x => x.subject?.kind === 'return');
+  if (existing) return existing.id;
+  const a = w.attempts.findLast(a => a.status === 'accepted');
+  if (!a) throw new Error('No accepted report to return');
+  const id = nq.delegate(w, 'return', a.role, w.dispatcher?.actor ?? DISPATCHER, { kind: 'return', id: a.id });
+  bindExchange(w, id, { role: a.role, actor: a.actor, step: a.step, card: a.card,
+    sessionId: a.harnessSession ?? a.sessionId, attemptId: a.id, handoff: a.output }, 'Receive the final report against the original request; ask only unresolved questions.');
+  w.exchanges.find(x => x.id === id).receiver = participant(w.dispatcher ?? { step: 'dispatcher' }, w.dispatcher?.actor ?? DISPATCHER);
+  return id;
+}
+function returnAction(w, input) {
+  const id = finalReturn(w), x = w.exchanges.find(x => x.id === id), actor = requireText(input.actor, 'Actor');
+  if (input.action === 'question' || input.action === 'clear') nq.workerReply(w, id, actor,
+    { intent: requireText(input.text, 'Understanding'), questions: input.action === 'clear' ? [] : input.questions ?? [input.text], notes: input.notes });
+  else if (input.action === 'answered') nq.originatorReply(w, id, actor, input.text);
+  else if (input.action === 'human') nq.humanAnswer(w, id, actor, input.text);
+  else if (input.action === 'accepted') {
+    nq.noHold(w);
+    if (x.status !== 'clear' || actor !== x.worker) throw new Error('The dispatcher must confirm the return before accepting it');
+    w.returnAccepted = { at: Date.now(), actor, exchangeId: id };
+  } else throw new Error('Unknown return action');
+  return { id: w.id, exchangeId: id, status: x.status };
+}
 
 function makePacket(w, s, b, purpose) {
   const accepted = STEPS.slice(0, w.position).map(p => w.attempts.findLast(a => a.step === p.name && a.status === 'accepted')
@@ -560,7 +1068,8 @@ function makePacket(w, s, b, purpose) {
     ...(s.name === 'verify' ? { testPlan: plan?.testPlan ? { attemptId: plan.id, round: plan.round, scripts: plan.testPlan.scripts, evidence: plan.testPlan.evidence } : null } : {}),
     questionsForYou: w.notes.filter(n => n.to === s.role && n.round === w.round),
     // The whole NQ exchange travels with the work: intake and execution both read it.
-    originator: describe(originatorOf(w)), exchange: x?.turns ?? [],
+    originator: describe(originatorOf(w)), exchange: x?.turns ?? [], exchangeId: x?.id ?? null,
+    handoffId: x?.handoffId ?? null, briefHash: x?.briefHash ?? null, pickup: x?.pickup ?? null,
     instruction: purpose === 'nq'
       ? 'Read the exchange, including the originator\'s or the operator\'s answers to your earlier questions. Return ONLY JSON {intent:string, questions:string[], notes:string[]}. questions: only what blocks you from executing and cannot be settled from the packet, the workspace or the answers already in the exchange; never repeat a question the exchange has answered. notes: your assumptions and anything already settled; notes never block. An empty questions array confirms readiness. Do not do the work yet.'
       : 'Execute only this step. The exchange is your intake: your questions and the answers from whoever handed you this work (or the operator). Those answers bind this execution. Inspect the workspace first. Report tangible results and evidence, not a claim of completion.'
@@ -635,7 +1144,9 @@ export async function provisionPacket(directory, key, serialized) {
   const save = async (name, text) => { const path = join(folder, name); await writeFile(path, text); return path; };
   const accepted = [];
   for (const [i, c] of (packet.accepted ?? []).entries()) accepted.push({ step: c.step, role: c.role, path: await save(`ACCEPTED-${i}-${c.step}.md`, c.output ?? '') });
-  const { source, brief, handoff, previous, accepted: _a, ...rest } = packet;
+  const { source, brief, handoff, previous, accepted: _a, pickup, ...rest } = packet;
+  if (pickup) rest.pickup = { ...pickup,
+    ...(pickup.lastOutput ? { lastOutput: await save('PICKUP-OUTPUT.md', pickup.lastOutput), lastOutputIsFile: true } : {}) };
   const files = { source: await save('SOURCE.md', source) };
   if (brief !== undefined) files.brief = await save('BRIEF.md', brief);
   if (handoff !== undefined) files.handoff = await save('HANDOFF.md', handoff);

@@ -15,7 +15,10 @@ const state = read();
 const packet = (() => { try { return JSON.parse(prompt); } catch { return {}; } })();
 const originator = (system.match(/^You are ([\w-]+), who handed over this work\./) ?? [])[1] ?? null;
 // Roles by system prompt. refusal: the receiving step's agent, asking for what a refused hand-off lacks.
-const role = /^You receive this hand-off next\./.test(system) ? 'refusal'
+const role = /^You are the dispatcher receiving the final report/.test(system) ? 'return-intake'
+  : /^You are the Arbiter, in read-only intake/.test(system) ? 'arbiter-intake'
+  : /^You are the dispatcher, in read-only authority intake/.test(system) ? 'authority-intake'
+  : /^You receive this hand-off next\./.test(system) ? 'refusal'
   : /You are the assigned worker[^.]*intake/.test(system) ? 'intake'
   : /^You are the dispatcher, who dispatched this work for the operator/.test(system) ? 'authority'
   : originator ? 'originator'
@@ -39,6 +42,12 @@ if (role === 'intake') {
   // askByThread[threadId]: that work item asks the same question at every intake (safe when items run in parallel).
   const q = state.askByThread?.[packet.threadId] ?? take('intakeQuestions');
   text = JSON.stringify({ intent: 'understood', questions: q ? [q] : [], notes: state.intakeNotes ?? [] });
+} else if (role === 'arbiter-intake' || role === 'authority-intake' || role === 'return-intake') {
+  const key = role === 'arbiter-intake' ? 'arbiter' : role === 'authority-intake' ? 'authority' : 'returnQuestions';
+  const next = state[key]?.[0];
+  const questions = role === 'return-intake' ? (take(key) ?? []) : next?.questions ?? [];
+  if (role !== 'return-intake' && next?.questions && state[key].length > 1) state[key].shift();
+  text = JSON.stringify({ intent: 'I understand this handoff before deciding.', questions });
 } else if (role === 'authority') text = JSON.stringify(take('authority') ?? { answer: 'The source does not settle it.', unresolvedAuthority: true });
 else if (role === 'originator') {
   const reply = { ...(take('originator') ?? { answer: 'Use the source.', unresolvedAuthority: false }) };
