@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openStore } from '../work.mjs';
 import { observe, publishWork, render } from '../observe.mjs';
-import { renderSidecar, sidecarSnapshot } from '../sidecar.mjs';
+import { renderPlainSidecar as renderSidecar, sidecarSnapshot } from '../sidecar.mjs';
 import { runView, stateAt } from '../view.mjs';
 
 process.env.PI_DURABLE_ALERT = 'none';

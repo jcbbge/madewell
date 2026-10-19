@@ -158,6 +158,7 @@ tr.flash td{animation:flash 1.2s ease-out}
       <div class="term" id="view"></div>
       <h2 style="margin-top:14px">Rules, checked on this run</h2>
       <div class="rules" id="rules"></div>
+      <details style="margin-top:14px"><summary>Calls, handoffs, decisions and evidence</summary><div class="term" id="details"></div></details>
     </div>
     <div class="panel">
       <h2>The one list</h2>
@@ -176,7 +177,7 @@ tr.flash td{animation:flash 1.2s ease-out}
 import { runView, renderPanels, timeline } from '/view.mjs';
 
 const $ = id => document.getElementById(id);
-const PANELS = ['now', 'dnodes', 'dchip', 'onodes', 'ochip', 'stages', 'donecount', 'view', 'rules', 'list', 'metrics', 'bars', 'log', 'clock'];
+const PANELS = ['now', 'dnodes', 'dchip', 'onodes', 'ochip', 'stages', 'donecount', 'view', 'rules', 'list', 'metrics', 'bars', 'log', 'clock', 'details'];
 const shown = {};
 let snap = null, receivedAt = 0, live = true, frozen = null, k = 0, timer = null;
 let selection = fromHash();

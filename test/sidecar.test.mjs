@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { renderSidecar, sidecarSnapshot, clock } from '../sidecar.mjs';
+import { renderPlainSidecar as renderSidecar, sidecarSnapshot, clock } from '../sidecar.mjs';
 import { runView, terminalLines } from '../view.mjs';
 
 // Local 14:00, so "today" is the same date in any time zone the tests run in.

@@ -1,9 +1,10 @@
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import { columns, fit, panel, row, theme, visible, wrapText } from './tui.mjs';
+import { terminalText } from './view.mjs';
 
-// The preserved local terminal-board design, used by the interactive demo.
-// The live sidecar uses the newer shared run-view renderer in sidecar.mjs.
+// The original terminal-board presentation. Live work and the demo enter through sidecar.mjs,
+// which supplies the shared, read-only state derivation; this file keeps the established layout.
 
 const STAGES = ['ideation', 'planning', 'implementation', 'verification'];
 const STAGE_OF = { discover: 0, ideate: 0, challenge: 0, plan: 1, 'test-plan': 1, implement: 2, verify: 3, arbitrate: 3 };
@@ -27,7 +28,7 @@ export const span = delta => {
 };
 const cardLabel = c => c ? `${HARNESS[c.harness] ?? c.harness} · ${c.model}` : '';
 // Objectives are the operator's words; only the record's own name for a unit is made plain.
-const plain = text => String(text ?? '').replace(/\bthread (\d+)/gi, '#$1').replace(/\s+/g, ' ').trim();
+const plain = text => terminalText(text).replace(/\bthread (\d+)/gi, '#$1').replace(/\s+/g, ' ').trim();
 const clip = (text, n) => text.length <= n ? text : `${text.slice(0, Math.max(0, n - 1))}…`;
 
 
@@ -52,7 +53,7 @@ function decision(w) {
     else card.stopped = reason;
     if (!card.asks.length && w.failure?.report) card.said ??= w.failure.report;
   }
-  card.answer = [`answer ${w.threadId} reply.txt${hold.kind === 'failure' ? ' <cause>' : ''}`];
+  card.answer = w.kind === 'delegated' ? [`delegate human ${w.threadId} reply.txt --actor human`] : [`answer ${w.threadId} reply.txt${hold.kind === 'failure' ? ' <cause>' : ''}`];
   card.note = hold.kind === 'failure' ? `Write your answer in reply.txt; the cause is ${CAUSES}.` : 'Write your answer in reply.txt.';
   return card;
 }
@@ -61,6 +62,9 @@ function decision(w) {
 
 // The job being done right now, and since when, from the view's own state.
 function now_(w) {
+  if (w._board?.state.call) { const c = w._board.state.call; return { job: c.job ?? c.kind, card: c.card, since: ms(c.startedAt), detail: `${c.card?.provider ?? 'UNKNOWN'} · ${JSON.stringify(c.where ?? 'location UNKNOWN')}` }; }
+  if (w.state === 'quota-wait' || w.state === 'limited') return { paused: 'Waiting for quota or a replacement card; no human answer needed.' };
+  if (w.state === 'queued' || w.state === 'selected') return { paused: w.state === 'queued' ? 'Waiting its turn in the delivery queue.' : 'Selected; worker start not yet recorded.' };
   const attempts = w.record?.attempts ?? [];
   const live = w.attempt && attempts.find(a => a.id === w.attempt.id);
   const step = w.current?.name;
@@ -87,7 +91,7 @@ const LOG_LINES = 10;
 const attemptsOf = w => w.record?.attempts ?? [];
 const eventsOf = w => w.record?.events ?? [];
 const dropped = w => eventsOf(w).some(e => e.type === 'operator-cancelled');
-const itemState = w => w.done ? (dropped(w) ? 'dropped' : 'done') : w.state === 'ready' && !attemptsOf(w).length ? 'to-do' : 'task';
+const itemState = w => w.kind === 'delegated' ? w.done ? 'done' : 'task' : w.state === 'queued' ? 'to-do' : w.done ? (dropped(w) ? 'dropped' : 'done') : w.state === 'ready' && !attemptsOf(w).length ? 'to-do' : 'task';
 const kindOf = w => w.kind ?? (w.parentId ? 'fix' : w.record?.delivery ? 'delivery' : 'discovery');
 const runMs = (a, now) => Number.isFinite(a.startedAt) ? (a.endedAt ?? (['queued', 'running'].includes(a.status) ? now : a.startedAt)) - a.startedAt : 0;
 const minutes = v => v < 3_600_000 ? `${Math.round(v / 60_000)}m` : span(v);
@@ -96,6 +100,7 @@ const usage = a => (a.stats ?? []).filter(Boolean).reduce((t, s) => ({ tokens: t
 
 // Minutes each lane took for one unit, from the jobs' own start and end times.
 function laneMinutes(w, now) {
+  if (w._board) return Object.fromEntries(Object.entries(w._board.times.minutes).map(([k, v]) => [k, v * 60_000]));
   const out = {};
   for (const a of attemptsOf(w)) { const lane = LANE_OF[a.step]; if (lane) out[lane] = (out[lane] ?? 0) + runMs(a, now); }
   return out;
@@ -117,6 +122,11 @@ function operatorStops(w, now) {
 
 // The rules a run is held to, each checked against the record; · until the record holds a case of it.
 function rules(units) {
+  if (units.some(u => u.w._board)) {
+    const labels = ['No one checked their own work', 'Each step had its own agent', 'A failed check was routed, not ignored', 'Delivery finished only on passing checks', 'Questions settled within three rounds'];
+    return labels.map((label, i) => { const states = units.map(u => u.w._board?.rules[i + 1]?.status ?? 'pend');
+      return [label, states.includes('bad') || states.length > 0 && states.every(s => s === 'ok'), !states.includes('bad')]; });
+  }
   const ws = units.map(u => u.w);
   const delivered = ws.filter(w => attemptsOf(w).some(a => !['discover'].includes(a.step)));
   const checked = ws.filter(w => attemptsOf(w).some(a => a.step === 'verify'));
@@ -187,6 +197,14 @@ function decisionLines(t, unit, label, w, now, action) {
 
 // One running item: what it is, which job, on which card, for how long.
 function runningLines(t, unit, label, w, now) {
+  if (unit.w.kind === 'delegated') {
+    const v = unit.w, ev = v.lastEvent ?? {}, card = v.worker ? `${HARNESS[v.worker.harness] ?? v.worker.harness} · ${v.worker.model}` : '';
+    const out = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(v.objective)}`, w - 2))];
+    out.push('  ' + t.muted(fit(`${v.worker?.actor ?? 'worker'} on ${card}${v.worker?.provider ? ` · ${v.worker.provider}` : ''} · ${ev.state ?? v.state}${ev.at ? ` · ${span(now - ms(ev.at))}` : ''}`, w - 2)));
+    if (v.where?.tmux) out.push('  ' + t.muted(fit(`Watch it: tmux window ${v.where.tmux}`, w - 2)));
+    if (ev.text) out.push('  ' + t.ink(fit(`${ev.actor ?? ''}: ${plain(ev.text)}`, w - 2)));
+    return out;
+  }
   const x = now_(unit.w), lines = [t.accentBold('▸ ') + t.inkBold(fit(`${label} ${plain(unit.w.objective)}`, w - 2))];
   const role = ROLE[unit.w.state === 'test-failed' ? 'arbitrate' : unit.w.current?.name] ?? '', job = x.paused ?? `${x.job}${role ? ` · ${role}` : ''}${x.card ? ` on ${cardLabel(x.card)}` : ''}${Number.isFinite(x.since) ? ` · ${span(now - x.since)}` : ''}`;
   lines.push('  ' + (x.paused ? t.warn(fit(job, w - 2)) : t.muted(fit(job, w - 2))));
@@ -248,6 +266,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   const label = u => `#${u.w.threadId}${many && u.workspace ? ` (${basename(u.workspace)})` : ''}`;
   const waiting = units.filter(u => !u.w.done && WAITING.has(u.w.state) && (u.w.hold || u.w.state !== 'human-hold'));
   const active = units.filter(u => !u.w.done && !WAITING.has(u.w.state) && itemState(u.w) !== 'to-do');
+  const running = units.some(u => u.w._board) ? active.filter(u => u.w.state === 'working') : active;
   const open = units.filter(u => !u.w.done && itemState(u.w) !== 'to-do');
   const todos = units.filter(u => itemState(u.w) === 'to-do');
   const finished = units.filter(u => itemState(u.w) === 'done');
@@ -257,7 +276,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
 
   // The title bar: the name, the counts that matter, the time.
   const left = t.inkBold(' MADE WELL') + (narration?.title ? t.muted(`  ${narration.title}`) : '');
-  const right = [t.pill(active.length ? 'agent' : 'record', `${active.length} running`),
+  const right = [t.pill(running.length ? 'agent' : 'record', `${running.length} running`),
     t.pill(waiting.length ? 'you' : 'record', waiting.length ? `${waiting.length} need${waiting.length === 1 ? 's' : ''} you` : 'nothing needs you'),
     t.pill('done', `${today.length} done today`), t.muted(clock(now, now) + ' ')].join(' ');
   out.push(fit(left + ' '.repeat(Math.max(1, width - visible(left) - visible(right))) + right, width));
@@ -318,7 +337,7 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
       for (const u of here) {
         const st = u.w.state, mins = laneMinutes(u.w, now)[stage];
         const [mark, tn] = st === 'test-failed' ? ['✗', 'bad'] : st === 'human-hold' ? ['?', 'op'] : st === 'waiting-on-prerequisite' ? ['‖', 'warn'] : ['▸', 'accent'];
-        body.push(fit(chip(u, mark, tn, [mins ? minutes(mins) : '', st === 'waiting-on-prerequisite' ? `waits #${u.w.waitsOn}` : ''].filter(Boolean).join(' ')), w));
+        body.push(fit(chip(u, mark, tn, [mins ? minutes(mins) : '', st === 'waiting-on-prerequisite' ? `waits #${u.w.waitsOn}` : u.w.kind === 'delegated' ? u.w._board?.state.delegationState ?? st : ''].filter(Boolean).join(' ')), w));
       }
       for (const u of passed) body.push(fit(chip(u, '✓', 'ok', minutes(laneMinutes(u.w, now)[stage])), w));
       return body;
@@ -331,7 +350,8 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     { title: 'YOU', weight: 1.2, body: youLane, tone: waiting.length || narration?.ask ? 'op' : 'line', titleTone: 'opBold' }];
   const stages = LANES.slice(1).map(([s]) => stageBox(s));
   const doneSpec = { title: 'DONE', weight: 0.8, body: doneLane, tone: finished.length ? 'ok' : 'line', titleTone: 'okBold' };
-  const flow = w => w >= 120 ? row(t, [...lanes, ...stages, doneSpec], w) : [...row(t, [...lanes, doneSpec], w), ...row(t, stages, w)];
+  const flow = w => [...(w >= 120 ? row(t, [...lanes, ...stages, doneSpec], w) : [...row(t, [...lanes, doneSpec], w), ...row(t, stages, w)]),
+    ...open.filter(u => u.w.kind === 'delegated' && !LANE_OF[u.w.current?.name]).flatMap(u => wrapText(`Delegated · stage not supplied: ${label(u)} ${u.w._board?.state.delegationState ?? u.w.state}`, w))];
   out.push(...panel(t, 'WHERE THE WORK IS', flow(width - 4), width));
 
   // The one list, the rules, the telemetry.
@@ -342,11 +362,11 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     if (!rows.length) body.push(t.muted('The list is empty.'));
     const room = Math.max(1, Math.floor((max - 2) / 2));
     for (const u of rows.slice(0, room)) {
-      const st = itemState(u.w), asks = WAITING.has(u.w.state) && !u.w.done;
-      const pill = asks ? t.pill('you', 'needs you') : t.pill({ 'to-do': 'todo', task: 'task', done: 'done', dropped: 'dropped' }[st], st);
+      const st = itemState(u.w), stateWord = u.w.kind === 'delegated' ? u.w._board?.state.delegationState ?? u.w.state : st, asks = WAITING.has(u.w.state) && !u.w.done;
+      const pill = asks ? t.pill('you', 'needs you') : t.pill({ 'to-do': 'todo', task: 'task', done: 'done', dropped: 'dropped' }[st], stateWord);
       const name = t.muted(label(u).padEnd(6)) + (u.w.done ? t.muted(plain(u.w.objective)) : t.ink(plain(u.w.objective)));
       body.push(fit(name, w - visible(pill) - 1) + ' ' + pill);
-      const who = !u.w.done && u.w.current?.name ? ROLE[u.w.current.name] : '', lane = !u.w.done && u.w.current?.name ? LANE_OF[u.w.current.name] : '';
+      const who = u.w.kind === 'delegated' ? `${u.w.worker?.job ?? 'UNKNOWN'} · ${typeof u.w.where === 'string' ? u.w.where : u.w.where?.tmux ?? u.w.where?.window ?? 'location UNKNOWN'} · ${stateWord}` : !u.w.done && u.w.current?.name ? ROLE[u.w.current.name] : '', lane = !u.w.done && u.w.current?.name ? LANE_OF[u.w.current.name] : '';
       body.push(t.faint(fit(`      ${[kindOf(u.w), who, lane, u.w.waitsOn ? `waits on #${u.w.waitsOn}` : '', u.w.parentId || u.w.from ? `from #${u.w.parentId ?? u.w.from}` : ''].filter(Boolean).join(' · ')}`, w)));
     }
     if (rows.length > room) body.push(t.faint(`      … ${rows.length - room} more`));
@@ -360,14 +380,19 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
   const accountLines = w => accounts.flatMap(([account, reset]) => wrapText(reset == null ? `${account}: out of quota, reset time unknown`
     : `${account}: out of quota until ${clock(reset, now)} (in ${span(reset - now)})`, w - 2).map((l, i) => t.warn(`${i ? ' ' : '!'} ${l}`)));
   const by = st => units.filter(u => itemState(u.w) === st).length;
-  const stops = units.flatMap(u => operatorStops(u.w, now)), waited = stops.reduce((n, x) => n + x.waited, 0);
+  const stops = units.flatMap(u => operatorStops(u.w, now));
+  const stopCount = units.reduce((n, u) => n + (u.w._board?.wait.stops ?? operatorStops(u.w, now).length), 0);
+  const waited = units.reduce((n, u) => n + (u.w._board ? u.w._board.wait.minutes * 60_000 : operatorStops(u.w, now).reduce((sum, s) => sum + s.waited, 0)), 0);
   const tilesBody = w => {
     const verify = units.flatMap(u => attemptsOf(u.w).filter(a => a.step === 'verify' && ['accepted', 'failed-test'].includes(a.status)));
     const failed = units.reduce((n, u) => n + (u.w.record?.failures?.length ?? 0), 0);
     const use = units.flatMap(u => attemptsOf(u.w)).map(usage).reduce((a, x) => ({ tokens: a.tokens + x.tokens, cost: a.cost + x.cost }), { tokens: 0, cost: 0 });
+    if (units.some(u => u.w._board)) {
+      for (const key of ['tokens', 'cost']) { const known = units.map(u => u.w._board?.use[key]?.value).filter(Number.isFinite); use[key] = known.length ? known.reduce((n, v) => n + v, 0) : null; }
+    }
     const tiles = [[by('to-do'), 'to-do', 'ink'], [by('task'), 'task', 'accent'], [by('done'), 'done', 'ok'],
-      [stops.length, 'stops for you', 'op'], [minutes(waited), 'waited on you', 'op'], [`${verify.filter(a => a.status === 'accepted').length}/${verify.length}`, 'checks passed', 'ok'],
-      [failed, 'checks failed', failed ? 'bad' : 'ink'], [count(use.tokens), 'tokens', 'ink'], [`$${use.cost.toFixed(2)}`, 'spend', 'ink']];
+      [stopCount, 'stops for you', 'op'], [minutes(waited), 'waited on you', 'op'], [`${verify.filter(a => a.status === 'accepted').length}/${verify.length}`, 'checks passed', 'ok'],
+      [failed, 'checks failed', failed ? 'bad' : 'ink'], [use.tokens == null ? 'UNKNOWN' : count(use.tokens), 'tokens', 'ink'], [use.cost == null ? 'UNKNOWN' : `$${use.cost.toFixed(2)}`, 'spend', 'ink']];
     // Three tiles a row when the labels fit, two when they would be cut.
     const per = w >= 48 ? 3 : 2, tw = Math.floor((w - 2 * (per - 1)) / per), widths = Array(per).fill(tw), body = [];
     for (let i = 0; i < tiles.length; i += per) {
