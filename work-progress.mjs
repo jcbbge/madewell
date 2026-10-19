@@ -2,10 +2,32 @@ import { Type } from '@earendil-works/pi-ai';
 import { watch } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { requestNested } from './worker-channel.mjs';
 
 // Loaded only into step workers. Reports deliverables to the work record and receives
 // the 5-minute silence check-in. Progress is not acceptance.
 export default function durableProgress(pi) {
+  // Verified pi tool_call boundary: the bundled subagent example and Made Well's
+  // front door must not bypass the owner's durable exchanges. This is not a shell
+  // sandbox and makes no claim about arbitrary extension/model-side delegation.
+  if (process.env.PI_DURABLE_WORKER === '1') pi.on('tool_call', event => {
+    if (event.toolName === 'subagent' || (event.toolName === 'durable_work' && !['status', 'inspect'].includes(event.input?.action))) {
+      return { block: true, reason: 'Native nested delegation is unsupported here. Return the request to the originating agent for a durable NQ exchange; no nested agent has been started.' };
+    }
+  });
+  if (process.env.PI_DURABLE_WORKER === '1' && process.env.PI_DURABLE_NESTED === '1') pi.registerTool({
+    name: 'durable_dispatch', label: 'Delegate through durable NQ',
+    description: 'Dispatch or consult another agent through this work owner. Use a stable requestId for retries, a complete fixed brief and a receiver with its full card. The owner records sender-bound intake, clarification, execution and return intake. A hold or quota wait is not clearance.',
+    parameters: Type.Object({ requestId: Type.String(), brief: Type.String(),
+      receiver: Type.Object({ actor: Type.String(), job: Type.String(), card: Type.Object({ harness: Type.String(),
+        provider: Type.String(), model: Type.String(), account: Type.String(), effort: Type.String() }) }),
+      access: Type.Optional(Type.Union(['read', 'checks', 'make', 'run'].map(x => Type.Literal(x)))) }),
+    async execute(_id, params, signal) {
+      const result = await requestNested(params, process.env, signal);
+      return { content: [{ type: 'text', text: JSON.stringify(result) }], details: { durableNested: result },
+        ...(result.status === 'held' ? { terminate: true } : {}), ...(result.status === 'limited' ? { isError: true } : {}) };
+    },
+  });
   const attemptId = process.env.PI_DURABLE_ATTEMPT, inbox = process.env.PI_DURABLE_CHECKIN;
   if (!attemptId || !inbox) return;
   let watcher, lastQuestion = null;
