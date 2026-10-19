@@ -291,9 +291,10 @@ function compactLines(t, unit, label, width, now) {
   const update = workerUpdate(v, now), message = v.hold?.questions?.[0] ? `? ${v.hold.questions[0]}` : update ? latestLine(update.text) : '';
   const context = obs.usage?.context?.match(/^\d+(?:\.\d+)?%/)?.[0];
   const suffix = [context ? `ctx ${context}` : '', obs.repo?.hash ? `${obs.repo.hash} ${age(obs.repo.at, now)}` : ''].filter(Boolean);
-  const stepWidth = Math.min(Math.floor(width * 0.28), `NOW ${step}`.length);
+  const progress = obs.steps && !obs.steps.unavailable ? `Steps: ${obs.steps.done} done · NOW ${plain(step)}` : `NOW ${plain(step)}`;
+  const stepWidth = Math.min(Math.floor(width * 0.42), progress.length);
   const messageWidth = Math.max(0, width - stepWidth - suffix.join(' · ').length - 3 * (suffix.length + Number(Boolean(message))));
-  const second = [clip(`NOW ${plain(step)}`, stepWidth), ...(message ? [clip(plain(message), messageWidth)] : []), ...suffix].join(' · ');
+  const second = [clip(progress, stepWidth), ...(message ? [clip(plain(message), messageWidth)] : []), ...suffix].join(' · ');
   return [t.ink(fit(first, width)), t.muted(fit(second, width))];
 }
 
