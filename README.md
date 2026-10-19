@@ -57,6 +57,24 @@ pi-durable doctor [--json]      pi-durable provision [--yes]
 
 Stores live under `~/.local/share/pi-durable/workspaces/<hash>` per workspace (`WORK_DATA` overrides). One process owns a store; a dead owner is replaced automatically on the next drive.
 
+## Delegated worker updates
+
+External workers use the same work record and NQ exchanges; these verbs do not launch them:
+
+```sh
+pi-durable delegate open assignment.json
+pi-durable delegate started <id> understanding.txt --actor <worker>
+pi-durable delegate progress <id> update.txt --actor <worker>
+pi-durable delegate locate <id> where.json --actor <sender>
+pi-durable delegate dead <id> explanation.txt --actor <sender>
+```
+
+Post `progress` at each step with the tangible result or blocker in your own words. It records evidence only: it never clears a question, releases a hold, or accepts work. The board shows the worker's latest line and its age. Final delivery still uses `reported`, followed by the sender's return exchange and acceptance.
+
+An assignment's `where` object may contain `tmux`, `steps` (TASKS.md path), and `repo`; `locate` merges updated hints without changing lifecycle or NQ. Paths resolve relative to the assignment workspace; absent paths default to `TASKS.md` and that workspace's repo. Checked tasks still present in the ledger count as recorded completions; removed tasks do not. `dead` is sender-only, terminates an unreported worker without accepting its unfinished work, and preserves the evidence.
+
+The sidecar samples tmux and foreground process names read-only. Missing exact tmux targets are dead; shell-only panes are stale; unavailable probes are unknown. Only observed live delegated agents count as running. A process is not completion evidence.
+
 ## See it: the run view
 
 Starting pi starts it: http://localhost:7788, for as long as that pi session runs. The footer reads `durable ✓ · localhost:7788` when Pi Durable is connected. `pi-durable serve` runs it without pi and opens it in your browser (from a terminal; `--no-open` skips that). It prints the address, and if the dashboard already runs on that port it says so and uses it.

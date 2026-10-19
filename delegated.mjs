@@ -56,7 +56,10 @@ export function transitionDelegated(w, action, input = {}) {
     if (c) Object.assign(c, { endedAt: stamp(), outcome, result: w.report });
     w.activeCall = null;
   };
-  if (action === 'locate') {
+  if (action === 'progress') {
+    if (actor !== w.worker.actor) throw new Error('Only the assigned worker can post progress');
+    body(); // Evidence only: no NQ turn, clearance, acceptance or hold release.
+  } else if (action === 'locate') {
     if (actor !== w.sender.actor) throw new Error('Only the assigning agent can update location');
     w.where = { ...(w.where ?? {}), ...location(input.where) };
     const c = w.calls.find(c => c.id === w.activeCall);

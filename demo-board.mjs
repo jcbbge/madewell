@@ -30,6 +30,7 @@ const cardLabel = c => c ? `${HARNESS[c.harness] ?? c.harness} · ${c.model}` : 
 // Objectives are the operator's words; only the record's own name for a unit is made plain.
 const plain = text => terminalText(text).replace(/\bthread (\d+)/gi, '#$1').replace(/\s+/g, ' ').trim();
 const clip = (text, n) => text.length <= n ? text : `${text.slice(0, Math.max(0, n - 1))}…`;
+const latestLine = text => text.trim().split('\n').findLast(line => line.trim()) ?? '';
 
 
 
@@ -160,6 +161,8 @@ function logLines(units, label) {
         reported: ['agent', `${id} ${role(step)} reported back`],
         handoff: ['record', `${id} ${JOB[e.from] ?? e.from} done, next ${JOB[e.to] ?? e.to}`],
         progress: ['agent', `${id} ${role(step)}: ${plain(e.deliverable ?? '')}`],
+        'delegated-progress': ['agent', `${id} ${e.actor}: ${plain(latestLine(e.text ?? ''))}`],
+        'delegated-dead': ['record', `${id} worker death recorded by ${e.actor}`],
         'test-failed': ['agent', `${id} a check failed`],
         'failure-routed': ['agent', `${id} failed check ruled: ${e.cause}`],
         'failure-undetermined': ['record', `${id} failed check, cause unclear`],
@@ -208,7 +211,8 @@ function delegatedLines(t, v, w, now) {
     if (obs.tmux.outputScope) add(`Activity: ${obs.tmux.outputScope} ${age(obs.tmux.outputAt, now)} ago`);
   }
   if (obs.steps) add(obs.steps.unavailable ? 'Steps: ledger unavailable' : `Steps: ${obs.steps.done} done recorded · NOW ${obs.steps.now.slice(0, 2).join('; ') || 'none recorded'}`);
-  if (v.lastEvent?.text) add(`${v.lastEvent.actor ?? ''}: ${v.lastEvent.text}`);
+  const update = eventsOf(v).findLast(e => e.actor === v.worker?.actor && ms(e.at) <= now && typeof e.text === 'string' && e.text.trim());
+  if (update) add(`Update ${age(update.at, now)} ago · ${update.actor}: ${latestLine(update.text)}`);
   return out;
 }
 

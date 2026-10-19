@@ -159,6 +159,8 @@ function delegatedBlock(unit, width, now, label) {
       add(`${clock(t.at, now)} ${t.actor ?? t.type}: ${content ?? 'UNKNOWN'}`);
     }
   }
+  const update = (r.events ?? []).findLast(e => e.type === 'delegated-progress' && ms(e.at) <= at);
+  if (update) add(`${clock(update.at, now)} ${update.actor}: ${update.text}`);
   if (s.report) { add(`Reported: ${s.report.text}`); if (s.report.evidence) add(`Evidence: ${s.report.evidence}`); }
   if (s.acceptance) add(`Accepted by ${s.acceptance.actor}: ${s.acceptance.text}`);
   add(`Details: pi-durable show ${w.threadId} (same workspace/store)`);

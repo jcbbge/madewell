@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { openStore } from '../work.mjs';
 import { delegatedTelemetry, stepLedger } from '../delegated-telemetry.mjs';
 import { delegatedFields, transitionDelegated, delegatedView } from '../delegated.mjs';
-import { renderSidecar } from '../sidecar.mjs';
+import { renderSidecar, sidecarSnapshot } from '../sidecar.mjs';
 import { stateAt } from '../view.mjs';
 
 const exec = promisify(execFile);
@@ -125,4 +125,59 @@ test('locate is sender-only, validates hints and persists through the CLI withou
     assert.equal(saved.delegationState, 'working'); assert.deepEqual(saved.exchanges, before.exchanges);
     assert.equal(saved.events.at(-1).type, 'delegated-locate');
   } finally { await store.close(); }
+});
+
+test('progress is worker-authored evidence, not a state change, turn, clearance, acceptance or release', () => {
+  const w = rootWork(); transitionDelegated(w, 'started', { actor: 'worker', text: 'I understand.' });
+  const previous = { state: w.delegationState, calls: w.calls.length, exchange: JSON.stringify(w.exchanges) };
+  transitionDelegated(w, 'progress', { actor: 'worker', text: 'I merged the branch; checking the gate.' });
+  assert.equal(w.delegationState, previous.state); assert.equal(w.calls.length, previous.calls);
+  assert.equal(JSON.stringify(w.exchanges), previous.exchange);
+  assert.equal(w.events.at(-1).type, 'delegated-progress');
+  assert.throws(() => transitionDelegated(w, 'progress', { actor: 'coordinator', text: 'Fake worker update' }), /assigned worker/);
+  assert.throws(() => transitionDelegated(w, 'progress', { actor: 'worker', text: ' ' }), /nonempty/);
+  for (let n = 0; n < 3; n++) {
+    transitionDelegated(w, 'question', { actor: 'worker', text: 'Question?' });
+    transitionDelegated(w, 'answered', { actor: 'coordinator', text: 'Answer.' });
+  }
+  transitionDelegated(w, 'question', { actor: 'worker', text: 'Still unclear?' });
+  const hold = JSON.stringify(w.hold), state = w.delegationState;
+  transitionDelegated(w, 'progress', { actor: 'worker', text: 'Waiting for the scope decision.' });
+  assert.equal(JSON.stringify(w.hold), hold); assert.equal(w.delegationState, state);
+  assert.equal(stateAt(delegatedView('/data', w), Date.now() + 1).state, 'human-hold');
+});
+
+test('latest worker line and age survive newer sender location events at narrow widths', () => {
+  const w = rootWork(); transitionDelegated(w, 'started', { actor: 'worker', text: 'Understood.' });
+  transitionDelegated(w, 'progress', { actor: 'worker', text: 'First line\nMy latest deliverable is recorded.\n' });
+  const at = Date.now() + 1000; w.events.at(-1).at = new Date(at - 12000).toISOString();
+  transitionDelegated(w, 'locate', { actor: 'coordinator', text: 'not the worker update', where: { steps: 'TASKS.md' } });
+  const projected = delegatedView('/data', w);
+  for (const width of [60, 80, 110, 160]) {
+    const frame = renderSidecar({ at, base: '/data', stores: [{ dir: '/data', threads: [projected] }] }, { width, now: at });
+    const happening = frame.split('HAPPENING NOW')[1].split('WHERE THE WORK IS')[0].replace(/[│╭╮╰╯─]/g, ' ').replace(/\s+/g, ' ');
+    assert.match(happening, /Update 12s ago/); assert.match(happening, /My latest deliverable is recorded\./);
+    assert.doesNotMatch(happening, /not the worker update|First line/);
+  }
+});
+
+test('CLI progress commits to SQLite, survives reopen, and refreshes sidecar hints each time', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'delegated-live-')), data = join(root, 'data'), file = join(root, 'update.txt');
+  t.after(() => rm(root, { recursive: true, force: true }));
+  let store = await openStore(data);
+  const id = await store.openDelegated({ ...assignment, workspace: root });
+  await store.delegated(id, 'started', { actor: 'worker', text: 'I understand.' }); await store.close();
+  await writeFile(file, 'My next deliverable is the telemetry proof.');
+  await exec(process.execPath, ['cli.mjs', 'delegate', 'progress', String(id), file, '--actor', 'worker'], { env: { ...process.env, WORK_DATA: data, PI_DURABLE_ALERT: 'none' } });
+  store = await openStore(data);
+  try {
+    const saved = await store.get(id);
+    assert.equal(saved.delegationState, 'working'); assert.equal(saved.events.at(-1).text, 'My next deliverable is the telemetry proof.');
+  } finally { await store.close(); }
+  let reads = 0;
+  const telemetry = async () => ({ steps: { now: [`refresh ${++reads}`], done: reads } });
+  const first = await sidecarSnapshot({ base: data, telemetry }), second = await sidecarSnapshot({ base: data, telemetry });
+  assert.equal(reads, 2); assert.equal(first.stores[0].threads[0].telemetry.steps.done, 1);
+  assert.equal(second.stores[0].threads[0].telemetry.steps.done, 2);
+  assert.match(renderSidecar(second, { width: 110 }), /My next deliverable is the telemetry proof/);
 });
