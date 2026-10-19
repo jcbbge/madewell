@@ -1,10 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { delegatedTelemetry } from '../delegated-telemetry.mjs';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { openStore } from '../work.mjs';
+import { delegatedTelemetry, stepLedger } from '../delegated-telemetry.mjs';
 import { delegatedFields, transitionDelegated, delegatedView } from '../delegated.mjs';
 import { renderSidecar } from '../sidecar.mjs';
 import { stateAt } from '../view.mjs';
 
+const exec = promisify(execFile);
 const now = Date.now() + 1000;
 const assignment = { objective: 'Observe the delegated worker', brief: 'Show what is happening.',
   sender: { actor: 'coordinator', job: 'dispatch', harness: 'claude', provider: 'a', model: 'a' },
@@ -76,4 +83,46 @@ test('sender can terminate an unreported dead worker, never accept it or bypass 
   const reported = rootWork(); transitionDelegated(reported, 'started', { actor: 'worker', text: 'Understood.' });
   transitionDelegated(reported, 'reported', { actor: 'worker', text: 'A result.' });
   assert.throws(() => transitionDelegated(reported, 'dead', { actor: 'coordinator', text: 'No.' }), /return exchange/);
+});
+
+test('activity uses pane time or single-pane window time, never a different pane output', async () => {
+  const at = Math.floor((now - 5000) / 1000);
+  const sample = async (activity, count) => (await delegatedTelemetry(assignment, { ...adapters({ panes: listing().trimEnd() + `\t${activity}\t${at}\t${count}\n` }), now })).tmux;
+  assert.equal((await sample('', 1)).outputAt, at * 1000);
+  assert.equal((await sample('', 2)).outputAt, null);
+  assert.equal((await sample(at - 5, 2)).outputAt, (at - 5) * 1000);
+  assert.equal((await sample(Math.floor(now / 1000) + 60, 2)).outputAt, null);
+});
+
+test('TASKS hints and workspace fallback show NOW plus only retained checked completions', async () => {
+  const paths = [], read = async path => { paths.push(path); return '# Tasks (next #100)\n## NOW\n- [ ] #99 Add activity\n## LATER\n- [ ] #100 Later\n## DONE\n- [x] #1 Shipped\n'; };
+  const fallback = await delegatedTelemetry({ workspace: '/work' }, { read });
+  assert.deepEqual(fallback.steps, { now: ['#99 Add activity'], done: 1 });
+  await delegatedTelemetry({ workspace: '/work', where: { steps: 'ledgers/TASKS.md' } }, { read });
+  assert.deepEqual(paths, ['/work/TASKS.md', '/work/ledgers/TASKS.md']);
+  assert.deepEqual(stepLedger('# Tasks (next #100)\n## NOW\n- [ ] #99 Work'), { now: ['#99 Work'], done: 0 });
+  const missing = await delegatedTelemetry({ workspace: '/work' }, { read: async () => { throw new Error('gone'); } });
+  assert.deepEqual(missing.steps, { unavailable: true });
+});
+
+test('locate is sender-only, validates hints and persists through the CLI without changing NQ or lifecycle', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'delegated-locate-')), data = join(root, 'data'), file = join(root, 'where.json');
+  t.after(() => rm(root, { recursive: true, force: true }));
+  let store = await openStore(data);
+  const id = await store.openDelegated({ ...assignment, workspace: root });
+  await store.delegated(id, 'started', { actor: 'worker', text: 'Understood.' });
+  const before = await store.get(id);
+  await assert.rejects(store.delegated(id, 'locate', { actor: 'worker', where: { steps: 'TASKS.md' } }), /assigning agent/);
+  await assert.rejects(store.delegated(id, 'locate', { actor: 'coordinator', where: { steps: 1 } }), /nonempty/);
+  await store.close();
+  await writeFile(file, JSON.stringify({ steps: 'ledger/TASKS.md', repo: '.' }));
+  await exec(process.execPath, ['cli.mjs', 'delegate', 'locate', String(id), file, '--actor', 'coordinator'], { env: { ...process.env, WORK_DATA: data, PI_DURABLE_ALERT: 'none' } });
+  store = await openStore(data);
+  try {
+    const saved = await store.get(id);
+    assert.deepEqual(saved.where, { tmux: 'team:worker', steps: 'ledger/TASKS.md', repo: '.' });
+    assert.deepEqual(saved.calls[0].where, saved.where);
+    assert.equal(saved.delegationState, 'working'); assert.deepEqual(saved.exchanges, before.exchanges);
+    assert.equal(saved.events.at(-1).type, 'delegated-locate');
+  } finally { await store.close(); }
 });

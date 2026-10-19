@@ -1,5 +1,8 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 
 const execute = promisify(execFile);
 const run = async (file, args) => (await execute(file, args, { timeout: 1500, maxBuffer: 256 * 1024, encoding: 'utf8' })).stdout;
@@ -16,22 +19,39 @@ function matches(target, p) {
   return dot > 0 && [p.name, p.index].includes(location.slice(0, dot)) && location.slice(dot + 1) === p.paneIndex;
 }
 
+const pathAt = (path, cwd) => resolve(cwd ?? process.cwd(), path.startsWith('~/') ? resolve(homedir(), path.slice(2)) : path);
+
+export function stepLedger(text) {
+  let section = ''; const now = [];
+  for (const line of text.split('\n')) {
+    const heading = line.match(/^##\s+(.+?)\s*$/);
+    if (heading) section = heading[1].toUpperCase();
+    if (section === 'NOW' && /^\s*- \[ \]/.test(line)) now.push(line.replace(/^\s*- \[ \]\s*/, ''));
+  }
+  // Removed tasks are not proof of completion. Count only checked entries still present.
+  return { now, done: (text.match(/^\s*- \[[xX]\]/gm) ?? []).length };
+}
+
 // Read-only, disposable observations, never lifecycle transitions or completion evidence.
-export async function delegatedTelemetry(w, { exec = run } = {}) {
+async function tmuxTelemetry(w, { exec, now }) {
   if (w.state === 'dead' || w.delegationState === 'dead') return { tmux: { state: 'dead', reason: 'worker death recorded' } };
   const target = w.where?.tmux;
   if (typeof target !== 'string' || !target || w.done) return {};
   try {
-    const format = '#{session_name}\t#{window_name}\t#{window_index}\t#{window_id}\t#{pane_index}\t#{pane_id}\t#{pane_dead}\t#{pane_current_command}\t#{pane_tty}';
+    const format = '#{session_name}\t#{window_name}\t#{window_index}\t#{window_id}\t#{pane_index}\t#{pane_id}\t#{pane_dead}\t#{pane_current_command}\t#{pane_tty}\t#{pane_activity}\t#{window_activity}\t#{window_panes}';
     const listing = await exec('tmux', ['list-panes', '-a', '-F', format]);
     const panes = listing.trimEnd().split('\n').filter(Boolean).map(line => {
-      const [session, name, index, window, paneIndex, pane, dead, command, tty] = line.split('\t');
+      const [session, name, index, window, paneIndex, pane, dead, command, tty, activity, windowActivity, paneCount] = line.split('\t');
       if (!/^%\d+$/.test(pane ?? '') || !['0', '1'].includes(dead)) throw new Error('Invalid pane observation');
-      return { session, name, index, window, paneIndex, pane, dead, command, tty };
+      const output = Number(activity) > 0 ? activity : Number(paneCount) === 1 ? windowActivity : null;
+      const outputAt = Number(output) > 0 && Number(output) * 1000 <= now ? Number(output) * 1000 : null;
+      return { session, name, index, window, paneIndex, pane, dead, command, tty, outputAt,
+        outputScope: Number(activity) > 0 ? 'pane output' : Number(paneCount) === 1 ? 'output (single-pane window)' : 'pane output unavailable' };
     }).filter(p => matches(target, p));
     if (!panes.length) return { tmux: { state: 'dead', reason: 'recorded tmux target is gone' } };
     const observations = await Promise.all(panes.map(async p => {
-      if (p.dead === '1') return { pane: p.pane, state: 'dead', reason: 'pane exited' };
+      const observed = { pane: p.pane, outputAt: p.outputAt, outputScope: p.outputScope };
+      if (p.dead === '1') return { ...observed, state: 'dead', reason: 'pane exited' };
       try {
         // ps reads /proc on Linux; it also works on macOS. No process arguments
         // or arbitrary pane content are retained, logged, or displayed.
@@ -41,10 +61,21 @@ export async function delegatedTelemetry(w, { exec = run } = {}) {
         const harness = w.worker?.harness;
         const expected = harness === 'claude-code' ? 'claude' : harness;
         const agent = expected && names.find(name => name === expected);
-        return { pane: p.pane, state: agent ? 'running' : names.length ? 'stale' : 'unknown',
+        return { ...observed, state: agent ? 'running' : names.length ? 'stale' : 'unknown',
           command: agent ?? p.command, reason: agent ? null : 'no foreground agent process observed' };
-      } catch { return { pane: p.pane, state: 'unknown', reason: 'process observation unavailable' }; }
+      } catch { return { ...observed, state: 'unknown', reason: 'process observation unavailable' }; }
     }));
     return { tmux: observations.find(p => p.state === 'running') ?? observations.find(p => p.state === 'unknown') ?? observations[0] };
   } catch { return { tmux: { state: 'unknown', unavailable: true } }; }
+}
+
+export async function delegatedTelemetry(w, { exec = run, read = readFile, now = Date.now() } = {}) {
+  const out = await tmuxTelemetry(w, { exec, now });
+  if (w.done || w.state === 'dead' || w.delegationState === 'dead') return out;
+  const steps = w.where?.steps ?? (w.workspace ? 'TASKS.md' : null);
+  if (typeof steps === 'string' && steps) {
+    try { out.steps = stepLedger(await read(pathAt(steps, w.workspace), 'utf8')); }
+    catch { out.steps = { unavailable: true }; }
+  }
+  return out;
 }

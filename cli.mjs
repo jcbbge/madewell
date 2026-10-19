@@ -41,6 +41,8 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   return <clear|question|answered|human|accepted> <id> <text.txt> --actor <actor>
                                    receive a final report through its NQ exchange (not another reviewer)
   delegate open <assignment.json>   record coordinator-delegated work; never starts an agent
+  delegate locate <id> <where.json> --actor <sender>
+                                   update tmux/steps/repo hints without changing lifecycle
   delegate <started|dead|clear|question|answered|reported|accepted|sent-back|closed|human> <id> [text.txt] --actor <actor>
   run [--background]               the runner: discoveries as they come, then delivery items one at a time
   workspace relocate --from <old-absolute-path> --to <existing-new-path>
@@ -166,13 +168,14 @@ try {
       store = await openStore(directory);
       console.log(JSON.stringify({ id: await store.openDelegated(input), store: directory }));
     } else {
-      const verbs = ['started', 'dead', 'clear', 'question', 'answered', 'reported', 'accepted', 'sent-back', 'closed', 'human'];
+      const verbs = ['started', 'dead', 'locate', 'clear', 'question', 'answered', 'reported', 'accepted', 'sent-back', 'closed', 'human'];
       if (!verbs.includes(verb) || !Number.isSafeInteger(Number(target)) || Number(target) < 1) throw new Error('Supply a delegated action and positive work ID');
       const actorAt = rest.indexOf('--actor');
       if (actorAt < 0 || !rest[actorAt + 1]) throw new Error('--actor <actor> is required');
       const files = rest.filter((_, i) => i !== actorAt && i !== actorAt + 1);
       if (files.length !== (verb === 'closed' ? 0 : 1)) throw new Error('Supply one text file (none for closed)');
       const input = { actor: rest[actorAt + 1], ...(files[0] ? { text: await readFile(files[0], 'utf8'), evidence: files[0] } : {}) };
+      if (verb === 'locate') input.where = JSON.parse(input.text);
       store = await openStore(directory);
       console.log(JSON.stringify(await store.delegated(Number(target), verb, input)));
     }

@@ -12,6 +12,11 @@ const participant = (value, name) => {
 };
 const digest = value => createHash('sha256').update(value).digest('hex');
 const stamp = () => new Date().toISOString();
+const location = value => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Location must be an object');
+  for (const key of ['tmux', 'steps', 'repo']) if (key in value) text(value[key], `where.${key}`);
+  return structuredClone(value);
+};
 
 // Delegation is a Work document in the same Pi Durable catalog and SQLite file as runner work.
 // These are committed transitions, not a second scheduler or a second telemetry store.
@@ -20,7 +25,7 @@ export function delegatedFields(input) {
   if (sender.actor === worker.actor) throw new Error('Sender and worker must differ');
   const brief = text(input.brief, 'Brief');
   const w = { kind: 'delegated', objective: text(input.objective, 'Objective'), source: brief,
-    parentId: input.parentId ?? null, sender, worker, where: input.where ?? null,
+    parentId: input.parentId ?? null, sender, worker, where: input.where == null ? null : location(input.where),
     step: input.step ?? worker.job, delegationState: 'intake', activeCall: null, calls: [],
     report: null, acceptance: null, closedAt: null, handoffId: randomUUID(), briefHash: digest(brief),
     createdAt: stamp(), exchanges: [], asked: [], round: 0, hold: null };
@@ -51,7 +56,12 @@ export function transitionDelegated(w, action, input = {}) {
     if (c) Object.assign(c, { endedAt: stamp(), outcome, result: w.report });
     w.activeCall = null;
   };
-  if (action === 'dead') {
+  if (action === 'locate') {
+    if (actor !== w.sender.actor) throw new Error('Only the assigning agent can update location');
+    w.where = { ...(w.where ?? {}), ...location(input.where) };
+    const c = w.calls.find(c => c.id === w.activeCall);
+    if (c) c.where = w.where;
+  } else if (action === 'dead') {
     if (actor !== w.sender.actor) throw new Error('Only the assigning agent can record worker death');
     if (x.subject.handoff !== 'assignment') throw new Error('A reported result must go through its return exchange');
     nq.noHold(w); body();
@@ -110,7 +120,7 @@ export function transitionDelegated(w, action, input = {}) {
   }
   const at = stamp();
   w.events.push({ type: `delegated-${action}`, at, actor, exchangeId: x.id, callId: w.activeCall,
-    state: w.delegationState, step: w.step, text: input.text ?? null,
+    state: w.delegationState, step: w.step, text: input.text ?? null, where: w.where,
     hold: w.hold ? JSON.parse(JSON.stringify(w.hold)) : null, completion: w.completion,
     exchange: { id: w.exchangeId, status: w.exchanges.at(-1).status },
     acceptance: w.acceptance, report: w.report });

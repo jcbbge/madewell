@@ -196,12 +196,18 @@ function decisionLines(t, unit, label, w, now, action) {
   return lines;
 }
 
+const age = (at, now) => !Number.isFinite(ms(at)) ? 'UNKNOWN' : `${Math.max(0, Math.floor((now - ms(at)) / 1000))}s`;
+
 // Observations never replace lifecycle state, and absent hints never imply death or completion.
 function delegatedLines(t, v, w, now) {
   const out = [], obs = v.telemetry ?? {};
   const add = text => wrapText(plain(text), w - 2).slice(0, 2).forEach(l => out.push('  ' + t.muted(l)));
   add(`Step: ${v.current?.name ?? v.record?.step ?? 'UNKNOWN'}`);
-  if (obs.tmux) add(`tmux: ${obs.tmux.state} · ${obs.tmux.command ?? obs.tmux.reason ?? 'pane unavailable'}`);
+  if (obs.tmux) {
+    add(`tmux: ${obs.tmux.state} · ${obs.tmux.command ?? obs.tmux.reason ?? 'pane unavailable'}`);
+    if (obs.tmux.outputScope) add(`Activity: ${obs.tmux.outputScope} ${age(obs.tmux.outputAt, now)} ago`);
+  }
+  if (obs.steps) add(obs.steps.unavailable ? 'Steps: ledger unavailable' : `Steps: ${obs.steps.done} done recorded · NOW ${obs.steps.now.slice(0, 2).join('; ') || 'none recorded'}`);
   if (v.lastEvent?.text) add(`${v.lastEvent.actor ?? ''}: ${v.lastEvent.text}`);
   return out;
 }
