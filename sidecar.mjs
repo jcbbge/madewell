@@ -65,7 +65,7 @@ export async function sidecarSnapshot({ base = dataDirectory(), now = Date.now()
 }
 
 // The live loop: clear-screen redraw on change, on resize, or every intervalMs; q or Ctrl-C quits.
-export async function runSidecar({ base = dataDirectory(), output = process.stdout, input = process.stdin, width, intervalMs = 2000, env = process.env, workspace = null, signal } = {}) {
+export async function runSidecar({ base = dataDirectory(), output = process.stdout, input = process.stdin, width, height, intervalMs = 2000, env = process.env, workspace = null, signal } = {}) {
   const tty = Boolean(output.isTTY), color = tty && !env.NO_COLOR, watcher = new AbortController();
   let previous = '', busy = false, again = false, ended = false, offset = 0, max = 0, pending;
   const draw = async (force = false) => {
@@ -75,7 +75,7 @@ export async function runSidecar({ base = dataDirectory(), output = process.stdo
     try {
       const columns = width ?? output.columns ?? 80;
       let frame;
-      try { frame = renderSidecar(await sidecarSnapshot({ base, workspace }), { width: columns, height: output.rows, color }); }
+      try { frame = renderSidecar(await sidecarSnapshot({ base, workspace }), { width: columns, height: height ?? output.rows ?? 53, color }); }
       catch (e) { frame = `Cannot read the work right now: ${e.message}`; }
       if (ended) return;
       const page = sidecarPage(frame, { rows: output.rows, width: columns, offset });

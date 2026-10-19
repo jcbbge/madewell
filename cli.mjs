@@ -54,7 +54,7 @@ const usage = `pi-durable — Made Well work on Pi Durable. Work is durable; age
   drive-all <ids...> [--model provider/model] [--background]
   answer <id> <answer.txt> [${CAUSES.join('|')}]   human answer to whatever is held; the runner continues it
   serve [--workspace <dir> | --all] [--no-open] [--port 7788] [--host 127.0.0.1]   the run view in the browser
-  sidecar [--workspace <dir>] [--once] [--width N]   terminal view for a pane: what waits on you, what is running
+  sidecar [--workspace <dir>] [--once] [--width N] [--height N]   terminal view for a pane: what waits on you, what is running
   demo                             one example run stepped through the sidecar: → step, ← back, Enter decides, p plays
   doctor [--json]                  what can run here: harnesses, sign-in, cards per tier, front doors
   provision [--yes]                install each installed harness's front door (--yes replaces changed files)
@@ -151,9 +151,11 @@ try {
   else if (command === 'sidecar') {
     const i = args.indexOf('--width'), width = i < 0 ? undefined : Number(args[i + 1]);
     if (width !== undefined && !(width > 0)) throw new Error('--width needs a positive number of columns');
+    const h = args.indexOf('--height'), height = h < 0 ? process.stdout.rows ?? process.stderr.rows ?? Number(process.env.LINES || 53) : Number(args[h + 1]);
+    if (!Number.isSafeInteger(height) || height < 1) throw new Error('--height needs a positive number of rows');
     const scope = workspace ? await realpath(workspace) : null;
-    if (args.includes('--once')) console.log(renderSidecar(await sidecarSnapshot({ workspace: scope }), { width: width ?? process.stdout.columns ?? 80, color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR }));
-    else await runSidecar({ width, workspace: scope });
+    if (args.includes('--once')) console.log(renderSidecar(await sidecarSnapshot({ workspace: scope }), { width: width ?? process.stdout.columns ?? 80, height, color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR }));
+    else await runSidecar({ width, height: h < 0 ? undefined : height, workspace: scope });
   }
   else if (command === 'demo') await (await import('./demo.mjs')).runDemo();
   else if (command === 'workspace') {

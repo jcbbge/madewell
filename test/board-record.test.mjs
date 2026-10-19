@@ -188,7 +188,7 @@ test('archiving removes only the disposable view; replay never borrows future us
   assert.equal(runView(snap(priced)).telemetry.tiles.tokens.value, 1000);
 });
 
-test('viewport reaches every evidence line at 60/80/120 columns, and quitting restores raw mode and listeners', async t => {
+test('detail paging reaches every evidence line; overview fits and quitting restores raw mode and listeners', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'board-page-')); t.after(() => rm(dir, { recursive: true, force: true }));
   for (const width of [60, 80, 120]) {
     const frame = Array.from({ length: 100 }, (_, i) => `evidence-${i}`).join('\n');
@@ -198,10 +198,13 @@ test('viewport reaches every evidence line at 60/80/120 columns, and quitting re
   }
   const input = new EventEmitter(), output = new EventEmitter();
   Object.assign(input, { isTTY: true, isRaw: false, resume() {}, pause() {}, setRawMode(raw) { this.isRaw = raw; } });
-  Object.assign(output, { isTTY: true, columns: 60, rows: 10, write(text) { if (text.includes('Lines ')) this.emit('frame', text); } });
+  Object.assign(output, { isTTY: true, columns: 60, rows: 10, write(text) { if (text.includes('MADE WELL')) this.emit('frame', text); } });
   const before = process.listenerCount('SIGINT'), first = once(output, 'frame');
   const running = runSidecar({ base: dir, input, output, intervalMs: 60_000, env: { NO_COLOR: '1' } });
-  await first; const bottom = once(output, 'frame'); input.emit('data', Buffer.from('G')); await bottom;
+  const [overview] = await first;
+  assert.ok(overview.trimEnd().split('\n').length <= 10);
+  assert.doesNotMatch(overview, /Lines /);
+  const resized = once(output, 'frame'); output.rows = 12; output.emit('resize'); await resized;
   input.emit('data', Buffer.from('q')); await running;
   assert.equal(input.isRaw, false); assert.equal(input.listenerCount('data'), 0); assert.equal(output.listenerCount('resize'), 0);
   assert.equal(process.listenerCount('SIGINT'), before);

@@ -281,6 +281,27 @@ function machineLines(t, m, w, { split = false } = {}) {
   return columns([rows.slice(0, 2).map(r => r(half)), [...rows.slice(2).map(r => r(half)), fit(facts[0], half)]], [half, half], 3).concat(fit(facts[1], w));
 }
 
+// A pane is a viewport, not a document. Budgets include panel borders; the NOW
+// panel never receives more than 40% of the available rows.
+export function viewportBudgets(height) {
+  const keys = ['machine', 'now', 'flow', 'list', 'time'];
+  const desired = [5, 17, 12, 10, 8];
+  const sizes = desired.map(n => Math.max(3, Math.floor(n * (height - 1) / 52)));
+  while (sizes.reduce((a, b) => a + b, 0) > height - 1) {
+    const i = sizes.indexOf(Math.max(...sizes));
+    if (sizes[i] <= 3) break;
+    sizes[i]--;
+  }
+  let spare = height - 1 - sizes.reduce((a, b) => a + b, 0);
+  for (const i of [1, 2, 3, 4, 0]) {
+    const extra = i === 1 ? Math.min(spare, Math.max(0, Math.floor(height * 0.4) - sizes[i])) : spare;
+    sizes[i] += extra; spare -= extra;
+  }
+  return Object.fromEntries(keys.map((key, i) => [key, sizes[i]]));
+}
+const limited = (lines, max) => lines.length <= max ? lines : [...lines.slice(0, Math.max(0, max - 1)), `+${lines.length - Math.max(0, max - 1)} more`];
+
+// A height-free render is a full evidence document; live/once panes supply a height.
 // One frame. Pure: the same snapshot, size and time give the same text. `narration` is the demo's step.
 export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date.now(), color = false, narration = null } = {}) {
   width = Math.max(40, Math.floor(width));
@@ -464,6 +485,37 @@ export function renderSidecar(snap, { width = 80, height, now = snap?.at ?? Date
     out.push(...panel(t, 'TELEMETRY', tilesBody(width - 4), width));
     out.push(...panel(t, 'MINUTES PER STAGE', barsBody(width - 4), width));
     out.push(...panel(t, 'LOG', logBody(width - 4, LOG_LINES), width));
+  }
+  if (Number.isSafeInteger(height) && height > 0) {
+    const budgets = viewportBudgets(height);
+    const section = (title, body, size, opts = {}) => panel(t, title, limited(body, size - 2), width, opts);
+    const fittedFlow = () => {
+      const room = budgets.flow - 2;
+      if (room < 7) return limited(LANES.map(([lane, steps]) => `${lane.toUpperCase()}: ${open.filter(u => steps.includes(u.w.current?.name)).map(label).join(' ') || '—'}`), room);
+      const unplaced = open.filter(u => u.w.kind === 'delegated' && !LANE_OF[u.w.current?.name]);
+      const depth = Math.max(1, Math.floor((room - 4 - Number(Boolean(unplaced.length))) / 2));
+      const bounded = specs => specs.map(spec => ({ ...spec, body: w => limited(spec.body(w), depth) }));
+      return [...row(t, bounded([...lanes, doneSpec]), width - 4), ...row(t, bounded(stages), width - 4),
+        ...(unplaced.length ? [fit(`Unplaced: ${unplaced.map(u => `${label(u)} ${u.w.state}`).join(' · ')}`, width - 4)] : [])];
+    };
+    if (height < 16) {
+      const summaries = [out[0], `WHERE THE WORK IS · ${open.length} open`, `HAPPENING NOW · ${running.length} running · ${waiting.length} need you`,
+        `THE ONE LIST · ${units.length} records`, 'MINUTES PER STAGE · ' + Object.entries(laneMinutes(units[0]?.w ?? {}, now)).map(([k, v]) => `${k} ${minutes(v)}`).join(' · '),
+        `RULES · ${rules(units).length} checked on the record`, `TELEMETRY · ${today.length} done today`, `LOG · ${log.length} events`, machineTitle];
+      const rows = Array.from({ length: Math.min(height, summaries.length) }, () => []);
+      summaries.forEach((text, i) => rows[i % rows.length].push(text));
+      return rows.map(parts => fit(parts.join(' | '), width).trimEnd()).join('\n');
+    }
+    const listSpecs = [{ title: 'THE ONE LIST', weight: 1.3, body: w => limited(listBody(w, budgets.list - 2), budgets.list - 2) },
+      { title: 'RULES, CHECKED ON THE RECORD', weight: 0.9, body: w => limited(rulesPanel(w), budgets.list - 2) },
+      { title: 'TELEMETRY', weight: 1.1, body: w => limited(tilesBody(w), budgets.list - 2) }];
+    const timeSpecs = [{ title: 'MINUTES PER STAGE', body: w => limited(barsBody(w), budgets.time - 2) },
+      { title: 'LOG', body: w => limited(logBody(w, budgets.time - 2), budgets.time - 2) }];
+    return [out[0], ...section(machineTitle, machineLines(t, snap?.machine, width - 4, { split: width >= 90 }), budgets.machine),
+      ...section('HAPPENING NOW', nowPanel(width - 4), budgets.now, { tone: nowTone, titleTone: nowTitle }),
+      ...section('WHERE THE WORK IS', fittedFlow(), budgets.flow),
+      ...row(t, listSpecs, width), ...row(t, timeSpecs, width)]
+      .map(l => fit(l, width).trimEnd()).join('\n');
   }
   return out.map(l => fit(l, width).replace(/ +$/, '')).join('\n');
 }
