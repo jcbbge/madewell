@@ -248,27 +248,61 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 	assert.ok(call.prompt && call.system && call.output && call.workspace, 'a call goes out in full: brief, packet and answer')
 	assert.ok(lines.some((l) => l.t === 'span' && l.name === 'mw.drive'), 'the engine\'s spans go out too')
 
-	// A third machine's file, written elsewhere and collected here: one implement call, refused afterwards.
+	// A third machine with two stores on one project, written elsewhere and collected here. Item ids repeat across
+	// stores. Store 1a2b3c4d: items 1-3 ship after 40, 120 and 10 minutes; item 4 holds, its alert follows, and its
+	// store's last record is at 10:05. Store 5e6f7a8b: its item 1 ships after 30 minutes, later than everything else.
+	// Item 1's implement job: an intake, an originator answer, a call refused afterwards; plan: an intake and a call.
 	const card = { harness: 'codex', provider: 'openai', account: 'openai', model: 'sol', effort: 'high' }
+	const vps = (store: string) => ({ host: 'vps', store, workspace: '/srv/app' })
+	const vpsEvent = (store: string, item: number, at: string, kind: string, data = {}) => ({ t: 'event', ...vps(store), item, at: `2026-10-22T${at}:00.000Z`, kind, data })
+	const vpsCall = (id: number, kind: string, job: string, started: string, ms: number, extra = {}) => ({ t: 'call', ...vps('1a2b3c4d'), id, item: 1, kind, job, card, outcome: 'ok', started: `2026-10-22T${started}:00.000Z`, ms, tokens: null, flags: [], ...extra })
 	writeFileSync(join(telemetry, 'vps-1a2b3c4d.jsonl'), [
-		{ t: 'event', host: 'vps', store: '1a2b3c4d', seq: 1, item: 1, workspace: '/srv/app', at: '2026-10-22T08:00:00.000Z', kind: 'created', data: {} },
-		{ t: 'call', host: 'vps', store: '1a2b3c4d', id: 7, item: 1, workspace: '/srv/app', kind: 'execute', job: 'implement', card, outcome: 'ok', started: '2026-10-22T08:01:00.000Z', ms: 90_000, tokens: { input: 1000, output: 200, cacheRead: 0, cacheWrite: 0 }, flags: [{ rule: 'out-of-scope', evidence: 'README.md' }] },
-		{ t: 'rejected', host: 'vps', store: '1a2b3c4d', call: 7, at: '2026-10-22T08:02:00.000Z', reason: 'out of scope' },
+		vpsEvent('1a2b3c4d', 1, '08:00', 'created', { job: 'ideate', status: 'queued' }),
+		vpsEvent('1a2b3c4d', 2, '08:05', 'created', { job: 'ideate', status: 'queued' }),
+		vpsEvent('1a2b3c4d', 3, '08:10', 'created', { job: 'ideate', status: 'queued' }),
+		vpsEvent('1a2b3c4d', 4, '08:30', 'created', { job: 'ideate', status: 'queued' }),
+		vpsEvent('1a2b3c4d', 3, '08:20', 'shipped'),
+		vpsCall(5, 'intake', 'implement', '08:00', 30_000),
+		vpsCall(6, 'originator', 'implement', '08:00', 60_000),
+		vpsCall(7, 'execute', 'implement', '08:01', 90_000, { tokens: { input: 1000, output: 200, cacheRead: 0, cacheWrite: 0 }, flags: [{ rule: 'out-of-scope', evidence: 'README.md' }] }),
+		{ t: 'rejected', ...vps('1a2b3c4d'), call: 7, at: '2026-10-22T08:02:00.000Z', reason: 'out of scope' },
+		vpsCall(8, 'intake', 'plan', '08:03', 60_000),
+		vpsCall(9, 'execute', 'plan', '08:04', 120_000),
+		vpsEvent('1a2b3c4d', 1, '08:40', 'shipped'),
+		vpsEvent('1a2b3c4d', 4, '09:00', 'held'),
+		vpsEvent('1a2b3c4d', 4, '09:01', 'alerted'),
+		vpsEvent('1a2b3c4d', 2, '10:05', 'shipped'),
 	].map((l) => JSON.stringify(l)).join('\n') + '\n{"t":"call","host":"vps"')
+	writeFileSync(join(telemetry, 'vps-5e6f7a8b.jsonl'), [
+		// A discovered candidate waits an hour for the operator; its lead time starts when it is promoted.
+		vpsEvent('5e6f7a8b', 1, '10:00', 'created', { job: 'ideate', status: 'candidate' }),
+		vpsEvent('5e6f7a8b', 1, '11:00', 'promoted', { discovery: 9 }),
+		vpsEvent('5e6f7a8b', 1, '11:30', 'shipped'),
+	].map((l) => JSON.stringify(l)).join('\n') + '\n')
 
 	const report = machines[0]!.mw('stats').out
-	assert.equal(report.files.length, 3)
-	assert.equal(report.to, '2026-10-22T08:02:00.000Z')
-	const [a, b, vps] = [...machines.map((t) => report.projects.find((p: { workspace: string }) => p.workspace === t.repo)), report.projects.find((p: { host: string }) => p.host === 'vps')]
+	assert.equal(report.files.length, 4)
+	assert.equal(report.to, '2026-10-22T11:30:00.000Z')
+	const [a, b, srv] = [...machines.map((t) => report.projects.find((p: { workspace: string }) => p.workspace === t.repo)), report.projects.find((p: { host: string }) => p.host === 'vps')]
 	for (const p of [a, b]) {
 		assert.deepEqual([p.items, p.refused], [{ created: 1, shipped: 1, held: 0 }, 0])
 		assert.ok(p.nq.intakes > 0 && p.jobs.implement.calls === 2 && p.calls === Object.values(p.jobs as Record<string, { calls: number }>).reduce((n, j) => n + j.calls, 0))
+		assert.deepEqual([p.leadTime.shipped.length, p.leadTime.open], [1, []])
 	}
-	assert.deepEqual(vps, {
-		host: 'vps', workspace: '/srv/app', calls: 1, minutes: 1.5, tokens: 1200, refused: 1,
-		items: { created: 1, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0 }, flags: { 'out-of-scope': 1 },
-		jobs: { implement: { calls: 1, minutes: 1.5, tokens: 1200, refused: 1 } },
-		cards: { 'codex · sol · high': { calls: 1, minutes: 1.5, tokens: 1200, refused: 1 } },
-	}, 'a half-written last line is skipped, and the refusal that follows its call counts against it')
+	assert.deepEqual(srv, {
+		host: 'vps', workspace: '/srv/app', calls: 5, minutes: 6, tokens: 1200, refused: 1,
+		kinds: { intake: 1.5, originator: 1, execute: 3.5 },
+		items: { created: 5, shipped: 4, held: 1 }, nq: { intakes: 2, questions: 0, share: 0.42 }, flags: { 'out-of-scope': 1 },
+		leadTime: {
+			median: 35, slowest: { item: 2, store: '1a2b3c4d', minutes: 120 },
+			shipped: [{ item: 2, store: '1a2b3c4d', minutes: 120 }, { item: 1, store: '1a2b3c4d', minutes: 40 }, { item: 1, store: '5e6f7a8b', minutes: 30 }, { item: 3, store: '1a2b3c4d', minutes: 10 }],
+			open: [{ item: 4, store: '1a2b3c4d', status: 'held', minutes: 95 }],
+		},
+		jobs: {
+			implement: { calls: 3, minutes: 3, tokens: 1200, refused: 1, kinds: { intake: 0.5, originator: 1, execute: 1.5 } },
+			plan: { calls: 2, minutes: 3, tokens: 0, refused: 0, kinds: { intake: 1, originator: 0, execute: 2 } },
+		},
+		cards: { 'codex · sol · high': { calls: 5, minutes: 6, tokens: 1200, refused: 1 } },
+	}, 'a half-written last line is skipped; the refusal after its call counts against it; item ids are told apart by store; an open item is aged to its own store\'s last record; a candidate\'s lead time starts at its promotion')
 	assert.equal(setup().mw('stats').err.error, 'usage', 'without MW_TELEMETRY or --dir there is nothing to read')
 })

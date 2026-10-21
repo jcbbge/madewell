@@ -22807,15 +22807,20 @@ var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => 
     }
   }));
 }));
+var WHILE_HELD = ["alerted", "torn-down", "worktree-leftovers"];
+var minutesBetween = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 6e3) / 10;
 function stats(lines4) {
   const projects = /* @__PURE__ */ new Map();
   const calls = /* @__PURE__ */ new Map();
+  const items = /* @__PURE__ */ new Map();
+  const latest = /* @__PURE__ */ new Map();
   let from = null;
   let to = null;
   const tally = () => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 });
+  const kinds = () => ({ intake: 0, originator: 0, execute: 0 });
   const project = (host, workspace) => {
     const key = `${host}\0${workspace}`;
-    if (!projects.has(key)) projects.set(key, { host, workspace, items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0 }, ...tally(), flags: {}, jobs: {}, cards: {} });
+    if (!projects.has(key)) projects.set(key, { host, workspace, ...tally(), kinds: kinds(), items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, shipped: [], open: [] }, flags: {}, jobs: {}, cards: {} });
     return projects.get(key);
   };
   const refused = /* @__PURE__ */ new Set();
@@ -22830,6 +22835,8 @@ function stats(lines4) {
     if (at) {
       if (!from || at < from) from = at;
       if (!to || at > to) to = at;
+      const s = `${r.host}\0${r.store}`;
+      if (at > (latest.get(s) ?? "")) latest.set(s, at);
     }
     if (r.t === "rejected") refused.add(`${r.host}\0${r.store}\0${r.call}`);
     if (!r.workspace) continue;
@@ -22839,17 +22846,25 @@ function stats(lines4) {
       if (r.kind === "shipped") p.items.shipped++;
       if (r.kind === "held") p.items.held++;
       if (r.kind === "nq-question") p.nq.questions += r.data?.questions?.length ?? 0;
+      const key = `${r.host}\0${r.store}\0${r.item}`;
+      if (r.kind === "created" && r.data?.job !== "discover") items.set(key, { p, item: r.item, store: r.store, created: r.at, status: r.data?.status === "candidate" ? "candidate" : "running" });
+      const i = items.get(key);
+      if (i && r.kind === "shipped") i.shipped = r.at;
+      else if (i && r.kind === "held") i.status = "held";
+      else if (i && r.kind !== "created" && !WHILE_HELD.includes(r.kind)) i.status = "running";
     }
     if (r.t === "call") {
       const card = `${r.card.harness} \xB7 ${r.card.model} \xB7 ${r.card.effort}`;
       const minutes2 = r.ms / 6e4;
       const tokens = totalTokens(r.tokens);
-      for (const t of [p, p.jobs[r.job] ??= tally(), p.cards[card] ??= tally()]) {
+      const job = p.jobs[r.job] ??= { ...tally(), kinds: kinds() };
+      for (const t of [p, job, p.cards[card] ??= tally()]) {
         t.calls++;
         t.minutes += minutes2;
         t.tokens += tokens;
         if (r.outcome === "rejected") t.refused++;
       }
+      for (const t of [p, job]) t.kinds[r.kind] = (t.kinds[r.kind] ?? 0) + minutes2;
       if (r.kind === "intake") p.nq.intakes++;
       for (const f of r.flags ?? []) p.flags[f.rule] = (p.flags[f.rule] ?? 0) + 1;
       calls.set(`${r.host}\0${r.store}\0${r.id}`, { p, job: r.job, card });
@@ -22859,11 +22874,28 @@ function stats(lines4) {
     const c = calls.get(key);
     if (c) for (const t of [c.p, c.p.jobs[c.job], c.p.cards[c.card]]) t.refused++;
   }
-  const round2 = (t) => (t.minutes = Math.round(t.minutes * 10) / 10, t);
+  for (const i of items.values()) {
+    const ref = { item: i.item, store: i.store };
+    if (i.shipped) i.p.leadTime.shipped.push({ ...ref, minutes: minutesBetween(i.created, i.shipped) });
+    else i.p.leadTime.open.push({ ...ref, status: i.status, minutes: minutesBetween(i.created, latest.get(`${i.p.host}\0${i.store}`)) });
+  }
+  const tenth = (n) => Math.round(n * 10) / 10;
+  const round2 = (t) => {
+    t.minutes = tenth(t.minutes);
+    for (const k in t.kinds) t.kinds[k] = tenth(t.kinds[k]);
+    return t;
+  };
   return {
     from,
     to,
     projects: [...projects.values()].map((p) => {
+      const lt = p.leadTime;
+      lt.shipped.sort((a, b) => b.minutes - a.minutes);
+      lt.open.sort((a, b) => b.minutes - a.minutes);
+      const n = lt.shipped.length;
+      lt.slowest = lt.shipped[0] ?? null;
+      lt.median = n ? tenth((lt.shipped[Math.floor((n - 1) / 2)].minutes + lt.shipped[Math.floor(n / 2)].minutes) / 2) : null;
+      p.nq.share = p.minutes ? Math.round((p.kinds.intake + p.kinds.originator) / p.minutes * 100) / 100 : 0;
       round2(p);
       Object.values(p.jobs).forEach(round2);
       Object.values(p.cards).forEach(round2);
@@ -24204,6 +24236,8 @@ var Action = Schema_exports.Union([
 ]).annotate({ identifier: "Action", description: "run a command, relay to the operator, or wait until a time" });
 var Created = Schema_exports.Struct({ item: ItemView, next: Schema_exports.Array(Next) });
 var Tally = Schema_exports.Struct({ calls: Schema_exports.Int, minutes: Schema_exports.Number, tokens: Schema_exports.Number, refused: Schema_exports.Int });
+var Kinds = Schema_exports.Record(Schema_exports.String, Schema_exports.Number).annotate({ description: "agent minutes by call kind: intake, originator (NQ) and execute" });
+var ItemRef = Schema_exports.Struct({ item: Schema_exports.Int, store: Schema_exports.String, minutes: Schema_exports.Number });
 var Stats = Schema_exports.Struct({
   dir: Schema_exports.String,
   files: Schema_exports.Array(Schema_exports.String),
@@ -24214,10 +24248,17 @@ var Stats = Schema_exports.Struct({
     host: Schema_exports.String,
     workspace: Schema_exports.String,
     ...Tally.fields,
+    kinds: Kinds,
     items: Schema_exports.Struct({ created: Schema_exports.Int, shipped: Schema_exports.Int, held: Schema_exports.Int }),
-    nq: Schema_exports.Struct({ intakes: Schema_exports.Int, questions: Schema_exports.Int }),
+    nq: Schema_exports.Struct({ intakes: Schema_exports.Int, questions: Schema_exports.Int, share: Schema_exports.Number.annotate({ description: "intake and originator minutes over all agent minutes" }) }),
+    leadTime: Schema_exports.Struct({
+      median: Schema_exports.NullOr(Schema_exports.Number),
+      slowest: Schema_exports.NullOr(ItemRef),
+      shipped: Schema_exports.Array(ItemRef).annotate({ description: "minutes from created to shipped, slowest first" }),
+      open: Schema_exports.Array(Schema_exports.Struct({ ...ItemRef.fields, status: Schema_exports.Literals(["candidate", "running", "held"]) })).annotate({ description: "not shipped yet: minutes from created to its store's latest record, oldest first" })
+    }).annotate({ description: "delivery items, by store and item id (ids are unique per store)" }),
     flags: Schema_exports.Record(Schema_exports.String, Schema_exports.Int),
-    jobs: Schema_exports.Record(Schema_exports.String, Tally),
+    jobs: Schema_exports.Record(Schema_exports.String, Schema_exports.Struct({ ...Tally.fields, kinds: Kinds })),
     cards: Schema_exports.Record(Schema_exports.String, Tally).annotate({ description: 'keyed "harness \xB7 model \xB7 effort"' })
   })),
   next: Schema_exports.Array(Next)
@@ -24512,7 +24553,7 @@ var COMMANDS = [
   }),
   command({
     name: "stats",
-    summary: "Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; NQ intakes and questions; calls, agent minutes, tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.",
+    summary: "Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; lead time from creation to ship (median, slowest, each item) and the age of items still open; NQ intakes, questions and share of agent minutes; calls, agent minutes (split by call kind: intake, originator, execute), tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.",
     input: Schema_exports.Struct({ dir: optional3("the telemetry directory; defaults to MW_TELEMETRY") }),
     output: Stats,
     idempotent: true,

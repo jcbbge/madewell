@@ -77,14 +77,21 @@ const Action = Schema.Union([
 const Created = Schema.Struct({ item: ItemView, next: Schema.Array(Next) })
 
 const Tally = Schema.Struct({ calls: Schema.Int, minutes: Schema.Number, tokens: Schema.Number, refused: Schema.Int })
+const Kinds = Schema.Record(Schema.String, Schema.Number).annotate({ description: 'agent minutes by call kind: intake, originator (NQ) and execute' })
+const ItemRef = Schema.Struct({ item: Schema.Int, store: Schema.String, minutes: Schema.Number })
 const Stats = Schema.Struct({
 	dir: Schema.String, files: Schema.Array(Schema.String), lines: Schema.Int, from: Schema.NullOr(Schema.String), to: Schema.NullOr(Schema.String),
 	projects: Schema.Array(Schema.Struct({
-		host: Schema.String, workspace: Schema.String, ...Tally.fields,
+		host: Schema.String, workspace: Schema.String, ...Tally.fields, kinds: Kinds,
 		items: Schema.Struct({ created: Schema.Int, shipped: Schema.Int, held: Schema.Int }),
-		nq: Schema.Struct({ intakes: Schema.Int, questions: Schema.Int }),
+		nq: Schema.Struct({ intakes: Schema.Int, questions: Schema.Int, share: Schema.Number.annotate({ description: 'intake and originator minutes over all agent minutes' }) }),
+		leadTime: Schema.Struct({
+			median: Schema.NullOr(Schema.Number), slowest: Schema.NullOr(ItemRef),
+			shipped: Schema.Array(ItemRef).annotate({ description: 'minutes from created to shipped, slowest first' }),
+			open: Schema.Array(Schema.Struct({ ...ItemRef.fields, status: Schema.Literals(['candidate', 'running', 'held']) })).annotate({ description: 'not shipped yet: minutes from created to its store\'s latest record, oldest first' }),
+		}).annotate({ description: 'delivery items, by store and item id (ids are unique per store)' }),
 		flags: Schema.Record(Schema.String, Schema.Int),
-		jobs: Schema.Record(Schema.String, Tally),
+		jobs: Schema.Record(Schema.String, Schema.Struct({ ...Tally.fields, kinds: Kinds })),
 		cards: Schema.Record(Schema.String, Tally).annotate({ description: 'keyed "harness · model · effort"' }),
 	})),
 	next: Schema.Array(Next),
@@ -414,7 +421,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'stats',
-		summary: 'Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; NQ intakes and questions; calls, agent minutes, tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.',
+		summary: 'Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; lead time from creation to ship (median, slowest, each item) and the age of items still open; NQ intakes, questions and share of agent minutes; calls, agent minutes (split by call kind: intake, originator, execute), tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.',
 		input: Schema.Struct({ dir: optional('the telemetry directory; defaults to MW_TELEMETRY') }),
 		output: Stats,
 		idempotent: true,
