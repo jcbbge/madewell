@@ -270,8 +270,8 @@ export function openStore(path: string) {
 		events(id: number): Event[] {
 			return (db.prepare('SELECT * FROM events WHERE item = ? ORDER BY seq').all(id) as { seq: number; item: number; at: string; kind: string; data: string }[]).map((r) => ({ ...r, data: JSON.parse(r.data) }))
 		},
-		/** Records one call with its tool events, tokens and rule-break flags, read from its raw stream and the engine's facts. */
-		recordCall(call: Omit<Call, 'id' | 'tools' | 'tokens' | 'facts' | 'flags'>, facts?: Facts): number {
+		/** Records one call with its tool events, tokens and rule-break flags, read from its raw stream and the engine's facts. The harness version goes only to telemetry. */
+		recordCall(call: Omit<Call, 'id' | 'tools' | 'tokens' | 'facts' | 'flags'> & { readonly harnessVersion?: string | null }, facts?: Facts): number {
 			const tools = toolEvents(call.card.harness, call.raw)
 			const tokens = tokensOf(call.card.harness, call.raw)
 			const flags = facts ? flagsFor(facts, { tools, tokens, ms: call.ms, output: call.output }) : []

@@ -1,6 +1,7 @@
 // A stand-in harness for MW_WORKER_COMMAND: reads the job request on stdin, answers every job with its
-// deliverable, confirms every hand-off, and logs "<kind> <job> <profile>" lines to $FAKE_LOG. The makers
-// write their files into their worktree (the working directory), so Made Well's own check run passes.
+// deliverable, confirms every hand-off, reports its version as "scripted 1", and logs "<kind> <job> <profile>"
+// lines to $FAKE_LOG. The makers write their files into their worktree (the working directory), so Made
+// Well's own check run passes.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 
 const request = JSON.parse(readFileSync(0, 'utf8')) as { kind: string; job: string; profile: string; prompt: string }
@@ -30,4 +31,4 @@ const asks = request.job === process.env.FAKE_ASK && !request.prompt.includes('"
 const answer = request.kind === 'intake' ? { understanding: asks ? 'mostly' : 'clear', unclear: asks ? ['CSV or PDF?'] : [], ambiguous: [], missing: [], notes: [] }
 	: request.kind === 'originator' ? (asks ? { answer: 'Only the operator can choose the format.', needsOperator: true } : { answer: 'as planned', needsOperator: false })
 	: deliverables[request.job]!()
-process.stdout.write(JSON.stringify({ ok: true, output: JSON.stringify(answer) }))
+process.stdout.write(JSON.stringify({ ok: true, output: JSON.stringify(answer), version: 'scripted 1' }))

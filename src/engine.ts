@@ -345,6 +345,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			item: id, kind: spec.kind, job, profile: spec.profile, card: spec.card, system: BRIEF, prompt,
 			outcome: res.ok ? 'ok' : 'limit' in res ? 'limit' : 'error', output: res.ok ? res.output : null,
 			error: res.ok ? null : 'limit' in res ? res.limit.message : res.error, raw: res.raw ?? null, started: started.toISOString(), ms: Date.now() - started.getTime(),
+			harnessVersion: res.version ?? null,
 		} as const
 		const callId = store.recordCall(call, {
 			access: spec.access,

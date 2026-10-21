@@ -143,6 +143,18 @@ test('a prescribed harness entry runs neutral: allowlisted environment, per-call
 	}
 })
 
+test('a harness\'s version is read once per runner process, and one that cannot be read never fails the call', async () => {
+	const home = mkdtempSync(join(tmpdir(), 'mw-v-'))
+	const log = join(home, 'versions.log')
+	const versioned: Harness = { ...shell, version: ['-c', `echo "shell 9.1"; echo read >> ${log}`] }
+	const runs = [await runShell('echo hi', { harness: versioned }), await runShell('echo hi', { harness: versioned })]
+	assert.deepEqual(runs.map((r) => [r.ok, r.version]), [[true, 'shell 9.1'], [true, 'shell 9.1']])
+	assert.equal(readFileSync(log, 'utf8'), 'read\n', 'one read for both calls')
+	rmSync(home, { recursive: true })
+	const unreadable = await runShell('echo hi', { harness: { ...shell, version: ['-c', 'exit 1'] } })
+	assert.deepEqual([unreadable.ok, unreadable.version], [true, undefined])
+})
+
 test('going over the wall-time or token budget kills the process group and fails the launch with evidence', async () => {
 	const slow = await runShell('echo started; sleep 30', { budget: { minutes: 0.002 } })
 	assert.equal(slow.ok, false)

@@ -235,18 +235,32 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 
 test('with MW_TELEMETRY, every machine writes its own file there, and stats reads them all together', () => {
 	const telemetry = mkdtempSync(join(root, 'telemetry-'))
-	const machines = [setup({ MW_TELEMETRY: telemetry }), setup({ MW_TELEMETRY: telemetry })]
+	// The second machine writes metrics only. On both, the planner asks once and the operator answers.
+	const machines = [setup({ MW_TELEMETRY: telemetry, FAKE_ASK: 'plan' }), setup({ MW_TELEMETRY: telemetry, MW_TELEMETRY_LEVEL: 'metrics', FAKE_ASK: 'plan' })]
 	for (const t of machines) {
 		t.mw('init', '--ship', 'true')
-		t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+		const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
+		assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
+		t.mw('answer', String(id), 'CSV only')
 		assert.equal(t.mw('run').out.items[0].status, 'shipped')
 	}
 	const files = readdirSync(telemetry)
 	assert.equal(files.length, 2, 'one file per store')
 	const lines = files.flatMap((f) => readFileSync(join(telemetry, f), 'utf8').trim().split('\n').map((l) => JSON.parse(l)))
-	const call = lines.find((l) => l.t === 'call' && l.kind === 'execute' && l.job === 'implement')
+	const [full, metrics] = machines.map((t) => lines.filter((l) => l.store === lines.find((x) => x.workspace === t.repo).store))
+	assert.equal(new Set(lines.map((l) => l.build)).size, 1, 'every line names the build that wrote it')
+	assert.match(lines[0].build, /^[0-9a-f]{12}$/)
+	const call = full!.find((l) => l.t === 'call' && l.kind === 'execute' && l.job === 'implement')
 	assert.ok(call.prompt && call.system && call.output && call.workspace, 'a call goes out in full: brief, packet and answer')
-	assert.ok(lines.some((l) => l.t === 'span' && l.name === 'mw.drive'), 'the engine\'s spans go out too')
+	assert.equal(call.harnessVersion, 'scripted 1', 'with the version of the harness that ran it')
+	assert.ok(full!.some((l) => l.t === 'span' && l.name === 'mw.drive'), 'the engine\'s spans go out too')
+
+	// Metrics only: counts, timings, cards and outcomes, and no free text from the operator, the agents or the repo.
+	const counted = metrics!.find((l) => l.t === 'call' && l.kind === 'execute' && l.job === 'implement')
+	assert.deepEqual([typeof counted.prompt, typeof counted.output, counted.outcome, counted.card, counted.harnessVersion], ['number', 'number', 'ok', call.card, 'scripted 1'])
+	assert.deepEqual(metrics!.find((l) => l.kind === 'nq-question').data.questions, ['CSV or PDF?'.length])
+	assert.ok(metrics!.some((l) => l.t === 'span' && l.name === 'mw.drive'))
+	assert.ok(!JSON.stringify(metrics).includes('CSV'), 'no objective, packet, answer, question or hold message')
 
 	// A third machine with two stores on one project, written elsewhere and collected here. Item ids repeat across
 	// stores. Store 1a2b3c4d: items 1-3 ship after 40, 120 and 10 minutes; item 4 holds, its alert follows, and its
@@ -285,10 +299,13 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 	assert.equal(report.to, '2026-10-22T11:30:00.000Z')
 	const [a, b, srv] = [...machines.map((t) => report.projects.find((p: { workspace: string }) => p.workspace === t.repo)), report.projects.find((p: { host: string }) => p.host === 'vps')]
 	for (const p of [a, b]) {
-		assert.deepEqual([p.items, p.refused], [{ created: 1, shipped: 1, held: 0 }, 0])
+		assert.deepEqual([p.items, p.nq.questions, p.refused], [{ created: 1, shipped: 1, held: 1 }, 1, 0])
 		assert.ok(p.nq.intakes > 0 && p.jobs.implement.calls === 2 && p.calls === Object.values(p.jobs as Record<string, { calls: number }>).reduce((n, j) => n + j.calls, 0))
 		assert.deepEqual([p.leadTime.shipped.length, p.leadTime.open], [1, []])
 	}
+	// Timings and store ids differ between the two machines; every count must match.
+	const numbers = (p: object) => JSON.parse(JSON.stringify(p, (k, v) => (['workspace', 'minutes', 'kinds', 'share', 'median', 'store'].includes(k) ? undefined : v)))
+	assert.deepEqual(numbers(b), numbers(a), 'stats reads the same numbers at either level')
 	assert.deepEqual(srv, {
 		host: 'vps', workspace: '/srv/app', calls: 5, minutes: 6, tokens: 1200, refused: 1,
 		kinds: { intake: 1.5, originator: 1, execute: 3.5 },

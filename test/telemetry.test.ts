@@ -8,7 +8,7 @@ import { after, test } from 'node:test'
 import { Effect } from 'effect'
 import type { Card } from '../src/cards.ts'
 import { openStore } from '../src/store.ts'
-import type { Facts } from '../src/telemetry.ts'
+import { stats, type Facts } from '../src/telemetry.ts'
 
 const dir = mkdtempSync(join(tmpdir(), 'mw-telemetry-'))
 after(() => rmSync(dir, { recursive: true, force: true }))
@@ -235,4 +235,30 @@ test('debug mode writes every span to a JSONL file beside the store, only when M
 	const glass = readFileSync(join(home, 'glass.html'), 'utf8')
 	assert.match(glass, /"kind":"runner-started"/)
 	assert.match(glass, /"kind":"runner-stopped"/)
+})
+
+test('the same records written at the metrics level give mw stats the same numbers, with no free text', () => {
+	const written = (level: string) => {
+		process.env.MW_TELEMETRY = join(dir, `telemetry-${level}`)
+		process.env.MW_TELEMETRY_LEVEL = level
+		try {
+			const { store, item, record } = freshStore()
+			const call = record('amp', AMP, { facts: { access: 'read', allowlist: ['Read'], changed: ['secret/plan.md'] }, output: 'secret answer' })
+			store.rejectCall(call.id, 'secret reason')
+			store.save(item, 'nq-question', { job: 'plan', questions: ['secret one?', 'secret two?'] })
+			store.save(item, 'held', { code: 'authority', message: 'secret hold' })
+			store.close()
+		} finally {
+			delete process.env.MW_TELEMETRY
+			delete process.env.MW_TELEMETRY_LEVEL
+		}
+		const files = readdirSync(join(dir, `telemetry-${level}`))
+		return readFileSync(join(dir, `telemetry-${level}`, files[0]!), 'utf8').trim().split('\n')
+	}
+	const [full, metrics] = [written('full'), written('metrics')]
+	const numbers = stats(full).projects[0]!
+	assert.deepEqual([numbers.tokens, numbers.refused, numbers.nq.questions, numbers.items.held, numbers.flags], [25 + 23872 + 21465, 1, 2, 1, { 'write-under-read': 1, 'tool-not-allowed': 1 }])
+	assert.deepEqual(stats(metrics).projects, stats(full).projects)
+	assert.ok(full.join('\n').includes('secret') && !metrics.join('\n').includes('secret'))
+	assert.equal(JSON.parse(metrics.find((l) => l.includes('"t":"call"'))!).tools[0].tool, 'shell_command', 'tool names stay')
 })

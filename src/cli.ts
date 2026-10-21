@@ -421,7 +421,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'stats',
-		summary: 'Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; lead time from creation to ship (median, slowest, each item) and the age of items still open; NQ intakes, questions and share of agent minutes; calls, agent minutes (split by call kind: intake, originator, execute), tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.',
+		summary: 'Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; lead time from creation to ship (median, slowest, each item) and the age of items still open; NQ intakes, questions and share of agent minutes; calls, agent minutes (split by call kind: intake, originator, execute), tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there. MW_TELEMETRY_LEVEL=metrics writes counts, timings, cards and outcomes but no prompts, answers or repo text; the numbers here are the same.',
 		input: Schema.Struct({ dir: optional('the telemetry directory; defaults to MW_TELEMETRY') }),
 		output: Stats,
 		idempotent: true,

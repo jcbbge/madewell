@@ -53,11 +53,12 @@ export interface OverBudget {
 	readonly tokens: number | null
 }
 
-/** `raw`: the harness's own transcript of the run, kept on the record for replay. */
-export type WorkerResult =
+/** `raw`: the harness's own transcript of the run, kept on the record for replay. `version`: the harness's own version, when it could be read. */
+export type WorkerResult = (
 	| { readonly ok: true; readonly output: string; readonly raw?: string }
 	| { readonly ok: false; readonly limit: UsageLimit; readonly raw?: string }
 	| { readonly ok: false; readonly error: string; readonly overBudget?: OverBudget; readonly raw?: string }
+) & { readonly version?: string }
 
 export class Worker extends Context.Service<Worker, {
 	readonly run: (request: WorkerRequest) => Effect.Effect<WorkerResult, MadeWellError>

@@ -6,7 +6,7 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync3, readdirSync as readdirSync2, readFileSync as readFileSync6, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename, dirname as dirname6, join as join9, resolve as resolve6 } from "node:path";
 import { parseArgs } from "node:util";
@@ -5876,17 +5876,17 @@ var LayerProto = {
     return pipeArguments(this, arguments);
   }
 };
-var fromBuildUnsafe = (build2) => {
+var fromBuildUnsafe = (build3) => {
   const self = Object.create(LayerProto);
-  self.build = build2;
+  self.build = build3;
   return self;
 };
-var fromBuild = (build2) => fromBuildUnsafe((memoMap, scope3) => {
+var fromBuild = (build3) => fromBuildUnsafe((memoMap, scope3) => {
   const layerScope = forkUnsafe2(scope3);
-  return onExit(build2(memoMap, layerScope), (exit4) => exit4._tag === "Failure" ? close(layerScope, exit4) : void_2);
+  return onExit(build3(memoMap, layerScope), (exit4) => exit4._tag === "Failure" ? close(layerScope, exit4) : void_2);
 });
-var fromBuildMemo = (build2) => {
-  const self = fromBuild((memoMap, scope3) => memoMap.getOrElseMemoize(self, scope3, build2));
+var fromBuildMemo = (build3) => {
+  const self = fromBuild((memoMap, scope3) => memoMap.getOrElseMemoize(self, scope3, build3));
   return self;
 };
 var MemoMapImpl = class {
@@ -5906,17 +5906,17 @@ var MemoMapImpl = class {
     }
     return this.parent?.get(layer, scope3);
   }
-  getOrElseMemoize(layer, scope3, build2) {
+  getOrElseMemoize(layer, scope3, build3) {
     return suspend(() => {
       let deferred;
       return onExitPrimitive(suspend(() => {
         const existing = this.get(layer, scope3);
         if (existing) return existing;
         const entry = makeMemoMapEntry(this, layer);
-        if (!memoMapObserve(entry, scope3)) return build2(this, scope3);
+        if (!memoMapObserve(entry, scope3)) return build3(this, scope3);
         deferred = entry.deferred;
         this.map.set(layer, entry);
-        return build2(this, entry.scope);
+        return build3(this, entry.scope);
       }), (exit4) => {
         if (deferred) doneUnsafe(deferred, exit4);
       });
@@ -21681,6 +21681,7 @@ var errorJson = (e) => ({
 });
 
 // src/harness.ts
+import { execFile } from "node:child_process";
 import { mkdtempSync as mkdtempSync2, rmSync as rmSync2, writeFileSync as writeFileSync2 } from "node:fs";
 import { tmpdir as tmpdir2 } from "node:os";
 import { join as join2 } from "node:path";
@@ -21821,7 +21822,9 @@ var common = {
     signals: Schema_exports.optional(Schema_exports.Array(Schema_exports.Struct({ when: Match, resetsAt: Strings, message: Schema_exports.String })))
   }),
   /** Tokens summed over every matching event, for the token budget. */
-  tokens: Schema_exports.optional(Schema_exports.Struct({ event: Match, paths: Strings }))
+  tokens: Schema_exports.optional(Schema_exports.Struct({ event: Match, paths: Strings })),
+  /** The arguments that make the binary print its version, for telemetry; default ["--version"]. */
+  version: Schema_exports.optional(Strings)
 };
 var Harness = Schema_exports.Union([
   /** Plain text: stdout is the answer. */
@@ -21999,6 +22002,12 @@ function parseRun(harness, stdout, account, now2) {
   const ok = succeeded && !limit;
   return { output, ok, limit, error: ok ? "" : [...new Set([...failed, ...own].flatMap(strings))].join(" ").slice(-2e3) || output };
 }
+var versions = /* @__PURE__ */ new Map();
+var versionOf = (command2, args2, env) => {
+  const key = JSON.stringify([command2, ...args2]);
+  if (!versions.has(key)) versions.set(key, new Promise((done3) => execFile(command2, args2, { env, timeout: 1e4 }, (e, stdout, stderr) => done3(e ? null : (stdout.trim() || stderr.trim()).split("\n")[0].slice(0, 200) || null))).catch(() => null));
+  return Effect_exports.promise(() => versions.get(key));
+};
 var harnessWorker = Layer_exports.succeed(Worker, {
   run: (request3) => {
     const name = request3.card.harness;
@@ -22012,17 +22021,23 @@ var harnessWorker = Layer_exports.succeed(Worker, {
         const launch2 = buildLaunch(request3.card, request3.access, { system: request3.system, prompt: request3.prompt, title: `mw #${request3.item} ${request3.job} \xB7 ${request3.profile} \xB7 ${request3.kind}`, dir }, harness);
         for (const [path, content] of Object.entries(launch2.files)) writeFileSync2(path, content);
         const cwd = request3.access === "none" ? dir : request3.cwd;
-        return runGroup({ command: launch2.command, args: launch2.args, cwd, env: agentEnv([...BASE_ENV, ...harness.env ?? []]), input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl" });
+        const env = agentEnv([...BASE_ENV, ...harness.env ?? []]);
+        return Effect_exports.zip(
+          runGroup({ command: launch2.command, args: launch2.args, cwd, env, input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl" }),
+          versionOf(launch2.command, harness.version ?? ["--version"], env),
+          { concurrent: true }
+        );
       },
       (dir) => Effect_exports.sync(() => rmSync2(dir, { recursive: true, force: true }))
     ).pipe(
-      Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
-        if (overBudget) return { ok: false, error: overBudgetError(`${name} (${request3.card.model})`, overBudget), overBudget, raw: stdout };
+      Effect_exports.map(([{ code, stdout, stderr, overBudget }, version]) => {
+        const v = version === null ? {} : { version };
+        if (overBudget) return { ok: false, error: overBudgetError(`${name} (${request3.card.model})`, overBudget), overBudget, raw: stdout, ...v };
         if (code === 127 && !stdout) return { ok: false, error: `${stderr.trim()}. Is ${name} installed and on PATH?` };
         const run2 = parseRun(harness, stdout, request3.card.account, Date.now());
-        if (run2.limit) return { ok: false, limit: run2.limit, raw: stdout };
-        if (run2.ok && code === 0) return { ok: true, output: run2.output, raw: stdout };
-        return { ok: false, error: `${name} exited ${code}: ${run2.error || stderr.slice(-2e3) || "no final answer"}`, raw: stdout };
+        if (run2.limit) return { ok: false, limit: run2.limit, raw: stdout, ...v };
+        if (run2.ok && code === 0) return { ok: true, output: run2.output, raw: stdout, ...v };
+        return { ok: false, error: `${name} exited ${code}: ${run2.error || stderr.slice(-2e3) || "no final answer"}`, raw: stdout, ...v };
       })
     );
   }
@@ -22095,7 +22110,7 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/engine.ts
-import { execFile as execFile3 } from "node:child_process";
+import { execFile as execFile4 } from "node:child_process";
 import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
 
 // src/change.ts
@@ -22103,7 +22118,7 @@ import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileS
 import { dirname as dirname2, join as join4 } from "node:path";
 
 // src/workspace.ts
-import { execFile } from "node:child_process";
+import { execFile as execFile2 } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync as readFileSync2, readlinkSync, rmSync as rmSync3, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join as join3, relative, resolve as resolve3 } from "node:path";
@@ -22111,7 +22126,7 @@ var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI
 var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
 var worktreesRoot = () => join3(process.env.MW_STORE ? dirname(process.env.MW_STORE) : process.env.MW_HOME ?? join3(homedir(), ".local", "share", "madewell"), "worktrees");
 var fail8 = (code, message, context3, next, cause) => new MadeWellError({ code, message, context: context3, next, ...cause ? { cause } : {} });
-var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
+var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile2(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
 var git = (dir, ...args2) => exec("git", ["--no-optional-locks", "-C", dir, ...args2], dir).pipe(Effect_exports.flatMap(({ code, stdout, stderr }) => code === 0 ? Effect_exports.succeed(stdout) : Effect_exports.fail(fail8("git_failed", `git ${args2[0]} failed in ${dir}.`, { dir, args: args2, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args2.join(" ")}`, why: "run it yourself to see the full error" }]))));
 var lines = (out) => out.split("\0").filter(Boolean);
 var worktree = Effect_exports.fn("mw.worktree")(function* (repo, base, name) {
@@ -22308,8 +22323,8 @@ var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budge
 });
 
 // src/project.ts
-import { execFile as execFile2 } from "node:child_process";
-import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync4, writeFileSync as writeFileSync6 } from "node:fs";
+import { execFile as execFile3 } from "node:child_process";
+import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync5, writeFileSync as writeFileSync6 } from "node:fs";
 import { dirname as dirname5, join as join8, sep } from "node:path";
 
 // src/store.ts
@@ -22468,9 +22483,10 @@ build(); pos = Math.max(0, steps.length - 1); render();
 
 // src/telemetry.ts
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync as mkdirSync3 } from "node:fs";
+import { appendFileSync, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
 import { hostname } from "node:os";
 import { dirname as dirname3, join as join6, matchesGlob, resolve as resolve4 } from "node:path";
+import { fileURLToPath } from "node:url";
 
 // src/lane.ts
 var MAKERS = ["implement", "test-plan"];
@@ -22769,18 +22785,34 @@ function flagsFor(facts, observed) {
   }
   return flags;
 }
+var build2;
+var buildOf = () => {
+  if (build2 !== void 0) return build2;
+  try {
+    const here = dirname3(fileURLToPath(import.meta.url));
+    const hash2 = createHash("sha256");
+    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join6(here, f)));
+    build2 = hash2.digest("hex").slice(0, 12);
+  } catch {
+    build2 = null;
+  }
+  return build2;
+};
+var KEEP = /* @__PURE__ */ new Set(["kind", "job", "profile", "harness", "provider", "account", "model", "effort", "outcome", "status", "code", "cause", "rule", "flags", "tool", "tools", "allowlist", "required", "fields", "access", "digest", "exceeded", "verdict", "tier", "prescribed", "from", "to", "by", "receiver", "originator", "ref", "main", "on", "commit", "verifiedOn", "conflict", "before", "after", "id", "doneWhen", "name", "trace", "span", "parent", "at", "started", "start", "since", "resetsAt", "workspace", "harnessVersion"]);
+var metrics = (v, key = "") => typeof v === "string" ? KEEP.has(key) ? v : v.length : Array.isArray(v) ? v.map((x) => metrics(x, key)) : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, metrics(x, k)])) : v;
 function telemetry(storePath2) {
   const dir = process.env.MW_TELEMETRY;
   if (!dir || storePath2 === ":memory:") return void 0;
   const host = hostname();
   const store = createHash("sha256").update(resolve4(storePath2)).digest("hex").slice(0, 8);
   const file = join6(resolve4(dir), `${host}-${store}.jsonl`);
+  const full = [void 0, "", "full"].includes(process.env.MW_TELEMETRY_LEVEL);
   return {
     file,
     write(t, record2) {
       try {
         mkdirSync3(dirname3(file), { recursive: true });
-        appendFileSync(file, JSON.stringify({ t, host, store, ...record2 }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+        appendFileSync(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
       } catch {
       }
     }
@@ -22850,6 +22882,7 @@ function stats(lines4) {
       if (r.kind === "created" && r.data?.job !== "discover") items.set(key, { p, item: r.item, store: r.store, created: r.at, status: r.data?.status === "candidate" ? "candidate" : "running" });
       const i = items.get(key);
       if (i && r.kind === "shipped") i.shipped = r.at;
+      else if (i && r.kind === "promoted") i.created = r.at, i.status = "running";
       else if (i && r.kind === "held") i.status = "held";
       else if (i && r.kind !== "created" && !WHILE_HELD.includes(r.kind)) i.status = "running";
     }
@@ -23009,7 +23042,7 @@ function openStore(path) {
     events(id2) {
       return db.prepare("SELECT * FROM events WHERE item = ? ORDER BY seq").all(id2).map((r) => ({ ...r, data: JSON.parse(r.data) }));
     },
-    /** Records one call with its tool events, tokens and rule-break flags, read from its raw stream and the engine's facts. */
+    /** Records one call with its tool events, tokens and rule-break flags, read from its raw stream and the engine's facts. The harness version goes only to telemetry. */
     recordCall(call, facts) {
       const tools = toolEvents(call.card.harness, call.raw);
       const tokens = tokensOf(call.card.harness, call.raw);
@@ -23106,7 +23139,7 @@ var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
 var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
-  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync4(path, "utf8")).pipe(
+  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync5(path, "utf8")).pipe(
     Effect_exports.mapError((e) => new MadeWellError({
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
@@ -23147,7 +23180,7 @@ var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
     if (!command2) continue;
     const exitCode = yield* Effect_exports.promise(() => new Promise((done3) => {
       const env = { ...process.env, MW_ITEM: String(hold2.item), MW_TITLE: hold2.title, MW_HOLD: hold2.code, MW_MESSAGE: hold2.message };
-      const child = execFile2("sh", ["-c", command2], { cwd: dirname5(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
+      const child = execFile3("sh", ["-c", command2], { cwd: dirname5(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
       child.stdin?.end(JSON.stringify(hold2));
     }));
     store.save(store.get(hold2.item), "alerted", { code: hold2.code, command: command2, exitCode });
@@ -23394,7 +23427,8 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     error: res.ok ? null : "limit" in res ? res.limit.message : res.error,
     raw: res.raw ?? null,
     started: started.toISOString(),
-    ms: Date.now() - started.getTime()
+    ms: Date.now() - started.getTime(),
+    harnessVersion: res.version ?? null
   };
   const callId = store.recordCall(call, {
     access: spec.access,
@@ -23658,7 +23692,7 @@ var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   if (!command2) return hold(store, item, "no_ship_command", `Item #${id2} is on ${item.merged.ref}, but its project has no ship command.`, { workspace: item.workspace, projects });
   const env = { ...process.env, MW_ITEM: String(id2), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature", MW_COMMIT: item.merged.commit };
   const { code, stdout, stderr } = yield* Effect_exports.promise(
-    () => new Promise((done3) => execFile3("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
+    () => new Promise((done3) => execFile4("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
   );
   const tail2 = (s) => s.slice(-4e3);
   if (code !== 0) return hold(store, item, "ship_failed", `Item #${id2} is on ${item.merged.ref}, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command: command2, exitCode: code, stdout: tail2(stdout), stderr: tail2(stderr) });
@@ -23948,7 +23982,7 @@ var executeParts = (item, job, t, x) => ({
 });
 
 // src/eval.ts
-import { readFileSync as readFileSync5 } from "node:fs";
+import { readFileSync as readFileSync6 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
@@ -24049,7 +24083,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
   const briefPath = o.brief === void 0 ? void 0 : resolve5(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync5(briefPath, "utf8"),
+    try: () => readFileSync6(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
@@ -24313,7 +24347,7 @@ var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve6(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync6(path, "utf8"),
+    try: () => readFileSync7(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
@@ -24560,8 +24594,8 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync3(dir) ? readdirSync2(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync6(join9(dir, f), "utf8").split("\n").filter(Boolean));
+      const files = existsSync3(dir) ? readdirSync3(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const lines4 = files.flatMap((f) => readFileSync7(join9(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
