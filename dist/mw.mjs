@@ -22022,8 +22022,11 @@ var Prescriptions = Schema_exports.Struct({
   /** Harness entries added to, or replacing, the built-in ones. */
   harnesses: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Harness)),
   /** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
-  env: Schema_exports.optional(Schema_exports.Array(Schema_exports.String))
+  env: Schema_exports.optional(Schema_exports.Array(Schema_exports.String)),
+  /** Items `mw run` drives at once, each up to two agents. Default: DEFAULT_PARALLEL. */
+  parallel: Schema_exports.optional(Schema_exports.Int.check(Schema_exports.isGreaterThan(0)))
 });
+var DEFAULT_PARALLEL = 3;
 var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   const text2 = yield* Effect_exports.try({
     try: () => readFileSync(path, "utf8"),
@@ -23555,6 +23558,12 @@ function nextFor(item) {
   if (code === "no_ship_command") {
     return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: "register how this project ships; the item then ships" }];
   }
+  if (code === "leftovers" && item.hold.next?.length) {
+    return [
+      { run: `${item.hold.next[0].run} && mw retry ${id2}`, why: "the files in context.files are not the operator's: remove exactly those, then go on" },
+      { run: `mw retry ${id2}`, why: "the operator made them while the call ran: keep them and go on" }
+    ];
+  }
   if (code === "ship_failed") return [{ run: `mw retry ${id2}`, why: "after fixing what context.stderr shows: run the ship command again; the change is already on main" }];
   return [
     ...item.hold.next ?? [],
@@ -23646,8 +23655,10 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const running = /* @__PURE__ */ new Set();
   const results2 = [];
   const stuck = (i) => i.waitsOn !== void 0 && ((p) => !p || p.status === "held" || stuck(p))(store.get(i.waitsOn));
+  const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL;
   for (; ; ) {
     for (const i of store.list()) {
+      if (running.size >= parallel) break;
       if (i.parent !== void 0 || !READY.includes(i.status) || running.has(i.id) || stuck(i)) continue;
       running.add(i.id);
       yield* Effect_exports.forkScoped(drive(i.id, config).pipe(
@@ -23751,7 +23762,7 @@ var executeParts = (item, job, t, x) => ({
 import { readFileSync as readFileSync5 } from "node:fs";
 import { resolve as resolve4 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
-var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
+var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
 var MIN_OUT_MS2 = 5 * 6e4;
 var EvalCard = Schema_exports.Struct({
@@ -23763,9 +23774,9 @@ var EvalCard = Schema_exports.Struct({
 }).annotate({ identifier: "Card" });
 var Score = Schema_exports.Struct({
   outcome: Schema_exports.String.annotate({ description: "ok, error or rejected, as the call ended" }),
-  valid: Schema_exports.Boolean.annotate({ description: "answered, and its final JSON carries every field its kind of call requires" }),
-  parses: Schema_exports.NullOr(Schema_exports.Boolean).annotate({ description: "whether the final JSON parses; null when this kind of call needs none" }),
-  missing: Schema_exports.Array(Schema_exports.String),
+  valid: Schema_exports.Boolean.annotate({ description: "answered, and the engine would accept the answer" }),
+  parses: Schema_exports.Boolean.annotate({ description: "whether the answer ends with a JSON object" }),
+  reason: Schema_exports.NullOr(Schema_exports.String).annotate({ description: "why the engine would refuse the answer; null when valid" }),
   flags: Schema_exports.Array(Schema_exports.String).annotate({ description: "the rule-break flags telemetry computes" }),
   seconds: Schema_exports.Number,
   tokens: Schema_exports.NullOr(Schema_exports.Number).annotate({ description: "null when the harness reported none" })
@@ -23789,25 +23800,13 @@ var EvalReport = Schema_exports.Struct({
   recommendation: Schema_exports.NullOr(Schema_exports.Struct({ card: EvalCard, tier: Schema_exports.NullOr(Schema_exports.String), prescribed: Schema_exports.String, why: Schema_exports.String })),
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "EvalReport" });
-var CAUSES = ["pre-existing", "implementation", "test", "undetermined"];
-var REQUIRED = {
-  intake: { understanding: (v) => typeof v === "string", unclear: Array.isArray, ambiguous: Array.isArray, missing: Array.isArray },
-  originator: { answer: (v) => typeof v === "string" && v.trim() !== "" },
-  execute: {
-    discover: { items: Array.isArray },
-    verify: { outcome: (v) => v === "pass" || v === "fail" },
-    arbitrate: { cause: (v) => CAUSES.includes(v) }
-  }
-};
 var score = (kind, job, r) => {
-  const required2 = (kind === "execute" ? REQUIRED.execute[job] : REQUIRED[kind]) ?? {};
-  const answer2 = r.output === null ? void 0 : lastJson(r.output);
-  const missing2 = Object.entries(required2).filter(([field, ok]) => !ok(answer2?.[field])).map(([field]) => field);
+  const accepted = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(job, r.output);
   return {
     outcome: r.outcome,
-    valid: r.output !== null && missing2.length === 0,
-    parses: Object.keys(required2).length ? answer2 !== void 0 : null,
-    missing: missing2,
+    valid: accepted.ok,
+    parses: r.output !== null && lastJson(r.output) !== void 0,
+    reason: accepted.ok ? null : accepted.reason,
     flags: r.flags.map((f) => f.rule),
     seconds: r.ms / 1e3,
     tokens: r.tokens ? totalTokens(r.tokens) : null
@@ -24002,6 +24001,7 @@ var optional3 = (description) => Schema_exports.optionalKey(Schema_exports.Strin
 var Workspace = optional3("the project directory; defaults to the current directory");
 var Source = { source: optional3("the operator's own words; or give --source-file"), "source-file": optional3("a file holding the operator's own words") };
 var Fact = Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown);
+var Nq = Schema_exports.Struct({ from: Schema_exports.String, status: Schema_exports.String, turns: Schema_exports.Int }).annotate({ description: "the open NQ exchange: who handed off, whose move it is, and turns answered" });
 var ItemView = Schema_exports.Struct({
   id: Schema_exports.Int,
   title: Schema_exports.String,
@@ -24011,7 +24011,8 @@ var ItemView = Schema_exports.Struct({
   profile: Schema_exports.String,
   kind: Schema_exports.optionalKey(Schema_exports.String),
   discovery: Schema_exports.optionalKey(Schema_exports.Int),
-  nq: Schema_exports.optionalKey(Schema_exports.Struct({ from: Schema_exports.String, status: Schema_exports.String, turns: Schema_exports.Int })),
+  nq: Schema_exports.optionalKey(Nq),
+  tracks: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Struct({ done: Schema_exports.Boolean, nq: Schema_exports.optionalKey(Nq) })).annotate({ description: "after planning: the implementer's and the test architect's parallel tracks" })),
   round: Schema_exports.Int,
   waitsOn: Schema_exports.optionalKey(Schema_exports.Int),
   resumesAt: Schema_exports.optionalKey(Schema_exports.String),
@@ -24043,6 +24044,7 @@ var Action = Schema_exports.Union([
   Schema_exports.Struct({ action: Schema_exports.Literal("wait"), until: Schema_exports.String.annotate({ description: "ISO time" }), why: Schema_exports.String, then: Schema_exports.Literal("mw next") })
 ]).annotate({ identifier: "Action", description: "run a command, relay to the operator, or wait until a time" });
 var Created = Schema_exports.Struct({ item: ItemView, next: Schema_exports.Array(Next) });
+var nqOf = (x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
 var view = (item) => ({
   id: item.id,
   title: item.title,
@@ -24052,7 +24054,8 @@ var view = (item) => ({
   profile: stepOf(item.job).profile,
   ...item.kind ? { kind: item.kind } : {},
   ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
-  ...item.exchange && item.exchange.status !== "clear" ? { nq: { from: item.exchange.from.kind === "job" ? stepOf(item.exchange.from.job).profile : item.exchange.from.kind, status: item.exchange.status, turns: item.exchange.turns.filter((t) => t.answer !== void 0).length } } : {},
+  ...nqOf(item.exchange),
+  ...item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {},
   round: item.round,
   ...item.waitsOn !== void 0 ? { waitsOn: item.waitsOn } : {},
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},

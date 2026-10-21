@@ -14,13 +14,14 @@ import { Clock, Effect, Schema } from 'effect'
 import { budgetFor, cardsFor, harnessOf, type Access, type Card, type Prescriptions } from './cards.ts'
 import { MadeWellError, Next, quote } from './errors.ts'
 import { HARNESSES } from './harness.ts'
-import { lastJson, type Job } from './lane.ts'
+import { decode, INTAKE, lastJson, ORIGINATOR, validate, type Job } from './lane.ts'
 import { Store, type Call } from './store.ts'
 import { flagsFor, tokensOf, toolEvents, totalTokens, type Facts, type Flag } from './telemetry.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from './worker.ts'
 import { capture, readOnly, worktree } from './workspace.ts'
 
-export const JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate'] as const satisfies ReadonlyArray<Job>
+/** Every agent job. verify is Made Well's own code, so there is nothing to replay. */
+export const JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'] as const satisfies ReadonlyArray<Job>
 
 // The same quota rules as delivery: an account that hits its limit is out until its reset, at least five minutes.
 const UNKNOWN_RESET_MS = 60 * 60_000
@@ -36,9 +37,9 @@ const EvalCard = Schema.Struct({
 
 const Score = Schema.Struct({
 	outcome: Schema.String.annotate({ description: 'ok, error or rejected, as the call ended' }),
-	valid: Schema.Boolean.annotate({ description: 'answered, and its final JSON carries every field its kind of call requires' }),
-	parses: Schema.NullOr(Schema.Boolean).annotate({ description: 'whether the final JSON parses; null when this kind of call needs none' }),
-	missing: Schema.Array(Schema.String),
+	valid: Schema.Boolean.annotate({ description: 'answered, and the engine would accept the answer' }),
+	parses: Schema.Boolean.annotate({ description: 'whether the answer ends with a JSON object' }),
+	reason: Schema.NullOr(Schema.String).annotate({ description: 'why the engine would refuse the answer; null when valid' }),
 	flags: Schema.Array(Schema.String).annotate({ description: 'the rule-break flags telemetry computes' }),
 	seconds: Schema.Number,
 	tokens: Schema.NullOr(Schema.Number).annotate({ description: 'null when the harness reported none' }),
@@ -71,28 +72,14 @@ export const EvalReport = Schema.Struct({
 type EvalReport = typeof EvalReport.Type
 
 type Kind = WorkerRequest['kind']
-const CAUSES = ['pre-existing', 'implementation', 'test', 'undetermined']
-
-/** The fields each kind of call must end with, held to what the engine accepts. Jobs not listed need no JSON. */
-const REQUIRED: Record<Exclude<Kind, 'execute'>, Record<string, (v: unknown) => boolean>> & { execute: Partial<Record<Job, Record<string, (v: unknown) => boolean>>> } = {
-	intake: { understanding: (v) => typeof v === 'string', unclear: Array.isArray, ambiguous: Array.isArray, missing: Array.isArray },
-	originator: { answer: (v) => typeof v === 'string' && v.trim() !== '' },
-	execute: {
-		discover: { items: Array.isArray },
-		verify: { outcome: (v) => v === 'pass' || v === 'fail' },
-		arbitrate: { cause: (v) => CAUSES.includes(v as string) },
-	},
-}
-
 const score = (kind: Kind, job: Job, r: { outcome: string; output: string | null; ms: number; tokens: Call['tokens']; flags: ReadonlyArray<Flag> }): Score => {
-	const required = (kind === 'execute' ? REQUIRED.execute[job] : REQUIRED[kind]) ?? {}
-	const answer = r.output === null ? undefined : lastJson(r.output)
-	const missing = Object.entries(required).filter(([field, ok]) => !ok(answer?.[field])).map(([field]) => field)
+	// Held to exactly what the engine accepts. A plan's done-when threading needs the item's plan, so it is not checked here.
+	const accepted = r.output === null ? { ok: false as const, reason: `The call ended ${r.outcome} with no answer.` } : kind === 'intake' ? decode(INTAKE, r.output) : kind === 'originator' ? decode(ORIGINATOR, r.output) : validate(job, r.output)
 	return {
 		outcome: r.outcome,
-		valid: r.output !== null && missing.length === 0,
-		parses: Object.keys(required).length ? answer !== undefined : null,
-		missing,
+		valid: accepted.ok,
+		parses: r.output !== null && lastJson(r.output) !== undefined,
+		reason: accepted.ok ? null : accepted.reason,
 		flags: r.flags.map((f) => f.rule),
 		seconds: r.ms / 1000,
 		tokens: r.tokens ? totalTokens(r.tokens) : null,

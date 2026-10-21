@@ -26,7 +26,7 @@ const raw = (tokens: number, tools: string[] = []) => [
 	{ type: 'result', subtype: 'success', is_error: false, result: 'x', usage: { input_tokens: tokens, output_tokens: 0 } },
 ].map((e) => JSON.stringify(e)).join('\n')
 const INTAKE = '{"understanding":"clear","unclear":[],"ambiguous":[],"missing":[],"notes":[]}'
-const PASS = 'Ran the checks.\n{"outcome":"pass","summary":"1/1 passed"}'
+const ARBITRATED = 'Read the logs.\n{"cause":"test","answer":"The check expects the old header.","evidence":"check.log line 3"}'
 
 /** A product repo with one commit, Made Well's home beside it, a store there, and one item on the repo. */
 function setup(name: string) {
@@ -47,7 +47,7 @@ function setup(name: string) {
 	const requests: WorkerRequest[] = []
 	const run = (script: (req: WorkerRequest) => WorkerResult, options: { card?: string; brief?: string; job?: (typeof JOBS)[number] } = {}) => {
 		const worker = Layer.succeed(Worker, { run: (req) => Effect.sync(() => (requests.push(req), script(req))) })
-		return evaluate({ job: options.job ?? 'verify', card: options.card, brief: options.brief, prescriptions, prescriptionsPath: '/etc/prescriptions.json' }).pipe(Effect.provide(Layer.mergeAll(Layer.succeed(Store, store), worker)))
+		return evaluate({ job: options.job ?? 'arbitrate', card: options.card, brief: options.brief, prescriptions, prescriptionsPath: '/etc/prescriptions.json' }).pipe(Effect.provide(Layer.mergeAll(Layer.succeed(Store, store), worker)))
 	}
 	const db = () => new DatabaseSync(store.path, { readOnly: true })
 	const untouched = () => {
@@ -60,15 +60,15 @@ function setup(name: string) {
 
 test('a tier is replayed call by call, scored like the record, and the cheapest card that matches it is recommended', async () => {
 	const t = setup('tier')
-	t.record('intake', 'verify', card('big'), INTAKE, 3000)
-	t.record('execute', 'verify', card('big'), PASS, 3000)
-	t.record('execute', 'verify', card('big'), PASS, 3000)
+	t.record('intake', 'arbitrate', card('big'), INTAKE, 3000)
+	t.record('execute', 'arbitrate', card('big'), ARBITRATED, 3000)
+	t.record('execute', 'arbitrate', card('big'), ARBITRATED, 3000)
 	t.record('execute', 'plan', card('big'), 'another job', 3000)
 
 	const report = await Effect.runPromise(t.run((req) => {
-		const answer = req.kind === 'intake' ? INTAKE : PASS
+		const answer = req.kind === 'intake' ? INTAKE : ARBITRATED
 		switch (req.card.model) {
-			case 'cheap': return { ok: true, output: req.kind === 'intake' ? '{"understanding":"clear"}' : 'Ran the checks: all pass.', raw: raw(50) }
+			case 'cheap': return { ok: true, output: req.kind === 'intake' ? '{"understanding":"clear"}' : 'The test is wrong.', raw: raw(50) }
 			case 'flaggy': return { ok: true, output: answer, raw: raw(100, ['Edit']) }
 			case 'mid': return { ok: true, output: answer, raw: raw(500) }
 			case 'limited': return { ok: false, limit: { account: 'limited', resetsAt: null, message: 'You\'ve hit your limit' } }
@@ -76,7 +76,7 @@ test('a tier is replayed call by call, scored like the record, and the cheapest 
 		}
 	}, { card: 'candidates' }))
 
-	assert.deepEqual(report.recorded, { calls: 3, valid: 3, flags: 0, seconds: 3, tokens: 9000, cards: [card('big')] }, 'only the verify job\'s calls are replayed')
+	assert.deepEqual(report.recorded, { calls: 3, valid: 3, flags: 0, seconds: 3, tokens: 9000, cards: [card('big')] }, 'only the arbitrate job\'s calls are replayed')
 	const by = Object.fromEntries(report.cards.map((r) => [r.card.model, r]))
 	assert.deepEqual(Object.fromEntries(report.cards.map((r) => [r.card.model, [r.complete, r.matches, r.replay.valid, r.replay.flags, r.replay.tokens]])), {
 		cheap: [true, false, 0, 0, 150],
@@ -85,7 +85,8 @@ test('a tier is replayed call by call, scored like the record, and the cheapest 
 		big: [true, true, 3, 0, 6000],
 		limited: [false, false, 0, 0, 0],
 	})
-	assert.deepEqual(by.cheap!.calls.map((c) => [c.kind, c.replay.parses, c.replay.missing, c.verdict]), [['intake', true, ['unclear', 'ambiguous', 'missing'], 'worse'], ['execute', false, ['outcome'], 'worse'], ['execute', false, ['outcome'], 'worse']])
+	assert.deepEqual(by.cheap!.calls.map((c) => [c.kind, c.replay.parses, c.replay.valid, c.verdict]), [['intake', true, false, 'worse'], ['execute', false, false, 'worse'], ['execute', false, false, 'worse']])
+	assert.match(by.cheap!.calls[0]!.replay.reason!, /unclear/, 'the reason is the engine\'s own: the intake schema\'s missing field')
 	assert.deepEqual(by.flaggy!.calls[0]!.replay.flags, ['write-under-read'], 'a write tool under read access is a rule break')
 	assert.equal(by.flaggy!.calls[0]!.verdict, 'worse')
 	assert.ok(by.limited!.limited!.resetsAt > new Date().toISOString())
@@ -115,10 +116,10 @@ test('each call is held to what its kind requires, and a new brief replays only 
 	const script = (req: WorkerRequest): WorkerResult => ({ ok: true, output: req.kind === 'intake' ? '{"understanding":"clear","unclear":"none","ambiguous":[],"missing":[]}' : req.kind === 'originator' ? 'I cannot say.' : 'A better plan.', raw: raw(5) })
 
 	const replayed = await Effect.runPromise(t.run(script, { job: 'plan' }))
-	assert.deepEqual(replayed.cards.map((r) => [r.card.model, r.calls.map((c) => [c.kind, c.replay.parses, c.replay.missing, c.verdict])]), [
-		['big', [['intake', true, ['unclear'], 'worse'], ['execute', null, [], 'same']]],
-		['mid', [['originator', false, ['answer'], 'worse']]],
-	], 'without --card, each call replays on its recorded card')
+	assert.deepEqual(replayed.cards.map((r) => [r.card.model, r.calls.map((c) => [c.kind, c.recorded.valid, c.replay.valid, c.verdict])]), [
+		['big', [['intake', true, false, 'worse'], ['execute', false, false, 'same']]],
+		['mid', [['originator', true, false, 'worse']]],
+	], 'without --card, each call replays on its recorded card, held to the engine\'s schemas: a plan in prose is refused')
 	assert.equal(replayed.recommendation, null, 'no card matched the record')
 	assert.equal(replayed.next[0]!.run, 'mw eval plan --card <a tier, or a card as JSON>')
 

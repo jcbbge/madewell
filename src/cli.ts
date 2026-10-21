@@ -42,10 +42,12 @@ const Workspace = optional('the project directory; defaults to the current direc
 const Source = { source: optional('the operator\'s own words; or give --source-file'), 'source-file': optional('a file holding the operator\'s own words') }
 const Fact = Schema.Record(Schema.String, Schema.Unknown)
 
+const Nq = Schema.Struct({ from: Schema.String, status: Schema.String, turns: Schema.Int }).annotate({ description: 'the open NQ exchange: who handed off, whose move it is, and turns answered' })
 const ItemView = Schema.Struct({
 	id: Schema.Int, title: Schema.String, status: Schema.String, stage: Schema.String, job: Schema.String, profile: Schema.String,
 	kind: Schema.optionalKey(Schema.String), discovery: Schema.optionalKey(Schema.Int),
-	nq: Schema.optionalKey(Schema.Struct({ from: Schema.String, status: Schema.String, turns: Schema.Int })),
+	nq: Schema.optionalKey(Nq),
+	tracks: Schema.optionalKey(Schema.Record(Schema.String, Schema.Struct({ done: Schema.Boolean, nq: Schema.optionalKey(Nq) })).annotate({ description: 'after planning: the implementer\'s and the test architect\'s parallel tracks' })),
 	round: Schema.Int, waitsOn: Schema.optionalKey(Schema.Int), resumesAt: Schema.optionalKey(Schema.String),
 	hold: Schema.optionalKey(Schema.Struct({ code: Schema.String, message: Schema.String, context: Fact })),
 	shipped: Schema.optionalKey(Schema.Struct({ command: Schema.String, output: Schema.String })),
@@ -74,6 +76,9 @@ const Created = Schema.Struct({ item: ItemView, next: Schema.Array(Next) })
 
 // ── Views ──────────────────────────────────────────────────────────────────────────────────────────────
 
+const nqOf = (x: Item['exchange']) =>
+	x && x.status !== 'clear' ? { nq: { from: x.from.kind === 'job' ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== undefined).length } } : {}
+
 const view = (item: Item): typeof ItemView.Type => ({
 	id: item.id,
 	title: item.title,
@@ -83,7 +88,8 @@ const view = (item: Item): typeof ItemView.Type => ({
 	profile: stepOf(item.job).profile,
 	...(item.kind ? { kind: item.kind } : {}),
 	...(item.discovery !== undefined ? { discovery: item.discovery } : {}),
-	...(item.exchange && item.exchange.status !== 'clear' ? { nq: { from: item.exchange.from.kind === 'job' ? stepOf(item.exchange.from.job).profile : item.exchange.from.kind, status: item.exchange.status, turns: item.exchange.turns.filter((t) => t.answer !== undefined).length } } : {}),
+	...nqOf(item.exchange),
+	...(item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {}),
 	round: item.round,
 	...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),

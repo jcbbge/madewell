@@ -38,7 +38,10 @@ const Prescriptions = Schema.Struct({
 	harnesses: Schema.optional(Schema.Record(Schema.String, Harness)),
 	/** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
 	env: Schema.optional(Schema.Array(Schema.String)),
+	/** Items `mw run` drives at once, each up to two agents. Default: DEFAULT_PARALLEL. */
+	parallel: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
 })
+export const DEFAULT_PARALLEL = 3
 export type Prescriptions = typeof Prescriptions.Type
 
 export const loadPrescriptions = (path: string) =>
