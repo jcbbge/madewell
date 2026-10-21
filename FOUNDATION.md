@@ -9,10 +9,15 @@ The operator's law for Made Well. It binds every implementation, every agent and
 3. **Every agent-to-agent interaction enters the NQ protocol.** Non-negotiable.
 4. **Profiles only, no names.** The earlier names were temporary placeholders.
 5. **The quota swap is non-negotiable.** A usage limit never reaches the human. See "Uninterrupted".
-6. **Made Well is open source.** Anyone can install it locally, and it works with any coding-agent harness, provider, model and runtime. It is built for agents first: efficient, and every error and lock carries rich context and the next steps.
+6. **Made Well is open source.** Anyone can install it locally, and it works with any coding-agent harness, provider, model and runtime. It is built for agents first: efficient, and every error and lock carries rich context and the next steps. It is a distro on GitHub: one-click install, and the operator points their agent at one thing. From there the agent onboards itself and uses Made Well across all of the operator's projects. Onboarding, everyday use and recovery are optimized for that agent, a 10× agentic experience, so it can help its operator through the whole software development lifecycle.
 7. **Every step is evaluable.** Each step's inputs and outputs are recorded and versioned, and evals can be run against them. A debug mode traces every invocation; it is toggled on and off and is never shown to the client or user.
 8. **Promoting an item authorizes its own deploy.** That includes a pre-existing-defect fix item the Arbiter spawns. Shipping that item to production is not an authority question.
-9. **Only the item's own checks gate its merge to main,** even when items run in parallel.
+9. **Only the item's own checks gate its merge to main,** even when items run in parallel. Never the whole suite.
+10. **Every decision is settled in ideation and planning, by the experience rubric.** Every question passes through its three governing questions, and the answer they give is the decision. The operator hears of a question only when an NQ exchange is still open after three turns, because that means the design, brief, spec or plan is wrong.
+11. **Checks are disposable.** They exist for one work item and are gone once it ships. A later problem re-enters the pipeline and gets new checks.
+12. **After planning, the work splits.** The implementer and the test architect work from the same plan, in parallel, as different agents on different runtimes, and neither sees the other's output. Only the verifier receives both. The maker never runs its own checks: it would change the code to pass them and hide the three possible causes, which are a pre-existing defect, a wrong implementation or a wrong test.
+13. **Conservation: leave no trace.** Every job ends with aftercare. Worktrees are removed, processes are stopped, and anything provisioned (database branches, dev clones, servers) is torn down. Made Well keeps the smallest footprint: no stray files, markdown or artifacts in the product repo or on the machine, and no trace that an agent did the work beyond the delivered change itself. The same applies to Made Well's own code.
+14. **A pass ships without an agent.** Made Well runs the item's check commands itself, and exit 0 ships. Only a failure calls an agent: the Arbiter, with the logs. The verifier's job becomes Made Well's own code. The six agents are the ideator, ideation peer, planner, test architect, implementer and Arbiter.
 
 ## Governing rubric: purpose, intent, and volition
 
@@ -86,7 +91,7 @@ The six-agent default separates the ideator from its challenging peer and separa
 These four stages are required and distinct:
 
 1. **Ideation:** shape and challenge what should be done (ideator, ideation peer).
-2. **Planning:** ground the actionable implementation and independent test design in the real environment and agreed contract (planner, test architect).
+2. **Planning:** ground the actionable implementation and independent test design in the real environment and agreed contract (planner). The plan then splits: the test architect writes the checks while the implementer makes (ruling 12).
 3. **Implementation:** execute the fixed plan (implementer).
 4. **Verification:** run the checks against the contract (verifier).
 
@@ -96,7 +101,7 @@ A failed attempt accumulates evidence. It does not erase history, redefine the o
 
 ### Checks come first
 
-Checks are written before the making, blind to it. They verify intent, not only correctness: correct code that ignores the project's design system passes a correctness check and still misses the point. A correctness check after the making is an optional extra, not part of the minimal setup.
+Checks are written from the plan, blind to the making, and the maker never sees them. They verify intent, not only correctness: correct code that ignores the project's design system passes a correctness check and still misses the point. A correctness check after the making is an optional extra, not part of the minimal setup.
 
 Only the work item's own checks are run: a delivery is one work item, and the verifier runs that item's named checks, never the whole suite, pipeline or app.
 
@@ -152,7 +157,7 @@ The recipient establishes its understanding of purpose and raises questions or a
 **The law.** Every interaction in which one agent hands anything to another agent is an NQ exchange:
 
 - the sender states what it is handing over;
-- the receiver states its understanding and either has no questions (clear: it proceeds) or asks;
+- the receiver states its understanding and answers three questions: What is unclear? What is ambiguous? Do I have everything I need to proceed? With nothing unclear, nothing ambiguous and everything it needs, it proceeds; otherwise it asks;
 - the sender answers; that completes one turn;
 - after three turns, if the receiver still has questions, the spec or the receiver's scope is wrong: that one work item holds and the human is alerted. Other work items are untouched.
 
