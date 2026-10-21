@@ -2138,7 +2138,7 @@ var infinity = /* @__PURE__ */ make4(Infinity);
 var negativeInfinity = /* @__PURE__ */ make4(-Infinity);
 var nanos = (nanos2) => make4(nanos2);
 var millis = (millis2) => make4(millis2);
-var seconds = (seconds3) => make4(seconds3 * 1e3);
+var seconds = (seconds2) => make4(seconds2 * 1e3);
 var minutes = (minutes2) => make4(minutes2 * 6e4);
 var hours = (hours2) => make4(hours2 * 36e5);
 var days = (days2) => make4(days2 * 864e5);
@@ -15199,14 +15199,14 @@ function rebuildFromStack(stack, newParent) {
 // node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
-  const get5 = encodeSync(serializer);
+  const get6 = encodeSync(serializer);
   const set4 = decodeSync(serializer);
   return {
     empty: [],
-    diff: (oldValue, newValue) => get4(get5(oldValue), get5(newValue)),
+    diff: (oldValue, newValue) => get4(get6(oldValue), get6(newValue)),
     combine: (first, second) => [...first, ...second],
     patch: (oldValue, patch) => {
-      const value3 = get5(oldValue);
+      const value3 = get6(oldValue);
       const patched = apply(patch, value3);
       return Object.is(patched, value3) ? oldValue : set4(patched);
     }
@@ -15745,17 +15745,17 @@ function buildStruct(source, f) {
 }
 
 // node_modules/effect/dist/Optic.js
-function makeIso(get5, set4) {
-  return make17(primitiveNode("Iso", get5, set4));
+function makeIso(get6, set4) {
+  return make17(primitiveNode("Iso", get6, set4));
 }
-function makeLens(get5, replace) {
-  return make17(primitiveNode("Lens", get5, replace));
+function makeLens(get6, replace) {
+  return make17(primitiveNode("Lens", get6, replace));
 }
-function primitiveNode(kind, get5, set4) {
+function primitiveNode(kind, get6, set4) {
   return [{
     _tag: "PrimitiveNode",
     kind,
-    get: get5,
+    get: get6,
     set: set4
   }];
 }
@@ -15945,9 +15945,9 @@ var OptionalImpl = class {
 var IsoImpl = class extends OptionalImpl {
   get;
   set;
-  constructor(node, get5, set4) {
-    super(node, (s) => succeed2(get5(s)), (a) => succeed2(set4(a)));
-    this.get = get5;
+  constructor(node, get6, set4) {
+    super(node, (s) => succeed2(get6(s)), (a) => succeed2(set4(a)));
+    this.get = get6;
     this.set = set4;
   }
   replace(a, _) {
@@ -15959,9 +15959,9 @@ var IsoImpl = class extends OptionalImpl {
 };
 var LensImpl = class extends OptionalImpl {
   get;
-  constructor(node, get5, replace) {
-    super(node, (s) => succeed2(get5(s)), (a, s) => succeed2(replace(a, s)));
-    this.get = get5;
+  constructor(node, get6, replace) {
+    super(node, (s) => succeed2(get6(s)), (a, s) => succeed2(replace(a, s)));
+    this.get = get6;
     this.replace = replace;
   }
   modify(f) {
@@ -20787,9 +20787,301 @@ var errorJson = (e) => ({
   next: e.next
 });
 
+// src/harness.ts
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+// src/worker.ts
+import { spawn } from "node:child_process";
+var DEFAULT_BUDGET = { minutes: 30 };
+var Worker = class extends Context_exports.Service()("madewell/Worker") {
+};
+var GROUP = 'd=$1; shift; ( exec </dev/null >/dev/null 2>&1; read _ <&3; [ -z "$d" ] || rm -rf "$d"; kill -9 0 ) & exec "$@" 3<&-';
+var runGroup = (o) => Effect_exports.callback((resume) => {
+  const started = Date.now();
+  const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: ["pipe", "pipe", "pipe", "pipe"] });
+  const kill = () => {
+    try {
+      process.kill(-child.pid, "SIGKILL");
+    } catch {
+    }
+  };
+  let stdout = "";
+  let stderr = "";
+  let partial = "";
+  let tokens = null;
+  let stdinError;
+  let overBudget;
+  const over = (exceeded) => {
+    overBudget ??= { exceeded, budget: o.budget, ms: Date.now() - started, tokens };
+    kill();
+  };
+  const timer = setTimeout(() => over("minutes"), o.budget.minutes * 6e4);
+  child.stdout.setEncoding("utf8").on("data", (chunk) => {
+    stdout += chunk;
+    if (!o.tokensIn) return;
+    const lines2 = (partial + chunk).split("\n");
+    partial = lines2.pop();
+    for (const line of lines2) {
+      const n = o.tokensIn(line);
+      if (n) tokens = (tokens ?? 0) + n;
+    }
+    if (o.budget.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
+  });
+  child.stderr.setEncoding("utf8").on("data", (chunk) => stderr += chunk);
+  child.stdin.on("error", (e) => stdinError = e.message);
+  child.on("exit", kill);
+  child.on("close", (code) => {
+    clearTimeout(timer);
+    resume(Effect_exports.succeed({ code, stdout, stderr, stdinError, overBudget }));
+  });
+  child.stdin.end(o.input);
+  return Effect_exports.sync(() => {
+    clearTimeout(timer);
+    kill();
+  });
+});
+var overBudgetError = (who, o) => `${who} went over its budget: ${o.exceeded === "minutes" ? `ran ${(o.ms / 6e4).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`;
+var commandWorker = (command) => Layer_exports.succeed(Worker, {
+  run: (request3) => runGroup({ command: "sh", args: ["-c", command], cwd: request3.cwd, env: process.env, input: JSON.stringify(request3), budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
+    Effect_exports.map(({ code, stdout, stderr, stdinError, overBudget }) => {
+      if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
+      try {
+        return JSON.parse(stdout);
+      } catch {
+        const unread = stdinError ? ` without reading its request on stdin (${stdinError})` : "";
+        return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2e3)}` };
+      }
+    })
+  )
+});
+
+// src/harness.ts
+var Match = Schema_exports.Record(Schema_exports.String, Schema_exports.Union([Schema_exports.String, Schema_exports.Number, Schema_exports.Boolean]));
+var Strings = Schema_exports.Array(Schema_exports.String);
+var common = {
+  /** argv. Placeholders: {model} {provider} {account} {effort} {system} {prompt} {title} {tools} {settings}; {x|json} quotes as JSON. */
+  command: Schema_exports.NonEmptyArray(Schema_exports.String),
+  /** What goes on stdin; default "{prompt}". */
+  stdin: Schema_exports.optional(Schema_exports.String),
+  /** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
+  settings: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
+  /** The allowlist for each access level: tool names, joined with commas for {tools}. */
+  tools: Schema_exports.Struct({ read: Strings, checks: Strings, make: Strings, run: Strings }),
+  /** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix. */
+  env: Schema_exports.optional(Strings),
+  /** Read only from the harness's own events: `pattern` names (?<clock>) or (?<minutes>) groups for the reset; `signals` are machine-readable records. */
+  limit: Schema_exports.Struct({
+    pattern: Schema_exports.String,
+    events: Schema_exports.optional(Schema_exports.Array(Match)),
+    signals: Schema_exports.optional(Schema_exports.Array(Schema_exports.Struct({ when: Match, resetsAt: Strings, message: Schema_exports.String })))
+  }),
+  /** Tokens summed over every matching event, for the token budget. */
+  tokens: Schema_exports.optional(Schema_exports.Struct({ event: Match, paths: Strings }))
+};
+var Harness = Schema_exports.Union([
+  /** Plain text: stdout is the answer. */
+  Schema_exports.Struct({ ...common, output: Schema_exports.Literal("text") }),
+  /** JSON lines: the answer is `text` in the last `event`; it succeeded if that event matches `ok`, `done` occurred and no `failed` event did. */
+  Schema_exports.Struct({
+    ...common,
+    output: Schema_exports.Literal("jsonl"),
+    answer: Schema_exports.Struct({ event: Match, text: Schema_exports.String, ok: Schema_exports.optional(Match), done: Schema_exports.optional(Match), failed: Schema_exports.optional(Schema_exports.Array(Match)) })
+  })
+]);
+var BASE_ENV = ["PATH", "HOME", "USER", "LOGNAME", "SHELL", "TERM", "LANG", "LC_*", "TZ", "TMPDIR", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy", "SSL_CERT_FILE", "SSL_CERT_DIR", "NODE_EXTRA_CA_CERTS"];
+var CLAUDE_LIMIT = `You['\u2019]ve hit your [^\\n"]*?limit \xB7 resets (?<clock>[^\\n"]+)`;
+var CLAUDE_EVENTS = {
+  output: "jsonl",
+  answer: { event: { type: "result" }, text: "result", ok: { subtype: "success", is_error: false } },
+  limit: {
+    pattern: CLAUDE_LIMIT,
+    events: [{ type: "result" }, { error: "*" }, { type: "rate_limit_event" }, { type: "assistant", "message.model": "<synthetic>" }],
+    signals: [
+      { when: { error: "rate_limit", quotaLimits: "*" }, resetsAt: ["quotaLimits.resetsAt"], message: "rate limit {quotaLimits.rateLimitType}" },
+      { when: { type: "rate_limit_event", "rate_limit_info.status": "rejected" }, resetsAt: ["rate_limit_info.resetsAt"], message: "rate limit {rate_limit_info.rateLimitType}" }
+    ]
+  },
+  tokens: { event: { type: "result" }, paths: ["usage.input_tokens", "usage.cache_creation_input_tokens", "usage.output_tokens"] }
+};
+var AMP_SHELL = ["shell_command", "async_shell_command", "shell_command_status", "shell_command_kill"];
+var READ_ONLY = ["read-only"];
+var FULL = ["danger-full-access"];
+var HARNESSES = {
+  // card.model is the Amp agent mode. Amp has no system-prompt flag: the brief goes on stdin before the packet.
+  amp: {
+    command: ["amp", "-x", "--stream-json", "-m", "{model}", "--no-notifications", "--no-ide", "--title", "{title}", "-l", "madewell", "--settings-file", "{settings}"],
+    stdin: "{system}\n\n---\n\nYour packet:\n{prompt}",
+    settings: { "amp.tools.enable": "{tools}", "amp.git.commit.ampThread.enabled": false, "amp.git.commit.coauthor.enabled": false },
+    tools: {
+      read: ["Read", ...AMP_SHELL],
+      checks: ["Read", ...AMP_SHELL, "edit_file", "create_file", "apply_patch"],
+      make: ["Read", ...AMP_SHELL, "edit_file", "create_file", "apply_patch"],
+      run: ["Read", ...AMP_SHELL]
+    },
+    env: ["AMP_API_KEY", "AMP_URL"],
+    ...CLAUDE_EVENTS,
+    // Amp's result event carries no usage; each assistant message does.
+    tokens: { event: { type: "assistant" }, paths: ["message.usage.input_tokens", "message.usage.cache_creation_input_tokens", "message.usage.output_tokens"] }
+  },
+  claude: {
+    command: ["claude", "-p", "--verbose", "--output-format", "stream-json", "--model", "{model}", "--effort", "{effort}", "--permission-mode", "bypassPermissions", "--strict-mcp-config", "--tools", "{tools}", "--append-system-prompt", "{system}"],
+    tools: {
+      read: ["Read", "Grep", "Glob"],
+      checks: ["Read", "Grep", "Glob", "Bash", "Edit", "Write"],
+      make: ["Read", "Grep", "Glob", "Bash", "Edit", "Write"],
+      run: ["Read", "Grep", "Glob", "Bash"]
+    },
+    env: ["ANTHROPIC_*", "CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CONFIG_DIR"],
+    ...CLAUDE_EVENTS
+  },
+  // Codex has no tool allowlist: its sandbox is the boundary, and the optional tools (images, MCP) are off.
+  codex: {
+    command: ["codex", "exec", "--json", "--skip-git-repo-check", "-m", "{model}", "-c", 'model_reasoning_effort="{effort}"', "-c", 'approval_policy="never"', "-c", "developer_instructions={system|json}", "-c", "tools.view_image=false", "-c", "mcp_servers={}", "-s", "{tools}", "-"],
+    tools: { read: READ_ONLY, checks: FULL, make: FULL, run: FULL },
+    env: ["OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_HOME"],
+    output: "jsonl",
+    answer: { event: { type: "item.completed", "item.type": "agent_message" }, text: "item.text", done: { type: "turn.completed" }, failed: [{ type: "turn.failed" }, { type: "error" }] },
+    limit: {
+      pattern: `[Yy]ou['\u2019]ve hit your usage limit(?:[^\\n"]*?try again at\\s+(?<clock>[^\\n"]+)|[^\\n"]*)|usage_limit_reached|usage_not_included|quota_exceeded`,
+      events: [{ type: "turn.failed" }, { type: "error" }],
+      signals: [{ when: { "payload.rate_limits.rate_limit_reached_type": "*" }, resetsAt: ["payload.rate_limits.primary.resets_at", "payload.rate_limits.secondary.resets_at"], message: "usage limit reached ({payload.rate_limits.rate_limit_reached_type})" }]
+    },
+    tokens: { event: { type: "turn.completed" }, paths: ["usage.input_tokens", "usage.output_tokens"] }
+  },
+  pi: {
+    command: ["pi", "--print", "--mode", "json", "--offline", "--no-session", "--model", "{provider}/{model}", "--thinking", "{effort}", "--append-system-prompt", "{system}", "--tools", "{tools}"],
+    tools: {
+      read: ["read", "grep", "find", "ls"],
+      checks: ["read", "grep", "find", "ls", "bash", "edit", "write"],
+      make: ["read", "grep", "find", "ls", "bash", "edit", "write"],
+      run: ["read", "grep", "find", "ls", "bash"]
+    },
+    env: ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "OPENROUTER_API_KEY", "PI_CODING_AGENT_DIR"],
+    output: "jsonl",
+    answer: { event: { type: "message_end", "message.role": "assistant" }, text: "message.content", ok: { "message.stopReason": "stop" } },
+    limit: {
+      pattern: "You have hit your ChatGPT usage limit(?: \\([^)]*\\))?\\.(?: Try again in ~(?<minutes>\\d+) min\\.)?",
+      events: [{ type: "message_end", "message.role": "assistant", "message.stopReason": "error" }, { type: "auto_retry_end", success: false }, { type: "error" }]
+    },
+    tokens: { event: { type: "message_end", "message.role": "assistant" }, paths: ["message.usage.input", "message.usage.output"] }
+  }
+};
+var get5 = (value3, path) => path.split(".").reduce((v, k) => v && typeof v === "object" ? v[k] : void 0, value3);
+var matches = (event, match7) => Object.entries(match7).every(([path, want]) => want === "*" ? get5(event, path) != null : get5(event, path) === want);
+var fill = (template, vars) => template.replace(/\{([\w.]+)(\|json)?\}/g, (whole, path, json) => {
+  const v = get5(vars, path);
+  if (v === void 0 || v === null) return whole;
+  const s = Array.isArray(v) ? v.join(",") : String(v);
+  return json ? JSON.stringify(s) : s;
+});
+var glob = (names) => (name) => names.some((n) => n.endsWith("*") ? name.startsWith(n.slice(0, -1)) : name === n);
+var agentEnv = (allow, from = process.env) => ({
+  ...Object.fromEntries(Object.entries(from).filter(([name]) => glob(allow)(name))),
+  MW_WORKER: "1"
+});
+function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
+  const settings = join(call.dir, "settings.json");
+  const vars = { ...card, ...call, tools: harness.tools[access], settings };
+  const [binary, ...args2] = harness.command.map((a) => fill(a, vars));
+  const files = harness.settings ? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v]))) } : {};
+  return { command: process.env[`MW_${card.harness.toUpperCase()}`] ?? binary, args: args2, input: fill(harness.stdin ?? "{prompt}", vars), files };
+}
+var events = (text2) => text2.split("\n").flatMap((l) => {
+  try {
+    const e = JSON.parse(l);
+    return e && typeof e === "object" ? [e] : [];
+  } catch {
+    return [];
+  }
+});
+var strings = (value3) => typeof value3 === "string" ? [value3] : value3 && typeof value3 === "object" ? Object.values(value3).flatMap(strings) : [];
+var textOf = (value3) => typeof value3 === "string" ? value3 : Array.isArray(value3) ? value3.map((c) => typeof c === "string" ? c : c?.type === "text" ? String(c.text ?? "") : "").filter(Boolean).join("\n") : "";
+var tokensIn = (harness, line) => {
+  const e = harness.tokens && events(line)[0];
+  if (!e || !matches(e, harness.tokens.event)) return 0;
+  return harness.tokens.paths.reduce((sum3, p) => sum3 + (Number(get5(e, p)) || 0), 0);
+};
+var DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+function clockToEpoch(text2, now2) {
+  const m = /(?:\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+)?\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?(\s*\(UTC\))?/i.exec(text2);
+  if (!m) return null;
+  const [, day, h, min5 = "0", ap, utc] = m;
+  const hour = Number(h) % 12 + (ap.toLowerCase() === "p" ? 12 : 0);
+  const d = new Date(now2);
+  const dayOf = () => utc ? d.getUTCDay() : d.getDay();
+  if (utc) d.setUTCHours(hour, Number(min5), 0, 0);
+  else d.setHours(hour, Number(min5), 0, 0);
+  const want = day ? DAYS.indexOf(day.toLowerCase()) : null;
+  for (let i = 0; i < 8 && (d.getTime() <= now2 || want !== null && dayOf() !== want); i++) {
+    if (utc) d.setUTCDate(d.getUTCDate() + 1);
+    else d.setDate(d.getDate() + 1);
+  }
+  return d.getTime();
+}
+function parseRun(harness, stdout, account, now2) {
+  const evs = harness.output === "jsonl" ? events(stdout) : [];
+  let output = stdout.trim();
+  let succeeded = output !== "";
+  let failed = [];
+  if (harness.output === "jsonl") {
+    const a = harness.answer;
+    const last = evs.findLast((e) => matches(e, a.event));
+    failed = evs.filter((e) => a.failed?.some((m) => matches(e, m)));
+    output = textOf(get5(last, a.text));
+    succeeded = last !== void 0 && output.trim() !== "" && (!a.ok || matches(last, a.ok)) && (!a.done || evs.some((e) => matches(e, a.done))) && failed.length === 0;
+  }
+  const pattern = new RegExp(harness.limit.pattern);
+  const answeredLimit = new RegExp(`^\\s*(?:${harness.limit.pattern})`).test(output);
+  const own = evs.filter((e) => harness.limit.events?.some((m) => matches(e, m)));
+  let limit = null;
+  if (!succeeded || answeredLimit) {
+    const text2 = answeredLimit ? output : own.flatMap(strings).find((s) => pattern.test(s));
+    const said = text2 ? pattern.exec(text2) : null;
+    const signal = harness.limit.signals?.map((s) => ({ s, e: evs.findLast((e) => matches(e, s.when)) })).find((x) => x.e);
+    if (said || signal) {
+      const machine = signal?.s.resetsAt.map((p) => get5(signal.e, p)).find((v) => typeof v === "number" && Number.isFinite(v));
+      const { clock, minutes: minutes2 } = said?.groups ?? {};
+      const resetsAt = machine !== void 0 ? machine * 1e3 : clock ? clockToEpoch(clock, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
+      limit = { account, resetsAt, message: said?.[0] ?? fill(signal.s.message, signal.e) };
+    }
+  }
+  const ok = succeeded && !limit;
+  return { output, ok, limit, error: ok ? "" : [...new Set([...failed, ...own].flatMap(strings))].join(" ").slice(-2e3) || output };
+}
+var harnessWorker = Layer_exports.succeed(Worker, {
+  run: (request3) => {
+    const name = request3.card.harness;
+    const harness = request3.harness ?? HARNESSES[name];
+    if (!harness) return Effect_exports.succeed({ ok: false, error: `No harness entry "${name}". Built in: ${Object.keys(HARNESSES).join(", ")}; add others under "harnesses" in prescriptions.` });
+    const budget = request3.budget ?? DEFAULT_BUDGET;
+    return Effect_exports.acquireUseRelease(
+      // Per-call files (settings) live in a directory removed when the call ends.
+      Effect_exports.sync(() => mkdtempSync(join(tmpdir(), "madewell-"))),
+      (dir) => {
+        const launch2 = buildLaunch(request3.card, request3.access, { system: request3.system, prompt: request3.prompt, title: `mw #${request3.item} ${request3.job} \xB7 ${request3.profile} \xB7 ${request3.kind}`, dir }, harness);
+        for (const [path, content] of Object.entries(launch2.files)) writeFileSync(path, content);
+        return runGroup({ command: launch2.command, args: launch2.args, cwd: request3.cwd, env: agentEnv([...BASE_ENV, ...harness.env ?? []]), input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir });
+      },
+      (dir) => Effect_exports.sync(() => rmSync(dir, { recursive: true, force: true }))
+    ).pipe(
+      Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
+        if (overBudget) return { ok: false, error: overBudgetError(`${name} (${request3.card.model})`, overBudget), overBudget, raw: stdout };
+        if (code === 127 && !stdout) return { ok: false, error: `${stderr.trim()}. Is ${name} installed and on PATH?` };
+        const run2 = parseRun(harness, stdout, request3.card.account, Date.now());
+        if (run2.limit) return { ok: false, limit: run2.limit, raw: stdout };
+        if (run2.ok && code === 0) return { ok: true, output: run2.output, raw: stdout };
+        return { ok: false, error: `${name} exited ${code}: ${run2.error || stderr.slice(-2e3) || "no final answer"}`, raw: stdout };
+      })
+    );
+  }
+});
+
 // src/cards.ts
 var Card = Schema_exports.Struct({
-  harness: Schema_exports.Literals(["amp", "claude", "codex", "pi"]),
+  /** A built-in harness entry (amp, claude, codex, pi) or one defined under "harnesses". */
+  harness: Schema_exports.NonEmptyString,
   provider: Schema_exports.NonEmptyString,
   account: Schema_exports.NonEmptyString,
   model: Schema_exports.NonEmptyString,
@@ -20797,9 +21089,16 @@ var Card = Schema_exports.Struct({
 });
 var Access = Schema_exports.Literals(["read", "checks", "make", "run"]);
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
+var Positive = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
+var JobBudget = Schema_exports.optional(Schema_exports.Struct({ minutes: Positive, tokens: Schema_exports.optional(Positive) }));
+var Prescription = Schema_exports.Struct({ tier: Schema_exports.String, access: Access, budget: JobBudget });
 var Prescriptions = Schema_exports.Struct({
   tiers: Schema_exports.Record(Schema_exports.String, Schema_exports.NonEmptyArray(Card)),
-  jobs: Schema_exports.Struct(Object.fromEntries(JOBS.map((job) => [job, Schema_exports.Struct({ tier: Schema_exports.String, access: Access })])))
+  jobs: Schema_exports.Struct(Object.fromEntries(JOBS.map((job) => [job, Prescription]))),
+  /** Harness entries added to, or replacing, the built-in ones. */
+  harnesses: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Harness)),
+  /** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
+  env: Schema_exports.optional(Schema_exports.Array(Schema_exports.String))
 });
 var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   const text2 = yield* Effect_exports.try({
@@ -20811,8 +21110,15 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
     catch: (e) => new MadeWellError({ code: "prescriptions_invalid", message: `Prescriptions file ${path} is not valid JSON.`, context: { path, reason: String(e) }, next: [{ run: `node -e "JSON.parse(require('fs').readFileSync('${path}','utf8'))"`, why: "see the exact parse error position" }] })
   });
   const p = yield* Schema_exports.decodeUnknownEffect(Prescriptions)(value3).pipe(
-    Effect_exports.mapError((e) => new MadeWellError({ code: "prescriptions_invalid", message: `Prescriptions file ${path} does not match the expected shape.`, context: { path, problems: String(e) }, cause: "Each job needs {tier, access}; each tier is a non-empty list of cards {harness, provider, account, model, effort}.", next: [{ run: `$EDITOR ${path}`, why: "fix the fields listed in context.problems" }] }))
+    Effect_exports.mapError((e) => new MadeWellError({ code: "prescriptions_invalid", message: `Prescriptions file ${path} does not match the expected shape.`, context: { path, problems: String(e) }, cause: "Each job needs {tier, access, budget?: {minutes, tokens?}}; each tier is a non-empty list of cards {harness, provider, account, model, effort}; each entry under harnesses needs {command, output, answer (jsonl), limit, tools per access level}.", next: [{ run: `$EDITOR ${path}`, why: "fix the fields listed in context.problems" }] }))
   );
+  const harnesses = { ...HARNESSES, ...p.harnesses };
+  for (const [tier, cards] of Object.entries(p.tiers)) {
+    const unknown2 = cards.find((c) => !harnesses[c.harness]);
+    if (unknown2) {
+      return yield* new MadeWellError({ code: "prescriptions_invalid", message: `Tier "${tier}" has a card on harness "${unknown2.harness}", which has no entry.`, context: { path, tier, card: unknown2, harnesses: Object.keys(harnesses) }, next: [{ run: `$EDITOR ${path}`, why: `use one of ${Object.keys(harnesses).join(", ")}, or add "${unknown2.harness}" under "harnesses": command, output, answer, limit and tools per access level` }] });
+    }
+  }
   for (const job of JOBS) {
     const tier = p.jobs[job].tier;
     if (!p.tiers[tier]) {
@@ -20830,9 +21136,9 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/engine.ts
-import { execFile as execFile2 } from "node:child_process";
+import { execFile } from "node:child_process";
 import { readFileSync as readFileSync2 } from "node:fs";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 
 // src/lane.ts
 var DELIVERY = [
@@ -20907,14 +21213,14 @@ function lastJson(text2) {
 }
 
 // src/store.ts
-import { mkdirSync as mkdirSync3, renameSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { mkdirSync as mkdirSync3, renameSync, writeFileSync as writeFileSync3 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname as dirname2, join as join2 } from "node:path";
+import { dirname as dirname2, join as join3 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 // src/replay.ts
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { mkdirSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { join as join2 } from "node:path";
 var snapshot2 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
 var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const item = store.get(id2);
@@ -20923,13 +21229,13 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   yield* Effect_exports.try({
     try: () => {
       mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      writeFileSync2(join2(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
       calls.forEach((c, i) => {
-        const folder = join(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        const folder = join2(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
         mkdirSync(folder, { recursive: true });
         const { system, prompt, output, raw, tools, flags, ...meta } = c;
         const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
-        for (const [name, text2] of files) writeFileSync(join(folder, name), text2);
+        for (const [name, text2] of files) writeFileSync2(join2(folder, name), text2);
       });
     },
     catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
@@ -21213,7 +21519,7 @@ var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
 }));
 
 // src/store.ts
-var defaultStorePath = () => process.env.MW_STORE ?? join2(process.env.MW_HOME ?? join2(homedir(), ".local", "share", "madewell"), "madewell.db");
+var defaultStorePath = () => process.env.MW_STORE ?? join3(process.env.MW_HOME ?? join3(homedir(), ".local", "share", "madewell"), "madewell.db");
 var alive = (pid) => {
   try {
     process.kill(pid, 0);
@@ -21243,7 +21549,7 @@ function openStore(path) {
       throw e;
     }
   };
-  const glass = join2(dirname2(path), "glass.html");
+  const glass = join3(dirname2(path), "glass.html");
   const insertTools = (call, tools) => {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
@@ -21262,7 +21568,7 @@ function openStore(path) {
   const event = (item, kind, data) => db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, (/* @__PURE__ */ new Date()).toISOString(), kind, JSON.stringify(data));
   const view2 = () => {
     try {
-      writeFileSync2(`${glass}.tmp`, replayHtml(snapshot2(store)));
+      writeFileSync3(`${glass}.tmp`, replayHtml(snapshot2(store)));
       renameSync(`${glass}.tmp`, glass);
     } catch {
     }
@@ -21386,27 +21692,8 @@ var Store = class extends Context_exports.Service()("madewell/Store") {
 };
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
-  debugLayer(join2(dirname2(path), "debug.jsonl"))
+  debugLayer(join3(dirname2(path), "debug.jsonl"))
 );
-
-// src/worker.ts
-import { execFile } from "node:child_process";
-var Worker = class extends Context_exports.Service()("madewell/Worker") {
-};
-var commandWorker = (command) => Layer_exports.succeed(Worker, {
-  run: (request3) => Effect_exports.promise(() => new Promise((done3) => {
-    const child = execFile("sh", ["-c", command], { cwd: request3.cwd, maxBuffer: 64 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }));
-    child.stdin?.end(JSON.stringify(request3));
-  })).pipe(
-    Effect_exports.flatMap(({ code, stdout, stderr }) => {
-      try {
-        return Effect_exports.succeed(JSON.parse(stdout));
-      } catch {
-        return Effect_exports.succeed({ ok: false, error: `Worker command exited ${code} without a JSON result. stderr: ${stderr.slice(-2e3)}` });
-      }
-    })
-  )
-});
 
 // src/engine.ts
 var MAX_LAUNCHES = 3;
@@ -21651,7 +21938,7 @@ ${item.failure ?? ""}`,
 var hold = (store, item, code, message, context3) => void store.save({ ...item, status: "held", hold: { code, message, context: context3 } }, "held", { code, message });
 var ship = Effect_exports.fn("mw.ship")(function* (item) {
   const store = yield* Store;
-  const config = join3(item.workspace, "madewell.json");
+  const config = join4(item.workspace, "madewell.json");
   let command;
   try {
     command = JSON.parse(readFileSync2(config, "utf8")).ship;
@@ -21659,7 +21946,7 @@ var ship = Effect_exports.fn("mw.ship")(function* (item) {
   }
   if (!command) return hold(store, item, "no_ship_command", `Item #${item.id} passed verification, but its workspace has no ship command.`, { workspace: item.workspace, config });
   const { code, stdout, stderr } = yield* Effect_exports.promise(
-    () => new Promise((done3) => execFile2("sh", ["-c", command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature" } }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
+    () => new Promise((done3) => execFile("sh", ["-c", command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature" } }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
   );
   const tail = (s) => s.slice(-4e3);
   if (code !== 0) return hold(store, item, "ship_failed", `Item #${item.id} passed verification, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) });
@@ -21677,7 +21964,7 @@ function nextFor(item) {
   }
   if (code === "no_ship_command") {
     return [
-      { run: `printf '{"ship": "git push origin HEAD:main"}\\n' > ${join3(item.workspace, "madewell.json")}`, why: "tell Made Well how this project ships (merge to main, deploy, or both)" },
+      { run: `printf '{"ship": "git push origin HEAD:main"}\\n' > ${join4(item.workspace, "madewell.json")}`, why: "tell Made Well how this project ships (merge to main, deploy, or both)" },
       { run: `mw retry ${id2}`, why: "verify again and ship" }
     ];
   }
@@ -21788,163 +22075,6 @@ var executePacket = (item, x) => JSON.stringify({
   ...item.outputs[item.job] !== void 0 && item.rework ? { yourPreviousDeliverable: item.outputs[item.job] } : {},
   ...item.pickingUp ? { pickingUp: item.pickingUp } : {}
 }, null, 2);
-
-// src/harness.ts
-import { spawn } from "node:child_process";
-import { mkdirSync as mkdirSync4, writeFileSync as writeFileSync3 } from "node:fs";
-import { tmpdir } from "node:os";
-import { join as join4 } from "node:path";
-var binaryFor = (harness) => ({ amp: process.env.MW_AMP ?? "amp", claude: process.env.MW_CLAUDE ?? "claude", codex: process.env.MW_CODEX ?? "codex", pi: process.env.MW_PI ?? "pi" })[harness];
-var CLAUDE_ACCESS = {
-  read: ["--permission-mode", "dontAsk", "--tools", "Read,Grep,Glob"],
-  checks: ["--permission-mode", "acceptEdits", "--tools", "Read,Grep,Glob,Bash,Edit,Write", "--allowedTools", "Bash"],
-  make: ["--dangerously-skip-permissions"],
-  run: ["--permission-mode", "dontAsk", "--tools", "Read,Grep,Glob,Bash", "--allowedTools", "Bash"]
-};
-var CODEX_SANDBOX = { read: "read-only", checks: "danger-full-access", make: "danger-full-access", run: "danger-full-access" };
-var PI_TOOLS = { read: "read,grep,find,ls", checks: "read,grep,find,ls,bash,write,edit", make: null, run: "read,grep,find,ls,bash" };
-var AMP_ALWAYS_OFF = ["Task", "oracle", "librarian", "finder", "create_thread", "send_thread_message", "code_exec"];
-var AMP_EDITS = ["edit_file", "create_file"];
-var ampSettings = (access) => {
-  const dir = join4(tmpdir(), "madewell-amp");
-  mkdirSync4(dir, { recursive: true });
-  const path = join4(dir, `${access}.json`);
-  writeFileSync3(path, JSON.stringify({ "amp.tools.disable": access === "read" ? [...AMP_ALWAYS_OFF, ...AMP_EDITS] : AMP_ALWAYS_OFF }));
-  return path;
-};
-function buildLaunch(card, access, system, title = "Made Well job") {
-  const command = binaryFor(card.harness);
-  if (card.harness === "amp") {
-    return { command, args: ["-x", "--stream-json", "-m", card.model, "--no-notifications", "--no-ide", "--title", title, "-l", "madewell", "--settings-file", ampSettings(access)], prefix: system };
-  }
-  if (card.harness === "claude") {
-    return { command, args: ["-p", "--verbose", "--output-format", "stream-json", "--model", card.model, "--effort", card.effort, "--permission-prompts", "none", "--disallowedTools", "Agent,Task", ...CLAUDE_ACCESS[access], "--append-system-prompt", system] };
-  }
-  if (card.harness === "codex") {
-    return { command, args: ["exec", "--json", "--skip-git-repo-check", "-m", card.model, "-c", `model_reasoning_effort="${card.effort}"`, "-c", 'approval_policy="never"', "-c", `developer_instructions=${JSON.stringify(system)}`, "-s", CODEX_SANDBOX[access], "-"] };
-  }
-  const tools = PI_TOOLS[access];
-  return { command, args: ["--print", "--mode", "json", "--offline", "--no-session", "--model", `${card.provider}/${card.model}`, "--thinking", card.effort, "--append-system-prompt", system, ...tools ? ["--tools", tools] : []] };
-}
-var events = (text2) => text2.split("\n").filter((l) => l.trim()).flatMap((l) => {
-  try {
-    return [JSON.parse(l)];
-  } catch {
-    return [];
-  }
-});
-var strings = (value3) => typeof value3 === "string" ? [value3] : value3 && typeof value3 === "object" ? Object.values(value3).flatMap(strings) : [];
-var seconds2 = (s) => typeof s === "number" && Number.isFinite(s) ? s * 1e3 : null;
-var DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-function clockToEpoch(text2, now2) {
-  const m = /(?:\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+)?\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?(\s*\(UTC\))?/i.exec(text2);
-  if (!m) return null;
-  const [, day, h, min5 = "0", ap, utc] = m;
-  const hour = Number(h) % 12 + (ap.toLowerCase() === "p" ? 12 : 0);
-  const d = new Date(now2);
-  const dayOf = () => utc ? d.getUTCDay() : d.getDay();
-  if (utc) d.setUTCHours(hour, Number(min5), 0, 0);
-  else d.setHours(hour, Number(min5), 0, 0);
-  const want = day ? DAYS.indexOf(day.toLowerCase()) : null;
-  for (let i = 0; i < 8 && (d.getTime() <= now2 || want !== null && dayOf() !== want); i++) {
-    if (utc) d.setUTCDate(d.getUTCDate() + 1);
-    else d.setDate(d.getDate() + 1);
-  }
-  return d.getTime();
-}
-var CLAUDE_LIMIT = /You['’]ve hit your [^\n"]*?limit · resets [^\n"]+/;
-var CODEX_LIMIT = /[Yy]ou['’]ve hit your usage limit[^\n"]*/;
-var PI_LIMIT = /You have hit your ChatGPT usage limit(?: \([^)]*\))?\.(?: Try again in ~(\d+) min\.)?/;
-function parseRun(harness, stdout, account, now2) {
-  const evs = events(stdout);
-  if (harness === "claude" || harness === "amp") {
-    const result3 = evs.findLast((e) => e.type === "result");
-    const output2 = typeof result3?.result === "string" ? result3.result : "";
-    const succeeded2 = result3?.subtype === "success" && result3.is_error === false && output2.trim() !== "" && !new RegExp(`^\\s*${CLAUDE_LIMIT.source}`).test(output2);
-    let limit2 = null;
-    if (!succeeded2) {
-      const own = evs.filter((e) => e.type === "result" || e.error || e.type === "rate_limit_event" || e.type === "assistant" && e.message?.model === "<synthetic>");
-      const record2 = own.find((e) => e.error === "rate_limit" && e.quotaLimits) ?? own.find((e) => e.type === "rate_limit_event" && e.rate_limit_info?.status === "rejected");
-      const text2 = own.flatMap(strings).find((s) => CLAUDE_LIMIT.test(s));
-      const message = text2 ? CLAUDE_LIMIT.exec(text2)[0] : null;
-      if (record2 || message) {
-        const machine = seconds2(record2?.quotaLimits?.resetsAt ?? record2?.rate_limit_info?.resetsAt);
-        limit2 = { account, resetsAt: machine ?? (message ? clockToEpoch(message.split("resets")[1], now2) : null), message: message ?? `rate limit ${record2?.quotaLimits?.rateLimitType ?? record2?.rate_limit_info?.rateLimitType ?? ""}`.trim() };
-      }
-    }
-    return { output: output2, ok: succeeded2 && !limit2, limit: limit2, error: succeeded2 ? "" : output2 || String(result3?.subtype ?? "no result event") };
-  }
-  if (harness === "codex") {
-    const output2 = evs.filter((e) => e.type === "item.completed" && e.item?.type === "agent_message").map((e) => e.item.text).at(-1) ?? "";
-    const own = evs.filter((e) => e.type === "turn.failed" || e.type === "error");
-    const succeeded2 = evs.some((e) => e.type === "turn.completed") && own.length === 0 && output2.trim() !== "";
-    const find = (o) => {
-      if (!o || typeof o !== "object") return null;
-      if ("rate_limits" in o && o.rate_limits && typeof o.rate_limits === "object") return o.rate_limits;
-      for (const v of Object.values(o)) {
-        const r = find(v);
-        if (r) return r;
-      }
-      return null;
-    };
-    const rateLimits = evs.map(find).filter(Boolean).at(-1);
-    let limit2 = null;
-    if (!succeeded2) {
-      const ownText = own.flatMap(strings);
-      const text2 = ownText.find((s) => CODEX_LIMIT.test(s));
-      const message = text2 ? CODEX_LIMIT.exec(text2)[0] : null;
-      const reached = rateLimits?.rate_limit_reached_type != null || ownText.some((s) => /usage_limit_reached|usage_not_included|quota_exceeded/.test(s));
-      if (message || reached) {
-        const machine = seconds2(rateLimits?.primary?.resets_at) ?? seconds2(rateLimits?.secondary?.resets_at);
-        const at = message && /try again at\s+(.+)/i.exec(message);
-        limit2 = { account, resetsAt: machine ?? (at ? clockToEpoch(at[1], now2) : null), message: message ?? `usage limit reached (${rateLimits?.rate_limit_reached_type ?? "usage_limit_reached"})` };
-      }
-    }
-    return { output: output2, ok: succeeded2 && !limit2, limit: limit2, error: succeeded2 ? "" : own.flatMap(strings).join(" ").slice(0, 2e3) || "no completed turn" };
-  }
-  const messages = evs.filter((e) => e.type === "message_end" && e.message?.role === "assistant").map((e) => e.message);
-  const last = messages.at(-1);
-  const output = (last?.content ?? []).filter((c) => c.type === "text").map((c) => c.text).join("\n");
-  const succeeded = last?.stopReason === "stop" && output.trim() !== "";
-  let limit = null;
-  if (!succeeded) {
-    const own = evs.filter((e) => e.type === "message_end" && e.message?.role === "assistant" && e.message?.stopReason === "error" || e.type === "auto_retry_end" && e.success === false || e.type === "error");
-    const text2 = own.flatMap(strings).find((s) => PI_LIMIT.test(s));
-    if (text2) {
-      const [message, minutes2] = PI_LIMIT.exec(text2);
-      limit = { account, resetsAt: minutes2 == null ? null : now2 + Number(minutes2) * 6e4, message };
-    }
-  }
-  return { output, ok: succeeded && !limit, limit, error: succeeded ? "" : String(last?.errorMessage ?? "no final assistant message") };
-}
-var harnessWorker = Layer_exports.succeed(Worker, {
-  run: (request3) => Effect_exports.promise(() => new Promise((done3) => {
-    const { command, args: args2, prefix } = buildLaunch(request3.card, request3.access, request3.system, `mw #${request3.item} ${request3.job} \xB7 ${request3.profile} \xB7 ${request3.kind}`);
-    const child = spawn(command, args2, { cwd: request3.cwd, env: { ...process.env, MW_WORKER: "1" }, stdio: ["pipe", "pipe", "pipe"] });
-    let stdout = "";
-    let stderr = "";
-    child.stdout.setEncoding("utf8").on("data", (c) => stdout += c);
-    child.stderr.setEncoding("utf8").on("data", (c) => stderr += c);
-    child.on("error", (e) => done3({ code: null, stdout, stderr, spawnError: `${command}: ${e.message}` }));
-    child.on("close", (code) => done3({ code, stdout, stderr }));
-    child.stdin.on("error", () => {
-    });
-    child.stdin.end(prefix ? `${prefix}
-
----
-
-Your packet:
-${request3.prompt}` : request3.prompt);
-  })).pipe(
-    Effect_exports.map(({ code, stdout, stderr, spawnError }) => {
-      if (spawnError) return { ok: false, error: `${spawnError}. Is ${request3.card.harness} installed and on PATH?` };
-      const run2 = parseRun(request3.card.harness, stdout, request3.card.account, Date.now());
-      if (run2.limit) return { ok: false, limit: run2.limit, raw: stdout };
-      if (run2.ok && code === 0) return { ok: true, output: run2.output, raw: stdout };
-      return { ok: false, error: `${request3.card.harness} exited ${code}: ${run2.error || stderr.slice(-2e3)}`, raw: stdout };
-    })
-  )
-});
 
 // src/cli.ts
 var USAGE = [

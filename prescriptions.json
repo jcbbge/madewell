@@ -89,35 +89,59 @@
   "jobs": {
     "discover": {
       "tier": "deep",
-      "access": "read"
+      "access": "read",
+      "budget": {
+        "minutes": 20
+      }
     },
     "ideate": {
       "tier": "deep",
-      "access": "read"
+      "access": "read",
+      "budget": {
+        "minutes": 10
+      }
     },
     "challenge": {
       "tier": "deep",
-      "access": "read"
+      "access": "read",
+      "budget": {
+        "minutes": 10
+      }
     },
     "plan": {
       "tier": "deep",
-      "access": "read"
+      "access": "read",
+      "budget": {
+        "minutes": 20
+      }
     },
     "test-plan": {
       "tier": "deep",
-      "access": "checks"
+      "access": "checks",
+      "budget": {
+        "minutes": 15
+      }
     },
     "implement": {
       "tier": "coding",
-      "access": "make"
+      "access": "make",
+      "budget": {
+        "minutes": 30
+      }
     },
     "verify": {
       "tier": "fast",
-      "access": "run"
+      "access": "run",
+      "budget": {
+        "minutes": 10
+      }
     },
     "arbitrate": {
       "tier": "deep",
-      "access": "run"
+      "access": "run",
+      "budget": {
+        "minutes": 10
+      }
     }
   }
 }
