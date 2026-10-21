@@ -1,0 +1,147 @@
+{
+  "tiers": {
+    "deep": [
+      {
+        "harness": "claude",
+        "provider": "anthropic",
+        "account": "anthropic",
+        "model": "claude-opus-5-5",
+        "effort": "high"
+      },
+      {
+        "harness": "codex",
+        "provider": "openai",
+        "account": "openai",
+        "model": "gpt-6-astra",
+        "effort": "high"
+      },
+      {
+        "harness": "pi",
+        "provider": "openai-codex",
+        "account": "openai",
+        "model": "gpt-6-astra",
+        "effort": "high"
+      }
+    ],
+    "coding": [
+      {
+        "harness": "claude",
+        "provider": "anthropic",
+        "account": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "effort": "low"
+      },
+      {
+        "harness": "codex",
+        "provider": "openai",
+        "account": "openai",
+        "model": "gpt-6.1-sol",
+        "effort": "low"
+      },
+      {
+        "harness": "pi",
+        "provider": "openai-codex",
+        "account": "openai",
+        "model": "gpt-6.1-sol",
+        "effort": "low"
+      }
+    ],
+    "steady": [
+      {
+        "harness": "claude",
+        "provider": "anthropic",
+        "account": "anthropic",
+        "model": "claude-sonnet-5-5",
+        "effort": "medium"
+      },
+      {
+        "harness": "codex",
+        "provider": "openai",
+        "account": "openai",
+        "model": "gpt-6.1-sol",
+        "effort": "medium"
+      }
+    ],
+    "fast": [
+      {
+        "harness": "claude",
+        "provider": "anthropic",
+        "account": "anthropic",
+        "model": "claude-haiku-5-5",
+        "effort": "low"
+      },
+      {
+        "harness": "codex",
+        "provider": "openai",
+        "account": "openai",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      {
+        "harness": "pi",
+        "provider": "openai-codex",
+        "account": "openai",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      }
+    ]
+  },
+  "jobs": {
+    "discover": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 20
+      }
+    },
+    "ideate": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 10
+      }
+    },
+    "challenge": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 10
+      }
+    },
+    "plan": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 20
+      }
+    },
+    "test-plan": {
+      "tier": "deep",
+      "access": "checks",
+      "budget": {
+        "minutes": 15
+      }
+    },
+    "implement": {
+      "tier": "coding",
+      "access": "make",
+      "budget": {
+        "minutes": 30
+      }
+    },
+    "verify": {
+      "tier": "fast",
+      "access": "run",
+      "budget": {
+        "minutes": 10
+      }
+    },
+    "arbitrate": {
+      "tier": "deep",
+      "access": "run",
+      "budget": {
+        "minutes": 10
+      }
+    }
+  }
+}
