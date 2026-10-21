@@ -178,8 +178,8 @@ const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: str
 
 test('mw export writes one folder per call: brief, packet, answer, raw stream, tool events and flags', () => {
 	const home = mkdtempSync(join(dir, 'export-'))
-	writeFileSync(join(home, 'madewell.json'), JSON.stringify({ ship: 'true' }))
 	const mw = mwIn(home)
+	mw('init', '--ship', 'true')
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	assert.equal(mw('run').code, 0)
 
@@ -206,14 +206,14 @@ test('mw export writes one folder per call: brief, packet, answer, raw stream, t
 
 test('debug mode writes every span to a JSONL file beside the store, only when MW_DEBUG=1, and never to the output', () => {
 	const quiet = mkdtempSync(join(dir, 'quiet-'))
-	writeFileSync(join(quiet, 'madewell.json'), JSON.stringify({ ship: 'true' }))
+	mwIn(quiet)('init', '--ship', 'true')
 	mwIn(quiet)('start', '--objective', 'x', '--source', 'y')
 	assert.equal(mwIn(quiet)('run').code, 0)
 	assert.equal(existsSync(join(quiet, 'debug.jsonl')), false)
 
 	const home = mkdtempSync(join(dir, 'debug-'))
-	writeFileSync(join(home, 'madewell.json'), JSON.stringify({ ship: 'true' }))
 	const mw = mwIn(home, { MW_DEBUG: '1' })
+	mw('init', '--ship', 'true')
 	mw('start', '--objective', 'x', '--source', 'y')
 	const ran = mw('run')
 	assert.equal(ran.code, 0)
