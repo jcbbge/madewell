@@ -93,7 +93,7 @@ const shellEntry: Harness = {
 const dir = mkdtempSync(join(tmpdir(), 'mw-p-'))
 const prescriptions = (local: object) => {
 	const shipped = JSON.parse(readFileSync(join(import.meta.dirname, '../prescriptions.json'), 'utf8'))
-	writeFileSync(join(dir, 'p.json'), JSON.stringify({ ...shipped, tiers: { ...shipped.tiers, local: [local] }, harnesses: { shell: shellEntry }, env: ['MW_PROBE'] }))
+	writeFileSync(join(dir, 'p.json'), JSON.stringify({ ...shipped, tiers: { ...shipped.tiers, local: [local] }, harnesses: { shell: shellEntry }, env: ['MW_PROBE', 'MW_FIXED=set'] }))
 	return loadPrescriptions(join(dir, 'p.json'))
 }
 const shell = harnessOf(await Effect.runPromise(prescriptions(card('shell'))), 'shell')!
@@ -126,10 +126,10 @@ test('a prescribed harness entry runs neutral: allowlisted environment, per-call
 	try {
 		// The stray server keeps stdout open: the call only returns because its process group is killed on exit.
 		// The daemon leaves the group in a session of its own, as a server started with setsid or nohup does.
-		const r = await runShell(`sleep 300 & echo $! > ${pidFile}; setsid sleep 301 </dev/null >/dev/null 2>&1 & echo $! > ${daemonFile}; echo "PORT=\${PORT-unset} MW_WORKER=$MW_WORKER MW_PROBE=$MW_PROBE"; cat "$1"; echo; echo "$1"`)
+		const r = await runShell(`sleep 300 & echo $! > ${pidFile}; setsid sleep 301 </dev/null >/dev/null 2>&1 & echo $! > ${daemonFile}; echo "PORT=\${PORT-unset} MW_WORKER=$MW_WORKER MW_PROBE=$MW_PROBE MW_FIXED=$MW_FIXED"; cat "$1"; echo; echo "$1"`)
 		assert.equal(r.ok, true, JSON.stringify(r))
 		const [env, settings, path] = (r as { output: string }).output.split('\n')
-		assert.equal(env, 'PORT=unset MW_WORKER=1 MW_PROBE=passed', 'only allowlisted variables, including the prescriptions\' own, reach the agent')
+		assert.equal(env, 'PORT=unset MW_WORKER=1 MW_PROBE=passed MW_FIXED=set', 'only allowlisted variables reach the agent, and NAME=value entries are set as given')
 		assert.deepEqual(JSON.parse(settings!), { tools: ['look', 'run'] })
 		assert.ok(!existsSync(path!), 'the per-call settings file is gone')
 		const stray = Number(readFileSync(pidFile, 'utf8'))
@@ -220,6 +220,34 @@ test('mw run stops cleanly on SIGTERM: the agent process group dies and the runn
 		const stopped = db.prepare(`SELECT data FROM events WHERE kind = 'runner-stopped'`).all()
 		db.close()
 		assert.equal(stopped.length, 1, 'the runner released its claim')
+	} finally {
+		rmSync(dir, { recursive: true, force: true })
+	}
+})
+
+test('a daemon left by a runner that was SIGKILLed is killed when the next runner starts', async () => {
+	const dir = mkdtempSync(join(tmpdir(), 'mw-orphan-'))
+	const repo = join(dir, 'repo')
+	const daemonFile = join(dir, 'daemon.pid')
+	mkdirSync(repo)
+	spawnSync('sh', ['-c', 'git init -q -b main && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m first'], { cwd: repo })
+	// The first call leaves a daemon in a session of its own and hangs; later calls fail at once.
+	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `[ -f ${daemonFile} ] && exit 1; setsid sleep 302 </dev/null >/dev/null 2>&1 & echo $! > ${daemonFile}; sleep 300` }
+	delete env.MW_STORE
+	const cli = join(import.meta.dirname, '../src/cli.ts')
+	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
+	try {
+		mw('init', '--ship', 'true')
+		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: 'ignore' })
+		while (!existsSync(daemonFile) || !readFileSync(daemonFile, 'utf8').trim()) await new Promise((r) => setTimeout(r, 20))
+		const daemon = Number(readFileSync(daemonFile, 'utf8'))
+		runner.kill('SIGKILL')
+		await new Promise((r) => runner.once('exit', r))
+		await new Promise((r) => setTimeout(r, 200))
+		assert.equal(alive(daemon), true, 'the daemon outlived its runner')
+		mw('run')
+		assert.equal(alive(daemon), false, 'the next runner killed it')
 	} finally {
 		rmSync(dir, { recursive: true, force: true })
 	}
