@@ -6,6 +6,7 @@
 // runs in its own process group under its job's budget, and nothing it was given outlives the call.
 // Limit signals come only from the harness's own events, never from tool output (a worker can cat a
 // file that quotes a limit message).
+import { execFile } from 'node:child_process'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -40,6 +41,8 @@ const common = {
 	}),
 	/** Tokens summed over every matching event, for the token budget. */
 	tokens: Schema.optional(Schema.Struct({ event: Match, paths: Strings })),
+	/** The arguments that make the binary print its version, for telemetry; default ["--version"]. */
+	version: Schema.optional(Strings),
 }
 
 export const Harness = Schema.Union([
@@ -252,6 +255,14 @@ export function parseRun(harness: Harness, stdout: string, account: string, now:
 	return { output, ok, limit, error: ok ? '' : [...new Set([...failed, ...own].flatMap(strings))].join(' ').slice(-2000) || output }
 }
 
+const versions = new Map<string, Promise<string | null>>()
+/** A harness binary's first line of version output, read once per runner process. One that cannot be read is null and never fails the call. */
+const versionOf = (command: string, args: ReadonlyArray<string>, env: NodeJS.ProcessEnv) => {
+	const key = JSON.stringify([command, ...args])
+	if (!versions.has(key)) versions.set(key, new Promise<string | null>((done) => execFile(command, args, { env, timeout: 10_000 }, (e, stdout, stderr) => done(e ? null : (stdout.trim() || stderr.trim()).split('\n')[0]!.slice(0, 200) || null))).catch(() => null))
+	return Effect.promise(() => versions.get(key)!)
+}
+
 /** The built-in worker: launches the card's harness entry in the item's workspace. */
 export const harnessWorker = Layer.succeed(Worker, {
 	run: (request) => {
@@ -267,17 +278,23 @@ export const harnessWorker = Layer.succeed(Worker, {
 				for (const [path, content] of Object.entries(launch.files)) writeFileSync(path, content)
 				// With no access, the call runs in its own empty directory: no workspace, and none of its instruction files.
 				const cwd = request.access === 'none' ? dir : request.cwd
-				return runGroup({ command: launch.command, args: launch.args, cwd, env: agentEnv([...BASE_ENV, ...(harness.env ?? [])]), input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === 'jsonl' })
+				const env = agentEnv([...BASE_ENV, ...(harness.env ?? [])])
+				return Effect.zip(
+					runGroup({ command: launch.command, args: launch.args, cwd, env, input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === 'jsonl' }),
+					versionOf(launch.command, harness.version ?? ['--version'], env),
+					{ concurrent: true },
+				)
 			},
 			(dir) => Effect.sync(() => rmSync(dir, { recursive: true, force: true })),
 		).pipe(
-			Effect.map(({ code, stdout, stderr, overBudget }): WorkerResult => {
-				if (overBudget) return { ok: false, error: overBudgetError(`${name} (${request.card.model})`, overBudget), overBudget, raw: stdout }
+			Effect.map(([{ code, stdout, stderr, overBudget }, version]): WorkerResult => {
+				const v = version === null ? {} : { version }
+				if (overBudget) return { ok: false, error: overBudgetError(`${name} (${request.card.model})`, overBudget), overBudget, raw: stdout, ...v }
 				if (code === 127 && !stdout) return { ok: false, error: `${stderr.trim()}. Is ${name} installed and on PATH?` }
 				const run = parseRun(harness, stdout, request.card.account, Date.now())
-				if (run.limit) return { ok: false, limit: run.limit, raw: stdout }
-				if (run.ok && code === 0) return { ok: true, output: run.output, raw: stdout }
-				return { ok: false, error: `${name} exited ${code}: ${run.error || stderr.slice(-2000) || 'no final answer'}`, raw: stdout }
+				if (run.limit) return { ok: false, limit: run.limit, raw: stdout, ...v }
+				if (run.ok && code === 0) return { ok: true, output: run.output, raw: stdout, ...v }
+				return { ok: false, error: `${name} exited ${code}: ${run.error || stderr.slice(-2000) || 'no final answer'}`, raw: stdout, ...v }
 			}),
 		)
 	},

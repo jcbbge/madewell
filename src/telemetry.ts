@@ -4,11 +4,13 @@
 //
 // With MW_TELEMETRY=<dir>, every record the store keeps (events, calls in full, Effect spans) is also appended
 // to this machine's own file in that directory, one JSON line each. Point it at a folder that is synced,
-// mounted or collected, and the files from every machine read together; `mw stats` reads them.
+// mounted or collected, and the files from every machine read together; `mw stats` reads them. Each line names
+// the Made Well build that wrote it. MW_TELEMETRY_LEVEL=metrics keeps the numbers and drops the free text.
 import { createHash } from 'node:crypto'
-import { appendFileSync, mkdirSync } from 'node:fs'
+import { appendFileSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
 import { hostname } from 'node:os'
 import { dirname, join, matchesGlob, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Effect, Layer, Tracer } from 'effect'
 import type { Access, Card } from './cards.ts'
 import { lastJson } from './lane.ts'
@@ -201,9 +203,38 @@ export function flagsFor(facts: Facts, observed: { readonly tools: ReadonlyArray
 	return flags
 }
 
+let build: string | null | undefined
+/**
+ * The running build of Made Well: sha256 of the code beside this module, first 12 hex characters. Installed, that
+ * is the one bundled file; in development, every source file. No release process: changed code is a new build.
+ */
+const buildOf = () => {
+	if (build !== undefined) return build
+	try {
+		const here = dirname(fileURLToPath(import.meta.url))
+		const hash = createHash('sha256')
+		for (const f of readdirSync(here).filter((f) => /\.(ts|mjs)$/.test(f)).sort()) hash.update(f).update(readFileSync(join(here, f)))
+		build = hash.digest('hex').slice(0, 12)
+	} catch {
+		build = null
+	}
+	return build
+}
+
+/** The strings a metrics-level line keeps as written: names, ids, commits, cards, outcomes and times. */
+const KEEP = new Set(['kind', 'job', 'profile', 'harness', 'provider', 'account', 'model', 'effort', 'outcome', 'status', 'code', 'cause', 'rule', 'flags', 'tool', 'tools', 'allowlist', 'required', 'fields', 'access', 'digest', 'exceeded', 'verdict', 'tier', 'prescribed', 'from', 'to', 'by', 'receiver', 'originator', 'ref', 'main', 'on', 'commit', 'verifiedOn', 'conflict', 'before', 'after', 'id', 'doneWhen', 'name', 'trace', 'span', 'parent', 'at', 'started', 'start', 'since', 'resetsAt', 'workspace', 'harnessVersion'])
+/** Every other string (prompts, answers, raw streams, errors, reasons, messages, questions, file paths) becomes its length. */
+const metrics = (v: unknown, key = ''): unknown =>
+	typeof v === 'string' ? (KEEP.has(key) ? v : v.length)
+	: Array.isArray(v) ? v.map((x) => metrics(x, key))
+	: v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, metrics(x, k)]))
+	: v
+
 /**
  * The telemetry sink for a store: with MW_TELEMETRY=<dir>, `<dir>/<host>-<store>.jsonl`, one writer per file so
- * any sync tool can carry it. Each line is {t, host, store, ...record}. A failed write never stops the work.
+ * any sync tool can carry it. Each line is {t, host, store, build, ...record}. With MW_TELEMETRY_LEVEL=metrics
+ * (any level but full, so a typo never sends free text) the record keeps only its numbers and KEEP strings;
+ * array lengths survive, so `mw stats` reads the same at either level. A failed write never stops the work.
  */
 export function telemetry(storePath: string) {
 	const dir = process.env.MW_TELEMETRY
@@ -211,12 +242,13 @@ export function telemetry(storePath: string) {
 	const host = hostname()
 	const store = createHash('sha256').update(resolve(storePath)).digest('hex').slice(0, 8)
 	const file = join(resolve(dir), `${host}-${store}.jsonl`)
+	const full = [undefined, '', 'full'].includes(process.env.MW_TELEMETRY_LEVEL)
 	return {
 		file,
 		write(t: string, record: Record<string, unknown>) {
 			try {
 				mkdirSync(dirname(file), { recursive: true })
-				appendFileSync(file, JSON.stringify({ t, host, store, ...record }, (_, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')
+				appendFileSync(file, JSON.stringify({ t, host, store, build: buildOf(), ...(full ? record : (metrics(record) as Record<string, unknown>)) }, (_, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')
 			} catch {}
 		},
 	}
