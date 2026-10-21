@@ -16,7 +16,7 @@ import { MadeWellError, Next, quote } from './errors.ts'
 import { HARNESSES } from './harness.ts'
 import { decode, INTAKE, lastJson, ORIGINATOR, validate, type Job } from './lane.ts'
 import { Store, type Call } from './store.ts'
-import { flagsFor, tokensOf, toolEvents, totalTokens, type Facts, type Flag } from './telemetry.ts'
+import { flagsFor, telemetry, tokensOf, toolEvents, totalTokens, type Facts, type Flag } from './telemetry.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from './worker.ts'
 import { capture, readOnly, worktree } from './workspace.ts'
 
@@ -275,5 +275,6 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	const recordedCards = calls.reduce<Card[]>((cs, c) => (cs.some((x) => sameCard(x, c.card)) ? cs : [...cs, c.card]), [])
 	const report: EvalReport = { eval: run, job: o.job, brief: briefPath ?? null, recorded: { ...overall, cards: recordedCards }, cards: results, recommendation, next }
 	db.prepare('UPDATE evals SET report = ? WHERE id = ?').run(JSON.stringify(report), run)
+	telemetry(store.path)?.write('eval', { at, ...report })
 	return report
 }, Effect.scoped)

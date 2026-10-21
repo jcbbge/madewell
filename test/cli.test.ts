@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'eval']
+const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'stats', 'eval']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -231,4 +231,44 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.equal(t.git('status', '--porcelain', '--ignored'), '')
 	// The resumed implementer was clear before the crash and keeps the same card: no new intake.
 	assert.equal(calls.filter((l) => l === 'intake implement implementer').length, 1)
+})
+
+test('with MW_TELEMETRY, every machine writes its own file there, and stats reads them all together', () => {
+	const telemetry = mkdtempSync(join(root, 'telemetry-'))
+	const machines = [setup({ MW_TELEMETRY: telemetry }), setup({ MW_TELEMETRY: telemetry })]
+	for (const t of machines) {
+		t.mw('init', '--ship', 'true')
+		t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+		assert.equal(t.mw('run').out.items[0].status, 'shipped')
+	}
+	const files = readdirSync(telemetry)
+	assert.equal(files.length, 2, 'one file per store')
+	const lines = files.flatMap((f) => readFileSync(join(telemetry, f), 'utf8').trim().split('\n').map((l) => JSON.parse(l)))
+	const call = lines.find((l) => l.t === 'call' && l.kind === 'execute' && l.job === 'implement')
+	assert.ok(call.prompt && call.system && call.output && call.workspace, 'a call goes out in full: brief, packet and answer')
+	assert.ok(lines.some((l) => l.t === 'span' && l.name === 'mw.drive'), 'the engine\'s spans go out too')
+
+	// A third machine's file, written elsewhere and collected here: one implement call, refused afterwards.
+	const card = { harness: 'codex', provider: 'openai', account: 'openai', model: 'sol', effort: 'high' }
+	writeFileSync(join(telemetry, 'vps-1a2b3c4d.jsonl'), [
+		{ t: 'event', host: 'vps', store: '1a2b3c4d', seq: 1, item: 1, workspace: '/srv/app', at: '2026-10-22T08:00:00.000Z', kind: 'created', data: {} },
+		{ t: 'call', host: 'vps', store: '1a2b3c4d', id: 7, item: 1, workspace: '/srv/app', kind: 'execute', job: 'implement', card, outcome: 'ok', started: '2026-10-22T08:01:00.000Z', ms: 90_000, tokens: { input: 1000, output: 200, cacheRead: 0, cacheWrite: 0 }, flags: [{ rule: 'out-of-scope', evidence: 'README.md' }] },
+		{ t: 'rejected', host: 'vps', store: '1a2b3c4d', call: 7, at: '2026-10-22T08:02:00.000Z', reason: 'out of scope' },
+	].map((l) => JSON.stringify(l)).join('\n') + '\n{"t":"call","host":"vps"')
+
+	const report = machines[0]!.mw('stats').out
+	assert.equal(report.files.length, 3)
+	assert.equal(report.to, '2026-10-22T08:02:00.000Z')
+	const [a, b, vps] = [...machines.map((t) => report.projects.find((p: { workspace: string }) => p.workspace === t.repo)), report.projects.find((p: { host: string }) => p.host === 'vps')]
+	for (const p of [a, b]) {
+		assert.deepEqual([p.items, p.refused], [{ created: 1, shipped: 1, held: 0 }, 0])
+		assert.ok(p.nq.intakes > 0 && p.jobs.implement.calls === 2 && p.calls === Object.values(p.jobs as Record<string, { calls: number }>).reduce((n, j) => n + j.calls, 0))
+	}
+	assert.deepEqual(vps, {
+		host: 'vps', workspace: '/srv/app', calls: 1, minutes: 1.5, tokens: 1200, refused: 1,
+		items: { created: 1, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0 }, flags: { 'out-of-scope': 1 },
+		jobs: { implement: { calls: 1, minutes: 1.5, tokens: 1200, refused: 1 } },
+		cards: { 'codex · sol · high': { calls: 1, minutes: 1.5, tokens: 1200, refused: 1 } },
+	}, 'a half-written last line is skipped, and the refusal that follows its call counts against it')
+	assert.equal(setup().mw('stats').err.error, 'usage', 'without MW_TELEMETRY or --dir there is nothing to read')
 })

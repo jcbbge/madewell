@@ -7,9 +7,9 @@
 //
 // Reading never creates anything: a command opens the store only if it exists, except `start` and
 // `discover`, which create it once their input is known to be good.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { constants as osConstants } from 'node:os'
-import { basename, dirname, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
@@ -21,6 +21,7 @@ import { Project, alertHolds, openHolds, projectFor, projectsPath, readProjects,
 import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
 import { exportItem, replayHtml, snapshot } from './replay.ts'
+import { stats } from './telemetry.ts'
 import { Worker, commandWorker } from './worker.ts'
 
 const storePath = defaultStorePath()
@@ -74,6 +75,20 @@ const Action = Schema.Union([
 ]).annotate({ identifier: 'Action', description: 'run a command, relay to the operator, or wait until a time' })
 
 const Created = Schema.Struct({ item: ItemView, next: Schema.Array(Next) })
+
+const Tally = Schema.Struct({ calls: Schema.Int, minutes: Schema.Number, tokens: Schema.Number, refused: Schema.Int })
+const Stats = Schema.Struct({
+	dir: Schema.String, files: Schema.Array(Schema.String), lines: Schema.Int, from: Schema.NullOr(Schema.String), to: Schema.NullOr(Schema.String),
+	projects: Schema.Array(Schema.Struct({
+		host: Schema.String, workspace: Schema.String, ...Tally.fields,
+		items: Schema.Struct({ created: Schema.Int, shipped: Schema.Int, held: Schema.Int }),
+		nq: Schema.Struct({ intakes: Schema.Int, questions: Schema.Int }),
+		flags: Schema.Record(Schema.String, Schema.Int),
+		jobs: Schema.Record(Schema.String, Tally),
+		cards: Schema.Record(Schema.String, Tally).annotate({ description: 'keyed "harness · model · effort"' }),
+	})),
+	next: Schema.Array(Next),
+}).annotate({ identifier: 'Stats' })
 
 // ── Views ──────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -395,6 +410,20 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		run: (input) => Effect.gen(function* () {
 			const exported = yield* exportItem(yield* Store, input.id, resolve(input.out ?? resolve(dirname(storePath), 'exports', String(input.id))))
 			return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote(exported.dir)}`, why: 'one folder per call: brief, packet, answer, raw stream, tools.json and flags.json' }] }
+		}),
+	}),
+	command({
+		name: 'stats',
+		summary: 'Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; NQ intakes and questions; calls, agent minutes, tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.',
+		input: Schema.Struct({ dir: optional('the telemetry directory; defaults to MW_TELEMETRY') }),
+		output: Stats,
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			const dir = input.dir ?? process.env.MW_TELEMETRY
+			if (!dir) return yield* usageError('stats', 'No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.')
+			const files = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.jsonl')).sort() : []
+			const lines = files.flatMap((f) => readFileSync(join(dir, f), 'utf8').split('\n').filter(Boolean))
+			return { dir: resolve(dir), files, lines: lines.length, ...stats(lines), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote(resolve(dir))}`, why: 'set it on every machine that runs Made Well, so each writes its file there' }] }
 		}),
 	}),
 	command({
