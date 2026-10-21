@@ -4,20 +4,25 @@
   "private": true,
   "type": "module",
   "bin": {
-    "mw": "src/cli.ts"
+    "mw": "dist/mw.mjs"
   },
+  "files": [
+    "dist/mw.mjs",
+    "prescriptions.json"
+  ],
   "engines": {
     "node": ">=22.18"
   },
   "scripts": {
+    "build": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node22.18 --outfile=dist/mw.mjs --log-level=warning",
+    "pretest": "npm run build",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc"
   },
-  "dependencies": {
-    "effect": "^4.0.5"
-  },
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "effect": "^4.0.5",
+    "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
   }
 }
