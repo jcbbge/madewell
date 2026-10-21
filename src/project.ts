@@ -9,7 +9,7 @@ import { Store, type Hold, type Item } from './store.ts'
 
 export const Project = Schema.Struct({
 	path: Schema.String.annotate({ description: 'the project\'s absolute workspace path' }),
-	ship: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run in the workspace after every check passes: merge to main and deploy' })),
+	ship: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run in the workspace once Made Well has brought a passing item onto main: deploy it' })),
 	alert: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set' })),
 }).annotate({ identifier: 'Project' })
 export type Project = typeof Project.Type

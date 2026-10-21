@@ -8,8 +8,9 @@ import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { Context, Effect, Layer } from 'effect'
 import type { Card } from './cards.ts'
-import { MadeWellError } from './errors.ts'
-import type { Cause, Job } from './lane.ts'
+import { MadeWellError, type Next } from './errors.ts'
+import type { Check, Cause, Job, Maker } from './lane.ts'
+import type { Resource, TeardownRecord } from './workspace.ts'
 import { replayHtml, snapshot } from './replay.ts'
 import { debugLayer, flagsFor, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
@@ -19,6 +20,8 @@ export interface Hold {
 	readonly code: string
 	readonly message: string
 	readonly context: Record<string, unknown>
+	/** Commands that resolve it, when the failure that caused it named them. */
+	readonly next?: ReadonlyArray<Next>
 }
 
 /** Who handed the work to the current job: the dispatcher (the operator's request), an earlier job, or the operator. */
@@ -42,6 +45,33 @@ export interface Exchange {
 	readonly notes?: ReadonlyArray<string>
 	/** The receiver's card. A different card is a different agent, and goes through NQ again. */
 	readonly card?: Card
+}
+
+/** One job's hand-off and attempts. The item carries one at its top level; after planning it carries two, one per maker. */
+export interface Track {
+	readonly from: Origin
+	readonly exchange?: Exchange
+	/** Consecutive failed launches of the job. */
+	readonly launches: number
+	/** Set after a quota swap: the next card is picking up an interrupted job. */
+	readonly pickingUp?: string
+	/** Why Made Well refused the job's last answer; the next call is told. */
+	readonly rejected?: string
+	/** The maker's deliverable is accepted. */
+	readonly done?: boolean
+}
+
+/** One check's run by Made Well, threaded to the plan's done-when item. */
+export interface CheckResult extends Check {
+	readonly exitCode: number
+	readonly ms: number
+	readonly output: string
+}
+
+/** Something a job provisioned, and its teardown once it ran. */
+export interface Provisioned extends Resource {
+	readonly job: Job
+	readonly torn?: TeardownRecord
 }
 
 export interface Item {
@@ -68,6 +98,20 @@ export interface Item {
 	readonly rework?: { readonly cause: Cause; readonly answer: string }
 	/** Set after a quota swap: the next card is picking up an interrupted job. */
 	readonly pickingUp?: string
+	readonly rejected?: string
+	/** The product repo's branch and its commit when the item (or its current round) started. */
+	readonly base?: { readonly ref: string; readonly commit: string }
+	/** After planning: the implementer's and the test architect's tracks, run in parallel. */
+	readonly split?: Partial<Record<Maker, Track>>
+	/** The implementer's change: its files; the patch lives in Made Well's home. */
+	readonly change?: { readonly files: ReadonlyArray<string> }
+	/** The test architect's checks; their files live in Made Well's home until the item ships. */
+	readonly checks?: { readonly checks: ReadonlyArray<Check>; readonly files: ReadonlyArray<string> }
+	/** Made Well's run of the checks: the main commit it ran on, the commit it built there, and every result. */
+	readonly verification?: { readonly on: string; readonly commit: string; readonly results: ReadonlyArray<CheckResult>; readonly passed: boolean }
+	/** The verified commit Made Well brought onto the branch. */
+	readonly merged?: { readonly ref: string; readonly commit: string }
+	readonly provisioned?: ReadonlyArray<Provisioned>
 	readonly parent?: number
 	/** For a candidate: the discovery run that found it. */
 	readonly discovery?: number
@@ -75,7 +119,7 @@ export interface Item {
 	readonly waitsOn?: number
 	readonly resetsAt?: number
 	readonly hold?: Hold
-	readonly shipped?: { readonly command: string; readonly output: string }
+	readonly shipped?: { readonly command: string; readonly output: string; readonly main?: string }
 	readonly created: string
 	readonly updated: string
 }

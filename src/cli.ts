@@ -26,7 +26,7 @@ import { Worker, commandWorker } from './worker.ts'
 const storePath = defaultStorePath()
 const registry = projectsPath(storePath)
 const prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL('../prescriptions.json', import.meta.url).pathname
-const SHIP_SLOT = '"<the operator\'s command that merges to main and deploys>"'
+const SHIP_SLOT = '"<the operator\'s command that deploys what is on main>"'
 
 // MW_WORKER_COMMAND plugs in any harness; otherwise the built-in Claude Code, Codex and pi workers run.
 const workerLayer = Layer.unwrap(Effect.sync(() => (process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker)))
@@ -180,7 +180,7 @@ const nextAction = Effect.fn('mw.next')(function* (): Effect.fn.Return<typeof Ac
 	if (!project?.ship) {
 		const init = `mw init --workspace ${quote(project?.path ?? cwd)} --ship ${SHIP_SLOT}`
 		return {
-			action: 'relay', say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: what command merges to main and deploys?`,
+			action: 'relay', say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: once Made Well brings a passing item onto main, what command deploys it?`,
 			then: [{ run: init, why: 'register the project with how it ships' }, { run: `${init} --alert "<a command that notifies the operator>"`, why: 'also say how to reach the operator when an item holds' }],
 		}
 	}
@@ -226,7 +226,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		summary: 'Register a project, or update its config. The config lives in Made Well\'s home, never in the project. Items held for a missing ship command go on.',
 		input: Schema.Struct({
 			workspace: Workspace,
-			ship: optional('shell command run in the workspace after every check passes: merge to main and deploy. Required the first time.'),
+			ship: optional('shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time.'),
 			alert: optional('shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set'),
 		}),
 		output: Schema.Struct({ project: Project, released: Schema.Array(ItemView), next: Schema.Array(Next) }),
@@ -236,7 +236,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const path = resolve(input.workspace ?? '.')
 			if (!existsSync(path)) return yield* new MadeWellError({ code: 'workspace_missing', message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: 'pwd', why: 'run mw init from the project directory, or pass its path with --workspace' }] })
 			const projects = yield* readProjects(registry)
-			if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError('init', `${path} is not registered yet: init needs --ship, the command that merges to main and deploys.`)
+			if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError('init', `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`)
 			const project = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}) })
 			const updated = yield* readProjects(registry)
 			const waiting = openHolds(store).filter((h) => h.code === 'no_ship_command' && projectFor(updated, h.workspace)?.path === path)

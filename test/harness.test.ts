@@ -156,7 +156,11 @@ test('going over the wall-time or token budget kills the process group and fails
 test('a worker command that exits without reading its request is a failed call, not a crash', async () => {
 	const r = await runShell('x'.repeat(1 << 20), { worker: commandWorker('exit 3') })
 	assert.equal(r.ok, false)
-	assert.match((r as { error: string }).error, /exited 3 without reading its request on stdin \(.*EPIPE.*\)/)
+	assert.match((r as { error: string }).error, /^Worker command exited 3 without reading its request on stdin \(read 0 of \d{7} bytes\)/)
+	const half = await runShell('x'.repeat(1 << 20), { worker: commandWorker('head -c 1000 >/dev/null; exit 3') })
+	assert.match((half as { error: string }).error, /without reading its request on stdin \(read 1000 of \d{7} bytes\)/)
+	const read = await runShell('x'.repeat(1 << 20), { worker: commandWorker('cat >/dev/null; exit 3') })
+	assert.match((read as { error: string }).error, /^Worker command exited 3 and printed no JSON result/, 'a command that read its request is not said to have skipped it')
 })
 
 test('a call with no access runs in an empty directory of its own, never in the workspace', async () => {
@@ -189,6 +193,7 @@ test('mw run stops cleanly on SIGTERM: the agent process group dies and the runn
 	const repo = join(dir, 'repo')
 	const pidFile = join(dir, 'agent.pid')
 	mkdirSync(repo)
+	spawnSync('sh', ['-c', 'git init -q -b main && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m first'], { cwd: repo })
 	// A worker whose agent hangs, with a child of its own.
 	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `sleep 300 & echo $! > ${pidFile}; wait` }
 	delete env.MW_STORE

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -170,9 +170,15 @@ test('the glass beside the store is rewritten after each saved transition and sh
 })
 
 const cli = join(import.meta.dirname, '../src/cli.ts')
+/** `mw` with its store in `home`, run from a product repo beside it. */
 const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: string[]) => {
 	const { MW_DEBUG: _, ...env } = process.env
-	const r = spawnSync(process.execPath, [cli, ...args], { env: { ...env, MW_STORE: join(home, 'mw.db'), MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(home, 'calls.log'), ...extra }, cwd: home, encoding: 'utf8' })
+	const repo = `${home}-repo`
+	if (!existsSync(repo)) {
+		mkdirSync(repo)
+		spawnSync('sh', ['-c', 'git init -q -b main && git config user.name Operator && git config user.email op@example.com && git commit -q --allow-empty -m first'], { cwd: repo })
+	}
+	const r = spawnSync(process.execPath, [cli, ...args], { env: { ...env, MW_STORE: join(home, 'mw.db'), MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(home, 'calls.log'), ...extra }, cwd: repo, encoding: 'utf8' })
 	return { code: r.status, out: r.stdout ? JSON.parse(r.stdout) : null, err: r.stderr ? JSON.parse(r.stderr) : null }
 }
 
@@ -186,14 +192,14 @@ test('mw export writes one folder per call: brief, packet, answer, raw stream, t
 	const out = join(home, 'out')
 	const exported = mw('export', '1', '--out', out)
 	assert.equal(exported.code, 0, JSON.stringify(exported.err))
-	assert.deepEqual([exported.out.export, exported.out.calls], [out, 12])
+	assert.deepEqual([exported.out.export, exported.out.calls], [out, 10])
 	const folders = readdirSync(out).filter((f) => f !== 'item.json')
 	assert.deepEqual(folders.slice(0, 3), ['001-intake-ideate', '002-execute-ideate', '003-intake-challenge'])
-	assert.equal(folders.length, 12)
+	assert.equal(folders.length, 10)
 	for (const f of folders) assert.deepEqual(readdirSync(join(out, f)).sort(), ['answer.txt', 'brief.txt', 'call.json', 'flags.json', 'packet.txt', 'raw.jsonl', 'tools.json'])
-	assert.equal(readFileSync(join(out, '002-execute-ideate', 'answer.txt'), 'utf8'), 'ideate deliverable')
-	assert.match(readFileSync(join(out, '002-execute-ideate', 'packet.txt'), 'utf8'), /operator: add CSV export/)
-	assert.match(readFileSync(join(out, '002-execute-ideate', 'brief.txt'), 'utf8'), /You are the ideator/)
+	assert.equal(JSON.parse(readFileSync(join(out, '002-execute-ideate', 'answer.txt'), 'utf8')).outcome, 'CSV export')
+	assert.match(readFileSync(join(out, '002-execute-ideate', 'packet.txt'), 'utf8'), /operator: add CSV export[\s\S]*"profile": "ideator"/)
+	assert.match(readFileSync(join(out, '002-execute-ideate', 'brief.txt'), 'utf8'), /You are an agent in Made Well/)
 	assert.deepEqual(JSON.parse(readFileSync(join(out, '002-execute-ideate', 'call.json'), 'utf8')).outcome, 'ok')
 	const record = JSON.parse(readFileSync(join(out, 'item.json'), 'utf8'))
 	assert.equal(record.item.status, 'shipped')

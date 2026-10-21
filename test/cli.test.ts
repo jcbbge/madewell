@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { spawn, spawnSync } from 'node:child_process'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -14,18 +14,23 @@ const bin = join(root, 'bin')
 mkdirSync(bin)
 writeFileSync(join(bin, 'mw'), `#!/bin/sh\nexec "${process.execPath}" "${cli}" "$@"\n`, { mode: 0o755 })
 
-/** A fresh Made Well home and an empty product repo, which is the working directory. */
+/** A fresh Made Well home and a product repo with one commit on main, which is the working directory. */
 function setup(extra: Record<string, string> = {}) {
 	const dir = mkdtempSync(join(root, 'case-'))
 	const home = join(dir, 'home')
 	const repo = join(dir, 'repo')
 	mkdirSync(repo)
+	const git = (...args: string[]) => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim()
+	git('init', '-q', '-b', 'main')
+	git('-c', 'user.name=Operator', '-c', 'user.email=op@example.com', 'commit', '-q', '--allow-empty', '-m', 'first')
+	git('config', 'user.name', 'Operator')
+	git('config', 'user.email', 'op@example.com')
 	const env: Record<string, string | undefined> = { ...process.env, MW_HOME: home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(dir, 'calls.log'), PATH: `${bin}:${process.env.PATH}`, ...extra }
 	delete env.MW_STORE
 	const parse = (r: ReturnType<typeof spawnSync>) => ({ code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null })
 	const mw = (...args: string[]) => parse(spawnSync(process.execPath, [cli, ...args], { env, cwd: repo }))
 	const sh = (command: string) => parse(spawnSync('sh', ['-c', command], { env, cwd: repo }))
-	return { dir, home, repo, env, mw, sh }
+	return { dir, home, repo, env, mw, sh, git }
 }
 
 const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'eval']
@@ -44,7 +49,7 @@ test('mw alone prints the manual from the command table, and reading creates not
 
 	const next = manual.out.state.next
 	assert.equal(next.action, 'relay')
-	assert.equal(next.then[0].run, `mw init --workspace ${t.repo} --ship "<the operator's command that merges to main and deploys>"`)
+	assert.equal(next.then[0].run, `mw init --workspace ${t.repo} --ship "<the operator's command that deploys what is on main>"`)
 	assert.deepEqual(t.mw('next').out, next)
 	assert.deepEqual(t.mw('holds').out, { holds: [], next: [] })
 	assert.equal(t.mw('status', '3').err.error, 'item_not_found')
@@ -71,13 +76,16 @@ test('an agent following next delivers a work item through commands run as writt
 	assert.equal(ran.code, 0, JSON.stringify(ran.err))
 	assert.deepEqual(ran.out.items.map((i: { id: number; status: string }) => [i.id, i.status]), [[started.out.item.id, 'shipped']])
 	assert.deepEqual(t.sh('mw run').out, ran.out, 'a repeated run gives the same result')
-	assert.deepEqual(readFileSync(join(t.dir, 'calls.log'), 'utf8').trim().split('\n').filter((l) => l.startsWith('execute')), ['execute ideate ideator', 'execute challenge ideation peer', 'execute plan planner', 'execute test-plan test architect', 'execute implement implementer', 'execute verify verifier'])
+	const executed = readFileSync(join(t.dir, 'calls.log'), 'utf8').trim().split('\n').filter((l) => l.startsWith('execute'))
+	assert.deepEqual(executed.slice(0, 3), ['execute ideate ideator', 'execute challenge ideation peer', 'execute plan planner'])
+	assert.deepEqual(executed.slice(3).sort(), ['execute implement implementer', 'execute test-plan test architect'], 'the makers split after planning; no agent verifies')
 
 	const idle = t.mw('next').out
 	assert.equal(idle.action, 'relay')
 	assert.match(idle.then[0].run, new RegExp(`^mw discover --workspace ${t.repo} --source "<`))
 	assert.ok(existsSync(join(t.dir, 'shipped')))
-	assert.deepEqual(readdirSync(t.repo), [], 'nothing of Made Well is left in the product repo')
+	assert.equal(t.git('show', 'main:src/export.sh'), 'echo a,b', 'Made Well brought the change onto main')
+	assert.deepEqual([t.git('status', '--porcelain', '--ignored'), readdirSync(t.repo).sort().join(' ')], ['', '.git src'], 'nothing of Made Well is left in the product repo')
 })
 
 test('discovery candidates are relayed for promotion, and promoting twice promotes once', () => {
@@ -191,7 +199,10 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.equal(resumed.code, 0, JSON.stringify(resumed.err))
 	assert.equal(resumed.out.items[0].status, 'shipped')
 	const calls = log().trim().split('\n')
-	assert.deepEqual(calls.filter((l) => l.startsWith('execute')), ['execute ideate ideator', 'execute challenge ideation peer', 'execute plan planner', 'execute test-plan test architect', 'execute implement implementer', 'execute implement implementer', 'execute verify verifier'])
+	const executed = calls.filter((l) => l.startsWith('execute'))
+	assert.deepEqual(executed.slice(0, 3), ['execute ideate ideator', 'execute challenge ideation peer', 'execute plan planner'])
+	assert.equal(executed.filter((l) => l === 'execute implement implementer').length, 2, 'the interrupted job runs again; nothing before it does')
+	assert.equal(t.git('status', '--porcelain', '--ignored'), '')
 	// The resumed implementer was clear before the crash and keeps the same card: no new intake.
 	assert.equal(calls.filter((l) => l === 'intake implement implementer').length, 1)
 })

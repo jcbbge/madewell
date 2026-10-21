@@ -75,7 +75,7 @@ const CAUSES = ['pre-existing', 'implementation', 'test', 'undetermined']
 
 /** The fields each kind of call must end with, held to what the engine accepts. Jobs not listed need no JSON. */
 const REQUIRED: Record<Exclude<Kind, 'execute'>, Record<string, (v: unknown) => boolean>> & { execute: Partial<Record<Job, Record<string, (v: unknown) => boolean>>> } = {
-	intake: { understanding: (v) => typeof v === 'string', questions: Array.isArray },
+	intake: { understanding: (v) => typeof v === 'string', unclear: Array.isArray, ambiguous: Array.isArray, missing: Array.isArray },
 	originator: { answer: (v) => typeof v === 'string' && v.trim() !== '' },
 	execute: {
 		discover: { items: Array.isArray },

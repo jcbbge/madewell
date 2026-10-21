@@ -1,6 +1,9 @@
 // The only thing Made Well asks of a harness: run one job on one card, headless, and say what came back.
 // The built-in harness worker reads harness entries (src/harness.ts); tests use a scripted fake.
 import { spawn } from 'node:child_process'
+import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { Context, Effect, Layer } from 'effect'
 import type { Access, Card } from './cards.ts'
 import type { MadeWellError } from './errors.ts'
@@ -90,11 +93,12 @@ const stamped = (line: string, at: number) => {
  * `tokensIn` counts tokens reported on one stdout line, for the token budget. `files` is the call's own
  * directory, removed if the runner dies mid-call (the caller removes it otherwise). `stamp` adds each
  * JSON line's arrival time as `mw_at`, so tool events get their timing even when the harness gives none.
+ * `stdin`, an open file descriptor, replaces `input` as the process's stdin.
  */
-export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean }) =>
+export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number }) =>
 	Effect.clockWith((clock) => Effect.callback<Exited>((resume) => {
 		const started = Date.now()
-		const child = spawn('sh', ['-c', GROUP, 'mw-agent', o.files ?? '', o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'pipe'] })
+		const child = spawn('sh', ['-c', GROUP, 'mw-agent', o.files ?? '', o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: [o.stdin ?? 'pipe', 'pipe', 'pipe', 'pipe'] })
 		const kill = () => {
 			try {
 				process.kill(-child.pid!, 'SIGKILL')
@@ -117,21 +121,21 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			const n = o.tokensIn?.(line)
 			if (n) tokens = (tokens ?? 0) + n
 		}
-		child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
+		child.stdout!.setEncoding('utf8').on('data', (chunk: string) => {
 			const lines = (partial + chunk).split('\n')
 			partial = lines.pop()!
 			for (const line of lines) take(line, '\n')
 			if (o.budget.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
 		})
-		child.stderr.setEncoding('utf8').on('data', (chunk: string) => (stderr += chunk))
-		child.stdin.on('error', (e) => (stdinError = e.message))
+		child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (stderr += chunk))
+		child.stdin?.on('error', (e) => (stdinError = e.message))
 		child.on('exit', kill)
 		child.on('close', (code) => {
 			clearTimeout(timer)
 			if (partial) take(partial, '')
 			resume(Effect.succeed({ code, stdout, stderr, stdinError, overBudget }))
 		})
-		child.stdin.end(o.input)
+		child.stdin?.end(o.input)
 		return Effect.sync(() => {
 			clearTimeout(timer)
 			kill()
@@ -145,19 +149,34 @@ export const overBudgetError = (who: string, o: OverBudget) =>
  * A worker that hands each job to an external command: the request as JSON on stdin, a WorkerResult
  * as JSON on stdout. Any harness can be plugged in this way with a small script. The command runs in
  * its own process group under the job's wall-time budget.
+ *
+ * The request is a file on stdin, not a pipe: whether a pipe's write fails depends on how much the kernel
+ * buffered before the command exited, but a file's read offset is shared with the command, so what is
+ * left past it afterwards is exactly what the command never read.
  */
 export const commandWorker = (command: string) =>
 	Layer.succeed(Worker, {
 		run: (request) =>
-			runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: JSON.stringify(request), budget: request.budget ?? DEFAULT_BUDGET }).pipe(
-				Effect.map(({ code, stdout, stderr, stdinError, overBudget }): WorkerResult => {
-					if (overBudget) return { ok: false, error: overBudgetError('The worker command', overBudget), overBudget, raw: stdout }
-					try {
-						return JSON.parse(stdout) as WorkerResult
-					} catch {
-						const unread = stdinError ? ` without reading its request on stdin (${stdinError})` : ''
-						return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2000)}` }
-					}
+			Effect.acquireUseRelease(
+				Effect.sync(() => {
+					const dir = mkdtempSync(join(tmpdir(), 'madewell-'))
+					const input = Buffer.from(JSON.stringify(request))
+					writeFileSync(join(dir, 'request.json'), input)
+					return { dir, size: input.length, fd: openSync(join(dir, 'request.json'), 'r') }
 				}),
+				({ dir, size, fd }) =>
+					runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: '', stdin: fd, files: dir, budget: request.budget ?? DEFAULT_BUDGET }).pipe(
+						Effect.map(({ code, stdout, stderr, overBudget }): WorkerResult => {
+							if (overBudget) return { ok: false, error: overBudgetError('The worker command', overBudget), overBudget, raw: stdout }
+							try {
+								return JSON.parse(stdout) as WorkerResult
+							} catch {
+								const left = readSync(fd, Buffer.alloc(size), 0, size, null)
+								const unread = left ? ` without reading its request on stdin (read ${size - left} of ${size} bytes)` : ''
+								return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2000)}` }
+							}
+						}),
+					),
+				({ dir, fd }) => Effect.sync(() => (closeSync(fd), rmSync(dir, { recursive: true, force: true }))),
 			),
 	})

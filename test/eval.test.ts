@@ -25,7 +25,7 @@ const raw = (tokens: number, tools: string[] = []) => [
 	...tools.map((name, i) => ({ type: 'assistant', message: { id: `m${i}`, content: [{ type: 'tool_use', id: `t${i}`, name, input: { file_path: 'x' } }] } })),
 	{ type: 'result', subtype: 'success', is_error: false, result: 'x', usage: { input_tokens: tokens, output_tokens: 0 } },
 ].map((e) => JSON.stringify(e)).join('\n')
-const INTAKE = '{"understanding":"clear","questions":[],"notes":[]}'
+const INTAKE = '{"understanding":"clear","unclear":[],"ambiguous":[],"missing":[],"notes":[]}'
 const PASS = 'Ran the checks.\n{"outcome":"pass","summary":"1/1 passed"}'
 
 /** A product repo with one commit, Made Well's home beside it, a store there, and one item on the repo. */
@@ -85,7 +85,7 @@ test('a tier is replayed call by call, scored like the record, and the cheapest 
 		big: [true, true, 3, 0, 6000],
 		limited: [false, false, 0, 0, 0],
 	})
-	assert.deepEqual(by.cheap!.calls.map((c) => [c.kind, c.replay.parses, c.replay.missing, c.verdict]), [['intake', true, ['questions'], 'worse'], ['execute', false, ['outcome'], 'worse'], ['execute', false, ['outcome'], 'worse']])
+	assert.deepEqual(by.cheap!.calls.map((c) => [c.kind, c.replay.parses, c.replay.missing, c.verdict]), [['intake', true, ['unclear', 'ambiguous', 'missing'], 'worse'], ['execute', false, ['outcome'], 'worse'], ['execute', false, ['outcome'], 'worse']])
 	assert.deepEqual(by.flaggy!.calls[0]!.replay.flags, ['write-under-read'], 'a write tool under read access is a rule break')
 	assert.equal(by.flaggy!.calls[0]!.verdict, 'worse')
 	assert.ok(by.limited!.limited!.resetsAt > new Date().toISOString())
@@ -112,11 +112,11 @@ test('each call is held to what its kind requires, and a new brief replays only 
 	t.record('intake', 'plan', card('big'), INTAKE, 10)
 	t.record('originator', 'plan', card('mid'), '{"answer":"CSV","needsOperator":false}', 10)
 	t.record('execute', 'plan', card('big'), 'The plan, in prose.', 10)
-	const script = (req: WorkerRequest): WorkerResult => ({ ok: true, output: req.kind === 'intake' ? '{"understanding":"clear","questions":"none"}' : req.kind === 'originator' ? 'I cannot say.' : 'A better plan.', raw: raw(5) })
+	const script = (req: WorkerRequest): WorkerResult => ({ ok: true, output: req.kind === 'intake' ? '{"understanding":"clear","unclear":"none","ambiguous":[],"missing":[]}' : req.kind === 'originator' ? 'I cannot say.' : 'A better plan.', raw: raw(5) })
 
 	const replayed = await Effect.runPromise(t.run(script, { job: 'plan' }))
 	assert.deepEqual(replayed.cards.map((r) => [r.card.model, r.calls.map((c) => [c.kind, c.replay.parses, c.replay.missing, c.verdict])]), [
-		['big', [['intake', true, ['questions'], 'worse'], ['execute', null, [], 'same']]],
+		['big', [['intake', true, ['unclear'], 'worse'], ['execute', null, [], 'same']]],
 		['mid', [['originator', false, ['answer'], 'worse']]],
 	], 'without --card, each call replays on its recorded card')
 	assert.equal(replayed.recommendation, null, 'no card matched the record')
@@ -165,22 +165,22 @@ test('mw eval replays a delivered item\'s calls through the worker command and p
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	assert.equal(mw('run').out.items[0].status, 'shipped')
 
-	const evaluated = mw('eval', 'verify', '--card', 'fast', '--limit', '5')
+	const evaluated = mw('eval', 'plan', '--card', 'fast', '--limit', '5')
 	assert.equal(evaluated.code, 0, JSON.stringify(evaluated.err))
 	const report = evaluated.out
 	assert.deepEqual(Object.keys(report), ['eval', 'job', 'brief', 'recorded', 'cards', 'recommendation', 'next'])
-	assert.equal(report.recorded.calls, 2, 'the verifier\'s intake and execute calls')
+	assert.equal(report.recorded.calls, 2, 'the planner\'s intake and execute calls')
 	assert.deepEqual(report.cards.map((r: { card: Card; matches: boolean }) => [r.card.model, r.matches]), [['claude-haiku-5-5', true], ['gpt-6-luna', true], ['gpt-6-luna', true]])
 	assert.equal(report.cards[0].calls[1].replay.valid, true)
 	assert.ok(report.recommendation.card)
-	assert.equal(report.recommendation.prescribed, 'fast')
-	assert.deepEqual(readdirSync(t.repo), ['.git', 'a.txt'])
+	assert.equal(report.recommendation.prescribed, 'deep')
+	assert.deepEqual(readdirSync(t.repo).sort(), ['.git', 'a.txt', 'src'], 'only the delivered change, which Made Well brought onto main')
 	t.untouched()
 
-	const bad = mw('eval', 'verify', '--card', 'nosuch')
-	assert.deepEqual([bad.err.error, bad.err.context.tiers], ['eval_card_invalid', ['deep', 'coding', 'steady', 'fast']])
+	const bad = mw('eval', 'plan', '--card', 'nosuch')
+	assert.deepEqual([bad.err.error, bad.err.context.tiers], ['eval_card_invalid', ['deep', 'coding', 'steady', 'fast', 'intake']])
 	const none = mw('eval', 'arbitrate')
-	assert.deepEqual([none.err.error, none.err.context.recorded.verify, none.err.next[0].run.startsWith('mw eval ')], ['eval_no_calls', 2, true])
-	assert.deepEqual(mw('eval', 'verify', '--item', '2,3').err.context.items, [2, 3], 'only the named items\' calls are replayed')
-	assert.equal(mw('eval', 'verify', '--item', '1,x').err.error, 'usage')
+	assert.deepEqual([none.err.error, none.err.context.recorded.plan, none.err.next[0].run.startsWith('mw eval ')], ['eval_no_calls', 2, true])
+	assert.deepEqual(mw('eval', 'plan', '--item', '2,3').err.context.items, [2, 3], 'only the named items\' calls are replayed')
+	assert.equal(mw('eval', 'plan', '--item', '1,x').err.error, 'usage')
 })

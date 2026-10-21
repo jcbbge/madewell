@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 var __defProp = Object.defineProperty;
-var __export = (target, all3) => {
-  for (var name in all3)
-    __defProp(target, name, { get: all3[name], enumerable: true });
+var __export = (target, all4) => {
+  for (var name in all4)
+    __defProp(target, name, { get: all4[name], enumerable: true });
 };
 
 // src/cli.ts
-import { existsSync as existsSync3, readFileSync as readFileSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { existsSync as existsSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename, dirname as dirname5, resolve as resolve5 } from "node:path";
+import { basename, dirname as dirname6, resolve as resolve5 } from "node:path";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -1458,6 +1458,9 @@ var SuccessImpl = function(success) {
 };
 SuccessImpl.prototype = SuccessProto;
 var succeed = (success) => new SuccessImpl(success);
+var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
+var getSuccess = (self) => isFailure(self) ? none : some(self.success);
+var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
 // node_modules/effect/dist/Order.js
 function make2(compare2) {
@@ -1660,10 +1663,10 @@ var addUnsafe = (self, key, service3) => {
   }, impl.depth + 1);
 };
 var addOrOmit = /* @__PURE__ */ dual(3, (self, key, service3) => service3._tag === "None" ? omit(key)(self) : add(self, key, service3.value));
-var getOrElse2 = /* @__PURE__ */ dual(3, (self, key, orElse) => {
+var getOrElse2 = /* @__PURE__ */ dual(3, (self, key, orElse2) => {
   const value3 = lookup(self, key.key);
   if (value3 !== notFound) return value3;
-  return isReference(key) ? getDefaultValue(key) : orElse();
+  return isReference(key) ? getDefaultValue(key) : orElse2();
 });
 var getOrUndefined2 = /* @__PURE__ */ dual(2, (self, key) => getOrUndefinedUnsafe(self, key.key));
 var getOrUndefinedUnsafe = (self, key) => {
@@ -1689,9 +1692,9 @@ var getDefaultValue = (ref) => {
 var serviceNotFoundError = (service3) => {
   const error = new Error(`Service not found${service3.key ? `: ${String(service3.key)}` : ""}`);
   if (error.stack) {
-    const lines3 = error.stack.split("\n");
-    lines3.splice(1, 3);
-    error.stack = lines3.join("\n");
+    const lines4 = error.stack.split("\n");
+    lines4.splice(1, 3);
+    error.stack = lines4.join("\n");
   }
   return error;
 };
@@ -1739,19 +1742,99 @@ var Reference = Service;
 // node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
+// node_modules/effect/dist/internal/count.js
+var normalize = (n) => n > 0 ? Math.floor(n) : 0;
+
 // node_modules/effect/dist/Result.js
+var Result_exports = {};
+__export(Result_exports, {
+  Do: () => Do,
+  all: () => all,
+  andThen: () => andThen,
+  bind: () => bind2,
+  bindTo: () => bindTo2,
+  fail: () => fail2,
+  failVoid: () => failVoid,
+  filterOrFail: () => filterOrFail,
+  flatMap: () => flatMap2,
+  flip: () => flip,
+  fromNullishOr: () => fromNullishOr2,
+  fromOption: () => fromOption2,
+  gen: () => gen,
+  getFailure: () => getFailure2,
+  getOrElse: () => getOrElse3,
+  getOrNull: () => getOrNull2,
+  getOrThrow: () => getOrThrow,
+  getOrThrowWith: () => getOrThrowWith,
+  getOrUndefined: () => getOrUndefined3,
+  getSuccess: () => getSuccess2,
+  isFailure: () => isFailure2,
+  isResult: () => isResult2,
+  isSuccess: () => isSuccess2,
+  let: () => let_2,
+  liftPredicate: () => liftPredicate,
+  makeEquivalence: () => makeEquivalence,
+  map: () => map2,
+  mapBoth: () => mapBoth,
+  mapError: () => mapError,
+  match: () => match2,
+  merge: () => merge2,
+  orElse: () => orElse,
+  succeed: () => succeed2,
+  succeedNone: () => succeedNone,
+  succeedSome: () => succeedSome,
+  tap: () => tap,
+  transposeMapOption: () => transposeMapOption,
+  transposeOption: () => transposeOption,
+  try: () => try_,
+  void: () => void_
+});
 var succeed2 = succeed;
 var fail2 = fail;
+var void_ = /* @__PURE__ */ succeed2(void 0);
+var failVoid = /* @__PURE__ */ fail2(void 0);
+var fromNullishOr2 = /* @__PURE__ */ dual(2, (self, onNullish) => self == null ? fail2(onNullish(self)) : succeed2(self));
+var fromOption2 = fromOption;
+var try_ = (evaluate3) => {
+  if (isFunction(evaluate3)) {
+    try {
+      return succeed2(evaluate3());
+    } catch (e) {
+      return fail2(e);
+    }
+  } else {
+    try {
+      return succeed2(evaluate3.try());
+    } catch (e) {
+      return fail2(evaluate3.catch(e));
+    }
+  }
+};
 var isResult2 = isResult;
 var isFailure2 = isFailure;
 var isSuccess2 = isSuccess;
+var getSuccess2 = getSuccess;
+var getFailure2 = getFailure;
+var makeEquivalence = (success, failure) => make((x, y) => isFailure2(x) ? isFailure2(y) && failure(x.failure, y.failure) : isSuccess2(y) && success(x.success, y.success));
+var mapBoth = /* @__PURE__ */ dual(2, (self, {
+  onFailure,
+  onSuccess
+}) => isFailure2(self) ? fail2(onFailure(self.failure)) : succeed2(onSuccess(self.success)));
 var mapError = /* @__PURE__ */ dual(2, (self, f) => isFailure2(self) ? fail2(f(self.failure)) : self);
 var map2 = /* @__PURE__ */ dual(2, (self, f) => isSuccess2(self) ? succeed2(f(self.success)) : self);
 var match2 = /* @__PURE__ */ dual(2, (self, {
   onFailure,
   onSuccess
 }) => isFailure2(self) ? onFailure(self.failure) : onSuccess(self.success));
+var liftPredicate = /* @__PURE__ */ dual(3, (a, predicate, orFailWith) => predicate(a) ? succeed2(a) : fail2(orFailWith(a)));
+var filterOrFail = /* @__PURE__ */ dual(3, (self, predicate, orFailWith) => flatMap2(self, (a) => predicate(a) ? succeed2(a) : fail2(orFailWith(a))));
+var merge2 = /* @__PURE__ */ match2({
+  onFailure: identity,
+  onSuccess: identity
+});
 var getOrElse3 = /* @__PURE__ */ dual(2, (self, onFailure) => isFailure2(self) ? onFailure(self.failure) : self.success);
+var getOrNull2 = /* @__PURE__ */ getOrElse3(constNull);
+var getOrUndefined3 = /* @__PURE__ */ getOrElse3(constUndefined);
 var getOrThrowWith = /* @__PURE__ */ dual(2, (self, onFailure) => {
   if (isSuccess2(self)) {
     return self.success;
@@ -1759,10 +1842,66 @@ var getOrThrowWith = /* @__PURE__ */ dual(2, (self, onFailure) => {
   throw onFailure(self.failure);
 });
 var getOrThrow = /* @__PURE__ */ getOrThrowWith(identity);
+var orElse = /* @__PURE__ */ dual(2, (self, that) => isFailure2(self) ? that(self.failure) : succeed2(self.success));
 var flatMap2 = /* @__PURE__ */ dual(2, (self, f) => isFailure2(self) ? fail2(self.failure) : f(self.success));
+var andThen = /* @__PURE__ */ dual(2, (self, f) => flatMap2(self, (a) => {
+  const out = isFunction(f) ? f(a) : f;
+  return isResult2(out) ? out : succeed2(out);
+}));
+var all = (input) => {
+  if (Symbol.iterator in input) {
+    const out2 = [];
+    for (const e of input) {
+      if (isFailure2(e)) {
+        return e;
+      }
+      out2.push(e.success);
+    }
+    return succeed2(out2);
+  }
+  const out = {};
+  for (const key of Object.keys(input)) {
+    const e = input[key];
+    if (isFailure2(e)) {
+      return e;
+    }
+    assignProperty(out, key, e.success);
+  }
+  return succeed2(out);
+};
+var flip = (self) => isFailure2(self) ? succeed2(self.failure) : fail2(self.success);
+var gen = (...args2) => {
+  const f = args2.length === 1 ? args2[0] : args2[1].bind(args2[0]);
+  const iterator = f();
+  let state = iterator.next();
+  while (!state.done) {
+    const current = state.value;
+    if (isFailure2(current)) {
+      return current;
+    }
+    state = iterator.next(current.success);
+  }
+  return succeed2(state.value);
+};
+var Do = /* @__PURE__ */ succeed2({});
+var bind2 = /* @__PURE__ */ bind(map2, flatMap2);
+var bindTo2 = /* @__PURE__ */ bindTo(map2);
+var let_2 = /* @__PURE__ */ let_(map2);
+var transposeOption = (self) => {
+  return isNone(self) ? succeedNone : map2(self.value, some);
+};
+var transposeMapOption = /* @__PURE__ */ dual(2, (self, f) => isNone(self) ? succeedNone : map2(f(self.value), some));
+var succeedNone = /* @__PURE__ */ succeed2(none);
+var succeedSome = (a) => succeed2(some(a));
+var tap = /* @__PURE__ */ dual(2, (self, f) => {
+  if (isSuccess2(self)) {
+    f(self.success);
+  }
+  return self;
+});
 
 // node_modules/effect/dist/Tuple.js
-var makeEquivalence = Tuple;
+var makeEquivalence2 = Tuple;
 
 // node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
@@ -1827,7 +1966,7 @@ var isSubrecordBy = (equivalence) => dual(2, (self, that) => {
   }
   return true;
 });
-var makeEquivalence2 = (equivalence) => {
+var makeEquivalence3 = (equivalence) => {
   const is3 = isSubrecordBy(equivalence);
   return (self, that) => is3(self, that) && is3(that, self);
 };
@@ -1875,7 +2014,7 @@ var partition = /* @__PURE__ */ dual(2, (self, f) => {
   }
   return [passes, fails];
 });
-var makeEquivalence3 = Array_;
+var makeEquivalence4 = Array_;
 var dedupe = (self) => {
   const input = fromIterable(self);
   if (input.length < 2) {
@@ -2748,9 +2887,9 @@ var makeStackCleaner = (line) => (stack) => {
     if (cache2 !== void 0) return cache2;
     const trace = stack();
     if (!trace) return void 0;
-    const lines3 = trace.split("\n");
-    if (lines3[line] !== void 0) {
-      cache2 = lines3[line].trim();
+    const lines4 = trace.split("\n");
+    if (lines4[line] !== void 0) {
+      cache2 = lines4[line].trim();
       return cache2;
     }
   };
@@ -2910,13 +3049,13 @@ var causePrettyMessage = (u) => {
 var locationRegExp = /\((.*)\)/g;
 var cleanErrorStack = (stack, error, annotations) => {
   const message = `${error.name}: ${error.message}`;
-  const lines3 = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n");
+  const lines4 = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n");
   const out = [message];
-  for (let i = 1; i < lines3.length; i++) {
-    if (/Generator\.next|~effect\/(?:Effect|Utils)/.test(lines3[i])) {
+  for (let i = 1; i < lines4.length; i++) {
+    if (/Generator\.next|~effect\/(?:Effect|Utils)/.test(lines4[i])) {
       break;
     }
-    out.push(lines3[i]);
+    out.push(lines4[i]);
   }
   return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n");
 };
@@ -2967,11 +3106,11 @@ var renderPrettyError = (e) => e.cause ? `${e.stack} {
 ${renderErrorCause(e.cause, "  ")}
 }` : e.stack;
 var renderErrorCause = (cause, prefix) => {
-  const lines3 = cause.stack.split("\n");
-  let stack = `${prefix}[cause]: ${lines3[0]}`;
-  for (let i = 1, len = lines3.length; i < len; i++) {
+  const lines4 = cause.stack.split("\n");
+  let stack = `${prefix}[cause]: ${lines4[0]}`;
+  for (let i = 1, len = lines4.length; i < len; i++) {
     stack += `
-${prefix}${lines3[i]}`;
+${prefix}${lines4[i]}`;
   }
   if (cause.cause) {
     stack += ` {
@@ -3160,9 +3299,9 @@ var FiberImpl = class {
     while (true) {
       const op = this._stack.pop();
       if (!op) return void 0;
-      const all3 = op[contAll];
-      if (all3 !== void 0) {
-        const cont = all3.call(op, this);
+      const all4 = op[contAll];
+      if (all4 !== void 0) {
+        const cont = all4.call(op, this);
         if (cont) {
           ;
           cont[symbol4] = cont;
@@ -3321,12 +3460,12 @@ var suspend = /* @__PURE__ */ makePrimitive({
     return this[args]();
   }
 });
-var fromOption2 = /* @__PURE__ */ dual((args2) => args2.length >= 2 || isOption2(args2[0]), (option3, onNone) => isNone2(option3) ? fail3(onNone ? onNone() : new NoSuchElementError("Effect.fromOption: Option.none")) : succeed3(option3.value));
+var fromOption3 = /* @__PURE__ */ dual((args2) => args2.length >= 2 || isOption2(args2[0]), (option3, onNone) => isNone2(option3) ? fail3(onNone ? onNone() : new NoSuchElementError("Effect.fromOption: Option.none")) : succeed3(option3.value));
 var fromResult = /* @__PURE__ */ match2({
   onFailure: fail3,
   onSuccess: succeed3
 });
-var fromNullishOr2 = (value3) => value3 == null ? fail3(new NoSuchElementError()) : succeed3(value3);
+var fromNullishOr3 = (value3) => value3 == null ? fail3(new NoSuchElementError()) : succeed3(value3);
 var yieldNowWith = /* @__PURE__ */ makePrimitive({
   op: "Yield",
   [evaluate](fiber3) {
@@ -3341,14 +3480,14 @@ var yieldNowWith = /* @__PURE__ */ makePrimitive({
   }
 });
 var yieldNow = /* @__PURE__ */ yieldNowWith(0);
-var succeedSome = (a) => succeed3(some2(a));
-var succeedNone = /* @__PURE__ */ succeed3(/* @__PURE__ */ none2());
-var transposeOption = (self) => isNone2(self) ? succeedNone : map5(self.value, some2);
+var succeedSome2 = (a) => succeed3(some2(a));
+var succeedNone2 = /* @__PURE__ */ succeed3(/* @__PURE__ */ none2());
+var transposeOption2 = (self) => isNone2(self) ? succeedNone2 : map5(self.value, some2);
 var failCauseSync = (evaluate3) => suspend(() => failCause(evaluate3()));
 var die = (defect) => exitDie(defect);
 var failSync = (error) => suspend(() => fail3(error()));
-var void_ = /* @__PURE__ */ succeed3(void 0);
-var try_ = (options) => {
+var void_2 = /* @__PURE__ */ succeed3(void 0);
+var try_2 = (options) => {
   const evaluate3 = typeof options === "function" ? options : options.try;
   const catcher = typeof options === "function" ? (cause) => new UnknownError(cause, "An error occurred in Effect.try") : options.catch;
   return suspend(() => {
@@ -3438,7 +3577,7 @@ var asyncFinalizer = /* @__PURE__ */ makePrimitive({
 });
 var callback = (register) => callbackOptions(register, register.length >= 2);
 var never = /* @__PURE__ */ callback(constVoid);
-var gen = (...args2) => {
+var gen2 = (...args2) => {
   if (args2.length === 1) {
     const body2 = args2[0];
     return suspend(() => fromIteratorUnsafe(body2()));
@@ -3633,19 +3772,19 @@ var tapEffectCont = function(value3) {
   return new ContImpl(this.payload, succeedPayload, value3);
 };
 var asSome = (self) => map5(self, some2);
-var flip = (self) => matchEffect(self, {
+var flip2 = (self) => matchEffect(self, {
   onFailure: succeed3,
   onSuccess: fail3
 });
-var andThen = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, isEffect(f) ? returnPayload : andThenCont, f));
-var tap = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, isEffect(f) ? tapEffectCont : tapCont, f));
+var andThen2 = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, isEffect(f) ? returnPayload : andThenCont, f));
+var tap2 = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, isEffect(f) ? tapEffectCont : tapCont, f));
 var asVoid = (self) => new ContImpl(self, returnPayload, exitVoid);
 var sandbox = (self) => catchCause(self, fail3);
-var raceAll = (all3, options) => withFiber((parent) => {
+var raceAll = (all4, options) => withFiber((parent) => {
   const fibers = /* @__PURE__ */ new Set();
   onExitUnsafe(parent, () => fibers.size === 0 ? void 0 : fiberInterruptAll(fibers));
   return callback((resume) => {
-    const effects = fromIterable(all3);
+    const effects = fromIterable(all4);
     const len = effects.length;
     let doneCount = 0;
     let done3 = false;
@@ -3681,13 +3820,13 @@ var raceAll = (all3, options) => withFiber((parent) => {
     }
   });
 });
-var raceAllFirst = (all3, options) => withFiber((parent) => {
+var raceAllFirst = (all4, options) => withFiber((parent) => {
   const fibers = /* @__PURE__ */ new Set();
   onExitUnsafe(parent, () => fibers.size === 0 ? void 0 : fiberInterruptAll(fibers));
   return callback((resume) => {
     let done3 = false;
     let i = 0;
-    for (const effect2 of all3) {
+    for (const effect2 of all4) {
       if (done3) break;
       const index2 = i++;
       const fiber3 = forkUnsafe(parent, effect2, true, true, false);
@@ -3728,7 +3867,7 @@ var flatten3 = (self) => flatMap3(self, identity);
 var map5 = /* @__PURE__ */ dual(2, (self, f) => new ContImpl(self, mapCont, f));
 var mapEager = /* @__PURE__ */ dual(2, (self, f) => effectIsExit(self) ? exitMap(self, f) : map5(self, f));
 var mapErrorEager = /* @__PURE__ */ dual(2, (self, f) => effectIsExit(self) ? exitMapError(self, f) : mapError2(self, f));
-var mapBothEager = /* @__PURE__ */ dual(2, (self, options) => effectIsExit(self) ? exitMapBoth(self, options) : mapBoth(self, options));
+var mapBothEager = /* @__PURE__ */ dual(2, (self, options) => effectIsExit(self) ? exitMapBoth(self, options) : mapBoth2(self, options));
 var catchEager = /* @__PURE__ */ dual(2, (self, f) => {
   if (effectIsExit(self)) {
     if (self._tag === "Success") return self;
@@ -3757,6 +3896,7 @@ var exitMapBoth = /* @__PURE__ */ dual(2, (self, options) => {
   if (isFailure2(error)) return self;
   return exitFail(options.onFailure(error.success));
 });
+var exitZipRight = /* @__PURE__ */ dual(2, (self, that) => exitIsSuccess(self) ? that : self);
 var exitAsVoidAll = (exits) => {
   const failures = [];
   for (const exit4 of exits) {
@@ -3768,7 +3908,7 @@ var exitAsVoidAll = (exits) => {
 };
 var service = (service3) => service3;
 var serviceOption = (service3) => withFiber((fiber3) => succeed3(getOption(fiber3.context, service3)));
-var serviceOptional = (service3) => withFiber((fiber3) => fromOption2(getOption(fiber3.context, service3)));
+var serviceOptional = (service3) => withFiber((fiber3) => fromOption3(getOption(fiber3.context, service3)));
 var updateContext = /* @__PURE__ */ dual(2, (self, f) => withFiber((fiber3) => {
   const prevContext = fiber3.context;
   const nextContext = f(prevContext);
@@ -3792,17 +3932,17 @@ var updateServiceScoped = (service3, update2, options) => uninterruptible(withFi
   fiber3.setContext(add(fiber3.context, service3, updated));
   return scopeAddFinalizerExit(getUnsafe(fiber3.context, scopeTag), (_) => {
     const currentOption = getOption(fiber3.context, service3);
-    if (isNone2(currentOption)) return void_;
+    if (isNone2(currentOption)) return void_2;
     const current = currentOption.value;
     let next;
     if (options?.reset === void 0) {
-      if (current !== updated) return void_;
+      if (current !== updated) return void_2;
       next = original;
     } else {
       next = options.reset(original, updated, current);
     }
     fiber3.setContext(add(fiber3.context, service3, next));
-    return void_;
+    return void_2;
   });
 }));
 var context = () => getContext;
@@ -3822,15 +3962,15 @@ var provideService = function() {
 var provideServiceImpl = (self, service3, implementation) => updateContext(self, add(service3, implementation));
 var provideServiceEffect = /* @__PURE__ */ dual(3, (self, service3, acquire) => flatMap3(acquire, (implementation) => provideService(self, service3, implementation)));
 var zip = /* @__PURE__ */ dual((args2) => isEffect(args2[1]), (self, that, options) => zipWith(self, that, (a, a2) => [a, a2], options));
-var zipWith = /* @__PURE__ */ dual((args2) => isEffect(args2[1]), (self, that, f, options) => options?.concurrent ? map5(all([self, that], {
+var zipWith = /* @__PURE__ */ dual((args2) => isEffect(args2[1]), (self, that, f, options) => options?.concurrent ? map5(all2([self, that], {
   concurrency: 2
 }), ([a, a2]) => f(a, a2)) : flatMap3(self, (a) => map5(that, (a2) => f(a, a2))));
-var filterOrFail = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, predicate, orFailWith) => filterOrElse(self, predicate, orFailWith ? (a) => fail3(orFailWith(a)) : () => fail3(new NoSuchElementError())));
-var when = /* @__PURE__ */ dual(2, (self, condition) => flatMap3(condition, (pass) => pass ? asSome(self) : succeedNone));
+var filterOrFail2 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, predicate, orFailWith) => filterOrElse(self, predicate, orFailWith ? (a) => fail3(orFailWith(a)) : () => fail3(new NoSuchElementError())));
+var when = /* @__PURE__ */ dual(2, (self, condition) => flatMap3(condition, (pass) => pass ? asSome(self) : succeedNone2));
 var replicate = /* @__PURE__ */ dual(2, (self, n) => Array.from({
   length: n
 }, () => self));
-var replicateEffect = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, n, options) => all(replicate(self, n), options));
+var replicateEffect = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, n, options) => all2(replicate(self, n), options));
 var forever = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, options) => whileLoop({
   while: constTrue,
   body: constant(options?.disableYield ? self : flatMap3(self, (_) => yieldNow)),
@@ -3858,67 +3998,67 @@ var catchCauseFilter = /* @__PURE__ */ dual(3, (self, filter8, f) => catchCause(
 }));
 var catch_ = /* @__PURE__ */ dual(2, (self, f) => catchCauseFilter(self, findError, (e) => f(e)));
 var catchNoSuchElement = (self) => matchEffect(self, {
-  onFailure: (error) => isNoSuchElementError(error) ? succeedNone : fail3(error),
-  onSuccess: succeedSome
+  onFailure: (error) => isNoSuchElementError(error) ? succeedNone2 : fail3(error),
+  onSuccess: succeedSome2
 });
 var catchDefect = /* @__PURE__ */ dual(2, (self, f) => catchCauseFilter(self, findDefect, f));
-var tapCause = /* @__PURE__ */ dual(2, (self, f) => catchCause(self, (cause) => andThen(f(cause), failCause(cause))));
-var tapCauseIf = /* @__PURE__ */ dual(3, (self, predicate, f) => catchCauseIf(self, predicate, (cause) => andThen(f(cause), failCause(cause))));
+var tapCause = /* @__PURE__ */ dual(2, (self, f) => catchCause(self, (cause) => andThen2(f(cause), failCause(cause))));
+var tapCauseIf = /* @__PURE__ */ dual(3, (self, predicate, f) => catchCauseIf(self, predicate, (cause) => andThen2(f(cause), failCause(cause))));
 var tapCauseFilter = /* @__PURE__ */ dual(3, (self, filter8, f) => catchCause(self, (cause) => {
   const result3 = filter8(cause);
   if (isFailure2(result3)) {
     return failCause(cause);
   }
-  return andThen(f(result3.success, cause), failCause(cause));
+  return andThen2(f(result3.success, cause), failCause(cause));
 }));
 var tapError = /* @__PURE__ */ dual(2, (self, f) => tapCauseFilter(self, findError, (e) => f(e)));
 var tapErrorTag = /* @__PURE__ */ dual(3, (self, k, f) => {
   const predicate = Array.isArray(k) ? (e) => hasProperty(e, "_tag") && k.includes(e._tag) : isTagged(k);
-  return tapError(self, (error) => predicate(error) ? f(error) : void_);
+  return tapError(self, (error) => predicate(error) ? f(error) : void_2);
 });
 var tapDefect = /* @__PURE__ */ dual(2, (self, f) => tapCauseFilter(self, findDefect, (_) => f(_)));
-var catchIf = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, predicate, f, orElse) => catchCause(self, (cause) => {
+var catchIf = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, predicate, f, orElse2) => catchCause(self, (cause) => {
   const error = findError(cause);
   if (isFailure2(error)) return failCause(error.failure);
   if (!predicate(error.success)) {
-    return orElse ? orElse(error.success) : failCause(cause);
+    return orElse2 ? orElse2(error.success) : failCause(cause);
   }
   return f(error.success);
 }));
-var catchFilter = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, filter8, f, orElse) => catchCause(self, (cause) => {
+var catchFilter = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, filter8, f, orElse2) => catchCause(self, (cause) => {
   const error = findError(cause);
   if (isFailure2(error)) return failCause(error.failure);
   const result3 = filter8(error.success);
   if (isFailure2(result3)) {
-    return orElse ? orElse(result3.failure) : failCause(cause);
+    return orElse2 ? orElse2(result3.failure) : failCause(cause);
   }
   return f(result3.success);
 }));
-var catchTag = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, k, f, orElse) => {
+var catchTag = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, k, f, orElse2) => {
   const pred = Array.isArray(k) ? (e) => hasProperty(e, "_tag") && k.includes(e._tag) : isTagged(k);
-  return catchIf(self, pred, f, orElse);
+  return catchIf(self, pred, f, orElse2);
 });
-var catchTags = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, cases, orElse) => {
+var catchTags = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, cases, orElse2) => {
   let keys3;
   return catchFilter(self, (e) => {
     keys3 ??= Object.keys(cases);
     return hasProperty(e, "_tag") && isString(e["_tag"]) && keys3.includes(e["_tag"]) ? succeed2(e) : fail2(e);
-  }, (e) => cases[e["_tag"]](e), orElse);
+  }, (e) => cases[e["_tag"]](e), orElse2);
 });
-var catchReason = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, errorTag, reasonTag, f, orElse) => catchIf(self, (e) => isTagged(e, errorTag) && hasProperty(e, "reason") && (orElse !== void 0 || isTagged(e.reason, reasonTag)), (e) => {
+var catchReason = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, errorTag, reasonTag, f, orElse2) => catchIf(self, (e) => isTagged(e, errorTag) && hasProperty(e, "reason") && (orElse2 !== void 0 || isTagged(e.reason, reasonTag)), (e) => {
   const reason = e.reason;
   if (isTagged(reason, reasonTag)) return f(reason, e);
-  return orElse ? orElse(reason, e) : fail3(e);
+  return orElse2 ? orElse2(reason, e) : fail3(e);
 }));
-var catchReasons = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, errorTag, cases, orElse) => {
+var catchReasons = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, errorTag, cases, orElse2) => {
   let keys3;
-  return catchIf(self, (e) => isTagged(e, errorTag) && hasProperty(e, "reason") && hasProperty(e.reason, "_tag") && isString(e.reason._tag) && (orElse !== void 0 || (keys3 ??= Object.keys(cases)).includes(e.reason._tag)), (e) => {
+  return catchIf(self, (e) => isTagged(e, errorTag) && hasProperty(e, "reason") && hasProperty(e.reason, "_tag") && isString(e.reason._tag) && (orElse2 !== void 0 || (keys3 ??= Object.keys(cases)).includes(e.reason._tag)), (e) => {
     const reason = e.reason;
     keys3 ??= Object.keys(cases);
     if (keys3.includes(reason._tag)) {
       return cases[reason._tag](reason, e);
     }
-    return orElse ? orElse(reason, e) : fail3(e);
+    return orElse2 ? orElse2(reason, e) : fail3(e);
   });
 });
 var unwrapReason = /* @__PURE__ */ dual(2, (self, errorTag) => catchFilter(self, (e) => {
@@ -3928,7 +4068,7 @@ var unwrapReason = /* @__PURE__ */ dual(2, (self, errorTag) => catchFilter(self,
   return fail2(e);
 }, fail3));
 var mapError2 = /* @__PURE__ */ dual(2, (self, f) => catch_(self, (error) => failSync(() => f(error))));
-var mapBoth = /* @__PURE__ */ dual(2, (self, options) => matchEffect(self, {
+var mapBoth2 = /* @__PURE__ */ dual(2, (self, options) => matchEffect(self, {
   onFailure: (e) => failSync(() => options.onFailure(e)),
   onSuccess: (a) => sync(() => options.onSuccess(a))
 }));
@@ -3951,8 +4091,8 @@ var eventually = (self) => catch_(self, (_) => flatMap3(yieldNow, () => eventual
 var ignore = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, options) => {
   if (!options?.log) {
     return matchEffect(self, {
-      onFailure: (_) => void_,
-      onSuccess: (_) => void_
+      onFailure: (_) => void_2,
+      onSuccess: (_) => void_2
     });
   }
   const logEffect = logWithLevel(options.log === true ? void 0 : options.log);
@@ -3961,20 +4101,20 @@ var ignore = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, options)
       const failure = findFail(cause);
       return isFailure2(failure) ? failCause(failure.failure) : options.message === void 0 ? logEffect(cause) : logEffect(options.message, cause);
     },
-    onSuccess: (_) => void_
+    onSuccess: (_) => void_2
   });
 });
 var ignoreCause = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, options) => {
   if (!options?.log) {
     return matchCauseEffect(self, {
-      onFailure: (_) => void_,
-      onSuccess: (_) => void_
+      onFailure: (_) => void_2,
+      onSuccess: (_) => void_2
     });
   }
   const logEffect = logWithLevel(options.log === true ? void 0 : options.log);
   return matchCauseEffect(self, {
     onFailure: (cause) => options.message === void 0 ? logEffect(cause) : logEffect(options.message, cause),
-    onSuccess: (_) => void_
+    onSuccess: (_) => void_2
   });
 });
 var option = (self) => match4(self, {
@@ -4015,10 +4155,10 @@ var makeMatch = (op, onFailure) => {
   return MatchImpl2;
 };
 var MatchImpl = /* @__PURE__ */ makeMatch("Match", function(cause, fiber3) {
-  const fail8 = cause.reasons.find(isFailReason);
-  if (fail8 === void 0) return failCause(cause);
+  const fail9 = cause.reasons.find(isFailReason);
+  if (fail9 === void 0) return failCause(cause);
   const handlers = this.payload;
-  return fiber3.succeedWith(continuationMarksStack ? handlers.onFailure(fail8.error) : internalCall(() => handlers.onFailure(fail8.error)));
+  return fiber3.succeedWith(continuationMarksStack ? handlers.onFailure(fail9.error) : internalCall(() => handlers.onFailure(fail9.error)));
 });
 var MatchCauseImpl = /* @__PURE__ */ makeMatch("MatchCause", function(cause, fiber3) {
   const handlers = this.payload;
@@ -4027,8 +4167,8 @@ var MatchCauseImpl = /* @__PURE__ */ makeMatch("MatchCause", function(cause, fib
 var matchCause = /* @__PURE__ */ dual(2, (self, options) => new MatchCauseImpl(self, options));
 var matchEffect = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(self, {
   onFailure: (cause) => {
-    const fail8 = cause.reasons.find(isFailReason);
-    return fail8 ? options.onFailure(fail8.error) : failCause(cause);
+    const fail9 = cause.reasons.find(isFailReason);
+    return fail9 ? options.onFailure(fail9.error) : failCause(cause);
   },
   onSuccess: options.onSuccess
 }));
@@ -4071,7 +4211,7 @@ var isSuccess3 = /* @__PURE__ */ matchEager({
   onFailure: () => false,
   onSuccess: () => true
 });
-var delay = /* @__PURE__ */ dual(2, (self, duration) => andThen(sleep(duration), self));
+var delay = /* @__PURE__ */ dual(2, (self, duration) => andThen2(sleep(duration), self));
 var timeoutOrElse = /* @__PURE__ */ dual(2, (self, options) => flatMap3(timeoutOption(self, options.duration), (option3) => isNone2(option3) ? options.orElse() : succeed3(option3.value)));
 var timeoutErrorFromDuration = (duration) => new TimeoutError(`Operation timed out after '${format2(duration)}'`);
 var timeout = /* @__PURE__ */ dual(2, (self, duration) => {
@@ -4091,7 +4231,7 @@ var ScopeCloseableTypeId = "~effect/Scope/Closeable";
 var scopeTag = /* @__PURE__ */ Service("effect/Scope");
 var scopeClose = (self, exit_) => withFiber((fiber3) => {
   fiberEnterUninterruptibleUnsafe(fiber3);
-  return scopeCloseUnsafe(self, exit_) ?? void_;
+  return scopeCloseUnsafe(self, exit_) ?? void_2;
 });
 var scopeCloseUnsafe = (self, exit_) => {
   const state = self.state;
@@ -4154,7 +4294,7 @@ var scopeAddFinalizerExit = (scope3, finalizer) => {
       return finalizer(scope3.state.exit);
     }
     scopeAddFinalizerUnsafe(scope3, {}, finalizer);
-    return void_;
+    return void_2;
   });
 };
 var scopeAddFinalizerUnsafe = (scope3, key, finalizer) => {
@@ -4214,9 +4354,9 @@ var scoped = (self) => withFiber((fiber3) => {
 });
 var scopedWith = (f) => suspend(() => {
   const scope3 = scopeMakeUnsafe();
-  return onExit(f(scope3), (exit4) => suspend(() => scopeCloseUnsafe(scope3, exit4) ?? void_));
+  return onExit(f(scope3), (exit4) => suspend(() => scopeCloseUnsafe(scope3, exit4) ?? void_2));
 });
-var acquireRelease = (acquire, release, options) => contextWith((context3) => uninterruptibleMask((restore) => flatMap3(scope, (scope3) => tap(options?.interruptible ? restore(acquire) : acquire, (a) => scopeAddFinalizerExit(scope3, (exit4) => provideContext(release(a, exit4), context3))))));
+var acquireRelease = (acquire, release2, options) => contextWith((context3) => uninterruptibleMask((restore) => flatMap3(scope, (scope3) => tap2(options?.interruptible ? restore(acquire) : acquire, (a) => scopeAddFinalizerExit(scope3, (exit4) => provideContext(release2(a, exit4), context3))))));
 var addFinalizer = (finalizer) => flatMap3(scope, (scope3) => contextWith((context3) => scopeAddFinalizerExit(scope3, (exit4) => provideContext(finalizer(exit4), context3))));
 var OnExitImpl = /* @__PURE__ */ (function() {
   const Proto8 = /* @__PURE__ */ makePrimitiveProto({
@@ -4269,13 +4409,13 @@ var onExit = /* @__PURE__ */ dual(2, onExitPrimitive);
 var ensuring = /* @__PURE__ */ dual(2, (self, finalizer) => onExit(self, (_) => finalizer));
 var onExitIf = /* @__PURE__ */ dual(3, (self, predicate, f) => onExit(self, (exit4) => {
   if (!predicate(exit4)) {
-    return void_;
+    return void_2;
   }
   return f(exit4);
 }));
 var onExitFilter = /* @__PURE__ */ dual(3, (self, filter8, f) => onExit(self, (exit4) => {
   const b = filter8(exit4);
-  return isFailure2(b) ? void_ : f(b.success, exit4);
+  return isFailure2(b) ? void_2 : f(b.success, exit4);
 }));
 var onError = /* @__PURE__ */ dual(2, (self, f) => onExitFilter(self, exitFilterCause, f));
 var onErrorIf = /* @__PURE__ */ dual(3, (self, predicate, f) => onExitIf(self, (exit4) => {
@@ -4286,13 +4426,13 @@ var onErrorIf = /* @__PURE__ */ dual(3, (self, predicate, f) => onExitIf(self, (
 }, (exit4) => f(exit4.cause)));
 var onErrorFilter = /* @__PURE__ */ dual(3, (self, filter8, f) => onExit(self, (exit4) => {
   if (exit4._tag !== "Failure") {
-    return void_;
+    return void_2;
   }
   const result3 = filter8(exit4.cause);
-  return isFailure2(result3) ? void_ : f(result3.success, exit4.cause);
+  return isFailure2(result3) ? void_2 : f(result3.success, exit4.cause);
 }));
 var onInterrupt = /* @__PURE__ */ dual(2, (self, finalizer) => onErrorFilter(causeFilterInterruptors, finalizer)(self));
-var acquireUseRelease = (acquire, use, release) => uninterruptibleMask((restore) => flatMap3(acquire, (a) => onExitPrimitive(suspend(() => restore(use(a))), (exit4) => release(a, exit4), true)));
+var acquireUseRelease = (acquire, use, release2) => uninterruptibleMask((restore) => flatMap3(acquire, (a) => onExitPrimitive(suspend(() => restore(use(a))), (exit4) => release2(a, exit4), true)));
 var acquireDisposable = (acquire) => acquireRelease(acquire, (resource) => hasProperty(resource, Symbol.asyncDispose) ? promise(() => resource[Symbol.asyncDispose]()) : sync(() => resource[Symbol.dispose]()));
 var cachedInvalidateWithTTL = /* @__PURE__ */ dual(2, (self, ttl) => sync(() => makeCachedUnsafe(self, typeof ttl === "function" ? (exit4) => toMillis(fromInputUnsafe(ttl(exit4))) : constant(toMillis(fromInputUnsafe(ttl))))));
 var infiniteTTL = /* @__PURE__ */ constant(Infinity);
@@ -4300,7 +4440,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join6 = (fiber3, run2) => {
+  const join8 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4311,7 +4451,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join6(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join8(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
@@ -4323,7 +4463,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       awaiters: 0
     };
     current = run2;
-    const joined = join6(fiber3, run2);
+    const joined = join8(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
@@ -4385,7 +4525,7 @@ var interruptibleMask = (f) => withFiber((fiber3) => {
   return interrupted ?? effect2;
 });
 var abortSignal = /* @__PURE__ */ map5(/* @__PURE__ */ acquireRelease(/* @__PURE__ */ sync(() => new AbortController()), (controller) => sync(() => controller.abort())), (_) => _.signal);
-var all = (arg, options) => {
+var all2 = (arg, options) => {
   if (isIterable(arg)) {
     return options?.mode === "result" ? forEach(arg, result, options) : forEach(arg, identity, options);
   } else if (options?.discard) {
@@ -4424,7 +4564,7 @@ var validate = /* @__PURE__ */ dual((args2) => isIterable(args2[0]) && !isEffect
   if (isArrayNonEmpty2(fails)) {
     return fail3(fails);
   }
-  return options?.discard ? void_ : succeed3(passes);
+  return options?.discard ? void_2 : succeed3(passes);
 }));
 var findFirst3 = /* @__PURE__ */ dual((args2) => isIterable(args2[0]) && !isEffect(args2[0]), (elements, predicate) => suspend(() => {
   const iterator = elements[Symbol.iterator]();
@@ -4488,7 +4628,7 @@ var forEach = /* @__PURE__ */ dual((args2) => typeof args2[1] === "function", (i
   const items = fromIterable(iterable);
   let length = items.length;
   if (length === 0) {
-    return options?.discard ? void_ : succeed3([]);
+    return options?.discard ? void_2 : succeed3([]);
   }
   const out = options?.discard ? void 0 : new Array(length);
   const eff = forEachConcurrent({
@@ -4520,16 +4660,16 @@ var forEachSequential = (iterable, f, options) => suspend(() => {
 var resolveConcurrency = (concurrency) => concurrency === "unbounded" ? Number.POSITIVE_INFINITY : Math.max(1, concurrency ?? 1);
 var iterateEager = () => (options) => {
   const onItem = options.onItem;
-  const step = options.step;
-  const resumeSequential = (state, items, index2, end, effect2) => flatMap3(exit(effect2), (itemExit) => step(state, items[index2], itemExit, index2) ?? runSequential(state, items, index2 + 1, end) ?? void_);
-  const runSequential = (state, items, index2 = 0, end = items.length) => {
-    for (; index2 < end; index2++) {
+  const step2 = options.step;
+  const resumeSequential = (state, items, index2, end2, effect2) => flatMap3(exit(effect2), (itemExit) => step2(state, items[index2], itemExit, index2) ?? runSequential(state, items, index2 + 1, end2) ?? void_2);
+  const runSequential = (state, items, index2 = 0, end2 = items.length) => {
+    for (; index2 < end2; index2++) {
       const item = items[index2];
       const effect2 = onItem(state, item, index2);
       if (!effectIsExit(effect2)) {
-        return resumeSequential(state, items, index2, end, effect2);
+        return resumeSequential(state, items, index2, end2, effect2);
       }
-      const terminal = step(state, item, effect2, index2);
+      const terminal = step2(state, item, effect2, index2);
       if (terminal) return terminal._tag === "Failure" ? terminal : void 0;
     }
   };
@@ -4537,10 +4677,10 @@ var iterateEager = () => (options) => {
 };
 var iterateConcurrentImpl = (options) => {
   const onItem = options.onItem;
-  const step = options.step;
+  const step2 = options.step;
   return (state, items, opts) => {
     let index2 = 0;
-    const end = opts.end ?? items.length;
+    const end2 = opts.end ?? items.length;
     const concurrency = opts.concurrency;
     let done3 = false;
     let parentFiber;
@@ -4556,11 +4696,11 @@ var iterateConcurrentImpl = (options) => {
     };
     const go = () => {
       let paused = false;
-      for (; !terminal && index2 < end; index2++) {
+      for (; !terminal && index2 < end2; index2++) {
         const item = items[index2];
         const eff = effect2 ?? onItem(state, item, index2);
         if (effectIsExit(eff)) {
-          terminal = step(state, item, eff, index2);
+          terminal = step2(state, item, eff, index2);
           if (terminal) break;
         } else if (!parentFiber) {
           return callback((cb) => {
@@ -4577,14 +4717,14 @@ var iterateConcurrentImpl = (options) => {
             if (result3) return cb(result3);
             return suspend(() => {
               terminal ??= exitVoid;
-              return flatMap3(fibers ? fiberInterruptAll(fibers) : void_, () => terminal?._tag === "Failure" ? terminal : void_);
+              return flatMap3(fibers ? fiberInterruptAll(fibers) : void_2, () => terminal?._tag === "Failure" ? terminal : void_2);
             });
           });
         } else {
           effect2 = void 0;
           const fiber3 = forkUnsafe(parentFiber, eff, true, true, "inherit");
           if (fiber3._exit) {
-            terminal = step(state, item, fiber3._exit, index2);
+            terminal = step2(state, item, fiber3._exit, index2);
             if (terminal) break;
             continue;
           }
@@ -4602,7 +4742,7 @@ var iterateConcurrentImpl = (options) => {
                   }
                 }
               } else {
-                const result3 = step(state, item, exit4, currentIndex);
+                const result3 = step2(state, item, exit4, currentIndex);
                 if (result3) {
                   terminal = result3;
                   go();
@@ -4612,7 +4752,7 @@ var iterateConcurrentImpl = (options) => {
                 const eff2 = go();
                 if (eff2) resume(eff2);
               } else if (done3 && fibers.size === 0) {
-                resume(terminal ?? void_);
+                resume(terminal ?? void_2);
               }
             } catch (error) {
               resume(failDefect(error));
@@ -4638,7 +4778,7 @@ var iterateConcurrentImpl = (options) => {
         if (!fibers) {
           return exitVoid;
         } else if (fibers.size === 0) {
-          resume(void_);
+          resume(void_2);
         }
       }
     };
@@ -4657,10 +4797,10 @@ var forEachConcurrent = /* @__PURE__ */ iterateConcurrentImpl({
     }
   }
 });
-var filterOrElse = /* @__PURE__ */ dual(3, (self, predicate, orElse) => flatMap3(self, (a) => predicate(a) ? succeed3(a) : orElse(a)));
-var filterMapOrElse = /* @__PURE__ */ dual(3, (self, filter8, orElse) => flatMap3(self, (a) => {
+var filterOrElse = /* @__PURE__ */ dual(3, (self, predicate, orElse2) => flatMap3(self, (a) => predicate(a) ? succeed3(a) : orElse2(a)));
+var filterMapOrElse = /* @__PURE__ */ dual(3, (self, filter8, orElse2) => flatMap3(self, (a) => {
   const result3 = filter8(a);
-  return isFailure2(result3) ? orElse(result3.failure) : succeed3(result3.success);
+  return isFailure2(result3) ? orElse2(result3.failure) : succeed3(result3.success);
 }));
 var filterMapOrFail = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, filter8, orFailWith) => filterMapOrElse(self, filter8, orFailWith ? (x) => fail3(orFailWith(x)) : () => fail3(new NoSuchElementError())));
 var filter3 = /* @__PURE__ */ dual((args2) => isIterable(args2[0]) && !isEffect(args2[0]), (elements, predicate, options) => suspend(() => {
@@ -4669,7 +4809,7 @@ var filter3 = /* @__PURE__ */ dual((args2) => isIterable(args2[0]) && !isEffect(
     const result3 = predicate(a, i);
     if (typeof result3 === "boolean") {
       if (result3) out.push(a);
-      return void_;
+      return void_2;
     }
     return map5(result3, (keep) => {
       if (keep) {
@@ -4702,10 +4842,10 @@ var filterMapEffect = /* @__PURE__ */ dual((args2) => isIterable(args2[0]) && !i
     concurrency: options?.concurrency
   }), out);
 }));
-var Do = /* @__PURE__ */ succeed3({});
-var bindTo2 = /* @__PURE__ */ bindTo(map5);
-var bind2 = /* @__PURE__ */ bind(map5, flatMap3);
-var let_2 = /* @__PURE__ */ let_(map5);
+var Do2 = /* @__PURE__ */ succeed3({});
+var bindTo3 = /* @__PURE__ */ bindTo(map5);
+var bind3 = /* @__PURE__ */ bind(map5, flatMap3);
+var let_3 = /* @__PURE__ */ let_(map5);
 var forkChild = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, options) => withFiber((fiber3) => {
   interruptChildrenPatch();
   return succeed3(forkUnsafe(fiber3, self, options?.startImmediately, false, options?.uninterruptible ?? false));
@@ -4733,7 +4873,7 @@ var awaitAllChildren = (self) => withFiber((fiber3) => {
   return onExitPrimitive(self, (_) => {
     let children = fiber3._children;
     if (children === void 0 || children.size === 0) {
-      return void_;
+      return void_2;
     } else if (initialChildren) {
       children = filter2(children, (child) => !initialChildren.has(child));
     }
@@ -4746,7 +4886,7 @@ var forkIn = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, scope3, 
   if (!fiber3._exit) {
     if (scope3.state._tag !== "Closed") {
       const key = {};
-      const finalizer = () => withFiberId((interruptor) => interruptor === fiber3.id ? void_ : fiberInterrupt(fiber3));
+      const finalizer = () => withFiberId((interruptor) => interruptor === fiber3.id ? void_2 : fiberInterrupt(fiber3));
       scopeAddFinalizerUnsafe(scope3, key, finalizer);
       fiber3.addObserver(() => scopeRemoveFinalizerUnsafe(scope3, key));
     } else {
@@ -5007,7 +5147,7 @@ var annotateCurrentSpan = (...args2) => withFiber((fiber3) => {
       span2.attribute(args2[0], args2[1]);
     }
   }
-  return void_;
+  return void_2;
 });
 var currentSpan = /* @__PURE__ */ withFiber((fiber3) => {
   const span2 = fiber3.currentSpanLocal;
@@ -5038,7 +5178,7 @@ var ClockImpl = class {
     if (millis2 <= 0) return yieldNow;
     else if (!Number.isFinite(millis2)) return never;
     return callback((resume) => {
-      const continuation = millis2 > MAX_TIMER_MILLIS ? this.sleepMillis(millis2 - MAX_TIMER_MILLIS) : void_;
+      const continuation = millis2 > MAX_TIMER_MILLIS ? this.sleepMillis(millis2 - MAX_TIMER_MILLIS) : void_2;
       const handle = setTimeout(() => resume(continuation), Math.min(millis2, MAX_TIMER_MILLIS));
       return sync(() => clearTimeout(handle));
     });
@@ -5190,7 +5330,7 @@ var annotateLogsScoped = function() {
         }
       }
       fiber3.setContext(add(fiber3.context, CurrentLogAnnotations, next2));
-      return void_;
+      return void_2;
     });
   }));
 };
@@ -5235,7 +5375,7 @@ var logWithLevel = (level) => (...message) => {
   return withFiber((fiber3) => {
     const logLevel = level ?? fiber3.cache.logLevel;
     if (isLogLevelGreaterThan(fiber3.cache.minimumLogLevel, logLevel)) {
-      return void_;
+      return void_2;
     }
     const clock = fiber3.getRef(ClockRef);
     const loggers = fiber3.getRef(CurrentLoggers);
@@ -5251,7 +5391,7 @@ var logWithLevel = (level) => (...message) => {
         });
       }
     }
-    return void_;
+    return void_2;
   });
 };
 var colors = {
@@ -5329,7 +5469,7 @@ function interruptChildrenPatch() {
 var undefined_ = /* @__PURE__ */ succeed3(void 0);
 var withErrorReporting = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, options) => onError(self, (cause) => withFiber((fiber3) => {
   reportCauseUnsafe(fiber3, cause, options?.defectsOnly);
-  return void_;
+  return void_2;
 })));
 var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   const reporters = fiber3.getRef(CurrentErrorReporters);
@@ -5361,7 +5501,7 @@ var IllegalArgumentError2 = IllegalArgumentError;
 // node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
-  Do: () => Do2,
+  Do: () => Do3,
   Transaction: () => Transaction,
   TypeId: () => TypeId13,
   abortSignal: () => abortSignal2,
@@ -5369,8 +5509,8 @@ __export(Effect_exports, {
   acquireRelease: () => acquireRelease2,
   acquireUseRelease: () => acquireUseRelease2,
   addFinalizer: () => addFinalizer2,
-  all: () => all2,
-  andThen: () => andThen2,
+  all: () => all3,
+  andThen: () => andThen3,
   annotateCurrentSpan: () => annotateCurrentSpan2,
   annotateLogs: () => annotateLogs,
   annotateLogsScoped: () => annotateLogsScoped2,
@@ -5379,8 +5519,8 @@ __export(Effect_exports, {
   asSome: () => asSome2,
   asVoid: () => asVoid2,
   awaitAllChildren: () => awaitAllChildren2,
-  bind: () => bind3,
-  bindTo: () => bindTo3,
+  bind: () => bind4,
+  bindTo: () => bindTo4,
   cached: () => cached2,
   cachedInvalidateWithTTL: () => cachedInvalidateWithTTL2,
   cachedWithTTL: () => cachedWithTTL2,
@@ -5421,14 +5561,14 @@ __export(Effect_exports, {
   filterMapOrElse: () => filterMapOrElse2,
   filterMapOrFail: () => filterMapOrFail2,
   filterOrElse: () => filterOrElse2,
-  filterOrFail: () => filterOrFail2,
+  filterOrFail: () => filterOrFail3,
   findFirst: () => findFirst4,
   findFirstFilter: () => findFirstFilter2,
   firstSuccessOf: () => firstSuccessOf2,
   flatMap: () => flatMap5,
   flatMapEager: () => flatMapEager2,
   flatten: () => flatten4,
-  flip: () => flip2,
+  flip: () => flip3,
   fn: () => fn2,
   fnUntraced: () => fnUntraced2,
   fnUntracedEager: () => fnUntracedEager2,
@@ -5438,10 +5578,10 @@ __export(Effect_exports, {
   forkDetach: () => forkDetach2,
   forkIn: () => forkIn2,
   forkScoped: () => forkScoped2,
-  fromNullishOr: () => fromNullishOr3,
-  fromOption: () => fromOption3,
+  fromNullishOr: () => fromNullishOr4,
+  fromOption: () => fromOption4,
   fromResult: () => fromResult2,
-  gen: () => gen2,
+  gen: () => gen3,
   head: () => head2,
   ignore: () => ignore2,
   ignoreCause: () => ignoreCause2,
@@ -5451,7 +5591,7 @@ __export(Effect_exports, {
   isEffect: () => isEffect2,
   isFailure: () => isFailure5,
   isSuccess: () => isSuccess5,
-  let: () => let_3,
+  let: () => let_4,
   linkSpans: () => linkSpans2,
   log: () => log,
   logDebug: () => logDebug,
@@ -5464,7 +5604,7 @@ __export(Effect_exports, {
   makeSpan: () => makeSpan2,
   makeSpanScoped: () => makeSpanScoped2,
   map: () => map7,
-  mapBoth: () => mapBoth2,
+  mapBoth: () => mapBoth3,
   mapBothEager: () => mapBothEager2,
   mapEager: () => mapEager2,
   mapError: () => mapError3,
@@ -5536,11 +5676,11 @@ __export(Effect_exports, {
   spanAnnotations: () => spanAnnotations2,
   spanLinks: () => spanLinks2,
   succeed: () => succeed6,
-  succeedNone: () => succeedNone2,
-  succeedSome: () => succeedSome2,
+  succeedNone: () => succeedNone3,
+  succeedSome: () => succeedSome3,
   suspend: () => suspend3,
   sync: () => sync3,
-  tap: () => tap3,
+  tap: () => tap4,
   tapCause: () => tapCause3,
   tapCauseFilter: () => tapCauseFilter2,
   tapCauseIf: () => tapCauseIf2,
@@ -5557,8 +5697,8 @@ __export(Effect_exports, {
   trackDuration: () => trackDuration,
   trackErrors: () => trackErrors,
   trackSuccesses: () => trackSuccesses,
-  transposeOption: () => transposeOption2,
-  try: () => try_2,
+  transposeOption: () => transposeOption3,
+  try: () => try_3,
   tryPromise: () => tryPromise2,
   tx: () => tx,
   txRetry: () => txRetry,
@@ -5571,7 +5711,7 @@ __export(Effect_exports, {
   updateServiceScoped: () => updateServiceScoped2,
   useSpan: () => useSpan2,
   validate: () => validate2,
-  void: () => void_3,
+  void: () => void_4,
   when: () => when2,
   whileLoop: () => whileLoop2,
   withErrorReporting: () => withErrorReporting2,
@@ -5597,7 +5737,7 @@ var isExit2 = isExit;
 var succeed4 = exitSucceed;
 var failCause2 = exitFailCause;
 var fail4 = exitFail;
-var void_2 = exitVoid;
+var void_3 = exitVoid;
 var isSuccess4 = exitIsSuccess;
 var isFailure4 = exitIsFailure;
 
@@ -5625,7 +5765,7 @@ __export(Layer_exports, {
   launch: () => launch,
   makeMemoMap: () => makeMemoMap,
   makeMemoMapUnsafe: () => makeMemoMapUnsafe,
-  merge: () => merge2,
+  merge: () => merge3,
   mergeAll: () => mergeAll2,
   mock: () => mock,
   orDie: () => orDie2,
@@ -5641,7 +5781,7 @@ __export(Layer_exports, {
   suspend: () => suspend2,
   sync: () => sync2,
   syncContext: () => syncContext,
-  tap: () => tap2,
+  tap: () => tap3,
   tapCause: () => tapCause2,
   tapError: () => tapError2,
   unwrap: () => unwrap,
@@ -5712,7 +5852,7 @@ var makeMemoMapEntry = (memoMap, layer) => {
     deferred: makeUnsafe2(),
     scope: makeUnsafe3(),
     finalizer: (exit4) => suspend(() => {
-      if (--entry.observers > 0) return void_;
+      if (--entry.observers > 0) return void_2;
       memoMap.map.delete(layer);
       return close(entry.scope, exit4);
     })
@@ -5743,7 +5883,7 @@ var fromBuildUnsafe = (build2) => {
 };
 var fromBuild = (build2) => fromBuildUnsafe((memoMap, scope3) => {
   const layerScope = forkUnsafe2(scope3);
-  return onExit(build2(memoMap, layerScope), (exit4) => exit4._tag === "Failure" ? close(layerScope, exit4) : void_);
+  return onExit(build2(memoMap, layerScope), (exit4) => exit4._tag === "Failure" ? close(layerScope, exit4) : void_2);
 });
 var fromBuildMemo = (build2) => {
   const self = fromBuild((memoMap, scope3) => memoMap.getOrElseMemoize(self, scope3, build2));
@@ -5830,21 +5970,21 @@ var mergeAllEffect = (layers, memoMap, scope3) => {
   }).pipe(map5((context3) => mergeAll(...context3)));
 };
 var mergeAll2 = (...layers) => fromBuild((memoMap, scope3) => mergeAllEffect(layers, memoMap, scope3));
-var merge2 = /* @__PURE__ */ dual(2, (self, that) => mergeAll2(self, ...Array.isArray(that) ? that : [that]));
+var merge3 = /* @__PURE__ */ dual(2, (self, that) => mergeAll2(self, ...Array.isArray(that) ? that : [that]));
 var provideWith = (self, that, f) => fromBuild((memoMap, scope3) => flatMap3(Array.isArray(that) ? mergeAllEffect(that, memoMap, scope3) : that.build(memoMap, scope3), (context3) => self.build(memoMap, scope3).pipe(provideContext(context3), map5((merged) => f(merged, context3)))));
 var provide2 = /* @__PURE__ */ dual(2, (self, that) => provideWith(self, that, identity));
 var provideMerge = /* @__PURE__ */ dual(2, (self, that) => provideWith(self, that, (self2, that2) => merge(that2, self2)));
 var flatMap4 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => flatMap3(self.build(memoMap, scope3), (context3) => f(context3).build(memoMap, scope3))));
-var tap2 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => flatMap3(self.build(memoMap, scope3), (context3) => provide(as(f(context3), context3), scope3))));
-var tapError2 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => catch_(self.build(memoMap, scope3), (error) => provide(andThen(f(error), fail3(error)), scope3))));
-var tapCause2 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => catchCause(self.build(memoMap, scope3), (cause) => provide(andThen(f(cause), failCause(cause)), scope3))));
+var tap3 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => flatMap3(self.build(memoMap, scope3), (context3) => provide(as(f(context3), context3), scope3))));
+var tapError2 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => catch_(self.build(memoMap, scope3), (error) => provide(andThen2(f(error), fail3(error)), scope3))));
+var tapCause2 = /* @__PURE__ */ dual(2, (self, f) => fromBuild((memoMap, scope3) => catchCause(self.build(memoMap, scope3), (cause) => provide(andThen2(f(cause), failCause(cause)), scope3))));
 var orDie2 = (self) => fromBuildUnsafe((memoMap, scope3) => orDie(self.build(memoMap, scope3)));
 var catch_2 = /* @__PURE__ */ dual(2, (self, onError3) => fromBuildUnsafe((memoMap, scope3) => catch_(self.build(memoMap, scope3), (e) => onError3(e).build(memoMap, scope3))));
 var catchTag2 = /* @__PURE__ */ dual(3, (self, k, f) => fromBuildUnsafe((memoMap, scope3) => catchTag(self.build(memoMap, scope3), k, (error) => f(error).build(memoMap, scope3))));
 var catchCause2 = /* @__PURE__ */ dual(2, (self, onError3) => fromBuildUnsafe((memoMap, scope3) => catchCause(self.build(memoMap, scope3), (cause) => onError3(cause).build(memoMap, scope3))));
 var updateService2 = /* @__PURE__ */ dual(3, (layer, service3, f) => provide2(layer, effect(service3, map5(service3, f))));
 var fresh = (self) => fromBuildUnsafe((_, scope3) => self.build(makeMemoMapUnsafe(), scope3));
-var launch = (self) => scoped(andThen(build(self), never));
+var launch = (self) => scoped(andThen2(build(self), never));
 var mock = function() {
   if (arguments.length === 1) {
     return (implementation) => mockImpl(arguments[0], implementation);
@@ -5894,7 +6034,7 @@ var satisfiesErrorType = () => (layer) => layer;
 var satisfiesServicesType = () => (layer) => layer;
 var span = (name, options) => {
   options = addSpanStackTrace(options);
-  return effect(ParentSpan, options?.onEnd ? tap(makeSpanScoped(name, options), (span2) => addFinalizer((exit4) => options.onEnd(span2, exit4))) : makeSpanScoped(name, options));
+  return effect(ParentSpan, options?.onEnd ? tap2(makeSpanScoped(name, options), (span2) => addFinalizer((exit4) => options.onEnd(span2, exit4))) : makeSpanScoped(name, options));
 };
 var parentSpan = (span2) => succeedContext(ParentSpan.context(span2));
 var withSpan2 = function() {
@@ -5903,9 +6043,9 @@ var withSpan2 = function() {
   const options = addSpanStackTrace(dataFirst ? arguments[2] : arguments[1]);
   if (dataFirst) {
     const self = arguments[0];
-    return unwrap(map5(options?.onEnd !== void 0 ? tap(makeSpanScoped(name, options), (span2) => addFinalizer((exit4) => options.onEnd(span2, exit4))) : makeSpanScoped(name, options), (span2) => withParentSpan2(self, span2, options)));
+    return unwrap(map5(options?.onEnd !== void 0 ? tap2(makeSpanScoped(name, options), (span2) => addFinalizer((exit4) => options.onEnd(span2, exit4))) : makeSpanScoped(name, options), (span2) => withParentSpan2(self, span2, options)));
   }
-  return (self) => unwrap(map5(options?.onEnd !== void 0 ? tap(makeSpanScoped(name, options), (span2) => addFinalizer((exit4) => options.onEnd(span2, exit4))) : makeSpanScoped(name, options), (span2) => withParentSpan2(self, span2, options)));
+  return (self) => unwrap(map5(options?.onEnd !== void 0 ? tap2(makeSpanScoped(name, options), (span2) => addFinalizer((exit4) => options.onEnd(span2, exit4))) : makeSpanScoped(name, options), (span2) => withParentSpan2(self, span2, options)));
 };
 var withParentSpan2 = function() {
   const dataFirst = isLayer(arguments[0]);
@@ -6375,6 +6515,7 @@ var trim = (self) => self.trim();
 
 // node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
+var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure) => failure._tag === "Fail" && isDone2(failure.error);
 var filterDone = (cause) => {
   let done3;
@@ -6426,9 +6567,9 @@ var ScheduleProto = {
   }
 };
 var isSchedule = (u) => hasProperty(u, TypeId8);
-var fromStep = (step) => {
+var fromStep = (step2) => {
   const self = Object.create(ScheduleProto);
-  self.step = step;
+  self.step = step2;
   return self;
 };
 var metadataFn = () => {
@@ -6450,16 +6591,16 @@ var metadataFn = () => {
     };
   };
 };
-var fromStepWithMetadata = (step) => fromStep(map5(step, (f) => {
+var fromStepWithMetadata = (step2) => fromStep(map5(step2, (f) => {
   const meta = metadataFn();
   return (now2, input) => f(meta(now2, input));
 }));
 var toStep = (schedule2) => catchCause(schedule2.step, (cause) => succeed3(() => failCause(cause)));
-var toStepWithMetadata = (schedule2) => clockWith((clock) => map5(toStep(schedule2), (step) => {
+var toStepWithMetadata = (schedule2) => clockWith((clock) => map5(toStep(schedule2), (step2) => {
   const metaFn = metadataFn();
   return (input) => suspend(() => {
     const now2 = clock.currentTimeMillisUnsafe();
-    return flatMap3(step(now2, input), ([output, duration]) => {
+    return flatMap3(step2(now2, input), ([output, duration]) => {
       const meta = metaFn(now2, input);
       meta.output = output;
       meta.duration = duration;
@@ -6467,7 +6608,7 @@ var toStepWithMetadata = (schedule2) => clockWith((clock) => map5(toStep(schedul
     });
   });
 }));
-var passthrough = (self) => fromStep(map5(toStep(self), (step) => (now2, input) => matchEffect2(step(now2, input), {
+var passthrough = (self) => fromStep(map5(toStep(self), (step2) => (now2, input) => matchEffect2(step2(now2, input), {
   onSuccess: (result3) => succeed3([input, result3[1]]),
   onFailure: failCause,
   onDone: () => done2(input)
@@ -6479,9 +6620,9 @@ var spaced = (duration) => {
   const decoded = fromInputUnsafe(duration);
   return fromStepWithMetadata(succeed3((meta) => succeed3([meta.attempt - 1, decoded])));
 };
-var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(self), (step) => {
+var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(self), (step2) => {
   const meta = metadataFn();
-  return (now2, input) => flatMap3(step(now2, input), (result3) => {
+  return (now2, input) => flatMap3(step2(now2, input), (result3) => {
     const [output, duration] = result3;
     const eff = predicate({
       ...meta(now2, input),
@@ -6499,11 +6640,11 @@ var Proto3 = {
   [TypeId9]: TypeId9,
   get captureRequirements() {
     const self = this;
-    return contextWith((context3) => succeed3(makeProto(self.steps.map((step) => ({
-      ...step,
-      while: step.while ? (input) => provideContext(step.while(input), context3) : void 0,
-      schedule: step.schedule ? fromStep(provideContext(map5(toStep(step.schedule), (next) => (now2, input) => provideContext(next(now2, input), context3)), context3)) : void 0,
-      provide: isLayer(step.provide) ? provide2(step.provide, succeedContext(context3)) : step.provide
+    return contextWith((context3) => succeed3(makeProto(self.steps.map((step2) => ({
+      ...step2,
+      while: step2.while ? (input) => provideContext(step2.while(input), context3) : void 0,
+      schedule: step2.schedule ? fromStep(provideContext(map5(toStep(step2.schedule), (next) => (now2, input) => provideContext(next(now2, input), context3)), context3)) : void 0,
+      provide: isLayer(step2.provide) ? provide2(step2.provide, succeedContext(context3)) : step2.provide
     })))));
   },
   pipe() {
@@ -6528,25 +6669,25 @@ var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source
 
 // node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
-var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse) => flatMap3(toStepWithMetadata(schedule2), (step) => {
+var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
-  return catchCauseFilter(catchDone(forever(tap(flatMap3(suspend(() => provideService(self, CurrentMetadata, meta)), step), (meta_) => sync(() => {
+  return catchCauseFilter(catchDone(forever(tap2(flatMap3(suspend(() => provideService(self, CurrentMetadata, meta)), step2), (meta_) => sync(() => {
     meta = meta_;
   })), {
     disableYield: true
-  }), (out) => succeed3(out)), findErrorOnly, (error) => orElse(error, meta.attempt === 0 ? none2() : some2(meta)));
+  }), (out) => succeed3(out)), findErrorOnly, (error) => orElse2(error, meta.attempt === 0 ? none2() : some2(meta)));
 }));
-var retryOrElse = /* @__PURE__ */ dual(3, (self, policy, orElse) => flatMap3(toStepWithMetadata(policy), (step) => {
+var retryOrElse = /* @__PURE__ */ dual(3, (self, policy, orElse2) => flatMap3(toStepWithMetadata(policy), (step2) => {
   let meta = CurrentMetadata.defaultValue();
   let lastError;
   const loop = catchCauseFilter(suspend(() => provideService(self, CurrentMetadata, meta)), findErrorOnly, (error) => {
     lastError = error;
-    return flatMap3(step(error), (meta_) => {
+    return flatMap3(step2(error), (meta_) => {
       meta = meta_;
       return loop;
     });
   });
-  return catchDone(loop, (out) => internalCall(() => orElse(lastError, out)));
+  return catchDone(loop, (out) => internalCall(() => orElse2(lastError, out)));
 }));
 var repeat = /* @__PURE__ */ dual(2, (self, options) => {
   const schedule2 = typeof options === "function" ? options(identity) : isSchedule(options) ? options : buildFromOptions(options);
@@ -6556,12 +6697,12 @@ var retry = /* @__PURE__ */ dual(2, (self, options) => {
   const schedule2 = typeof options === "function" ? options(identity) : isSchedule(options) ? options : buildFromOptions(options);
   return retryOrElse(self, schedule2, fail3);
 });
-var scheduleFrom = /* @__PURE__ */ dual(3, (self, initial, schedule2) => flatMap3(toStepWithMetadata(schedule2), (step) => {
+var scheduleFrom = /* @__PURE__ */ dual(3, (self, initial, schedule2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
   const selfWithMeta = suspend(() => provideService(self, CurrentMetadata, meta));
-  return catchDone(flatMap3(step(initial), (meta_) => {
+  return catchDone(flatMap3(step2(initial), (meta_) => {
     meta = meta_;
-    const body = constant(flatMap3(selfWithMeta, step));
+    const body = constant(flatMap3(selfWithMeta, step2));
     return whileLoop({
       while: constTrue,
       body,
@@ -6662,8 +6803,8 @@ var withExecutionPlan = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (sel
   return flatMap3(whileLoop({
     while: () => i < plan.steps.length && (result3 === void 0 || isFailure2(result3)),
     body() {
-      const step = plan.steps[i];
-      let nextEffect = provideMeta(instrument(provide3(self, step.provide)));
+      const step2 = plan.steps[i];
+      let nextEffect = provideMeta(instrument(provide3(self, step2.provide)));
       if (result3) {
         let attempted = false;
         const wrapped = nextEffect;
@@ -6672,9 +6813,9 @@ var withExecutionPlan = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (sel
           attempted = true;
           return fromResult(result3);
         });
-        nextEffect = retry(nextEffect, scheduleFromStep(step, false));
+        nextEffect = retry(nextEffect, scheduleFromStep(step2, false));
       } else {
-        const schedule2 = scheduleFromStep(step, true);
+        const schedule2 = scheduleFromStep(step2, true);
         nextEffect = schedule2 ? retry(nextEffect, schedule2) : nextEffect;
       }
       return result(nextEffect);
@@ -6685,20 +6826,20 @@ var withExecutionPlan = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (sel
     }
   }), () => fromResult(result3));
 }));
-var scheduleFromStep = (step, first) => {
+var scheduleFromStep = (step2, first) => {
   if (!first) {
     return buildFromOptions({
-      schedule: step.schedule ? step.schedule : step.attempts ? void 0 : scheduleOnce,
-      times: step.attempts,
-      while: step.while
+      schedule: step2.schedule ? step2.schedule : step2.attempts ? void 0 : scheduleOnce,
+      times: step2.attempts,
+      while: step2.while
     });
-  } else if (step.attempts === 1 || !(step.schedule || step.attempts)) {
+  } else if (step2.attempts === 1 || !(step2.schedule || step2.attempts)) {
     return void 0;
   }
   return buildFromOptions({
-    schedule: step.schedule,
-    while: step.while,
-    times: step.attempts ? step.attempts - 1 : void 0
+    schedule: step2.schedule,
+    while: step2.while,
+    times: step2.attempts ? step2.attempts - 1 : void 0
   });
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
@@ -6906,7 +7047,7 @@ var addEntry = (resolver, request3, resume, fiber3) => {
             newBatch.map = void 0;
             batchPool.push(newBatch);
           }
-          return void_;
+          return void_2;
         })
       };
       batch = newBatch;
@@ -6944,7 +7085,7 @@ var removeEntryUnsafe = (resolver, entry) => {
 };
 var maybeRemoveEntry = (resolver, entry) => sync(() => removeEntryUnsafe(resolver, entry));
 function runBatch(batch) {
-  if (!batch.map.has(batch.key)) return void_;
+  if (!batch.map.has(batch.key)) return void_2;
   batch.map.delete(batch.key);
   return batch.run;
 }
@@ -7028,7 +7169,7 @@ function attributesToRecord(attributes) {
 // node_modules/effect/dist/Effect.js
 var TypeId13 = EffectTypeId;
 var isEffect2 = isEffect;
-var all2 = all;
+var all3 = all2;
 var partition3 = partition2;
 var reduce2 = reduce;
 var validate2 = validate;
@@ -7040,37 +7181,37 @@ var whileLoop2 = whileLoop;
 var promise2 = promise;
 var tryPromise2 = tryPromise;
 var succeed6 = succeed3;
-var succeedNone2 = succeedNone;
-var succeedSome2 = succeedSome;
+var succeedNone3 = succeedNone2;
+var succeedSome3 = succeedSome2;
 var suspend3 = suspend;
 var sync3 = sync;
-var void_3 = void_;
+var void_4 = void_2;
 var undefined_2 = undefined_;
 var callback2 = callback;
 var never2 = never;
-var Do2 = Do;
-var bindTo3 = bindTo2;
-var let_3 = let_2;
-var bind3 = bind2;
-var gen2 = gen;
+var Do3 = Do2;
+var bindTo4 = bindTo3;
+var let_4 = let_3;
+var bind4 = bind3;
+var gen3 = gen2;
 var fail5 = fail3;
 var failSync2 = failSync;
 var failCause3 = failCause;
 var failCauseSync2 = failCauseSync;
 var die3 = die;
-var try_2 = try_;
+var try_3 = try_2;
 var yieldNow2 = yieldNow;
 var yieldNowWith2 = yieldNowWith;
 var withFiber2 = withFiber;
 var withFiberSucceed2 = withFiberSucceed;
 var fromResult2 = fromResult;
-var fromOption3 = fromOption2;
-var transposeOption2 = transposeOption;
-var fromNullishOr3 = fromNullishOr2;
+var fromOption4 = fromOption3;
+var transposeOption3 = transposeOption2;
+var fromNullishOr4 = fromNullishOr3;
 var flatMap5 = flatMap3;
 var flatten4 = flatten3;
-var andThen2 = andThen;
-var tap3 = tap;
+var andThen3 = andThen2;
+var tap4 = tap2;
 var result2 = result;
 var option2 = option;
 var exit2 = exit;
@@ -7078,7 +7219,7 @@ var map7 = map5;
 var as2 = as;
 var asSome2 = asSome;
 var asVoid2 = asVoid;
-var flip2 = flip;
+var flip3 = flip2;
 var zip2 = zip;
 var zipWith2 = zipWith;
 var catch_3 = catch_;
@@ -7095,7 +7236,7 @@ var catchNoSuchElement2 = catchNoSuchElement;
 var catchCauseIf2 = catchCauseIf;
 var catchCauseFilter2 = catchCauseFilter;
 var mapError3 = mapError2;
-var mapBoth2 = mapBoth;
+var mapBoth3 = mapBoth2;
 var orDie3 = orDie;
 var tapError3 = tapError;
 var tapErrorTag2 = tapErrorTag;
@@ -7128,7 +7269,7 @@ var filterMap2 = filterMap;
 var filterMapEffect2 = filterMapEffect;
 var filterOrElse2 = filterOrElse;
 var filterMapOrElse2 = filterMapOrElse;
-var filterOrFail2 = filterOrFail;
+var filterOrFail3 = filterOrFail2;
 var filterMapOrFail2 = filterMapOrFail;
 var when2 = when;
 var match5 = match4;
@@ -7257,7 +7398,7 @@ var track = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, 
   const input = f === void 0 ? exit4 : f(exit4);
   return update(metric, input);
 }));
-var trackSuccesses = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => tap3(self, (value3) => {
+var trackSuccesses = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => tap4(self, (value3) => {
   const input = f === void 0 ? value3 : f(value3);
   return update(metric, input);
 }));
@@ -7300,7 +7441,7 @@ var tx = (effect2) => withFiber2((fiber3) => {
   let result3;
   return uninterruptibleMask2((restore) => {
     const run2 = restore(effect2).pipe(provideService2(Transaction, mutable3), tapCause3((cause) => {
-      if (!mutable3.retry) return void_3;
+      if (!mutable3.retry) return void_4;
       if (!hasInterruptsOnly(cause)) return sync3(() => clearTransaction(mutable3));
       return restore(awaitPendingTransaction(mutable3));
     }), exit2);
@@ -7346,18 +7487,18 @@ var isTransactionConsistent = (state) => {
 };
 var awaitPendingTransaction = (state) => callback2((resume) => {
   if (!isTransactionConsistent(state)) {
-    return resume(void_3);
+    return resume(void_4);
   }
   const key = {};
   const refs = Array.from(state.journal.keys());
   const clearPending = () => {
-    for (const clear of refs) {
-      clear.pending.delete(key);
+    for (const clear3 of refs) {
+      clear3.pending.delete(key);
     }
   };
   const onCall = () => {
     clearPending();
-    resume(void_3);
+    resume(void_4);
   };
   for (const ref of refs) {
     ref.pending.set(key, onCall);
@@ -7374,8 +7515,8 @@ function commitTransaction(fiber3, state) {
       ref.version = ref.version + 1;
       ref.value = value3;
     }
-    for (const pending of ref.pending.values()) {
-      fiber3.currentDispatcher.scheduleTask(pending, 0);
+    for (const pending2 of ref.pending.values()) {
+      fiber3.currentDispatcher.scheduleTask(pending2, 0);
     }
     ref.pending.clear();
   }
@@ -7418,7 +7559,7 @@ var TypeId14 = "~effect/BigDecimal";
 var BigDecimalProto = {
   [TypeId14]: TypeId14,
   [symbol]() {
-    const normalized = normalize(this);
+    const normalized = normalize2(this);
     return combine(string(String(normalized.value)), number(normalized.scale));
   },
   [symbol2](that) {
@@ -7460,15 +7601,15 @@ var bigint03 = /* @__PURE__ */ BigInt(0);
 var bigint12 = /* @__PURE__ */ BigInt(1);
 var bigint102 = /* @__PURE__ */ BigInt(10);
 var zero2 = /* @__PURE__ */ makeNormalized(bigint03, 0);
-var normalize = (self) => {
+var normalize2 = (self) => {
   if (self.normalized === void 0) {
     if (self.value === bigint03) {
       self.normalized = zero2;
     } else {
       const digits = `${self.value}`;
-      let end = digits.length;
-      while (digits[end - 1] === "0") end--;
-      self.normalized = makeNormalized(BigInt(digits.slice(0, end)), self.scale - (digits.length - end));
+      let end2 = digits.length;
+      while (digits[end2 - 1] === "0") end2--;
+      self.normalized = makeNormalized(BigInt(digits.slice(0, end2)), self.scale - (digits.length - end2));
     }
   }
   return self.normalized;
@@ -7540,7 +7681,7 @@ var fromString = (s) => {
   return some2(make7(BigInt(digits), scale));
 };
 var format3 = (n) => {
-  const normalized = normalize(n);
+  const normalized = normalize2(n);
   if (Math.abs(normalized.scale) >= 16) {
     return toExponential(normalized);
   }
@@ -7555,13 +7696,13 @@ var toExponential = (n) => {
   if (isZero2(n)) {
     return "0e+0";
   }
-  const normalized = normalize(n);
+  const normalized = normalize2(n);
   const digits = `${normalized.value}`;
   const point = normalized.value < bigint03 ? 2 : 1;
   const head3 = digits.slice(0, point);
-  const tail = digits.slice(point);
-  const exp = tail.length - normalized.scale;
-  return `${head3}${tail === "" ? "" : `.${tail}`}e${exp >= 0 ? "+" : ""}${exp}`;
+  const tail2 = digits.slice(point);
+  const exp = tail2.length - normalized.scale;
+  return `${head3}${tail2 === "" ? "" : `.${tail2}`}e${exp >= 0 ? "+" : ""}${exp}`;
 };
 var isZero2 = (n) => n.value === bigint03;
 
@@ -7814,7 +7955,7 @@ __export(Schema_exports, {
   encodeUnknownSync: () => encodeUnknownSync2,
   extendTo: () => extendTo,
   fieldsAssign: () => fieldsAssign,
-  flip: () => flip4,
+  flip: () => flip5,
   fromBrand: () => fromBrand,
   fromFormData: () => fromFormData2,
   fromJsonString: () => fromJsonString2,
@@ -8083,7 +8224,7 @@ function copy(src, srcPos, dest, destPos, len) {
   return dest;
 }
 var emptyArray = [];
-var makeEquivalence4 = (isEquivalent) => make((self, that) => {
+var makeEquivalence5 = (isEquivalent) => make((self, that) => {
   if (self.length !== that.length) {
     return false;
   }
@@ -8096,7 +8237,7 @@ var makeEquivalence4 = (isEquivalent) => make((self, that) => {
   }
   return true;
 });
-var _equivalence = /* @__PURE__ */ makeEquivalence4(equals);
+var _equivalence = /* @__PURE__ */ makeEquivalence5(equals);
 var ChunkProto = {
   [TypeId15]: {
     _A: (_) => _
@@ -8875,11 +9016,11 @@ var HashMapImpl = class {
   _edit;
   _root;
   _size;
-  constructor(editable, edit, root, size6) {
+  constructor(editable, edit, root, size7) {
     this._editable = editable;
     this._edit = edit;
     this._root = root;
-    this._size = size6;
+    this._size = size7;
   }
   get size() {
     return this._size;
@@ -8927,7 +9068,7 @@ var isHashMap = (u) => hasProperty(u, HashMapTypeId);
 var empty6 = () => new HashMapImpl(false, 0, emptyNode, 0);
 var fromIterable3 = (entries3) => {
   let root = emptyNode;
-  let size6 = 0;
+  let size7 = 0;
   const added = {
     value: false
   };
@@ -8936,10 +9077,10 @@ var fromIterable3 = (entries3) => {
     added.value = false;
     root = root.set(NaN, 0, hash2, key, value3, added);
     if (added.value) {
-      size6++;
+      size7++;
     }
   }
-  return new HashMapImpl(false, 0, root, size6);
+  return new HashMapImpl(false, 0, root, size7);
 };
 var get3 = /* @__PURE__ */ dual(2, (self, key) => {
   const impl = self;
@@ -9407,7 +9548,7 @@ var Proto5 = {
   }
 };
 var value2 = value;
-var makeEquivalence5 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
+var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
 // node_modules/effect/dist/http/Headers.js
 var TypeId18 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
@@ -9443,7 +9584,7 @@ var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.crea
     value: BaseProto[NodeInspectSymbol]
   }
 });
-var Equivalence5 = /* @__PURE__ */ makeEquivalence2(/* @__PURE__ */ strictEqual());
+var Equivalence5 = /* @__PURE__ */ makeEquivalence3(/* @__PURE__ */ strictEqual());
 var empty8 = /* @__PURE__ */ Object.create(Proto6);
 var fromInput3 = (input) => {
   if (input === void 0) {
@@ -9582,7 +9723,7 @@ var fromInputNested = (input) => {
 };
 var coerce = (value3) => isRedacted(value3) ? value3 : String(value3);
 var Equivalence6 = /* @__PURE__ */ make((a, b) => arrayEquivalence(a.params, b.params));
-var arrayEquivalence = /* @__PURE__ */ makeEquivalence3(/* @__PURE__ */ makeEquivalence([/* @__PURE__ */ strictEqual(), /* @__PURE__ */ asEquivalence()]));
+var arrayEquivalence = /* @__PURE__ */ makeEquivalence4(/* @__PURE__ */ makeEquivalence2([/* @__PURE__ */ strictEqual(), /* @__PURE__ */ asEquivalence()]));
 var getFirst = /* @__PURE__ */ dual(2, (self, key) => findFirst2(self.params, ([k]) => k === key).pipe(map(([, value3]) => unwrap2(value3))));
 var toRecord2 = (self) => {
   const out = {};
@@ -10226,7 +10367,7 @@ function trim2() {
   return transform(trim);
 }
 function parseJson(options) {
-  return transformEffect((input, parseOptions) => try_2({
+  return transformEffect((input, parseOptions) => try_3({
     try: () => JSON.parse(input, options?.reviver),
     catch: () => new InvalidValue({
       expected: "a valid JSON string"
@@ -10234,7 +10375,7 @@ function parseJson(options) {
   }));
 }
 function stringifyJson(options) {
-  return transformEffect((input, parseOptions) => try_2({
+  return transformEffect((input, parseOptions) => try_3({
     try: () => {
       const output = JSON.stringify(input, options?.replacer, options?.space);
       if (output === void 0) {
@@ -10417,7 +10558,7 @@ function makeTreeRecord(bracketPathEntries) {
 function collectBracketPathEntries(isLeaf) {
   return (input) => {
     const bracketPathEntries = [];
-    function append2(key, value3) {
+    function append3(key, value3) {
       if (isLeaf(value3)) {
         bracketPathEntries.push([key, value3]);
       } else if (Array.isArray(value3)) {
@@ -10428,17 +10569,17 @@ function collectBracketPathEntries(isLeaf) {
           });
         } else {
           value3.forEach((v, i) => {
-            append2(`${key}[${i}]`, v);
+            append3(`${key}[${i}]`, v);
           });
         }
       } else if (typeof value3 === "object" && value3 !== null) {
         for (const [k, v] of Object.entries(value3)) {
-          append2(`${key}[${k}]`, v);
+          append3(`${key}[${k}]`, v);
         }
       }
     }
     for (const [key, value3] of Object.entries(input)) {
-      append2(key, value3);
+      append3(key, value3);
     }
     return bracketPathEntries;
   };
@@ -10449,9 +10590,9 @@ var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
   encode;
-  constructor(decode5, encode5) {
+  constructor(decode6, encode5) {
     super();
-    this.decode = decode5;
+    this.decode = decode6;
     this.encode = encode5;
   }
   flip() {
@@ -10464,9 +10605,9 @@ var Transformation = class extends Class {
   _tag = "Transformation";
   decode;
   encode;
-  constructor(decode5, encode5) {
+  constructor(decode6, encode5) {
     super();
-    this.decode = decode5;
+    this.decode = decode6;
     this.encode = encode5;
   }
   flip() {
@@ -10777,7 +10918,7 @@ var Void = class extends ASTNodeImpl {
     return "void";
   }
 };
-var void_4 = /* @__PURE__ */ new Void();
+var void_5 = /* @__PURE__ */ new Void();
 var Never = class extends ASTNodeImpl {
   _tag = "Never";
   /** @internal */
@@ -10948,15 +11089,15 @@ var TemplateLiteral = class extends ASTNodeImpl {
   }
 };
 function templateLiteralParser(parts2) {
-  const normalize2 = memoize((encoded) => {
+  const normalize3 = memoize((encoded) => {
     if (encoded._tag !== "Union") return encoded;
-    const types = mapOrSame(encoded.types, normalize2);
+    const types = mapOrSame(encoded.types, normalize3);
     return (encoded.options?.mode ?? "anyOf") === "anyOf" && types === encoded.types ? encoded : new Union(types, encoded.options === void 0 ? void 0 : {
       ...encoded.options,
       mode: "anyOf"
     }, encoded.annotations, encoded.checks, void 0, encoded.context);
   });
-  const template = new TemplateLiteral(parts2.map((part) => normalize2(toEncoded(part))));
+  const template = new TemplateLiteral(parts2.map((part) => normalize3(toEncoded(part))));
   const tuple2 = new Arrays(false, parts2.map(partFromString), []);
   return decodeTo(template, tuple2, templateLiteralTransformation(template));
 }
@@ -11220,11 +11361,11 @@ var Arrays = class extends ASTNodeImpl {
         issues: void 0,
         options
       };
-      const end = ast.rest.length === 0 ? elementLen : Math.max(len, elementLen + tailLen);
+      const end2 = ast.rest.length === 0 ? elementLen : Math.max(len, elementLen + tailLen);
       const concurrency = options.concurrency === void 0 ? 1 : resolveConcurrency(options.concurrency);
-      const eff = concurrency === 1 ? parseArray(state, input, 0, end) : parseArrayConcurrent(state, input, {
+      const eff = concurrency === 1 ? parseArray(state, input, 0, end2) : parseArrayConcurrent(state, input, {
         concurrency,
-        end
+        end: end2
       });
       if (!eff) return finish(state);
       if (effectIsExit(eff)) return flatMapEager2(eff, () => finish(state));
@@ -11432,14 +11573,14 @@ var Objects = class extends ASTNodeImpl {
       const expectedKeys = new Set(ast.propertySignatures.map((ps) => typeof ps.name === "number" ? globalThis.String(ps.name) : ps.name));
       const finishIndex = (s, key, k2, inputValue, exitValue) => {
         if (exitValue._tag === "Failure") {
-          return wrapPropertyKeyIssue(s, ast, key, exitValue) ?? void_2;
+          return wrapPropertyKeyIssue(s, ast, key, exitValue) ?? void_3;
         }
         const value3 = exitValue === sameExit ? inputValue : exitValue[args];
         if (k2 !== missing && value3 !== missing) {
-          if (hasProperties && (expectedKeys.has(key) || expectedKeys.has(typeof k2 === "number" ? globalThis.String(k2) : k2))) return void_2;
+          if (hasProperties && (expectedKeys.has(key) || expectedKeys.has(typeof k2 === "number" ? globalThis.String(k2) : k2))) return void_3;
           assignProperty(s.out, k2, value3);
         }
-        return void_2;
+        return void_3;
       };
       const parseIndex = (s, key, index2, exitKey) => {
         if (!exitKey) {
@@ -11450,7 +11591,7 @@ var Objects = class extends ASTNodeImpl {
           exitKey = eff;
         }
         if (exitKey._tag === "Failure") {
-          return wrapPropertyKeyIssue(s, ast, key, exitKey) ?? void_2;
+          return wrapPropertyKeyIssue(s, ast, key, exitKey) ?? void_3;
         }
         const k2 = exitKey === sameExit ? key : exitKey[args];
         const inputValue = s.input[key];
@@ -11552,9 +11693,9 @@ var Objects = class extends ASTNodeImpl {
     };
     if (indexCount) return makeFallback();
     let fallback;
-    const resume = (state, index2, pending) => {
+    const resume = (state, index2, pending2) => {
       const property = properties[index2];
-      return flatMap5(exit2(pending), (exit4) => {
+      return flatMap5(exit2(pending2), (exit4) => {
         const terminal = stepProperty(state, property, exit4);
         if (terminal) return terminal;
         const done3 = () => succeed7(state.out);
@@ -11872,12 +12013,12 @@ function getCandidateIndex(types) {
     for (const [literal, indexes] of byValue) {
       candidates2.set(literal, Object.freeze(Array.from(indexes)));
     }
-    const all3 = Object.freeze(types.map((_, i) => i));
+    const all4 = Object.freeze(types.map((_, i) => i));
     index2 = (input, isConstructor) => {
       if (isObjectKeyword(input)) {
         const value3 = hasPropertySignature(input, key) ? input[key] : void 0;
         if (value3 !== void 0) return candidates2.get(value3) ?? emptyCandidates;
-        if (isConstructor) return all3;
+        if (isConstructor) return all4;
       }
       return emptyCandidates;
     };
@@ -11905,7 +12046,7 @@ function getCandidateIndex(types) {
         }
       }
       if (directKey === void 0) {
-        for (const [key, [byValue, all3]] of bySentinel) {
+        for (const [key, [byValue, all4]] of bySentinel) {
           const hasKey = hasPropertySignature(input, key);
           const value3 = hasKey ? input[key] : void 0;
           if (hasKey && (!isConstructor || value3 !== void 0)) {
@@ -11914,18 +12055,18 @@ function getCandidateIndex(types) {
               for (const i of match7) selected.add(i);
             }
           } else if (isConstructor) {
-            for (const i of all3) selected.add(i);
+            for (const i of all4) selected.add(i);
           }
         }
       }
-      for (const [key, [byValue, all3]] of bySentinel) {
+      for (const [key, [byValue, all4]] of bySentinel) {
         if (key === directKey) continue;
         const hasKey = hasPropertySignature(input, key);
         const value3 = hasKey ? input[key] : void 0;
         if (hasKey && (!isConstructor || value3 !== void 0)) {
           const match7 = byValue.get(value3);
           for (const i of selected) {
-            if (all3.has(i) && !match7?.has(i)) selected.delete(i);
+            if (all4.has(i) && !match7?.has(i)) selected.delete(i);
           }
         }
       }
@@ -12081,7 +12222,7 @@ var parseUnion = /* @__PURE__ */ iterateEager()({
       if (s.successes) {
         s.successes.push(s.ast.types[i]);
       } else {
-        return void_2;
+        return void_3;
       }
     }
   }
@@ -12445,33 +12586,33 @@ var toType = /* @__PURE__ */ memoizeIdempotent((ast) => {
   return type;
 });
 var toEncoded = /* @__PURE__ */ memoizeIdempotent((ast) => {
-  return toType(flip3(ast));
+  return toType(flip4(ast));
 });
 function flipEncoding(ast, encoding) {
   const links = encoding;
   const len = links.length;
   const last = links[len - 1];
-  const ls = [new Link(flip3(replaceEncoding(ast, void 0)), links[0].transformation.flip())];
+  const ls = [new Link(flip4(replaceEncoding(ast, void 0)), links[0].transformation.flip())];
   for (let i = 1; i < len; i++) {
-    ls.unshift(new Link(flip3(links[i - 1].to), links[i].transformation.flip()));
+    ls.unshift(new Link(flip4(links[i - 1].to), links[i].transformation.flip()));
   }
-  const to = flip3(last.to);
+  const to = flip4(last.to);
   if (to.encoding) {
     return replaceEncoding(to, [...to.encoding, ...ls]);
   } else {
     return replaceEncoding(to, ls);
   }
 }
-var flip3 = /* @__PURE__ */ memoize((ast) => {
+var flip4 = /* @__PURE__ */ memoize((ast) => {
   if (ast.encoding) {
     return flipEncoding(ast, ast.encoding);
   }
   const owner = getContextOwner(ast);
   if (owner !== ast) {
-    const flipped = flip3(owner);
+    const flipped = flip4(owner);
     return flipped === owner ? ast : replaceContext(flipped, ast.context);
   }
-  return "flip" in ast ? ast.flip(flip3) : "recur" in ast ? ast.recur(flip3) : ast;
+  return "flip" in ast ? ast.flip(flip4) : "recur" in ast ? ast.recur(flip4) : ast;
 });
 function containsUndefined(ast) {
   switch (ast._tag) {
@@ -12528,15 +12669,15 @@ function segmentTemplateLiteralParts(ast, input, options) {
     } else {
       const maximumEnd = inputLength - ast.suffixLengths[i + 1];
       const anchor = literals[i + 1];
-      let end = anchor === void 0 ? maximumEnd : input.lastIndexOf(anchor, maximumEnd);
-      while (end >= pos) {
-        const s = input.slice(pos, end);
-        if (part.matchPart(s, options) !== void 0 && go(i + 1, end)) {
+      let end2 = anchor === void 0 ? maximumEnd : input.lastIndexOf(anchor, maximumEnd);
+      while (end2 >= pos) {
+        const s = input.slice(pos, end2);
+        if (part.matchPart(s, options) !== void 0 && go(i + 1, end2)) {
           out[i] = s;
           return true;
         }
-        if (end === 0) break;
-        end = anchor === void 0 ? end - 1 : input.lastIndexOf(anchor, end - 1);
+        if (end2 === 0) break;
+        end2 = anchor === void 0 ? end2 - 1 : input.lastIndexOf(anchor, end2 - 1);
       }
     }
     failures ??= /* @__PURE__ */ new Set();
@@ -12972,8 +13113,8 @@ var CompilerEntry = class extends InterpretedEntry {
     return this.save("decodeEffect", this.operation("decodeEffect") ?? compile(this.ast, (ast) => lazyParser(this.resolve, ast, "parser")));
   }
   get parser() {
-    const decode5 = this.decode;
-    return decode5 === void 0 ? this.decodeEffect : this.save("parser", withDecode(decode5, () => this.decodeEffect));
+    const decode6 = this.decode;
+    return decode6 === void 0 ? this.decodeEffect : this.save("parser", withDecode(decode6, () => this.decodeEffect));
   }
   get makeEffect() {
     const makeEffect2 = this.operation("makeEffect");
@@ -13123,7 +13264,7 @@ function decodeUnknownSync(schema, options) {
 }
 var decodeSync = decodeUnknownSync;
 function encodeUnknownEffect(schema, options) {
-  const parser = run(flip3(schema.ast));
+  const parser = run(flip4(schema.ast));
   return options === void 0 ? parser : (input, overrideOptions) => parser(input, mergeParseOptions(options, overrideOptions));
 }
 var encodeEffect = encodeUnknownEffect;
@@ -13138,7 +13279,7 @@ function encodeUnknownResult(schema, options) {
   return asResult(encodeUnknownEffect(schema, options));
 }
 function encodeUnknownSync(schema, options) {
-  return compilerAdaptersEnabled ? makeSync(flip3(schema.ast), options) : asSync(encodeUnknownEffect(schema, options));
+  return compilerAdaptersEnabled ? makeSync(flip4(schema.ast), options) : asSync(encodeUnknownEffect(schema, options));
 }
 var encodeSync = encodeUnknownSync;
 var mergeParseOptions = (options, overrideOptions) => overrideOptions ? {
@@ -13205,15 +13346,15 @@ function makeSync(ast, options) {
   return (input, overrideOptions) => (run2 ??= makeSyncEntry(resolve2(ast), options))(input, overrideOptions);
 }
 function makeSyncEntry(entry, options) {
-  const decode5 = entry.decode;
+  const decode6 = entry.decode;
   let detailed;
-  const run2 = decode5 === void 0 ? (input, parseOptions = defaultParseOptions) => (detailed ??= makeDetailedSync(entry))(input, parseOptions) : (input, parseOptions = defaultParseOptions) => {
+  const run2 = decode6 === void 0 ? (input, parseOptions = defaultParseOptions) => (detailed ??= makeDetailedSync(entry))(input, parseOptions) : (input, parseOptions = defaultParseOptions) => {
     if (input === missing) {
       return (detailed ??= makeDetailedSync(entry))(input, parseOptions);
     }
     let output;
     try {
-      output = decode5(input, parseOptions);
+      output = decode6(input, parseOptions);
     } catch (error) {
       getSchemaIssueOrThrow(die2(error), "Sync adapter can only throw schema issues");
       throw error;
@@ -13260,11 +13401,11 @@ function makeConstructorSync(ast) {
     } : {
       disableChecks: true
     } : options?.parseOptions ?? defaultParseOptions;
-    const make21 = entry.make;
-    if (make21 !== void 0 && input !== missing) {
+    const make24 = entry.make;
+    if (make24 !== void 0 && input !== missing) {
       let output;
       try {
-        output = make21(input, parseOptions);
+        output = make24(input, parseOptions);
       } catch (error) {
         getSchemaIssueOrThrow(die2(error), "Constructor adapter can only throw schema issues");
         throw error;
@@ -14145,7 +14286,7 @@ function compileJsonSchema(representations, rootPaths, references, options) {
     if (fallback === void 0) continue;
     const schema = compiledDefinitions.get(key)[0];
     const candidates2 = fallbackDefinitions.get(fallback);
-    const match7 = candidates2?.find((candidate) => equals(compiledDefinitions.get(candidate)[0], schema));
+    const match7 = candidates2?.find((candidate2) => equals(compiledDefinitions.get(candidate2)[0], schema));
     if (match7 === void 0) {
       if (candidates2 === void 0) fallbackDefinitions.set(fallback, [key]);
       else candidates2.push(key);
@@ -14627,17 +14768,17 @@ function toRepresentations(asts, options) {
   for (const ast of asts) visit(ast);
   const referencePolicy = options?.referencePolicy ?? defaultReferencePolicy;
   for (const candidatesByIdentifier of candidates2.values()) {
-    for (const candidate of candidatesByIdentifier.values()) {
+    for (const candidate2 of candidatesByIdentifier.values()) {
       const requestedReference = referencePolicy({
-        ast: candidate.ast,
-        occurrences: candidate.occurrences,
-        identifier: candidate.identifier
+        ast: candidate2.ast,
+        occurrences: candidate2.occurrences,
+        identifier: candidate2.identifier
       });
       if (requestedReference !== void 0) {
-        const separator = requestedReference === candidate.identifier || !requestedReference.endsWith("_") ? "_" : "";
-        candidate.reference = getReference(requestedReference, candidate, separator);
-      } else if (candidate.isRecursive) {
-        candidate.reference = getReference(`${candidate.ast._tag}_`, candidate, "");
+        const separator = requestedReference === candidate2.identifier || !requestedReference.endsWith("_") ? "_" : "";
+        candidate2.reference = getReference(requestedReference, candidate2, separator);
+      } else if (candidate2.isRecursive) {
+        candidate2.reference = getReference(`${candidate2.ast._tag}_`, candidate2, "");
       }
     }
   }
@@ -14647,23 +14788,23 @@ function toRepresentations(asts, options) {
     references
   };
   function getReference(prefix, owner, separator = "_") {
-    let candidate = prefix;
+    let candidate2 = prefix;
     let suffix = 0;
-    while (referenceOwners.has(candidate)) {
-      if (referenceOwners.get(candidate) === owner) return candidate;
-      candidate = `${prefix}${separator}${++suffix}`;
+    while (referenceOwners.has(candidate2)) {
+      if (referenceOwners.get(candidate2) === owner) return candidate2;
+      candidate2 = `${prefix}${separator}${++suffix}`;
     }
-    referenceOwners.set(candidate, owner);
-    return candidate;
+    referenceOwners.set(candidate2, owner);
+    return candidate2;
   }
-  function annotateReference(ast, candidate, reference) {
-    const fallback = candidate.fallback;
+  function annotateReference(ast, candidate2, reference) {
+    const fallback = candidate2.fallback;
     if (fallback !== void 0) {
       return resolveIdentifierFallback(ast) === fallback ? ast : annotate(ast, {
         [IDENTIFIER_FALLBACK_KEY]: fallback
       });
     }
-    return reference === candidate.identifier ? ast : annotate(ast, {
+    return reference === candidate2.identifier ? ast : annotate(ast, {
       identifier: reference
     });
   }
@@ -14690,9 +14831,9 @@ function toRepresentations(asts, options) {
       candidatesByIdentifier = /* @__PURE__ */ new Map();
       candidates2.set(owner, candidatesByIdentifier);
     }
-    let candidate = candidatesByIdentifier.get(identifier2);
-    if (candidate === void 0) {
-      candidate = {
+    let candidate2 = candidatesByIdentifier.get(identifier2);
+    if (candidate2 === void 0) {
+      candidate2 = {
         ast: owner,
         identifier: identifier2,
         fallback,
@@ -14700,20 +14841,20 @@ function toRepresentations(asts, options) {
         isRecursive: false,
         reference: void 0
       };
-      candidatesByIdentifier.set(identifier2, candidate);
+      candidatesByIdentifier.set(identifier2, candidate2);
     }
-    return candidate;
+    return candidate2;
   }
   function visit(input) {
-    const candidate = getCandidate(input);
-    const ast = candidate.ast;
-    candidate.occurrences++;
-    if (visitingCandidates.has(candidate)) {
-      candidate.isRecursive = true;
+    const candidate2 = getCandidate(input);
+    const ast = candidate2.ast;
+    candidate2.occurrences++;
+    if (visitingCandidates.has(candidate2)) {
+      candidate2.isRecursive = true;
       return;
     }
-    if (candidate.occurrences > 1) return;
-    visitingCandidates.add(candidate);
+    if (candidate2.occurrences > 1) return;
+    visitingCandidates.add(candidate2);
     visitChecks(ast.checks);
     switch (ast._tag) {
       case "Declaration":
@@ -14732,7 +14873,7 @@ function toRepresentations(asts, options) {
         visit(ast.thunk());
         break;
     }
-    visitingCandidates.delete(candidate);
+    visitingCandidates.delete(candidate2);
   }
   function visitChecks(checks) {
     checks?.forEach((check2) => {
@@ -14741,11 +14882,11 @@ function toRepresentations(asts, options) {
     });
   }
   function recur2(input) {
-    const candidate = getCandidate(input);
-    const ast = candidate.ast;
-    const reference = candidate.reference;
+    const candidate2 = getCandidate(input);
+    const ast = candidate2.ast;
+    const reference = candidate2.reference;
     if (reference !== void 0) {
-      const annotated = candidate.identifier === void 0 ? ast : annotateReference(ast, candidate, reference);
+      const annotated = candidate2.identifier === void 0 ? ast : annotateReference(ast, candidate2, reference);
       return makeReference(reference, annotated);
     }
     return on(ast);
@@ -14931,7 +15072,7 @@ function toStandardSchemaV1(self, options) {
     ...options?.parseOptions
   };
   const formatter = makeFormatterStandardSchemaV1(options);
-  const validate3 = (value3) => {
+  const validate4 = (value3) => {
     const scheduler = new MixedScheduler("sync");
     const fiber3 = runFork2(match5(decodeUnknownEffect3(value3, parseOptions), {
       onFailure: formatter,
@@ -14956,7 +15097,7 @@ function toStandardSchemaV1(self, options) {
     const out = self;
     if ("validate" in out["~standard"]) return out;
     Object.assign(out["~standard"], {
-      validate: validate3
+      validate: validate4
     });
     return out;
   }
@@ -14964,7 +15105,7 @@ function toStandardSchemaV1(self, options) {
     "~standard": {
       version: 1,
       vendor: "effect",
-      validate: validate3
+      validate: validate4
     }
   });
 }
@@ -15230,11 +15371,11 @@ function stringTreeToXml(value3, options) {
   const indent = options.indent ?? "  ";
   const sortKeys = options.sortKeys ?? true;
   const seen = /* @__PURE__ */ new Set();
-  const lines3 = [];
+  const lines4 = [];
   recur2(rootName, value3, 0);
-  return lines3.join(pretty2 ? "\n" : "");
+  return lines4.join(pretty2 ? "\n" : "");
   function push(depth, text2) {
-    lines3.push(pretty2 ? indent.repeat(depth) + text2 : text2);
+    lines4.push(pretty2 ? indent.repeat(depth) + text2 : text2);
   }
   function recur2(tagName, node, depth, originalNameForMeta) {
     const {
@@ -15346,8 +15487,8 @@ function recur(ast) {
     case "Arrays": {
       const elements = ast.elements.map(recur);
       const rest = ast.rest.map(recur);
-      const [head3, ...tail] = rest;
-      const tailLength = tail.length;
+      const [head3, ...tail2] = rest;
+      const tailLength = tail2.length;
       return make((a, b) => {
         if (!Array.isArray(a) || !Array.isArray(b)) {
           return false;
@@ -15369,7 +15510,7 @@ function recur(ast) {
             }
           }
           for (let j = 0; j < tailLength; j++) {
-            if (!tail[j](a[i + j], b[i + j])) {
+            if (!tail2[j](a[i + j], b[i + j])) {
               return false;
             }
           }
@@ -15419,7 +15560,7 @@ function recur(ast) {
     case "Union": {
       const types = toType(ast).types;
       const index2 = getCandidateIndex(types);
-      const compiled = types.map((candidate, i) => [_is(candidate), recur(ast.types[i])]);
+      const compiled = types.map((candidate2, i) => [_is(candidate2), recur(ast.types[i])]);
       return make((a, b) => {
         const candidates2 = index2(a, false);
         for (let i = 0; i < candidates2.length; i++) {
@@ -15584,46 +15725,46 @@ function toFormatter(ast, options) {
           case "effect/schema/ReadonlyMap": {
             const [key, value3] = typeParameters;
             return (map10) => {
-              const size6 = map10.size;
-              if (size6 === 0) return "ReadonlyMap(0) {}";
+              const size7 = map10.size;
+              if (size7 === 0) return "ReadonlyMap(0) {}";
               const entries3 = globalThis.Array.from(map10.entries()).sort().map(([key_, value_]) => `${key(key_)} => ${value3(value_)}`);
-              return `ReadonlyMap(${size6}) { ${entries3.join(", ")} }`;
+              return `ReadonlyMap(${size7}) { ${entries3.join(", ")} }`;
             };
           }
           case "effect/schema/HashMap": {
             const [key, value3] = typeParameters;
             return (map10) => {
-              const size6 = size3(map10);
-              if (size6 === 0) return "HashMap(0) {}";
+              const size7 = size3(map10);
+              if (size7 === 0) return "HashMap(0) {}";
               const entries3 = toEntries(map10).sort().map(([key_, value_]) => `${key(key_)} => ${value3(value_)}`);
-              return `HashMap(${size6}) { ${entries3.join(", ")} }`;
+              return `HashMap(${size7}) { ${entries3.join(", ")} }`;
             };
           }
           case "effect/schema/ReadonlySet": {
             const [value3] = typeParameters;
             return (set4) => {
-              const size6 = set4.size;
-              if (size6 === 0) return "ReadonlySet(0) {}";
+              const size7 = set4.size;
+              if (size7 === 0) return "ReadonlySet(0) {}";
               const values2 = globalThis.Array.from(set4.values()).sort().map((item) => `${value3(item)}`);
-              return `ReadonlySet(${size6}) { ${values2.join(", ")} }`;
+              return `ReadonlySet(${size7}) { ${values2.join(", ")} }`;
             };
           }
           case "effect/schema/HashSet": {
             const [value3] = typeParameters;
             return (set4) => {
-              const size6 = size5(set4);
-              if (size6 === 0) return "HashSet(0) {}";
+              const size7 = size5(set4);
+              if (size7 === 0) return "HashSet(0) {}";
               const values2 = globalThis.Array.from(set4).sort().map((item) => `${value3(item)}`);
-              return `HashSet(${size6}) { ${values2.join(", ")} }`;
+              return `HashSet(${size7}) { ${values2.join(", ")} }`;
             };
           }
           case "effect/schema/Chunk": {
             const [value3] = typeParameters;
             return (chunk) => {
-              const size6 = size(chunk);
-              if (size6 === 0) return "Chunk(0) {}";
+              const size7 = size(chunk);
+              if (size7 === 0) return "Chunk(0) {}";
               const values2 = globalThis.Array.from(chunk).sort().map((item) => `${value3(item)}`);
-              return `Chunk(${size6}) { ${values2.join(", ")} }`;
+              return `Chunk(${size7}) { ${values2.join(", ")} }`;
             };
           }
           default:
@@ -15633,8 +15774,8 @@ function toFormatter(ast, options) {
       case "Arrays": {
         const elements = ast2.elements.map((element) => recur2(element));
         const rest = ast2.rest.map(recur2);
-        const [head3, ...tail] = rest;
-        const tailLength = tail.length;
+        const [head3, ...tail2] = rest;
+        const tailLength = tail2.length;
         return (value3) => {
           const out = [];
           let i = 0;
@@ -15652,7 +15793,7 @@ function toFormatter(ast, options) {
               out.push(head3(value3[i]));
             }
             for (let j = 0; j < tailLength; j++) {
-              out.push(tail[j](value3[i + j]));
+              out.push(tail2[j](value3[i + j]));
             }
           }
           return "[" + out.join(", ") + "]";
@@ -15692,7 +15833,7 @@ function toFormatter(ast, options) {
       case "Union": {
         const types = toType(ast2).types;
         const index2 = getCandidateIndex(types);
-        const compiled2 = types.map((candidate, i) => [_is(candidate), recur2(ast2.types[i])]);
+        const compiled2 = types.map((candidate2, i) => [_is(candidate2), recur2(ast2.types[i])]);
         return (value3) => {
           const candidates2 = index2(value3, false);
           for (let i = 0; i < candidates2.length; i++) {
@@ -15730,7 +15871,7 @@ var renameKeys = /* @__PURE__ */ dual(2, (self, mapping) => {
 });
 var lambda = (f) => f;
 function hasPropertyKey(keys3, key) {
-  return keys3.some((candidate) => candidate === key || typeof candidate === "number" && String(candidate) === key);
+  return keys3.some((candidate2) => candidate2 === key || typeof candidate2 === "number" && String(candidate2) === key);
 }
 function buildStruct(source, f) {
   const out = {};
@@ -15985,7 +16126,7 @@ var PrismImpl = class extends OptionalImpl {
 function make17(node) {
   let op = node[0] ?? identityOperation;
   if (node.length > 1) {
-    const kind = node.reduce((kind2, step) => composeKind(kind2, step.kind), "Iso");
+    const kind = node.reduce((kind2, step2) => composeKind(kind2, step2.kind), "Iso");
     op = {
       kind,
       get: compileGet(node, kind),
@@ -16266,14 +16407,14 @@ var parseIpv6Segments = (input) => {
   const halves = input.split("::");
   if (halves.length > 2) return addressError(input, "only one compression marker is allowed");
   const head3 = halves[0] === "" ? [] : halves[0].split(":");
-  const tail = halves.length === 2 && halves[1] !== "" ? halves[1].split(":") : [];
-  if (head3.some((part) => part === "") || tail.some((part) => part === "")) {
+  const tail2 = halves.length === 2 && halves[1] !== "" ? halves[1].split(":") : [];
+  if (head3.some((part) => part === "") || tail2.some((part) => part === "")) {
     return addressError(input, "empty segments are only valid in the compression marker");
   }
-  const trailing = tail.length > 0 ? tail[tail.length - 1] : head3.length > 0 ? head3[head3.length - 1] : "";
+  const trailing = tail2.length > 0 ? tail2[tail2.length - 1] : head3.length > 0 ? head3[head3.length - 1] : "";
   let embedded;
   if (trailing.includes(".")) {
-    if (halves.length === 2 && tail.length === 0) {
+    if (halves.length === 2 && tail2.length === 0) {
       return addressError(input, "embedded IPv4 syntax must be trailing");
     }
     const parsed = map2(ipv4FromString(trailing), (address) => {
@@ -16282,16 +16423,16 @@ var parseIpv6Segments = (input) => {
     });
     if (isFailure2(parsed)) return parsed;
     embedded = parsed.success;
-    if (tail.length > 0) tail.pop();
+    if (tail2.length > 0) tail2.pop();
     else head3.pop();
   }
-  const explicit = head3.length + tail.length + (embedded ? 2 : 0);
+  const explicit = head3.length + tail2.length + (embedded ? 2 : 0);
   if (halves.length === 1 ? explicit !== 8 : explicit >= 8) {
     return addressError(input, halves.length === 1 ? "expected eight segments" : "compression must replace at least one segment");
   }
   const parse = (part) => /^[0-9a-fA-F]{1,4}$/.test(part) ? Number.parseInt(part, 16) : void 0;
   const parsedHead = head3.map(parse);
-  const parsedTail = tail.map(parse);
+  const parsedTail = tail2.map(parse);
   if (parsedHead.some((part) => part === void 0) || parsedTail.some((part) => part === void 0)) {
     return addressError(input, "segments must contain one through four hexadecimal digits");
   }
@@ -16370,8 +16511,8 @@ var formatIp = (self) => {
   }
   if (bestLength < 2) return segments.map((segment) => segment.toString(16)).join(":");
   const head3 = segments.slice(0, bestStart).map((segment) => segment.toString(16)).join(":");
-  const tail = segments.slice(bestStart + bestLength).map((segment) => segment.toString(16)).join(":");
-  return `${head3}::${tail}`;
+  const tail2 = segments.slice(bestStart + bestLength).map((segment) => segment.toString(16)).join(":");
+  return `${head3}::${tail2}`;
 };
 var isUnspecified = (self) => {
   if (isIpv4Address(self)) return ipv4Value(self) === 0;
@@ -16484,12 +16625,12 @@ var inetAddressFromString = (input) => {
   let scopeId = 0;
   const bracketed = input.startsWith("[");
   if (bracketed) {
-    const end = input.indexOf("]");
-    if (end < 0 || input[end + 1] !== ":" || input.indexOf("]", end + 1) !== -1) {
+    const end2 = input.indexOf("]");
+    if (end2 < 0 || input[end2 + 1] !== ":" || input.indexOf("]", end2 + 1) !== -1) {
       return addressError(input, "expected [IPv6]:port");
     }
-    host = input.slice(1, end);
-    portText = input.slice(end + 2);
+    host = input.slice(1, end2);
+    portText = input.slice(end2 + 2);
     const scopeSeparator = host.indexOf("%");
     if (scopeSeparator !== -1) {
       const scopeText = host.slice(scopeSeparator + 1);
@@ -16642,10 +16783,10 @@ var hostPortFromString = (input) => {
   let hostText;
   let portText;
   if (input.startsWith("[")) {
-    const end = input.indexOf("]");
-    if (end === -1 || input[end + 1] !== ":") return hostError(input, "expected [IPv6]:port");
-    hostText = input.slice(1, end);
-    portText = input.slice(end + 2);
+    const end2 = input.indexOf("]");
+    if (end2 === -1 || input[end2 + 1] !== ":") return hostError(input, "expected [IPv6]:port");
+    hostText = input.slice(1, end2);
+    portText = input.slice(end2 + 2);
     if (!hostText.includes(":")) return hostError(input, "only IPv6 addresses use brackets");
   } else {
     const separator = input.lastIndexOf(":");
@@ -16981,7 +17122,7 @@ function annotate2(annotations) {
   return (self) => self.annotate(annotations);
 }
 function annotateEncoded(annotations) {
-  return (self) => flip4(flip4(self).annotate(annotations));
+  return (self) => flip5(flip5(self).annotate(annotations));
 }
 function annotateKey2(annotations) {
   return (self) => {
@@ -17175,11 +17316,11 @@ var FlipTypeId = "~effect/Schema/flip";
 function isFlip$(schema) {
   return hasProperty(schema, FlipTypeId) && schema[FlipTypeId] === FlipTypeId;
 }
-function flip4(schema) {
+function flip5(schema) {
   if (isFlip$(schema)) {
-    return schema.schema.rebuild(flip3(schema.ast));
+    return schema.schema.rebuild(flip4(schema.ast));
   }
-  return make20(flip3(schema.ast), {
+  return make20(flip4(schema.ast), {
     [FlipTypeId]: FlipTypeId,
     schema
   });
@@ -17225,7 +17366,7 @@ var Number6 = /* @__PURE__ */ make20(number2);
 var Boolean3 = /* @__PURE__ */ make20(boolean);
 var Symbol3 = /* @__PURE__ */ make20(symbol3);
 var BigInt6 = /* @__PURE__ */ make20(bigInt);
-var Void2 = /* @__PURE__ */ make20(void_4);
+var Void2 = /* @__PURE__ */ make20(void_5);
 var ObjectKeyword2 = /* @__PURE__ */ make20(objectKeyword);
 function UniqueSymbol2(symbol4) {
   return make20(new UniqueSymbol(symbol4));
@@ -17422,8 +17563,8 @@ function fromBrand(identifier2, ctor) {
     (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier2))
   );
 }
-function middlewareDecoding2(decode5) {
-  return (schema) => make20(middlewareDecoding(schema.ast, new Middleware(decode5, identity)), {
+function middlewareDecoding2(decode6) {
+  return (schema) => make20(middlewareDecoding(schema.ast, new Middleware(decode6, identity)), {
     schema
   });
 }
@@ -17453,8 +17594,8 @@ function decodeTo2(to, transformation) {
   };
 }
 function linkDecoding() {
-  return (to, decode5) => link()(to, {
-    decode: decode5,
+  return (to, decode6) => link()(to, {
+    decode: decode6,
     encode: forbiddenEncoding
   });
 }
@@ -17589,18 +17730,18 @@ function toTaggedUnion(tag2) {
     function matchOrElse() {
       if (arguments.length === 2) {
         const cases3 = arguments[0];
-        const orElse2 = arguments[1];
+        const orElse3 = arguments[1];
         return function(value4) {
           const key2 = value4[tag2];
-          const handler2 = Object.hasOwn(cases3, key2) ? cases3[key2] ?? orElse2 : orElse2;
+          const handler2 = Object.hasOwn(cases3, key2) ? cases3[key2] ?? orElse3 : orElse3;
           return handler2(value4);
         };
       }
       const value3 = arguments[0];
       const cases2 = arguments[1];
-      const orElse = arguments[2];
+      const orElse2 = arguments[2];
       const key = value3[tag2];
-      const handler = Object.hasOwn(cases2, key) ? cases2[key] ?? orElse : orElse;
+      const handler = Object.hasOwn(cases2, key) ? cases2[key] ?? orElse2 : orElse2;
       return handler(value3);
     }
   };
@@ -19019,7 +19160,7 @@ var RegExp3 = /* @__PURE__ */ instanceOf(globalThis.RegExp, {
     source: String6,
     flags: String6
   }), transformEffect2({
-    decode: (e, options) => try_2({
+    decode: (e, options) => try_3({
       try: () => new globalThis.RegExp(e.source, e.flags),
       catch: () => new InvalidValue({
         expected: "valid RegExp source and flags"
@@ -19466,7 +19607,7 @@ function Chunk(value3) {
       constraint,
       typeParameters: [value4]
     }) => chunkLink(withArrayLengthConstraints(ArraySchema(value4), constraint?.minLength, constraint?.maxLength)),
-    toEquivalence: ([value4]) => makeEquivalence4(value4)
+    toEquivalence: ([value4]) => makeEquivalence5(value4)
   });
   return make20(schema.ast, {
     value: value3
@@ -20279,7 +20420,7 @@ function Option(value3) {
   const schema = declareConstructor()([value3], ([value4]) => (input, ast, options) => {
     if (isOption2(input)) {
       if (isNone2(input)) {
-        return succeedNone2;
+        return succeedNone3;
       }
       return mapBothEager2(decodeUnknownEffect(value4)(input.value, options), {
         onSuccess: some2,
@@ -20439,7 +20580,7 @@ function Redacted(value3, options) {
   const decodeLabel = label2 !== void 0 ? decodeUnknownEffect(Literal2(label2)) : void 0;
   const schema = declareConstructor()([value3], ([value4]) => (input, ast, poptions) => {
     if (isRedacted(input)) {
-      const label3 = decodeLabel !== void 0 ? mapErrorEager2(decodeLabel(input.label, poptions), (issue) => new Pointer(["label"], issue)) : void_3;
+      const label3 = decodeLabel !== void 0 ? mapErrorEager2(decodeLabel(input.label, poptions), (issue) => new Pointer(["label"], issue)) : void_4;
       return flatMapEager2(label3, () => mapBothEager2(decodeUnknownEffect(value4)(value2(input), poptions), {
         onSuccess: (value5) => make12(value5, {
           label: input.label
@@ -20469,7 +20610,7 @@ function Redacted(value3, options) {
       })),
       encode: disallowJsonEncode ? forbidden((oe) => "Cannot serialize Redacted" + (isSome2(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")) : transform(value2)
     }),
-    toEquivalence: ([value4]) => makeEquivalence5(value4)
+    toEquivalence: ([value4]) => makeEquivalence6(value4)
   });
   return make20(schema.ast, {
     value: value3
@@ -20774,6 +20915,673 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
+// node_modules/effect/dist/MutableList.js
+var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
+var make21 = () => ({
+  head: void 0,
+  tail: void 0,
+  length: 0
+});
+var compactHead = (self) => {
+  const head3 = self.head;
+  if (head3.offset >= 1024 && head3 === self.tail && head3.mutable && (head3.array.length - head3.offset) * 8 <= head3.offset) {
+    self.head = self.tail = {
+      array: head3.array.slice(head3.offset),
+      mutable: true,
+      offset: 0,
+      next: void 0
+    };
+  }
+};
+var emptyBucket = () => ({
+  array: [],
+  mutable: true,
+  offset: 0,
+  next: void 0
+});
+var append2 = (self, message) => {
+  if (!self.tail) {
+    self.head = self.tail = emptyBucket();
+  } else if (!self.tail.mutable) {
+    self.tail.next = emptyBucket();
+    self.tail = self.tail.next;
+  }
+  self.tail.array.push(message);
+  self.length++;
+};
+var appendAll2 = (self, messages) => appendAllUnsafe(self, fromIterable(messages), !Array.isArray(messages));
+var appendAllUnsafe = (self, messages, mutable3 = false) => {
+  if (messages.length === 0) {
+    return 0;
+  }
+  const chunk = {
+    array: messages,
+    mutable: mutable3,
+    offset: 0,
+    next: void 0
+  };
+  if (self.head) {
+    self.tail = self.tail.next = chunk;
+  } else {
+    self.head = self.tail = chunk;
+  }
+  self.length += messages.length;
+  return messages.length;
+};
+var clear = (self) => {
+  self.head = self.tail = void 0;
+  self.length = 0;
+};
+var takeN = (self, n) => {
+  n = normalize(n);
+  if (n <= 0 || !self.head) return [];
+  n = Math.min(n, self.length);
+  if (n === self.length && self.head?.offset === 0 && !self.head.next) {
+    const array3 = self.head.array;
+    clear(self);
+    return array3;
+  }
+  const array2 = new Array(n);
+  let index2 = 0;
+  let chunk = self.head;
+  while (chunk) {
+    while (chunk.offset < chunk.array.length) {
+      array2[index2++] = chunk.array[chunk.offset];
+      if (chunk.mutable) chunk.array[chunk.offset] = void 0;
+      chunk.offset++;
+      if (index2 === n) {
+        self.head = chunk.offset === chunk.array.length && chunk.next ? chunk.next : chunk;
+        self.length -= n;
+        if (self.length === 0) clear(self);
+        else compactHead(self);
+        return array2;
+      }
+    }
+    chunk = chunk.next;
+  }
+  clear(self);
+  return array2;
+};
+var takeAll = (self) => takeN(self, self.length);
+var take = (self) => {
+  if (!self.head) return Empty;
+  const message = self.head.array[self.head.offset];
+  if (self.head.mutable) self.head.array[self.head.offset] = void 0;
+  self.head.offset++;
+  self.length--;
+  if (self.head.offset === self.head.array.length) {
+    if (self.head.next) {
+      self.head = self.head.next;
+    } else {
+      clear(self);
+    }
+  } else {
+    compactHead(self);
+  }
+  return message;
+};
+
+// node_modules/effect/dist/Queue.js
+var Queue_exports = {};
+__export(Queue_exports, {
+  asDequeue: () => asDequeue,
+  asEnqueue: () => asEnqueue,
+  await: () => await_,
+  bounded: () => bounded,
+  clear: () => clear2,
+  collect: () => collect,
+  dropping: () => dropping,
+  end: () => end,
+  endUnsafe: () => endUnsafe,
+  fail: () => fail7,
+  failCause: () => failCause4,
+  failCauseUnsafe: () => failCauseUnsafe,
+  flush: () => flush,
+  flushUnsafe: () => flushUnsafe,
+  interrupt: () => interrupt3,
+  into: () => into,
+  isDequeue: () => isDequeue,
+  isEnqueue: () => isEnqueue,
+  isFull: () => isFull,
+  isFullUnsafe: () => isFullUnsafe,
+  isQueue: () => isQueue,
+  make: () => make22,
+  offer: () => offer,
+  offerAll: () => offerAll,
+  offerAllUnsafe: () => offerAllUnsafe,
+  offerUnsafe: () => offerUnsafe,
+  peek: () => peek,
+  poll: () => poll,
+  shutdown: () => shutdown,
+  shutdownUnsafe: () => shutdownUnsafe,
+  size: () => size6,
+  sizeUnsafe: () => sizeUnsafe,
+  sliding: () => sliding,
+  take: () => take2,
+  takeAll: () => takeAll2,
+  takeBetween: () => takeBetween,
+  takeN: () => takeN2,
+  takeUnsafe: () => takeUnsafe,
+  unbounded: () => unbounded
+});
+var TypeId30 = "~effect/Queue";
+var EnqueueTypeId = "~effect/Queue/Enqueue";
+var DequeueTypeId = "~effect/Queue/Dequeue";
+var isQueue = (u) => hasProperty(u, TypeId30);
+var isEnqueue = (u) => hasProperty(u, EnqueueTypeId);
+var isDequeue = (u) => hasProperty(u, DequeueTypeId);
+var asEnqueue = (self) => self;
+var asDequeue = identity;
+var variance = {
+  _A: identity,
+  _E: identity
+};
+var QueueProto = {
+  [TypeId30]: variance,
+  [EnqueueTypeId]: variance,
+  [DequeueTypeId]: variance,
+  ...PipeInspectableProto,
+  toJSON() {
+    return {
+      _id: "effect/Queue",
+      state: this.state._tag,
+      size: sizeUnsafe(this)
+    };
+  }
+};
+var make22 = (options) => withFiber((fiber3) => {
+  const self = Object.create(QueueProto);
+  self.dispatcher = fiber3.currentDispatcher;
+  self.capacity = options?.capacity ?? Number.POSITIVE_INFINITY;
+  self.strategy = options?.strategy ?? "suspend";
+  self.messages = make21();
+  self.scheduleRunning = false;
+  self.state = {
+    _tag: "Open",
+    takers: /* @__PURE__ */ new Set(),
+    offers: /* @__PURE__ */ new Set(),
+    awaiters: /* @__PURE__ */ new Set()
+  };
+  return succeed3(self);
+});
+var bounded = (capacity) => make22({
+  capacity
+});
+var sliding = (capacity) => make22({
+  capacity,
+  strategy: "sliding"
+});
+var dropping = (capacity) => make22({
+  capacity,
+  strategy: "dropping"
+});
+var unbounded = () => make22();
+var offer = /* @__PURE__ */ dual(2, (self, message) => suspend(() => offerUnsafe(self, message) ? exitTrue : self.state._tag === "Open" && self.strategy === "suspend" ? offerOrWait(self, message) : exitFalse));
+var offerUnsafe = (self, message) => {
+  if (self.state._tag !== "Open") {
+    return false;
+  } else if (self.messages.length >= self.capacity) {
+    if (self.strategy === "sliding") {
+      take(self.messages);
+      append2(self.messages, message);
+      return true;
+    } else if (self.capacity <= 0 && self.state.takers.size > 0) {
+      append2(self.messages, message);
+      releaseTakers(self);
+      return true;
+    }
+    return false;
+  }
+  append2(self.messages, message);
+  scheduleReleaseTaker(self);
+  return true;
+};
+var offerAll = /* @__PURE__ */ dual(2, (self, messages) => (
+  // Admitting what fits and registering the rest are one step, so no take can
+  // free capacity between them
+  callback((resume) => {
+    const remaining = offerAllUnsafe(self, messages);
+    if (remaining.length === 0 || self.strategy === "dropping") {
+      return resume(exitSucceed(remaining));
+    }
+    return waitToOffer(self, {
+      _tag: "Array",
+      remaining,
+      offset: 0,
+      resume
+    });
+  })
+));
+var offerAllUnsafe = (self, messages) => {
+  if (self.state._tag !== "Open") {
+    return fromIterable(messages);
+  } else if (self.capacity === Number.POSITIVE_INFINITY || self.strategy === "sliding") {
+    appendAll2(self.messages, messages);
+    if (self.strategy === "sliding") {
+      takeN(self.messages, self.messages.length - self.capacity);
+    }
+    scheduleReleaseTaker(self);
+    return [];
+  }
+  const free = self.capacity <= 0 ? self.state.takers.size : self.capacity - self.messages.length;
+  if (free === 0) {
+    return fromIterable(messages);
+  }
+  const remaining = [];
+  let i = 0;
+  for (const message of messages) {
+    if (i < free) {
+      append2(self.messages, message);
+    } else {
+      remaining.push(message);
+    }
+    i++;
+  }
+  scheduleReleaseTaker(self);
+  return remaining;
+};
+var fail7 = /* @__PURE__ */ dual(2, (self, error) => failCause4(self, causeFail(error)));
+var failCause4 = /* @__PURE__ */ dual(2, (self, cause) => sync(() => failCauseUnsafe(self, cause)));
+var failCauseUnsafe = (self, cause) => {
+  if (self.state._tag !== "Open") {
+    return false;
+  }
+  const exit4 = exitFailCause(cause);
+  const fail9 = exitZipRight(exit4, exitFailDone);
+  if (self.state.offers.size === 0 && self.messages.length === 0) {
+    finalize(self, fail9);
+    return true;
+  }
+  self.state = {
+    ...self.state,
+    _tag: "Closing",
+    exit: fail9
+  };
+  scheduleReleaseTaker(self);
+  return true;
+};
+var end = (self) => failCause4(self, causeFail(Done()));
+var endUnsafe = (self) => failCauseUnsafe(self, causeFail(Done()));
+var interrupt3 = (self) => withFiber((fiber3) => failCause4(self, causeInterrupt(fiber3.id)));
+var shutdown = (self) => sync(() => shutdownUnsafe(self));
+var shutdownUnsafe = (self) => {
+  if (self.state._tag === "Done") {
+    return false;
+  }
+  clear(self.messages);
+  const offers = self.state.offers;
+  finalize(self, self.state._tag === "Open" ? exitInterrupt2 : self.state.exit);
+  for (const entry of offers) {
+    resumeUnoffered(entry);
+  }
+  return true;
+};
+var clear2 = (self) => suspendTake(() => {
+  if (self.state._tag === "Done") {
+    return catchDone(self.state.exit, () => succeed3([]));
+  }
+  const messages = takeAllUnsafe(self);
+  releaseCapacity(self);
+  return succeed3(messages);
+});
+var takeAll2 = (self) => takeBetween(self, 1, Number.POSITIVE_INFINITY);
+var collect = (self) => suspend(() => {
+  const out = empty2();
+  return as(catchDone(whileLoop({
+    while: constTrue,
+    body: constant(takeAll2(self)),
+    step(items) {
+      for (let i = 0; i < items.length; i++) {
+        out.push(items[i]);
+      }
+    }
+  }), () => void_2), out);
+});
+var takeN2 = /* @__PURE__ */ dual(2, (self, n) => takeBetween(self, n, n));
+var takeBetween = /* @__PURE__ */ dual(3, (self, min5, max5) => {
+  min5 = normalize(min5);
+  max5 = normalize(max5);
+  return suspendTake(() => takeBetweenUnsafe(self, min5, max5) ?? andThen2(awaitTake(self, () => canTake(self, min5)), takeBetween(self, min5, max5)));
+});
+var take2 = (self) => suspendTake(() => takeUnsafe(self) ?? andThen2(awaitTake(self, () => canTake(self, 1)), take2(self)));
+var poll = (self) => suspendTake(() => {
+  const result3 = takeUnsafe(self);
+  if (result3 === void 0) {
+    return succeed3(none2());
+  }
+  if (result3._tag === "Success") {
+    return succeed3(some2(result3.value));
+  }
+  return succeed3(none2());
+});
+var peek = (self) => suspend(() => {
+  if (self.state._tag === "Done") {
+    return self.state.exit;
+  }
+  if (self.messages.length > 0 && self.messages.head) {
+    return succeed3(self.messages.head.array[self.messages.head.offset]);
+  }
+  return andThen2(awaitTake(self, () => self.messages.length > 0), peek(self));
+});
+var takeUnsafe = (self) => {
+  if (self.state._tag === "Done") {
+    return self.state.exit;
+  }
+  if (self.messages.length > 0) {
+    const message = take(self.messages);
+    releaseCapacity(self);
+    return exitSucceed(message);
+  } else if (self.capacity <= 0 && self.state.offers.size > 0) {
+    const message = takeOfferUnsafe(self.state.offers);
+    releaseCapacity(self);
+    return exitSucceed(message);
+  }
+  return void 0;
+};
+var flushUnsafe = (self) => releaseTakers(self);
+var flush = (self) => sync(() => flushUnsafe(self));
+var await_ = (self) => callback((resume) => {
+  const awaiter = (effect2) => resume(catchDone(effect2, () => exitVoid));
+  if (self.state._tag === "Done") {
+    return awaiter(self.state.exit);
+  }
+  self.state.awaiters.add(awaiter);
+  return sync(() => {
+    if (self.state._tag !== "Done") {
+      self.state.awaiters.delete(awaiter);
+    }
+  });
+});
+var size6 = (self) => sync(() => sizeUnsafe(self));
+var isFull = (self) => sync(() => isFullUnsafe(self));
+var sizeUnsafe = (self) => self.state._tag === "Done" ? 0 : self.messages.length;
+var isFullUnsafe = (self) => sizeUnsafe(self) === self.capacity;
+var into = /* @__PURE__ */ dual(2, (effect2, self) => uninterruptibleMask((restore) => matchCauseEffect(restore(effect2), {
+  onFailure: (cause) => failCause4(self, cause),
+  onSuccess: (_) => end(self)
+})));
+var exitFalse = /* @__PURE__ */ exitSucceed(false);
+var exitTrue = /* @__PURE__ */ exitSucceed(true);
+var exitFailDone = /* @__PURE__ */ exitFail(/* @__PURE__ */ Done());
+var exitInterrupt2 = /* @__PURE__ */ exitInterrupt();
+var releaseTakers = (self) => {
+  if (self.state._tag === "Done" || self.state.takers.size === 0) {
+    return;
+  }
+  for (const taker of self.state.takers) {
+    if (!taker.ready()) continue;
+    self.state.takers.delete(taker);
+    taker.resume(exitVoid);
+    if (self.messages.length === 0) {
+      break;
+    }
+  }
+};
+var scheduleReleaseTaker = (self) => {
+  if (self.scheduleRunning || self.state._tag === "Done" || self.state.takers.size === 0) {
+    return;
+  }
+  self.scheduleRunning = true;
+  self.dispatcher.scheduleTask(() => {
+    self.scheduleRunning = false;
+    releaseTakers(self);
+  }, 0);
+};
+var takeBetweenUnsafe = (self, min5, max5) => {
+  if (self.state._tag === "Done") {
+    return self.state.exit;
+  } else if (max5 <= 0 || min5 <= 0) {
+    return exitSucceed([]);
+  } else if (!canTake(self, min5)) {
+    return void 0;
+  }
+  const messages = self.messages.length > 0 ? takeN(self.messages, max5) : [takeOfferUnsafe(self.state.offers)];
+  releaseCapacity(self);
+  return exitSucceed(messages);
+};
+var suspendTake = /* @__PURE__ */ makePrimitive({
+  op: "QueueTake",
+  [evaluate](fiber3) {
+    const effect2 = this[args]();
+    return isExit(effect2) ? effect2[evaluate](fiber3) : effect2;
+  }
+});
+var canTake = (self, min5) => self.messages.length >= (self.state._tag === "Closing" ? 1 : Math.min(min5, self.capacity || 1)) || self.capacity <= 0 && self.state._tag !== "Done" && self.state.offers.size > 0;
+var awaitTake = (self, ready) => callback((resume) => {
+  if (self.state._tag === "Done") return resume(self.state.exit);
+  if (ready()) return resume(exitVoid);
+  const taker = {
+    ready,
+    resume
+  };
+  self.state.takers.add(taker);
+  return sync(() => {
+    if (self.state._tag !== "Done") self.state.takers.delete(taker);
+  });
+});
+var offerOrWait = (self, message) => callback((resume) => offerUnsafe(self, message) ? resume(exitTrue) : waitToOffer(self, {
+  _tag: "Single",
+  message,
+  resume
+}));
+var waitToOffer = (self, entry) => {
+  if (self.state._tag !== "Open") return resumeUnoffered(entry);
+  const offers = self.state.offers;
+  offers.add(entry);
+  return sync(() => {
+    if (self.state._tag === "Done") return;
+    offers.delete(entry);
+    if (self.state._tag === "Closing" && offers.size === 0 && self.messages.length === 0) {
+      finalize(self, self.state.exit);
+    }
+  });
+};
+var resumeUnoffered = (entry) => entry._tag === "Single" ? entry.resume(exitFalse) : entry.resume(exitSucceed(entry.remaining.slice(entry.offset)));
+var takeOfferUnsafe = (offers) => {
+  const entry = offers.values().next().value;
+  if (entry._tag === "Single") {
+    offers.delete(entry);
+    entry.resume(exitTrue);
+    return entry.message;
+  }
+  const message = entry.remaining[entry.offset++];
+  if (entry.offset === entry.remaining.length) {
+    offers.delete(entry);
+    entry.resume(exitSucceed([]));
+  }
+  return message;
+};
+var releaseCapacity = (self) => {
+  if (self.state._tag === "Done") {
+    return isDoneCause(self.state.exit.cause);
+  } else if (self.state.offers.size === 0) {
+    if (self.state._tag === "Closing" && self.messages.length === 0) {
+      finalize(self, self.state.exit);
+      return isDoneCause(self.state.exit.cause);
+    }
+    return false;
+  }
+  for (const entry of self.state.offers) {
+    let n = self.capacity - self.messages.length;
+    if (n <= 0) break;
+    else if (entry._tag === "Single") {
+      append2(self.messages, entry.message);
+      self.state.offers.delete(entry);
+      entry.resume(exitTrue);
+    } else {
+      for (; entry.offset < entry.remaining.length; entry.offset++) {
+        if (n === 0) return false;
+        append2(self.messages, entry.remaining[entry.offset]);
+        n--;
+      }
+      self.state.offers.delete(entry);
+      entry.resume(exitSucceed([]));
+    }
+    const state = self.state;
+    if (state._tag === "Done") {
+      return isDoneCause(state.exit.cause);
+    }
+  }
+  return false;
+};
+var takeAllUnsafe = (self) => {
+  if (self.messages.length > 0) {
+    const messages = takeAll(self.messages);
+    releaseCapacity(self);
+    return messages;
+  } else if (self.state._tag !== "Done" && self.state.offers.size > 0) {
+    const messages = [takeOfferUnsafe(self.state.offers)];
+    releaseCapacity(self);
+    return messages;
+  }
+  return [];
+};
+var finalize = (self, exit4) => {
+  if (self.state._tag === "Done") {
+    return;
+  }
+  const openState = self.state;
+  self.state = {
+    _tag: "Done",
+    exit: exit4
+  };
+  for (const taker of openState.takers) {
+    taker.resume(exit4);
+  }
+  openState.takers.clear();
+  for (const awaiter of openState.awaiters) {
+    awaiter(exit4);
+  }
+  openState.awaiters.clear();
+};
+
+// node_modules/effect/dist/Semaphore.js
+var Semaphore_exports = {};
+__export(Semaphore_exports, {
+  make: () => make23,
+  makeUnsafe: () => makeUnsafe7,
+  release: () => release,
+  releaseAll: () => releaseAll,
+  resize: () => resize,
+  take: () => take3,
+  takeIfAvailable: () => takeIfAvailable,
+  withPermit: () => withPermit,
+  withPermits: () => withPermits,
+  withPermitsIfAvailable: () => withPermitsIfAvailable
+});
+var makeUnsafe7 = (permits) => new SemaphoreImpl(permits);
+var waitForPermits = (self, n, effect2) => callback((resume) => {
+  if (self.free >= n) return resume(effect2);
+  const observer = () => {
+    if (self.free < n) return;
+    self.waiters.delete(observer);
+    resume(effect2);
+  };
+  self.waiters.add(observer);
+  return sync(() => {
+    self.waiters.delete(observer);
+  });
+});
+var SemaphoreImpl = class {
+  waiters = /* @__PURE__ */ new Set();
+  taken = 0;
+  permits;
+  constructor(permits) {
+    this.permits = permits;
+  }
+  get free() {
+    return this.permits - this.taken;
+  }
+  take(n) {
+    const take4 = suspend(() => {
+      if (this.free < n) {
+        return waitForPermits(this, n, take4);
+      }
+      this.taken += n;
+      return succeed3(n);
+    });
+    return take4;
+  }
+  takeIfAvailable(n) {
+    return suspend(() => {
+      if (this.free < n) return succeed3(false);
+      this.taken += n;
+      return succeed3(true);
+    });
+  }
+  releaseUnsafe(fiber3, n) {
+    this.taken -= n;
+    if (this.waiters.size > 0) {
+      fiber3.currentDispatcher.scheduleTask(() => {
+        for (const observer of this.waiters) {
+          if (this.free <= 0) break;
+          observer();
+        }
+      }, 0);
+    }
+    return this.free;
+  }
+  resize(permits) {
+    return withFiber((fiber3) => {
+      this.permits = permits;
+      if (this.free < 0) return void_2;
+      this.releaseUnsafe(fiber3, 0);
+      return void_2;
+    });
+  }
+  release(n) {
+    return withFiber((fiber3) => succeed3(this.releaseUnsafe(fiber3, n)));
+  }
+  get releaseAll() {
+    return withFiber((fiber3) => succeed3(this.releaseUnsafe(fiber3, this.taken)));
+  }
+  withPermits(n) {
+    return (self) => uninterruptibleMask((restore) => {
+      const acquire = suspend(() => {
+        if (this.free < n) {
+          const wait = waitForPermits(this, n, void_2);
+          return flatMap3(restore(wait), () => acquire);
+        }
+        this.taken += n;
+        return onExitPrimitive(restore(self), () => {
+          this.releaseUnsafe(getCurrentFiber(), n);
+          return void 0;
+        }, true);
+      });
+      return acquire;
+    });
+  }
+  withPermit = /* @__PURE__ */ this.withPermits(1);
+  withPermitsIfAvailable(n) {
+    return (self) => uninterruptibleMask((restore) => {
+      if (this.free < n) return succeedNone2;
+      this.taken += n;
+      return onExitPrimitive(restore(asSome(self)), () => {
+        this.releaseUnsafe(getCurrentFiber(), n);
+        return void 0;
+      }, true);
+    });
+  }
+};
+var make23 = (permits) => sync(() => new SemaphoreImpl(permits));
+var resize = /* @__PURE__ */ dual(2, (self, permits) => self.resize(permits));
+var withPermits = (self, permits, effect2) => {
+  const withPermits2 = self.withPermits(permits);
+  return effect2 ? withPermits2(effect2) : withPermits2;
+};
+var withPermit = (self, effect2) => {
+  if (!effect2) return self.withPermit;
+  return self.withPermit(effect2);
+};
+var withPermitsIfAvailable = (self, permits, effect2) => {
+  const withPermits2 = self.withPermitsIfAvailable(permits);
+  return effect2 ? withPermits2(effect2) : withPermits2;
+};
+var take3 = /* @__PURE__ */ dual(2, (self, permits) => self.take(permits));
+var takeIfAvailable = /* @__PURE__ */ dual(2, (self, permits) => self.takeIfAvailable(permits));
+var release = /* @__PURE__ */ dual(2, (self, permits) => self.release(permits));
+var releaseAll = (self) => self.releaseAll;
+
 // src/cards.ts
 import { readFileSync } from "node:fs";
 
@@ -20842,6 +21650,7 @@ var ERRORS = {
     context: Schema_exports.Struct({ root: Schema_exports.String, repo: Schema_exports.String, guidanceAbove: Schema_exports.Array(Schema_exports.String), insideRepo: Schema_exports.Boolean })
   },
   base_not_found: { means: "The commit an item starts from is not in the product repo.", context: Schema_exports.Struct({ repo: Schema_exports.String, base: Schema_exports.String }) },
+  no_branch: { means: "The product repo has no branch checked out, so Made Well does not know which branch an item ships to.", context: Schema_exports.Struct({ repo: Schema_exports.String }) },
   path_outside_workspace: { means: "A snapshot was asked for files outside the workspace.", context: Schema_exports.Struct({ dir: Schema_exports.String, outside: Schema_exports.Array(Schema_exports.String) }) },
   workspace_written: { means: "A read-only call changed the workspace.", context: Schema_exports.Struct({ dir: Schema_exports.String, changes: Schema_exports.Unknown }) },
   branch_moved: {
@@ -20872,12 +21681,15 @@ var errorJson = (e) => ({
 });
 
 // src/harness.ts
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { mkdtempSync as mkdtempSync2, rmSync as rmSync2, writeFileSync as writeFileSync2 } from "node:fs";
+import { tmpdir as tmpdir2 } from "node:os";
+import { join as join2 } from "node:path";
 
 // src/worker.ts
 import { spawn } from "node:child_process";
+import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 var DEFAULT_BUDGET = { minutes: 30 };
 var Worker = class extends Context_exports.Service()("madewell/Worker") {
 };
@@ -20893,7 +21705,7 @@ var stamped = (line, at) => {
 };
 var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
   const started = Date.now();
-  const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: ["pipe", "pipe", "pipe", "pipe"] });
+  const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
   const kill = () => {
     try {
       process.kill(-child.pid, "SIGKILL");
@@ -20911,27 +21723,27 @@ var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callbac
     kill();
   };
   const timer = setTimeout(() => over("minutes"), o.budget.minutes * 6e4);
-  const take = (raw, end) => {
+  const take4 = (raw, end2) => {
     const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw;
-    stdout += line + end;
+    stdout += line + end2;
     const n = o.tokensIn?.(line);
     if (n) tokens = (tokens ?? 0) + n;
   };
   child.stdout.setEncoding("utf8").on("data", (chunk) => {
-    const lines3 = (partial + chunk).split("\n");
-    partial = lines3.pop();
-    for (const line of lines3) take(line, "\n");
+    const lines4 = (partial + chunk).split("\n");
+    partial = lines4.pop();
+    for (const line of lines4) take4(line, "\n");
     if (o.budget.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
   });
   child.stderr.setEncoding("utf8").on("data", (chunk) => stderr += chunk);
-  child.stdin.on("error", (e) => stdinError = e.message);
+  child.stdin?.on("error", (e) => stdinError = e.message);
   child.on("exit", kill);
   child.on("close", (code) => {
     clearTimeout(timer);
-    if (partial) take(partial, "");
+    if (partial) take4(partial, "");
     resume(Effect_exports.succeed({ code, stdout, stderr, stdinError, overBudget }));
   });
-  child.stdin.end(o.input);
+  child.stdin?.end(o.input);
   return Effect_exports.sync(() => {
     clearTimeout(timer);
     kill();
@@ -20939,20 +21751,31 @@ var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callbac
 }));
 var overBudgetError = (who, o) => `${who} went over its budget: ${o.exceeded === "minutes" ? `ran ${(o.ms / 6e4).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`;
 var commandWorker = (command2) => Layer_exports.succeed(Worker, {
-  run: (request3) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: JSON.stringify(request3), budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
-    Effect_exports.map(({ code, stdout, stderr, stdinError, overBudget }) => {
-      if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
-      try {
-        return JSON.parse(stdout);
-      } catch {
-        const unread = stdinError ? ` without reading its request on stdin (${stdinError})` : "";
-        return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2e3)}` };
-      }
-    })
+  run: (request3) => Effect_exports.acquireUseRelease(
+    Effect_exports.sync(() => {
+      const dir = mkdtempSync(join(tmpdir(), "madewell-"));
+      const input = Buffer.from(JSON.stringify(request3));
+      writeFileSync(join(dir, "request.json"), input);
+      return { dir, size: input.length, fd: openSync(join(dir, "request.json"), "r") };
+    }),
+    ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
+      Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
+        if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
+        try {
+          return JSON.parse(stdout);
+        } catch {
+          const left = readSync(fd, Buffer.alloc(size7), 0, size7, null);
+          const unread = left ? ` without reading its request on stdin (read ${size7 - left} of ${size7} bytes)` : "";
+          return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2e3)}` };
+        }
+      })
+    ),
+    ({ dir, fd }) => Effect_exports.sync(() => (closeSync(fd), rmSync(dir, { recursive: true, force: true })))
   )
 });
 
 // src/harness.ts
+var NEUTRAL_HOST = "You are running headless for Made Well. Ignore the host's own conventions for artifacts, screenshots, attachments and memory, whether they come from the harness's system prompt, global instruction files or skills: do not save, view, upload or link screenshots or attachments, and do not write memory, notes or logs. Write only where your packet says. Your final message is your answer.";
 var Match = Schema_exports.Record(Schema_exports.String, Schema_exports.Union([Schema_exports.String, Schema_exports.Number, Schema_exports.Boolean]));
 var Strings = Schema_exports.Array(Schema_exports.String);
 var common = {
@@ -21081,7 +21904,7 @@ var agentEnv = (allow, from = process.env) => ({
   MW_WORKER: "1"
 });
 function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
-  const settings = join(call.dir, "settings.json");
+  const settings = join2(call.dir, "settings.json");
   const vars = { ...card, ...call, tools: harness.tools[access], settings };
   const [binary, ...args2] = harness.command.flatMap((a) => a === "{...tools}" ? vars.tools : [fill(a, vars)]);
   const files = harness.settings ? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v]))) } : {};
@@ -21157,14 +21980,14 @@ var harnessWorker = Layer_exports.succeed(Worker, {
     const budget = request3.budget ?? DEFAULT_BUDGET;
     return Effect_exports.acquireUseRelease(
       // Per-call files (settings) live in a directory removed when the call ends.
-      Effect_exports.sync(() => mkdtempSync(join(tmpdir(), "madewell-"))),
+      Effect_exports.sync(() => mkdtempSync2(join2(tmpdir2(), "madewell-"))),
       (dir) => {
         const launch2 = buildLaunch(request3.card, request3.access, { system: request3.system, prompt: request3.prompt, title: `mw #${request3.item} ${request3.job} \xB7 ${request3.profile} \xB7 ${request3.kind}`, dir }, harness);
-        for (const [path, content] of Object.entries(launch2.files)) writeFileSync(path, content);
+        for (const [path, content] of Object.entries(launch2.files)) writeFileSync2(path, content);
         const cwd = request3.access === "none" ? dir : request3.cwd;
         return runGroup({ command: launch2.command, args: launch2.args, cwd, env: agentEnv([...BASE_ENV, ...harness.env ?? []]), input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl" });
       },
-      (dir) => Effect_exports.sync(() => rmSync(dir, { recursive: true, force: true }))
+      (dir) => Effect_exports.sync(() => rmSync2(dir, { recursive: true, force: true }))
     ).pipe(
       Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
         if (overBudget) return { ok: false, error: overBudgetError(`${name} (${request3.card.model})`, overBudget), overBudget, raw: stdout };
@@ -21188,6 +22011,7 @@ var Card = Schema_exports.Struct({
   effort: Schema_exports.Literals(["low", "medium", "high", "xhigh", "max"])
 });
 var Access = Schema_exports.Literals(["none", "read", "checks", "make", "run"]);
+var INTAKE_ACCESS = "none";
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
 var Positive = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
 var JobBudget = Schema_exports.optional(Schema_exports.Struct({ minutes: Positive, tokens: Schema_exports.optional(Positive) }));
@@ -21241,37 +22065,241 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/engine.ts
-import { execFile as execFile2 } from "node:child_process";
+import { execFile as execFile3 } from "node:child_process";
+import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
+
+// src/change.ts
+import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { dirname as dirname2, join as join4 } from "node:path";
+
+// src/workspace.ts
+import { execFile } from "node:child_process";
+import { existsSync, lstatSync, readdirSync, readFileSync as readFileSync2, readlinkSync, rmSync as rmSync3, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, isAbsolute, join as join3, relative, resolve as resolve3 } from "node:path";
+var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI.md", ".cursorrules"];
+var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
+var worktreesRoot = () => join3(process.env.MW_STORE ? dirname(process.env.MW_STORE) : process.env.MW_HOME ?? join3(homedir(), ".local", "share", "madewell"), "worktrees");
+var fail8 = (code, message, context3, next, cause) => new MadeWellError({ code, message, context: context3, next, ...cause ? { cause } : {} });
+var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
+var git = (dir, ...args2) => exec("git", ["--no-optional-locks", "-C", dir, ...args2], dir).pipe(Effect_exports.flatMap(({ code, stdout, stderr }) => code === 0 ? Effect_exports.succeed(stdout) : Effect_exports.fail(fail8("git_failed", `git ${args2[0]} failed in ${dir}.`, { dir, args: args2, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args2.join(" ")}`, why: "run it yourself to see the full error" }]))));
+var lines = (out) => out.split("\0").filter(Boolean);
+var worktree = Effect_exports.fn("mw.worktree")(function* (repo, base, name) {
+  const root = worktreesRoot();
+  const path = join3(root, name);
+  if (!/^[\w.-]+$/.test(name)) return yield* fail8("bad_worktree_name", `Worktree name "${name}" must be letters, digits, ".", "_" or "-".`, { name }, []);
+  const above = [];
+  for (let dir = root; ; dir = dirname(dir)) {
+    above.push(...GUIDANCE.map((f) => join3(dir, f)).filter((f) => existsSync(f)));
+    if (dirname(dir) === dir) break;
+  }
+  const inside = !relative(resolve3(repo), root).startsWith("..");
+  if (above.length || inside) {
+    return yield* fail8(
+      "worktree_root_unclean",
+      `Job worktrees under ${root} would inherit instructions that are not the product's.`,
+      { root, repo, guidanceAbove: above, insideRepo: inside },
+      [{ run: "MW_HOME=<a directory with no guidance files above it and outside the repo> mw run", why: "put Made Well's home where agents read only the product's own guidance" }]
+    );
+  }
+  const commit2 = (yield* git(repo, "rev-parse", "--verify", "--quiet", `${base}^{commit}`).pipe(Effect_exports.mapError(() => fail8("base_not_found", `${base} is not a commit in ${repo}.`, { repo, base }, [{ run: `git -C ${repo} log --oneline -5`, why: "find the commit the item should start from" }])))).trim();
+  return yield* Effect_exports.acquireRelease(
+    Effect_exports.gen(function* () {
+      yield* removeWorktree(repo, path);
+      yield* git(repo, "worktree", "add", "--detach", "--quiet", path, commit2);
+      return { path, repo, base: commit2 };
+    }),
+    () => removeWorktree(repo, path)
+  );
+});
+var removeWorktree = (repo, path) => Effect_exports.gen(function* () {
+  yield* Effect_exports.ignore(git(repo, "worktree", "remove", "--force", "--force", path));
+  rmSync3(path, { recursive: true, force: true });
+  yield* Effect_exports.ignore(git(repo, "worktree", "prune"));
+});
+var snapshot2 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
+  const outside = files.filter((f) => isAbsolute(f) || relative(dir, resolve3(dir, f)).startsWith(".."));
+  if (outside.length) return yield* fail8("path_outside_workspace", "A snapshot can only read files inside the workspace.", { dir, outside }, []);
+  const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
+  const tracked = lines(yield* git(dir, "ls-files", "-z"));
+  const contents = Object.fromEntries(files.map((f) => {
+    const p = join3(dir, f);
+    return [f, existsSync(p) && statSync(p).isFile() ? readFileSync2(p, "utf8") : null];
+  }));
+  return { head: head3, files: tracked, contents };
+});
+var capture = Effect_exports.fn("mw.capture")(function* (dir) {
+  const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
+  const refs = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
+  const common2 = resolve3(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
+  const files = {};
+  walk(dir, "", files);
+  for (const part of ["config", "info", "hooks"]) walk(common2, part, files, ".git/");
+  return { dir, head: head3, refs, files };
+});
+function walk(root, rel, into2, label2 = "") {
+  const p = join3(root, rel);
+  let s;
+  try {
+    s = lstatSync(p, { bigint: true });
+  } catch {
+    return;
+  }
+  if (s.isDirectory()) {
+    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel ? `${rel}/${name}` : name, into2, label2);
+  } else if (rel) {
+    into2[label2 + rel] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
+  }
+}
+function changes(before, after) {
+  const keys3 = (a, b) => [.../* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])].sort();
+  const refs = keys3(before.refs, after.refs).filter((ref) => before.refs[ref] !== after.refs[ref]).map((ref) => ({ ref, from: before.refs[ref] ?? null, to: after.refs[ref] ?? null }));
+  const paths = keys3(before.files, after.files);
+  const added = paths.filter((p) => !(p in before.files));
+  const removed = paths.filter((p) => !(p in after.files));
+  const modified = paths.filter((p) => p in before.files && p in after.files && before.files[p] !== after.files[p]);
+  const head3 = before.head === after.head ? void 0 : { from: before.head, to: after.head };
+  return head3 || refs.length || added.length || removed.length || modified.length ? { ...head3 ? { head: head3 } : {}, refs, added, removed, modified } : void 0;
+}
+var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
+  const before = yield* capture(dir);
+  const result3 = yield* effect2;
+  const changed = changes(before, yield* capture(dir));
+  if (changed) {
+    return yield* fail8(
+      "workspace_written",
+      `A read-only call changed ${dir}.`,
+      { dir, changes: changed },
+      [{ run: `git -C ${dir} status --ignored`, why: "see the changes in context.changes; a read-only job gets no write access, so its result is not accepted" }]
+    );
+  }
+  return result3;
+}).pipe(Effect_exports.withSpan("mw.readOnly", { attributes: { dir } }));
+var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref, recorded) {
+  const now2 = (yield* git(repo, "rev-parse", "--verify", `${ref}^{commit}`)).trim();
+  if (now2 === recorded) return;
+  const landed = yield* Effect_exports.orElseSucceed(git(repo, "log", "--format=%H %s", `${recorded}..${now2}`), () => "");
+  return yield* fail8("branch_moved", `${ref} moved from ${recorded.slice(0, 12)} to ${now2.slice(0, 12)}.`, { repo, ref, recorded, now: now2, landed: landed.trim().split("\n").filter(Boolean) }, [
+    { run: `git -C ${repo} log --stat ${recorded}..${now2}`, why: "see what landed on the branch and who made it" },
+    { run: `git -C ${repo} reset --keep ${recorded}`, why: "only if those commits are unverified agent work and were never pushed" }
+  ]);
+});
+var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declared) {
+  const changed = [.../* @__PURE__ */ new Set([...lines(yield* git(dir, "diff", "--name-only", "--no-renames", "-z", base)), ...lines(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))])].sort();
+  const covers2 = (d, f) => d.endsWith("/") || d.endsWith("/**") ? f.startsWith(d.replace(/\*\*$/, "")) : f === d;
+  const outside = changed.filter((f) => !declared.some((d) => covers2(d, f)));
+  if (outside.length) {
+    return yield* fail8("out_of_scope", `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: "see the whole change against its base" }]);
+  }
+  return changed;
+});
+var leftovers = Effect_exports.fn("mw.leftovers")(function* (dir, before) {
+  const created = lines(yield* git(dir, "ls-files", "--others", "-z")).filter((f) => !(f in before.files)).sort();
+  if (created.length) {
+    return yield* fail8("leftovers", `${created.length} file(s) were left in ${dir}.`, { dir, files: created }, [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(" ")}`, why: "remove exactly the files the job left behind" }]);
+  }
+});
+var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
+  const unique = resources.filter((r, i) => resources.findIndex((o) => o.kind === r.kind && o.id === r.id) === i);
+  const records = [];
+  for (const r of unique.toReversed()) {
+    const { code, stdout, stderr } = yield* exec("sh", ["-c", r.teardown], cwd, TEARDOWN_TIMEOUT_MS);
+    records.push({ kind: r.kind, id: r.id, teardown: r.teardown, exitCode: code, output: (stdout + stderr).slice(-4e3) });
+  }
+  const failed = records.filter((r) => r.exitCode !== 0);
+  if (failed.length) {
+    return yield* fail8(
+      "teardown_failed",
+      `${failed.length} of ${records.length} provisioned resource(s) were not torn down.`,
+      { cwd, failed, records },
+      failed.map((r) => ({ run: `cd ${cwd} && ${r.teardown}`, why: `tear down ${r.kind} ${r.id} once context.failed shows why it failed` }))
+    );
+  }
+  return records;
+});
+
+// src/change.ts
+var lines2 = (out) => out.split("\0").filter(Boolean);
+var tail = (s) => s.slice(-4e3);
+var itemHome = (storePath2, id2) => join4(dirname2(storePath2), "items", String(id2));
+var patchPath = (home, name) => join4(home, `${name}.patch`);
+var writePatch = (path, patch) => {
+  mkdirSync(dirname2(path), { recursive: true });
+  writeFileSync3(path, patch);
+};
+var readPatch = (path) => {
+  try {
+    return readFileSync3(path, "utf8");
+  } catch {
+    return "";
+  }
+};
+var removeHome = (home) => rmSync4(home, { recursive: true, force: true });
+var branchOf = Effect_exports.fn("mw.branchOf")(function* (repo) {
+  const ref = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim();
+  if (!ref) {
+    return yield* new MadeWellError({ code: "no_branch", message: `${repo} has no branch checked out.`, context: { repo }, next: [{ run: `git -C ${repo} switch main`, why: "check out the branch items ship to, then retry" }] });
+  }
+  return { ref, commit: yield* revParse(repo, ref) };
+});
+var revParse = (repo, ref) => Effect_exports.map(git(repo, "rev-parse", "--verify", `${ref}^{commit}`), (s) => s.trim());
+var takeChange = Effect_exports.fn("mw.takeChange")(function* (dir, base) {
+  yield* git(dir, "add", "-A");
+  const files = lines2(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "-z", base));
+  const patch = files.length ? yield* git(dir, "diff", "--cached", "--binary", "--no-renames", base) : "";
+  return { files, patch };
+});
+var applyPatch = (dir, path) => readPatch(path) ? Effect_exports.asVoid(git(dir, "apply", "--index", "--binary", path)) : Effect_exports.void;
+var commit = Effect_exports.fn("mw.commit")(function* (dir, message) {
+  yield* git(dir, "commit", "--quiet", "--no-verify", "--allow-empty", "-m", message);
+  return yield* revParse(dir, "HEAD");
+});
+var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref, from, to) {
+  const checkedOut = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim() === ref;
+  if (checkedOut) yield* git(repo, "merge", "--ff-only", "--quiet", to);
+  else yield* git(repo, "update-ref", ref, to, from);
+});
+var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budget, env) {
+  const results2 = [];
+  for (const check2 of checks) {
+    const started = Date.now();
+    const r = yield* runGroup({ command: "sh", args: ["-c", check2.run], cwd: dir, env, input: "", budget });
+    const over = r.overBudget ? `
+[made well] stopped after ${(r.overBudget.ms / 6e4).toFixed(1)} of ${budget.minutes} minutes` : "";
+    results2.push({ ...check2, exitCode: r.overBudget ? 124 : r.code ?? 1, ms: Date.now() - started, output: tail(r.stdout + r.stderr + over) });
+  }
+  return results2;
+});
 
 // src/project.ts
-import { execFile } from "node:child_process";
-import { existsSync, mkdirSync as mkdirSync4, readFileSync as readFileSync2, writeFileSync as writeFileSync4 } from "node:fs";
-import { dirname as dirname3, join as join4, sep } from "node:path";
+import { execFile as execFile2 } from "node:child_process";
+import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync4, writeFileSync as writeFileSync6 } from "node:fs";
+import { dirname as dirname5, join as join7, sep } from "node:path";
 
 // src/store.ts
-import { mkdirSync as mkdirSync3, renameSync, writeFileSync as writeFileSync3 } from "node:fs";
-import { homedir } from "node:os";
-import { dirname as dirname2, join as join3 } from "node:path";
+import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
+import { homedir as homedir2 } from "node:os";
+import { dirname as dirname4, join as join6 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 // src/replay.ts
-import { mkdirSync, writeFileSync as writeFileSync2 } from "node:fs";
-import { join as join2 } from "node:path";
-var snapshot2 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
+import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync4 } from "node:fs";
+import { join as join5 } from "node:path";
+var snapshot3 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
 var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const item = store.get(id2);
   if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
   const calls = store.calls(id2);
   yield* Effect_exports.try({
     try: () => {
-      mkdirSync(dir, { recursive: true });
-      writeFileSync2(join2(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      mkdirSync2(dir, { recursive: true });
+      writeFileSync4(join5(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
       calls.forEach((c, i) => {
-        const folder = join2(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
-        mkdirSync(folder, { recursive: true });
+        const folder = join5(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        mkdirSync2(folder, { recursive: true });
         const { system, prompt, output, raw, tools, flags, ...meta } = c;
         const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
-        for (const [name, text2] of files) writeFileSync2(join2(folder, name), text2);
+        for (const [name, text2] of files) writeFileSync4(join5(folder, name), text2);
       });
     },
     catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
@@ -21404,17 +22432,19 @@ build(); pos = Math.max(0, steps.length - 1); render();
 
 // src/telemetry.ts
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync as mkdirSync2 } from "node:fs";
-import { dirname, matchesGlob } from "node:path";
+import { appendFileSync, mkdirSync as mkdirSync3 } from "node:fs";
+import { dirname as dirname3, matchesGlob } from "node:path";
 
 // src/lane.ts
+var MAKERS = ["implement", "test-plan"];
+var isMaker = (job) => job === "implement" || job === "test-plan";
 var DELIVERY = [
-  { job: "ideate", stage: "ideation", profile: "ideator", duty: "Shape the outcome and bounded options; recommend the smallest useful approach. Do not implement." },
-  { job: "challenge", stage: "ideation", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Do not implement." },
-  { job: "plan", stage: "planning", profile: "planner", duty: "Inspect the workspace and write the contract: Making / Not making / Done when / Waits on, with exact paths and instructions. Resolve every design choice. Do not implement." },
-  { job: "test-plan", stage: "planning", profile: "test architect", duty: "From the plan alone, write the checks for this work item and the exact commands that run them. Do not write product code." },
-  { job: "implement", stage: "implementation", profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan or the checks." },
-  { job: "verify", stage: "verification", profile: "verifier", duty: "Run only this item's checks and report what you observed. Never repair, retry or broaden." }
+  { job: "ideate", stage: "ideation", profile: "ideator", duty: "Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement." },
+  { job: "challenge", stage: "ideation", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement." },
+  { job: "plan", stage: "planning", profile: "planner", duty: "Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement." },
+  { job: "test-plan", stage: "planning", profile: "test architect", duty: "From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code." },
+  { job: "implement", stage: "implementation", profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan, and never write or run checks of your own work." },
+  { job: "verify", stage: "verification", profile: "made well", duty: "Made Well runs the item's own check commands against the implementer's change; exit 0 ships." }
 ];
 var DISCOVER = {
   job: "discover",
@@ -21426,39 +22456,121 @@ var ARBITER = {
   job: "arbitrate",
   stage: "verification",
   profile: "arbiter",
-  duty: "A check failed or a step could not be done as written. Decide whose it is: a pre-existing bug, a bad implementation, or a bad test."
+  duty: "A check failed or a step could not be done as written. Decide from the evidence whose it is: a pre-existing defect, a bad implementation, or a bad test."
 };
 var stepOf = (job) => job === "arbitrate" ? ARBITER : job === "discover" ? DISCOVER : DELIVERY.find((s) => s.job === job);
-var ENDS_WITH = {
-  discover: '{"items": [{"title": string, "kind": "feature"|"fix"|"chore", "objective": string, "text": string}]}',
-  "test-plan": '{"blocked": string} only if something stops you from doing the step as written',
-  implement: '{"blocked": string} only if the plan is wrong or a step cannot be done as written',
-  verify: '{"outcome": "pass"|"fail", "summary": string}',
-  arbitrate: '{"cause": "pre-existing"|"implementation"|"test"|"undetermined", "answer": string, "evidence": string}'
+var RECEIVES = {
+  discover: [],
+  ideate: ["discover"],
+  challenge: ["discover", "ideate"],
+  plan: ["discover", "ideate", "challenge"],
+  "test-plan": ["plan"],
+  implement: ["plan"],
+  verify: [],
+  arbitrate: ["plan", "test-plan", "implement"]
 };
-var MAX_CORRECTIONS = 3;
-function route(job, output, corrections) {
-  const report = lastJson(output);
+var Text = Schema_exports.String;
+var Decision = Schema_exports.Struct({
+  question: Text,
+  decision: Text,
+  why: Text.annotate({ description: "how the three governing questions settle it" })
+});
+var Decisions = Schema_exports.Array(Decision).annotate({ description: "every decision this job settled, and why" });
+var Resource = Schema_exports.Struct({
+  kind: Text.annotate({ description: "for example database-branch, dev-clone, server" }),
+  id: Text,
+  teardown: Text.annotate({ description: "shell command that removes it" })
+});
+var Provisioned = Schema_exports.optionalKey(Schema_exports.Array(Resource).annotate({ description: "anything you started or created that is still standing; Made Well tears each down" }));
+var DoneWhen = Schema_exports.Struct({ id: Text.annotate({ description: "short and unique, for example D1" }), text: Text });
+var Check = Schema_exports.Struct({
+  id: Text.annotate({ description: "short and unique, for example C1" }),
+  doneWhen: Text.annotate({ description: "the id of the plan's done-when item this check proves" }),
+  run: Text.annotate({ description: "shell command run from the repo root; exit 0 means the item is done" })
+});
+var Blocked = Schema_exports.Struct({ blocked: Schema_exports.NonEmptyString.annotate({ description: "what stops you doing the step as written; only when something does" }) });
+var Candidate = Schema_exports.Struct({ title: Text, kind: Schema_exports.Literals(["feature", "fix", "chore"]), objective: Text, text: Text });
+var PLAN = Schema_exports.Struct({
+  making: Text,
+  notMaking: Schema_exports.Array(Text),
+  scope: Schema_exports.Array(Text).annotate({ description: 'every file the change may touch, repo-relative; a directory ends in "/". A change outside it is refused.' }),
+  steps: Schema_exports.Array(Text).annotate({ description: "exact instructions with paths; nothing left to decide" }),
+  doneWhen: Schema_exports.Array(DoneWhen),
+  decisions: Decisions,
+  waitsOn: Schema_exports.Array(Text)
+});
+var DELIVERABLES = {
+  discover: Schema_exports.Struct({ items: Schema_exports.Array(Candidate) }),
+  ideate: Schema_exports.Struct({ outcome: Text, approach: Text, decisions: Decisions }),
+  challenge: Schema_exports.Struct({ findings: Schema_exports.Array(Schema_exports.Struct({ finding: Text, resolution: Text })), decisions: Decisions }),
+  plan: PLAN,
+  "test-plan": Schema_exports.Union([Schema_exports.Struct({ checks: Schema_exports.Array(Check), provisioned: Provisioned }), Blocked]),
+  implement: Schema_exports.Union([Schema_exports.Struct({ summary: Text, provisioned: Provisioned }), Blocked]),
+  arbitrate: Schema_exports.Struct({ cause: Schema_exports.Literals(["pre-existing", "implementation", "test", "undetermined"]), answer: Text, evidence: Text, provisioned: Provisioned })
+};
+var INTAKE = Schema_exports.Struct({
+  understanding: Text,
+  unclear: Schema_exports.Array(Text).annotate({ description: "What is unclear?" }),
+  ambiguous: Schema_exports.Array(Text).annotate({ description: "What is ambiguous?" }),
+  missing: Schema_exports.Array(Text).annotate({ description: "Do I have everything I need to proceed? What is missing." }),
+  notes: Schema_exports.Array(Text).annotate({ description: "points the packet already settles; never an assumption or a choice" })
+});
+var ORIGINATOR = Schema_exports.Struct({ answer: Schema_exports.NonEmptyString, needsOperator: Schema_exports.Boolean });
+var shapeOf = (schema) => JSON.parse(JSON.stringify(Schema_exports.toJsonSchemaDocument(schema).schema, (k, v) => k === "additionalProperties" ? void 0 : v));
+var requiredOf = (schema) => {
+  const s = shapeOf(schema);
+  return s.required ?? [];
+};
+function decode5(schema, output) {
+  const json = lastJson(output);
+  if (!json) return { ok: false, reason: "The answer did not end with a JSON object." };
+  const r = Schema_exports.decodeUnknownResult(schema)(json, { errors: "all" });
+  return Result_exports.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` };
+}
+var dupes = (ids) => ids.filter((id2, i) => ids.indexOf(id2) !== i);
+function validate3(job, output, plan) {
   if (job === "discover") {
-    if (!Array.isArray(report?.items)) return { to: "malformed", expected: ENDS_WITH.discover };
+    const report = lastJson(output);
+    if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
     const text2 = (v) => typeof v === "string" ? v.trim() : "";
-    const items = report.items.filter((i2) => text2(i2?.title) && text2(i2?.objective)).map((i2) => ({ title: text2(i2.title), objective: text2(i2.objective), text: text2(i2.text), kind: i2.kind === "fix" || i2.kind === "chore" ? i2.kind : "feature" }));
-    return { to: "discovered", items };
+    const items = report.items.filter((i) => text2(i?.title) && text2(i?.objective)).map((i) => ({ title: text2(i.title), objective: text2(i.objective), text: text2(i.text), kind: i.kind === "fix" || i.kind === "chore" ? i.kind : "feature" }));
+    return { ok: true, value: { items } };
   }
-  if ((job === "implement" || job === "test-plan") && typeof report?.blocked === "string" && report.blocked.trim()) {
-    return { to: "arbitrate", failure: `The ${stepOf(job).profile} (${job}) could not do the step as written: ${report.blocked}` };
+  if (job === "verify") return { ok: false, reason: "verify is Made Well's own code, not an agent job." };
+  const decoded = decode5(DELIVERABLES[job], output);
+  if (!decoded.ok) return decoded;
+  const value3 = decoded.value;
+  if (job === "plan") {
+    const p = value3;
+    if (!p.scope.length) return { ok: false, reason: "The plan declares no scope: name every file the change may touch." };
+    const outside = p.scope.filter((f) => f.startsWith("/") || f.split("/").includes(".."));
+    if (outside.length) return { ok: false, reason: `Scope entries must be repo-relative paths inside the repo: ${outside.join(", ")}.` };
+    if (!p.doneWhen.length) return { ok: false, reason: "The plan has no done-when items." };
+    if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(", ")}.` };
   }
-  if (job === "verify") {
-    if (report?.outcome === "pass") return { to: "ship" };
-    if (report?.outcome === "fail") return { to: "arbitrate", failure: output };
-    return { to: "malformed", expected: ENDS_WITH.verify };
-  }
-  if (job === "arbitrate") {
-    const cause = report?.cause;
-    const answer2 = typeof report?.answer === "string" ? report.answer : "";
-    if (cause !== "pre-existing" && cause !== "implementation" && cause !== "test" && cause !== "undetermined") {
-      return { to: "malformed", expected: ENDS_WITH.arbitrate };
+  if (job === "test-plan" && "checks" in value3 && plan) {
+    const checks = value3.checks;
+    const ids = plan.doneWhen.map((d) => d.id);
+    const unknown2 = checks.filter((c) => !ids.includes(c.doneWhen)).map((c) => `${c.id} \u2192 ${c.doneWhen}`);
+    const uncovered = ids.filter((id2) => !checks.some((c) => c.doneWhen === id2));
+    const repeated = dupes(checks.map((c) => c.id));
+    if (unknown2.length || uncovered.length || repeated.length) {
+      return { ok: false, reason: [unknown2.length && `Checks name done-when ids the plan does not have: ${unknown2.join(", ")}.`, uncovered.length && `Done-when items without a check: ${uncovered.join(", ")}.`, repeated.length && `Check ids repeat: ${repeated.join(", ")}.`].filter(Boolean).join(" ") };
     }
+  }
+  return { ok: true, value: value3 };
+}
+var MAX_CORRECTIONS = 3;
+var blockedOf = (job, value3) => typeof value3.blocked === "string" ? `The ${stepOf(job).profile} (${job}) could not do the step as written: ${value3.blocked}` : void 0;
+function route(job, value3, corrections) {
+  if (job === "discover") return { to: "discovered", items: value3.items };
+  const blocked = blockedOf(job, value3);
+  if (blocked) return { to: "arbitrate", failure: blocked };
+  if (job === "plan") return { to: "split" };
+  if (job === "test-plan" || job === "implement") return { to: "next", job: "verify" };
+  if (job === "arbitrate") {
+    const cause = value3.cause;
+    const answer2 = value3.answer;
     if (cause === "undetermined") return { to: "hold", code: "arbiter_undetermined", message: `The arbiter could not decide whose failure this is: ${answer2}` };
     if (corrections >= MAX_CORRECTIONS) return { to: "hold", code: "too_many_corrections", message: `${corrections} corrections have not made the checks pass. Last ruling: ${cause}: ${answer2}` };
     if (cause === "pre-existing") return { to: "prerequisite", answer: answer2 };
@@ -21481,7 +22593,7 @@ function lastJson(text2) {
 
 // src/telemetry.ts
 var WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "create_file", "undo_edit", "file_change", "edit", "write"];
-var lines = (raw) => raw.split("\n").flatMap((l) => {
+var lines3 = (raw) => raw.split("\n").flatMap((l) => {
   try {
     const e = JSON.parse(l);
     return e && typeof e === "object" ? [e] : [];
@@ -21517,7 +22629,7 @@ function toolEvents(harness, raw) {
   };
   const seen = /* @__PURE__ */ new Set();
   const stepTokens = /* @__PURE__ */ new Map();
-  for (const e of lines(raw ?? "")) {
+  for (const e of lines3(raw ?? "")) {
     const t = timeOf(e);
     if (harness === "claude" || harness === "amp") {
       const blocks = Array.isArray(e.message?.content) ? e.message.content : [];
@@ -21551,7 +22663,7 @@ function toolEvents(harness, raw) {
   return [...open.values()].map(({ t: _, ...event }) => event);
 }
 function tokensOf(harness, raw) {
-  const evs = lines(raw ?? "");
+  const evs = lines3(raw ?? "");
   const sum3 = (usages, pick3) => usages.length ? usages.map(pick3).reduce((a, b) => ({ input: a.input + b.input, output: a.output + b.output, cacheRead: a.cacheRead + b.cacheRead, cacheWrite: a.cacheWrite + b.cacheWrite })) : null;
   if (harness === "claude" || harness === "amp") {
     const anthropic = (u) => ({ input: num(u.input_tokens), output: num(u.output_tokens), cacheRead: num(u.cache_read_input_tokens), cacheWrite: num(u.cache_creation_input_tokens) });
@@ -21612,13 +22724,13 @@ function flagsFor(facts, observed) {
 var nanosToMs = (n) => Number(n / 1000000n);
 var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
   if (process.env.MW_DEBUG !== "1") return Layer_exports.empty;
-  mkdirSync2(dirname(file), { recursive: true });
+  mkdirSync3(dirname3(file), { recursive: true });
   return Layer_exports.succeed(Tracer_exports.Tracer, Tracer_exports.make({
     span(options) {
       const span2 = new Tracer_exports.NativeSpan(options);
-      const end = span2.end.bind(span2);
+      const end2 = span2.end.bind(span2);
       span2.end = (endTime, exit4) => {
-        end(endTime, exit4);
+        end2(endTime, exit4);
         const parent = options.parent._tag === "Some" ? options.parent.value.spanId : null;
         const outcome = exit4._tag === "Success" ? "ok" : "error";
         appendFileSync(file, JSON.stringify({ name: span2.name, trace: span2.traceId, span: span2.spanId, parent, start: new Date(nanosToMs(span2.startTime)).toISOString(), ms: nanosToMs(endTime - span2.startTime), outcome, attributes: Object.fromEntries(span2.attributes) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
@@ -21629,7 +22741,7 @@ var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
 }));
 
 // src/store.ts
-var defaultStorePath = () => process.env.MW_STORE ?? join3(process.env.MW_HOME ?? join3(homedir(), ".local", "share", "madewell"), "madewell.db");
+var defaultStorePath = () => process.env.MW_STORE ?? join6(process.env.MW_HOME ?? join6(homedir2(), ".local", "share", "madewell"), "madewell.db");
 var alive = (pid) => {
   try {
     process.kill(pid, 0);
@@ -21639,7 +22751,7 @@ var alive = (pid) => {
   }
 };
 function openStore(path) {
-  mkdirSync3(dirname2(path), { recursive: true });
+  mkdirSync4(dirname4(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
@@ -21659,7 +22771,7 @@ function openStore(path) {
       throw e;
     }
   };
-  const glass = join3(dirname2(path), "glass.html");
+  const glass = join6(dirname4(path), "glass.html");
   const insertTools = (call, tools) => {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
@@ -21678,7 +22790,7 @@ function openStore(path) {
   const event = (item, kind, data) => db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, (/* @__PURE__ */ new Date()).toISOString(), kind, JSON.stringify(data));
   const view2 = () => {
     try {
-      writeFileSync3(`${glass}.tmp`, replayHtml(snapshot2(store)));
+      writeFileSync5(`${glass}.tmp`, replayHtml(snapshot3(store)));
       renameSync(`${glass}.tmp`, glass);
     } catch {
     }
@@ -21802,20 +22914,20 @@ var Store = class extends Context_exports.Service()("madewell/Store") {
 };
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
-  debugLayer(join3(dirname2(path), "debug.jsonl"))
+  debugLayer(join6(dirname4(path), "debug.jsonl"))
 );
 
 // src/project.ts
 var Project = Schema_exports.Struct({
   path: Schema_exports.String.annotate({ description: "the project's absolute workspace path" }),
-  ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace after every check passes: merge to main and deploy" })),
+  ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
-var projectsPath = (storePath2) => join4(dirname3(storePath2), "projects.json");
+var projectsPath = (storePath2) => join7(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
-  if (!existsSync(path)) return [];
-  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync2(path, "utf8")).pipe(
+  if (!existsSync2(path)) return [];
+  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync4(path, "utf8")).pipe(
     Effect_exports.mapError((e) => new MadeWellError({
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
@@ -21829,8 +22941,8 @@ var projectFor = (projects, workspace) => projects.filter((p) => workspace === p
 var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project) {
   const projects = yield* readProjects(path);
   const merged = { ...projects.find((p) => p.path === project.path), ...project };
-  mkdirSync4(dirname3(path), { recursive: true });
-  writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
+  mkdirSync5(dirname5(path), { recursive: true });
+  writeFileSync6(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
   return merged;
 });
 var openHolds = (store) => store.list().filter((i) => i.status === "held" && i.hold !== void 0).map((item) => {
@@ -21856,7 +22968,7 @@ var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
     if (!command2) continue;
     const exitCode = yield* Effect_exports.promise(() => new Promise((done3) => {
       const env = { ...process.env, MW_ITEM: String(hold2.item), MW_TITLE: hold2.title, MW_HOLD: hold2.code, MW_MESSAGE: hold2.message };
-      const child = execFile("sh", ["-c", command2], { cwd: dirname3(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
+      const child = execFile2("sh", ["-c", command2], { cwd: dirname5(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
       child.stdin?.end(JSON.stringify(hold2));
     }));
     store.save(store.get(hold2.item), "alerted", { code: hold2.code, command: command2, exitCode });
@@ -21870,16 +22982,32 @@ var UNKNOWN_RESET_MS = 60 * 6e4;
 var MIN_OUT_MS = 5 * 6e4;
 var NQ_HOLDS = ["nq_turns", "question_for_operator", "authority"];
 var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections"];
+var DONE = ["held", "shipped", "discovered", "candidate"];
+var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
+var INTAKE_TIER = "intake";
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
 var profileOf = (o) => o.kind === "job" ? stepOf(o.job).profile : o.kind;
-function handoffOf(item) {
-  if (item.job === "arbitrate") return item.failure ?? "";
-  if (item.from.kind === "dispatcher") return `Objective: ${item.objective}
-
-The operator's source:
-${item.source}`;
+var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
+var withTrack = (item, job, t) => isMaker(job) && item.split?.[job] ? { ...item, split: { ...item.split, [job]: t } } : { ...item, from: t.from, exchange: t.exchange, launches: t.launches, pickingUp: t.pickingUp, rejected: t.rejected };
+var saveTrack = (store, id2, job, patch, kind, data, fields = {}) => {
+  const now2 = store.get(id2);
+  return store.save(withTrack({ ...now2, ...fields }, job, { ...trackOf(now2, job), ...patch }), kind, data);
+};
+var hold = (store, item, code, message, context3, next) => void store.save({ ...item, status: "held", hold: { code, message, context: context3, ...next?.length ? { next } : {} } }, "held", { code, message });
+var holdFor = (store, id2, e, job) => hold(store, store.get(id2), e.code, e.message, { ...job ? { job } : {}, ...e.context }, e.next);
+var deliverableOf = (item, job) => {
+  const out = item.outputs[job];
+  return out === void 0 ? void 0 : lastJson(out) ?? out;
+};
+var planOf = (item) => {
+  const v = item.outputs.plan === void 0 ? void 0 : validate3("plan", item.outputs.plan);
+  return v?.ok ? v.value : void 0;
+};
+function handoffOf(item, job, t) {
+  if (job === "arbitrate") return item.failure ?? "";
+  if (t.from.kind === "dispatcher") return "The operator's objective and source, under item.";
   if (item.rework) return `Ruling (${item.rework.cause}): ${item.rework.answer}`;
-  return item.from.kind === "job" ? item.outputs[item.from.job] ?? "" : "";
+  return t.from.kind === "job" ? item.outputs[t.from.job] ?? "" : "";
 }
 var drive = Effect_exports.fn("mw.drive")(function* (id2, config) {
   const store = yield* Store;
@@ -21887,105 +23015,292 @@ var drive = Effect_exports.fn("mw.drive")(function* (id2, config) {
   for (; ; ) {
     const item = store.get(id2);
     if (!item) return yield* notFound2(id2);
-    if (["held", "shipped", "discovered", "candidate"].includes(item.status)) return item;
+    if (DONE.includes(item.status)) return item;
     if (item.waitsOn !== void 0) {
       const pre = yield* drive(item.waitsOn, config);
       if (pre.status !== "shipped") return store.get(id2);
-      store.save({ ...item, waitsOn: void 0, status: "running", job: "verify", exchange: void 0, launches: 0 }, "prerequisite-shipped", { prerequisite: pre.id });
+      store.save({ ...item, waitsOn: void 0, status: "running", job: "verify", exchange: void 0, launches: 0, verification: void 0 }, "prerequisite-shipped", { prerequisite: pre.id });
       continue;
     }
     store.runnerOn(id2);
-    const x = item.exchange;
-    if (!x) {
-      store.save({ ...item, exchange: { from: item.from, handoff: handoffOf(item), status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(item.from), to: stepOf(item.job).profile, job: item.job });
-    } else if (x.status === "awaiting-receiver") {
-      yield* intake(item, x, config);
-    } else if (x.status === "awaiting-originator") {
-      yield* originate(item, x, config);
-    } else {
-      yield* execute(item, x, config);
-    }
+    yield* advance(item, config).pipe(Effect_exports.catchTag("MadeWellError", (e) => Effect_exports.sync(() => holdFor(store, id2, e))));
   }
 });
-var intake = Effect_exports.fn("mw.intake")(function* (item, x, config) {
+var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
   const store = yield* Store;
-  const step = stepOf(item.job);
-  const call = yield* callAgent(item.id, config, item.job, {
-    kind: "intake",
-    job: item.job,
-    profile: step.profile,
-    access: "read",
-    system: INTAKE_SYSTEM(item.job),
-    prompt: intakePacket(item, x)
-  });
-  const current = store.get(item.id);
-  if (call.retry) return;
-  const reply = lastJson(call.output);
-  const questions = Array.isArray(reply?.questions) ? reply.questions.filter((q) => typeof q === "string" && q.trim() !== "") : void 0;
-  if (typeof reply?.understanding !== "string" || !questions) {
-    return yield* launchFailed(current, call.card, 'The intake did not end with {"understanding": string, "questions": string[], "notes": string[]}.');
-  }
-  const notes = Array.isArray(reply.notes) ? reply.notes.filter((n) => typeof n === "string") : [];
-  if (!questions.length) {
-    store.save({ ...current, launches: 0, exchange: { ...x, status: "clear", understanding: reply.understanding, notes, card: call.card } }, "nq-clear", { job: item.job, profile: step.profile, card: call.card });
+  if (!item.base) {
+    const base = yield* branchOf(item.workspace);
+    store.save({ ...item, base }, "base", { ref: base.ref, main: base.commit });
     return;
   }
-  const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding: reply.understanding, questions }] };
-  const answered = x.turns.filter((t) => t.answer !== void 0).length;
-  const context3 = { job: item.job, receiver: step.profile, originator: profileOf(x.from), questions, turns: x.turns };
-  if (answered >= MAX_TURNS) {
-    return hold(store, { ...current, exchange: asked }, "nq_turns", `The ${step.profile} still has questions after ${answered} answered turns: the hand-off or its scope is wrong.`, context3);
-  }
-  if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
-    return hold(store, { ...current, exchange: asked }, "question_for_operator", `The ${step.profile} has questions about your answer before it can ${item.job}.`, context3);
-  }
-  store.save({ ...current, launches: 0, exchange: asked }, "nq-question", { job: item.job, receiver: step.profile, originator: profileOf(x.from), questions });
+  if (pending(item).length) return yield* aftercare(item.id);
+  if (item.job === "verify") return yield* verifyAndShip(item.id, config);
+  if (item.split) return yield* runSplit(item.id, config);
+  return yield* step(item.id, item.job, config);
 });
-var originate = Effect_exports.fn("mw.originate")(function* (item, x, config) {
+var step = Effect_exports.fn("mw.step")(function* (id2, job, config) {
   const store = yield* Store;
+  const item = store.get(id2);
+  const t = trackOf(item, job);
+  const x = t.exchange;
+  if (!x) {
+    saveTrack(store, id2, job, { exchange: { from: t.from, handoff: handoffOf(item, job, t), status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(t.from), to: stepOf(job).profile, job });
+  } else if (x.status === "awaiting-receiver") {
+    yield* intake(id2, job, config);
+  } else if (x.status === "awaiting-originator") {
+    yield* originate(id2, job, config);
+  } else {
+    yield* execute(id2, job, config);
+  }
+});
+var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
+  const store = yield* Store;
+  const track2 = (job) => Effect_exports.gen(function* () {
+    for (; ; ) {
+      const item2 = store.get(id2);
+      if (item2.status === "held" || item2.split?.[job]?.done) return;
+      yield* step(id2, job, config).pipe(Effect_exports.catchTag("MadeWellError", (e) => Effect_exports.sync(() => holdFor(store, id2, e, job))));
+    }
+  });
+  yield* Effect_exports.all(MAKERS.map(track2), { concurrency: "unbounded" });
+  const item = store.get(id2);
+  if (item.status === "held" || !MAKERS.every((m) => item.split?.[m]?.done)) return;
+  const blocked = MAKERS.flatMap((m) => {
+    const failure = blockedOf(m, deliverableOf(item, m) ?? {});
+    return failure ? [{ job: m, failure }] : [];
+  });
+  const joined = { ...item, split: void 0, exchange: void 0, launches: 0, pickingUp: void 0, rejected: void 0 };
+  if (blocked.length) {
+    store.save({ ...joined, job: "arbitrate", from: { kind: "job", job: blocked[0].job }, failure: blocked.map((b) => b.failure).join("\n\n") }, "failure", { from: blocked.map((b) => b.job) });
+    return;
+  }
+  store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: MAKERS, to: "verify" });
+});
+var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
+  const store = yield* Store;
+  const p = config.prescriptions;
+  const card = yield* pickOrWait(id2, preferred(store, store.get(id2), job, p, yield* Clock_exports.currentTimeMillis));
+  if (!card) return;
+  const cheap = pickCard(p.tiers[INTAKE_TIER] ?? [], store.exhausted(), yield* Clock_exports.currentTimeMillis).card ?? card;
+  const item = store.get(id2);
+  const x = trackOf(item, job).exchange;
+  const call = yield* callAgent(id2, job, config, {
+    kind: "intake",
+    profile: stepOf(job).profile,
+    access: INTAKE_ACCESS,
+    card: cheap,
+    required: requiredOf(INTAKE),
+    packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake"))
+  });
+  if (!call) return;
+  const reply = decode5(INTAKE, call.output);
+  if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
+  const { understanding, unclear, ambiguous, missing: missing2, notes } = reply.value;
+  const questions = [...unclear, ...ambiguous, ...missing2].filter((q) => q.trim() !== "");
+  const receiver = stepOf(job).profile;
+  if (!questions.length) {
+    saveTrack(store, id2, job, { launches: 0, rejected: void 0, exchange: { ...x, status: "clear", understanding, notes: [...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap });
+    return;
+  }
+  const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }] };
+  const answered = x.turns.filter((t) => t.answer !== void 0).length;
+  const context3 = { job, receiver, originator: profileOf(x.from), questions, turns: x.turns };
+  const now2 = withTrack(store.get(id2), job, { ...trackOf(store.get(id2), job), exchange: asked });
+  if (answered >= MAX_TURNS) return hold(store, now2, "nq_turns", `The ${receiver} still has questions after ${answered} answered turns: the hand-off or its scope is wrong.`, context3);
+  if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
+    return hold(store, now2, "question_for_operator", `The ${receiver} has questions about your answer before it can ${job}.`, context3);
+  }
+  saveTrack(store, id2, job, { launches: 0, rejected: void 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions });
+});
+var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
+  const store = yield* Store;
+  const item0 = store.get(id2);
+  const x0 = trackOf(item0, job).exchange;
+  const by = x0.from.kind === "job" ? x0.from.job : "ideate";
+  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, by));
+  if (!card) return;
+  const item = store.get(id2);
+  const x = trackOf(item, job).exchange;
   const from = profileOf(x.from);
-  const call = yield* callAgent(item.id, config, x.from.kind === "job" ? x.from.job : "ideate", {
+  const call = yield* callAgent(id2, job, config, {
     kind: "originator",
-    job: item.job,
     profile: from,
     access: "read",
-    system: ORIGINATOR_SYSTEM(x.from),
-    prompt: originatorPacket(item, x)
+    card,
+    required: requiredOf(ORIGINATOR),
+    packet: (dir) => packet(item, by, dir, originatorParts(item, job, x), x.from.kind === "job")
   });
-  const current = store.get(item.id);
-  if (call.retry) return;
-  const reply = lastJson(call.output);
-  if (typeof reply?.answer !== "string" || !reply.answer.trim()) {
-    return yield* launchFailed(current, call.card, 'The originator did not end with {"answer": string, "needsOperator": boolean}.');
+  if (!call) return;
+  const reply = decode5(ORIGINATOR, call.output);
+  if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
+  const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: reply.value.answer, by: "originator" } : t);
+  if (reply.value.needsOperator) {
+    const pendingQ = x.turns.at(-1);
+    return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(job).profile} asked.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer });
   }
-  const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: reply.answer, by: "originator" } : t);
-  if (reply.needsOperator === true) {
-    const pending = x.turns.at(-1);
-    return hold(store, current, "authority", `Only the operator can settle what the ${stepOf(item.job).profile} asked.`, { job: item.job, receiver: stepOf(item.job).profile, originator: from, questions: pending.questions, originatorSays: reply.answer });
-  }
-  store.save({ ...current, launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job: item.job, originator: from });
+  saveTrack(store, id2, job, { launches: 0, rejected: void 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from });
 });
-var execute = Effect_exports.fn("mw.execute")(function* (item, x, config) {
+var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   const store = yield* Store;
-  const step = stepOf(item.job);
+  const item = store.get(id2);
+  const t = trackOf(item, job);
+  const x = t.exchange;
   const now2 = yield* Clock_exports.currentTimeMillis;
   if (!x.card || (store.exhausted()[x.card.account] ?? 0) > now2) {
-    store.save({ ...item, exchange: { ...x, status: "awaiting-receiver", card: void 0 } }, "nq-replacement", { job: item.job, from: x.card ?? null });
+    saveTrack(store, id2, job, { exchange: { ...x, status: "awaiting-receiver", card: void 0 } }, "nq-replacement", { job, from: x.card ?? null });
     return;
   }
-  const call = yield* callAgent(item.id, config, item.job, {
+  const home = itemHome(store.path, id2);
+  const plan = planOf(item);
+  const maker = isMaker(job);
+  yield* callAgent(id2, job, config, {
     kind: "execute",
-    job: item.job,
-    profile: step.profile,
-    access: config.prescriptions.jobs[item.job].access,
-    system: EXECUTE_SYSTEM(item.job),
-    prompt: executePacket(item, x)
-  }, x.card);
-  if (call.retry) return;
-  const current = store.get(item.id);
-  const r = route(item.job, call.output, current.corrections);
-  const accepted = { outputs: { ...current.outputs, [item.job]: call.output }, launches: 0, pickingUp: void 0, exchange: void 0 };
-  const by = { kind: "job", job: item.job };
+    profile: stepOf(job).profile,
+    access: config.prescriptions.jobs[job].access,
+    card: x.card,
+    required: requiredOf(DELIVERABLES[job]),
+    ...job === "implement" && plan ? { scope: plan.scope } : {},
+    // The arbiter works on the candidate Made Well verified: the change committed on main, the checks applied.
+    ...job === "arbitrate" && item.verification ? { at: item.verification.on } : {},
+    prepare: (dir) => maker ? applyPatch(dir, patchPath(home, `${job}.partial`)) : job === "arbitrate" ? candidate(item, dir) : Effect_exports.void,
+    ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
+    packet: (dir) => packet(item, job, dir, executeParts(item, job, t, x))
+  }, (dir, call) => accept(id2, job, config, dir, call));
+});
+var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_exports.gen(function* () {
+  const store = yield* Store;
+  const worker = yield* Worker;
+  const item = store.get(id2);
+  const p = config.prescriptions;
+  const wt = yield* worktree(item.workspace, spec.at ?? item.base.commit, `item-${id2}-${job}-${spec.kind}`);
+  if (spec.prepare) yield* spec.prepare(wt.path);
+  const prompt = yield* spec.packet(wt.path);
+  const budget = budgetFor(p, job);
+  const harness = harnessOf(p, spec.card.harness);
+  const none3 = spec.access === "none";
+  const read = spec.access === "read";
+  const product = none3 ? void 0 : yield* capture(item.workspace);
+  const before = read || none3 ? void 0 : yield* capture(wt.path);
+  const head3 = before?.head ?? (yield* revParse(wt.path, "HEAD"));
+  const started = /* @__PURE__ */ new Date();
+  let result3;
+  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {} }).pipe(
+    Effect_exports.tap((r) => Effect_exports.sync(() => result3 = r)),
+    Effect_exports.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id2, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } })
+  );
+  let changed;
+  if (read) {
+    const r = yield* Effect_exports.result(readOnly(wt.path, run2));
+    if (Result_exports.isFailure(r)) {
+      if (r.failure.code !== "workspace_written" || !result3) return yield* r.failure;
+      changed = r.failure.context.changes;
+    }
+  } else if (none3) {
+    yield* run2;
+  } else {
+    yield* run2;
+    changed = changes(before, yield* capture(wt.path));
+  }
+  const res = result3;
+  const call = {
+    item: id2,
+    kind: spec.kind,
+    job,
+    profile: spec.profile,
+    card: spec.card,
+    system: BRIEF,
+    prompt,
+    outcome: res.ok ? "ok" : "limit" in res ? "limit" : "error",
+    output: res.ok ? res.output : null,
+    error: res.ok ? null : "limit" in res ? res.limit.message : res.error,
+    raw: res.raw ?? null,
+    started: started.toISOString(),
+    ms: Date.now() - started.getTime()
+  };
+  const callId = store.recordCall(call, {
+    access: spec.access,
+    head: { before: head3, after: changed?.head?.to ?? head3 },
+    changed: changed ? [...changed.added, ...changed.removed, ...changed.modified] : [],
+    ...spec.scope ? { scope: spec.scope } : {},
+    budget: { ...budget.tokens !== void 0 ? { tokens: budget.tokens } : {}, ms: budget.minutes * 6e4 },
+    ...harness ? { allowlist: harness.tools[spec.access] } : {},
+    required: spec.required
+  });
+  if (!res.ok) {
+    if (spec.onFail) yield* spec.onFail(wt.path);
+    if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
+    else yield* launchFailed(id2, job, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
+    return void 0;
+  }
+  if (read && changed) {
+    const reason = `The ${spec.kind} call changed its read-only checkout: ${[...changed.added, ...changed.removed, ...changed.modified].join(", ") || "refs or HEAD"}.`;
+    store.rejectCall(callId, reason);
+    yield* launchFailed(id2, job, spec.card, reason, { changes: changed });
+    return void 0;
+  }
+  const left = product ? yield* Effect_exports.result(withLock(item.workspace, leftovers(item.workspace, product))) : void 0;
+  if (left && Result_exports.isFailure(left)) {
+    store.rejectCall(callId, left.failure.message);
+    holdFor(store, id2, left.failure, job);
+    return void 0;
+  }
+  const called = { output: res.output, callId, card: spec.card, ...before ? { before } : {} };
+  return after ? yield* after(wt.path, called) : called;
+}));
+var refuse = Effect_exports.fn("mw.refuse")(function* (id2, job, call, reason) {
+  const store = yield* Store;
+  store.rejectCall(call.callId, reason);
+  yield* launchFailed(id2, job, call.card, reason, {}, { rejected: reason });
+});
+var accept = Effect_exports.fn("mw.accept")(function* (id2, job, config, dir, call) {
+  const store = yield* Store;
+  const item = store.get(id2);
+  const plan = planOf(item);
+  const home = itemHome(store.path, id2);
+  const v = validate3(job, call.output, plan);
+  const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
+  const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
+  if (!v.ok) return yield* refused(v.reason);
+  const value3 = v.value;
+  if (isMaker(job) || job === "arbitrate") {
+    yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep, Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
+  }
+  let artifacts = {};
+  if (isMaker(job) && !blockedOf(job, value3)) {
+    const base = item.base.commit;
+    if (job === "implement") {
+      const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
+      if (Result_exports.isFailure(scoped3)) {
+        if (scoped3.failure.code !== "out_of_scope") return yield* scoped3.failure;
+        const { outside } = scoped3.failure.context;
+        return yield* refused(`You changed files outside the plan's scope: ${outside.join(", ")}. Your checkout still holds them: revert them, or report {"blocked": ...} if the plan cannot be done within its scope.`);
+      }
+    }
+    const { files, patch } = yield* takeChange(dir, base);
+    if (job === "implement" && !files.length) return yield* refused("You reported the plan done, but your checkout has no change.");
+    const product = files.filter((f) => covers(plan.scope, f));
+    if (job === "test-plan" && product.length) return yield* refused(`Checks may not touch the plan's scope, which is product code: ${product.join(", ")}. Write check files at other paths.`);
+    writePatch(patchPath(home, job === "implement" ? "change" : "checks"), patch);
+    artifacts = job === "implement" ? { change: { files } } : { checks: { checks: value3.checks, files } };
+    const stray = yield* Effect_exports.result(leftovers(dir, call.before));
+    if (Result_exports.isFailure(stray)) store.save(store.get(id2), "worktree-leftovers", { job, files: stray.failure.context.files });
+  }
+  if (isMaker(job)) rmSync5(patchPath(home, `${job}.partial`), { force: true });
+  const now2 = store.get(id2);
+  const provisioned = [...now2.provisioned ?? [], ...(value3.provisioned ?? []).map((r) => ({ kind: r.kind, id: r.id, teardown: r.teardown, job }))];
+  const fields = { outputs: { ...now2.outputs, [job]: call.output }, provisioned, ...artifacts };
+  const settled = { launches: 0, pickingUp: void 0, rejected: void 0, exchange: void 0 };
+  if (isMaker(job) && now2.split?.[job]) {
+    saveTrack(store, id2, job, { ...settled, done: true }, "accepted", { job }, fields);
+  } else {
+    applyRoute(store, id2, job, value3, { ...fields, ...settled });
+  }
+  yield* aftercare(id2, job);
+});
+function applyRoute(store, id2, job, value3, fields) {
+  const current = { ...store.get(id2), ...fields };
+  const r = route(job, value3, current.corrections);
+  const by = { kind: "job", job };
   switch (r.to) {
     case "discovered": {
       const ids = r.items.map((c) => store.create({
@@ -21997,95 +23312,219 @@ var execute = Effect_exports.fn("mw.execute")(function* (item, x, config) {
         discovery: current.id,
         source: current.source,
         from: by,
-        outputs: { discover: `${c.kind}: ${c.title}
-Objective: ${c.objective}
-
-${c.text}` }
+        outputs: { discover: JSON.stringify(c) }
       }).id);
-      store.save({ ...current, ...accepted, status: "discovered" }, "discovered", { candidates: ids });
+      store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids });
       return;
     }
-    case "next": {
-      const job = item.job === "test-plan" && current.rework?.cause === "test" ? "verify" : r.job;
-      store.save({ ...current, ...accepted, job, from: by, rework: void 0 }, "handed-off", { from: item.job, to: job });
+    case "next":
+      store.save({ ...current, job: r.job, from: by, rework: void 0 }, "handed-off", { from: job, to: r.job });
       return;
-    }
+    case "split":
+      store.save({
+        ...current,
+        job: "implement",
+        from: by,
+        rework: void 0,
+        change: void 0,
+        checks: void 0,
+        verification: void 0,
+        merged: void 0,
+        split: { implement: { from: by, launches: 0 }, "test-plan": { from: by, launches: 0 } }
+      }, "handed-off", { from: job, to: MAKERS });
+      return;
     case "arbitrate":
-      store.save({ ...current, ...accepted, job: "arbitrate", from: by, failure: r.failure }, "failure", { from: item.job });
+      store.save({ ...current, job: "arbitrate", from: by, failure: r.failure }, "failure", { from: job });
       return;
     case "rework":
-      store.save({ ...current, ...accepted, job: r.job, from: by, rework: { cause: r.cause, answer: r.answer }, failure: void 0, round: current.round + 1, corrections: current.corrections + 1 }, "ruling", { cause: r.cause, to: r.job, by: "arbiter" });
+      store.save({
+        ...current,
+        job: r.job,
+        from: by,
+        rework: { cause: r.cause, answer: r.answer },
+        failure: void 0,
+        round: current.round + 1,
+        corrections: current.corrections + 1,
+        ...r.job === "plan" ? { base: void 0 } : {}
+      }, "ruling", { cause: r.cause, to: r.job, by: "arbiter" });
       return;
     case "prerequisite":
-      openPrerequisite(store, { ...current, ...accepted, from: by }, r.answer, by);
+      openPrerequisite(store, { ...current, from: by }, r.answer, by);
       return;
     case "hold":
-      return hold(store, { ...current, ...accepted }, r.code, r.message, { job: item.job, failure: current.failure ?? null, ruling: call.output });
-    case "malformed":
-      return yield* launchFailed(current, x.card, `The answer did not end with the required JSON: ${r.expected}`);
-    case "ship":
-      return yield* ship(store.save({ ...current, ...accepted, from: by }, "verified", {}));
+      return hold(store, current, r.code, r.message, { job, failure: current.failure ?? null, ruling: value3 });
   }
+}
+var covers = (scope3, file) => scope3.some((d) => d.endsWith("/") || d.endsWith("/**") ? file.startsWith(d.replace(/\*\*$/, "")) : file === d);
+var keepPartial = (dir, item, job) => Effect_exports.gen(function* () {
+  const { patch } = yield* takeChange(dir, item.base.commit);
+  const path = patchPath(itemHome((yield* Store).path, item.id), `${job}.partial`);
+  if (patch) writePatch(path, patch);
+  else rmSync5(path, { force: true });
 });
-var callAgent = Effect_exports.fn("mw.call")(function* (id2, config, tierJob, request3, pinned) {
+var candidate = (item, dir) => Effect_exports.gen(function* () {
+  const home = itemHome((yield* Store).path, item.id);
+  yield* Effect_exports.ignore(Effect_exports.andThen(applyPatch(dir, patchPath(home, "change")), commit(dir, item.title)));
+  yield* Effect_exports.ignore(applyPatch(dir, patchPath(home, "checks")));
+});
+var locks = /* @__PURE__ */ new Map();
+var withLock = (repo, effect2) => {
+  let lock = locks.get(repo);
+  if (!lock) locks.set(repo, lock = Semaphore_exports.makeUnsafe(1));
+  return lock.withPermit(effect2);
+};
+var expectedMain = (store, item) => {
+  let best = store.events(item.id).findLast((e) => e.kind === "base" || e.kind === "merged");
+  for (const other of store.list()) {
+    if (other.id === item.id || other.workspace !== item.workspace || !other.merged) continue;
+    const e = store.events(other.id).findLast((e2) => e2.kind === "merged");
+    if (e && (!best || e.seq > best.seq)) best = e;
+  }
+  return best?.data.main ?? item.base.commit;
+};
+var guardMain = (store, item) => withLock(item.workspace, Effect_exports.suspend(() => headGuard(item.workspace, item.base.ref, expectedMain(store, item))));
+var pending = (item, job) => (item.provisioned ?? []).filter((r) => (!job || r.job === job) && r.torn?.exitCode !== 0);
+var aftercare = Effect_exports.fn("mw.aftercare")(function* (id2, job) {
   const store = yield* Store;
-  const worker = yield* Worker;
-  const card = pinned ?? (yield* pickOrWait(id2, config, tierJob));
-  const item = store.get(id2);
-  const started = /* @__PURE__ */ new Date();
-  const result3 = yield* worker.run({ ...request3, item: id2, card, cwd: item.workspace }).pipe(Effect_exports.withSpan(`mw.${request3.kind}.${request3.job}`, { attributes: { item: id2, job: request3.job, kind: request3.kind, profile: request3.profile, harness: card.harness, model: card.model, account: card.account } }));
-  store.recordCall({
-    item: id2,
-    kind: request3.kind,
-    job: request3.job,
-    profile: request3.profile,
-    card,
-    system: request3.system,
-    prompt: request3.prompt,
-    outcome: result3.ok ? "ok" : "limit" in result3 ? "limit" : "error",
-    output: result3.ok ? result3.output : null,
-    error: result3.ok ? null : "limit" in result3 ? result3.limit.message : result3.error,
-    raw: result3.raw ?? null,
-    started: started.toISOString(),
-    ms: Date.now() - started.getTime()
+  const todo = pending(store.get(id2), job);
+  if (!todo.length) return;
+  const home = itemHome(store.path, id2);
+  mkdirSync6(home, { recursive: true });
+  const r = yield* Effect_exports.result(teardown(todo, home));
+  const records = Result_exports.isSuccess(r) ? r.success : r.failure.context.records;
+  const now2 = store.get(id2);
+  const provisioned = (now2.provisioned ?? []).map((p) => {
+    const torn = todo.some((t) => t.kind === p.kind && t.id === p.id && t.job === p.job) ? records.find((x) => x.kind === p.kind && x.id === p.id) : void 0;
+    return torn ? { ...p, torn } : p;
   });
-  if (result3.ok) return { retry: false, output: result3.output, card };
-  if ("limit" in result3) yield* recordLimit(store.get(id2), card, result3.limit, request3);
-  else yield* launchFailed(store.get(id2), card, result3.error);
-  return { retry: true };
+  store.save({ ...now2, provisioned }, "torn-down", { job: job ?? null, records: records.map((x) => ({ kind: x.kind, id: x.id, exitCode: x.exitCode })) });
+  if (Result_exports.isFailure(r)) holdFor(store, id2, r.failure, job);
 });
-var pickOrWait = Effect_exports.fn("mw.pickOrWait")(function* (id2, config, job) {
+var verifyAndShip = Effect_exports.fn("mw.verifyAndShip")(function* (id2, config) {
+  const store = yield* Store;
+  let item = store.get(id2);
+  if (!item.merged) {
+    const main = yield* revParse(item.workspace, item.base.ref);
+    if (!item.verification?.passed || item.verification.on !== main) {
+      yield* verify(id2, config);
+      item = store.get(id2);
+      if (item.job !== "verify" || !item.verification?.passed) return;
+    }
+    const projects = projectsPath(store.path);
+    if (!projectFor(yield* readProjects(projects), item.workspace)?.ship) {
+      return hold(store, item, "no_ship_command", `Item #${id2} passed its checks, but its project has no ship command.`, { workspace: item.workspace, projects });
+    }
+    const verified = item.verification;
+    const merged = yield* withLock(item.workspace, Effect_exports.gen(function* () {
+      const now2 = yield* revParse(item.workspace, item.base.ref);
+      if (now2 !== verified.on) return false;
+      yield* bringOnto(item.workspace, item.base.ref, now2, verified.commit);
+      store.save({ ...store.get(id2), merged: { ref: item.base.ref, commit: verified.commit } }, "merged", { ref: item.base.ref, main: verified.commit, from: now2 });
+      return true;
+    }));
+    if (!merged) return void store.save(store.get(id2), "main-moved", { verifiedOn: verified.on });
+  }
+  yield* shipCommand(id2);
+});
+var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
+  const store = yield* Store;
+  const item = store.get(id2);
+  const home = itemHome(store.path, id2);
+  const checks = item.checks?.checks ?? [];
+  if (!checks.length || !item.change) {
+    store.save({ ...item, job: "plan", from: { kind: "dispatcher" }, base: void 0, exchange: void 0, launches: 0 }, "replan", { reason: "no checks or change on record to verify" });
+    return;
+  }
+  const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
+    const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
+    const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
+    if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
+    const built = yield* commit(wt.path, item.title);
+    const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
+    if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
+    return { kind: "ran", on: wt.base, commit: built, results: yield* runChecks2(wt.path, checks, budgetFor(config.prescriptions, "verify"), { ...process.env, MW_ITEM: String(id2) }) };
+  }));
+  const now2 = store.get(id2);
+  if (run2.kind === "conflict") {
+    const what = run2.by === "implement" ? "The implementer's change" : "The test architect's check files";
+    const failure2 = `${what} no longer apply to ${now2.base.ref} at ${run2.on.slice(0, 12)}, which moved since the item started.
+${run2.error.context.stderr ?? run2.error.message}`;
+    store.save({ ...now2, job: "arbitrate", from: { kind: "job", job: run2.by }, failure: failure2, exchange: void 0, launches: 0 }, "failure", { from: "verify", conflict: run2.by });
+    return;
+  }
+  const passed = run2.results.every((r) => r.exitCode === 0);
+  const verification = { on: run2.on, commit: run2.commit, results: run2.results, passed };
+  const summary = run2.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }));
+  if (passed) {
+    store.save({ ...now2, verification }, "verified", { on: run2.on, results: summary });
+    return;
+  }
+  const failed = run2.results.filter((r) => r.exitCode !== 0);
+  const failure = [
+    `${failed.length} of ${run2.results.length} checks failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
+    ...failed.map((r) => `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}
+${r.output}`)
+  ].join("\n\n");
+  store.save({ ...now2, verification, job: "arbitrate", from: { kind: "job", job: "test-plan" }, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary });
+});
+var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
+  const store = yield* Store;
+  const item = store.get(id2);
+  const projects = projectsPath(store.path);
+  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship;
+  if (!command2) return hold(store, item, "no_ship_command", `Item #${id2} is on ${item.merged.ref}, but its project has no ship command.`, { workspace: item.workspace, projects });
+  const env = { ...process.env, MW_ITEM: String(id2), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature", MW_COMMIT: item.merged.commit };
+  const { code, stdout, stderr } = yield* Effect_exports.promise(
+    () => new Promise((done3) => execFile3("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
+  );
+  const tail2 = (s) => s.slice(-4e3);
+  if (code !== 0) return hold(store, item, "ship_failed", `Item #${id2} is on ${item.merged.ref}, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command: command2, exitCode: code, stdout: tail2(stdout), stderr: tail2(stderr) });
+  removeHome(itemHome(store.path, id2));
+  store.save({ ...item, status: "shipped", shipped: { command: command2, output: tail2(stdout), main: item.merged.commit } }, "shipped", { command: command2, output: tail2(stdout), main: item.merged.commit });
+});
+var preferred = (store, item, job, p, now2) => {
+  const cards = cardsFor(p, job);
+  if (job !== "test-plan" || !item.split) return cards;
+  const other = item.split.implement?.exchange?.card ?? pickCard(cardsFor(p, "implement"), store.exhausted(), now2).card;
+  return other ? [...cards.filter((c) => c.harness !== other.harness), ...cards.filter((c) => c.harness === other.harness)] : cards;
+};
+var pickOrWait = Effect_exports.fn("mw.pickOrWait")(function* (id2, cards) {
   const store = yield* Store;
   for (; ; ) {
     const item = store.get(id2);
+    if (item.status === "held") return void 0;
     const now2 = yield* Clock_exports.currentTimeMillis;
-    const picked = pickCard(cardsFor(config.prescriptions, job), store.exhausted(), now2);
+    const picked = pickCard(cards, store.exhausted(), now2);
     if (picked.card) {
       if (item.status !== "running") store.save({ ...item, status: "running", resetsAt: void 0 }, "running", { job: item.job });
       return picked.card;
     }
     if (item.status !== "waiting-quota" || item.resetsAt !== picked.resetsAt) {
-      store.save({ ...item, status: "waiting-quota", resetsAt: picked.resetsAt }, "waiting-quota", { job, resetsAt: new Date(picked.resetsAt).toISOString() });
+      store.save({ ...item, status: "waiting-quota", resetsAt: picked.resetsAt }, "waiting-quota", { job: item.job, resetsAt: new Date(picked.resetsAt).toISOString() });
     }
     yield* Effect_exports.sleep(Math.max(0, picked.resetsAt - now2));
   }
 });
-var recordLimit = Effect_exports.fn("mw.recordLimit")(function* (item, card, limit, request3) {
+var recordLimit = Effect_exports.fn("mw.recordLimit")(function* (id2, job, card, limit, kind) {
   const store = yield* Store;
   const at = yield* Clock_exports.currentTimeMillis;
   const resetsAt = Math.max(limit.resetsAt ?? at + UNKNOWN_RESET_MS, at + MIN_OUT_MS);
   for (const account of /* @__PURE__ */ new Set([limit.account, card.account])) store.markExhausted(account, resetsAt);
-  const pickingUp = request3.kind === "execute" ? `The ${request3.profile}'s previous run of this job, on ${card.harness} \xB7 ${card.model}, stopped at a usage limit (${limit.message}). You are picking up the same job: inspect the workspace for work already done before repeating any of it.` : item.pickingUp;
-  store.save({ ...item, pickingUp }, "quota-swap", { kind: request3.kind, job: request3.job, from: card, account: limit.account, resetsAt: new Date(resetsAt).toISOString(), message: limit.message });
+  const t = trackOf(store.get(id2), job);
+  const profile = stepOf(job).profile;
+  const pickingUp = kind === "execute" ? `The ${profile}'s previous run of this job, on ${card.harness} \xB7 ${card.model}, stopped at a usage limit (${limit.message}). You are picking up the same job${isMaker(job) ? ": your checkout holds the work it had done. Continue from there; do not repeat it." : "."}` : t.pickingUp;
+  saveTrack(store, id2, job, { pickingUp }, "quota-swap", { kind, job, from: card, account: limit.account, resetsAt: new Date(resetsAt).toISOString(), message: limit.message });
 });
-var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (item, card, error) {
+var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, card, error, evidence = {}, patch = {}) {
   const store = yield* Store;
-  const launches = item.launches + 1;
+  const item = store.get(id2);
+  const t = trackOf(item, job);
+  const launches = t.launches + 1;
   if (launches < MAX_LAUNCHES) {
-    store.save({ ...item, launches }, "launch-failed", { job: item.job, card, error });
+    saveTrack(store, id2, job, { ...patch, launches }, "launch-failed", { job, card, error, ...evidence });
     return;
   }
-  hold(store, { ...item, launches }, "worker_failing", `A call for the ${item.job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job: item.job, card, lastError: error });
+  hold(store, withTrack(item, job, { ...t, ...patch, launches }), "worker_failing", `A call for the ${job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job, card, lastError: error, ...evidence });
 });
 var openPrerequisite = (store, item, answer2, by) => {
   const pre = store.create({
@@ -22103,19 +23542,6 @@ ${item.failure ?? ""}`,
   });
   store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(by) });
 };
-var hold = (store, item, code, message, context3) => void store.save({ ...item, status: "held", hold: { code, message, context: context3 } }, "held", { code, message });
-var ship = Effect_exports.fn("mw.ship")(function* (item) {
-  const store = yield* Store;
-  const projects = projectsPath(store.path);
-  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship;
-  if (!command2) return hold(store, item, "no_ship_command", `Item #${item.id} passed verification, but its project has no ship command.`, { workspace: item.workspace, projects });
-  const { code, stdout, stderr } = yield* Effect_exports.promise(
-    () => new Promise((done3) => execFile2("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature" } }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
-  );
-  const tail = (s) => s.slice(-4e3);
-  if (code !== 0) return hold(store, item, "ship_failed", `Item #${item.id} passed verification, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command: command2, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) });
-  store.save({ ...item, status: "shipped", shipped: { command: command2, output: tail(stdout) } }, "shipped", { command: command2, output: tail(stdout) });
-});
 function nextFor(item) {
   if (item.status !== "held") return [];
   const id2 = item.id;
@@ -22127,12 +23553,13 @@ function nextFor(item) {
     return ["implementation", "test", "pre-existing"].map((cause) => ({ run: `mw answer ${id2} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: "the new code or its plan is wrong: the planner replans", test: "the check is wrong: the test architect rewrites it", "pre-existing": "the defect predates this work: it gets its own fix first" }[cause] }));
   }
   if (code === "no_ship_command") {
-    return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that merges to main and deploys>"`, why: "register how this project ships; the item then verifies again and ships" }];
+    return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: "register how this project ships; the item then ships" }];
   }
-  if (code === "ship_failed") return [{ run: `mw retry ${id2}`, why: "after fixing what context.stderr shows: verify again and ship" }];
+  if (code === "ship_failed") return [{ run: `mw retry ${id2}`, why: "after fixing what context.stderr shows: run the ship command again; the change is already on main" }];
   return [
+    ...item.hold.next ?? [],
     { run: `mw show ${id2}`, why: "read the failing call's last error and the events before it" },
-    { run: `mw retry ${id2}`, why: "run the held call again from where it stopped" }
+    { run: `mw retry ${id2}`, why: "run the held step again from where it stopped" }
   ];
 }
 var held = (id2) => Effect_exports.gen(function* () {
@@ -22144,17 +23571,26 @@ var held = (id2) => Effect_exports.gen(function* () {
   }
   return { store, item };
 });
+var released = (item) => ({
+  ...item,
+  status: "queued",
+  hold: void 0,
+  launches: 0,
+  ...item.split ? { split: Object.fromEntries(Object.entries(item.split).map(([k, t]) => [k, { ...t, launches: 0 }])) } : {}
+});
 var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
   const store = yield* Store;
   const events2 = store.events(id2);
   const repeat3 = events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => (e.data.by === "operator" || e.data.originator === "operator") && e.data.cause === cause && (e.data.answer ?? store.get(e.data.prerequisite)?.objective) === text2);
   if (repeat3) return;
   const { item } = yield* held(id2);
-  const released = { ...item, status: "queued", hold: void 0, launches: 0 };
+  const free = released(item);
   if (NQ_HOLDS.includes(item.hold.code)) {
-    const x = item.exchange;
-    const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: text2, by: "operator" } : t);
-    store.save({ ...released, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job: item.job, originator: "operator", answer: text2 });
+    const job2 = item.hold.context.job ?? item.job;
+    const t = trackOf(free, job2);
+    const x = t.exchange;
+    const turns = x.turns.map((turn, i) => i === x.turns.length - 1 ? { ...turn, answer: text2, by: "operator" } : turn);
+    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", answer: text2 });
     return;
   }
   if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -22162,9 +23598,19 @@ var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
   }
   if (!cause) return yield* new MadeWellError({ code: "cause_required", message: `Item #${id2} holds on a failed check; the answer must name its cause.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   const operator = { kind: "operator" };
-  if (cause === "pre-existing") return openPrerequisite(store, { ...released, from: operator }, text2, operator);
+  if (cause === "pre-existing") return openPrerequisite(store, { ...free, from: operator }, text2, operator);
   const job = cause === "test" ? "test-plan" : "plan";
-  store.save({ ...released, job, from: operator, exchange: void 0, rework: { cause, answer: text2 }, failure: void 0, round: item.round + 1, corrections: item.corrections + 1 }, "ruling", { cause, to: job, by: "operator", answer: text2 });
+  store.save({
+    ...free,
+    job,
+    from: operator,
+    exchange: void 0,
+    rework: { cause, answer: text2 },
+    failure: void 0,
+    round: item.round + 1,
+    corrections: item.corrections + 1,
+    ...job === "plan" ? { base: void 0 } : {}
+  }, "ruling", { cause, to: job, by: "operator", answer: text2 });
 });
 var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
   const store = yield* Store;
@@ -22190,212 +23636,121 @@ var retry3 = (id2) => Effect_exports.gen(function* () {
   if (NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   }
-  store.save({ ...item, status: "queued", hold: void 0, launches: 0 }, "retried", { job: item.job });
+  store.save(released(item), "retried", { job: item.job });
 });
 var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const store = yield* Store;
   yield* store.claimRunner();
   yield* Effect_exports.addFinalizer(() => Effect_exports.sync(() => store.releaseRunner()));
+  const finished = yield* Queue_exports.unbounded();
+  const running = /* @__PURE__ */ new Set();
   const results2 = [];
+  const stuck = (i) => i.waitsOn !== void 0 && ((p) => !p || p.status === "held" || stuck(p))(store.get(i.waitsOn));
   for (; ; ) {
-    const ready = store.list().find((i) => i.parent === void 0 && ["queued", "running", "waiting-quota", "waiting-prerequisite"].includes(i.status));
-    if (ready) {
-      results2.push(yield* drive(ready.id, config));
+    for (const i of store.list()) {
+      if (i.parent !== void 0 || !READY.includes(i.status) || running.has(i.id) || stuck(i)) continue;
+      running.add(i.id);
+      yield* Effect_exports.forkScoped(drive(i.id, config).pipe(
+        Effect_exports.catchTag("MadeWellError", () => Effect_exports.sync(() => store.get(i.id))),
+        Effect_exports.flatMap((item) => Queue_exports.offer(finished, item))
+      ));
+    }
+    if (!running.size) {
+      store.runnerOn(null);
+      if (!options.watch) return results2;
+      yield* Effect_exports.sleep(config.pollMs ?? 2e3);
       continue;
     }
-    store.runnerOn(null);
-    if (!options.watch) return results2;
-    yield* Effect_exports.sleep(config.pollMs ?? 2e3);
+    const done3 = options.watch ? yield* Effect_exports.raceFirst(Queue_exports.take(finished), Effect_exports.as(Effect_exports.sleep(config.pollMs ?? 2e3), void 0)) : yield* Queue_exports.take(finished);
+    if (done3) {
+      running.delete(done3.id);
+      results2.push(done3);
+    }
   }
 }).pipe(Effect_exports.scoped);
 var SUBAGENT_RULE = "If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.";
-var INTAKE_SYSTEM = (job) => {
-  const step = stepOf(job);
-  return `You are the ${step.profile}, about to do the ${job} job in Made Well's delivery lane (${step.stage}): ${step.duty}
-This is read-only intake before you execute: change nothing yet. State your understanding of what was handed to you and what you must deliver. Ask only questions that block you and that the packet, the workspace and earlier answers cannot settle; never repeat an answered question. Assumptions and settled points are notes; notes never block.
-Return ONLY a JSON object: {"understanding": string, "questions": string[], "notes": string[]}. An empty questions array confirms you are ready.`;
+var BRIEF = [
+  "You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and the JSON answer it needs. It runs from what every call of this work item shares to what is yours alone.",
+  NEUTRAL_HOST,
+  [
+    "Settle every decision by the experience rubric. Its three governing questions have equal standing:",
+    "- Developer experience: What moves us toward a 10\xD7 better experience of developing, understanding, inspecting, and recovering the work?",
+    "- User experience: What moves us toward a 10\xD7 better experience for the person the resulting system serves?",
+    "- Agentic experience: What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?",
+    "The answer they give is the decision. Ideation and planning settle every decision and record it with why; no decision is left for the operator."
+  ].join("\n"),
+  `Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
+  "Honor the product repo's coding conventions.",
+  SUBAGENT_RULE,
+  "Your final message is ONLY the JSON object your packet asks for."
+].join("\n\n");
+var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source });
+var receivedBy = (item, job) => Object.fromEntries(RECEIVES[job].flatMap((j) => {
+  const d = deliverableOf(item, j);
+  return d === void 0 ? [] : [[j, d]];
+}));
+var snapshotFor = (item, job, dir) => {
+  const plan = planOf(item);
+  if (!plan || !RECEIVES[job].includes("plan")) return Effect_exports.succeed(void 0);
+  return snapshot2(dir, plan.scope.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f)));
 };
-var ORIGINATOR_SYSTEM = (from) => `${from.kind === "dispatcher" ? "You are the dispatcher, who handed this work item to Made Well for the operator. Answer from the objective and the operator's source only." : `You are the ${profileOf(from)}, who handed over this work. Answer from your hand-off and the source.`}
-The receiving agent asked questions before executing. Clarify what you handed over; never change your hand-off or the work, and never invent operator authority. If only the operator can answer, set needsOperator to true and say exactly what they must decide.
-Return ONLY a JSON object: {"answer": string, "needsOperator": boolean}.`;
-var EXECUTE_SYSTEM = (job) => {
-  const step = stepOf(job);
-  const ends = ENDS_WITH[job];
-  return [
-    `You are the ${step.profile}, doing the ${job} job in Made Well's delivery lane (${step.stage}). ${step.duty}`,
-    "Your packet holds the work item, the deliverables accepted from earlier jobs, and the NQ exchange of your hand-off: what was handed to you, your questions and their answers. Honor the workspace's own instructions. Report tangible results and evidence.",
-    SUBAGENT_RULE,
-    ends ? `End your answer with ONLY a JSON object on its own line: ${ends}.` : ""
-  ].filter(Boolean).join("\n\n");
-};
-var itemFacts = (item) => ({ id: item.id, title: item.title, objective: item.objective, source: item.source, workspace: item.workspace, round: item.round });
-var acceptedBefore = (item) => {
-  if (item.job === "discover") return {};
-  const before = item.job === "arbitrate" ? DELIVERY : DELIVERY.slice(0, DELIVERY.findIndex((s) => s.job === item.job));
-  return Object.fromEntries(before.filter((s) => item.outputs[s.job] !== void 0).map((s) => [s.job, item.outputs[s.job]]));
-};
-var intakePacket = (item, x) => JSON.stringify({ item: itemFacts(item), handoff: { from: profileOf(x.from), content: x.handoff }, accepted: acceptedBefore(item), earlierTurns: x.turns, ...item.pickingUp ? { pickingUp: item.pickingUp } : {} }, null, 2);
-var originatorPacket = (item, x) => JSON.stringify({ item: itemFacts(item), yourHandoff: x.handoff, receiver: stepOf(item.job).profile, questions: x.turns.at(-1).questions, receiverUnderstanding: x.turns.at(-1).understanding, earlierTurns: x.turns.slice(0, -1) }, null, 2);
-var executePacket = (item, x) => JSON.stringify({
+var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.map(snapshotFor(item, job, dir), (snap) => JSON.stringify({
   item: itemFacts(item),
-  accepted: acceptedBefore(item),
-  exchange: { from: profileOf(x.from), handoff: x.handoff, turns: x.turns, understanding: x.understanding, notes: x.notes },
-  ...item.outputs[item.job] !== void 0 && item.rework ? { yourPreviousDeliverable: item.outputs[item.job] } : {},
-  ...item.pickingUp ? { pickingUp: item.pickingUp } : {}
-}, null, 2);
+  ...withReceived ? { received: receivedBy(item, job) } : {},
+  ...snap ? { snapshot: snap } : {},
+  ...parts2
+}, null, 2));
+var whereYouAre = (job) => {
+  const step2 = stepOf(job);
+  return step2.stage === "discovery" ? "Made Well's discovery" : `Made Well's delivery lane (${step2.stage})`;
+};
+var TASKS = {
+  plan: "Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. Give each done-when item a short unique id; the checks prove them by id.",
+  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks.",
+  implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself.",
+  arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to."
+};
+var you = (job, kind) => {
+  const step2 = stepOf(job);
+  return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
+};
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready.`;
+var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
+var receiverParts = (item, job, x, kind) => ({
+  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), deliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
+  handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
+  earlierTurns: x.turns,
+  round: item.round,
+  ...trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}
+});
+var deliverableShape = (job) => job in DELIVERABLES ? shapeOf(DELIVERABLES[job]) : void 0;
+var originatorParts = (item, job, x) => ({
+  you: {
+    profile: profileOf(x.from),
+    call: "originator",
+    task: `You handed this work over as the ${profileOf(x.from)}. The ${stepOf(job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+    answer: shapeOf(ORIGINATOR)
+  },
+  yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
+  receiver: stepOf(job).profile,
+  receiverUnderstanding: x.turns.at(-1).understanding,
+  questions: x.turns.at(-1).questions,
+  earlierTurns: x.turns.slice(0, -1)
+});
+var executeParts = (item, job, t, x) => ({
+  you: { ...you(job, "execute"), ...TASKS[job] ? { task: TASKS[job] } : {}, answer: deliverableShape(job) },
+  ...job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {},
+  exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
+  ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
+  round: item.round,
+  ...t.rejected ? { yourLastAnswerWasRefused: t.rejected } : {},
+  ...t.pickingUp ? { pickingUp: t.pickingUp } : {}
+});
 
 // src/eval.ts
-import { readFileSync as readFileSync4 } from "node:fs";
+import { readFileSync as readFileSync5 } from "node:fs";
 import { resolve as resolve4 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
-
-// src/workspace.ts
-import { execFile as execFile3 } from "node:child_process";
-import { existsSync as existsSync2, lstatSync, readdirSync, readFileSync as readFileSync3, readlinkSync, rmSync as rmSync2, statSync } from "node:fs";
-import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, isAbsolute, join as join5, relative, resolve as resolve3 } from "node:path";
-var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI.md", ".cursorrules"];
-var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
-var worktreesRoot = () => join5(process.env.MW_HOME ?? join5(homedir2(), ".local", "share", "madewell"), "worktrees");
-var fail7 = (code, message, context3, next, cause) => new MadeWellError({ code, message, context: context3, next, ...cause ? { cause } : {} });
-var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile3(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
-var git = (dir, ...args2) => exec("git", ["--no-optional-locks", "-C", dir, ...args2], dir).pipe(Effect_exports.flatMap(({ code, stdout, stderr }) => code === 0 ? Effect_exports.succeed(stdout) : Effect_exports.fail(fail7("git_failed", `git ${args2[0]} failed in ${dir}.`, { dir, args: args2, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args2.join(" ")}`, why: "run it yourself to see the full error" }]))));
-var lines2 = (out) => out.split("\0").filter(Boolean);
-var worktree = Effect_exports.fn("mw.worktree")(function* (repo, base, name) {
-  const root = worktreesRoot();
-  const path = join5(root, name);
-  if (!/^[\w.-]+$/.test(name)) return yield* fail7("bad_worktree_name", `Worktree name "${name}" must be letters, digits, ".", "_" or "-".`, { name }, []);
-  const above = [];
-  for (let dir = root; ; dir = dirname4(dir)) {
-    above.push(...GUIDANCE.map((f) => join5(dir, f)).filter((f) => existsSync2(f)));
-    if (dirname4(dir) === dir) break;
-  }
-  const inside = !relative(resolve3(repo), root).startsWith("..");
-  if (above.length || inside) {
-    return yield* fail7(
-      "worktree_root_unclean",
-      `Job worktrees under ${root} would inherit instructions that are not the product's.`,
-      { root, repo, guidanceAbove: above, insideRepo: inside },
-      [{ run: "MW_HOME=<a directory with no guidance files above it and outside the repo> mw run", why: "put Made Well's home where agents read only the product's own guidance" }]
-    );
-  }
-  const commit = (yield* git(repo, "rev-parse", "--verify", "--quiet", `${base}^{commit}`).pipe(Effect_exports.mapError(() => fail7("base_not_found", `${base} is not a commit in ${repo}.`, { repo, base }, [{ run: `git -C ${repo} log --oneline -5`, why: "find the commit the item should start from" }])))).trim();
-  return yield* Effect_exports.acquireRelease(
-    Effect_exports.gen(function* () {
-      yield* removeWorktree(repo, path);
-      yield* git(repo, "worktree", "add", "--detach", "--quiet", path, commit);
-      return { path, repo, base: commit };
-    }),
-    () => removeWorktree(repo, path)
-  );
-});
-var removeWorktree = (repo, path) => Effect_exports.gen(function* () {
-  yield* Effect_exports.ignore(git(repo, "worktree", "remove", "--force", "--force", path));
-  rmSync2(path, { recursive: true, force: true });
-  yield* Effect_exports.ignore(git(repo, "worktree", "prune"));
-});
-var snapshot3 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
-  const outside = files.filter((f) => isAbsolute(f) || relative(dir, resolve3(dir, f)).startsWith(".."));
-  if (outside.length) return yield* fail7("path_outside_workspace", "A snapshot can only read files inside the workspace.", { dir, outside }, []);
-  const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
-  const tracked = lines2(yield* git(dir, "ls-files", "-z"));
-  const contents = Object.fromEntries(files.map((f) => {
-    const p = join5(dir, f);
-    return [f, existsSync2(p) && statSync(p).isFile() ? readFileSync3(p, "utf8") : null];
-  }));
-  return { head: head3, files: tracked, contents };
-});
-var capture = Effect_exports.fn("mw.capture")(function* (dir) {
-  const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
-  const refs = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
-  const common2 = resolve3(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
-  const files = {};
-  walk(dir, "", files);
-  for (const part of ["config", "info", "hooks"]) walk(common2, part, files, ".git/");
-  return { dir, head: head3, refs, files };
-});
-function walk(root, rel, into, label2 = "") {
-  const p = join5(root, rel);
-  let s;
-  try {
-    s = lstatSync(p, { bigint: true });
-  } catch {
-    return;
-  }
-  if (s.isDirectory()) {
-    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel ? `${rel}/${name}` : name, into, label2);
-  } else if (rel) {
-    into[label2 + rel] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
-  }
-}
-function changes(before, after) {
-  const keys3 = (a, b) => [.../* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])].sort();
-  const refs = keys3(before.refs, after.refs).filter((ref) => before.refs[ref] !== after.refs[ref]).map((ref) => ({ ref, from: before.refs[ref] ?? null, to: after.refs[ref] ?? null }));
-  const paths = keys3(before.files, after.files);
-  const added = paths.filter((p) => !(p in before.files));
-  const removed = paths.filter((p) => !(p in after.files));
-  const modified = paths.filter((p) => p in before.files && p in after.files && before.files[p] !== after.files[p]);
-  const head3 = before.head === after.head ? void 0 : { from: before.head, to: after.head };
-  return head3 || refs.length || added.length || removed.length || modified.length ? { ...head3 ? { head: head3 } : {}, refs, added, removed, modified } : void 0;
-}
-var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
-  const before = yield* capture(dir);
-  const result3 = yield* effect2;
-  const changed = changes(before, yield* capture(dir));
-  if (changed) {
-    return yield* fail7(
-      "workspace_written",
-      `A read-only call changed ${dir}.`,
-      { dir, changes: changed },
-      [{ run: `git -C ${dir} status --ignored`, why: "see the changes in context.changes; a read-only job gets no write access, so its result is not accepted" }]
-    );
-  }
-  return result3;
-}).pipe(Effect_exports.withSpan("mw.readOnly", { attributes: { dir } }));
-var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref, recorded) {
-  const now2 = (yield* git(repo, "rev-parse", "--verify", `${ref}^{commit}`)).trim();
-  if (now2 === recorded) return;
-  const landed = yield* Effect_exports.orElseSucceed(git(repo, "log", "--format=%H %s", `${recorded}..${now2}`), () => "");
-  return yield* fail7("branch_moved", `${ref} moved from ${recorded.slice(0, 12)} to ${now2.slice(0, 12)}.`, { repo, ref, recorded, now: now2, landed: landed.trim().split("\n").filter(Boolean) }, [
-    { run: `git -C ${repo} log --stat ${recorded}..${now2}`, why: "see what landed on the branch and who made it" },
-    { run: `git -C ${repo} reset --keep ${recorded}`, why: "only if those commits are unverified agent work and were never pushed" }
-  ]);
-});
-var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declared) {
-  const changed = [.../* @__PURE__ */ new Set([...lines2(yield* git(dir, "diff", "--name-only", "--no-renames", "-z", base)), ...lines2(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))])].sort();
-  const covers = (d, f) => d.endsWith("/") || d.endsWith("/**") ? f.startsWith(d.replace(/\*\*$/, "")) : f === d;
-  const outside = changed.filter((f) => !declared.some((d) => covers(d, f)));
-  if (outside.length) {
-    return yield* fail7("out_of_scope", `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: "see the whole change against its base" }]);
-  }
-  return changed;
-});
-var leftovers = Effect_exports.fn("mw.leftovers")(function* (dir, before) {
-  const created = lines2(yield* git(dir, "ls-files", "--others", "-z")).filter((f) => !(f in before.files)).sort();
-  if (created.length) {
-    return yield* fail7("leftovers", `${created.length} file(s) were left in ${dir}.`, { dir, files: created }, [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(" ")}`, why: "remove exactly the files the job left behind" }]);
-  }
-});
-var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
-  const unique = resources.filter((r, i) => resources.findIndex((o) => o.kind === r.kind && o.id === r.id) === i);
-  const records = [];
-  for (const r of unique.toReversed()) {
-    const { code, stdout, stderr } = yield* exec("sh", ["-c", r.teardown], cwd, TEARDOWN_TIMEOUT_MS);
-    records.push({ kind: r.kind, id: r.id, teardown: r.teardown, exitCode: code, output: (stdout + stderr).slice(-4e3) });
-  }
-  const failed = records.filter((r) => r.exitCode !== 0);
-  if (failed.length) {
-    return yield* fail7(
-      "teardown_failed",
-      `${failed.length} of ${records.length} provisioned resource(s) were not torn down.`,
-      { cwd, failed, records },
-      failed.map((r) => ({ run: `cd ${cwd} && ${r.teardown}`, why: `tear down ${r.kind} ${r.id} once context.failed shows why it failed` }))
-    );
-  }
-  return records;
-});
-
-// src/eval.ts
 var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
 var MIN_OUT_MS2 = 5 * 6e4;
@@ -22436,7 +23791,7 @@ var EvalReport = Schema_exports.Struct({
 }).annotate({ identifier: "EvalReport" });
 var CAUSES = ["pre-existing", "implementation", "test", "undetermined"];
 var REQUIRED = {
-  intake: { understanding: (v) => typeof v === "string", questions: Array.isArray },
+  intake: { understanding: (v) => typeof v === "string", unclear: Array.isArray, ambiguous: Array.isArray, missing: Array.isArray },
   originator: { answer: (v) => typeof v === "string" && v.trim() !== "" },
   execute: {
     discover: { items: Array.isArray },
@@ -22506,14 +23861,14 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
   const briefPath = o.brief === void 0 ? void 0 : resolve4(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync4(briefPath, "utf8"),
+    try: () => readFileSync5(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
-  const all3 = store.calls();
-  const calls = all3.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute")).slice(-(o.limit ?? 0));
+  const all4 = store.calls();
+  const calls = all4.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute")).slice(-(o.limit ?? 0));
   if (!calls.length) {
     const recorded = {};
-    for (const c of all3) if (c.outcome !== "limit") recorded[c.job] = (recorded[c.job] ?? 0) + 1;
+    for (const c of all4) if (c.outcome !== "limit") recorded[c.job] = (recorded[c.job] ?? 0) + 1;
     const best2 = Object.entries(recorded).sort((a, b) => b[1] - a[1])[0];
     return yield* new MadeWellError({
       code: "eval_no_calls",
@@ -22639,7 +23994,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
 var storePath = defaultStorePath();
 var registry = projectsPath(storePath);
 var prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL("../prescriptions.json", import.meta.url).pathname;
-var SHIP_SLOT = `"<the operator's command that merges to main and deploys>"`;
+var SHIP_SLOT = `"<the operator's command that deploys what is on main>"`;
 var workerLayer = Layer_exports.unwrap(Effect_exports.sync(() => process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker));
 var usageError = (command2, message) => new MadeWellError({ code: "usage", message, context: { command: command2 }, next: [{ run: "mw", why: "read the manual: every command and its input schema" }] });
 var Id2 = Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThan(0)))).annotate({ description: "a work item number" });
@@ -22735,7 +24090,7 @@ var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve5(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync5(path, "utf8"),
+    try: () => readFileSync6(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
@@ -22782,7 +24137,7 @@ var nextAction = Effect_exports.fn("mw.next")(function* () {
     const init = `mw init --workspace ${quote2(project?.path ?? cwd)} --ship ${SHIP_SLOT}`;
     return {
       action: "relay",
-      say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: what command merges to main and deploys?`,
+      say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: once Made Well brings a passing item onto main, what command deploys it?`,
       then: [{ run: init, why: "register the project with how it ships" }, { run: `${init} --alert "<a command that notifies the operator>"`, why: "also say how to reach the operator when an item holds" }]
     };
   }
@@ -22811,7 +24166,7 @@ var COMMANDS = [
     summary: "Register a project, or update its config. The config lives in Made Well's home, never in the project. Items held for a missing ship command go on.",
     input: Schema_exports.Struct({
       workspace: Workspace,
-      ship: optional3("shell command run in the workspace after every check passes: merge to main and deploy. Required the first time."),
+      ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time."),
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set")
     }),
     output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
@@ -22821,7 +24176,7 @@ var COMMANDS = [
       const path = resolve5(input.workspace ?? ".");
       if (!existsSync3(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const projects = yield* readProjects(registry);
-      if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that merges to main and deploys.`);
+      if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`);
       const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {} });
       const updated = yield* readProjects(registry);
       const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
@@ -22956,8 +24311,8 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve5(input.out ?? resolve5(dirname5(storePath), "replay.html"));
-      writeFileSync5(out, replayHtml(snapshot2(yield* Store)));
+      const out = resolve5(input.out ?? resolve5(dirname6(storePath), "replay.html"));
+      writeFileSync7(out, replayHtml(snapshot3(yield* Store)));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
     })
   }),
@@ -22969,7 +24324,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve5(input.out ?? resolve5(dirname5(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve5(input.out ?? resolve5(dirname6(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -23027,7 +24382,7 @@ var manual = Effect_exports.gen(function* () {
     errors: Object.fromEntries(Object.entries(ERRORS).map(([code, e]) => [code, { means: e.means, context: jsonSchema(e.context) }])),
     $defs,
     state: {
-      home: dirname5(registry),
+      home: dirname6(registry),
       store: existsSync3(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
