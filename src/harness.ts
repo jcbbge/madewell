@@ -22,14 +22,14 @@ type Match = typeof Match.Type
 const Strings = Schema.Array(Schema.String)
 
 const common = {
-	/** argv. Placeholders: {model} {provider} {account} {effort} {system} {prompt} {title} {tools} {settings}; {x|json} quotes as JSON. */
+	/** argv. Placeholders: {model} {provider} {account} {effort} {system} {prompt} {title} {tools} {settings}; {x|json} quotes as JSON; an argument that is exactly {...tools} becomes one argument per entry. */
 	command: Schema.NonEmptyArray(Schema.String),
 	/** What goes on stdin; default "{prompt}". */
 	stdin: Schema.optional(Schema.String),
 	/** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
 	settings: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-	/** The allowlist for each access level: tool names, joined with commas for {tools}. */
-	tools: Schema.Struct({ read: Strings, checks: Strings, make: Strings, run: Strings }),
+	/** The allowlist for each access level: tool names, joined with commas for {tools}. `none` must leave the agent no tool at all. */
+	tools: Schema.Struct({ none: Strings, read: Strings, checks: Strings, make: Strings, run: Strings }),
 	/** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix. */
 	env: Schema.optional(Strings),
 	/** Read only from the harness's own events: `pattern` names (?<clock>) or (?<minutes>) groups for the reset; `signals` are machine-readable records. */
@@ -74,8 +74,7 @@ const CLAUDE_EVENTS = {
 
 // Amp checks shell_command under its internal name too.
 const AMP_SHELL = ['shell_command', 'async_shell_command', 'shell_command_status', 'shell_command_kill']
-const READ_ONLY = ['read-only']
-const FULL = ['danger-full-access']
+const FULL = ['-s', 'danger-full-access']
 
 export const HARNESSES: Readonly<Record<string, Harness>> = {
 	// card.model is the Amp agent mode. Amp has no system-prompt flag: the brief goes on stdin before the packet.
@@ -84,6 +83,8 @@ export const HARNESSES: Readonly<Record<string, Harness>> = {
 		stdin: '{system}\n\n---\n\nYour packet:\n{prompt}',
 		settings: { 'amp.tools.enable': '{tools}', 'amp.git.commit.ampThread.enabled': false, 'amp.git.commit.coauthor.enabled': false },
 		tools: {
+			// Amp reads an empty allowlist as every tool, so none enables only a name no tool has.
+			none: ['none'],
 			read: ['Read', ...AMP_SHELL],
 			checks: ['Read', ...AMP_SHELL, 'edit_file', 'create_file', 'apply_patch'],
 			make: ['Read', ...AMP_SHELL, 'edit_file', 'create_file', 'apply_patch'],
@@ -97,6 +98,7 @@ export const HARNESSES: Readonly<Record<string, Harness>> = {
 	claude: {
 		command: ['claude', '-p', '--verbose', '--output-format', 'stream-json', '--model', '{model}', '--effort', '{effort}', '--permission-mode', 'bypassPermissions', '--strict-mcp-config', '--tools', '{tools}', '--append-system-prompt', '{system}'],
 		tools: {
+			none: [],
 			read: ['Read', 'Grep', 'Glob'],
 			checks: ['Read', 'Grep', 'Glob', 'Bash', 'Edit', 'Write'],
 			make: ['Read', 'Grep', 'Glob', 'Bash', 'Edit', 'Write'],
@@ -106,9 +108,10 @@ export const HARNESSES: Readonly<Record<string, Harness>> = {
 		...CLAUDE_EVENTS,
 	},
 	// Codex has no tool allowlist: its sandbox is the boundary, and the optional tools (images, MCP) are off.
+	// No setting removes every tool, so none also turns the shell off; what remains cannot read or write.
 	codex: {
-		command: ['codex', 'exec', '--json', '--skip-git-repo-check', '-m', '{model}', '-c', 'model_reasoning_effort="{effort}"', '-c', 'approval_policy="never"', '-c', 'developer_instructions={system|json}', '-c', 'tools.view_image=false', '-c', 'mcp_servers={}', '-s', '{tools}', '-'],
-		tools: { read: READ_ONLY, checks: FULL, make: FULL, run: FULL },
+		command: ['codex', 'exec', '--json', '--skip-git-repo-check', '-m', '{model}', '-c', 'model_reasoning_effort="{effort}"', '-c', 'approval_policy="never"', '-c', 'developer_instructions={system|json}', '-c', 'tools.view_image=false', '-c', 'mcp_servers={}', '{...tools}', '-'],
+		tools: { none: ['-s', 'read-only', '-c', 'features.shell_tool=false'], read: ['-s', 'read-only'], checks: FULL, make: FULL, run: FULL },
 		env: ['OPENAI_API_KEY', 'OPENAI_BASE_URL', 'CODEX_HOME'],
 		output: 'jsonl',
 		answer: { event: { type: 'item.completed', 'item.type': 'agent_message' }, text: 'item.text', done: { type: 'turn.completed' }, failed: [{ type: 'turn.failed' }, { type: 'error' }] },
@@ -122,6 +125,7 @@ export const HARNESSES: Readonly<Record<string, Harness>> = {
 	pi: {
 		command: ['pi', '--print', '--mode', 'json', '--offline', '--no-session', '--model', '{provider}/{model}', '--thinking', '{effort}', '--append-system-prompt', '{system}', '--tools', '{tools}'],
 		tools: {
+			none: [],
 			read: ['read', 'grep', 'find', 'ls'],
 			checks: ['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write'],
 			make: ['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write'],
@@ -160,7 +164,7 @@ export const agentEnv = (allow: ReadonlyArray<string>, from: NodeJS.ProcessEnv =
 export function buildLaunch(card: Card, access: Access, call: { system: string; prompt: string; title: string; dir: string }, harness: Harness = HARNESSES[card.harness]!) {
 	const settings = join(call.dir, 'settings.json')
 	const vars = { ...card, ...call, tools: harness.tools[access], settings }
-	const [binary, ...args] = harness.command.map((a) => fill(a, vars))
+	const [binary, ...args] = harness.command.flatMap((a) => (a === '{...tools}' ? vars.tools : [fill(a, vars)]))
 	const files: Record<string, string> = harness.settings
 		? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === '{tools}' ? harness.tools[access] : typeof v === 'string' ? fill(v, vars) : v]))) }
 		: {}
@@ -259,7 +263,9 @@ export const harnessWorker = Layer.succeed(Worker, {
 			(dir) => {
 				const launch = buildLaunch(request.card, request.access, { system: request.system, prompt: request.prompt, title: `mw #${request.item} ${request.job} · ${request.profile} · ${request.kind}`, dir }, harness)
 				for (const [path, content] of Object.entries(launch.files)) writeFileSync(path, content)
-				return runGroup({ command: launch.command, args: launch.args, cwd: request.cwd, env: agentEnv([...BASE_ENV, ...(harness.env ?? [])]), input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir })
+				// With no access, the call runs in its own empty directory: no workspace, and none of its instruction files.
+				const cwd = request.access === 'none' ? dir : request.cwd
+				return runGroup({ command: launch.command, args: launch.args, cwd, env: agentEnv([...BASE_ENV, ...(harness.env ?? [])]), input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === 'jsonl' })
 			},
 			(dir) => Effect.sync(() => rmSync(dir, { recursive: true, force: true })),
 		).pipe(

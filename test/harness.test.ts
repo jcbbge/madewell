@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { spawn, spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { DatabaseSync } from 'node:sqlite'
 import { test } from 'node:test'
 import { Effect, Layer } from 'effect'
 import { harnessOf, loadPrescriptions } from '../src/cards.ts'
 import { buildLaunch, clockToEpoch, HARNESSES, harnessWorker, parseRun, tokensIn, type Harness } from '../src/harness.ts'
+import { toolEvents } from '../src/telemetry.ts'
 import { commandWorker, Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
 
 const NOW = Date.UTC(2026, 9, 16, 12, 0)
@@ -51,16 +54,26 @@ test('usage limits are read from each harness\'s own events, with their reset ti
 	assert.equal(clockToEpoch('Mon 12:00am (UTC)', NOW), Date.UTC(2026, 9, 19, 0, 0))
 })
 
-test('each access level launches with exactly its tool allowlist, and read never gets a writing tool', () => {
+test('each access level launches with exactly its tool allowlist, read never gets a writing tool, and none gets no tool', () => {
 	const writes = /^(edit|write|edit_file|create_file|apply_patch|danger-full-access)$/i
 	for (const [name, harness] of Object.entries(HARNESSES)) {
-		for (const access of ['read', 'checks', 'make', 'run'] as const) {
+		for (const access of ['none', 'read', 'checks', 'make', 'run'] as const) {
 			const { args, files } = buildLaunch(card(name), access, call)
-			const granted = files['/call/settings.json'] ? JSON.parse(files['/call/settings.json'])['amp.tools.enable'] : args[args.indexOf(name === 'codex' ? '-s' : '--tools') + 1]!.split(',')
+			// Codex's levels are its own flags, spliced into the command.
+			const granted = files['/call/settings.json'] ? JSON.parse(files['/call/settings.json'])['amp.tools.enable'] : name === 'codex' ? args.slice(args.indexOf('mcp_servers={}') + 1, -1) : args[args.indexOf('--tools') + 1]!.split(',').filter(Boolean)
 			assert.deepEqual(granted, harness.tools[access], `${name} ${access}`)
-			if (access === 'read') assert.ok(!granted.some((t: string) => writes.test(t)), `${name} read`)
+			if (access === 'read' || access === 'none') assert.ok(!granted.some((t: string) => writes.test(t)), `${name} ${access}`)
 		}
 	}
+	// What "no tool" takes differs per harness: an empty --tools, an allowlist matching nothing (Amp reads an empty one as all), the shell off.
+	for (const name of ['claude', 'pi']) {
+		const { args } = buildLaunch(card(name), 'none', call)
+		assert.equal(args[args.indexOf('--tools') + 1], '', name)
+	}
+	const ampNone: string[] = JSON.parse(buildLaunch(card('amp'), 'none', call).files['/call/settings.json']!)['amp.tools.enable']
+	const ampTools = (['read', 'checks', 'make', 'run'] as const).flatMap((a) => HARNESSES.amp!.tools[a])
+	assert.ok(ampNone.length > 0 && !ampNone.some((t) => ampTools.includes(t)), 'amp')
+	assert.deepEqual(buildLaunch(card('codex'), 'none', call).args.slice(-5), ['-s', 'read-only', '-c', 'features.shell_tool=false', '-'])
 	const amp = buildLaunch(card('amp'), 'make', call)
 	assert.equal(amp.input, 'the brief\n\n---\n\nYour packet:\nthe packet', 'Amp has no system-prompt flag: the brief goes on stdin')
 	for (const tool of ['Task', 'oracle', 'create_thread', 'code_exec', 'web_search', 'painter', 'view_media', 'ask_user_choice', 'read_thread', 'manage_amp']) assert.ok(!HARNESSES.amp!.tools.make.includes(tool), tool)
@@ -73,7 +86,7 @@ const shellEntry: Harness = {
 	stdin: '',
 	settings: { tools: '{tools}' },
 	output: 'text',
-	tools: { read: ['look'], checks: ['look', 'write'], make: ['look', 'write'], run: ['look', 'run'] },
+	tools: { none: [], read: ['look'], checks: ['look', 'write'], make: ['look', 'write'], run: ['look', 'run'] },
 	limit: { pattern: 'out of quota until (?<clock>.+)' },
 	tokens: { event: { tokens: '*' }, paths: ['tokens'] },
 }
@@ -93,10 +106,10 @@ test('prescriptions add harness entries without code, and every card must name o
 	assert.deepEqual((unknown.context as { card: unknown }).card, card('aider'))
 })
 
-const runShell = (prompt: string, budget?: WorkerRequest['budget'], worker: Layer.Layer<Worker> = harnessWorker) =>
+const runShell = (prompt: string, o: { budget?: WorkerRequest['budget']; worker?: Layer.Layer<Worker>; access?: WorkerRequest['access']; harness?: Harness } = {}) =>
 	Effect.runPromise(Effect.gen(function* () {
-		return yield* (yield* Worker).run({ kind: 'execute', item: 1, job: 'implement', profile: 'implementer', card: card('shell'), access: 'run', system: '', prompt, cwd: import.meta.dirname, budget, harness: shell })
-	}).pipe(Effect.provide(worker))) as Promise<WorkerResult & { overBudget?: { exceeded: string; tokens: number | null }; raw?: string }>
+		return yield* (yield* Worker).run({ kind: 'execute', item: 1, job: 'implement', profile: 'implementer', card: card('shell'), access: o.access ?? 'run', system: '', prompt, cwd: import.meta.dirname, budget: o.budget, harness: o.harness ?? shell })
+	}).pipe(Effect.provide(o.worker ?? harnessWorker))) as Promise<WorkerResult & { overBudget?: { exceeded: string; tokens: number | null }; raw?: string; output?: string }>
 const alive = (pid: number) => {
 	try {
 		return process.kill(pid, 0)
@@ -128,12 +141,12 @@ test('a prescribed harness entry runs neutral: allowlisted environment, per-call
 })
 
 test('going over the wall-time or token budget kills the process group and fails the launch with evidence', async () => {
-	const slow = await runShell('echo started; sleep 30', { minutes: 0.002 })
+	const slow = await runShell('echo started; sleep 30', { budget: { minutes: 0.002 } })
 	assert.equal(slow.ok, false)
 	assert.equal(slow.overBudget?.exceeded, 'minutes')
 	assert.match((slow as { error: string }).error, /went over its budget: ran .* of 0.002 minutes/)
 	assert.equal(slow.raw, 'started\n')
-	const greedy = await runShell('echo \'{"tokens": 600}\'; echo \'{"tokens": 600}\'; sleep 30', { minutes: 1, tokens: 1000 })
+	const greedy = await runShell('echo \'{"tokens": 600}\'; echo \'{"tokens": 600}\'; sleep 30', { budget: { minutes: 1, tokens: 1000 } })
 	assert.equal(greedy.overBudget?.exceeded, 'tokens')
 	assert.equal(greedy.overBudget?.tokens, 1200)
 	const limited = await runShell('echo "out of quota until 4pm (UTC)"')
@@ -141,7 +154,65 @@ test('going over the wall-time or token budget kills the process group and fails
 })
 
 test('a worker command that exits without reading its request is a failed call, not a crash', async () => {
-	const r = await runShell('x'.repeat(1 << 20), undefined, commandWorker('exit 3'))
+	const r = await runShell('x'.repeat(1 << 20), { worker: commandWorker('exit 3') })
 	assert.equal(r.ok, false)
 	assert.match((r as { error: string }).error, /exited 3 without reading its request on stdin \(.*EPIPE.*\)/)
+})
+
+test('a call with no access runs in an empty directory of its own, never in the workspace', async () => {
+	const r = await runShell('pwd; ls -A | wc -l', { access: 'none' })
+	assert.equal(r.ok, true, JSON.stringify(r))
+	const [cwd, entries] = r.output!.split('\n')
+	assert.notEqual(cwd, import.meta.dirname)
+	assert.equal(entries!.trim(), '1', 'only the call\'s own settings file')
+	assert.equal(existsSync(cwd!), false, 'and it is gone after the call')
+})
+
+test('each JSON line is stamped with its arrival time, so tool events get when and how long', async () => {
+	// pi's event shapes, from a shell: a tool call that takes 300 ms, then the answer.
+	const jsonl: Harness = { ...shell, output: 'jsonl', answer: { event: { type: 'message_end' }, text: 'message.content' } }
+	const r = await runShell(`echo '{"type":"tool_execution_start","toolCallId":"a","toolName":"bash","args":{}}'; sleep 0.3; echo '{"type":"tool_execution_end","toolCallId":"a","result":"x"}'; echo 'not json'; echo '[1]'; echo '{}'; printf '%s' '{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"done"}]}}'`, { harness: jsonl })
+	assert.equal(r.ok, true, JSON.stringify(r))
+	const raw = r.raw!.split('\n')
+	assert.deepEqual(raw.slice(2, 4), ['not json', '[1]'], 'other lines pass through as they came')
+	assert.match(raw[4]!, /^\{"mw_at":\d+\}$/)
+	assert.equal(typeof JSON.parse(raw[5]!).mw_at, 'number', 'the last line is stamped even without a newline')
+	const [tool] = toolEvents('pi', r.raw!)
+	assert.ok(tool!.at && Math.abs(Date.parse(tool!.at) - Date.now()) < 5000, tool!.at!)
+	assert.ok(tool!.ms! >= 250 && tool!.ms! < 2000, String(tool!.ms))
+	const text = await runShell(`echo '{"a":1}'`)
+	assert.equal(text.output, '{"a":1}', 'a plain-text answer is never stamped')
+})
+
+test('mw run stops cleanly on SIGTERM: the agent process group dies and the runner is released', async () => {
+	const dir = mkdtempSync(join(tmpdir(), 'mw-sig-'))
+	const repo = join(dir, 'repo')
+	const pidFile = join(dir, 'agent.pid')
+	mkdirSync(repo)
+	// A worker whose agent hangs, with a child of its own.
+	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `sleep 300 & echo $! > ${pidFile}; wait` }
+	delete env.MW_STORE
+	const cli = join(import.meta.dirname, '../src/cli.ts')
+	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
+	try {
+		mw('init', '--ship', 'true')
+		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: ['ignore', 'ignore', 'pipe'] })
+		let stderr = ''
+		runner.stderr.setEncoding('utf8').on('data', (c: string) => (stderr += c))
+		while (!existsSync(pidFile) || !readFileSync(pidFile, 'utf8').trim()) await new Promise((r) => setTimeout(r, 20))
+		const agent = Number(readFileSync(pidFile, 'utf8'))
+		assert.equal(alive(agent), true)
+		runner.kill('SIGTERM')
+		const code = await new Promise((r) => runner.once('exit', r))
+		assert.equal(code, 143)
+		assert.deepEqual(JSON.parse(stderr).interrupted, 'SIGTERM')
+		assert.equal(alive(agent), false, 'the agent\'s process group was killed')
+		const db = new DatabaseSync(join(dir, 'home', 'madewell.db'))
+		const stopped = db.prepare(`SELECT data FROM events WHERE kind = 'runner-stopped'`).all()
+		db.close()
+		assert.equal(stopped.length, 1, 'the runner released its claim')
+	} finally {
+		rmSync(dir, { recursive: true, force: true })
+	}
 })

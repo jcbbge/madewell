@@ -8,12 +8,14 @@
 // Reading never creates anything: a command opens the store only if it exists, except `start` and
 // `discover`, which create it once their input is known to be good.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { constants as osConstants } from 'node:os'
 import { basename, dirname, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
 import { answer, nextFor, promote, retry, runQueue } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
+import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { stepOf } from './lane.ts'
 import { Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
 import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
@@ -387,6 +389,23 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote(exported.dir)}`, why: 'one folder per call: brief, packet, answer, raw stream, tools.json and flags.json' }] }
 		}),
 	}),
+	command({
+		name: 'eval',
+		summary: 'Replay a job\'s recorded calls on another card or brief through the worker, score record and replay deterministically (required JSON fields, rule-break flags, seconds, tokens), and recommend the cheapest card that matches or beats the record. Replays run in throwaway worktrees; results go only to the store; no file changes.',
+		args: ['job'],
+		input: Schema.Struct({
+			job: Schema.Literals(JOBS).annotate({ description: 'the job whose recorded calls to replay: its intake, originator and execute calls' }),
+			card: optional('a tier name (every card in it) or one card as JSON {harness, provider, account, model, effort}; defaults to each call\'s recorded card'),
+			brief: optional('a file whose text replaces the job\'s brief; only execute calls are replayed'),
+			item: optional('only calls of these work items, comma-separated: 3,5'),
+			limit: Schema.optionalKey(Id.annotate({ description: 'replay at most this many calls, the most recent' })),
+		}),
+		output: EvalReport,
+		run: (input) => Effect.gen(function* () {
+			const prescriptions = yield* loadPrescriptions(prescriptionsPath())
+			return yield* evaluate({ ...input, prescriptions, prescriptionsPath: prescriptionsPath() })
+		}),
+	}),
 ]
 
 // ── The manual and the dispatcher, both read from COMMANDS ─────────────────────────────────────────────
@@ -476,7 +495,13 @@ const program = Effect.gen(function* () {
 	)),
 )
 
-const exit = await Effect.runPromise(program.pipe(Effect.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })))
+// SIGINT and SIGTERM interrupt the work, so its finalizers kill agent process groups and release the runner.
+const signalled = Effect.callback<{ out: unknown; code: number }>((resume) => {
+	const on = (signal: NodeJS.Signals) => resume(Effect.succeed({ out: { interrupted: signal, next: [{ run: 'mw next', why: 'the interrupted work resumes where it stopped' }] }, code: 128 + osConstants.signals[signal] }))
+	process.once('SIGINT', on).once('SIGTERM', on)
+	return Effect.sync(() => process.off('SIGINT', on).off('SIGTERM', on))
+})
+const exit = await Effect.runPromise(Effect.raceFirst(program.pipe(Effect.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })), signalled))
 const text = JSON.stringify(exit.out) + '\n'
 if (exit.code) process.stderr.write(text)
 else process.stdout.write(text)

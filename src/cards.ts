@@ -17,8 +17,12 @@ const Card = Schema.Struct({
 })
 export type Card = typeof Card.Type
 
-const Access = Schema.Literals(['read', 'checks', 'make', 'run'])
+/** What a call may touch. `none`: no tools and no workspace, only the packet. */
+const Access = Schema.Literals(['none', 'read', 'checks', 'make', 'run'])
 export type Access = typeof Access.Type
+
+/** NQ intake judges the packet alone, so a fact it lacks becomes a question to the sender. */
+export const INTAKE_ACCESS = 'none' satisfies Access
 
 const JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate'] as const
 
