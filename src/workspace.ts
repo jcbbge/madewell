@@ -12,8 +12,8 @@ import { type ERRORS, type ErrorCode, MadeWellError, type Next } from './errors.
 const GUIDANCE = ['AGENTS.md', 'AGENT.md', 'CLAUDE.md', 'CLAUDE.local.md', 'GEMINI.md', '.cursorrules']
 const TEARDOWN_TIMEOUT_MS = 5 * 60_000
 
-/** Where job worktrees live: under Made Well's home, never inside a product repo. */
-export const worktreesRoot = () => join(process.env.MW_HOME ?? join(homedir(), '.local', 'share', 'madewell'), 'worktrees')
+/** Where job worktrees live: under Made Well's home, beside the store, never inside a product repo. */
+export const worktreesRoot = () => join(process.env.MW_STORE ? dirname(process.env.MW_STORE) : (process.env.MW_HOME ?? join(homedir(), '.local', 'share', 'madewell')), 'worktrees')
 
 const fail = <C extends ErrorCode>(code: C, message: string, context: (typeof ERRORS)[C]['context']['Type'], next: Next[], cause?: string) =>
 	new MadeWellError({ code, message, context, next, ...(cause ? { cause } : {}) } as ConstructorParameters<typeof MadeWellError>[0])
@@ -24,7 +24,7 @@ const exec = (command: string, args: string[], cwd: string, timeout = 0) =>
 			done({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }))))
 
 // --no-optional-locks: reading never refreshes the index, so Made Well's own probes leave nothing behind.
-const git = (dir: string, ...args: string[]) =>
+export const git = (dir: string, ...args: string[]) =>
 	exec('git', ['--no-optional-locks', '-C', dir, ...args], dir).pipe(Effect.flatMap(({ code, stdout, stderr }) =>
 		code === 0 ? Effect.succeed(stdout) : Effect.fail(fail('git_failed', `git ${args[0]} failed in ${dir}.`, { dir, args, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args.join(' ')}`, why: 'run it yourself to see the full error' }]))))
 const lines = (out: string) => out.split('\0').filter(Boolean)

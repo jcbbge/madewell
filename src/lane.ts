@@ -1,9 +1,20 @@
 // The delivery lane: one work item in, one shipped change out.
-// Four stages, six agent profiles, each a separate job on its own card. The arbiter rules on failures.
+// Four stages and six agent profiles, each job a separate call on its own card. After planning the work
+// splits (ruling 12): the implementer and the test architect run in parallel from the same plan, and
+// neither sees the other's output. Verification is Made Well's own code (ruling 14): it runs the item's
+// checks against the implementer's change, and only a failure calls an agent, the arbiter.
+//
+// Every deliverable is schema-first JSON: the schemas below are what each job is told to answer with and
+// what its answer is decoded against.
+import { Result, Schema } from 'effect'
 
 export type Job = 'discover' | 'ideate' | 'challenge' | 'plan' | 'test-plan' | 'implement' | 'verify' | 'arbitrate'
 export type Stage = 'discovery' | 'ideation' | 'planning' | 'implementation' | 'verification'
 export type Cause = 'pre-existing' | 'implementation' | 'test'
+/** The two jobs that run in parallel after planning. */
+export type Maker = 'implement' | 'test-plan'
+export const MAKERS: ReadonlyArray<Maker> = ['implement', 'test-plan']
+export const isMaker = (job: Job): job is Maker => job === 'implement' || job === 'test-plan'
 
 export interface Step {
 	readonly job: Job
@@ -13,12 +24,12 @@ export interface Step {
 }
 
 export const DELIVERY: ReadonlyArray<Step> = [
-	{ job: 'ideate', stage: 'ideation', profile: 'ideator', duty: 'Shape the outcome and bounded options; recommend the smallest useful approach. Do not implement.' },
-	{ job: 'challenge', stage: 'ideation', profile: 'ideation peer', duty: 'Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Do not implement.' },
-	{ job: 'plan', stage: 'planning', profile: 'planner', duty: 'Inspect the workspace and write the contract: Making / Not making / Done when / Waits on, with exact paths and instructions. Resolve every design choice. Do not implement.' },
-	{ job: 'test-plan', stage: 'planning', profile: 'test architect', duty: 'From the plan alone, write the checks for this work item and the exact commands that run them. Do not write product code.' },
-	{ job: 'implement', stage: 'implementation', profile: 'implementer', duty: 'Execute the plan exactly as written. Do not design, improvise or change the plan or the checks.' },
-	{ job: 'verify', stage: 'verification', profile: 'verifier', duty: 'Run only this item\'s checks and report what you observed. Never repair, retry or broaden.' },
+	{ job: 'ideate', stage: 'ideation', profile: 'ideator', duty: 'Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement.' },
+	{ job: 'challenge', stage: 'ideation', profile: 'ideation peer', duty: 'Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement.' },
+	{ job: 'plan', stage: 'planning', profile: 'planner', duty: 'Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement.' },
+	{ job: 'test-plan', stage: 'planning', profile: 'test architect', duty: 'From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code.' },
+	{ job: 'implement', stage: 'implementation', profile: 'implementer', duty: 'Execute the plan exactly as written. Do not design, improvise or change the plan, and never write or run checks of your own work.' },
+	{ job: 'verify', stage: 'verification', profile: 'made well', duty: 'Made Well runs the item\'s own check commands against the implementer\'s change; exit 0 ships.' },
 ]
 
 /** Discovery: raw input in, candidate work items out. The ideator runs it. */
@@ -33,64 +44,168 @@ export const ARBITER: Step = {
 	job: 'arbitrate',
 	stage: 'verification',
 	profile: 'arbiter',
-	duty: 'A check failed or a step could not be done as written. Decide whose it is: a pre-existing bug, a bad implementation, or a bad test.',
+	duty: 'A check failed or a step could not be done as written. Decide from the evidence whose it is: a pre-existing defect, a bad implementation, or a bad test.',
 }
 
 export const stepOf = (job: Job): Step => (job === 'arbitrate' ? ARBITER : job === 'discover' ? DISCOVER : DELIVERY.find((s) => s.job === job)!)
 
-/** What each job must end its answer with, as a JSON object on its own. */
-export const ENDS_WITH: Partial<Record<Job, string>> = {
-	discover: '{"items": [{"title": string, "kind": "feature"|"fix"|"chore", "objective": string, "text": string}]}',
-	'test-plan': '{"blocked": string} only if something stops you from doing the step as written',
-	implement: '{"blocked": string} only if the plan is wrong or a step cannot be done as written',
-	verify: '{"outcome": "pass"|"fail", "summary": string}',
-	arbitrate: '{"cause": "pre-existing"|"implementation"|"test"|"undetermined", "answer": string, "evidence": string}',
+/**
+ * What each job receives of earlier deliverables: a static table, not every accepted output. The makers
+ * receive the plan and nothing of each other; only the arbiter sees both. Lane order, so packets of later
+ * jobs extend the prefix of earlier ones.
+ */
+export const RECEIVES: Readonly<Record<Job, ReadonlyArray<Job>>> = {
+	discover: [],
+	ideate: ['discover'],
+	challenge: ['discover', 'ideate'],
+	plan: ['discover', 'ideate', 'challenge'],
+	'test-plan': ['plan'],
+	implement: ['plan'],
+	verify: [],
+	arbitrate: ['plan', 'test-plan', 'implement'],
 }
 
-/** Where the work goes after a job reports. Pure: the engine applies it. */
-export interface Candidate {
-	readonly title: string
-	readonly kind: 'feature' | 'fix' | 'chore'
-	readonly objective: string
-	readonly text: string
+// ── Deliverables ───────────────────────────────────────────────────────────────────────────────────────
+
+const Text = Schema.String
+const Decision = Schema.Struct({
+	question: Text,
+	decision: Text,
+	why: Text.annotate({ description: 'how the three governing questions settle it' }),
+})
+const Decisions = Schema.Array(Decision).annotate({ description: 'every decision this job settled, and why' })
+export const Resource = Schema.Struct({
+	kind: Text.annotate({ description: 'for example database-branch, dev-clone, server' }),
+	id: Text,
+	teardown: Text.annotate({ description: 'shell command that removes it' }),
+})
+const Provisioned = Schema.optionalKey(Schema.Array(Resource).annotate({ description: 'anything you started or created that is still standing; Made Well tears each down' }))
+export const DoneWhen = Schema.Struct({ id: Text.annotate({ description: 'short and unique, for example D1' }), text: Text })
+export type DoneWhen = typeof DoneWhen.Type
+export const Check = Schema.Struct({
+	id: Text.annotate({ description: 'short and unique, for example C1' }),
+	doneWhen: Text.annotate({ description: 'the id of the plan\'s done-when item this check proves' }),
+	run: Text.annotate({ description: 'shell command run from the repo root; exit 0 means the item is done' }),
+})
+export type Check = typeof Check.Type
+const Blocked = Schema.Struct({ blocked: Schema.NonEmptyString.annotate({ description: 'what stops you doing the step as written; only when something does' }) })
+const Candidate = Schema.Struct({ title: Text, kind: Schema.Literals(['feature', 'fix', 'chore']), objective: Text, text: Text })
+export type Candidate = typeof Candidate.Type
+
+export const PLAN = Schema.Struct({
+	making: Text,
+	notMaking: Schema.Array(Text),
+	scope: Schema.Array(Text).annotate({ description: 'every file the change may touch, repo-relative; a directory ends in "/". A change outside it is refused.' }),
+	steps: Schema.Array(Text).annotate({ description: 'exact instructions with paths; nothing left to decide' }),
+	doneWhen: Schema.Array(DoneWhen),
+	decisions: Decisions,
+	waitsOn: Schema.Array(Text),
+})
+export type Plan = typeof PLAN.Type
+
+export const DELIVERABLES = {
+	discover: Schema.Struct({ items: Schema.Array(Candidate) }),
+	ideate: Schema.Struct({ outcome: Text, approach: Text, decisions: Decisions }),
+	challenge: Schema.Struct({ findings: Schema.Array(Schema.Struct({ finding: Text, resolution: Text })), decisions: Decisions }),
+	plan: PLAN,
+	'test-plan': Schema.Union([Schema.Struct({ checks: Schema.Array(Check), provisioned: Provisioned }), Blocked]),
+	implement: Schema.Union([Schema.Struct({ summary: Text, provisioned: Provisioned }), Blocked]),
+	arbitrate: Schema.Struct({ cause: Schema.Literals(['pre-existing', 'implementation', 'test', 'undetermined']), answer: Text, evidence: Text, provisioned: Provisioned }),
+} as const
+export type Deliverable<J extends keyof typeof DELIVERABLES> = (typeof DELIVERABLES)[J]['Type']
+
+/** The receiver's reply at intake: the three NQ questions, each a list. */
+export const INTAKE = Schema.Struct({
+	understanding: Text,
+	unclear: Schema.Array(Text).annotate({ description: 'What is unclear?' }),
+	ambiguous: Schema.Array(Text).annotate({ description: 'What is ambiguous?' }),
+	missing: Schema.Array(Text).annotate({ description: 'Do I have everything I need to proceed? What is missing.' }),
+	notes: Schema.Array(Text).annotate({ description: 'points the packet already settles; never an assumption or a choice' }),
+})
+export const ORIGINATOR = Schema.Struct({ answer: Schema.NonEmptyString, needsOperator: Schema.Boolean })
+
+/** A schema as compact JSON Schema, for a brief. */
+export const shapeOf = (schema: Schema.Top) =>
+	JSON.parse(JSON.stringify(Schema.toJsonSchemaDocument(schema).schema, (k, v) => (k === 'additionalProperties' ? undefined : v)))
+
+/** Fields an answer's JSON must carry, for the call's facts. */
+export const requiredOf = (schema: Schema.Top): string[] => {
+	const s = shapeOf(schema)
+	return s.required ?? []
 }
 
-export type Route =
-	| { readonly to: 'discovered'; readonly items: ReadonlyArray<Candidate> }
-	| { readonly to: 'next'; readonly job: Job }
-	| { readonly to: 'ship' }
-	| { readonly to: 'arbitrate'; readonly failure: string }
-	| { readonly to: 'rework'; readonly job: Job; readonly cause: Cause; readonly answer: string }
-	| { readonly to: 'prerequisite'; readonly answer: string }
-	| { readonly to: 'hold'; readonly code: string; readonly message: string }
-	| { readonly to: 'malformed'; readonly expected: string }
+/** The last JSON object in `output`, decoded against `schema`; or why it is refused. */
+export function decode<S extends Schema.Top & Schema.ConstraintDecoder<unknown>>(schema: S, output: string): { ok: true; value: S['Type'] } | { ok: false; reason: string } {
+	const json = lastJson(output)
+	if (!json) return { ok: false, reason: 'The answer did not end with a JSON object.' }
+	const r = Schema.decodeUnknownResult(schema)(json, { errors: 'all' })
+	return Result.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` }
+}
 
-export const MAX_CORRECTIONS = 3
+const dupes = (ids: ReadonlyArray<string>) => ids.filter((id, i) => ids.indexOf(id) !== i)
 
-export function route(job: Job, output: string, corrections: number): Route {
-	const report = lastJson(output)
+/** Checks a job's deliverable beyond its schema. Pure: the plan carries the done-when ids the checks must thread. */
+export function validate(job: Job, output: string, plan?: Plan): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
 	if (job === 'discover') {
-		if (!Array.isArray(report?.items)) return { to: 'malformed', expected: ENDS_WITH.discover! }
+		// Discovery keeps what it can: an item without a title or objective is dropped, not the whole run.
+		const report = lastJson(output)
+		if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' }
 		const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
 		const items = (report.items as Record<string, unknown>[])
 			.filter((i) => text(i?.title) && text(i?.objective))
 			.map((i): Candidate => ({ title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature' }))
-		return { to: 'discovered', items }
+		return { ok: true, value: { items } }
 	}
-	if ((job === 'implement' || job === 'test-plan') && typeof report?.blocked === 'string' && report.blocked.trim()) {
-		return { to: 'arbitrate', failure: `The ${stepOf(job).profile} (${job}) could not do the step as written: ${report.blocked}` }
+	if (job === 'verify') return { ok: false, reason: 'verify is Made Well\'s own code, not an agent job.' }
+	const decoded = decode(DELIVERABLES[job], output)
+	if (!decoded.ok) return decoded
+	const value = decoded.value as Record<string, unknown>
+	if (job === 'plan') {
+		const p = value as Plan
+		if (!p.scope.length) return { ok: false, reason: 'The plan declares no scope: name every file the change may touch.' }
+		const outside = p.scope.filter((f) => f.startsWith('/') || f.split('/').includes('..'))
+		if (outside.length) return { ok: false, reason: `Scope entries must be repo-relative paths inside the repo: ${outside.join(', ')}.` }
+		if (!p.doneWhen.length) return { ok: false, reason: 'The plan has no done-when items.' }
+		if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(', ')}.` }
 	}
-	if (job === 'verify') {
-		if (report?.outcome === 'pass') return { to: 'ship' }
-		if (report?.outcome === 'fail') return { to: 'arbitrate', failure: output }
-		return { to: 'malformed', expected: ENDS_WITH.verify! }
-	}
-	if (job === 'arbitrate') {
-		const cause = report?.cause
-		const answer = typeof report?.answer === 'string' ? report.answer : ''
-		if (cause !== 'pre-existing' && cause !== 'implementation' && cause !== 'test' && cause !== 'undetermined') {
-			return { to: 'malformed', expected: ENDS_WITH.arbitrate! }
+	if (job === 'test-plan' && 'checks' in value && plan) {
+		const checks = value.checks as Check[]
+		const ids = plan.doneWhen.map((d) => d.id)
+		const unknown = checks.filter((c) => !ids.includes(c.doneWhen)).map((c) => `${c.id} → ${c.doneWhen}`)
+		const uncovered = ids.filter((id) => !checks.some((c) => c.doneWhen === id))
+		const repeated = dupes(checks.map((c) => c.id))
+		if (unknown.length || uncovered.length || repeated.length) {
+			return { ok: false, reason: [unknown.length && `Checks name done-when ids the plan does not have: ${unknown.join(', ')}.`, uncovered.length && `Done-when items without a check: ${uncovered.join(', ')}.`, repeated.length && `Check ids repeat: ${repeated.join(', ')}.`].filter(Boolean).join(' ') }
 		}
+	}
+	return { ok: true, value }
+}
+
+/** Where the work goes after a single-track job's deliverable is accepted. Pure: the engine applies it. */
+export type Route =
+	| { readonly to: 'discovered'; readonly items: ReadonlyArray<Candidate> }
+	| { readonly to: 'next'; readonly job: Job }
+	| { readonly to: 'split' }
+	| { readonly to: 'arbitrate'; readonly failure: string }
+	| { readonly to: 'rework'; readonly job: Job; readonly cause: Cause; readonly answer: string }
+	| { readonly to: 'prerequisite'; readonly answer: string }
+	| { readonly to: 'hold'; readonly code: string; readonly message: string }
+
+export const MAX_CORRECTIONS = 3
+
+export const blockedOf = (job: Job, value: Record<string, unknown>) =>
+	typeof value.blocked === 'string' ? `The ${stepOf(job).profile} (${job}) could not do the step as written: ${value.blocked}` : undefined
+
+export function route(job: Job, value: Record<string, unknown>, corrections: number): Route {
+	if (job === 'discover') return { to: 'discovered', items: value.items as Candidate[] }
+	const blocked = blockedOf(job, value)
+	if (blocked) return { to: 'arbitrate', failure: blocked }
+	if (job === 'plan') return { to: 'split' }
+	// A corrected test is run again; the valid implementation is not rebuilt.
+	if (job === 'test-plan' || job === 'implement') return { to: 'next', job: 'verify' }
+	if (job === 'arbitrate') {
+		const cause = value.cause as Cause | 'undetermined'
+		const answer = value.answer as string
 		if (cause === 'undetermined') return { to: 'hold', code: 'arbiter_undetermined', message: `The arbiter could not decide whose failure this is: ${answer}` }
 		if (corrections >= MAX_CORRECTIONS) return { to: 'hold', code: 'too_many_corrections', message: `${corrections} corrections have not made the checks pass. Last ruling: ${cause}: ${answer}` }
 		if (cause === 'pre-existing') return { to: 'prerequisite', answer }

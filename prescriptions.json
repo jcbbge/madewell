@@ -84,6 +84,29 @@
         "model": "gpt-6-luna",
         "effort": "low"
       }
+    ],
+    "intake": [
+      {
+        "harness": "claude",
+        "provider": "anthropic",
+        "account": "anthropic",
+        "model": "claude-haiku-5-5",
+        "effort": "low"
+      },
+      {
+        "harness": "codex",
+        "provider": "openai",
+        "account": "openai",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      },
+      {
+        "harness": "pi",
+        "provider": "openai-codex",
+        "account": "openai",
+        "model": "gpt-6-luna",
+        "effort": "low"
+      }
     ]
   },
   "jobs": {
