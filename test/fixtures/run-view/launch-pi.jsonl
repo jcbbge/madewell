@@ -1,3 +1,0 @@
-{"type":"session","id":"01a145d5-f88b-7022-8c17-ee76c55ae802"}
-{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"ok"}],"stopReason":"stop","model":"gpt-6-luna","usage":{"totalTokens":1530,"cost":{"total":0.0042}}}}
-{"type":"agent_settled"}

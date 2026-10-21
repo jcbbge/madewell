@@ -1,43 +1,23 @@
 {
-  "name": "madewell-pi-durable",
-  "version": "0.3.0",
-  "description": "Made Well on Pi Durable: durable work, separate pi agents per phase",
-  "files": [
-    "*.mjs",
-    "pi-extension.ts",
-    "harness/",
-    "prescriptions.json",
-    "FOLD.md",
-    "DISPATCH.md",
-    "PROVISION.md",
-    "FOUNDATION.md",
-    "AGENTS.md",
-    "README.md",
-    "dashboard.html"
-  ],
-  "pi": {
-    "extensions": [
-      "./pi-extension.ts"
-    ]
-  },
+  "name": "madewell",
+  "version": "0.0.0",
   "private": true,
-  "bin": {
-    "pi-durable": "cli.mjs"
-  },
   "type": "module",
-  "scripts": {
-    "setup": "node provision.mjs",
-    "test": "PI_DURABLE_ALERT=none PI_DURABLE_CLAUDE=/bin/false PI_DURABLE_CODEX=/bin/false node --test test/*.test.mjs",
-    "update": "npm install --no-save @earendil-works/pi-durable@latest @earendil-works/pi-ai@latest @earendil-works/chord@latest"
+  "bin": {
+    "mw": "src/cli.ts"
   },
   "engines": {
-    "node": ">=22.19.0"
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc"
   },
   "dependencies": {
-    "@earendil-works/chord": "latest",
-    "@earendil-works/pi-durable": "latest"
+    "effect": "^4.0.5"
   },
-  "peerDependencies": {
-    "@earendil-works/pi-ai": "*"
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
   }
 }
