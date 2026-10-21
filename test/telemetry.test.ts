@@ -258,7 +258,9 @@ test('the same records written at the metrics level give mw stats the same numbe
 	const [full, metrics] = [written('full'), written('metrics')]
 	const numbers = stats(full).projects[0]!
 	assert.deepEqual([numbers.tokens, numbers.refused, numbers.nq.questions, numbers.items.held, numbers.flags], [25 + 23872 + 21465, 1, 2, 1, { 'write-under-read': 1, 'tool-not-allowed': 1 }])
-	assert.deepEqual(stats(metrics).projects, stats(full).projects)
+	// Each level is its own store here, so only the store ids differ.
+	const sansStore = (lines: string[]) => JSON.parse(JSON.stringify(stats(lines).projects, (k, v) => (k === 'store' ? undefined : v)))
+	assert.deepEqual(sansStore(metrics), sansStore(full))
 	assert.ok(full.join('\n').includes('secret') && !metrics.join('\n').includes('secret'))
 	assert.equal(JSON.parse(metrics.find((l) => l.includes('"t":"call"'))!).tools[0].tool, 'shell_command', 'tool names stay')
 })

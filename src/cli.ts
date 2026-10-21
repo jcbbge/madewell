@@ -7,12 +7,13 @@
 //
 // Reading never creates anything: a command opens the store only if it exists, except `start` and
 // `discover`, which create it once their input is known to be good.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { constants as osConstants } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
+import { itemHome } from './change.ts'
 import { answer, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
@@ -62,6 +63,18 @@ const HoldView = Schema.Struct({
 }).annotate({ identifier: 'Hold' })
 
 const Board = Schema.Struct({ summary: Schema.String, items: Schema.Array(ItemView), next: Schema.Array(Next) }).annotate({ identifier: 'Board' })
+
+const Pruned = Schema.Struct({
+	before: Schema.String.annotate({ description: 'the cutoff applied, ISO; a later time than now counts as now' }),
+	dryRun: Schema.Boolean,
+	summary: Schema.String,
+	items: Schema.Array(Schema.Int).annotate({ description: 'the items removed; with --dry-run, the items it would remove' }),
+	records: Schema.Struct({ events: Schema.Int, calls: Schema.Int, toolEvents: Schema.Int, evals: Schema.Int, evalCalls: Schema.Int }).annotate({ description: 'rows removed with them; events include the runner\'s own from before the cutoff' }),
+	files: Schema.Array(Schema.String).annotate({ description: 'removed beside the store: their exports/<id> and items/<id> folders, and replay.html, which holds their record' }),
+	kept: Schema.Array(Schema.Struct({ id: Schema.Int, status: Schema.String, why: Schema.String })).annotate({ description: 'finished items older than the cutoff that stay, because work still in flight needs them' }),
+	freed: Schema.NullOr(Schema.Int).annotate({ description: 'bytes given back to the disk: the store shrinking and the files removed; null on a dry run' }),
+	next: Schema.Array(Next),
+}).annotate({ identifier: 'Pruned' })
 
 const Action = Schema.Union([
 	Schema.Struct({ action: Schema.Literal('run'), run: Schema.String, why: Schema.String }),
@@ -173,6 +186,44 @@ const runner = (store: Store['Service']) =>
 	)
 
 const MOVING: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quota', 'waiting-prerequisite']
+
+/**
+ * What prune removes: finished work (shipped items and discovery runs) last changed before the cutoff. Every
+ * other item is still moving or waits on the operator, and keeps what it builds on, waits on, was found by or
+ * spawned; a missing one would block it for good. In a workspace with work in flight, the item merged last
+ * stays too: in-flight items check the branch against its merge.
+ */
+const retention = (store: Store['Service'], before: string) => {
+	const items = store.list()
+	const live = items.filter((i) => i.status !== 'shipped' && i.status !== 'discovered')
+	const links = (i: Item) => [i.waitsOn, i.parent, i.discovery, ...(i.after ?? [])]
+	const lastMerge = new Map<string, { id: number; seq: number }>()
+	for (const i of items.filter((i) => i.merged && live.some((l) => l.workspace === i.workspace))) {
+		const seq = store.events(i.id).findLast((e) => e.kind === 'merged')?.seq ?? 0
+		if (seq > (lastMerge.get(i.workspace)?.seq ?? 0)) lastMerge.set(i.workspace, { id: i.id, seq })
+	}
+	const old = items.filter((i) => !live.includes(i) && Date.parse(i.updated) < Date.parse(before))
+	const why = (i: Item) => {
+		const by = live.find((l) => links(l).includes(i.id) || links(i).includes(l.id))
+		if (by) return `#${by.id} (${by.status}) needs it`
+		if (lastMerge.get(i.workspace)?.id === i.id) return `the last merge into ${i.workspace}, which its in-flight items check the branch against`
+	}
+	const ids: number[] = []
+	const kept: (typeof Pruned.Type)['kept'][number][] = []
+	for (const i of old) {
+		const w = why(i)
+		if (w) kept.push({ id: i.id, status: i.status, why: w })
+		else ids.push(i.id)
+	}
+	return { ids, kept }
+}
+
+/** Bytes on disk under a path. */
+const sizeOf = (path: string): number => {
+	if (!existsSync(path)) return 0
+	const s = statSync(path)
+	return s.isDirectory() ? readdirSync(path).reduce((n, f) => n + sizeOf(join(path, f)), 0) : s.size
+}
 
 /** The one action to take now. Work that can move without the operator comes first, then holds, then decisions. */
 const nextAction = Effect.fn('mw.next')(function* (): Effect.fn.Return<typeof Action.Type, MadeWellError, Store> {
@@ -449,6 +500,56 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const prescriptions = yield* loadPrescriptions(prescriptionsPath())
 			return yield* evaluate({ ...input, prescriptions, prescriptionsPath: prescriptionsPath() })
 		}),
+	}),
+	command({
+		name: 'prune',
+		summary: 'Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator\'s and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.',
+		input: Schema.Struct({
+			before: Schema.String.annotate({ description: 'an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z' }),
+			'dry-run': Schema.optionalKey(Schema.Boolean.annotate({ description: 'report what would go and change nothing' })),
+		}),
+		output: Pruned,
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			const at = Date.parse(input.before)
+			if (!/^\d{4}-\d{2}-\d{2}/.test(input.before) || Number.isNaN(at)) return yield* usageError('prune', `--before "${input.before}" is not a date. Give an ISO date or time, such as 2026-09-30.`)
+			// A cutoff in the future means everything finished so far, and nothing that finishes while prune works.
+			const before = new Date(Math.min(at, yield* Clock.currentTimeMillis)).toISOString()
+			const dryRun = input['dry-run'] === true
+			const store = yield* Store
+			if (!dryRun) {
+				yield* Effect.acquireRelease(store.claimRunner(), () => Effect.sync(() => store.releaseRunner())).pipe(Effect.catchIf((e) => e.code === 'store_locked', (e) => {
+					const context = e.context as typeof ERRORS.store_locked.context.Type
+					return Effect.fail(new MadeWellError({
+						code: 'store_locked', message: 'A live runner owns this Made Well store, so prune waits for it.', context,
+						cause: 'Prune holds the runner claim while it works: giving space back locks the whole store, and a working runner must never wait on that.',
+						next: [
+							{ run: `mw prune --before ${before}`, why: 'once that runner has returned: `mw run` returns when every item has shipped or holds' },
+							{ run: `mw prune --before ${before} --dry-run`, why: 'see now what it will remove; a dry run changes nothing and needs no claim' },
+							{ run: `kill ${context.owner.pid} && mw prune --before ${before}`, why: 'only for a runner that never returns (`mw run --watch`); start it again afterwards, and its work resumes where it stopped' },
+						],
+					}))
+				}))
+			}
+			const { ids, kept } = retention(store, before)
+			// Files first, rows last: a prune stopped halfway selects the same items again and finishes.
+			const home = dirname(storePath)
+			const files = [...ids.flatMap((id) => [join(home, 'exports', String(id)), itemHome(storePath, id)]), ...(ids.length ? [join(home, 'replay.html')] : [])].filter(existsSync)
+			const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`)
+			const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0)
+			if (!dryRun) {
+				for (const f of files) rmSync(f, { recursive: true, force: true })
+				if (existsSync(join(home, 'exports')) && !readdirSync(join(home, 'exports')).length) rmSync(join(home, 'exports'), { recursive: true })
+			}
+			const { items: _, ...records } = store.prune(ids, before, dryRun)
+			const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`
+			const also = kept.length ? `; ${kept.length} older finished item(s) stay because work in flight needs them` : ''
+			return {
+				before, dryRun, summary: `${dryRun ? 'Would remove' : 'Removed'} ${what}${also}.`, items: ids, records, files, kept,
+				freed: dryRun ? null : start - storeBytes(),
+				next: dryRun && ids.length + records.events ? [{ run: `mw prune --before ${before}`, why: 'remove them; nothing still moving or waiting on the operator is touched' }] : [],
+			}
+		}).pipe(Effect.scoped),
 	}),
 ]
 

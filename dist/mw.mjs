@@ -6,7 +6,7 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename, dirname as dirname6, join as join9, resolve as resolve6 } from "node:path";
 import { parseArgs } from "node:util";
@@ -22109,10 +22109,6 @@ function pickCard(cards, exhausted, now2) {
   return { card: void 0, resetsAt: resets.length ? Math.min(...resets) : now2 };
 }
 
-// src/engine.ts
-import { execFile as execFile4 } from "node:child_process";
-import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
-
 // src/change.ts
 import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { dirname as dirname2, join as join4 } from "node:path";
@@ -22321,6 +22317,10 @@ var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budge
   }
   return results2;
 });
+
+// src/engine.ts
+import { execFile as execFile4 } from "node:child_process";
+import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
 
 // src/project.ts
 import { execFile as execFile3 } from "node:child_process";
@@ -23106,6 +23106,35 @@ function openStore(path) {
           ]
         }));
       });
+    },
+    /**
+     * Retention: removes these items and everything recorded about them (events, calls, tool events, and the
+     * evals of those calls), with the runner's own events from before the cutoff, then gives the space back.
+     * Returns what each table lost; a dry run only counts. The caller holds the runner claim.
+     */
+    prune(ids, before, dryRun) {
+      const items = `(${ids.join(",")})`;
+      const calls = `(SELECT id FROM calls WHERE item IN ${items})`;
+      const evals = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'evals'").get() !== void 0;
+      const from = {
+        evals: evals && `evals WHERE NOT EXISTS (SELECT 1 FROM json_each(evals.calls) j JOIN calls c ON c.id = j.value WHERE c.item NOT IN ${items})`,
+        evalCalls: evals && `eval_calls WHERE call IN ${calls}`,
+        toolEvents: `tool_events WHERE call IN ${calls}`,
+        calls: `calls WHERE item IN ${items}`,
+        events: `events WHERE item IN ${items} OR (item = 0 AND at < '${new Date(before).toISOString()}')`,
+        items: `items WHERE id IN ${items}`
+      };
+      const each = (sql) => Object.fromEntries(Object.entries(from).map(([k, t]) => [k, t ? sql(t) : 0]));
+      if (dryRun) return each((t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n);
+      const removed = tx2(() => {
+        const r = each((t) => Number(db.prepare(`DELETE FROM ${t}`).run().changes));
+        if (Object.values(r).some(Boolean)) event(0, "pruned", { before, ...r, ids });
+        return r;
+      });
+      view2();
+      if (db.prepare("PRAGMA freelist_count").get().freelist_count) db.exec("VACUUM");
+      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+      return removed;
     },
     runnerOn(item) {
       db.prepare("UPDATE runner SET item = ? WHERE id = 1 AND pid = ?").run(item, process.pid);
@@ -24257,6 +24286,17 @@ var HoldView = Schema_exports.Struct({
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Hold" });
 var Board = Schema_exports.Struct({ summary: Schema_exports.String, items: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }).annotate({ identifier: "Board" });
+var Pruned = Schema_exports.Struct({
+  before: Schema_exports.String.annotate({ description: "the cutoff applied, ISO; a later time than now counts as now" }),
+  dryRun: Schema_exports.Boolean,
+  summary: Schema_exports.String,
+  items: Schema_exports.Array(Schema_exports.Int).annotate({ description: "the items removed; with --dry-run, the items it would remove" }),
+  records: Schema_exports.Struct({ events: Schema_exports.Int, calls: Schema_exports.Int, toolEvents: Schema_exports.Int, evals: Schema_exports.Int, evalCalls: Schema_exports.Int }).annotate({ description: "rows removed with them; events include the runner's own from before the cutoff" }),
+  files: Schema_exports.Array(Schema_exports.String).annotate({ description: "removed beside the store: their exports/<id> and items/<id> folders, and replay.html, which holds their record" }),
+  kept: Schema_exports.Array(Schema_exports.Struct({ id: Schema_exports.Int, status: Schema_exports.String, why: Schema_exports.String })).annotate({ description: "finished items older than the cutoff that stay, because work still in flight needs them" }),
+  freed: Schema_exports.NullOr(Schema_exports.Int).annotate({ description: "bytes given back to the disk: the store shrinking and the files removed; null on a dry run" }),
+  next: Schema_exports.Array(Next)
+}).annotate({ identifier: "Pruned" });
 var Action = Schema_exports.Union([
   Schema_exports.Struct({ action: Schema_exports.Literal("run"), run: Schema_exports.String, why: Schema_exports.String }),
   Schema_exports.Struct({
@@ -24357,6 +24397,35 @@ var runner = (store) => store.claimRunner().pipe(
   Effect_exports.catchIf((e) => e.code === "store_locked", (e) => Effect_exports.succeed(e.context.owner))
 );
 var MOVING = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
+var retention = (store, before) => {
+  const items = store.list();
+  const live = items.filter((i) => i.status !== "shipped" && i.status !== "discovered");
+  const links = (i) => [i.waitsOn, i.parent, i.discovery, ...i.after ?? []];
+  const lastMerge = /* @__PURE__ */ new Map();
+  for (const i of items.filter((i2) => i2.merged && live.some((l) => l.workspace === i2.workspace))) {
+    const seq = store.events(i.id).findLast((e) => e.kind === "merged")?.seq ?? 0;
+    if (seq > (lastMerge.get(i.workspace)?.seq ?? 0)) lastMerge.set(i.workspace, { id: i.id, seq });
+  }
+  const old = items.filter((i) => !live.includes(i) && Date.parse(i.updated) < Date.parse(before));
+  const why = (i) => {
+    const by = live.find((l) => links(l).includes(i.id) || links(i).includes(l.id));
+    if (by) return `#${by.id} (${by.status}) needs it`;
+    if (lastMerge.get(i.workspace)?.id === i.id) return `the last merge into ${i.workspace}, which its in-flight items check the branch against`;
+  };
+  const ids = [];
+  const kept = [];
+  for (const i of old) {
+    const w = why(i);
+    if (w) kept.push({ id: i.id, status: i.status, why: w });
+    else ids.push(i.id);
+  }
+  return { ids, kept };
+};
+var sizeOf = (path) => {
+  if (!existsSync3(path)) return 0;
+  const s = statSync2(path);
+  return s.isDirectory() ? readdirSync3(path).reduce((n, f) => n + sizeOf(join9(path, f)), 0) : s.size;
+};
 var nextAction = Effect_exports.fn("mw.next")(function* () {
   const store = yield* Store;
   const items = store.list();
@@ -24587,7 +24656,7 @@ var COMMANDS = [
   }),
   command({
     name: "stats",
-    summary: "Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; lead time from creation to ship (median, slowest, each item) and the age of items still open; NQ intakes, questions and share of agent minutes; calls, agent minutes (split by call kind: intake, originator, execute), tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.",
+    summary: "Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; lead time from creation to ship (median, slowest, each item) and the age of items still open; NQ intakes, questions and share of agent minutes; calls, agent minutes (split by call kind: intake, originator, execute), tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there. MW_TELEMETRY_LEVEL=metrics writes counts, timings, cards and outcomes but no prompts, answers or repo text; the numbers here are the same.",
     input: Schema_exports.Struct({ dir: optional3("the telemetry directory; defaults to MW_TELEMETRY") }),
     output: Stats,
     idempotent: true,
@@ -24615,6 +24684,62 @@ var COMMANDS = [
       const prescriptions = yield* loadPrescriptions(prescriptionsPath());
       return yield* evaluate2({ ...input, prescriptions, prescriptionsPath: prescriptionsPath() });
     })
+  }),
+  command({
+    name: "prune",
+    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
+    input: Schema_exports.Struct({
+      before: Schema_exports.String.annotate({ description: "an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z" }),
+      "dry-run": Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "report what would go and change nothing" }))
+    }),
+    output: Pruned,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const at = Date.parse(input.before);
+      if (!/^\d{4}-\d{2}-\d{2}/.test(input.before) || Number.isNaN(at)) return yield* usageError("prune", `--before "${input.before}" is not a date. Give an ISO date or time, such as 2026-09-30.`);
+      const before = new Date(Math.min(at, yield* Clock_exports.currentTimeMillis)).toISOString();
+      const dryRun = input["dry-run"] === true;
+      const store = yield* Store;
+      if (!dryRun) {
+        yield* Effect_exports.acquireRelease(store.claimRunner(), () => Effect_exports.sync(() => store.releaseRunner())).pipe(Effect_exports.catchIf((e) => e.code === "store_locked", (e) => {
+          const context3 = e.context;
+          return Effect_exports.fail(new MadeWellError({
+            code: "store_locked",
+            message: "A live runner owns this Made Well store, so prune waits for it.",
+            context: context3,
+            cause: "Prune holds the runner claim while it works: giving space back locks the whole store, and a working runner must never wait on that.",
+            next: [
+              { run: `mw prune --before ${before}`, why: "once that runner has returned: `mw run` returns when every item has shipped or holds" },
+              { run: `mw prune --before ${before} --dry-run`, why: "see now what it will remove; a dry run changes nothing and needs no claim" },
+              { run: `kill ${context3.owner.pid} && mw prune --before ${before}`, why: "only for a runner that never returns (`mw run --watch`); start it again afterwards, and its work resumes where it stopped" }
+            ]
+          }));
+        }));
+      }
+      const { ids, kept } = retention(store, before);
+      const home = dirname6(storePath);
+      const files = [...ids.flatMap((id2) => [join9(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join9(home, "replay.html")] : []].filter(existsSync3);
+      const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
+      const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
+      if (!dryRun) {
+        for (const f of files) rmSync6(f, { recursive: true, force: true });
+        if (existsSync3(join9(home, "exports")) && !readdirSync3(join9(home, "exports")).length) rmSync6(join9(home, "exports"), { recursive: true });
+      }
+      const { items: _, ...records } = store.prune(ids, before, dryRun);
+      const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
+      const also = kept.length ? `; ${kept.length} older finished item(s) stay because work in flight needs them` : "";
+      return {
+        before,
+        dryRun,
+        summary: `${dryRun ? "Would remove" : "Removed"} ${what}${also}.`,
+        items: ids,
+        records,
+        files,
+        kept,
+        freed: dryRun ? null : start - storeBytes(),
+        next: dryRun && ids.length + records.events ? [{ run: `mw prune --before ${before}`, why: "remove them; nothing still moving or waiting on the operator is touched" }] : []
+      };
+    }).pipe(Effect_exports.scoped)
   })
 ];
 var fieldsOf = (c) => Object.entries(c.input.fields);
