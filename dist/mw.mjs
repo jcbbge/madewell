@@ -21706,24 +21706,14 @@ var stamped = (line, at) => {
 };
 var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
   const started = Date.now();
-  const call = randomUUID();
+  const call = `${process.pid}-${randomUUID()}`;
   const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
   const kill = () => {
     try {
       process.kill(-child.pid, "SIGKILL");
     } catch {
     }
-    try {
-      const ps = execFileSync("ps", ["axeww", "-o", "pid=,command="], { encoding: "utf8", maxBuffer: 256 << 20, stdio: ["ignore", "pipe", "ignore"] });
-      for (const line of ps.split("\n")) {
-        if (!line.includes(`MW_CALL=${call}`)) continue;
-        try {
-          process.kill(Number(line.trim().split(" ")[0]), "SIGKILL");
-        } catch {
-        }
-      }
-    } catch {
-    }
+    killMarked((c) => c === call);
   };
   let stdout = "";
   let stderr = "";
@@ -21762,6 +21752,28 @@ var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callbac
     kill();
   });
 }));
+function killMarked(match7) {
+  try {
+    const ps = execFileSync("ps", ["axeww", "-o", "pid=,command="], { encoding: "utf8", maxBuffer: 256 << 20, stdio: ["ignore", "pipe", "ignore"] });
+    for (const line of ps.split("\n")) {
+      const call = / MW_CALL=(\S+)/.exec(line)?.[1];
+      if (!call || !match7(call)) continue;
+      try {
+        process.kill(Number(line.trim().split(" ")[0]), "SIGKILL");
+      } catch {
+      }
+    }
+  } catch {
+  }
+}
+var alive = (pid) => {
+  try {
+    return process.kill(pid, 0);
+  } catch (e) {
+    return e.code === "EPERM";
+  }
+};
+var killOrphans = () => killMarked((call) => !alive(Number(call.split("-")[0])));
 var overBudgetError = (who, o) => `${who} went over its budget: ${o.exceeded === "minutes" ? `ran ${(o.ms / 6e4).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`;
 var commandWorker = (command2) => Layer_exports.succeed(Worker, {
   run: (request3) => Effect_exports.acquireUseRelease(
@@ -21800,7 +21812,7 @@ var common = {
   settings: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
   /** The allowlist for each access level: tool names, joined with commas for {tools}. `none` must leave the agent no tool at all. */
   tools: Schema_exports.Struct({ none: Strings, read: Strings, checks: Strings, make: Strings, run: Strings }),
-  /** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix. */
+  /** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix; NAME=value sets a fixed value. */
   env: Schema_exports.optional(Strings),
   /** Read only from the harness's own events: `pattern` names (?<clock>) or (?<minutes>) groups for the reset; `signals` are machine-readable records. */
   limit: Schema_exports.Struct({
@@ -21852,7 +21864,8 @@ var HARNESSES = {
       make: ["Read", ...AMP_SHELL, "edit_file", "create_file", "apply_patch"],
       run: ["Read", ...AMP_SHELL]
     },
-    env: ["AMP_API_KEY", "AMP_URL"],
+    // PLUGINS=off: the operator's own Amp plugins never load into an agent.
+    env: ["AMP_API_KEY", "AMP_URL", "PLUGINS=off"],
     ...CLAUDE_EVENTS,
     // Amp's result event carries no usage; each assistant message does.
     tokens: { event: { type: "assistant" }, paths: ["message.usage.input_tokens", "message.usage.cache_creation_input_tokens", "message.usage.output_tokens"] }
@@ -21914,6 +21927,7 @@ var fill = (template, vars) => template.replace(/\{([\w.]+)(\|json)?\}/g, (whole
 var glob = (names) => (name) => names.some((n) => n.endsWith("*") ? name.startsWith(n.slice(0, -1)) : name === n);
 var agentEnv = (allow, from = process.env) => ({
   ...Object.fromEntries(Object.entries(from).filter(([name]) => glob(allow)(name))),
+  ...Object.fromEntries(allow.filter((a) => a.includes("=")).map((a) => [a.slice(0, a.indexOf("=")), a.slice(a.indexOf("=") + 1)])),
   MW_WORKER: "1"
 });
 function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
@@ -22775,7 +22789,7 @@ var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
 
 // src/store.ts
 var defaultStorePath = () => process.env.MW_STORE ?? join6(process.env.MW_HOME ?? join6(homedir2(), ".local", "share", "madewell"), "madewell.db");
-var alive = (pid) => {
+var alive2 = (pid) => {
   try {
     process.kill(pid, 0);
     return true;
@@ -22908,7 +22922,7 @@ function openStore(path) {
       return Effect_exports.suspend(() => {
         const owner = tx2(() => {
           const row = db.prepare("SELECT pid, since, item FROM runner WHERE id = 1").get();
-          if (row && row.pid !== process.pid && alive(row.pid)) return row;
+          if (row && row.pid !== process.pid && alive2(row.pid)) return row;
           if (row && row.pid !== process.pid) event(row.item ?? 0, "runner-lost", { pid: row.pid, since: row.since, item: row.item });
           db.prepare("INSERT INTO runner (id, pid, since) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET pid = excluded.pid, since = excluded.since, item = NULL").run(process.pid, (/* @__PURE__ */ new Date()).toISOString());
           event(0, "runner-started", { pid: process.pid, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
@@ -23694,6 +23708,7 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const store = yield* Store;
   yield* store.claimRunner();
   yield* Effect_exports.addFinalizer(() => Effect_exports.sync(() => store.releaseRunner()));
+  yield* Effect_exports.sync(killOrphans);
   const finished = yield* Queue_exports.unbounded();
   const running = /* @__PURE__ */ new Set();
   const results2 = [];

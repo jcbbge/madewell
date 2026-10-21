@@ -30,7 +30,7 @@ const common = {
 	settings: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 	/** The allowlist for each access level: tool names, joined with commas for {tools}. `none` must leave the agent no tool at all. */
 	tools: Schema.Struct({ none: Strings, read: Strings, checks: Strings, make: Strings, run: Strings }),
-	/** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix. */
+	/** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix; NAME=value sets a fixed value. */
 	env: Schema.optional(Strings),
 	/** Read only from the harness's own events: `pattern` names (?<clock>) or (?<minutes>) groups for the reset; `signals` are machine-readable records. */
 	limit: Schema.Struct({
@@ -90,7 +90,8 @@ export const HARNESSES: Readonly<Record<string, Harness>> = {
 			make: ['Read', ...AMP_SHELL, 'edit_file', 'create_file', 'apply_patch'],
 			run: ['Read', ...AMP_SHELL],
 		},
-		env: ['AMP_API_KEY', 'AMP_URL'],
+		// PLUGINS=off: the operator's own Amp plugins never load into an agent.
+		env: ['AMP_API_KEY', 'AMP_URL', 'PLUGINS=off'],
 		...CLAUDE_EVENTS,
 		// Amp's result event carries no usage; each assistant message does.
 		tokens: { event: { type: 'assistant' }, paths: ['message.usage.input_tokens', 'message.usage.cache_creation_input_tokens', 'message.usage.output_tokens'] },
@@ -157,6 +158,7 @@ const glob = (names: ReadonlyArray<string>) => (name: string) => names.some((n) 
 /** The agent's whole environment: the allowlisted variables of the runner's, and MW_WORKER=1. */
 export const agentEnv = (allow: ReadonlyArray<string>, from: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv => ({
 	...Object.fromEntries(Object.entries(from).filter(([name]) => glob(allow)(name))),
+	...Object.fromEntries(allow.filter((a) => a.includes('=')).map((a) => [a.slice(0, a.indexOf('=')), a.slice(a.indexOf('=') + 1)])),
 	MW_WORKER: '1',
 })
 

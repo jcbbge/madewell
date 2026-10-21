@@ -99,22 +99,15 @@ const stamped = (line: string, at: number) => {
 export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number }) =>
 	Effect.clockWith((clock) => Effect.callback<Exited>((resume) => {
 		const started = Date.now()
-		const call = randomUUID()
+		// The marker names the runner that owns the call, so a later runner can tell its strays from a live runner's agents.
+		const call = `${process.pid}-${randomUUID()}`
 		const child = spawn('sh', ['-c', GROUP, 'mw-agent', o.files ?? '', o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? 'pipe', 'pipe', 'pipe', 'pipe'] })
 		const kill = () => {
 			try {
 				process.kill(-child.pid!, 'SIGKILL')
 			} catch {}
 			// A process that left the group (setsid, nohup, a server that daemonizes) still carries the call's marker.
-			try {
-				const ps = execFileSync('ps', ['axeww', '-o', 'pid=,command='], { encoding: 'utf8', maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'ignore'] })
-				for (const line of ps.split('\n')) {
-					if (!line.includes(`MW_CALL=${call}`)) continue
-					try {
-						process.kill(Number(line.trim().split(' ')[0]), 'SIGKILL')
-					} catch {}
-				}
-			} catch {}
+			killMarked((c) => c === call)
 		}
 		let stdout = ''
 		let stderr = ''
@@ -153,6 +146,31 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			kill()
 		})
 	}))
+
+/** Kills every process whose MW_CALL marker `match` accepts. */
+function killMarked(match: (call: string) => boolean) {
+	try {
+		const ps = execFileSync('ps', ['axeww', '-o', 'pid=,command='], { encoding: 'utf8', maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'ignore'] })
+		for (const line of ps.split('\n')) {
+			const call = / MW_CALL=(\S+)/.exec(line)?.[1]
+			if (!call || !match(call)) continue
+			try {
+				process.kill(Number(line.trim().split(' ')[0]), 'SIGKILL')
+			} catch {}
+		}
+	} catch {}
+}
+
+const alive = (pid: number) => {
+	try {
+		return process.kill(pid, 0)
+	} catch (e) {
+		return (e as NodeJS.ErrnoException).code === 'EPERM'
+	}
+}
+
+/** Kills what calls of runners that are gone left running, such as a daemon of a runner that was SIGKILLed. */
+export const killOrphans = () => killMarked((call) => !alive(Number(call.split('-')[0])))
 
 export const overBudgetError = (who: string, o: OverBudget) =>
 	`${who} went over its budget: ${o.exceeded === 'minutes' ? `ran ${(o.ms / 60_000).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`

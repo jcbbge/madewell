@@ -33,7 +33,7 @@ import {
 } from './lane.ts'
 import { Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { capture, changes, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, type Changes, type State, type TeardownRecord } from './workspace.ts'
-import { Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
+import { killOrphans, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
 
 export const MAX_LAUNCHES = 3
 export const MAX_TURNS = 3
@@ -845,6 +845,7 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}
 		const store = yield* Store
 		yield* store.claimRunner()
 		yield* Effect.addFinalizer(() => Effect.sync(() => store.releaseRunner()))
+		yield* Effect.sync(killOrphans)
 		const finished = yield* Queue.unbounded<Item>()
 		const running = new Set<number>()
 		const results: Item[] = []
