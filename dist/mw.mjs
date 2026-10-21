@@ -6,9 +6,9 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync3, readFileSync as readFileSync6, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync3, readdirSync as readdirSync2, readFileSync as readFileSync6, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename, dirname as dirname6, resolve as resolve5 } from "node:path";
+import { basename, dirname as dirname6, join as join9, resolve as resolve6 } from "node:path";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -4440,7 +4440,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join8 = (fiber3, run2) => {
+  const join10 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4451,7 +4451,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join8(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join10(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
@@ -4463,7 +4463,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       awaiters: 0
     };
     current = run2;
-    const joined = join8(fiber3, run2);
+    const joined = join10(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
@@ -4934,8 +4934,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve6) => {
-      fiber3.addObserver((exit4) => resolve6(exit4));
+    return new Promise((resolve7) => {
+      fiber3.addObserver((exit4) => resolve7(exit4));
     });
   };
 };
@@ -13085,10 +13085,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve6) {
+  constructor(ast, compiled, resolve7) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve6;
+    this.resolve = resolve7;
   }
   save(key, value3) {
     Object.defineProperty(this, key, {
@@ -13137,8 +13137,8 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve6, ast, operation) {
-  const entry = resolve6(ast);
+function lazyParser(resolve7, ast, operation) {
+  const entry = resolve7(ast);
   if (entry.compiled === void 0 || Object.hasOwn(entry, operation)) {
     return entry[operation];
   }
@@ -15087,9 +15087,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve6) => {
+    return new Promise((resolve7) => {
       fiber3.addObserver((exit5) => {
-        resolve6(makeStandardResult(exit5));
+        resolve7(makeStandardResult(exit5));
       });
     });
   };
@@ -22310,12 +22310,12 @@ var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budge
 // src/project.ts
 import { execFile as execFile2 } from "node:child_process";
 import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync4, writeFileSync as writeFileSync6 } from "node:fs";
-import { dirname as dirname5, join as join7, sep } from "node:path";
+import { dirname as dirname5, join as join8, sep } from "node:path";
 
 // src/store.ts
 import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, join as join6 } from "node:path";
+import { dirname as dirname4, join as join7 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 // src/replay.ts
@@ -22469,7 +22469,8 @@ build(); pos = Math.max(0, steps.length - 1); render();
 // src/telemetry.ts
 import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync as mkdirSync3 } from "node:fs";
-import { dirname as dirname3, matchesGlob } from "node:path";
+import { hostname } from "node:os";
+import { dirname as dirname3, join as join6, matchesGlob, resolve as resolve4 } from "node:path";
 
 // src/lane.ts
 var MAKERS = ["implement", "test-plan"];
@@ -22768,10 +22769,30 @@ function flagsFor(facts, observed) {
   }
   return flags;
 }
+function telemetry(storePath2) {
+  const dir = process.env.MW_TELEMETRY;
+  if (!dir || storePath2 === ":memory:") return void 0;
+  const host = hostname();
+  const store = createHash("sha256").update(resolve4(storePath2)).digest("hex").slice(0, 8);
+  const file = join6(resolve4(dir), `${host}-${store}.jsonl`);
+  return {
+    file,
+    write(t, record2) {
+      try {
+        mkdirSync3(dirname3(file), { recursive: true });
+        appendFileSync(file, JSON.stringify({ t, host, store, ...record2 }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+      } catch {
+      }
+    }
+  };
+}
 var nanosToMs = (n) => Number(n / 1000000n);
-var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
-  if (process.env.MW_DEBUG !== "1") return Layer_exports.empty;
-  mkdirSync3(dirname3(file), { recursive: true });
+var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => {
+  if (!sink && process.env.MW_DEBUG !== "1") return Layer_exports.empty;
+  const write = sink ? (span2) => sink.write("span", span2) : (span2) => {
+    mkdirSync3(dirname3(file), { recursive: true });
+    appendFileSync(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+  };
   return Layer_exports.succeed(Tracer_exports.Tracer, Tracer_exports.make({
     span(options) {
       const span2 = new Tracer_exports.NativeSpan(options);
@@ -22780,15 +22801,79 @@ var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
         end2(endTime, exit4);
         const parent = options.parent._tag === "Some" ? options.parent.value.spanId : null;
         const outcome = exit4._tag === "Success" ? "ok" : "error";
-        appendFileSync(file, JSON.stringify({ name: span2.name, trace: span2.traceId, span: span2.spanId, parent, start: new Date(nanosToMs(span2.startTime)).toISOString(), ms: nanosToMs(endTime - span2.startTime), outcome, attributes: Object.fromEntries(span2.attributes) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+        write({ name: span2.name, trace: span2.traceId, span: span2.spanId, parent, start: new Date(nanosToMs(span2.startTime)).toISOString(), ms: nanosToMs(endTime - span2.startTime), outcome, attributes: Object.fromEntries(span2.attributes) });
       };
       return span2;
     }
   }));
 }));
+function stats(lines4) {
+  const projects = /* @__PURE__ */ new Map();
+  const calls = /* @__PURE__ */ new Map();
+  let from = null;
+  let to = null;
+  const tally = () => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 });
+  const project = (host, workspace) => {
+    const key = `${host}\0${workspace}`;
+    if (!projects.has(key)) projects.set(key, { host, workspace, items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0 }, ...tally(), flags: {}, jobs: {}, cards: {} });
+    return projects.get(key);
+  };
+  const refused = /* @__PURE__ */ new Set();
+  for (const line of lines4) {
+    let r;
+    try {
+      r = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const at = r.at ?? r.started;
+    if (at) {
+      if (!from || at < from) from = at;
+      if (!to || at > to) to = at;
+    }
+    if (r.t === "rejected") refused.add(`${r.host}\0${r.store}\0${r.call}`);
+    if (!r.workspace) continue;
+    const p = project(r.host, r.workspace);
+    if (r.t === "event") {
+      if (r.kind === "created") p.items.created++;
+      if (r.kind === "shipped") p.items.shipped++;
+      if (r.kind === "held") p.items.held++;
+      if (r.kind === "nq-question") p.nq.questions += r.data?.questions?.length ?? 0;
+    }
+    if (r.t === "call") {
+      const card = `${r.card.harness} \xB7 ${r.card.model} \xB7 ${r.card.effort}`;
+      const minutes2 = r.ms / 6e4;
+      const tokens = totalTokens(r.tokens);
+      for (const t of [p, p.jobs[r.job] ??= tally(), p.cards[card] ??= tally()]) {
+        t.calls++;
+        t.minutes += minutes2;
+        t.tokens += tokens;
+        if (r.outcome === "rejected") t.refused++;
+      }
+      if (r.kind === "intake") p.nq.intakes++;
+      for (const f of r.flags ?? []) p.flags[f.rule] = (p.flags[f.rule] ?? 0) + 1;
+      calls.set(`${r.host}\0${r.store}\0${r.id}`, { p, job: r.job, card });
+    }
+  }
+  for (const key of refused) {
+    const c = calls.get(key);
+    if (c) for (const t of [c.p, c.p.jobs[c.job], c.p.cards[c.card]]) t.refused++;
+  }
+  const round2 = (t) => (t.minutes = Math.round(t.minutes * 10) / 10, t);
+  return {
+    from,
+    to,
+    projects: [...projects.values()].map((p) => {
+      round2(p);
+      Object.values(p.jobs).forEach(round2);
+      Object.values(p.cards).forEach(round2);
+      return p;
+    })
+  };
+}
 
 // src/store.ts
-var defaultStorePath = () => process.env.MW_STORE ?? join6(process.env.MW_HOME ?? join6(homedir2(), ".local", "share", "madewell"), "madewell.db");
+var defaultStorePath = () => process.env.MW_STORE ?? join7(process.env.MW_HOME ?? join7(homedir2(), ".local", "share", "madewell"), "madewell.db");
 var alive2 = (pid) => {
   try {
     process.kill(pid, 0);
@@ -22807,18 +22892,26 @@ function openStore(path) {
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`);
+  const sink = telemetry(path);
+  let pending2;
+  const emit = (t, record2) => pending2 ? pending2.push([t, record2]) : sink?.write(t, record2);
   const tx2 = (fn3) => {
     db.exec("BEGIN IMMEDIATE");
+    pending2 = [];
     try {
       const r = fn3();
       db.exec("COMMIT");
+      const committed = pending2;
+      pending2 = void 0;
+      for (const [t, record2] of committed) sink?.write(t, record2);
       return r;
     } catch (e) {
+      pending2 = void 0;
       db.exec("ROLLBACK");
       throw e;
     }
   };
-  const glass = join6(dirname4(path), "glass.html");
+  const glass = join7(dirname4(path), "glass.html");
   const insertTools = (call, tools) => {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
@@ -22834,7 +22927,11 @@ function openStore(path) {
       insertTools(c.id, toolEvents(harness, c.raw));
     }
   });
-  const event = (item, kind, data) => db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, (/* @__PURE__ */ new Date()).toISOString(), kind, JSON.stringify(data));
+  const event = (item, kind, data) => {
+    const at = (/* @__PURE__ */ new Date()).toISOString();
+    const { lastInsertRowid } = db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, at, kind, JSON.stringify(data));
+    emit("event", { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data });
+  };
   const view2 = () => {
     try {
       writeFileSync5(`${glass}.tmp`, replayHtml(snapshot3(store)));
@@ -22888,12 +22985,15 @@ function openStore(path) {
       return tx2(() => {
         const id2 = Number(db.prepare("INSERT INTO calls (item, kind, job, profile, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms, tokens && JSON.stringify(tokens), facts ? JSON.stringify(facts) : null, JSON.stringify(flags)).lastInsertRowid);
         insertTools(id2, tools);
+        const { system, prompt, output, raw, ...summary } = call;
+        emit("call", { id: id2, ...summary, workspace: read(call.item)?.workspace ?? null, tokens, flags, facts: facts ?? null, tools, system, prompt, output, raw });
         return id2;
       });
     },
     /** The engine refused a call's answer: the call is on the record as rejected, with the reason. */
     rejectCall(id2, reason) {
       db.prepare("UPDATE calls SET outcome = 'rejected', error = ? WHERE id = ?").run(reason, id2);
+      emit("rejected", { call: id2, at: (/* @__PURE__ */ new Date()).toISOString(), reason });
     },
     /** Every call, or one item's, oldest first. */
     calls(item) {
@@ -22961,7 +23061,7 @@ var Store = class extends Context_exports.Service()("madewell/Store") {
 };
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
-  debugLayer(join6(dirname4(path), "debug.jsonl"))
+  debugLayer(join7(dirname4(path), "debug.jsonl"), telemetry(path))
 );
 
 // src/project.ts
@@ -22971,7 +23071,7 @@ var Project = Schema_exports.Struct({
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
-var projectsPath = (storePath2) => join7(dirname5(storePath2), "projects.json");
+var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
   return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync4(path, "utf8")).pipe(
@@ -23817,7 +23917,7 @@ var executeParts = (item, job, t, x) => ({
 
 // src/eval.ts
 import { readFileSync as readFileSync5 } from "node:fs";
-import { resolve as resolve4 } from "node:path";
+import { resolve as resolve5 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
@@ -23915,7 +24015,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   if (items.some((i) => !ITEM_IDS.test(i) || Number(i) < 1)) return yield* usage(`--item takes work item numbers separated by commas, such as --item 3,5; got "${o.item}".`);
   const ids = items.map(Number);
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
-  const briefPath = o.brief === void 0 ? void 0 : resolve4(o.brief);
+  const briefPath = o.brief === void 0 ? void 0 : resolve5(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
     try: () => readFileSync5(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
@@ -24043,6 +24143,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const recordedCards = calls.reduce((cs, c) => cs.some((x) => sameCard(x, c.card)) ? cs : [...cs, c.card], []);
   const report = { eval: run2, job: o.job, brief: briefPath ?? null, recorded: { ...overall, cards: recordedCards }, cards: results2, recommendation, next };
   db.prepare("UPDATE evals SET report = ? WHERE id = ?").run(JSON.stringify(report), run2);
+  telemetry(store.path)?.write("eval", { at, ...report });
   return report;
 }, Effect_exports.scoped);
 
@@ -24102,6 +24203,25 @@ var Action = Schema_exports.Union([
   Schema_exports.Struct({ action: Schema_exports.Literal("wait"), until: Schema_exports.String.annotate({ description: "ISO time" }), why: Schema_exports.String, then: Schema_exports.Literal("mw next") })
 ]).annotate({ identifier: "Action", description: "run a command, relay to the operator, or wait until a time" });
 var Created = Schema_exports.Struct({ item: ItemView, next: Schema_exports.Array(Next) });
+var Tally = Schema_exports.Struct({ calls: Schema_exports.Int, minutes: Schema_exports.Number, tokens: Schema_exports.Number, refused: Schema_exports.Int });
+var Stats = Schema_exports.Struct({
+  dir: Schema_exports.String,
+  files: Schema_exports.Array(Schema_exports.String),
+  lines: Schema_exports.Int,
+  from: Schema_exports.NullOr(Schema_exports.String),
+  to: Schema_exports.NullOr(Schema_exports.String),
+  projects: Schema_exports.Array(Schema_exports.Struct({
+    host: Schema_exports.String,
+    workspace: Schema_exports.String,
+    ...Tally.fields,
+    items: Schema_exports.Struct({ created: Schema_exports.Int, shipped: Schema_exports.Int, held: Schema_exports.Int }),
+    nq: Schema_exports.Struct({ intakes: Schema_exports.Int, questions: Schema_exports.Int }),
+    flags: Schema_exports.Record(Schema_exports.String, Schema_exports.Int),
+    jobs: Schema_exports.Record(Schema_exports.String, Tally),
+    cards: Schema_exports.Record(Schema_exports.String, Tally).annotate({ description: 'keyed "harness \xB7 model \xB7 effort"' })
+  })),
+  next: Schema_exports.Array(Next)
+}).annotate({ identifier: "Stats" });
 var nqOf = (x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
 var view = (item) => ({
   id: item.id,
@@ -24138,7 +24258,7 @@ var found = (store, id2) => {
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve5(workspace ?? ".");
+  const path = resolve6(workspace ?? ".");
   const projects = yield* readProjects(registry);
   if (projectFor(projects, path)?.ship) return path;
   return yield* new MadeWellError({
@@ -24150,7 +24270,7 @@ var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve5(input["source-file"]);
+  const path = resolve6(input["source-file"]);
   return Effect_exports.try({
     try: () => readFileSync6(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
@@ -24235,7 +24355,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
-      const path = resolve5(input.workspace ?? ".");
+      const path = resolve6(input.workspace ?? ".");
       if (!existsSync3(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const projects = yield* readProjects(registry);
       if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`);
@@ -24373,7 +24493,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve5(input.out ?? resolve5(dirname6(storePath), "replay.html"));
+      const out = resolve6(input.out ?? resolve6(dirname6(storePath), "replay.html"));
       writeFileSync7(out, replayHtml(snapshot3(yield* Store)));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
     })
@@ -24386,8 +24506,22 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve5(input.out ?? resolve5(dirname6(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve6(input.out ?? resolve6(dirname6(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
+    })
+  }),
+  command({
+    name: "stats",
+    summary: "Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and project, items created, shipped and held; NQ intakes and questions; calls, agent minutes, tokens and refusals per job and per card; rule-break flags. With MW_TELEMETRY=<dir> set, each machine appends every event, call (in full) and span to its own <host>-<store>.jsonl there.",
+    input: Schema_exports.Struct({ dir: optional3("the telemetry directory; defaults to MW_TELEMETRY") }),
+    output: Stats,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const dir = input.dir ?? process.env.MW_TELEMETRY;
+      if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
+      const files = existsSync3(dir) ? readdirSync2(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const lines4 = files.flatMap((f) => readFileSync6(join9(dir, f), "utf8").split("\n").filter(Boolean));
+      return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
   command({

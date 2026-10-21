@@ -1,7 +1,8 @@
 // The one record. Every work item, for every project, lives in one SQLite file; every change to an
 // item is saved together with an event describing it. Nothing else holds state. The record is also the
 // trace: each call keeps its tool events, tokens and rule-break flags, and the glass beside the store is
-// rewritten after every saved transition.
+// rewritten after every saved transition. With MW_TELEMETRY set, every event and call also goes to this
+// machine's telemetry file, written only once its transaction commits.
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -12,7 +13,7 @@ import { MadeWellError, type Next } from './errors.ts'
 import type { Check, Cause, Job, Maker } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
 import { replayHtml, snapshot } from './replay.ts'
-import { debugLayer, flagsFor, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
+import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
 export type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered'
 
@@ -181,13 +182,22 @@ export function openStore(path: string) {
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`)
+	const sink = telemetry(path)
+	let pending: [string, Record<string, unknown>][] | undefined
+	/** Inside a transaction, held until it commits; a rolled-back record never reaches the telemetry file. */
+	const emit = (t: string, record: Record<string, unknown>) => (pending ? pending.push([t, record]) : sink?.write(t, record))
 	const tx = <T>(fn: () => T): T => {
 		db.exec('BEGIN IMMEDIATE')
+		pending = []
 		try {
 			const r = fn()
 			db.exec('COMMIT')
+			const committed = pending
+			pending = undefined
+			for (const [t, record] of committed) sink?.write(t, record)
 			return r
 		} catch (e) {
+			pending = undefined
 			db.exec('ROLLBACK')
 			throw e
 		}
@@ -209,8 +219,11 @@ export function openStore(path: string) {
 			insertTools(c.id, toolEvents(harness, c.raw))
 		}
 	})
-	const event = (item: number, kind: string, data: Record<string, unknown>) =>
-		db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, new Date().toISOString(), kind, JSON.stringify(data))
+	const event = (item: number, kind: string, data: Record<string, unknown>) => {
+		const at = new Date().toISOString()
+		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
+		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
+	}
 	/** The glass is a view: rewritten after each transition, never read back. A failed write never stops the work. */
 	const view = () => {
 		try {
@@ -267,12 +280,15 @@ export function openStore(path: string) {
 					.prepare('INSERT INTO calls (item, kind, job, profile, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 					.run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms, tokens && JSON.stringify(tokens), facts ? JSON.stringify(facts) : null, JSON.stringify(flags)).lastInsertRowid)
 				insertTools(id, tools)
+				const { system, prompt, output, raw, ...summary } = call
+				emit('call', { id, ...summary, workspace: read(call.item)?.workspace ?? null, tokens, flags, facts: facts ?? null, tools, system, prompt, output, raw })
 				return id
 			})
 		},
 		/** The engine refused a call's answer: the call is on the record as rejected, with the reason. */
 		rejectCall(id: number, reason: string) {
 			db.prepare("UPDATE calls SET outcome = 'rejected', error = ? WHERE id = ?").run(reason, id)
+			emit('rejected', { call: id, at: new Date().toISOString(), reason })
 		},
 		/** Every call, or one item's, oldest first. */
 		calls(item?: number): Call[] {
@@ -339,9 +355,9 @@ export function openStore(path: string) {
 
 export class Store extends Context.Service<Store, ReturnType<typeof openStore>>()('madewell/Store') {}
 
-/** The store, and debug mode's span file beside it (written only with MW_DEBUG=1). */
+/** The store, and its spans: to the telemetry file with MW_TELEMETRY, else with MW_DEBUG=1 to debug.jsonl beside the store. */
 export const storeLayer = (path = defaultStorePath()) =>
 	Layer.mergeAll(
 		Layer.effect(Store, Effect.acquireRelease(Effect.sync(() => openStore(path)), (s) => Effect.sync(() => s.close()))),
-		debugLayer(join(dirname(path), 'debug.jsonl')),
+		debugLayer(join(dirname(path), 'debug.jsonl'), telemetry(path)),
 	)

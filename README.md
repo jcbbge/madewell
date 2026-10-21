@@ -16,6 +16,8 @@ Tell your agent, from any project: **run `mw` and follow `next`.**
 
 Every command prints JSON, and every answer and error lists the `next` commands to run. `mw next` always says what to do now.
 
+To collect telemetry from every machine, set `MW_TELEMETRY` to a directory you sync or collect (the same one everywhere, or one per machine). Each machine then appends every event, every agent call in full, and every engine span to its own file there. `mw stats` reads those files together.
+
 [FOUNDATION.md](FOUNDATION.md) is the operator's law and governs everything here.
 
 ## Develop

@@ -1,9 +1,14 @@
 // What a call did, read back from its harness's own event stream: each tool it used and the tokens it
 // spent. The rule-break flags are computed from those and the facts the engine passes in, so the same
-// record always yields the same flags. With MW_DEBUG=1, every Effect span also goes to a local JSONL file.
+// record always yields the same flags.
+//
+// With MW_TELEMETRY=<dir>, every record the store keeps (events, calls in full, Effect spans) is also appended
+// to this machine's own file in that directory, one JSON line each. Point it at a folder that is synced,
+// mounted or collected, and the files from every machine read together; `mw stats` reads them.
 import { createHash } from 'node:crypto'
 import { appendFileSync, mkdirSync } from 'node:fs'
-import { dirname, matchesGlob } from 'node:path'
+import { hostname } from 'node:os'
+import { dirname, join, matchesGlob, resolve } from 'node:path'
 import { Effect, Layer, Tracer } from 'effect'
 import type { Access, Card } from './cards.ts'
 import { lastJson } from './lane.ts'
@@ -196,13 +201,38 @@ export function flagsFor(facts: Facts, observed: { readonly tools: ReadonlyArray
 	return flags
 }
 
+/**
+ * The telemetry sink for a store: with MW_TELEMETRY=<dir>, `<dir>/<host>-<store>.jsonl`, one writer per file so
+ * any sync tool can carry it. Each line is {t, host, store, ...record}. A failed write never stops the work.
+ */
+export function telemetry(storePath: string) {
+	const dir = process.env.MW_TELEMETRY
+	if (!dir || storePath === ':memory:') return undefined
+	const host = hostname()
+	const store = createHash('sha256').update(resolve(storePath)).digest('hex').slice(0, 8)
+	const file = join(resolve(dir), `${host}-${store}.jsonl`)
+	return {
+		file,
+		write(t: string, record: Record<string, unknown>) {
+			try {
+				mkdirSync(dirname(file), { recursive: true })
+				appendFileSync(file, JSON.stringify({ t, host, store, ...record }, (_, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')
+			} catch {}
+		},
+	}
+}
+export type Telemetry = NonNullable<ReturnType<typeof telemetry>>
+
 const nanosToMs = (n: bigint) => Number(n / 1_000_000n)
 
-/** Debug mode: with MW_DEBUG=1, each finished span is appended to `file` as one JSON line. Off by default; never printed. */
-export const debugLayer = (file: string) =>
+/** Each finished Effect span, as one line: to the telemetry sink when there is one, else with MW_DEBUG=1 to `file`. Never printed. */
+export const debugLayer = (file: string, sink?: Telemetry) =>
 	Layer.unwrap(Effect.sync(() => {
-		if (process.env.MW_DEBUG !== '1') return Layer.empty
-		mkdirSync(dirname(file), { recursive: true })
+		if (!sink && process.env.MW_DEBUG !== '1') return Layer.empty
+		const write = sink ? (span: Record<string, unknown>) => sink.write('span', span) : (span: Record<string, unknown>) => {
+			mkdirSync(dirname(file), { recursive: true })
+			appendFileSync(file, JSON.stringify(span, (_, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')
+		}
 		return Layer.succeed(Tracer.Tracer, Tracer.make({
 			span(options) {
 				const span = new Tracer.NativeSpan(options)
@@ -211,9 +241,90 @@ export const debugLayer = (file: string) =>
 					end(endTime, exit)
 					const parent = options.parent._tag === 'Some' ? options.parent.value.spanId : null
 					const outcome = exit._tag === 'Success' ? 'ok' : 'error'
-					appendFileSync(file, JSON.stringify({ name: span.name, trace: span.traceId, span: span.spanId, parent, start: new Date(nanosToMs(span.startTime)).toISOString(), ms: nanosToMs(endTime - span.startTime), outcome, attributes: Object.fromEntries(span.attributes) }, (_, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')
+					write({ name: span.name, trace: span.traceId, span: span.spanId, parent, start: new Date(nanosToMs(span.startTime)).toISOString(), ms: nanosToMs(endTime - span.startTime), outcome, attributes: Object.fromEntries(span.attributes) })
 				}
 				return span
 			},
 		}))
 	}))
+
+interface Tally { calls: number; minutes: number; tokens: number; refused: number }
+export interface ProjectStats extends Tally {
+	host: string
+	workspace: string
+	items: { created: number; shipped: number; held: number }
+	nq: { intakes: number; questions: number }
+	flags: Record<string, number>
+	jobs: Record<string, Tally>
+	cards: Record<string, Tally>
+}
+
+/**
+ * Metrics from telemetry lines of any number of machines: per host and project, items created, shipped and
+ * held; NQ intakes and questions; and calls, agent minutes, tokens and refusals per job and per card.
+ */
+export function stats(lines: Iterable<string>) {
+	const projects = new Map<string, ProjectStats>()
+	const calls = new Map<string, { p: ProjectStats; job: string; card: string }>()
+	let from: string | null = null
+	let to: string | null = null
+	const tally = (): Tally => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 })
+	const project = (host: string, workspace: string) => {
+		const key = `${host}\0${workspace}`
+		if (!projects.has(key)) projects.set(key, { host, workspace, items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0 }, ...tally(), flags: {}, jobs: {}, cards: {} })
+		return projects.get(key)!
+	}
+	const refused = new Set<string>()
+	for (const line of lines) {
+		let r: Record<string, any>
+		try {
+			r = JSON.parse(line)
+		} catch {
+			continue // a line still being written
+		}
+		const at: string | undefined = r.at ?? r.started
+		if (at) {
+			if (!from || at < from) from = at
+			if (!to || at > to) to = at
+		}
+		if (r.t === 'rejected') refused.add(`${r.host}\0${r.store}\0${r.call}`)
+		if (!r.workspace) continue
+		const p = project(r.host, r.workspace)
+		if (r.t === 'event') {
+			if (r.kind === 'created') p.items.created++
+			if (r.kind === 'shipped') p.items.shipped++
+			if (r.kind === 'held') p.items.held++
+			if (r.kind === 'nq-question') p.nq.questions += r.data?.questions?.length ?? 0
+		}
+		if (r.t === 'call') {
+			const card = `${r.card.harness} · ${r.card.model} · ${r.card.effort}`
+			const minutes = r.ms / 60_000
+			const tokens = totalTokens(r.tokens)
+			for (const t of [p, (p.jobs[r.job] ??= tally()), (p.cards[card] ??= tally())]) {
+				t.calls++
+				t.minutes += minutes
+				t.tokens += tokens
+				if (r.outcome === 'rejected') t.refused++
+			}
+			if (r.kind === 'intake') p.nq.intakes++
+			for (const f of r.flags ?? []) p.flags[f.rule] = (p.flags[f.rule] ?? 0) + 1
+			calls.set(`${r.host}\0${r.store}\0${r.id}`, { p, job: r.job, card })
+		}
+	}
+	// A refusal comes after its call's line.
+	for (const key of refused) {
+		const c = calls.get(key)
+		if (c) for (const t of [c.p, c.p.jobs[c.job]!, c.p.cards[c.card]!]) t.refused++
+	}
+	const round = (t: Tally) => ((t.minutes = Math.round(t.minutes * 10) / 10), t)
+	return {
+		from,
+		to,
+		projects: [...projects.values()].map((p) => {
+			round(p)
+			Object.values(p.jobs).forEach(round)
+			Object.values(p.cards).forEach(round)
+			return p
+		}),
+	}
+}
