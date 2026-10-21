@@ -1,6 +1,7 @@
 // The only thing Made Well asks of a harness: run one job on one card, headless, and say what came back.
 // The built-in harness worker reads harness entries (src/harness.ts); tests use a scripted fake.
-import { spawn } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -98,10 +99,21 @@ const stamped = (line: string, at: number) => {
 export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number }) =>
 	Effect.clockWith((clock) => Effect.callback<Exited>((resume) => {
 		const started = Date.now()
-		const child = spawn('sh', ['-c', GROUP, 'mw-agent', o.files ?? '', o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: [o.stdin ?? 'pipe', 'pipe', 'pipe', 'pipe'] })
+		const call = randomUUID()
+		const child = spawn('sh', ['-c', GROUP, 'mw-agent', o.files ?? '', o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? 'pipe', 'pipe', 'pipe', 'pipe'] })
 		const kill = () => {
 			try {
 				process.kill(-child.pid!, 'SIGKILL')
+			} catch {}
+			// A process that left the group (setsid, nohup, a server that daemonizes) still carries the call's marker.
+			try {
+				const ps = execFileSync('ps', ['axeww', '-o', 'pid=,command='], { encoding: 'utf8', maxBuffer: 256 << 20, stdio: ['ignore', 'pipe', 'ignore'] })
+				for (const line of ps.split('\n')) {
+					if (!line.includes(`MW_CALL=${call}`)) continue
+					try {
+						process.kill(Number(line.trim().split(' ')[0]), 'SIGKILL')
+					} catch {}
+				}
 			} catch {}
 		}
 		let stdout = ''

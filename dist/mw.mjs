@@ -21686,7 +21686,8 @@ import { tmpdir as tmpdir2 } from "node:os";
 import { join as join2 } from "node:path";
 
 // src/worker.ts
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -21705,10 +21706,22 @@ var stamped = (line, at) => {
 };
 var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
   const started = Date.now();
-  const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
+  const call = randomUUID();
+  const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
   const kill = () => {
     try {
       process.kill(-child.pid, "SIGKILL");
+    } catch {
+    }
+    try {
+      const ps = execFileSync("ps", ["axeww", "-o", "pid=,command="], { encoding: "utf8", maxBuffer: 256 << 20, stdio: ["ignore", "pipe", "ignore"] });
+      for (const line of ps.split("\n")) {
+        if (!line.includes(`MW_CALL=${call}`)) continue;
+        try {
+          process.kill(Number(line.trim().split(" ")[0]), "SIGKILL");
+        } catch {
+        }
+      }
     } catch {
     }
   };
