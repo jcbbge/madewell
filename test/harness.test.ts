@@ -122,9 +122,11 @@ test('a prescribed harness entry runs neutral: allowlisted environment, per-call
 	process.env.PORT = '31435'
 	process.env.MW_PROBE = 'passed'
 	const pidFile = join(import.meta.dirname, '.stray-pid')
+	const daemonFile = join(import.meta.dirname, '.daemon-pid')
 	try {
 		// The stray server keeps stdout open: the call only returns because its process group is killed on exit.
-		const r = await runShell(`sleep 300 & echo $! > ${pidFile}; echo "PORT=\${PORT-unset} MW_WORKER=$MW_WORKER MW_PROBE=$MW_PROBE"; cat "$1"; echo; echo "$1"`)
+		// The daemon leaves the group in a session of its own, as a server started with setsid or nohup does.
+		const r = await runShell(`sleep 300 & echo $! > ${pidFile}; setsid sleep 301 </dev/null >/dev/null 2>&1 & echo $! > ${daemonFile}; echo "PORT=\${PORT-unset} MW_WORKER=$MW_WORKER MW_PROBE=$MW_PROBE"; cat "$1"; echo; echo "$1"`)
 		assert.equal(r.ok, true, JSON.stringify(r))
 		const [env, settings, path] = (r as { output: string }).output.split('\n')
 		assert.equal(env, 'PORT=unset MW_WORKER=1 MW_PROBE=passed', 'only allowlisted variables, including the prescriptions\' own, reach the agent')
@@ -133,10 +135,11 @@ test('a prescribed harness entry runs neutral: allowlisted environment, per-call
 		const stray = Number(readFileSync(pidFile, 'utf8'))
 		await new Promise((r) => setTimeout(r, 50))
 		assert.equal(alive(stray), false, 'the stray server died with the call')
+		assert.equal(alive(Number(readFileSync(daemonFile, 'utf8'))), false, 'the daemon that left the group died with the call too')
 	} finally {
 		delete process.env.PORT
 		delete process.env.MW_PROBE
-		if (existsSync(pidFile)) (await import('node:fs')).rmSync(pidFile)
+		for (const f of [pidFile, daemonFile]) if (existsSync(f)) (await import('node:fs')).rmSync(f)
 	}
 })
 
