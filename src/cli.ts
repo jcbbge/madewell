@@ -2,7 +2,6 @@
 // `mw`: one command, plain verbs, JSON out. Results go to stdout; errors go to stderr as
 // {error, message, context, cause, next} with exit code 1. Every answer names its next commands.
 import { readFileSync, writeFileSync } from 'node:fs'
-import { createServer } from 'node:http'
 import { basename, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { Effect, Layer } from 'effect'
@@ -12,7 +11,7 @@ import { MadeWellError, errorJson, type Next } from './errors.ts'
 import { stepOf, type Cause } from './lane.ts'
 import { Store, storeLayer, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
-import { replayHtml, snapshot } from './replay.ts'
+import { exportItem, replayHtml, snapshot } from './replay.ts'
 import { commandWorker } from './worker.ts'
 
 const USAGE: Next[] = [
@@ -25,8 +24,8 @@ const USAGE: Next[] = [
 	{ run: 'mw answer <id> "<answer>"', why: 'answer an agent\'s open questions on a held item' },
 	{ run: 'mw answer <id> --cause implementation|test|pre-existing "<answer>"', why: 'rule on a held failed check' },
 	{ run: 'mw retry <id>', why: 'run a held item again from where it stopped' },
-	{ run: 'mw serve [--port 7788]', why: 'watch the whole flow live, and replay it step by step' },
 	{ run: 'mw replay [--out <file.html>]', why: 'write the replay of the whole flow to one self-contained page' },
+	{ run: 'mw export <id> [--out <dir>]', why: 'one folder per agent call: brief, packet, answer, raw stream, tool events and flags' },
 ]
 
 const usageError = (message: string, context: Record<string, unknown> = {}) => new MadeWellError({ code: 'usage', message, context, next: USAGE })
@@ -61,7 +60,7 @@ const number = (value: string | undefined) => {
 
 const program = Effect.gen(function* () {
 	const { positionals, values } = yield* Effect.try({
-		try: () => parseArgs({ allowPositionals: true, options: { port: { type: 'string' }, out: { type: 'string' }, objective: { type: 'string' }, title: { type: 'string' }, source: { type: 'string' }, 'source-file': { type: 'string' }, workspace: { type: 'string' }, cause: { type: 'string' }, watch: { type: 'boolean' } } }),
+		try: () => parseArgs({ allowPositionals: true, options: { out: { type: 'string' }, objective: { type: 'string' }, title: { type: 'string' }, source: { type: 'string' }, 'source-file': { type: 'string' }, workspace: { type: 'string' }, cause: { type: 'string' }, watch: { type: 'boolean' } } }),
 		catch: (e) => usageError(String((e as Error).message)),
 	})
 	const [command, ...args] = positionals
@@ -91,18 +90,13 @@ const program = Effect.gen(function* () {
 		}
 		case 'replay': {
 			const out = resolve(values.out ?? 'madewell-replay.html')
-			writeFileSync(out, replayHtml(snapshot(store), false))
+			writeFileSync(out, replayHtml(snapshot(store)))
 			return { replay: out, next: [{ run: `open ${out}`, why: 'step through the whole flow' }] }
 		}
-		case 'serve': {
-			const port = Number(values.port ?? 7788)
-			createServer((req, res) => {
-				const data = snapshot(store)
-				if (req.url?.startsWith('/data.json')) return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(data))
-				res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(replayHtml(data, true))
-			}).listen(port)
-			process.stderr.write(JSON.stringify({ serving: `http://localhost:${port}/`, store: store.path }) + '\n')
-			return yield* Effect.never
+		case 'export': {
+			const id = yield* number(args[0])
+			const exported = yield* exportItem(store, id, resolve(values.out ?? `madewell-export-${id}`))
+			return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${exported.dir}`, why: 'one folder per call: brief, packet, answer, raw stream, tool events and flags' }] }
 		}
 		case 'run': {
 			const prescriptions = yield* loadPrescriptions(prescriptionsPath())

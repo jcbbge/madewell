@@ -6,8 +6,7 @@ var __export = (target, all3) => {
 };
 
 // src/cli.ts
-import { readFileSync as readFileSync3, writeFileSync as writeFileSync2 } from "node:fs";
-import { createServer } from "node:http";
+import { readFileSync as readFileSync3, writeFileSync as writeFileSync4 } from "node:fs";
 import { basename, resolve as resolve3 } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -1689,9 +1688,9 @@ var getDefaultValue = (ref) => {
 var serviceNotFoundError = (service3) => {
   const error = new Error(`Service not found${service3.key ? `: ${String(service3.key)}` : ""}`);
   if (error.stack) {
-    const lines = error.stack.split("\n");
-    lines.splice(1, 3);
-    error.stack = lines.join("\n");
+    const lines2 = error.stack.split("\n");
+    lines2.splice(1, 3);
+    error.stack = lines2.join("\n");
   }
   return error;
 };
@@ -2425,6 +2424,22 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
+// node_modules/effect/dist/Tracer.js
+var Tracer_exports = {};
+__export(Tracer_exports, {
+  CurrentTraceLevel: () => CurrentTraceLevel,
+  DisablePropagation: () => DisablePropagation,
+  MinimumTraceLevel: () => MinimumTraceLevel,
+  NativeSpan: () => NativeSpan,
+  ParentSpan: () => ParentSpan,
+  ParentSpanKey: () => ParentSpanKey,
+  Tracer: () => Tracer,
+  TracerKey: () => TracerKey,
+  externalSpan: () => externalSpan,
+  make: () => make5,
+  nativeTracer: () => nativeTracer
+});
+
 // node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
@@ -2523,21 +2538,21 @@ var random32 = () => {
   return String.fromCharCode(hexCharCodes[a >>> 28], hexCharCodes[a >>> 24 & 15], hexCharCodes[a >>> 20 & 15], hexCharCodes[a >>> 16 & 15], hexCharCodes[a >>> 12 & 15], hexCharCodes[a >>> 8 & 15], hexCharCodes[a >>> 4 & 15], hexCharCodes[a & 15], hexCharCodes[b >>> 28], hexCharCodes[b >>> 24 & 15], hexCharCodes[b >>> 20 & 15], hexCharCodes[b >>> 16 & 15], hexCharCodes[b >>> 12 & 15], hexCharCodes[b >>> 8 & 15], hexCharCodes[b >>> 4 & 15], hexCharCodes[b & 15], hexCharCodes[c >>> 28], hexCharCodes[c >>> 24 & 15], hexCharCodes[c >>> 20 & 15], hexCharCodes[c >>> 16 & 15], hexCharCodes[c >>> 12 & 15], hexCharCodes[c >>> 8 & 15], hexCharCodes[c >>> 4 & 15], hexCharCodes[c & 15], hexCharCodes[d >>> 28], hexCharCodes[d >>> 24 & 15], hexCharCodes[d >>> 20 & 15], hexCharCodes[d >>> 16 & 15], hexCharCodes[d >>> 12 & 15], hexCharCodes[d >>> 8 & 15], hexCharCodes[d >>> 4 & 15], hexCharCodes[d & 15]);
 };
 var decode = (str) => {
-  const bytes2 = new TextEncoder().encode(str);
-  if (bytes2.length % 2 !== 0) {
+  const bytes3 = new TextEncoder().encode(str);
+  if (bytes3.length % 2 !== 0) {
     return fail2(new EncodingError({
       module: "Hex",
       kind: "Decode",
       input: str,
-      message: `Length must be a multiple of 2, but is ${bytes2.length}`
+      message: `Length must be a multiple of 2, but is ${bytes3.length}`
     }));
   }
   try {
-    const length = bytes2.length / 2;
+    const length = bytes3.length / 2;
     const result3 = new Uint8Array(length);
     for (let i = 0; i < length; i++) {
-      const a = fromHexChar(bytes2[i * 2]);
-      const b = fromHexChar(bytes2[i * 2 + 1]);
+      const a = fromHexChar(bytes3[i * 2]);
+      const b = fromHexChar(bytes3[i * 2 + 1]);
       result3[i] = a << 4 | b;
     }
     return succeed2(result3);
@@ -2556,10 +2571,10 @@ var decoder = /* @__PURE__ */ new TextDecoder();
 var byteToHex = /* @__PURE__ */ Array.from({
   length: 256
 }, (_, i) => i.toString(16).padStart(2, "0"));
-var hexEncodeUint8Array = (bytes2) => {
+var hexEncodeUint8Array = (bytes3) => {
   let result3 = "";
-  for (let i = 0; i < bytes2.length; i++) {
-    result3 += byteToHex[bytes2[i]];
+  for (let i = 0; i < bytes3.length; i++) {
+    result3 += byteToHex[bytes3[i]];
   }
   return result3;
 };
@@ -2583,6 +2598,13 @@ var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
 })) {
 };
 var make5 = (options) => options;
+var externalSpan = (options) => ({
+  _tag: "ExternalSpan",
+  spanId: options.spanId,
+  traceId: options.traceId,
+  sampled: options.sampled ?? true,
+  annotations: options.annotations ?? empty()
+});
 var DisablePropagation = /* @__PURE__ */ Reference("effect/Tracer/DisablePropagation", {
   defaultValue: constFalse
 });
@@ -2725,9 +2747,9 @@ var makeStackCleaner = (line) => (stack) => {
     if (cache2 !== void 0) return cache2;
     const trace = stack();
     if (!trace) return void 0;
-    const lines = trace.split("\n");
-    if (lines[line] !== void 0) {
-      cache2 = lines[line].trim();
+    const lines2 = trace.split("\n");
+    if (lines2[line] !== void 0) {
+      cache2 = lines2[line].trim();
       return cache2;
     }
   };
@@ -2887,13 +2909,13 @@ var causePrettyMessage = (u) => {
 var locationRegExp = /\((.*)\)/g;
 var cleanErrorStack = (stack, error, annotations) => {
   const message = `${error.name}: ${error.message}`;
-  const lines = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n");
+  const lines2 = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n");
   const out = [message];
-  for (let i = 1; i < lines.length; i++) {
-    if (/Generator\.next|~effect\/(?:Effect|Utils)/.test(lines[i])) {
+  for (let i = 1; i < lines2.length; i++) {
+    if (/Generator\.next|~effect\/(?:Effect|Utils)/.test(lines2[i])) {
       break;
     }
-    out.push(lines[i]);
+    out.push(lines2[i]);
   }
   return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n");
 };
@@ -2944,11 +2966,11 @@ var renderPrettyError = (e) => e.cause ? `${e.stack} {
 ${renderErrorCause(e.cause, "  ")}
 }` : e.stack;
 var renderErrorCause = (cause, prefix) => {
-  const lines = cause.stack.split("\n");
-  let stack = `${prefix}[cause]: ${lines[0]}`;
-  for (let i = 1, len = lines.length; i < len; i++) {
+  const lines2 = cause.stack.split("\n");
+  let stack = `${prefix}[cause]: ${lines2[0]}`;
+  for (let i = 1, len = lines2.length; i < len; i++) {
     stack += `
-${prefix}${lines[i]}`;
+${prefix}${lines2[i]}`;
   }
   if (cause.cause) {
     stack += ` {
@@ -4277,7 +4299,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join4 = (fiber3, run2) => {
+  const join5 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4288,7 +4310,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join4(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join5(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
@@ -4300,7 +4322,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       awaiters: 0
     };
     current = run2;
-    const joined = join4(fiber3, run2);
+    const joined = join5(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
@@ -8280,25 +8302,25 @@ var decode2 = (str) => {
   }
 };
 var decodeString2 = (str) => map2(decode2(str), (_) => decoder2.decode(_));
-var encodeBytes = (bytes2) => {
-  const length = bytes2.length;
+var encodeBytes = (bytes3) => {
+  const length = bytes3.length;
   let result3 = "";
   let i;
   for (i = 2; i < length; i += 3) {
-    result3 += alphabet[bytes2[i - 2] >> 2];
-    result3 += alphabet[(bytes2[i - 2] & 3) << 4 | bytes2[i - 1] >> 4];
-    result3 += alphabet[(bytes2[i - 1] & 15) << 2 | bytes2[i] >> 6];
-    result3 += alphabet[bytes2[i] & 63];
+    result3 += alphabet[bytes3[i - 2] >> 2];
+    result3 += alphabet[(bytes3[i - 2] & 3) << 4 | bytes3[i - 1] >> 4];
+    result3 += alphabet[(bytes3[i - 1] & 15) << 2 | bytes3[i] >> 6];
+    result3 += alphabet[bytes3[i] & 63];
   }
   if (i === length + 1) {
-    result3 += alphabet[bytes2[i - 2] >> 2];
-    result3 += alphabet[(bytes2[i - 2] & 3) << 4];
+    result3 += alphabet[bytes3[i - 2] >> 2];
+    result3 += alphabet[(bytes3[i - 2] & 3) << 4];
     result3 += "==";
   }
   if (i === length) {
-    result3 += alphabet[bytes2[i - 2] >> 2];
-    result3 += alphabet[(bytes2[i - 2] & 3) << 4 | bytes2[i - 1] >> 4];
-    result3 += alphabet[(bytes2[i - 1] & 15) << 2];
+    result3 += alphabet[bytes3[i - 2] >> 2];
+    result3 += alphabet[(bytes3[i - 2] & 3) << 4 | bytes3[i - 1] >> 4];
+    result3 += alphabet[(bytes3[i - 1] & 15) << 2];
     result3 += "=";
   }
   return result3;
@@ -15207,11 +15229,11 @@ function stringTreeToXml(value3, options) {
   const indent = options.indent ?? "  ";
   const sortKeys = options.sortKeys ?? true;
   const seen = /* @__PURE__ */ new Set();
-  const lines = [];
+  const lines2 = [];
   recur2(rootName, value3, 0);
-  return lines.join(pretty2 ? "\n" : "");
+  return lines2.join(pretty2 ? "\n" : "");
   function push(depth, text2) {
-    lines.push(pretty2 ? indent.repeat(depth) + text2 : text2);
+    lines2.push(pretty2 ? indent.repeat(depth) + text2 : text2);
   }
   function recur2(tagName, node, depth, originalNameForMeta) {
     const {
@@ -16187,9 +16209,9 @@ var makeIpv6 = (w0, w1, w2, w3) => {
 };
 var packOctets = (a, b, c, d) => (a << 24 | b << 16 | c << 8 | d) >>> 0;
 var wordToOctets = (word) => [word >>> 24, word >>> 16 & 255, word >>> 8 & 255, word & 255];
-var makeMac = (bytes2) => {
+var makeMac = (bytes3) => {
   const self = Object.assign(Object.create(MacProto), {
-    bytes: new Uint8Array(bytes2)
+    bytes: new Uint8Array(bytes3)
   });
   return Object.freeze(self);
 };
@@ -16762,12 +16784,12 @@ var quote = (value3) => {
 };
 var nameSpecials = [34, 36, 40, 41, 59, 64];
 var formatName = (text2) => {
-  const bytes2 = encoder3.encode(text2);
+  const bytes3 = encoder3.encode(text2);
   let out = "";
-  for (let i = 0; i < bytes2.length; i++) {
-    const byte = bytes2[i];
+  for (let i = 0; i < bytes3.length; i++) {
+    const byte = bytes3[i];
     if (byte === 92) {
-      const next = bytes2[i + 1];
+      const next = bytes3[i + 1];
       if (next === 46 || next === 92) {
         out += `\\${String.fromCharCode(next)}`;
         i++;
@@ -16902,10 +16924,10 @@ var fromInterfaceValue = (value3) => {
   return Object.freeze(self);
 };
 var toBytes = (address) => isIpv4Address(address) ? ipv4ToOctets(address) : ipv6ToOctets(address);
-var maskBytes = (bytes2, prefixLength) => {
+var maskBytes = (bytes3, prefixLength) => {
   const wholeBytes = Math.floor(prefixLength / 8);
   const partialBits = prefixLength % 8;
-  return bytes2.map((byte, index2) => {
+  return bytes3.map((byte, index2) => {
     if (index2 < wholeBytes) return byte;
     if (index2 === wholeBytes && partialBits !== 0) return byte & (255 << 8 - partialBits & 255);
     return 0;
@@ -16913,9 +16935,9 @@ var maskBytes = (bytes2, prefixLength) => {
 };
 var make19 = (address, prefixLength) => {
   return flatMap2(make18(address, prefixLength), (value3) => {
-    const bytes2 = toBytes(address);
-    const masked = maskBytes(bytes2, prefixLength);
-    if (bytes2.some((byte, index2) => byte !== masked[index2])) {
+    const bytes3 = toBytes(address);
+    const masked = maskBytes(bytes3, prefixLength);
+    if (bytes3.some((byte, index2) => byte !== masked[index2])) {
       return fail2(new NetAddressError({
         input: address,
         message: "address has non-zero host bits"
@@ -19069,8 +19091,8 @@ var File = /* @__PURE__ */ instanceOf(globalThis.File, {
       onFailure: () => fail5(new InvalidValue({
         expected: "a valid Base64 string"
       }, e.data, options)),
-      onSuccess: (bytes2) => {
-        const buffer = new globalThis.Uint8Array(bytes2);
+      onSuccess: (bytes3) => {
+        const buffer = new globalThis.Uint8Array(bytes3);
         return succeed6(new globalThis.File([buffer], e.name, {
           type: e.type,
           lastModified: e.lastModified
@@ -19079,9 +19101,9 @@ var File = /* @__PURE__ */ instanceOf(globalThis.File, {
     }),
     encode: (file, options) => tryPromise2({
       try: async () => {
-        const bytes2 = new globalThis.Uint8Array(await file.arrayBuffer());
+        const bytes3 = new globalThis.Uint8Array(await file.arrayBuffer());
         return {
-          data: encode2(bytes2),
+          data: encode2(bytes3),
           type: file.type,
           name: file.name,
           lastModified: file.lastModified
@@ -20810,7 +20832,7 @@ function pickCard(cards, exhausted, now2) {
 // src/engine.ts
 import { execFile as execFile2 } from "node:child_process";
 import { readFileSync as readFileSync2 } from "node:fs";
-import { join as join2 } from "node:path";
+import { join as join3 } from "node:path";
 
 // src/lane.ts
 var DELIVERY = [
@@ -20885,11 +20907,313 @@ function lastJson(text2) {
 }
 
 // src/store.ts
-import { mkdirSync } from "node:fs";
+import { mkdirSync as mkdirSync3, renameSync, writeFileSync as writeFileSync2 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname as dirname2, join as join2 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-var defaultStorePath = () => process.env.MW_STORE ?? join(process.env.MW_HOME ?? join(homedir(), ".local", "share", "madewell"), "madewell.db");
+
+// src/replay.ts
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+var snapshot2 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
+var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
+  const item = store.get(id2);
+  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
+  const calls = store.calls(id2);
+  yield* Effect_exports.try({
+    try: () => {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(join(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      calls.forEach((c, i) => {
+        const folder = join(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        mkdirSync(folder, { recursive: true });
+        const { system, prompt, output, raw, tools, flags, ...meta } = c;
+        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
+        for (const [name, text2] of files) writeFileSync(join(folder, name), text2);
+      });
+    },
+    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
+  });
+  return { dir, calls: calls.length };
+});
+var replayHtml = (data) => `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Made Well \xB7 the glass</title>
+<style>
+:root { --ink:#16181d; --mute:#6b7280; --line:#e5e7eb; --bg:#fafaf9; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --run:#1d4ed8; }
+* { box-sizing:border-box } body { margin:0; font:14px/1.45 ui-sans-serif,system-ui,sans-serif; color:var(--ink); background:var(--bg) }
+header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap; background:#fff; position:sticky; top:0; z-index:2 }
+h1 { font-size:15px; margin:0 } .mute { color:var(--mute) } button { font:inherit; padding:4px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer } button:hover { border-color:var(--ink) }
+input[type=range] { flex:1; min-width:200px } .pill { font-size:12px; padding:1px 8px; border-radius:999px; border:1px solid currentColor; white-space:nowrap }
+main { display:grid; grid-template-columns: 340px 1fr; height: calc(100vh - 58px) }
+#steps { overflow:auto; border-right:1px solid var(--line); background:#fff } .step { padding:7px 14px; border-bottom:1px solid #f3f4f6; cursor:pointer; display:grid; grid-template-columns:44px 1fr; gap:8px }
+.step.on { background:#eef2ff } .step.future { opacity:.35 } .step .n { color:var(--mute); font-variant-numeric:tabular-nums } .step b { font-weight:600 }
+#right { overflow:auto; padding:18px 22px } .board { display:grid; grid-template-columns: 1.3fr repeat(7, minmax(0, 1fr)); gap:8px; align-items:stretch }
+.col { min-width:0; background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px } .col h3 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--mute); overflow-wrap:anywhere }
+.card { border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:6px; cursor:pointer; background:#fff } .card.sel { outline:2px solid var(--run) }
+.status-shipped { color:var(--ok) } .status-held { color:var(--bad) } .status-running,.status-queued { color:var(--run) } .status-waiting-quota,.status-waiting-prerequisite,.status-candidate { color:var(--warn) } .status-discovered { color:var(--ok) }
+.card div { overflow-wrap:anywhere } .detail { margin-top:18px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px }
+pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px; max-height:420px; overflow:auto; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace }
+table.tools { border-collapse:collapse; width:100%; font-size:12px; margin:6px 0 12px } .tools th, .tools td { text-align:left; padding:3px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums } .tools th { color:var(--mute); font-weight:500 } .tools td.num, .tools th.num { text-align:right } .tools tr.err td { color:var(--bad) }
+.flag { color:var(--bad); background:#fef2f2 } ul.flags { margin:6px 0 12px; padding-left:18px } ul.flags li { margin:3px 0 } code { font:12px ui-monospace,SFMono-Regular,Menlo,monospace }
+details summary { cursor:pointer; color:var(--mute); margin:8px 0 } .kv { display:grid; grid-template-columns:120px 1fr; gap:4px 12px } .kv div:nth-child(odd) { color:var(--mute) }
+</style></head><body>
+<header><h1>Made Well \xB7 the glass</h1><span class="mute" id="meta"></span>
+<button id="first">\u23EE</button><button id="prev">\u25C0</button><button id="play">\u25B6 Play</button><button id="next">\u25B6</button><button id="last">\u23ED Now</button>
+<input type="range" id="slider" min="0" value="0"><span id="pos" class="mute"></span></header>
+<main><div id="steps"></div><div id="right"><div class="board" id="board"></div><div class="detail" id="detail"></div></div></main>
+<script>
+const DATA = ${JSON.stringify(data).replace(/</g, "\\u003c")};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const LANE = ['discover','ideate','challenge','plan','test-plan','implement','verify','arbitrate'];
+let steps = [], pos = 0, timer = null, selected = null;
+function build() {
+  steps = [...DATA.events.map((e) => ({ t: e.at, type: 'event', e })), ...DATA.calls.map((c) => ({ t: c.started, type: 'call', c }))]
+    .sort((a, b) => a.t.localeCompare(b.t) || (a.type === 'call' ? -1 : 1));
+}
+function stateAt(n) {
+  const s = {};
+  for (const st of steps.slice(0, n + 1)) {
+    if (st.type !== 'event') continue;
+    if (!itemById(st.e.item)) continue;
+    const e = st.e, d = e.data, it = (s[e.item] ??= { status: 'queued', job: 'ideate' });
+    if (e.kind === 'created') { it.status = d.status ?? 'queued'; it.job = d.job; }
+    else if (e.kind === 'handed-off') it.job = d.to;
+    else if (e.kind === 'failure') it.job = 'arbitrate';
+    else if (e.kind === 'ruling') { if (d.to) it.job = d.to; if (d.prerequisite) it.status = 'waiting-prerequisite'; else it.status = 'running'; }
+    else if (e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
+    else if (['held','shipped','discovered','running','waiting-quota'].includes(e.kind)) it.status = e.kind;
+    else if (['retried','promoted'].includes(e.kind) || (e.kind === 'nq-answer' && d.originator === 'operator')) it.status = 'queued';
+  }
+  return s;
+}
+const itemById = (id) => DATA.items.find((i) => i.id === id);
+const total = (t) => (t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0);
+const num = (n) => Number(n).toLocaleString('en-US');
+const flagPills = (c) => c.flags.map((f) => ' <span class="pill flag">' + esc(f.rule) + '</span>').join('');
+function label(st) {
+  if (st.type === 'call') { const c = st.c; return '<b>' + esc(c.profile) + '</b> \xB7 ' + esc(c.kind) + ' ' + esc(c.job) + ' <span class="mute">#' + c.item + ' \xB7 ' + esc(c.card.harness + ' ' + c.card.model) + ' \xB7 ' + (c.ms / 1000).toFixed(1) + 's \xB7 ' + c.tools.length + ' tools' + (c.tokens ? ' \xB7 ' + num(total(c.tokens)) + ' tok' : '') + '</span>' + (c.outcome !== 'ok' ? ' <span class="pill status-held">' + esc(c.outcome) + '</span>' : '') + flagPills(c); }
+  const e = st.e, d = e.data; let extra = '';
+  if (e.kind.startsWith('runner-')) return '<b>' + esc(e.kind) + '</b> <span class="mute">pid ' + esc(d.pid) + (e.item ? ' \xB7 #' + e.item : '') + '</span>';
+  if (e.kind === 'handoff') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
+  else if (e.kind === 'handed-off') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
+  else if (e.kind === 'nq-question') extra = esc(d.receiver) + ' asks ' + esc(d.originator) + ': ' + esc((d.questions || []).join(' \xB7 ')).slice(0, 140);
+  else if (e.kind === 'nq-clear') extra = esc(d.profile) + ' is clear';
+  else if (e.kind === 'shipped') extra = esc((d.output || '').trim().split('\\n').pop());
+  else if (e.kind === 'held' || e.kind === 'ruling') extra = esc(d.code || d.cause || '');
+  else if (e.kind === 'discovered') extra = (d.candidates || []).length + ' candidates';
+  else if (e.kind === 'created') extra = esc(itemById(e.item)?.title || '');
+  return '<b>' + esc(e.kind) + '</b> <span class="mute">#' + e.item + '</span> ' + extra;
+}
+function render() {
+  const n = steps.length; document.getElementById('slider').max = Math.max(0, n - 1); document.getElementById('slider').value = pos;
+  document.getElementById('pos').textContent = n ? (pos + 1) + ' / ' + n + ' \xB7 ' + new Date(steps[pos].t).toLocaleTimeString() : 'no steps yet';
+  const shipped = DATA.items.filter((i) => i.status === 'shipped').length;
+  const flagged = DATA.calls.filter((c) => c.flags.length).length, tokens = DATA.calls.reduce((n, c) => n + total(c.tokens), 0);
+  document.getElementById('meta').textContent = DATA.items.length + ' items \xB7 ' + shipped + ' shipped \xB7 ' + DATA.calls.length + ' agent calls \xB7 ' + num(tokens) + ' tokens \xB7 ' + flagged + ' flagged \xB7 written ' + new Date(DATA.at).toLocaleString();
+  document.getElementById('steps').innerHTML = steps.map((st, i) => '<div class="step' + (i === pos ? ' on' : '') + (i > pos ? ' future' : '') + '" data-i="' + i + '"><span class="n">' + (i + 1) + '</span><span>' + label(st) + '</span></div>').join('');
+  const on = document.querySelector('.step.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+  const s = stateAt(pos), cur = steps[pos], curItem = cur ? (cur.type === 'call' ? cur.c.item : cur.e.item) : null;
+  const disc = DATA.items.filter((i) => i.job === 'discover' && s[i.id]);
+  const cards = (list) => list.map((i) => '<div class="card' + (i.id === curItem ? ' sel' : '') + '" data-item="' + i.id + '"><div><b>#' + i.id + '</b> ' + esc(i.title) + '</div><span class="pill status-' + s[i.id].status + '">' + esc(s[i.id].status) + '</span> <span class="mute">' + esc(s[i.id].job) + '</span></div>').join('') || '<div class="mute">\u2014</div>';
+  const delivery = DATA.items.filter((i) => i.job !== 'discover' && s[i.id] && s[i.id].status !== 'candidate');
+  const raw = disc[0]?.source || '';
+  document.getElementById('board').innerHTML =
+    '<div class="col"><h3>Raw input</h3><pre style="max-height:160px">' + esc(raw.slice(0, 1500)) + '</pre></div>' +
+    '<div class="col"><h3>Discovery</h3>' + cards(disc) + '</div>' +
+    '<div class="col"><h3>Queue</h3>' + cards(DATA.items.filter((i) => i.job !== 'discover' && (s[i.id]?.status === 'candidate' || (s[i.id]?.status === 'queued' && s[i.id].job === 'ideate')))) + '</div>' +
+    ['ideation','planning','implementation','verification'].map((stage) => {
+      const jobs = { ideation: ['ideate','challenge'], planning: ['plan','test-plan'], implementation: ['implement'], verification: ['verify','arbitrate'] }[stage];
+      return '<div class="col"><h3>' + stage + '</h3>' + cards(delivery.filter((i) => jobs.includes(s[i.id].job) && !['shipped','queued'].includes(s[i.id].status))) + '</div>';
+    }).join('') +
+    '<div class="col"><h3>Shipped</h3>' + cards(delivery.filter((i) => s[i.id].status === 'shipped')) + '</div>';
+  document.getElementById('detail').innerHTML = selected ? itemDetail(selected) : cur ? stepDetail(cur) : '<span class="mute">Waiting for the first step\u2026</span>';
+}
+function stepDetail(st) {
+  if (st.type === 'call') {
+    const c = st.c;
+    return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(c.profile) + ' \xB7 ' + esc(c.kind) + ' \xB7 ' + esc(c.job) + ' <span class="mute">item #' + c.item + '</span></h2>' +
+      '<div class="kv"><div>card</div><div>' + esc(c.card.harness + ' \xB7 ' + c.card.provider + ' \xB7 ' + c.card.model + ' \xB7 ' + c.card.effort) + '</div><div>outcome</div><div>' + esc(c.outcome) + '</div><div>started</div><div>' + esc(c.started) + ' (' + (c.ms / 1000).toFixed(1) + 's)</div>' +
+      '<div>tokens</div><div>' + (c.tokens ? num(total(c.tokens)) + ' <span class="mute">= ' + num(c.tokens.input) + ' in \xB7 ' + num(c.tokens.output) + ' out \xB7 ' + num(c.tokens.cacheRead) + ' cache read \xB7 ' + num(c.tokens.cacheWrite) + ' cache write</span>' : '<span class="mute">not reported</span>') + '</div>' +
+      '<div>raw stream</div><div>' + num(c.rawBytes) + ' bytes <span class="mute">\xB7 <code>mw export ' + c.item + '</code></span></div></div>' +
+      '<h3>Rule breaks</h3>' + (c.flags.length ? '<ul class="flags">' + c.flags.map((f) => '<li><span class="pill flag">' + esc(f.rule) + '</span> <code>' + esc(JSON.stringify(f.evidence)) + '</code></li>').join('') + '</ul>' : '<div class="mute">' + (c.facts ? 'none' : 'not checked: no facts recorded') + '</div>') +
+      '<h3>Tool calls (' + c.tools.length + ')</h3>' + (c.tools.length ? '<table class="tools"><tr><th class="num">#</th><th>tool</th><th>input digest</th><th class="num">in bytes</th><th class="num">out bytes</th><th class="num">tokens</th><th>at</th><th class="num">ms</th></tr>' + c.tools.map((t) => '<tr' + (t.error ? ' class="err"' : '') + '><td class="num">' + t.seq + '</td><td>' + esc(t.tool) + (t.error ? ' (error)' : '') + '</td><td><code>' + esc(t.digest) + '</code></td><td class="num">' + num(t.inputBytes) + '</td><td class="num">' + num(t.outputBytes) + '</td><td class="num">' + (t.tokens ?? '\u2014') + '</td><td>' + esc(t.at ? new Date(t.at).toLocaleTimeString() : '\u2014') + '</td><td class="num">' + (t.ms ?? '\u2014') + '</td></tr>').join('') + '</table>' : '<div class="mute">none</div>') +
+      (c.output ? '<h3>Answer</h3><pre>' + esc(c.output) + '</pre>' : '') + (c.error ? '<h3>Error</h3><pre>' + esc(c.error) + '</pre>' : '') +
+      (c.facts ? '<details><summary>Facts</summary><pre>' + esc(JSON.stringify(c.facts, null, 2)) + '</pre></details>' : '') +
+      '<details><summary>Packet (prompt)</summary><pre>' + esc(c.prompt) + '</pre></details><details><summary>System prompt</summary><pre>' + esc(c.system) + '</pre></details>';
+  }
+  return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(st.e.kind) + ' <span class="mute">' + (st.e.item ? 'item #' + st.e.item : 'the runner') + ' \xB7 ' + esc(st.e.at) + '</span></h2><pre>' + esc(JSON.stringify(st.e.data, null, 2)) + '</pre>';
+}
+function itemDetail(id) {
+  const i = itemById(id); if (!i) return '';
+  return '<h2 style="margin:0 0 8px;font-size:16px">#' + i.id + ' ' + esc(i.title) + ' <button onclick="selected=null;render()">close</button></h2><div class="kv"><div>status now</div><div>' + esc(i.status) + '</div><div>objective</div><div>' + esc(i.objective) + '</div>' + (i.shipped ? '<div>shipped</div><div>' + esc(i.shipped.command) + '</div>' : '') + (i.hold ? '<div>hold</div><div>' + esc(i.hold.code + ': ' + i.hold.message) + '</div>' : '') + '</div>' +
+    Object.entries(i.outputs || {}).map(([job, out]) => '<details><summary>' + esc(job) + ' deliverable</summary><pre>' + esc(out) + '</pre></details>').join('') + '<details><summary>Record</summary><pre>' + esc(JSON.stringify(i, null, 2)) + '</pre></details>';
+}
+const go = (i) => { pos = Math.max(0, Math.min(steps.length - 1, i)); selected = null; render(); };
+document.getElementById('steps').onclick = (ev) => { const el = ev.target.closest('.step'); if (el) go(+el.dataset.i); };
+document.getElementById('board').onclick = (ev) => { const el = ev.target.closest('.card'); if (el) { selected = +el.dataset.item; render(); } };
+document.getElementById('slider').oninput = (ev) => go(+ev.target.value);
+document.getElementById('first').onclick = () => go(0); document.getElementById('last').onclick = () => go(steps.length - 1);
+document.getElementById('prev').onclick = () => go(pos - 1); document.getElementById('next').onclick = () => go(pos + 1);
+document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; return; } document.getElementById('play').textContent = '\u23F8 Pause'; timer = setInterval(() => { if (pos >= steps.length - 1) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; } else go(pos + 1); }, 700); };
+document.onkeydown = (ev) => { if (ev.key === 'ArrowRight') go(pos + 1); if (ev.key === 'ArrowLeft') go(pos - 1); };
+build(); pos = Math.max(0, steps.length - 1); render();
+</script></body></html>`;
+
+// src/telemetry.ts
+import { createHash } from "node:crypto";
+import { appendFileSync, mkdirSync as mkdirSync2 } from "node:fs";
+import { dirname, matchesGlob } from "node:path";
+var WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "create_file", "undo_edit", "file_change", "edit", "write"];
+var lines = (raw) => raw.split("\n").flatMap((l) => {
+  try {
+    const e = JSON.parse(l);
+    return e && typeof e === "object" ? [e] : [];
+  } catch {
+    return [];
+  }
+});
+var bytes2 = (v) => v === void 0 || v === null ? 0 : Buffer.byteLength(typeof v === "string" ? v : JSON.stringify(v));
+var digest = (v) => createHash("sha256").update(JSON.stringify(v ?? null)).digest("hex").slice(0, 16);
+var num = (v) => typeof v === "number" && Number.isFinite(v) ? v : 0;
+var timeOf = (e) => {
+  const t = e.mw_at ?? e.timestamp ?? e.message?.timestamp;
+  const ms = typeof t === "number" ? t : typeof t === "string" ? Date.parse(t) : NaN;
+  return Number.isFinite(ms) ? ms : null;
+};
+var CODEX_TOOLS = {
+  command_execution: (i) => ({ tool: "command_execution", input: i.command, output: i.aggregated_output }),
+  file_change: (i) => ({ tool: "file_change", input: i.changes, output: null }),
+  mcp_tool_call: (i) => ({ tool: `${i.server}.${i.tool}`, input: i.arguments, output: i.result ?? i.error }),
+  web_search: (i) => ({ tool: "web_search", input: i.query, output: null })
+};
+function toolEvents(harness, raw) {
+  const open = /* @__PURE__ */ new Map();
+  const issue = (id2, tool, input, t, tokens) => {
+    if (!open.has(id2)) open.set(id2, { seq: open.size + 1, tool, digest: digest(input), inputBytes: bytes2(input), outputBytes: 0, tokens, at: t === null ? null : new Date(t).toISOString(), ms: null, error: false, t });
+  };
+  const finish = (id2, output, t, error) => {
+    const e = open.get(id2);
+    if (!e) return;
+    e.outputBytes = bytes2(output);
+    e.error = error;
+    if (e.t !== null && t !== null) e.ms = t - e.t;
+  };
+  const seen = /* @__PURE__ */ new Set();
+  const stepTokens = /* @__PURE__ */ new Map();
+  for (const e of lines(raw ?? "")) {
+    const t = timeOf(e);
+    if (harness === "claude" || harness === "amp") {
+      const blocks = Array.isArray(e.message?.content) ? e.message.content : [];
+      if (e.type === "assistant") {
+        let fresh2 = !e.message.id || !seen.has(e.message.id);
+        if (e.message.id) seen.add(e.message.id);
+        for (const b of blocks.filter((b2) => b2.type === "tool_use")) {
+          issue(b.id, b.name, b.input, t, fresh2 ? num(e.message.usage?.output_tokens) : null);
+          fresh2 = false;
+        }
+      } else if (e.type === "user") {
+        for (const b of blocks.filter((b2) => b2.type === "tool_result")) finish(b.tool_use_id, b.content, t, b.is_error === true);
+      }
+    } else if (harness === "codex") {
+      const item = e.item;
+      const shape = item && CODEX_TOOLS[item.type];
+      if (!shape || e.type !== "item.started" && e.type !== "item.completed") continue;
+      const { tool, input, output } = shape(item);
+      const started = open.has(item.id);
+      issue(item.id, tool, input, t, null);
+      if (e.type === "item.completed") finish(item.id, output, started ? t : null, item.status === "failed" || num(item.exit_code) !== 0);
+    } else if (e.type === "message_end" && e.message?.role === "assistant") {
+      const first = (e.message.content ?? []).find((c) => c.type === "toolCall");
+      if (first) stepTokens.set(first.id, num(e.message.usage?.output));
+    } else if (e.type === "tool_execution_start") {
+      issue(e.toolCallId, e.toolName, e.args, t, stepTokens.get(e.toolCallId) ?? null);
+    } else if (e.type === "tool_execution_end") {
+      finish(e.toolCallId, e.result, t, e.isError === true);
+    }
+  }
+  return [...open.values()].map(({ t: _, ...event }) => event);
+}
+function tokensOf(harness, raw) {
+  const evs = lines(raw ?? "");
+  const sum3 = (usages, pick3) => usages.length ? usages.map(pick3).reduce((a, b) => ({ input: a.input + b.input, output: a.output + b.output, cacheRead: a.cacheRead + b.cacheRead, cacheWrite: a.cacheWrite + b.cacheWrite })) : null;
+  if (harness === "claude" || harness === "amp") {
+    const anthropic = (u) => ({ input: num(u.input_tokens), output: num(u.output_tokens), cacheRead: num(u.cache_read_input_tokens), cacheWrite: num(u.cache_creation_input_tokens) });
+    const total = evs.findLast((e) => e.type === "result" && e.usage);
+    if (total) return anthropic(total.usage);
+    const seen = /* @__PURE__ */ new Set();
+    const steps = evs.filter((e) => {
+      if (e.type !== "assistant" || !e.message?.usage) return false;
+      if (!e.message.id) return true;
+      if (seen.has(e.message.id)) return false;
+      seen.add(e.message.id);
+      return true;
+    });
+    return sum3(steps.map((e) => e.message.usage), anthropic);
+  }
+  if (harness === "codex") {
+    return sum3(evs.filter((e) => e.type === "turn.completed" && e.usage).map((e) => e.usage), (u) => ({ input: Math.max(0, num(u.input_tokens) - num(u.cached_input_tokens)), output: num(u.output_tokens), cacheRead: num(u.cached_input_tokens), cacheWrite: num(u.cache_write_input_tokens) }));
+  }
+  return sum3(evs.filter((e) => e.type === "message_end" && e.message?.role === "assistant" && e.message.usage).map((e) => e.message.usage), (u) => ({ input: num(u.input), output: num(u.output), cacheRead: num(u.cacheRead), cacheWrite: num(u.cacheWrite) }));
+}
+var totalTokens = (t) => t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0;
+var inScope = (file, scope3) => {
+  const f = file.replace(/^\.\//, "");
+  return scope3.some((s) => {
+    const p = s.replace(/^\.\//, "");
+    return /[*?[{]/.test(p) ? matchesGlob(f, p) : f === p || f.startsWith(p.endsWith("/") ? p : `${p}/`);
+  });
+};
+function flagsFor(facts, observed) {
+  const flags = [];
+  const used = [...new Set(observed.tools.map((t) => t.tool))];
+  if (facts.access === "read") {
+    const tools = used.filter((t) => WRITE_TOOLS.includes(t));
+    const files = facts.changed ?? [];
+    if (tools.length || files.length) flags.push({ rule: "write-under-read", evidence: { tools, files } });
+  }
+  if (facts.head && facts.head.before !== facts.head.after) flags.push({ rule: "head-moved", evidence: { ...facts.head } });
+  if (facts.scope && facts.changed) {
+    const files = facts.changed.filter((f) => !inScope(f, facts.scope));
+    if (files.length) flags.push({ rule: "out-of-scope", evidence: { files, scope: facts.scope } });
+  }
+  if (facts.budget) {
+    const tokens = totalTokens(observed.tokens);
+    const over = { ...facts.budget.tokens !== void 0 && tokens > facts.budget.tokens ? { tokens } : {}, ...facts.budget.ms !== void 0 && observed.ms > facts.budget.ms ? { ms: observed.ms } : {} };
+    if (Object.keys(over).length) flags.push({ rule: "over-budget", evidence: { ...over, budget: facts.budget } });
+  }
+  if (facts.allowlist) {
+    const tools = used.filter((t) => !facts.allowlist.includes(t));
+    if (tools.length) flags.push({ rule: "tool-not-allowed", evidence: { tools, allowlist: facts.allowlist } });
+  }
+  if (facts.required) {
+    const answer2 = lastJson(observed.output ?? "") ?? {};
+    const fields = facts.required.filter((f) => !(f in answer2));
+    if (fields.length) flags.push({ rule: "missing-fields", evidence: { fields } });
+  }
+  return flags;
+}
+var nanosToMs = (n) => Number(n / 1000000n);
+var debugLayer = (file) => Layer_exports.unwrap(Effect_exports.sync(() => {
+  if (process.env.MW_DEBUG !== "1") return Layer_exports.empty;
+  mkdirSync2(dirname(file), { recursive: true });
+  return Layer_exports.succeed(Tracer_exports.Tracer, Tracer_exports.make({
+    span(options) {
+      const span2 = new Tracer_exports.NativeSpan(options);
+      const end = span2.end.bind(span2);
+      span2.end = (endTime, exit4) => {
+        end(endTime, exit4);
+        const parent = options.parent._tag === "Some" ? options.parent.value.spanId : null;
+        const outcome = exit4._tag === "Success" ? "ok" : "error";
+        appendFileSync(file, JSON.stringify({ name: span2.name, trace: span2.traceId, span: span2.spanId, parent, start: new Date(nanosToMs(span2.startTime)).toISOString(), ms: nanosToMs(endTime - span2.startTime), outcome, attributes: Object.fromEntries(span2.attributes) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+      };
+      return span2;
+    }
+  }));
+}));
+
+// src/store.ts
+var defaultStorePath = () => process.env.MW_STORE ?? join2(process.env.MW_HOME ?? join2(homedir(), ".local", "share", "madewell"), "madewell.db");
 var alive = (pid) => {
   try {
     process.kill(pid, 0);
@@ -20899,12 +21223,13 @@ var alive = (pid) => {
   }
 };
 function openStore(path) {
-  mkdirSync(dirname(path), { recursive: true });
+  mkdirSync3(dirname2(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS calls (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, kind TEXT NOT NULL, job TEXT NOT NULL, profile TEXT NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL);
+		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`);
   const tx2 = (fn3) => {
@@ -20918,15 +21243,39 @@ function openStore(path) {
       throw e;
     }
   };
+  const glass = join2(dirname2(path), "glass.html");
+  const insertTools = (call, tools) => {
+    const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
+  };
+  tx2(() => {
+    const columns = db.prepare("PRAGMA table_info(calls)").all().map((c) => c.name);
+    if (columns.includes("tokens")) return;
+    db.exec("ALTER TABLE calls ADD COLUMN tokens TEXT; ALTER TABLE calls ADD COLUMN facts TEXT; ALTER TABLE calls ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'");
+    for (const c of db.prepare("SELECT id, card, raw FROM calls WHERE raw IS NOT NULL").all()) {
+      const harness = JSON.parse(c.card).harness;
+      const tokens = tokensOf(harness, c.raw);
+      db.prepare("UPDATE calls SET tokens = ? WHERE id = ?").run(tokens && JSON.stringify(tokens), c.id);
+      insertTools(c.id, toolEvents(harness, c.raw));
+    }
+  });
   const event = (item, kind, data) => db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, (/* @__PURE__ */ new Date()).toISOString(), kind, JSON.stringify(data));
+  const view2 = () => {
+    try {
+      writeFileSync2(`${glass}.tmp`, replayHtml(snapshot2(store)));
+      renameSync(`${glass}.tmp`, glass);
+    } catch {
+    }
+  };
   const read = (id2) => {
     const row = db.prepare("SELECT doc FROM items WHERE id = ?").get(id2);
     return row && JSON.parse(row.doc);
   };
-  return {
+  const store = {
     path,
+    glass,
     create(fields) {
-      return tx2(() => {
+      const created = tx2(() => {
         const now2 = (/* @__PURE__ */ new Date()).toISOString();
         const { lastInsertRowid } = db.prepare("INSERT INTO items (doc) VALUES (?)").run("{}");
         const item = { job: "ideate", from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
@@ -20934,6 +21283,8 @@ function openStore(path) {
         event(item.id, "created", { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null });
         return item;
       });
+      view2();
+      return created;
     },
     get(id2) {
       return read(id2);
@@ -20945,6 +21296,7 @@ function openStore(path) {
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(next), item.id);
         event(item.id, kind, data);
       });
+      view2();
       return next;
     },
     list() {
@@ -20953,12 +21305,33 @@ function openStore(path) {
     events(id2) {
       return db.prepare("SELECT * FROM events WHERE item = ? ORDER BY seq").all(id2).map((r) => ({ ...r, data: JSON.parse(r.data) }));
     },
-    recordCall(call) {
-      const { lastInsertRowid } = db.prepare("INSERT INTO calls (item, kind, job, profile, card, system, prompt, outcome, output, error, raw, started, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms);
-      return Number(lastInsertRowid);
+    /** Records one call with its tool events, tokens and rule-break flags, read from its raw stream and the engine's facts. */
+    recordCall(call, facts) {
+      const tools = toolEvents(call.card.harness, call.raw);
+      const tokens = tokensOf(call.card.harness, call.raw);
+      const flags = facts ? flagsFor(facts, { tools, tokens, ms: call.ms, output: call.output }) : [];
+      return tx2(() => {
+        const id2 = Number(db.prepare("INSERT INTO calls (item, kind, job, profile, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms, tokens && JSON.stringify(tokens), facts ? JSON.stringify(facts) : null, JSON.stringify(flags)).lastInsertRowid);
+        insertTools(id2, tools);
+        return id2;
+      });
     },
-    calls() {
-      return db.prepare("SELECT * FROM calls ORDER BY id").all().map((r) => ({ ...r, card: JSON.parse(r.card) }));
+    /** The engine refused a call's answer: the call is on the record as rejected, with the reason. */
+    rejectCall(id2, reason) {
+      db.prepare("UPDATE calls SET outcome = 'rejected', error = ? WHERE id = ?").run(reason, id2);
+    },
+    /** Every call, or one item's, oldest first. */
+    calls(item) {
+      const rows = db.prepare(`SELECT * FROM calls ${item === void 0 ? "" : "WHERE item = ?"} ORDER BY id`).all(...item === void 0 ? [] : [item]);
+      const tools = db.prepare("SELECT seq, tool, digest, input_bytes AS inputBytes, output_bytes AS outputBytes, tokens, at, ms, error FROM tool_events WHERE call = ? ORDER BY seq");
+      return rows.map((r) => ({
+        ...r,
+        card: JSON.parse(r.card),
+        tokens: r.tokens ? JSON.parse(r.tokens) : null,
+        facts: r.facts ? JSON.parse(r.facts) : null,
+        flags: JSON.parse(r.flags),
+        tools: tools.all(r.id).map((t) => ({ ...t, error: t.error === 1 }))
+      }));
     },
     allEvents() {
       return db.prepare("SELECT * FROM events ORDER BY seq").all().map((r) => ({ ...r, data: JSON.parse(r.data) }));
@@ -20969,16 +21342,18 @@ function openStore(path) {
     markExhausted(account, resetsAt) {
       db.prepare("INSERT INTO accounts (account, resets_at) VALUES (?, ?) ON CONFLICT (account) DO UPDATE SET resets_at = MAX(resets_at, excluded.resets_at)").run(account, resetsAt);
     },
-    /** One runner drives the store at a time. A dead runner's claim is taken over. */
+    /** One runner drives the store at a time. A dead runner's claim is taken over, and its loss recorded against the item it was on. */
     claimRunner() {
       return Effect_exports.suspend(() => {
         const owner = tx2(() => {
           const row = db.prepare("SELECT pid, since, item FROM runner WHERE id = 1").get();
           if (row && row.pid !== process.pid && alive(row.pid)) return row;
+          if (row && row.pid !== process.pid) event(row.item ?? 0, "runner-lost", { pid: row.pid, since: row.since, item: row.item });
           db.prepare("INSERT INTO runner (id, pid, since) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET pid = excluded.pid, since = excluded.since, item = NULL").run(process.pid, (/* @__PURE__ */ new Date()).toISOString());
+          event(0, "runner-started", { pid: process.pid, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
           return void 0;
         });
-        if (!owner) return Effect_exports.void;
+        if (!owner) return Effect_exports.sync(view2);
         const busy = owner.item === null ? void 0 : read(owner.item);
         return Effect_exports.fail(new MadeWellError({
           code: "store_locked",
@@ -20996,16 +21371,23 @@ function openStore(path) {
       db.prepare("UPDATE runner SET item = ? WHERE id = 1 AND pid = ?").run(item, process.pid);
     },
     releaseRunner() {
-      db.prepare("DELETE FROM runner WHERE id = 1 AND pid = ?").run(process.pid);
+      tx2(() => {
+        if (db.prepare("DELETE FROM runner WHERE id = 1 AND pid = ?").run(process.pid).changes) event(0, "runner-stopped", { pid: process.pid });
+      });
+      view2();
     },
     close() {
       db.close();
     }
   };
+  return store;
 }
 var Store = class extends Context_exports.Service()("madewell/Store") {
 };
-var storeLayer = (path = defaultStorePath()) => Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close())));
+var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
+  Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
+  debugLayer(join2(dirname2(path), "debug.jsonl"))
+);
 
 // src/worker.ts
 import { execFile } from "node:child_process";
@@ -21269,7 +21651,7 @@ ${item.failure ?? ""}`,
 var hold = (store, item, code, message, context3) => void store.save({ ...item, status: "held", hold: { code, message, context: context3 } }, "held", { code, message });
 var ship = Effect_exports.fn("mw.ship")(function* (item) {
   const store = yield* Store;
-  const config = join2(item.workspace, "madewell.json");
+  const config = join3(item.workspace, "madewell.json");
   let command;
   try {
     command = JSON.parse(readFileSync2(config, "utf8")).ship;
@@ -21295,7 +21677,7 @@ function nextFor(item) {
   }
   if (code === "no_ship_command") {
     return [
-      { run: `printf '{"ship": "git push origin HEAD:main"}\\n' > ${join2(item.workspace, "madewell.json")}`, why: "tell Made Well how this project ships (merge to main, deploy, or both)" },
+      { run: `printf '{"ship": "git push origin HEAD:main"}\\n' > ${join3(item.workspace, "madewell.json")}`, why: "tell Made Well how this project ships (merge to main, deploy, or both)" },
       { run: `mw retry ${id2}`, why: "verify again and ship" }
     ];
   }
@@ -21409,9 +21791,9 @@ var executePacket = (item, x) => JSON.stringify({
 
 // src/harness.ts
 import { spawn } from "node:child_process";
-import { mkdirSync as mkdirSync2, writeFileSync } from "node:fs";
+import { mkdirSync as mkdirSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join as join3 } from "node:path";
+import { join as join4 } from "node:path";
 var binaryFor = (harness) => ({ amp: process.env.MW_AMP ?? "amp", claude: process.env.MW_CLAUDE ?? "claude", codex: process.env.MW_CODEX ?? "codex", pi: process.env.MW_PI ?? "pi" })[harness];
 var CLAUDE_ACCESS = {
   read: ["--permission-mode", "dontAsk", "--tools", "Read,Grep,Glob"],
@@ -21424,10 +21806,10 @@ var PI_TOOLS = { read: "read,grep,find,ls", checks: "read,grep,find,ls,bash,writ
 var AMP_ALWAYS_OFF = ["Task", "oracle", "librarian", "finder", "create_thread", "send_thread_message", "code_exec"];
 var AMP_EDITS = ["edit_file", "create_file"];
 var ampSettings = (access) => {
-  const dir = join3(tmpdir(), "madewell-amp");
-  mkdirSync2(dir, { recursive: true });
-  const path = join3(dir, `${access}.json`);
-  writeFileSync(path, JSON.stringify({ "amp.tools.disable": access === "read" ? [...AMP_ALWAYS_OFF, ...AMP_EDITS] : AMP_ALWAYS_OFF }));
+  const dir = join4(tmpdir(), "madewell-amp");
+  mkdirSync4(dir, { recursive: true });
+  const path = join4(dir, `${access}.json`);
+  writeFileSync3(path, JSON.stringify({ "amp.tools.disable": access === "read" ? [...AMP_ALWAYS_OFF, ...AMP_EDITS] : AMP_ALWAYS_OFF }));
   return path;
 };
 function buildLaunch(card, access, system, title = "Made Well job") {
@@ -21564,122 +21946,6 @@ ${request3.prompt}` : request3.prompt);
   )
 });
 
-// src/replay.ts
-var snapshot2 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls(), at: (/* @__PURE__ */ new Date()).toISOString() });
-var replayHtml = (data, live) => `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Made Well \xB7 the glass</title>
-<style>
-:root { --ink:#16181d; --mute:#6b7280; --line:#e5e7eb; --bg:#fafaf9; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --run:#1d4ed8; }
-* { box-sizing:border-box } body { margin:0; font:14px/1.45 ui-sans-serif,system-ui,sans-serif; color:var(--ink); background:var(--bg) }
-header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap; background:#fff; position:sticky; top:0; z-index:2 }
-h1 { font-size:15px; margin:0 } .mute { color:var(--mute) } button { font:inherit; padding:4px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer } button:hover { border-color:var(--ink) }
-input[type=range] { flex:1; min-width:200px } .pill { font-size:12px; padding:1px 8px; border-radius:999px; border:1px solid currentColor; white-space:nowrap }
-main { display:grid; grid-template-columns: 340px 1fr; height: calc(100vh - 58px) }
-#steps { overflow:auto; border-right:1px solid var(--line); background:#fff } .step { padding:7px 14px; border-bottom:1px solid #f3f4f6; cursor:pointer; display:grid; grid-template-columns:44px 1fr; gap:8px }
-.step.on { background:#eef2ff } .step.future { opacity:.35 } .step .n { color:var(--mute); font-variant-numeric:tabular-nums } .step b { font-weight:600 }
-#right { overflow:auto; padding:18px 22px } .board { display:grid; grid-template-columns: 1.3fr repeat(7, minmax(0, 1fr)); gap:8px; align-items:stretch }
-.col { min-width:0; background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px } .col h3 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--mute); overflow-wrap:anywhere }
-.card { border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:6px; cursor:pointer; background:#fff } .card.sel { outline:2px solid var(--run) }
-.status-shipped { color:var(--ok) } .status-held { color:var(--bad) } .status-running,.status-queued { color:var(--run) } .status-waiting-quota,.status-waiting-prerequisite,.status-candidate { color:var(--warn) } .status-discovered { color:var(--ok) }
-.card div { overflow-wrap:anywhere } .detail { margin-top:18px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px }
-pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px; max-height:420px; overflow:auto; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace }
-details summary { cursor:pointer; color:var(--mute); margin:8px 0 } .kv { display:grid; grid-template-columns:120px 1fr; gap:4px 12px } .kv div:nth-child(odd) { color:var(--mute) }
-</style></head><body>
-<header><h1>Made Well \xB7 the glass</h1><span class="mute" id="meta"></span>
-<button id="first">\u23EE</button><button id="prev">\u25C0</button><button id="play">\u25B6 Play</button><button id="next">\u25B6</button><button id="last">\u23ED Now</button>
-<input type="range" id="slider" min="0" value="0"><span id="pos" class="mute"></span></header>
-<main><div id="steps"></div><div id="right"><div class="board" id="board"></div><div class="detail" id="detail"></div></div></main>
-<script>
-let DATA = ${JSON.stringify(data).replace(/</g, "\\u003c")};
-const LIVE = ${live};
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const LANE = ['discover','ideate','challenge','plan','test-plan','implement','verify','arbitrate'];
-let steps = [], pos = 0, follow = true, timer = null, selected = null;
-function build() {
-  steps = [...DATA.events.map((e) => ({ t: e.at, type: 'event', e })), ...DATA.calls.map((c) => ({ t: c.started, type: 'call', c }))]
-    .sort((a, b) => a.t.localeCompare(b.t) || (a.type === 'call' ? -1 : 1));
-}
-function stateAt(n) {
-  const s = {};
-  for (const st of steps.slice(0, n + 1)) {
-    if (st.type !== 'event') continue;
-    const e = st.e, d = e.data, it = (s[e.item] ??= { status: 'queued', job: 'ideate' });
-    if (e.kind === 'created') { it.status = d.status ?? 'queued'; it.job = d.job; }
-    else if (e.kind === 'handed-off') it.job = d.to;
-    else if (e.kind === 'failure') it.job = 'arbitrate';
-    else if (e.kind === 'ruling') { if (d.to) it.job = d.to; if (d.prerequisite) it.status = 'waiting-prerequisite'; else it.status = 'running'; }
-    else if (e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
-    else if (['held','shipped','discovered','running','waiting-quota'].includes(e.kind)) it.status = e.kind;
-    else if (['retried','promoted'].includes(e.kind) || (e.kind === 'nq-answer' && d.originator === 'operator')) it.status = 'queued';
-  }
-  return s;
-}
-const itemById = (id) => DATA.items.find((i) => i.id === id);
-function label(st) {
-  if (st.type === 'call') { const c = st.c; return '<b>' + esc(c.profile) + '</b> \xB7 ' + esc(c.kind) + ' ' + esc(c.job) + ' <span class="mute">#' + c.item + ' \xB7 ' + esc(c.card.harness + ' ' + c.card.model) + ' \xB7 ' + (c.ms / 1000).toFixed(1) + 's</span>' + (c.outcome !== 'ok' ? ' <span class="pill status-held">' + esc(c.outcome) + '</span>' : ''); }
-  const e = st.e, d = e.data; let extra = '';
-  if (e.kind === 'handoff') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
-  else if (e.kind === 'handed-off') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
-  else if (e.kind === 'nq-question') extra = esc(d.receiver) + ' asks ' + esc(d.originator) + ': ' + esc((d.questions || []).join(' \xB7 ')).slice(0, 140);
-  else if (e.kind === 'nq-clear') extra = esc(d.profile) + ' is clear';
-  else if (e.kind === 'shipped') extra = esc((d.output || '').trim().split('\\n').pop());
-  else if (e.kind === 'held' || e.kind === 'ruling') extra = esc(d.code || d.cause || '');
-  else if (e.kind === 'discovered') extra = (d.candidates || []).length + ' candidates';
-  else if (e.kind === 'created') extra = esc(itemById(e.item)?.title || '');
-  return '<b>' + esc(e.kind) + '</b> <span class="mute">#' + e.item + '</span> ' + extra;
-}
-function render() {
-  const n = steps.length; document.getElementById('slider').max = Math.max(0, n - 1); document.getElementById('slider').value = pos;
-  document.getElementById('pos').textContent = n ? (pos + 1) + ' / ' + n + ' \xB7 ' + new Date(steps[pos].t).toLocaleTimeString() : 'no steps yet';
-  const shipped = DATA.items.filter((i) => i.status === 'shipped').length;
-  document.getElementById('meta').textContent = DATA.items.length + ' items \xB7 ' + shipped + ' shipped \xB7 ' + DATA.calls.length + ' agent calls' + (LIVE ? ' \xB7 live' : ' \xB7 recorded ' + new Date(DATA.at).toLocaleString());
-  document.getElementById('steps').innerHTML = steps.map((st, i) => '<div class="step' + (i === pos ? ' on' : '') + (i > pos ? ' future' : '') + '" data-i="' + i + '"><span class="n">' + (i + 1) + '</span><span>' + label(st) + '</span></div>').join('');
-  const on = document.querySelector('.step.on'); if (on) on.scrollIntoView({ block: 'nearest' });
-  const s = stateAt(pos), cur = steps[pos], curItem = cur ? (cur.type === 'call' ? cur.c.item : cur.e.item) : null;
-  const disc = DATA.items.filter((i) => i.job === 'discover' && s[i.id]);
-  const cards = (list) => list.map((i) => '<div class="card' + (i.id === curItem ? ' sel' : '') + '" data-item="' + i.id + '"><div><b>#' + i.id + '</b> ' + esc(i.title) + '</div><span class="pill status-' + s[i.id].status + '">' + esc(s[i.id].status) + '</span> <span class="mute">' + esc(s[i.id].job) + '</span></div>').join('') || '<div class="mute">\u2014</div>';
-  const delivery = DATA.items.filter((i) => i.job !== 'discover' && s[i.id] && s[i.id].status !== 'candidate');
-  const raw = disc[0]?.source || '';
-  document.getElementById('board').innerHTML =
-    '<div class="col"><h3>Raw input</h3><pre style="max-height:160px">' + esc(raw.slice(0, 1500)) + '</pre></div>' +
-    '<div class="col"><h3>Discovery</h3>' + cards(disc) + '</div>' +
-    '<div class="col"><h3>Queue</h3>' + cards(DATA.items.filter((i) => i.job !== 'discover' && (s[i.id]?.status === 'candidate' || (s[i.id]?.status === 'queued' && s[i.id].job === 'ideate')))) + '</div>' +
-    ['ideation','planning','implementation','verification'].map((stage) => {
-      const jobs = { ideation: ['ideate','challenge'], planning: ['plan','test-plan'], implementation: ['implement'], verification: ['verify','arbitrate'] }[stage];
-      return '<div class="col"><h3>' + stage + '</h3>' + cards(delivery.filter((i) => jobs.includes(s[i.id].job) && !['shipped','queued'].includes(s[i.id].status))) + '</div>';
-    }).join('') +
-    '<div class="col"><h3>Shipped</h3>' + cards(delivery.filter((i) => s[i.id].status === 'shipped')) + '</div>';
-  document.getElementById('detail').innerHTML = selected ? itemDetail(selected) : cur ? stepDetail(cur) : '<span class="mute">Waiting for the first step\u2026</span>';
-}
-function stepDetail(st) {
-  if (st.type === 'call') {
-    const c = st.c;
-    return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(c.profile) + ' \xB7 ' + esc(c.kind) + ' \xB7 ' + esc(c.job) + ' <span class="mute">item #' + c.item + '</span></h2>' +
-      '<div class="kv"><div>card</div><div>' + esc(c.card.harness + ' \xB7 ' + c.card.provider + ' \xB7 ' + c.card.model + ' \xB7 ' + c.card.effort) + '</div><div>outcome</div><div>' + esc(c.outcome) + '</div><div>started</div><div>' + esc(c.started) + ' (' + (c.ms / 1000).toFixed(1) + 's)</div></div>' +
-      (c.output ? '<h3>Answer</h3><pre>' + esc(c.output) + '</pre>' : '') + (c.error ? '<h3>Error</h3><pre>' + esc(c.error) + '</pre>' : '') +
-      '<details><summary>Packet (prompt)</summary><pre>' + esc(c.prompt) + '</pre></details><details><summary>System prompt</summary><pre>' + esc(c.system) + '</pre></details>' +
-      (c.raw ? '<details><summary>Raw harness transcript (' + c.raw.length + ' bytes)</summary><pre>' + esc(c.raw) + '</pre></details>' : '');
-  }
-  return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(st.e.kind) + ' <span class="mute">item #' + st.e.item + ' \xB7 ' + esc(st.e.at) + '</span></h2><pre>' + esc(JSON.stringify(st.e.data, null, 2)) + '</pre>';
-}
-function itemDetail(id) {
-  const i = itemById(id); if (!i) return '';
-  return '<h2 style="margin:0 0 8px;font-size:16px">#' + i.id + ' ' + esc(i.title) + ' <button onclick="selected=null;render()">close</button></h2><div class="kv"><div>status now</div><div>' + esc(i.status) + '</div><div>objective</div><div>' + esc(i.objective) + '</div>' + (i.shipped ? '<div>shipped</div><div>' + esc(i.shipped.command) + '</div>' : '') + (i.hold ? '<div>hold</div><div>' + esc(i.hold.code + ': ' + i.hold.message) + '</div>' : '') + '</div>' +
-    Object.entries(i.outputs || {}).map(([job, out]) => '<details><summary>' + esc(job) + ' deliverable</summary><pre>' + esc(out) + '</pre></details>').join('') + '<details><summary>Record</summary><pre>' + esc(JSON.stringify(i, null, 2)) + '</pre></details>';
-}
-const go = (i) => { pos = Math.max(0, Math.min(steps.length - 1, i)); follow = pos === steps.length - 1; selected = null; render(); };
-document.getElementById('steps').onclick = (ev) => { const el = ev.target.closest('.step'); if (el) go(+el.dataset.i); };
-document.getElementById('board').onclick = (ev) => { const el = ev.target.closest('.card'); if (el) { selected = +el.dataset.item; render(); } };
-document.getElementById('slider').oninput = (ev) => go(+ev.target.value);
-document.getElementById('first').onclick = () => go(0); document.getElementById('last').onclick = () => go(steps.length - 1);
-document.getElementById('prev').onclick = () => go(pos - 1); document.getElementById('next').onclick = () => go(pos + 1);
-document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; return; } document.getElementById('play').textContent = '\u23F8 Pause'; timer = setInterval(() => { if (pos >= steps.length - 1) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; } else go(pos + 1); }, 700); };
-document.onkeydown = (ev) => { if (ev.key === 'ArrowRight') go(pos + 1); if (ev.key === 'ArrowLeft') go(pos - 1); };
-build(); pos = Math.max(0, steps.length - 1); render();
-if (LIVE) setInterval(async () => { try { const d = await (await fetch('data.json', { cache: 'no-store' })).json(); if (d.events.length + d.calls.length !== DATA.events.length + DATA.calls.length || d.items.some((x, k) => DATA.items[k]?.updated !== x.updated)) { DATA = d; build(); if (follow) pos = steps.length - 1; render(); } } catch {} }, 2000);
-</script></body></html>`;
-
 // src/cli.ts
 var USAGE = [
   { run: "mw discover --source-file <raw notes> [--workspace <dir>]", why: "turn raw input into candidate work items" },
@@ -21691,8 +21957,8 @@ var USAGE = [
   { run: 'mw answer <id> "<answer>"', why: "answer an agent's open questions on a held item" },
   { run: 'mw answer <id> --cause implementation|test|pre-existing "<answer>"', why: "rule on a held failed check" },
   { run: "mw retry <id>", why: "run a held item again from where it stopped" },
-  { run: "mw serve [--port 7788]", why: "watch the whole flow live, and replay it step by step" },
-  { run: "mw replay [--out <file.html>]", why: "write the replay of the whole flow to one self-contained page" }
+  { run: "mw replay [--out <file.html>]", why: "write the replay of the whole flow to one self-contained page" },
+  { run: "mw export <id> [--out <dir>]", why: "one folder per agent call: brief, packet, answer, raw stream, tool events and flags" }
 ];
 var usageError = (message, context3 = {}) => new MadeWellError({ code: "usage", message, context: context3, next: USAGE });
 var prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL("../prescriptions.json", import.meta.url).pathname;
@@ -21720,7 +21986,7 @@ var number3 = (value3) => {
 };
 var program = Effect_exports.gen(function* () {
   const { positionals, values: values2 } = yield* Effect_exports.try({
-    try: () => parseArgs({ allowPositionals: true, options: { port: { type: "string" }, out: { type: "string" }, objective: { type: "string" }, title: { type: "string" }, source: { type: "string" }, "source-file": { type: "string" }, workspace: { type: "string" }, cause: { type: "string" }, watch: { type: "boolean" } } }),
+    try: () => parseArgs({ allowPositionals: true, options: { out: { type: "string" }, objective: { type: "string" }, title: { type: "string" }, source: { type: "string" }, "source-file": { type: "string" }, workspace: { type: "string" }, cause: { type: "string" }, watch: { type: "boolean" } } }),
     catch: (e) => usageError(String(e.message))
   });
   const [command, ...args2] = positionals;
@@ -21750,18 +22016,13 @@ var program = Effect_exports.gen(function* () {
     }
     case "replay": {
       const out = resolve3(values2.out ?? "madewell-replay.html");
-      writeFileSync2(out, replayHtml(snapshot2(store), false));
+      writeFileSync4(out, replayHtml(snapshot2(store)));
       return { replay: out, next: [{ run: `open ${out}`, why: "step through the whole flow" }] };
     }
-    case "serve": {
-      const port = Number(values2.port ?? 7788);
-      createServer((req, res) => {
-        const data = snapshot2(store);
-        if (req.url?.startsWith("/data.json")) return res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(data));
-        res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(replayHtml(data, true));
-      }).listen(port);
-      process.stderr.write(JSON.stringify({ serving: `http://localhost:${port}/`, store: store.path }) + "\n");
-      return yield* Effect_exports.never;
+    case "export": {
+      const id2 = yield* number3(args2[0]);
+      const exported = yield* exportItem(store, id2, resolve3(values2.out ?? `madewell-export-${id2}`));
+      return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${exported.dir}`, why: "one folder per call: brief, packet, answer, raw stream, tool events and flags" }] };
     }
     case "run": {
       const prescriptions = yield* loadPrescriptions(prescriptionsPath());
