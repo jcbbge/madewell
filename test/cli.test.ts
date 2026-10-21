@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'stats', 'eval']
+const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'stats', 'eval', 'prune']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -322,4 +322,84 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 		cards: { 'codex · sol · high': { calls: 5, minutes: 6, tokens: 1200, refused: 1 } },
 	}, 'a half-written last line is skipped; the refusal after its call counts against it; item ids are told apart by store; an open item is aged to its own store\'s last record; a candidate\'s lead time starts at its promotion')
 	assert.equal(setup().mw('stats').err.error, 'usage', 'without MW_TELEMETRY or --dir there is nothing to read')
+})
+
+test('prune removes finished work before the cutoff with its record and files, and keeps what work in flight needs', () => {
+	const t = setup()
+	t.mw('init', '--ship', 'true')
+	const discovery = t.mw('discover', '--source', 'raw notes: two things').out.item.id
+	t.mw('run')
+	const [first, second] = [discovery + 1, discovery + 2]
+	t.mw('promote', String(discovery), String(first))
+	t.mw('run')
+	// The scripted implementer makes one change per repo, so each further delivery gets its own project.
+	const project = (name: string) => {
+		const dir = join(t.dir, name)
+		mkdirSync(dir)
+		execFileSync('git', ['-C', dir, 'init', '-q', '-b', 'main'])
+		execFileSync('git', ['-C', dir, '-c', 'user.name=Operator', '-c', 'user.email=op@example.com', 'commit', '-q', '--allow-empty', '-m', 'first'])
+		t.mw('init', '--workspace', dir, '--ship', 'true')
+		return dir
+	}
+	const start = (workspace: string, objective: string) => t.mw('start', '--workspace', workspace, '--objective', objective, '--source', `operator: ${objective}`).out.item.id
+	const old = start(project('old'), 'Add CSV export')
+	t.mw('run')
+	const busy = project('busy')
+	const last = start(busy, 'Add PDF export')
+	t.mw('run')
+	t.env.FAKE_ASK = 'plan'
+	const held = start(busy, 'Add XLS export')
+	t.mw('run')
+	delete t.env.FAKE_ASK
+	assert.equal(t.mw('eval', 'plan', '--card', 'fast', '--item', String(old)).code, 0)
+	t.mw('export', String(old))
+	t.mw('export', String(last))
+	t.mw('replay')
+	const board = t.mw('status').out
+	assert.deepEqual(board.items.map((i: { id: number; status: string }) => [i.id, i.status]), [[discovery, 'discovered'], [first, 'shipped'], [second, 'candidate'], [old, 'shipped'], [last, 'shipped'], [held, 'held']])
+
+	const none = t.mw('prune', '--before', '2000-01-01').out
+	assert.deepEqual([none.items, none.kept, none.records], [[], [], { events: 0, calls: 0, toolEvents: 0, evals: 0, evalCalls: 0 }], 'nothing finished before the cutoff')
+
+	const kept = [
+		{ id: discovery, status: 'discovered', why: `#${second} (candidate) needs it` },
+		{ id: first, status: 'shipped', why: `#${second} (candidate) needs it` },
+		{ id: last, status: 'shipped', why: `the last merge into ${busy}, which its in-flight items check the branch against` },
+	]
+	const exported = join(t.home, 'exports', String(old))
+	const dry = t.mw('prune', '--before', '2999-01-01', '--dry-run').out
+	assert.deepEqual([dry.items, dry.kept, dry.files, dry.freed], [[old], kept, [exported, join(t.home, 'replay.html')], null])
+	assert.ok(dry.records.calls > 0 && dry.records.evals === 1 && dry.records.evalCalls > 0, JSON.stringify(dry.records))
+	assert.equal(dry.next[0].run, `mw prune --before ${dry.before}`)
+	assert.ok(Date.parse(dry.before) <= Date.now(), 'a cutoff in the future counts as now')
+	assert.deepEqual(t.mw('status').out, board, 'a dry run changes nothing')
+	assert.ok(existsSync(exported))
+
+	// Another live process holds the runner: prune refuses, and its dry run still answers.
+	const db = () => new DatabaseSync(join(t.home, 'madewell.db'))
+	const lock = db()
+	lock.prepare('INSERT INTO runner (id, pid, since) VALUES (1, ?, ?)').run(process.pid, '2026-10-21T14:02:11Z')
+	const locked = t.mw('prune', '--before', dry.before)
+	assert.deepEqual([locked.err.error, locked.err.next[0].run], ['store_locked', `mw prune --before ${dry.before}`])
+	assert.equal(t.mw('prune', '--before', dry.before, '--dry-run').code, 0)
+	lock.prepare('DELETE FROM runner').run()
+	lock.close()
+
+	const pruned = t.mw('prune', '--before', dry.before)
+	assert.equal(pruned.code, 0, JSON.stringify(pruned.err))
+	assert.deepEqual([pruned.out.dryRun, pruned.out.items, pruned.out.kept, pruned.out.files, pruned.out.records], [false, [old], kept, dry.files, dry.records])
+	assert.ok(pruned.out.freed > 0)
+	assert.deepEqual(t.mw('status').out.items, board.items.filter((i: { id: number }) => i.id !== old), 'every other item is as it was')
+	assert.equal(t.mw('show', String(old)).err.error, 'item_not_found')
+	assert.deepEqual([existsSync(exported), existsSync(join(t.home, 'exports', String(last))), existsSync(join(t.home, 'replay.html'))], [false, true, false])
+	assert.doesNotMatch(readFileSync(join(t.home, 'glass.html'), 'utf8'), /Add CSV export/, 'the glass is rewritten without it')
+	const after = db()
+	const count = (sql: string) => (after.prepare(sql).get(old) as { n: number }).n
+	assert.deepEqual([count('SELECT COUNT(*) AS n FROM events WHERE item = ?'), count('SELECT COUNT(*) AS n FROM calls WHERE item = ?'), count('SELECT COUNT(*) AS n FROM tool_events WHERE call NOT IN (SELECT id FROM calls) AND ? > 0')], [0, 0, 0])
+	assert.deepEqual([count('SELECT COUNT(*) AS n FROM evals WHERE ? > 0'), count('SELECT COUNT(*) AS n FROM eval_calls WHERE ? > 0')], [0, 0])
+	assert.equal(count("SELECT COUNT(*) AS n FROM events WHERE item = 0 AND kind = 'pruned' AND json_extract(data, '$.ids[0]') = ?"), 1)
+	after.close()
+
+	const again = t.mw('prune', '--before', pruned.out.before).out
+	assert.deepEqual([again.items, again.kept, again.files, again.records], [[], kept, [], none.records], 'a repeat removes nothing more')
 })

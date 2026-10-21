@@ -337,6 +337,37 @@ export function openStore(path: string) {
 				}))
 			})
 		},
+		/**
+		 * Retention: removes these items and everything recorded about them (events, calls, tool events, and the
+		 * evals of those calls), with the runner's own events from before the cutoff, then gives the space back.
+		 * Returns what each table lost; a dry run only counts. The caller holds the runner claim.
+		 */
+		prune(ids: ReadonlyArray<number>, before: string, dryRun: boolean) {
+			const items = `(${ids.join(',')})`
+			const calls = `(SELECT id FROM calls WHERE item IN ${items})`
+			const evals = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'evals'").get() !== undefined
+			// In deletion order: what a later row is found through goes last.
+			const from = {
+				evals: evals && `evals WHERE NOT EXISTS (SELECT 1 FROM json_each(evals.calls) j JOIN calls c ON c.id = j.value WHERE c.item NOT IN ${items})`,
+				evalCalls: evals && `eval_calls WHERE call IN ${calls}`,
+				toolEvents: `tool_events WHERE call IN ${calls}`,
+				calls: `calls WHERE item IN ${items}`,
+				events: `events WHERE item IN ${items} OR (item = 0 AND at < '${new Date(before).toISOString()}')`,
+				items: `items WHERE id IN ${items}`,
+			}
+			const each = (sql: (table: string) => number) => Object.fromEntries(Object.entries(from).map(([k, t]) => [k, t ? sql(t) : 0])) as Record<keyof typeof from, number>
+			if (dryRun) return each((t) => (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n)
+			const removed = tx(() => {
+				const r = each((t) => Number(db.prepare(`DELETE FROM ${t}`).run().changes))
+				if (Object.values(r).some(Boolean)) event(0, 'pruned', { before, ...r, ids })
+				return r
+			})
+			view()
+			// Deleted rows leave free pages; VACUUM gives them back, and the checkpoint empties the WAL it went through.
+			if ((db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count) db.exec('VACUUM')
+			db.exec('PRAGMA wal_checkpoint(TRUNCATE)')
+			return removed
+		},
 		runnerOn(item: number | null) {
 			db.prepare('UPDATE runner SET item = ? WHERE id = 1 AND pid = ?').run(item, process.pid)
 		},
