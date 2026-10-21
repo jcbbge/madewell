@@ -22198,8 +22198,14 @@ var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declar
 });
 var leftovers = Effect_exports.fn("mw.leftovers")(function* (dir, before) {
   const created = lines(yield* git(dir, "ls-files", "--others", "-z")).filter((f) => !(f in before.files)).sort();
-  if (created.length) {
-    return yield* fail8("leftovers", `${created.length} file(s) were left in ${dir}.`, { dir, files: created }, [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(" ")}`, why: "remove exactly the files the job left behind" }]);
+  const after = (yield* capture(dir)).files;
+  const control = Object.keys({ ...before.files, ...after }).filter((f) => f.startsWith(".git/") && before.files[f] !== after[f]).sort();
+  if (created.length || control.length) {
+    const files = [...created, ...control];
+    return yield* fail8("leftovers", `${files.length} file(s) were left or changed in ${dir}.`, { dir, files }, [
+      ...created.length ? [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(" ")}`, why: "remove exactly the untracked files the job left behind" }] : [],
+      ...control.length ? [{ run: `ls -l ${control.map((f) => JSON.stringify(join3(dir, f))).join(" ")}`, why: "git settings, excludes or hooks changed; git cannot restore them, so check and restore each by hand" }] : []
+    ]);
   }
 });
 var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
@@ -22453,7 +22459,7 @@ var DISCOVER = {
   job: "discover",
   stage: "discovery",
   profile: "ideator",
-  duty: "Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered. Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement."
+  duty: `Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement.`
 };
 var ARBITER = {
   job: "arbitrate",
@@ -22492,15 +22498,20 @@ var Check = Schema_exports.Struct({
   run: Text.annotate({ description: "shell command run from the repo root; exit 0 means the item is done" })
 });
 var Blocked = Schema_exports.Struct({ blocked: Schema_exports.NonEmptyString.annotate({ description: "what stops you doing the step as written; only when something does" }) });
-var Candidate = Schema_exports.Struct({ title: Text, kind: Schema_exports.Literals(["feature", "fix", "chore"]), objective: Text, text: Text });
+var Candidate = Schema_exports.Struct({
+  title: Text,
+  kind: Schema_exports.Literals(["feature", "fix", "chore"]),
+  objective: Text,
+  text: Text,
+  after: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Int).annotate({ description: "positions (1 is the first) of earlier items in this list that must ship before this one starts, because it builds on them" }))
+});
 var PLAN = Schema_exports.Struct({
   making: Text,
   notMaking: Schema_exports.Array(Text),
   scope: Schema_exports.Array(Text).annotate({ description: 'every file the change may touch, repo-relative; a directory ends in "/". A change outside it is refused.' }),
   steps: Schema_exports.Array(Text).annotate({ description: "exact instructions with paths; nothing left to decide" }),
   doneWhen: Schema_exports.Array(DoneWhen),
-  decisions: Decisions,
-  waitsOn: Schema_exports.Array(Text)
+  decisions: Decisions
 });
 var DELIVERABLES = {
   discover: Schema_exports.Struct({ items: Schema_exports.Array(Candidate) }),
@@ -22536,7 +22547,13 @@ function validate3(job, output, plan) {
     const report = lastJson(output);
     if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
     const text2 = (v) => typeof v === "string" ? v.trim() : "";
-    const items = report.items.filter((i) => text2(i?.title) && text2(i?.objective)).map((i) => ({ title: text2(i.title), objective: text2(i.objective), text: text2(i.text), kind: i.kind === "fix" || i.kind === "chore" ? i.kind : "feature" }));
+    const all4 = report.items;
+    const kept = all4.flatMap((i, n) => text2(i?.title) && text2(i?.objective) ? [n] : []);
+    const items = kept.map((n, k) => {
+      const i = all4[n];
+      const after = [...new Set((Array.isArray(i.after) ? i.after : []).map((p) => kept.indexOf(Number(p) - 1)).filter((m) => m >= 0 && m < k))].map((m) => m + 1);
+      return { title: text2(i.title), objective: text2(i.objective), text: text2(i.text), kind: i.kind === "fix" || i.kind === "chore" ? i.kind : "feature", ...after.length ? { after } : {} };
+    });
     return { ok: true, value: { items } };
   }
   if (job === "verify") return { ok: false, reason: "verify is Made Well's own code, not an agent job." };
@@ -23018,7 +23035,7 @@ var drive = Effect_exports.fn("mw.drive")(function* (id2, config) {
   for (; ; ) {
     const item = store.get(id2);
     if (!item) return yield* notFound2(id2);
-    if (DONE.includes(item.status)) return item;
+    if (DONE.includes(item.status) || unshipped(store, item).length) return item;
     if (item.waitsOn !== void 0) {
       const pre = yield* drive(item.waitsOn, config);
       if (pre.status !== "shipped") return store.get(id2);
@@ -23306,17 +23323,21 @@ function applyRoute(store, id2, job, value3, fields) {
   const by = { kind: "job", job };
   switch (r.to) {
     case "discovered": {
-      const ids = r.items.map((c) => store.create({
-        title: c.title,
-        objective: c.objective,
-        kind: c.kind,
-        workspace: current.workspace,
-        status: "candidate",
-        discovery: current.id,
-        source: current.source,
-        from: by,
-        outputs: { discover: JSON.stringify(c) }
-      }).id);
+      const ids = [];
+      for (const { after, ...c } of r.items) {
+        ids.push(store.create({
+          title: c.title,
+          objective: c.objective,
+          kind: c.kind,
+          workspace: current.workspace,
+          status: "candidate",
+          discovery: current.id,
+          source: current.source,
+          from: by,
+          outputs: { discover: JSON.stringify(c) },
+          ...after ? { after: after.map((p) => ids[p - 1]) } : {}
+        }).id);
+      }
       store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids });
       return;
     }
@@ -23529,6 +23550,11 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, car
   }
   hold(store, withTrack(item, job, { ...t, ...patch, launches }), "worker_failing", `A call for the ${job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job, card, lastError: error, ...evidence });
 });
+var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
+var stuck = (store, item) => {
+  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || stuck(store, p))(store.get(id2));
+  return item.waitsOn !== void 0 && blocked(item.waitsOn) || unshipped(store, item).some(blocked);
+};
 var openPrerequisite = (store, item, answer2, by) => {
   const pre = store.create({
     title: `Pre-existing defect blocking #${item.id}`,
@@ -23558,11 +23584,8 @@ function nextFor(item) {
   if (code === "no_ship_command") {
     return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: "register how this project ships; the item then ships" }];
   }
-  if (code === "leftovers" && item.hold.next?.length) {
-    return [
-      { run: `${item.hold.next[0].run} && mw retry ${id2}`, why: "the files in context.files are not the operator's: remove exactly those, then go on" },
-      { run: `mw retry ${id2}`, why: "the operator made them while the call ran: keep them and go on" }
-    ];
+  if (code === "leftovers") {
+    return [...item.hold.next ?? [], { run: `mw retry ${id2}`, why: "go on: once the files in context.files are dealt with, or at once if the operator made them while the call ran" }];
   }
   if (code === "ship_failed") return [{ run: `mw retry ${id2}`, why: "after fixing what context.stderr shows: run the ship command again; the change is already on main" }];
   return [
@@ -23634,7 +23657,14 @@ var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
   if (unknown2.length) {
     return yield* new MadeWellError({ code: "not_a_candidate", message: `Not candidates of discovery #${discovery}: ${unknown2.join(", ")}.`, context: { discovery, unknown: unknown2, candidates: candidates2.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: "promote every waiting candidate" }] });
   }
-  const chosen = ids.length ? found2.filter((c) => ids.includes(c.id)) : found2;
+  const named = /* @__PURE__ */ new Set();
+  const add4 = (id2) => {
+    if (named.has(id2)) return;
+    named.add(id2);
+    for (const p of found2.find((c) => c.id === id2)?.after ?? []) add4(p);
+  };
+  for (const id2 of ids.length ? ids : found2.map((c) => c.id)) add4(id2);
+  const chosen = found2.filter((c) => named.has(c.id));
   for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery });
   return chosen.map((c) => store.get(c.id));
 });
@@ -23654,12 +23684,11 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const finished = yield* Queue_exports.unbounded();
   const running = /* @__PURE__ */ new Set();
   const results2 = [];
-  const stuck = (i) => i.waitsOn !== void 0 && ((p) => !p || p.status === "held" || stuck(p))(store.get(i.waitsOn));
   const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL;
   for (; ; ) {
     for (const i of store.list()) {
       if (running.size >= parallel) break;
-      if (i.parent !== void 0 || !READY.includes(i.status) || running.has(i.id) || stuck(i)) continue;
+      if (i.parent !== void 0 || !READY.includes(i.status) || running.has(i.id) || stuck(store, i) || unshipped(store, i).length) continue;
       running.add(i.id);
       yield* Effect_exports.forkScoped(drive(i.id, config).pipe(
         Effect_exports.catchTag("MadeWellError", () => Effect_exports.sync(() => store.get(i.id))),
@@ -23725,10 +23754,10 @@ var you = (job, kind) => {
   const step2 = stepOf(job);
   return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
 };
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready.`;
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
-  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), deliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
+  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
   handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
   round: item.round,
@@ -24015,6 +24044,7 @@ var ItemView = Schema_exports.Struct({
   tracks: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Struct({ done: Schema_exports.Boolean, nq: Schema_exports.optionalKey(Nq) })).annotate({ description: "after planning: the implementer's and the test architect's parallel tracks" })),
   round: Schema_exports.Int,
   waitsOn: Schema_exports.optionalKey(Schema_exports.Int),
+  after: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Int).annotate({ description: "the items it builds on; it starts once they have shipped" })),
   resumesAt: Schema_exports.optionalKey(Schema_exports.String),
   hold: Schema_exports.optionalKey(Schema_exports.Struct({ code: Schema_exports.String, message: Schema_exports.String, context: Fact })),
   shipped: Schema_exports.optionalKey(Schema_exports.Struct({ command: Schema_exports.String, output: Schema_exports.String })),
@@ -24058,6 +24088,7 @@ var view = (item) => ({
   ...item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {},
   round: item.round,
   ...item.waitsOn !== void 0 ? { waitsOn: item.waitsOn } : {},
+  ...item.after?.length ? { after: item.after } : {},
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},
   ...item.hold ? { hold: item.hold } : {},
   ...item.shipped ? { shipped: item.shipped } : {},
@@ -24106,7 +24137,7 @@ var MOVING = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var nextAction = Effect_exports.fn("mw.next")(function* () {
   const store = yield* Store;
   const items = store.list();
-  const moving = items.filter((i) => i.parent === void 0 && MOVING.includes(i.status));
+  const moving = items.filter((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
   const owner = moving.length ? yield* runner(store) : null;
   if (moving.length && !owner) {
     return { action: "run", run: "mw run", why: `${moving.length} item(s) can move without the operator. It returns once every item has shipped or holds for the operator, and it is safe to repeat.` };

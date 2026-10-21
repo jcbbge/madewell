@@ -109,6 +109,21 @@ test('discovery candidates are relayed for promotion, and promoting twice promot
 	assert.equal(promoted.length, 1)
 })
 
+test('a candidate that builds on another starts once that one ships, and promoting it promotes what it builds on', () => {
+	const t = setup()
+	t.mw('init', '--ship', 'true')
+	const discovery = t.mw('discover', '--source', 'raw notes: two things').out.item.id
+	t.mw('run')
+	const [first, second] = [discovery + 1, discovery + 2]
+	assert.deepEqual(t.mw('status', String(second)).out.after, [first], 'only earlier items count: itself and unknown positions are dropped')
+	assert.deepEqual(t.mw('promote', String(discovery), String(second)).out.promoted.map((i: { id: number }) => i.id), [first, second])
+
+	assert.equal(t.mw('run').out.items.find((i: { id: number }) => i.id === first).status, 'shipped')
+	const events = [first, second].flatMap((id) => t.mw('show', String(id)).out.events as { seq: number; item: number; kind: string }[])
+	const shipped = events.find((e) => e.item === first && e.kind === 'shipped')!.seq
+	assert.ok(events.filter((e) => e.item === second && e.kind === 'running').every((e) => e.seq > shipped), 'the second item made no move before the first shipped')
+})
+
 test('a hold is relayed by next and alerted once; answer and retry change nothing when repeated', () => {
 	const t = setup({ FAKE_ASK: 'plan' })
 	const alert = 'cat > ../alert.json; echo "$MW_ITEM $MW_HOLD" >> ../alerts.log'

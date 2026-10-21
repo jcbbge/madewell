@@ -110,7 +110,7 @@ export const drive = Effect.fn('mw.drive')(function* (id: number, config: Engine
 	for (;;) {
 		const item = store.get(id)
 		if (!item) return yield* notFound(id)
-		if (DONE.includes(item.status)) return item
+		if (DONE.includes(item.status) || unshipped(store, item).length) return item
 
 		if (item.waitsOn !== undefined) {
 			const pre = yield* drive(item.waitsOn, config)
@@ -445,10 +445,13 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 	switch (r.to) {
 		case 'discovered': {
 			// Each candidate waits for promotion; its originator is this discovery, answering from its report.
-			const ids = r.items.map((c) => store.create({
-				title: c.title, objective: c.objective, kind: c.kind, workspace: current.workspace, status: 'candidate', discovery: current.id,
-				source: current.source, from: by, outputs: { discover: JSON.stringify(c) },
-			}).id)
+			const ids: number[] = []
+			for (const { after, ...c } of r.items) {
+				ids.push(store.create({
+					title: c.title, objective: c.objective, kind: c.kind, workspace: current.workspace, status: 'candidate', discovery: current.id,
+					source: current.source, from: by, outputs: { discover: JSON.stringify(c) }, ...(after ? { after: after.map((p) => ids[p - 1]!) } : {}),
+				}).id)
+			}
 			store.save({ ...current, status: 'discovered' }, 'discovered', { candidates: ids })
 			return
 		}
@@ -695,6 +698,15 @@ const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Jo
 	hold(store, withTrack(item, job, { ...t, ...patch, launches }), 'worker_failing', `A call for the ${job} job failed ${launches} times in a row on ${card.harness} · ${card.model}.`, { job, card, lastError: error, ...evidence })
 })
 
+/** The items this one builds on that have not shipped; it starts once they have. */
+export const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => store.get(id)?.status !== 'shipped')
+
+/** Whether an item cannot move until the operator acts: something it waits on is held, or was never promoted. */
+export const stuck = (store: StoreService, item: Item): boolean => {
+	const blocked = (id: number) => ((p) => !p || p.status === 'held' || p.status === 'candidate' || stuck(store, p))(store.get(id))
+	return (item.waitsOn !== undefined && blocked(item.waitsOn)) || unshipped(store, item).some(blocked)
+}
+
 const openPrerequisite = (store: StoreService, item: Item, answer: string, by: Origin) => {
 	const pre = store.create({
 		title: `Pre-existing defect blocking #${item.id}`, objective: answer, workspace: item.workspace, job: 'plan', parent: item.id, from: by,
@@ -720,12 +732,9 @@ export function nextFor(item: Item): Next[] {
 	if (code === 'no_ship_command') {
 		return [{ run: `mw init --workspace ${quote(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: 'register how this project ships; the item then ships' }]
 	}
-	if (code === 'leftovers' && item.hold!.next?.length) {
+	if (code === 'leftovers') {
 		// Made Well cannot tell an agent's stray files from ones the operator made while the call ran: the operator says which.
-		return [
-			{ run: `${item.hold!.next[0]!.run} && mw retry ${id}`, why: 'the files in context.files are not the operator\'s: remove exactly those, then go on' },
-			{ run: `mw retry ${id}`, why: 'the operator made them while the call ran: keep them and go on' },
-		]
+		return [...(item.hold!.next ?? []), { run: `mw retry ${id}`, why: 'go on: once the files in context.files are dealt with, or at once if the operator made them while the call ran' }]
 	}
 	if (code === 'ship_failed') return [{ run: `mw retry ${id}`, why: 'after fixing what context.stderr shows: run the ship command again; the change is already on main' }]
 	return [
@@ -788,8 +797,8 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 	})
 
 /**
- * The operator promotes candidates from a discovery run into the delivery queue: all of them, or the ones named.
- * Returns every named (or every) item of the run that is now promoted, so a repeat returns the same items.
+ * The operator promotes candidates from a discovery run into the delivery queue: all of them, or the ones named and what they build on.
+ * Returns every such item of the run that is now promoted, so a repeat returns the same items.
  */
 export const promote = (discovery: number, ids: ReadonlyArray<number> = []) =>
 	Effect.gen(function* () {
@@ -805,7 +814,15 @@ export const promote = (discovery: number, ids: ReadonlyArray<number> = []) =>
 		if (unknown.length) {
 			return yield* new MadeWellError({ code: 'not_a_candidate', message: `Not candidates of discovery #${discovery}: ${unknown.join(', ')}.`, context: { discovery, unknown, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: 'promote every waiting candidate' }] })
 		}
-		const chosen = ids.length ? found.filter((c) => ids.includes(c.id)) : found
+		// A candidate cannot ship without the items it builds on, so naming it promotes them too.
+		const named = new Set<number>()
+		const add = (id: number) => {
+			if (named.has(id)) return
+			named.add(id)
+			for (const p of found.find((c) => c.id === id)?.after ?? []) add(p)
+		}
+		for (const id of ids.length ? ids : found.map((c) => c.id)) add(id)
+		const chosen = found.filter((c) => named.has(c.id))
 		for (const c of chosen) if (c.status === 'candidate') store.save({ ...c, status: 'queued' }, 'promoted', { discovery })
 		return chosen.map((c) => store.get(c.id)!)
 	})
@@ -831,13 +848,11 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}
 		const finished = yield* Queue.unbounded<Item>()
 		const running = new Set<number>()
 		const results: Item[] = []
-		// An item waiting on a prerequisite that holds cannot move until the operator answers.
-		const stuck = (i: Item): boolean => i.waitsOn !== undefined && ((p) => !p || p.status === 'held' || stuck(p))(store.get(i.waitsOn))
 		const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL
 		for (;;) {
 			for (const i of store.list()) {
 				if (running.size >= parallel) break
-				if (i.parent !== undefined || !READY.includes(i.status) || running.has(i.id) || stuck(i)) continue
+				if (i.parent !== undefined || !READY.includes(i.status) || running.has(i.id) || stuck(store, i) || unshipped(store, i).length) continue
 				running.add(i.id)
 				yield* Effect.forkScoped(drive(i.id, config).pipe(
 					Effect.catchTag('MadeWellError', () => Effect.sync(() => store.get(i.id)!)),
@@ -925,7 +940,7 @@ const you = (job: Job, kind: WorkerRequest['kind']) => {
 }
 
 const INTAKE_TASK = (job: Job, originator: string) =>
-	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready.`
+	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`
 
 const handoffView = (item: Item, job: Job, x: Exchange) =>
 	x.from.kind === 'job' && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job]
@@ -933,7 +948,7 @@ const handoffView = (item: Item, job: Job, x: Exchange) =>
 		: x.handoff
 
 const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake') => ({
-	you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), deliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
+	you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
 	handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
 	round: item.round,
