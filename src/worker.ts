@@ -26,6 +26,7 @@ export interface WorkerRequest {
 	readonly access: Access
 	readonly system: string
 	readonly prompt: string
+	/** The item's workspace. A `none` call never sees it: the harness worker runs it in an empty directory. */
 	readonly cwd: string
 	/** The job's budget from prescriptions; DEFAULT_BUDGET when absent. */
 	readonly budget?: Budget
@@ -72,14 +73,26 @@ export interface Exited {
 // outlives even a crashed runner.
 const GROUP = 'd=$1; shift; ( exec </dev/null >/dev/null 2>&1; read _ <&3; [ -z "$d" ] || rm -rf "$d"; kill -9 0 ) & exec "$@" 3<&-'
 
+/** A JSON object line with `"mw_at": <epoch ms>` first; any other line as it came. */
+const stamped = (line: string, at: number) => {
+	try {
+		const v = JSON.parse(line)
+		if (!v || typeof v !== 'object' || Array.isArray(v)) return line
+		return Object.keys(v).length ? `{"mw_at":${at},${line.trimStart().slice(1)}` : `{"mw_at":${at}}`
+	} catch {
+		return line
+	}
+}
+
 /**
  * Runs one process in its own process group, with `input` on stdin. The whole group is killed when the
  * process exits (stray servers die with it), when the budget runs out, or when the call is interrupted.
  * `tokensIn` counts tokens reported on one stdout line, for the token budget. `files` is the call's own
- * directory, removed if the runner dies mid-call (the caller removes it otherwise).
+ * directory, removed if the runner dies mid-call (the caller removes it otherwise). `stamp` adds each
+ * JSON line's arrival time as `mw_at`, so tool events get their timing even when the harness gives none.
  */
-export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string }) =>
-	Effect.callback<Exited>((resume) => {
+export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean }) =>
+	Effect.clockWith((clock) => Effect.callback<Exited>((resume) => {
 		const started = Date.now()
 		const child = spawn('sh', ['-c', GROUP, 'mw-agent', o.files ?? '', o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: ['pipe', 'pipe', 'pipe', 'pipe'] })
 		const kill = () => {
@@ -98,15 +111,16 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			kill()
 		}
 		const timer = setTimeout(() => over('minutes'), o.budget.minutes * 60_000)
+		const take = (raw: string, end: string) => {
+			const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw
+			stdout += line + end
+			const n = o.tokensIn?.(line)
+			if (n) tokens = (tokens ?? 0) + n
+		}
 		child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
-			stdout += chunk
-			if (!o.tokensIn) return
 			const lines = (partial + chunk).split('\n')
 			partial = lines.pop()!
-			for (const line of lines) {
-				const n = o.tokensIn(line)
-				if (n) tokens = (tokens ?? 0) + n
-			}
+			for (const line of lines) take(line, '\n')
 			if (o.budget.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
 		})
 		child.stderr.setEncoding('utf8').on('data', (chunk: string) => (stderr += chunk))
@@ -114,6 +128,7 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 		child.on('exit', kill)
 		child.on('close', (code) => {
 			clearTimeout(timer)
+			if (partial) take(partial, '')
 			resume(Effect.succeed({ code, stdout, stderr, stdinError, overBudget }))
 		})
 		child.stdin.end(o.input)
@@ -121,7 +136,7 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			clearTimeout(timer)
 			kill()
 		})
-	})
+	}))
 
 export const overBudgetError = (who: string, o: OverBudget) =>
 	`${who} went over its budget: ${o.exceeded === 'minutes' ? `ran ${(o.ms / 60_000).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`

@@ -28,7 +28,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh }
 }
 
-const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export']
+const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'eval']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()

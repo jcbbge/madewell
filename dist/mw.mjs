@@ -6,8 +6,9 @@ var __export = (target, all3) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync5 } from "node:fs";
-import { basename, dirname as dirname4, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync3, readFileSync as readFileSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { constants as osConstants } from "node:os";
+import { basename, dirname as dirname5, resolve as resolve5 } from "node:path";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -1688,9 +1689,9 @@ var getDefaultValue = (ref) => {
 var serviceNotFoundError = (service3) => {
   const error = new Error(`Service not found${service3.key ? `: ${String(service3.key)}` : ""}`);
   if (error.stack) {
-    const lines2 = error.stack.split("\n");
-    lines2.splice(1, 3);
-    error.stack = lines2.join("\n");
+    const lines3 = error.stack.split("\n");
+    lines3.splice(1, 3);
+    error.stack = lines3.join("\n");
   }
   return error;
 };
@@ -2747,9 +2748,9 @@ var makeStackCleaner = (line) => (stack) => {
     if (cache2 !== void 0) return cache2;
     const trace = stack();
     if (!trace) return void 0;
-    const lines2 = trace.split("\n");
-    if (lines2[line] !== void 0) {
-      cache2 = lines2[line].trim();
+    const lines3 = trace.split("\n");
+    if (lines3[line] !== void 0) {
+      cache2 = lines3[line].trim();
       return cache2;
     }
   };
@@ -2909,13 +2910,13 @@ var causePrettyMessage = (u) => {
 var locationRegExp = /\((.*)\)/g;
 var cleanErrorStack = (stack, error, annotations) => {
   const message = `${error.name}: ${error.message}`;
-  const lines2 = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n");
+  const lines3 = (stack.startsWith(message) ? stack.slice(message.length) : stack).split("\n");
   const out = [message];
-  for (let i = 1; i < lines2.length; i++) {
-    if (/Generator\.next|~effect\/(?:Effect|Utils)/.test(lines2[i])) {
+  for (let i = 1; i < lines3.length; i++) {
+    if (/Generator\.next|~effect\/(?:Effect|Utils)/.test(lines3[i])) {
       break;
     }
-    out.push(lines2[i]);
+    out.push(lines3[i]);
   }
   return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n");
 };
@@ -2966,11 +2967,11 @@ var renderPrettyError = (e) => e.cause ? `${e.stack} {
 ${renderErrorCause(e.cause, "  ")}
 }` : e.stack;
 var renderErrorCause = (cause, prefix) => {
-  const lines2 = cause.stack.split("\n");
-  let stack = `${prefix}[cause]: ${lines2[0]}`;
-  for (let i = 1, len = lines2.length; i < len; i++) {
+  const lines3 = cause.stack.split("\n");
+  let stack = `${prefix}[cause]: ${lines3[0]}`;
+  for (let i = 1, len = lines3.length; i < len; i++) {
     stack += `
-${prefix}${lines2[i]}`;
+${prefix}${lines3[i]}`;
   }
   if (cause.cause) {
     stack += ` {
@@ -3343,24 +3344,24 @@ var yieldNow = /* @__PURE__ */ yieldNowWith(0);
 var succeedSome = (a) => succeed3(some2(a));
 var succeedNone = /* @__PURE__ */ succeed3(/* @__PURE__ */ none2());
 var transposeOption = (self) => isNone2(self) ? succeedNone : map5(self.value, some2);
-var failCauseSync = (evaluate2) => suspend(() => failCause(evaluate2()));
+var failCauseSync = (evaluate3) => suspend(() => failCause(evaluate3()));
 var die = (defect) => exitDie(defect);
 var failSync = (error) => suspend(() => fail3(error()));
 var void_ = /* @__PURE__ */ succeed3(void 0);
 var try_ = (options) => {
-  const evaluate2 = typeof options === "function" ? options : options.try;
+  const evaluate3 = typeof options === "function" ? options : options.try;
   const catcher = typeof options === "function" ? (cause) => new UnknownError(cause, "An error occurred in Effect.try") : options.catch;
   return suspend(() => {
     try {
-      return succeed3(evaluate2());
+      return succeed3(evaluate3());
     } catch (err) {
       return fail3(catcher(err));
     }
   });
 };
-var promise = (evaluate2) => callbackOptions(function(resume, signal) {
-  evaluate2(signal).then((a) => resume(succeed3(a)), (e) => resume(die(e)));
-}, evaluate2.length !== 0);
+var promise = (evaluate3) => callbackOptions(function(resume, signal) {
+  evaluate3(signal).then((a) => resume(succeed3(a)), (e) => resume(die(e)));
+}, evaluate3.length !== 0);
 var tryPromise = (options) => {
   const f = typeof options === "function" ? options : options.try;
   const catcher = typeof options === "function" ? (cause) => new UnknownError(cause, "An error occurred in Effect.tryPromise") : options.catch;
@@ -3520,9 +3521,9 @@ var fnUntracedEager = (body, ...pipeables) => defineFunctionLength(body.length, 
   }
   return effect2;
 });
-var fromIteratorEagerUnsafe = (evaluate2) => {
+var fromIteratorEagerUnsafe = (evaluate3) => {
   try {
-    const iterator = evaluate2();
+    const iterator = evaluate3();
     let value3 = void 0;
     while (true) {
       const state = iterator.next(value3);
@@ -3542,7 +3543,7 @@ var fromIteratorEagerUnsafe = (evaluate2) => {
             isFirstExecution = false;
             return flatMap3(state.value, (value4) => fromIteratorUnsafe(iterator, value4));
           } else {
-            return suspend(() => fromIteratorUnsafe(evaluate2()));
+            return suspend(() => fromIteratorUnsafe(evaluate3()));
           }
         });
       }
@@ -4014,10 +4015,10 @@ var makeMatch = (op, onFailure) => {
   return MatchImpl2;
 };
 var MatchImpl = /* @__PURE__ */ makeMatch("Match", function(cause, fiber3) {
-  const fail7 = cause.reasons.find(isFailReason);
-  if (fail7 === void 0) return failCause(cause);
+  const fail8 = cause.reasons.find(isFailReason);
+  if (fail8 === void 0) return failCause(cause);
   const handlers = this.payload;
-  return fiber3.succeedWith(continuationMarksStack ? handlers.onFailure(fail7.error) : internalCall(() => handlers.onFailure(fail7.error)));
+  return fiber3.succeedWith(continuationMarksStack ? handlers.onFailure(fail8.error) : internalCall(() => handlers.onFailure(fail8.error)));
 });
 var MatchCauseImpl = /* @__PURE__ */ makeMatch("MatchCause", function(cause, fiber3) {
   const handlers = this.payload;
@@ -4026,8 +4027,8 @@ var MatchCauseImpl = /* @__PURE__ */ makeMatch("MatchCause", function(cause, fib
 var matchCause = /* @__PURE__ */ dual(2, (self, options) => new MatchCauseImpl(self, options));
 var matchEffect = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(self, {
   onFailure: (cause) => {
-    const fail7 = cause.reasons.find(isFailReason);
-    return fail7 ? options.onFailure(fail7.error) : failCause(cause);
+    const fail8 = cause.reasons.find(isFailReason);
+    return fail8 ? options.onFailure(fail8.error) : failCause(cause);
   },
   onSuccess: options.onSuccess
 }));
@@ -4299,7 +4300,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join5 = (fiber3, run2) => {
+  const join6 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4310,7 +4311,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join5(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join6(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
@@ -4322,7 +4323,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       awaiters: 0
     };
     current = run2;
-    const joined = join5(fiber3, run2);
+    const joined = join6(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
@@ -4793,8 +4794,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve4) => {
-      fiber3.addObserver((exit4) => resolve4(exit4));
+    return new Promise((resolve6) => {
+      fiber3.addObserver((exit4) => resolve6(exit4));
     });
   };
 };
@@ -4945,13 +4946,13 @@ var endSpan = (span2, exit4, clock, timingEnabled) => sync(() => {
 });
 var useSpan = (name, ...args2) => {
   const options = args2.length === 1 ? void 0 : args2[0];
-  const evaluate2 = args2[args2.length - 1];
+  const evaluate3 = args2[args2.length - 1];
   return withFiber((fiber3) => {
     const span2 = makeSpanUnsafe(fiber3, name, options);
     const clock = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
     onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock, timingEnabled));
-    return evaluate2(span2);
+    return evaluate3(span2);
   });
 };
 var provideParentSpan = /* @__PURE__ */ provideService(ParentSpan);
@@ -5210,8 +5211,8 @@ var loggerMake = (log2) => {
 };
 var formatLabel = (key) => key.replace(/[\s="]/g, "_");
 var formatLogSpan = (self, now2) => {
-  const label = formatLabel(self[0]);
-  return `${label}=${now2 - self[1]}ms`;
+  const label2 = formatLabel(self[0]);
+  return `${label2}=${now2 - self[1]}ms`;
 };
 var logWithLevel = (level) => (...message) => {
   let cause = void 0;
@@ -5805,11 +5806,11 @@ var succeedContext = (context3) => fromBuildUnsafe(constant(succeed3(context3)))
 var empty3 = /* @__PURE__ */ succeedContext(/* @__PURE__ */ empty());
 var sync2 = function() {
   if (arguments.length === 1) {
-    return (evaluate2) => syncContext(() => make3(arguments[0], evaluate2()));
+    return (evaluate3) => syncContext(() => make3(arguments[0], evaluate3()));
   }
   return syncContext(() => make3(arguments[0], arguments[1]()));
 };
-var syncContext = (evaluate2) => fromBuildMemo(constant(sync(evaluate2)));
+var syncContext = (evaluate3) => fromBuildMemo(constant(sync(evaluate3)));
 var effect = function() {
   if (arguments.length === 1) {
     return (effect2) => effectImpl(arguments[0], effect2);
@@ -5819,7 +5820,7 @@ var effect = function() {
 var effectImpl = (service3, effect2) => effectContext(map5(effect2, (value3) => make3(service3, value3)));
 var effectContext = (effect2) => fromBuildMemo((_, scope3) => provide(effect2, scope3));
 var effectDiscard = (effect2) => effectContext(as(effect2, empty()));
-var suspend2 = (evaluate2) => fromBuildMemo((memoMap, scope3) => suspend(() => evaluate2().build(memoMap, scope3)));
+var suspend2 = (evaluate3) => fromBuildMemo((memoMap, scope3) => suspend(() => evaluate3().build(memoMap, scope3)));
 var unwrapKey = /* @__PURE__ */ Service("effect/Layer/unwrap");
 var unwrap = (self) => flatMap4(effect(unwrapKey)(self), get(unwrapKey));
 var mergeAllEffect = (layers, memoMap, scope3) => {
@@ -7248,8 +7249,8 @@ var annotateLogs = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (effect2
   return newAnnotations;
 }));
 var annotateLogsScoped2 = annotateLogsScoped;
-var withLogSpan = /* @__PURE__ */ dual(2, (effect2, label) => flatMap3(currentTimeMillis, (now2) => updateService(effect2, CurrentLogSpans2, (spans) => {
-  const span2 = [label, now2];
+var withLogSpan = /* @__PURE__ */ dual(2, (effect2, label2) => flatMap3(currentTimeMillis, (now2) => updateService(effect2, CurrentLogSpans2, (spans) => {
+  const span2 = [label2, now2];
   return [span2, ...spans];
 })));
 var track = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => onExit2(self, (exit4) => {
@@ -9708,14 +9709,14 @@ var snapshot = (graph) => {
     })).sort((a, b) => a.index - b.index)
   };
 };
-var hydrate = (snapshot3) => {
-  const graph = make14(snapshot3.type, false);
-  for (const node of snapshot3.nodes) {
+var hydrate = (snapshot4) => {
+  const graph = make14(snapshot4.type, false);
+  for (const node of snapshot4.nodes) {
     graph.nodes.set(node.index, node.data);
     graph.adjacency.set(node.index, []);
     graph.reverseAdjacency.set(node.index, []);
   }
-  for (const edge of snapshot3.edges) {
+  for (const edge of snapshot4.edges) {
     graph.edges.set(edge.index, {
       source: edge.source,
       target: edge.target,
@@ -9723,13 +9724,13 @@ var hydrate = (snapshot3) => {
     });
     graph.adjacency.get(edge.source).push(edge.index);
     graph.reverseAdjacency.get(edge.target).push(edge.index);
-    if (snapshot3.type === "undirected") {
+    if (snapshot4.type === "undirected") {
       graph.adjacency.get(edge.target).push(edge.index);
       graph.reverseAdjacency.get(edge.source).push(edge.index);
     }
   }
-  graph.nextNodeIndex = snapshot3.nodes.length === 0 ? 0 : snapshot3.nodes[snapshot3.nodes.length - 1].index + 1;
-  graph.nextEdgeIndex = snapshot3.edges.length === 0 ? 0 : snapshot3.edges[snapshot3.edges.length - 1].index + 1;
+  graph.nextNodeIndex = snapshot4.nodes.length === 0 ? 0 : snapshot4.nodes[snapshot4.nodes.length - 1].index + 1;
+  graph.nextEdgeIndex = snapshot4.edges.length === 0 ? 0 : snapshot4.edges[snapshot4.edges.length - 1].index + 1;
   graph.acyclic = none2();
   return graph;
 };
@@ -11867,15 +11868,15 @@ function getCandidateIndex(types) {
     index2 = (input) => literalCandidates.get(input) ?? emptyCandidates;
   } else if (bySentinel?.size === 1 && !otherwise) {
     const [key, [byValue]] = bySentinel.entries().next().value;
-    const candidates = /* @__PURE__ */ new Map();
+    const candidates2 = /* @__PURE__ */ new Map();
     for (const [literal, indexes] of byValue) {
-      candidates.set(literal, Object.freeze(Array.from(indexes)));
+      candidates2.set(literal, Object.freeze(Array.from(indexes)));
     }
     const all3 = Object.freeze(types.map((_, i) => i));
     index2 = (input, isConstructor) => {
       if (isObjectKeyword(input)) {
         const value3 = hasPropertySignature(input, key) ? input[key] : void 0;
-        if (value3 !== void 0) return candidates.get(value3) ?? emptyCandidates;
+        if (value3 !== void 0) return candidates2.get(value3) ?? emptyCandidates;
         if (isConstructor) return all3;
       }
       return emptyCandidates;
@@ -11961,16 +11962,16 @@ var Union = class extends ASTNodeImpl {
       if (input === missing) {
         return missingExit;
       }
-      const candidates = (index2 ??= getCandidateIndex(ast.types))(input, isConstructor);
-      if (candidates.length === 0) {
+      const candidates2 = (index2 ??= getCandidateIndex(ast.types))(input, isConstructor);
+      if (candidates2.length === 0) {
         return fail5(new AnyOf(ast, [], input, options));
       }
-      if (candidates.length === 1) {
-        const result3 = parser(candidates[0])(input, options);
+      if (candidates2.length === 1) {
+        const result3 = parser(candidates2[0])(input, options);
         if (result3._tag === "Success") return result3;
         return effectIsExit(result3) ? failSingleUnionCandidate(ast, result3.cause, input, options) : catchSingleUnionCandidate(ast, result3, input, options);
       }
-      return parseUnionCandidates(ast, parser, candidates, input, options);
+      return parseUnionCandidates(ast, parser, candidates2, input, options);
     };
   }
   _rebuild(recur2, checks, encodingChecks) {
@@ -12029,7 +12030,7 @@ function failSingleUnionCandidate(ast, cause, input, options) {
 function catchSingleUnionCandidate(ast, result3, input, options) {
   return catchCause3(result3, (cause) => failSingleUnionCandidate(ast, cause, input, options));
 }
-function parseUnionCandidates(ast, parser, candidates, input, options) {
+function parseUnionCandidates(ast, parser, candidates2, input, options) {
   const state = {
     ast,
     parser,
@@ -12039,7 +12040,7 @@ function parseUnionCandidates(ast, parser, candidates, input, options) {
     issues: void 0,
     options
   };
-  const eff = parseUnion(state, candidates);
+  const eff = parseUnion(state, candidates2);
   if (!eff) {
     if (state.out) return state.out;
     return fail5(new AnyOf(ast, state.issues ?? [], input, options));
@@ -12047,7 +12048,7 @@ function parseUnionCandidates(ast, parser, candidates, input, options) {
   if (effectIsExit(eff)) return resumeUnion(eff, state);
   let first = true;
   return suspend3(() => {
-    if (!first) return parseUnionCandidates(ast, parser, candidates, input, options);
+    if (!first) return parseUnionCandidates(ast, parser, candidates2, input, options);
     first = false;
     return resumeUnion(eff, state);
   });
@@ -12220,9 +12221,9 @@ function isPattern(regExp, annotations) {
   });
 }
 var bodyOwners = /* @__PURE__ */ new WeakMap();
-function copy2(ast, changes) {
-  const out = Object.assign(Object.create(Object.getPrototypeOf(ast)), ast, changes);
-  if (Reflect.ownKeys(changes).every((key) => key === "context" || key === "encoding")) {
+function copy2(ast, changes2) {
+  const out = Object.assign(Object.create(Object.getPrototypeOf(ast)), ast, changes2);
+  if (Reflect.ownKeys(changes2).every((key) => key === "context" || key === "encoding")) {
     bodyOwners.set(out, getContextOwner(ast));
   }
   return out;
@@ -12943,10 +12944,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve4) {
+  constructor(ast, compiled, resolve6) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve4;
+    this.resolve = resolve6;
   }
   save(key, value3) {
     Object.defineProperty(this, key, {
@@ -12995,8 +12996,8 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve4, ast, operation) {
-  const entry = resolve4(ast);
+function lazyParser(resolve6, ast, operation) {
+  const entry = resolve6(ast);
   if (entry.compiled === void 0 || Object.hasOwn(entry, operation)) {
     return entry[operation];
   }
@@ -13381,8 +13382,8 @@ function toDocumentDraft07(document) {
   };
 }
 function transformSchema(node, transform3) {
-  return walk(node, false, true);
-  function walk(node2, inheritedResource, isRoot = false) {
+  return walk2(node, false, true);
+  function walk2(node2, inheritedResource, isRoot = false) {
     if (!isObject(node2)) return node2;
     const inEmbeddedResource = inheritedResource || !isRoot && createsResource(node2.$id);
     const out = {};
@@ -13394,13 +13395,13 @@ function transformSchema(node, transform3) {
         case "properties":
         case "patternProperties":
         case "dependentSchemas":
-          transformed = mapObject(value3, (value4) => walk(value4, inEmbeddedResource)) ?? value3;
+          transformed = mapObject(value3, (value4) => walk2(value4, inEmbeddedResource)) ?? value3;
           break;
         case "allOf":
         case "anyOf":
         case "oneOf":
         case "prefixItems":
-          transformed = Array.isArray(value3) ? value3.map((value4) => walk(value4, inEmbeddedResource)) : value3;
+          transformed = Array.isArray(value3) ? value3.map((value4) => walk2(value4, inEmbeddedResource)) : value3;
           break;
         case "not":
         case "additionalProperties":
@@ -13413,7 +13414,7 @@ function transformSchema(node, transform3) {
         case "then":
         case "else":
         case "contentSchema":
-          transformed = walk(value3, inEmbeddedResource);
+          transformed = walk2(value3, inEmbeddedResource);
       }
       assignProperty(out, key, transformed);
     }
@@ -13967,8 +13968,8 @@ function collectJsonSchemaAnnotations(annotations, options) {
   if (isJson(defaultValue)) out.default = defaultValue;
   const examples = annotations.examples;
   if (Array.isArray(examples) && isJson(examples)) out.examples = examples;
-  const readOnly = annotations.readOnly;
-  if (typeof readOnly === "boolean") out.readOnly = readOnly;
+  const readOnly2 = annotations.readOnly;
+  if (typeof readOnly2 === "boolean") out.readOnly = readOnly2;
   const writeOnly = annotations.writeOnly;
   if (typeof writeOnly === "boolean") out.writeOnly = writeOnly;
   const format7 = annotations.format;
@@ -14143,11 +14144,11 @@ function compileJsonSchema(representations, rootPaths, references, options) {
     const fallback = getIdentifierFallback(representation);
     if (fallback === void 0) continue;
     const schema = compiledDefinitions.get(key)[0];
-    const candidates = fallbackDefinitions.get(fallback);
-    const match7 = candidates?.find((candidate) => equals(compiledDefinitions.get(candidate)[0], schema));
+    const candidates2 = fallbackDefinitions.get(fallback);
+    const match7 = candidates2?.find((candidate) => equals(compiledDefinitions.get(candidate)[0], schema));
     if (match7 === void 0) {
-      if (candidates === void 0) fallbackDefinitions.set(fallback, [key]);
-      else candidates.push(key);
+      if (candidates2 === void 0) fallbackDefinitions.set(fallback, [key]);
+      else candidates2.push(key);
     } else {
       definitionAliases.set(key, match7);
     }
@@ -14621,11 +14622,11 @@ function toRepresentations(asts, options) {
   const references = {};
   const referenceOwners = /* @__PURE__ */ new Map();
   const buildingReferences = /* @__PURE__ */ new Set();
-  const candidates = /* @__PURE__ */ new Map();
+  const candidates2 = /* @__PURE__ */ new Map();
   const visitingCandidates = /* @__PURE__ */ new Set();
   for (const ast of asts) visit(ast);
   const referencePolicy = options?.referencePolicy ?? defaultReferencePolicy;
-  for (const candidatesByIdentifier of candidates.values()) {
+  for (const candidatesByIdentifier of candidates2.values()) {
     for (const candidate of candidatesByIdentifier.values()) {
       const requestedReference = referencePolicy({
         ast: candidate.ast,
@@ -14684,10 +14685,10 @@ function toRepresentations(asts, options) {
     let identifier2 = resolveIdentifier(ast);
     const fallback = identifier2 === void 0 ? (ast !== input ? resolveIdentifier(input) : void 0) ?? resolveIdentifierFallback(ast) : void 0;
     if (fallback !== void 0) identifier2 = `${fallback}Encoded`;
-    let candidatesByIdentifier = candidates.get(owner);
+    let candidatesByIdentifier = candidates2.get(owner);
     if (candidatesByIdentifier === void 0) {
       candidatesByIdentifier = /* @__PURE__ */ new Map();
-      candidates.set(owner, candidatesByIdentifier);
+      candidates2.set(owner, candidatesByIdentifier);
     }
     let candidate = candidatesByIdentifier.get(identifier2);
     if (candidate === void 0) {
@@ -14945,9 +14946,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve4) => {
+    return new Promise((resolve6) => {
       fiber3.addObserver((exit5) => {
-        resolve4(makeStandardResult(exit5));
+        resolve6(makeStandardResult(exit5));
       });
     });
   };
@@ -15229,11 +15230,11 @@ function stringTreeToXml(value3, options) {
   const indent = options.indent ?? "  ";
   const sortKeys = options.sortKeys ?? true;
   const seen = /* @__PURE__ */ new Set();
-  const lines2 = [];
+  const lines3 = [];
   recur2(rootName, value3, 0);
-  return lines2.join(pretty2 ? "\n" : "");
+  return lines3.join(pretty2 ? "\n" : "");
   function push(depth, text2) {
-    lines2.push(pretty2 ? indent.repeat(depth) + text2 : text2);
+    lines3.push(pretty2 ? indent.repeat(depth) + text2 : text2);
   }
   function recur2(tagName, node, depth, originalNameForMeta) {
     const {
@@ -15420,9 +15421,9 @@ function recur(ast) {
       const index2 = getCandidateIndex(types);
       const compiled = types.map((candidate, i) => [_is(candidate), recur(ast.types[i])]);
       return make((a, b) => {
-        const candidates = index2(a, false);
-        for (let i = 0; i < candidates.length; i++) {
-          const [is3, equivalence] = compiled[candidates[i]];
+        const candidates2 = index2(a, false);
+        for (let i = 0; i < candidates2.length; i++) {
+          const [is3, equivalence] = compiled[candidates2[i]];
           if (is3(a) && is3(b)) {
             return equivalence(a, b);
           }
@@ -15693,9 +15694,9 @@ function toFormatter(ast, options) {
         const index2 = getCandidateIndex(types);
         const compiled2 = types.map((candidate, i) => [_is(candidate), recur2(ast2.types[i])]);
         return (value3) => {
-          const candidates = index2(value3, false);
-          for (let i = 0; i < candidates.length; i++) {
-            const [is3, formatter] = compiled2[candidates[i]];
+          const candidates2 = index2(value3, false);
+          for (let i = 0; i < candidates2.length; i++) {
+            const [is3, formatter] = compiled2[candidates2[i]];
             if (is3(value3)) {
               return formatter(value3);
             }
@@ -16563,14 +16564,14 @@ var labelPattern = /^[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?$/;
 var numericLabel = /^(?:\d+|0x[0-9a-f]*)$/;
 var validateDomainName = (name) => {
   if (name === ".") return void 0;
-  const relative = name.endsWith(".") ? name.slice(0, -1) : name;
-  if (relative.length === 0) return "domain name must not be empty";
-  if (relative.length > 253) return "domain name must be at most 253 characters";
-  const labels = relative.split(".");
-  for (const label of labels) {
-    if (label.length === 0) return "domain name labels must not be empty";
-    if (label.length > 63) return "domain name labels must be at most 63 characters";
-    if (!labelPattern.test(label)) {
+  const relative2 = name.endsWith(".") ? name.slice(0, -1) : name;
+  if (relative2.length === 0) return "domain name must not be empty";
+  if (relative2.length > 253) return "domain name must be at most 253 characters";
+  const labels = relative2.split(".");
+  for (const label2 of labels) {
+    if (label2.length === 0) return "domain name labels must not be empty";
+    if (label2.length > 63) return "domain name labels must be at most 63 characters";
+    if (!labelPattern.test(label2)) {
       return "domain name labels must contain only letters, digits, hyphens, or underscores and must not start or end with a hyphen";
     }
   }
@@ -17538,7 +17539,7 @@ function toTaggedUnion(tag2) {
     const discriminantKeys = /* @__PURE__ */ new Set();
     const guards = {};
     const isAnyOf = (keys3) => (value3) => keys3.includes(value3[tag2]);
-    walk(self);
+    walk2(self);
     return Object.assign(self, {
       tag: tag2,
       cases,
@@ -17548,10 +17549,10 @@ function toTaggedUnion(tag2) {
       match: match7,
       matchOrElse
     });
-    function walk(schema) {
+    function walk2(schema) {
       const ast = schema.ast;
       if (isUnion(ast) && "members" in schema && globalThis.Array.isArray(schema.members) && schema.members.every(isSchema)) {
-        return schema.members.forEach(walk);
+        return schema.members.forEach(walk2);
       }
       const sentinels = collectSentinels(ast);
       if (sentinels.length > 0) {
@@ -20160,7 +20161,7 @@ function Graph(type, node, edge) {
       if (!isGraph(input) || input.mutable || input.type !== type) {
         return fail5(new InvalidType(ast, input, options));
       }
-      return flatMap5(decodeUnknownEffect(encoded)(snapshot(input), options), (snapshot3) => graphDecode(snapshot3, options));
+      return flatMap5(decodeUnknownEffect(encoded)(snapshot(input), options), (snapshot4) => graphDecode(snapshot4, options));
     };
   }, {
     representation: {
@@ -20425,21 +20426,21 @@ function OptionFromOptionalNullOr(schema, options) {
   })));
 }
 function Redacted(value3, options) {
-  const label = typeof options?.label === "string" ? options.label : void 0;
+  const label2 = typeof options?.label === "string" ? options.label : void 0;
   const disallowJsonEncode = options?.disallowJsonEncode === true;
-  const normalizedOptions = label !== void 0 ? disallowJsonEncode ? {
-    label,
+  const normalizedOptions = label2 !== void 0 ? disallowJsonEncode ? {
+    label: label2,
     disallowJsonEncode: true
   } : {
-    label
+    label: label2
   } : disallowJsonEncode ? {
     disallowJsonEncode: true
   } : void 0;
-  const decodeLabel = label !== void 0 ? decodeUnknownEffect(Literal2(label)) : void 0;
+  const decodeLabel = label2 !== void 0 ? decodeUnknownEffect(Literal2(label2)) : void 0;
   const schema = declareConstructor()([value3], ([value4]) => (input, ast, poptions) => {
     if (isRedacted(input)) {
-      const label2 = decodeLabel !== void 0 ? mapErrorEager2(decodeLabel(input.label, poptions), (issue) => new Pointer(["label"], issue)) : void_3;
-      return flatMapEager2(label2, () => mapBothEager2(decodeUnknownEffect(value4)(value2(input), poptions), {
+      const label3 = decodeLabel !== void 0 ? mapErrorEager2(decodeLabel(input.label, poptions), (issue) => new Pointer(["label"], issue)) : void_3;
+      return flatMapEager2(label3, () => mapBothEager2(decodeUnknownEffect(value4)(value2(input), poptions), {
         onSuccess: (value5) => make12(value5, {
           label: input.label
         }),
@@ -20464,7 +20465,7 @@ function Redacted(value3, options) {
     expected: "Redacted",
     toCodecJson: ([value4]) => link()(value4, {
       decode: transform((e) => make12(e, {
-        label
+        label: label2
       })),
       encode: disallowJsonEncode ? forbidden((oe) => "Cannot serialize Redacted" + (isSome2(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")) : transform(value2)
     }),
@@ -20824,6 +20825,15 @@ var ERRORS = {
       harnesses: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String))
     })
   },
+  eval_card_invalid: {
+    means: "The --card of `mw eval` is neither a tier in prescriptions nor a card as JSON {harness, provider, account, model, effort} on a known harness.",
+    context: Schema_exports.Struct({ card: Schema_exports.String, tiers: Schema_exports.Array(Schema_exports.String), harnesses: Schema_exports.Array(Schema_exports.String), problems: Schema_exports.optionalKey(Schema_exports.String) })
+  },
+  eval_no_calls: {
+    means: "The store holds no recorded calls of that job (for those items) to replay; `recorded` counts the calls of each job it does hold.",
+    context: Schema_exports.Struct({ store: Schema_exports.String, job: Schema_exports.String, items: Schema_exports.Array(Id), recorded: Schema_exports.Record(Schema_exports.String, Schema_exports.Int) })
+  },
+  brief_unreadable: { means: "The file named by --brief cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String }) },
   export_failed: { means: "The export folder cannot be written.", context: Schema_exports.Struct({ id: Id, dir: Schema_exports.String, reason: Schema_exports.String }) },
   git_failed: { means: "A git command Made Well ran in a workspace failed.", context: Schema_exports.Struct({ dir: Schema_exports.String, args: Schema_exports.Array(Schema_exports.String), exitCode: Schema_exports.Int, stderr: Schema_exports.String }) },
   bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema_exports.Struct({ name: Schema_exports.String }) },
@@ -20872,7 +20882,16 @@ var DEFAULT_BUDGET = { minutes: 30 };
 var Worker = class extends Context_exports.Service()("madewell/Worker") {
 };
 var GROUP = 'd=$1; shift; ( exec </dev/null >/dev/null 2>&1; read _ <&3; [ -z "$d" ] || rm -rf "$d"; kill -9 0 ) & exec "$@" 3<&-';
-var runGroup = (o) => Effect_exports.callback((resume) => {
+var stamped = (line, at) => {
+  try {
+    const v = JSON.parse(line);
+    if (!v || typeof v !== "object" || Array.isArray(v)) return line;
+    return Object.keys(v).length ? `{"mw_at":${at},${line.trimStart().slice(1)}` : `{"mw_at":${at}}`;
+  } catch {
+    return line;
+  }
+};
+var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
   const started = Date.now();
   const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: o.env, detached: true, stdio: ["pipe", "pipe", "pipe", "pipe"] });
   const kill = () => {
@@ -20892,15 +20911,16 @@ var runGroup = (o) => Effect_exports.callback((resume) => {
     kill();
   };
   const timer = setTimeout(() => over("minutes"), o.budget.minutes * 6e4);
+  const take = (raw, end) => {
+    const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw;
+    stdout += line + end;
+    const n = o.tokensIn?.(line);
+    if (n) tokens = (tokens ?? 0) + n;
+  };
   child.stdout.setEncoding("utf8").on("data", (chunk) => {
-    stdout += chunk;
-    if (!o.tokensIn) return;
-    const lines2 = (partial + chunk).split("\n");
-    partial = lines2.pop();
-    for (const line of lines2) {
-      const n = o.tokensIn(line);
-      if (n) tokens = (tokens ?? 0) + n;
-    }
+    const lines3 = (partial + chunk).split("\n");
+    partial = lines3.pop();
+    for (const line of lines3) take(line, "\n");
     if (o.budget.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
   });
   child.stderr.setEncoding("utf8").on("data", (chunk) => stderr += chunk);
@@ -20908,6 +20928,7 @@ var runGroup = (o) => Effect_exports.callback((resume) => {
   child.on("exit", kill);
   child.on("close", (code) => {
     clearTimeout(timer);
+    if (partial) take(partial, "");
     resume(Effect_exports.succeed({ code, stdout, stderr, stdinError, overBudget }));
   });
   child.stdin.end(o.input);
@@ -20915,7 +20936,7 @@ var runGroup = (o) => Effect_exports.callback((resume) => {
     clearTimeout(timer);
     kill();
   });
-});
+}));
 var overBudgetError = (who, o) => `${who} went over its budget: ${o.exceeded === "minutes" ? `ran ${(o.ms / 6e4).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`;
 var commandWorker = (command2) => Layer_exports.succeed(Worker, {
   run: (request3) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: JSON.stringify(request3), budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
@@ -20935,14 +20956,14 @@ var commandWorker = (command2) => Layer_exports.succeed(Worker, {
 var Match = Schema_exports.Record(Schema_exports.String, Schema_exports.Union([Schema_exports.String, Schema_exports.Number, Schema_exports.Boolean]));
 var Strings = Schema_exports.Array(Schema_exports.String);
 var common = {
-  /** argv. Placeholders: {model} {provider} {account} {effort} {system} {prompt} {title} {tools} {settings}; {x|json} quotes as JSON. */
+  /** argv. Placeholders: {model} {provider} {account} {effort} {system} {prompt} {title} {tools} {settings}; {x|json} quotes as JSON; an argument that is exactly {...tools} becomes one argument per entry. */
   command: Schema_exports.NonEmptyArray(Schema_exports.String),
   /** What goes on stdin; default "{prompt}". */
   stdin: Schema_exports.optional(Schema_exports.String),
   /** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
   settings: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
-  /** The allowlist for each access level: tool names, joined with commas for {tools}. */
-  tools: Schema_exports.Struct({ read: Strings, checks: Strings, make: Strings, run: Strings }),
+  /** The allowlist for each access level: tool names, joined with commas for {tools}. `none` must leave the agent no tool at all. */
+  tools: Schema_exports.Struct({ none: Strings, read: Strings, checks: Strings, make: Strings, run: Strings }),
   /** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix. */
   env: Schema_exports.optional(Strings),
   /** Read only from the harness's own events: `pattern` names (?<clock>) or (?<minutes>) groups for the reset; `signals` are machine-readable records. */
@@ -20980,8 +21001,7 @@ var CLAUDE_EVENTS = {
   tokens: { event: { type: "result" }, paths: ["usage.input_tokens", "usage.cache_creation_input_tokens", "usage.output_tokens"] }
 };
 var AMP_SHELL = ["shell_command", "async_shell_command", "shell_command_status", "shell_command_kill"];
-var READ_ONLY = ["read-only"];
-var FULL = ["danger-full-access"];
+var FULL = ["-s", "danger-full-access"];
 var HARNESSES = {
   // card.model is the Amp agent mode. Amp has no system-prompt flag: the brief goes on stdin before the packet.
   amp: {
@@ -20989,6 +21009,8 @@ var HARNESSES = {
     stdin: "{system}\n\n---\n\nYour packet:\n{prompt}",
     settings: { "amp.tools.enable": "{tools}", "amp.git.commit.ampThread.enabled": false, "amp.git.commit.coauthor.enabled": false },
     tools: {
+      // Amp reads an empty allowlist as every tool, so none enables only a name no tool has.
+      none: ["none"],
       read: ["Read", ...AMP_SHELL],
       checks: ["Read", ...AMP_SHELL, "edit_file", "create_file", "apply_patch"],
       make: ["Read", ...AMP_SHELL, "edit_file", "create_file", "apply_patch"],
@@ -21002,6 +21024,7 @@ var HARNESSES = {
   claude: {
     command: ["claude", "-p", "--verbose", "--output-format", "stream-json", "--model", "{model}", "--effort", "{effort}", "--permission-mode", "bypassPermissions", "--strict-mcp-config", "--tools", "{tools}", "--append-system-prompt", "{system}"],
     tools: {
+      none: [],
       read: ["Read", "Grep", "Glob"],
       checks: ["Read", "Grep", "Glob", "Bash", "Edit", "Write"],
       make: ["Read", "Grep", "Glob", "Bash", "Edit", "Write"],
@@ -21011,9 +21034,10 @@ var HARNESSES = {
     ...CLAUDE_EVENTS
   },
   // Codex has no tool allowlist: its sandbox is the boundary, and the optional tools (images, MCP) are off.
+  // No setting removes every tool, so none also turns the shell off; what remains cannot read or write.
   codex: {
-    command: ["codex", "exec", "--json", "--skip-git-repo-check", "-m", "{model}", "-c", 'model_reasoning_effort="{effort}"', "-c", 'approval_policy="never"', "-c", "developer_instructions={system|json}", "-c", "tools.view_image=false", "-c", "mcp_servers={}", "-s", "{tools}", "-"],
-    tools: { read: READ_ONLY, checks: FULL, make: FULL, run: FULL },
+    command: ["codex", "exec", "--json", "--skip-git-repo-check", "-m", "{model}", "-c", 'model_reasoning_effort="{effort}"', "-c", 'approval_policy="never"', "-c", "developer_instructions={system|json}", "-c", "tools.view_image=false", "-c", "mcp_servers={}", "{...tools}", "-"],
+    tools: { none: ["-s", "read-only", "-c", "features.shell_tool=false"], read: ["-s", "read-only"], checks: FULL, make: FULL, run: FULL },
     env: ["OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_HOME"],
     output: "jsonl",
     answer: { event: { type: "item.completed", "item.type": "agent_message" }, text: "item.text", done: { type: "turn.completed" }, failed: [{ type: "turn.failed" }, { type: "error" }] },
@@ -21027,6 +21051,7 @@ var HARNESSES = {
   pi: {
     command: ["pi", "--print", "--mode", "json", "--offline", "--no-session", "--model", "{provider}/{model}", "--thinking", "{effort}", "--append-system-prompt", "{system}", "--tools", "{tools}"],
     tools: {
+      none: [],
       read: ["read", "grep", "find", "ls"],
       checks: ["read", "grep", "find", "ls", "bash", "edit", "write"],
       make: ["read", "grep", "find", "ls", "bash", "edit", "write"],
@@ -21058,7 +21083,7 @@ var agentEnv = (allow, from = process.env) => ({
 function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
   const settings = join(call.dir, "settings.json");
   const vars = { ...card, ...call, tools: harness.tools[access], settings };
-  const [binary, ...args2] = harness.command.map((a) => fill(a, vars));
+  const [binary, ...args2] = harness.command.flatMap((a) => a === "{...tools}" ? vars.tools : [fill(a, vars)]);
   const files = harness.settings ? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v]))) } : {};
   return { command: process.env[`MW_${card.harness.toUpperCase()}`] ?? binary, args: args2, input: fill(harness.stdin ?? "{prompt}", vars), files };
 }
@@ -21136,7 +21161,8 @@ var harnessWorker = Layer_exports.succeed(Worker, {
       (dir) => {
         const launch2 = buildLaunch(request3.card, request3.access, { system: request3.system, prompt: request3.prompt, title: `mw #${request3.item} ${request3.job} \xB7 ${request3.profile} \xB7 ${request3.kind}`, dir }, harness);
         for (const [path, content] of Object.entries(launch2.files)) writeFileSync(path, content);
-        return runGroup({ command: launch2.command, args: launch2.args, cwd: request3.cwd, env: agentEnv([...BASE_ENV, ...harness.env ?? []]), input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir });
+        const cwd = request3.access === "none" ? dir : request3.cwd;
+        return runGroup({ command: launch2.command, args: launch2.args, cwd, env: agentEnv([...BASE_ENV, ...harness.env ?? []]), input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl" });
       },
       (dir) => Effect_exports.sync(() => rmSync(dir, { recursive: true, force: true }))
     ).pipe(
@@ -21161,7 +21187,7 @@ var Card = Schema_exports.Struct({
   model: Schema_exports.NonEmptyString,
   effort: Schema_exports.Literals(["low", "medium", "high", "xhigh", "max"])
 });
-var Access = Schema_exports.Literals(["read", "checks", "make", "run"]);
+var Access = Schema_exports.Literals(["none", "read", "checks", "make", "run"]);
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
 var Positive = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
 var JobBudget = Schema_exports.optional(Schema_exports.Struct({ minutes: Positive, tokens: Schema_exports.optional(Positive) }));
@@ -21202,6 +21228,11 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   return p;
 });
 var cardsFor = (p, job) => p.tiers[p.jobs[job].tier];
+var budgetFor = (p, job) => p.jobs[job].budget ?? DEFAULT_BUDGET;
+var harnessOf = (p, name) => {
+  const harness = p.harnesses?.[name] ?? HARNESSES[name];
+  return harness && { ...harness, env: [...harness.env ?? [], ...p.env ?? []] };
+};
 function pickCard(cards, exhausted, now2) {
   const card = cards.find((c) => (exhausted[c.account] ?? 0) <= now2);
   if (card) return { card };
@@ -22140,13 +22171,13 @@ var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
   const run2 = store.get(discovery);
   if (!run2) return yield* notFound2(discovery);
   const found2 = store.list().filter((i) => i.discovery === discovery);
-  const candidates = found2.filter((i) => i.status === "candidate");
+  const candidates2 = found2.filter((i) => i.status === "candidate");
   if (run2.status !== "discovered") {
     return yield* new MadeWellError({ code: "not_discovered", message: `Item #${discovery} is not a finished discovery run (it is ${run2.status}).`, context: { id: discovery, status: run2.status, job: run2.job }, next: [{ run: "mw status", why: "find the discovery run and its candidates" }] });
   }
   const unknown2 = ids.filter((id2) => !found2.some((c) => c.id === id2));
   if (unknown2.length) {
-    return yield* new MadeWellError({ code: "not_a_candidate", message: `Not candidates of discovery #${discovery}: ${unknown2.join(", ")}.`, context: { discovery, unknown: unknown2, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: "promote every waiting candidate" }] });
+    return yield* new MadeWellError({ code: "not_a_candidate", message: `Not candidates of discovery #${discovery}: ${unknown2.join(", ")}.`, context: { discovery, unknown: unknown2, candidates: candidates2.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: "promote every waiting candidate" }] });
   }
   const chosen = ids.length ? found2.filter((c) => ids.includes(c.id)) : found2;
   for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery });
@@ -22212,6 +22243,397 @@ var executePacket = (item, x) => JSON.stringify({
   ...item.outputs[item.job] !== void 0 && item.rework ? { yourPreviousDeliverable: item.outputs[item.job] } : {},
   ...item.pickingUp ? { pickingUp: item.pickingUp } : {}
 }, null, 2);
+
+// src/eval.ts
+import { readFileSync as readFileSync4 } from "node:fs";
+import { resolve as resolve4 } from "node:path";
+import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
+
+// src/workspace.ts
+import { execFile as execFile3 } from "node:child_process";
+import { existsSync as existsSync2, lstatSync, readdirSync, readFileSync as readFileSync3, readlinkSync, rmSync as rmSync2, statSync } from "node:fs";
+import { homedir as homedir2 } from "node:os";
+import { dirname as dirname4, isAbsolute, join as join5, relative, resolve as resolve3 } from "node:path";
+var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI.md", ".cursorrules"];
+var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
+var worktreesRoot = () => join5(process.env.MW_HOME ?? join5(homedir2(), ".local", "share", "madewell"), "worktrees");
+var fail7 = (code, message, context3, next, cause) => new MadeWellError({ code, message, context: context3, next, ...cause ? { cause } : {} });
+var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile3(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
+var git = (dir, ...args2) => exec("git", ["--no-optional-locks", "-C", dir, ...args2], dir).pipe(Effect_exports.flatMap(({ code, stdout, stderr }) => code === 0 ? Effect_exports.succeed(stdout) : Effect_exports.fail(fail7("git_failed", `git ${args2[0]} failed in ${dir}.`, { dir, args: args2, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args2.join(" ")}`, why: "run it yourself to see the full error" }]))));
+var lines2 = (out) => out.split("\0").filter(Boolean);
+var worktree = Effect_exports.fn("mw.worktree")(function* (repo, base, name) {
+  const root = worktreesRoot();
+  const path = join5(root, name);
+  if (!/^[\w.-]+$/.test(name)) return yield* fail7("bad_worktree_name", `Worktree name "${name}" must be letters, digits, ".", "_" or "-".`, { name }, []);
+  const above = [];
+  for (let dir = root; ; dir = dirname4(dir)) {
+    above.push(...GUIDANCE.map((f) => join5(dir, f)).filter((f) => existsSync2(f)));
+    if (dirname4(dir) === dir) break;
+  }
+  const inside = !relative(resolve3(repo), root).startsWith("..");
+  if (above.length || inside) {
+    return yield* fail7(
+      "worktree_root_unclean",
+      `Job worktrees under ${root} would inherit instructions that are not the product's.`,
+      { root, repo, guidanceAbove: above, insideRepo: inside },
+      [{ run: "MW_HOME=<a directory with no guidance files above it and outside the repo> mw run", why: "put Made Well's home where agents read only the product's own guidance" }]
+    );
+  }
+  const commit = (yield* git(repo, "rev-parse", "--verify", "--quiet", `${base}^{commit}`).pipe(Effect_exports.mapError(() => fail7("base_not_found", `${base} is not a commit in ${repo}.`, { repo, base }, [{ run: `git -C ${repo} log --oneline -5`, why: "find the commit the item should start from" }])))).trim();
+  return yield* Effect_exports.acquireRelease(
+    Effect_exports.gen(function* () {
+      yield* removeWorktree(repo, path);
+      yield* git(repo, "worktree", "add", "--detach", "--quiet", path, commit);
+      return { path, repo, base: commit };
+    }),
+    () => removeWorktree(repo, path)
+  );
+});
+var removeWorktree = (repo, path) => Effect_exports.gen(function* () {
+  yield* Effect_exports.ignore(git(repo, "worktree", "remove", "--force", "--force", path));
+  rmSync2(path, { recursive: true, force: true });
+  yield* Effect_exports.ignore(git(repo, "worktree", "prune"));
+});
+var snapshot3 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
+  const outside = files.filter((f) => isAbsolute(f) || relative(dir, resolve3(dir, f)).startsWith(".."));
+  if (outside.length) return yield* fail7("path_outside_workspace", "A snapshot can only read files inside the workspace.", { dir, outside }, []);
+  const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
+  const tracked = lines2(yield* git(dir, "ls-files", "-z"));
+  const contents = Object.fromEntries(files.map((f) => {
+    const p = join5(dir, f);
+    return [f, existsSync2(p) && statSync(p).isFile() ? readFileSync3(p, "utf8") : null];
+  }));
+  return { head: head3, files: tracked, contents };
+});
+var capture = Effect_exports.fn("mw.capture")(function* (dir) {
+  const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
+  const refs = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
+  const common2 = resolve3(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
+  const files = {};
+  walk(dir, "", files);
+  for (const part of ["config", "info", "hooks"]) walk(common2, part, files, ".git/");
+  return { dir, head: head3, refs, files };
+});
+function walk(root, rel, into, label2 = "") {
+  const p = join5(root, rel);
+  let s;
+  try {
+    s = lstatSync(p, { bigint: true });
+  } catch {
+    return;
+  }
+  if (s.isDirectory()) {
+    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel ? `${rel}/${name}` : name, into, label2);
+  } else if (rel) {
+    into[label2 + rel] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
+  }
+}
+function changes(before, after) {
+  const keys3 = (a, b) => [.../* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])].sort();
+  const refs = keys3(before.refs, after.refs).filter((ref) => before.refs[ref] !== after.refs[ref]).map((ref) => ({ ref, from: before.refs[ref] ?? null, to: after.refs[ref] ?? null }));
+  const paths = keys3(before.files, after.files);
+  const added = paths.filter((p) => !(p in before.files));
+  const removed = paths.filter((p) => !(p in after.files));
+  const modified = paths.filter((p) => p in before.files && p in after.files && before.files[p] !== after.files[p]);
+  const head3 = before.head === after.head ? void 0 : { from: before.head, to: after.head };
+  return head3 || refs.length || added.length || removed.length || modified.length ? { ...head3 ? { head: head3 } : {}, refs, added, removed, modified } : void 0;
+}
+var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
+  const before = yield* capture(dir);
+  const result3 = yield* effect2;
+  const changed = changes(before, yield* capture(dir));
+  if (changed) {
+    return yield* fail7(
+      "workspace_written",
+      `A read-only call changed ${dir}.`,
+      { dir, changes: changed },
+      [{ run: `git -C ${dir} status --ignored`, why: "see the changes in context.changes; a read-only job gets no write access, so its result is not accepted" }]
+    );
+  }
+  return result3;
+}).pipe(Effect_exports.withSpan("mw.readOnly", { attributes: { dir } }));
+var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref, recorded) {
+  const now2 = (yield* git(repo, "rev-parse", "--verify", `${ref}^{commit}`)).trim();
+  if (now2 === recorded) return;
+  const landed = yield* Effect_exports.orElseSucceed(git(repo, "log", "--format=%H %s", `${recorded}..${now2}`), () => "");
+  return yield* fail7("branch_moved", `${ref} moved from ${recorded.slice(0, 12)} to ${now2.slice(0, 12)}.`, { repo, ref, recorded, now: now2, landed: landed.trim().split("\n").filter(Boolean) }, [
+    { run: `git -C ${repo} log --stat ${recorded}..${now2}`, why: "see what landed on the branch and who made it" },
+    { run: `git -C ${repo} reset --keep ${recorded}`, why: "only if those commits are unverified agent work and were never pushed" }
+  ]);
+});
+var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declared) {
+  const changed = [.../* @__PURE__ */ new Set([...lines2(yield* git(dir, "diff", "--name-only", "--no-renames", "-z", base)), ...lines2(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))])].sort();
+  const covers = (d, f) => d.endsWith("/") || d.endsWith("/**") ? f.startsWith(d.replace(/\*\*$/, "")) : f === d;
+  const outside = changed.filter((f) => !declared.some((d) => covers(d, f)));
+  if (outside.length) {
+    return yield* fail7("out_of_scope", `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: "see the whole change against its base" }]);
+  }
+  return changed;
+});
+var leftovers = Effect_exports.fn("mw.leftovers")(function* (dir, before) {
+  const created = lines2(yield* git(dir, "ls-files", "--others", "-z")).filter((f) => !(f in before.files)).sort();
+  if (created.length) {
+    return yield* fail7("leftovers", `${created.length} file(s) were left in ${dir}.`, { dir, files: created }, [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(" ")}`, why: "remove exactly the files the job left behind" }]);
+  }
+});
+var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
+  const unique = resources.filter((r, i) => resources.findIndex((o) => o.kind === r.kind && o.id === r.id) === i);
+  const records = [];
+  for (const r of unique.toReversed()) {
+    const { code, stdout, stderr } = yield* exec("sh", ["-c", r.teardown], cwd, TEARDOWN_TIMEOUT_MS);
+    records.push({ kind: r.kind, id: r.id, teardown: r.teardown, exitCode: code, output: (stdout + stderr).slice(-4e3) });
+  }
+  const failed = records.filter((r) => r.exitCode !== 0);
+  if (failed.length) {
+    return yield* fail7(
+      "teardown_failed",
+      `${failed.length} of ${records.length} provisioned resource(s) were not torn down.`,
+      { cwd, failed, records },
+      failed.map((r) => ({ run: `cd ${cwd} && ${r.teardown}`, why: `tear down ${r.kind} ${r.id} once context.failed shows why it failed` }))
+    );
+  }
+  return records;
+});
+
+// src/eval.ts
+var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
+var UNKNOWN_RESET_MS2 = 60 * 6e4;
+var MIN_OUT_MS2 = 5 * 6e4;
+var EvalCard = Schema_exports.Struct({
+  harness: Schema_exports.NonEmptyString,
+  provider: Schema_exports.NonEmptyString,
+  account: Schema_exports.NonEmptyString,
+  model: Schema_exports.NonEmptyString,
+  effort: Schema_exports.Literals(["low", "medium", "high", "xhigh", "max"])
+}).annotate({ identifier: "Card" });
+var Score = Schema_exports.Struct({
+  outcome: Schema_exports.String.annotate({ description: "ok, error or rejected, as the call ended" }),
+  valid: Schema_exports.Boolean.annotate({ description: "answered, and its final JSON carries every field its kind of call requires" }),
+  parses: Schema_exports.NullOr(Schema_exports.Boolean).annotate({ description: "whether the final JSON parses; null when this kind of call needs none" }),
+  missing: Schema_exports.Array(Schema_exports.String),
+  flags: Schema_exports.Array(Schema_exports.String).annotate({ description: "the rule-break flags telemetry computes" }),
+  seconds: Schema_exports.Number,
+  tokens: Schema_exports.NullOr(Schema_exports.Number).annotate({ description: "null when the harness reported none" })
+}).annotate({ identifier: "Score" });
+var Totals = Schema_exports.Struct({ calls: Schema_exports.Int, valid: Schema_exports.Int, flags: Schema_exports.Int, seconds: Schema_exports.Number, tokens: Schema_exports.NullOr(Schema_exports.Number) }).annotate({ identifier: "Totals" });
+var CardResult = Schema_exports.Struct({
+  card: EvalCard,
+  complete: Schema_exports.Boolean.annotate({ description: "every selected call was replayed on this card" }),
+  limited: Schema_exports.optionalKey(Schema_exports.Struct({ account: Schema_exports.String, resetsAt: Schema_exports.String, message: Schema_exports.String })),
+  replay: Totals,
+  recorded: Totals.annotate({ description: "the same calls, as recorded" }),
+  matches: Schema_exports.Boolean.annotate({ description: "complete, at least as many valid answers and no more rule breaks than the record" }),
+  calls: Schema_exports.Array(Schema_exports.Struct({ call: Schema_exports.Int, item: Schema_exports.Int, kind: Schema_exports.String, recorded: Score, replay: Score, verdict: Schema_exports.Literals(["better", "same", "worse"]) }))
+}).annotate({ identifier: "CardResult" });
+var EvalReport = Schema_exports.Struct({
+  eval: Schema_exports.Int.annotate({ description: "this run in the store's evals and eval_calls tables" }),
+  job: Schema_exports.String,
+  brief: Schema_exports.NullOr(Schema_exports.String),
+  recorded: Schema_exports.Struct({ ...Totals.fields, cards: Schema_exports.Array(EvalCard) }),
+  cards: Schema_exports.Array(CardResult),
+  recommendation: Schema_exports.NullOr(Schema_exports.Struct({ card: EvalCard, tier: Schema_exports.NullOr(Schema_exports.String), prescribed: Schema_exports.String, why: Schema_exports.String })),
+  next: Schema_exports.Array(Next)
+}).annotate({ identifier: "EvalReport" });
+var CAUSES = ["pre-existing", "implementation", "test", "undetermined"];
+var REQUIRED = {
+  intake: { understanding: (v) => typeof v === "string", questions: Array.isArray },
+  originator: { answer: (v) => typeof v === "string" && v.trim() !== "" },
+  execute: {
+    discover: { items: Array.isArray },
+    verify: { outcome: (v) => v === "pass" || v === "fail" },
+    arbitrate: { cause: (v) => CAUSES.includes(v) }
+  }
+};
+var score = (kind, job, r) => {
+  const required2 = (kind === "execute" ? REQUIRED.execute[job] : REQUIRED[kind]) ?? {};
+  const answer2 = r.output === null ? void 0 : lastJson(r.output);
+  const missing2 = Object.entries(required2).filter(([field, ok]) => !ok(answer2?.[field])).map(([field]) => field);
+  return {
+    outcome: r.outcome,
+    valid: r.output !== null && missing2.length === 0,
+    parses: Object.keys(required2).length ? answer2 !== void 0 : null,
+    missing: missing2,
+    flags: r.flags.map((f) => f.rule),
+    seconds: r.ms / 1e3,
+    tokens: r.tokens ? totalTokens(r.tokens) : null
+  };
+};
+var round = (n) => Math.round(n * 1e3) / 1e3;
+var totals = (scores) => ({
+  calls: scores.length,
+  valid: scores.filter((s) => s.valid).length,
+  flags: scores.reduce((n, s) => n + s.flags.length, 0),
+  seconds: round(scores.reduce((n, s) => n + s.seconds, 0)),
+  tokens: scores.some((s) => s.tokens === null) ? null : scores.reduce((n, s) => n + s.tokens, 0)
+});
+var verdict = (recorded, replay) => {
+  const d = Number(replay.valid) - Number(recorded.valid) || recorded.flags.length - replay.flags.length;
+  return d > 0 ? "better" : d < 0 ? "worse" : "same";
+};
+var sameCard = (a, b) => a.harness === b.harness && a.provider === b.provider && a.account === b.account && a.model === b.model && a.effort === b.effort;
+var label = (c) => `${c.harness} \xB7 ${c.model} \xB7 ${c.effort}`;
+var usage = (message) => new MadeWellError({ code: "usage", message, context: { command: "eval" }, next: [{ run: "mw", why: "read the manual: every command and its input schema" }] });
+var candidates = (arg, p) => Effect_exports.gen(function* () {
+  const tiers = Object.keys(p.tiers);
+  const harnesses = Object.keys({ ...HARNESSES, ...p.harnesses });
+  const invalid4 = (message, problems) => new MadeWellError({
+    code: "eval_card_invalid",
+    message,
+    context: { card: arg, tiers, harnesses, ...problems ? { problems } : {} },
+    next: [
+      ...tiers.map((t) => ({ run: `mw eval <job> --card ${t}`, why: `replay on every card of tier "${t}"` })),
+      { run: `mw eval <job> --card '{"harness":"${harnesses[0]}","provider":"<provider>","account":"<quota account>","model":"<model>","effort":"low"}'`, why: "replay on one card" }
+    ]
+  });
+  if (!arg.trim().startsWith("{")) {
+    const tier = p.tiers[arg];
+    return tier ? [...tier] : yield* invalid4(`--card "${arg}" is neither a card as JSON nor a tier in prescriptions.`);
+  }
+  const card = yield* Effect_exports.try({ try: () => JSON.parse(arg), catch: (e) => invalid4("--card is not valid JSON.", String(e)) }).pipe(
+    Effect_exports.flatMap((v) => Schema_exports.decodeUnknownEffect(EvalCard)(v).pipe(Effect_exports.mapError((e) => invalid4("--card does not match the card shape {harness, provider, account, model, effort}.", e.message))))
+  );
+  if (!harnessOf(p, card.harness)) return yield* invalid4(`--card names harness "${card.harness}", which has no entry.`);
+  return [card];
+});
+var ITEM_IDS = /^\d+$/;
+var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
+  const store = yield* Store;
+  const worker = yield* Worker;
+  const p = o.prescriptions;
+  const items = (o.item ?? "").split(/[\s,]+/).filter(Boolean);
+  if (items.some((i) => !ITEM_IDS.test(i) || Number(i) < 1)) return yield* usage(`--item takes work item numbers separated by commas, such as --item 3,5; got "${o.item}".`);
+  const ids = items.map(Number);
+  const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
+  const briefPath = o.brief === void 0 ? void 0 : resolve4(o.brief);
+  const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
+    try: () => readFileSync4(briefPath, "utf8"),
+    catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
+  });
+  const all3 = store.calls();
+  const calls = all3.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute")).slice(-(o.limit ?? 0));
+  if (!calls.length) {
+    const recorded = {};
+    for (const c of all3) if (c.outcome !== "limit") recorded[c.job] = (recorded[c.job] ?? 0) + 1;
+    const best2 = Object.entries(recorded).sort((a, b) => b[1] - a[1])[0];
+    return yield* new MadeWellError({
+      code: "eval_no_calls",
+      message: `The store holds no recorded ${brief === void 0 ? "" : "execute "}calls of the ${o.job} job${ids.length ? ` for item(s) ${ids.join(", ")}` : ""} to replay.`,
+      context: { store: store.path, job: o.job, items: ids, recorded },
+      next: best2 ? [{ run: `mw eval ${best2[0]}`, why: `the ${best2[0]} job has ${best2[1]} recorded calls` }] : [{ run: "mw next", why: "deliver work first: every call it makes is recorded for evals" }]
+    });
+  }
+  const db = yield* Effect_exports.acquireRelease(Effect_exports.sync(() => {
+    const db2 = new DatabaseSync2(store.path);
+    db2.exec(`PRAGMA busy_timeout = 5000;
+			CREATE TABLE IF NOT EXISTS evals (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, job TEXT NOT NULL, card TEXT, brief TEXT, items TEXT NOT NULL, calls TEXT NOT NULL, report TEXT);
+			CREATE TABLE IF NOT EXISTS eval_calls (id INTEGER PRIMARY KEY AUTOINCREMENT, eval INTEGER NOT NULL, call INTEGER NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL, tokens TEXT, facts TEXT NOT NULL, flags TEXT NOT NULL, score TEXT NOT NULL);`);
+    return db2;
+  }), (db2) => Effect_exports.sync(() => db2.close()));
+  const at = new Date(yield* Clock_exports.currentTimeMillis).toISOString();
+  const run2 = Number(db.prepare("INSERT INTO evals (at, job, card, brief, items, calls) VALUES (?, ?, ?, ?, ?, ?)").run(at, o.job, o.card ?? null, briefPath ?? null, JSON.stringify(ids), JSON.stringify(calls.map((c) => c.id))).lastInsertRowid);
+  const insert = db.prepare("INSERT INTO eval_calls (eval, call, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  const accessOf = (c) => c.kind === "execute" ? p.jobs[o.job].access : "read";
+  const budget = budgetFor(p, o.job);
+  const rulesOf = (c) => {
+    const { head: _, changed: __, ...recorded } = c.facts ?? {};
+    return { budget: { ms: budget.minutes * 6e4, ...budget.tokens !== void 0 ? { tokens: budget.tokens } : {} }, ...recorded, access: accessOf(c) };
+  };
+  const recordedScore = (c) => {
+    const facts = { ...rulesOf(c), ...c.facts?.head ? { head: c.facts.head } : {}, ...c.facts?.changed ? { changed: c.facts.changed } : {} };
+    return score(c.kind, o.job, { ...c, flags: flagsFor(facts, c) });
+  };
+  const replay = (c, card, n) => {
+    const workspace = store.get(c.item).workspace;
+    return readOnly(workspace, Effect_exports.scoped(Effect_exports.gen(function* () {
+      const wt = yield* worktree(workspace, c.facts?.head?.before ?? "HEAD", `eval-${run2}-${c.id}-${n}`);
+      const before = yield* capture(wt.path);
+      const system = c.kind === "execute" && brief !== void 0 ? brief : c.system;
+      const prompt = c.prompt.replaceAll(workspace, wt.path);
+      const started = yield* Clock_exports.currentTimeMillis;
+      const result3 = yield* worker.run({ kind: c.kind, item: c.item, job: o.job, profile: c.profile, card, access: accessOf(c), system, prompt, cwd: wt.path, budget, harness: harnessOf(p, card.harness) }).pipe(Effect_exports.withSpan(`mw.eval.${c.kind}.${o.job}`, { attributes: { eval: run2, call: c.id, harness: card.harness, model: card.model, account: card.account } }));
+      const ms = (yield* Clock_exports.currentTimeMillis) - started;
+      const after = yield* capture(wt.path);
+      const changed = [.../* @__PURE__ */ new Set([...Object.keys(before.files), ...Object.keys(after.files)])].filter((f) => !f.startsWith(".git/") && before.files[f] !== after.files[f]).sort();
+      return { result: result3, system, prompt, ms, started, head: { before: before.head, after: after.head }, changed };
+    })));
+  };
+  const groups = cards ? cards.map((card) => ({ card, calls })) : calls.reduce((gs, c) => {
+    const g = gs.find((g2) => sameCard(g2.card, c.card));
+    if (g) g.calls.push(c);
+    else gs.push({ card: c.card, calls: [c] });
+    return gs;
+  }, []);
+  const results2 = [];
+  for (const [n, g] of groups.entries()) {
+    const scored = [];
+    let limited;
+    for (const c of g.calls) {
+      const now2 = yield* Clock_exports.currentTimeMillis;
+      const out = store.exhausted()[g.card.account] ?? 0;
+      if (out > now2) {
+        limited = { account: g.card.account, resetsAt: new Date(out).toISOString(), message: "the account was already at its usage limit" };
+        break;
+      }
+      const r = yield* replay(c, g.card, n);
+      const raw = r.result.raw ?? null;
+      const output = r.result.ok ? r.result.output : null;
+      const tokens2 = tokensOf(g.card.harness, raw);
+      const facts = { ...rulesOf(c), head: r.head, changed: r.changed };
+      const flags = flagsFor(facts, { tools: toolEvents(g.card.harness, raw), tokens: tokens2, ms: r.ms, output });
+      const outcome = r.result.ok ? "ok" : "limit" in r.result ? "limit" : "error";
+      const s = score(c.kind, o.job, { outcome, output, ms: r.ms, tokens: tokens2, flags });
+      const error = r.result.ok ? null : "limit" in r.result ? r.result.limit.message : r.result.error;
+      insert.run(run2, c.id, JSON.stringify(g.card), r.system, r.prompt, outcome, output, error, raw, new Date(r.started).toISOString(), r.ms, tokens2 && JSON.stringify(tokens2), JSON.stringify(facts), JSON.stringify(flags), JSON.stringify(s));
+      if (!r.result.ok && "limit" in r.result) {
+        const resetsAt = Math.max(r.result.limit.resetsAt ?? now2 + UNKNOWN_RESET_MS2, now2 + MIN_OUT_MS2);
+        for (const account of /* @__PURE__ */ new Set([r.result.limit.account, g.card.account])) store.markExhausted(account, resetsAt);
+        limited = { account: g.card.account, resetsAt: new Date(resetsAt).toISOString(), message: r.result.limit.message };
+        break;
+      }
+      const recorded2 = recordedScore(c);
+      scored.push({ call: c.id, item: c.item, kind: c.kind, recorded: recorded2, replay: s, verdict: verdict(recorded2, s) });
+    }
+    const replayed = totals(scored.map((s) => s.replay));
+    const recorded = totals(scored.map((s) => s.recorded));
+    const complete = scored.length === g.calls.length;
+    results2.push({
+      card: g.card,
+      complete,
+      ...limited ? { limited } : {},
+      replay: replayed,
+      recorded,
+      matches: complete && replayed.valid >= recorded.valid && replayed.flags <= recorded.flags,
+      calls: scored
+    });
+  }
+  const cost = (r) => [r.replay.tokens === null ? 1 : 0, r.replay.tokens ?? 0, r.replay.seconds];
+  const best = results2.filter((r) => r.matches).sort((a, b) => {
+    const [x, y] = [cost(a), cost(b)];
+    return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
+  })[0];
+  const prescribed = p.jobs[o.job].tier;
+  const tierOf = (card) => p.tiers[prescribed].some((c) => sameCard(c, card)) ? prescribed : Object.keys(p.tiers).find((t) => p.tiers[t].some((c) => sameCard(c, card))) ?? null;
+  const overall = totals(calls.map(recordedScore));
+  const tokens = (t) => t.tokens === null ? "unreported tokens" : `${t.tokens} tokens`;
+  const recommendation = best ? {
+    card: best.card,
+    tier: tierOf(best.card),
+    prescribed,
+    why: `${label(best.card)} matched the record on ${best.replay.calls} call(s): ${best.replay.valid} valid vs ${best.recorded.valid} recorded, ${best.replay.flags} rule break(s) vs ${best.recorded.flags}, ${tokens(best.replay)} and ${best.replay.seconds}s vs ${tokens(best.recorded)} and ${best.recorded.seconds}s recorded. It is the cheapest of ${results2.filter((r) => r.matches).length} matching card(s), by tokens and then seconds.`
+  } : null;
+  const command2 = ["mw eval", o.job, ...o.card !== void 0 ? ["--card", quote2(o.card)] : [], ...briefPath ? ["--brief", quote2(briefPath)] : [], ...ids.length ? ["--item", ids.join(",")] : [], ...o.limit ? ["--limit", String(o.limit)] : []].join(" ");
+  const lead = cardsFor(p, o.job)[0];
+  const next = [
+    ...best && !sameCard(best.card, lead) ? [{ run: `$EDITOR ${quote2(o.prescriptionsPath)}`, why: `to prescribe ${label(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` }] : [],
+    ...!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: "no evaluated card matched the record: keep the prescription, or try other cards" }] : [],
+    ...results2.filter((r) => r.limited).map((r) => ({ run: command2, why: `${label(r.card)} stopped at a usage limit; run again after ${r.limited.resetsAt} to complete it` })),
+    { run: `sqlite3 ${quote2(store.path)} "SELECT call, card, outcome, score, output FROM eval_calls WHERE eval = ${run2}"`, why: "read each replayed answer; raw streams, facts and flags are on the same rows" }
+  ];
+  const recordedCards = calls.reduce((cs, c) => cs.some((x) => sameCard(x, c.card)) ? cs : [...cs, c.card], []);
+  const report = { eval: run2, job: o.job, brief: briefPath ?? null, recorded: { ...overall, cards: recordedCards }, cards: results2, recommendation, next };
+  db.prepare("UPDATE evals SET report = ? WHERE id = ?").run(JSON.stringify(report), run2);
+  return report;
+}, Effect_exports.scoped);
 
 // src/cli.ts
 var storePath = defaultStorePath();
@@ -22299,7 +22721,7 @@ var found = (store, id2) => {
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve3(workspace ?? ".");
+  const path = resolve5(workspace ?? ".");
   const projects = yield* readProjects(registry);
   if (projectFor(projects, path)?.ship) return path;
   return yield* new MadeWellError({
@@ -22311,9 +22733,9 @@ var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve3(input["source-file"]);
+  const path = resolve5(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync3(path, "utf8"),
+    try: () => readFileSync5(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
@@ -22346,12 +22768,12 @@ var nextAction = Effect_exports.fn("mw.next")(function* () {
   }
   const run2 = items.find((i) => i.status === "discovered" && items.some((c) => c.discovery === i.id && c.status === "candidate"));
   if (run2) {
-    const candidates = items.filter((c) => c.discovery === run2.id && c.status === "candidate");
+    const candidates2 = items.filter((c) => c.discovery === run2.id && c.status === "candidate");
     return {
       action: "relay",
-      say: `Discovery #${run2.id} found ${candidates.length} candidate work item(s). Which should Made Well deliver?`,
-      candidates: candidates.map((c) => ({ id: c.id, title: c.title, kind: c.kind ?? "feature", objective: c.objective })),
-      then: [{ run: `mw promote ${run2.id}`, why: "deliver every candidate" }, ...candidates.map((c) => ({ run: `mw promote ${run2.id} ${c.id}`, why: `deliver "${c.title}"; name several ids to deliver several` }))]
+      say: `Discovery #${run2.id} found ${candidates2.length} candidate work item(s). Which should Made Well deliver?`,
+      candidates: candidates2.map((c) => ({ id: c.id, title: c.title, kind: c.kind ?? "feature", objective: c.objective })),
+      then: [{ run: `mw promote ${run2.id}`, why: "deliver every candidate" }, ...candidates2.map((c) => ({ run: `mw promote ${run2.id} ${c.id}`, why: `deliver "${c.title}"; name several ids to deliver several` }))]
     };
   }
   const cwd = process.cwd();
@@ -22396,8 +22818,8 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
-      const path = resolve3(input.workspace ?? ".");
-      if (!existsSync2(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      const path = resolve5(input.workspace ?? ".");
+      if (!existsSync3(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const projects = yield* readProjects(registry);
       if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that merges to main and deploys.`);
       const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {} });
@@ -22534,7 +22956,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve3(input.out ?? resolve3(dirname4(storePath), "replay.html"));
+      const out = resolve5(input.out ?? resolve5(dirname5(storePath), "replay.html"));
       writeFileSync5(out, replayHtml(snapshot2(yield* Store)));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
     })
@@ -22547,8 +22969,25 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve3(input.out ?? resolve3(dirname4(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve5(input.out ?? resolve5(dirname5(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
+    })
+  }),
+  command({
+    name: "eval",
+    summary: "Replay a job's recorded calls on another card or brief through the worker, score record and replay deterministically (required JSON fields, rule-break flags, seconds, tokens), and recommend the cheapest card that matches or beats the record. Replays run in throwaway worktrees; results go only to the store; no file changes.",
+    args: ["job"],
+    input: Schema_exports.Struct({
+      job: Schema_exports.Literals(JOBS2).annotate({ description: "the job whose recorded calls to replay: its intake, originator and execute calls" }),
+      card: optional3("a tier name (every card in it) or one card as JSON {harness, provider, account, model, effort}; defaults to each call's recorded card"),
+      brief: optional3("a file whose text replaces the job's brief; only execute calls are replayed"),
+      item: optional3("only calls of these work items, comma-separated: 3,5"),
+      limit: Schema_exports.optionalKey(Id2.annotate({ description: "replay at most this many calls, the most recent" }))
+    }),
+    output: EvalReport,
+    run: (input) => Effect_exports.gen(function* () {
+      const prescriptions = yield* loadPrescriptions(prescriptionsPath());
+      return yield* evaluate2({ ...input, prescriptions, prescriptionsPath: prescriptionsPath() });
     })
   })
 ];
@@ -22588,8 +23027,8 @@ var manual = Effect_exports.gen(function* () {
     errors: Object.fromEntries(Object.entries(ERRORS).map(([code, e]) => [code, { means: e.means, context: jsonSchema(e.context) }])),
     $defs,
     state: {
-      home: dirname4(registry),
-      store: existsSync2(storePath) ? storePath : null,
+      home: dirname5(registry),
+      store: existsSync3(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
       next: yield* nextAction()
@@ -22630,10 +23069,15 @@ Usage: ${usageOf(c)}`))
   return { store: true, effect: c.run(input, prepared) };
 }).pipe(
   Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync2(storePath) ? storePath : ":memory:"), workerLayer))
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync3(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
-var exit3 = await Effect_exports.runPromise(program.pipe(Effect_exports.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })));
+var signalled = Effect_exports.callback((resume) => {
+  const on = (signal) => resume(Effect_exports.succeed({ out: { interrupted: signal, next: [{ run: "mw next", why: "the interrupted work resumes where it stopped" }] }, code: 128 + osConstants.signals[signal] }));
+  process.once("SIGINT", on).once("SIGTERM", on);
+  return Effect_exports.sync(() => process.off("SIGINT", on).off("SIGTERM", on));
+});
+var exit3 = await Effect_exports.runPromise(Effect_exports.raceFirst(program.pipe(Effect_exports.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })), signalled));
 var text = JSON.stringify(exit3.out) + "\n";
 if (exit3.code) process.stderr.write(text);
 else process.stdout.write(text);

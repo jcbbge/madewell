@@ -58,6 +58,15 @@ export const ERRORS = {
 			harnesses: Schema.optionalKey(Schema.Array(Schema.String)),
 		}),
 	},
+	eval_card_invalid: {
+		means: 'The --card of `mw eval` is neither a tier in prescriptions nor a card as JSON {harness, provider, account, model, effort} on a known harness.',
+		context: Schema.Struct({ card: Schema.String, tiers: Schema.Array(Schema.String), harnesses: Schema.Array(Schema.String), problems: Schema.optionalKey(Schema.String) }),
+	},
+	eval_no_calls: {
+		means: 'The store holds no recorded calls of that job (for those items) to replay; `recorded` counts the calls of each job it does hold.',
+		context: Schema.Struct({ store: Schema.String, job: Schema.String, items: Schema.Array(Id), recorded: Schema.Record(Schema.String, Schema.Int) }),
+	},
+	brief_unreadable: { means: 'The file named by --brief cannot be read.', context: Schema.Struct({ path: Schema.String }) },
 	export_failed: { means: 'The export folder cannot be written.', context: Schema.Struct({ id: Id, dir: Schema.String, reason: Schema.String }) },
 	git_failed: { means: 'A git command Made Well ran in a workspace failed.', context: Schema.Struct({ dir: Schema.String, args: Schema.Array(Schema.String), exitCode: Schema.Int, stderr: Schema.String }) },
 	bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema.Struct({ name: Schema.String }) },
