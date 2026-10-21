@@ -22,7 +22,7 @@
 import { execFile } from 'node:child_process'
 import { mkdirSync, rmSync } from 'node:fs'
 import { Clock, Effect, Queue, Result, Semaphore } from 'effect'
-import { budgetFor, cardsFor, harnessOf, INTAKE_ACCESS, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
+import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, itemHome, patchPath, removeHome, revParse, runChecks, takeChange, writePatch } from './change.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
 import { NEUTRAL_HOST } from './harness.ts'
@@ -720,6 +720,13 @@ export function nextFor(item: Item): Next[] {
 	if (code === 'no_ship_command') {
 		return [{ run: `mw init --workspace ${quote(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: 'register how this project ships; the item then ships' }]
 	}
+	if (code === 'leftovers' && item.hold!.next?.length) {
+		// Made Well cannot tell an agent's stray files from ones the operator made while the call ran: the operator says which.
+		return [
+			{ run: `${item.hold!.next[0]!.run} && mw retry ${id}`, why: 'the files in context.files are not the operator\'s: remove exactly those, then go on' },
+			{ run: `mw retry ${id}`, why: 'the operator made them while the call ran: keep them and go on' },
+		]
+	}
 	if (code === 'ship_failed') return [{ run: `mw retry ${id}`, why: 'after fixing what context.stderr shows: run the ship command again; the change is already on main' }]
 	return [
 		...(item.hold!.next ?? []),
@@ -815,7 +822,7 @@ export const retry = (id: number) =>
 		store.save(released(item), 'retried', { job: item.job })
 	})
 
-/** Runs the queue: every item that can move, in parallel. A held item never stops the others. */
+/** Runs the queue: every item that can move, up to `parallel` at once. A held item never stops the others. */
 export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}) =>
 	Effect.gen(function* () {
 		const store = yield* Store
@@ -826,8 +833,10 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}
 		const results: Item[] = []
 		// An item waiting on a prerequisite that holds cannot move until the operator answers.
 		const stuck = (i: Item): boolean => i.waitsOn !== undefined && ((p) => !p || p.status === 'held' || stuck(p))(store.get(i.waitsOn))
+		const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL
 		for (;;) {
 			for (const i of store.list()) {
+				if (running.size >= parallel) break
 				if (i.parent !== undefined || !READY.includes(i.status) || running.has(i.id) || stuck(i)) continue
 				running.add(i.id)
 				yield* Effect.forkScoped(drive(i.id, config).pipe(

@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { Effect, Fiber, Layer } from 'effect'
 import { TestClock } from 'effect/testing'
 import type { Card, Prescriptions } from '../src/cards.ts'
-import { answer, BRIEF, drive, nextFor, promote, retry } from '../src/engine.ts'
+import { answer, BRIEF, drive, nextFor, promote, retry, runQueue } from '../src/engine.ts'
 import { NEUTRAL_HOST } from '../src/harness.ts'
 import type { Job } from '../src/lane.ts'
 import { openStore, Store } from '../src/store.ts'
@@ -329,7 +329,9 @@ test('an implementer that commits to main holds the item before anything ships; 
 		const held = await t.run(drive(second.id, config))
 		assert.equal(held.hold?.code, 'leftovers')
 		assert.deepEqual(held.hold?.context.files, ['probe.log'])
-		assert.match(nextFor(held)[0]!.run, /clean -fdx -- "probe.log"/)
+		const [clean, keep] = nextFor(held).map((n) => n.run)
+		assert.match(clean!, new RegExp(`clean -fdx -- "probe.log" && mw retry ${second.id}$`))
+		assert.equal(keep, `mw retry ${second.id}`, 'the files may be the operator\'s own: keeping them is the other choice')
 	} finally {
 		t.cleanup()
 	}
@@ -388,6 +390,24 @@ test('items in parallel: another item\'s ship mid-flight trips no guard, and che
 		assert.equal(git(t.repo, 'show', 'main:src/other.sh') + git(t.repo, 'show', 'main:src/export.sh'), 'echo becho a,b')
 		assertNoTrace(t, 1)
 		assertNoTrace(t, 2)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('mw run drives no more items at once than the prescriptions allow', async () => {
+	const t = setup((req) => {
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'] }
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/other.sh', 'echo b\n'), { summary: 'other' })
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'test-plan') return (write(req, 'checks/other.check.sh', '[ "$(sh src/other.sh)" = b ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/other.check.sh' }] })
+		return undefined
+	})
+	try {
+		t.create('Second')
+		const items = await t.run(runQueue({ prescriptions: { ...prescriptions, parallel: 1 } }))
+		assert.deepEqual(items.map((i) => [i.id, i.status]), [[1, 'shipped'], [2, 'shipped']])
+		const order = t.calls.map((c) => c.item)
+		assert.deepEqual(order, [...order].sort(), 'item 2 makes no call until item 1 is done')
 	} finally {
 		t.cleanup()
 	}

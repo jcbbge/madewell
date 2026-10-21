@@ -142,6 +142,17 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 	assert.equal(t.mw('run').out.items[0].status, 'shipped')
 })
 
+test('status shows each maker\'s track after planning, with its open NQ exchange', () => {
+	const t = setup({ FAKE_ASK: 'implement' })
+	t.mw('init', '--ship', 'true')
+	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
+	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
+	assert.deepEqual(t.mw('status', String(id)).out.tracks, {
+		implement: { done: false, nq: { from: 'planner', status: 'awaiting-originator', turns: 0 } },
+		'test-plan': { done: true },
+	})
+})
+
 test('an item held for a missing ship command goes on once mw init, filled in from next, registers one', () => {
 	const t = setup()
 	t.mw('init', '--ship', 'true')
