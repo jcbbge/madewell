@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { Effect, Fiber, Layer } from 'effect'
 import { TestClock } from 'effect/testing'
@@ -29,7 +29,7 @@ const config = { prescriptions }
 const PLAN = {
 	making: 'A CSV export script', notMaking: ['PDF export'], scope: ['src/export.sh', 'src/app.sh'],
 	steps: ['Create src/export.sh printing a,b'], doneWhen: [{ id: 'D1', text: 'sh src/export.sh prints a,b' }],
-	decisions: [{ question: 'Which separator?', decision: 'Comma', why: 'every spreadsheet opens it' }], waitsOn: [],
+	decisions: [{ question: 'Which separator?', decision: 'Comma', why: 'every spreadsheet opens it' }],
 }
 const CHECK = 'out=$(sh src/export.sh 2>&1); [ "$out" = "a,b" ] || { echo "expected a,b, got $out"; exit 1; }'
 
@@ -182,7 +182,7 @@ test('an item passes through six profiles, splits after planning, and ships when
 		assert.equal(made.facts?.access, 'make')
 		assert.deepEqual(made.facts?.budget, { ms: 60_000 })
 		assert.deepEqual(made.flags, [])
-		assert.deepEqual(recorded.find((c) => c.kind === 'execute' && c.job === 'plan')!.facts?.required, ['making', 'notMaking', 'scope', 'steps', 'doneWhen', 'decisions', 'waitsOn'])
+		assert.deepEqual(recorded.find((c) => c.kind === 'execute' && c.job === 'plan')!.facts?.required, ['making', 'notMaking', 'scope', 'steps', 'doneWhen', 'decisions'])
 	} finally {
 		t.cleanup()
 	}
@@ -305,7 +305,7 @@ test('an implementer that strays outside the plan\'s scope is refused, and the n
 	}
 })
 
-test('an implementer that commits to main holds the item before anything ships; one that leaves a file in the product repo holds it too', async () => {
+test('an implementer that commits to main holds the item before anything ships; one that leaves a file in the product repo, or edits its shared git excludes, holds it too', async () => {
 	const t = setup((req) => {
 		if (req.kind === 'execute' && req.job === 'implement' && req.item === 1) {
 			writeFileSync(join(t.repo, 'early.txt'), 'x')
@@ -314,6 +314,11 @@ test('an implementer that commits to main holds the item before anything ships; 
 			return implement(req)
 		}
 		if (req.kind === 'execute' && req.job === 'implement' && req.item === 2) return (writeFileSync(join(t.repo, 'probe.log'), 'x'), implement(req))
+		if (req.kind === 'execute' && req.job === 'implement' && req.item === 3) {
+			// From its own worktree: the excludes file is shared with the product repo, so this would outlive the worktree.
+			appendFileSync(resolve(req.cwd, git(req.cwd, 'rev-parse', '--git-common-dir'), 'info', 'exclude'), '/.scratch/\n')
+			return implement(req)
+		}
 		return undefined
 	})
 	try {
@@ -330,8 +335,11 @@ test('an implementer that commits to main holds the item before anything ships; 
 		assert.equal(held.hold?.code, 'leftovers')
 		assert.deepEqual(held.hold?.context.files, ['probe.log'])
 		const [clean, keep] = nextFor(held).map((n) => n.run)
-		assert.match(clean!, new RegExp(`clean -fdx -- "probe.log" && mw retry ${second.id}$`))
+		assert.match(clean!, /clean -fdx -- "probe.log"$/)
 		assert.equal(keep, `mw retry ${second.id}`, 'the files may be the operator\'s own: keeping them is the other choice')
+
+		const third = await t.run(drive(t.create('third').id, config))
+		assert.deepEqual([third.hold?.code, third.hold?.context.files], ['leftovers', ['.git/info/exclude']])
 	} finally {
 		t.cleanup()
 	}

@@ -13,7 +13,7 @@ import { basename, dirname, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
-import { answer, nextFor, promote, retry, runQueue } from './engine.ts'
+import { answer, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { stepOf } from './lane.ts'
@@ -48,7 +48,8 @@ const ItemView = Schema.Struct({
 	kind: Schema.optionalKey(Schema.String), discovery: Schema.optionalKey(Schema.Int),
 	nq: Schema.optionalKey(Nq),
 	tracks: Schema.optionalKey(Schema.Record(Schema.String, Schema.Struct({ done: Schema.Boolean, nq: Schema.optionalKey(Nq) })).annotate({ description: 'after planning: the implementer\'s and the test architect\'s parallel tracks' })),
-	round: Schema.Int, waitsOn: Schema.optionalKey(Schema.Int), resumesAt: Schema.optionalKey(Schema.String),
+	round: Schema.Int, waitsOn: Schema.optionalKey(Schema.Int),
+	after: Schema.optionalKey(Schema.Array(Schema.Int).annotate({ description: 'the items it builds on; it starts once they have shipped' })), resumesAt: Schema.optionalKey(Schema.String),
 	hold: Schema.optionalKey(Schema.Struct({ code: Schema.String, message: Schema.String, context: Fact })),
 	shipped: Schema.optionalKey(Schema.Struct({ command: Schema.String, output: Schema.String })),
 	next: Schema.Array(Next),
@@ -92,6 +93,7 @@ const view = (item: Item): typeof ItemView.Type => ({
 	...(item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {}),
 	round: item.round,
 	...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
+	...(item.after?.length ? { after: item.after } : {}),
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),
 	...(item.hold ? { hold: item.hold } : {}),
 	...(item.shipped ? { shipped: item.shipped } : {}),
@@ -154,7 +156,7 @@ const MOVING: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quo
 const nextAction = Effect.fn('mw.next')(function* (): Effect.fn.Return<typeof Action.Type, MadeWellError, Store> {
 	const store = yield* Store
 	const items = store.list()
-	const moving = items.filter((i) => i.parent === undefined && MOVING.includes(i.status))
+	const moving = items.filter((i) => i.parent === undefined && MOVING.includes(i.status) && !stuck(store, i))
 	const owner = moving.length ? yield* runner(store) : null
 	if (moving.length && !owner) {
 		return { action: 'run', run: 'mw run', why: `${moving.length} item(s) can move without the operator. It returns once every item has shipped or holds for the operator, and it is safe to repeat.` }

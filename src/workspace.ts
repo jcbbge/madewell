@@ -180,11 +180,20 @@ export const scopeCheck = Effect.fn('mw.scopeCheck')(function* (dir: string, bas
 	return changed
 })
 
-/** Fails on untracked or ignored files that were not there in `before`: probes, logs, screenshots, build output. */
+/**
+ * Fails on untracked or ignored files that were not there in `before` (probes, logs, screenshots, build output),
+ * and on git settings, excludes or hooks that changed: every worktree shares them with the product repo.
+ */
 export const leftovers = Effect.fn('mw.leftovers')(function* (dir: string, before: State) {
 	const created = lines(yield* git(dir, 'ls-files', '--others', '-z')).filter((f) => !(f in before.files)).sort()
-	if (created.length) {
-		return yield* fail('leftovers', `${created.length} file(s) were left in ${dir}.`, { dir, files: created }, [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(' ')}`, why: 'remove exactly the files the job left behind' }])
+	const after = (yield* capture(dir)).files
+	const control = Object.keys({ ...before.files, ...after }).filter((f) => f.startsWith('.git/') && before.files[f] !== after[f]).sort()
+	if (created.length || control.length) {
+		const files = [...created, ...control]
+		return yield* fail('leftovers', `${files.length} file(s) were left or changed in ${dir}.`, { dir, files }, [
+			...(created.length ? [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(' ')}`, why: 'remove exactly the untracked files the job left behind' }] : []),
+			...(control.length ? [{ run: `ls -l ${control.map((f) => JSON.stringify(join(dir, f))).join(' ')}`, why: 'git settings, excludes or hooks changed; git cannot restore them, so check and restore each by hand' }] : []),
+		])
 	}
 })
 

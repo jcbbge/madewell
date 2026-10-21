@@ -117,6 +117,8 @@ export interface Item {
 	readonly discovery?: number
 	readonly kind?: 'feature' | 'fix' | 'chore'
 	readonly waitsOn?: number
+	/** For a candidate: the items it builds on. It starts once they have shipped. */
+	readonly after?: ReadonlyArray<number>
 	readonly resetsAt?: number
 	readonly hold?: Hold
 	readonly shipped?: { readonly command: string; readonly output: string; readonly main?: string }
@@ -224,7 +226,7 @@ export function openStore(path: string) {
 	const store = {
 		path,
 		glass,
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs'>>): Item {
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')

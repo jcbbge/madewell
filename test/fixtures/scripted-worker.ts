@@ -17,10 +17,10 @@ const write = (path: string, content: string) => {
 	writeFileSync(path, content)
 }
 const deliverables: Record<string, () => unknown> = {
-	discover: () => ({ items: [{ title: 'First piece', kind: 'feature', objective: 'Do the first thing', text: 'details' }, { title: 'Second piece', kind: 'chore', objective: 'Do the second thing', text: 'details' }] }),
+	discover: () => ({ items: [{ title: 'First piece', kind: 'feature', objective: 'Do the first thing', text: 'details' }, { title: 'Second piece', kind: 'chore', objective: 'Do the second thing', text: 'details', after: [1, 2, 7] }] }),
 	ideate: () => ({ outcome: 'CSV export', approach: 'a script', decisions: [] }),
 	challenge: () => ({ findings: [], decisions: [] }),
-	plan: () => ({ making: 'export', notMaking: [], scope: ['src/export.sh'], steps: ['write src/export.sh'], doneWhen: [{ id: 'D1', text: 'it prints a,b' }], decisions: [], waitsOn: [] }),
+	plan: () => ({ making: 'export', notMaking: [], scope: ['src/export.sh'], steps: ['write src/export.sh'], doneWhen: [{ id: 'D1', text: 'it prints a,b' }], decisions: [] }),
 	'test-plan': () => (write('checks/export.check.sh', '[ "$(sh src/export.sh)" = a,b ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/export.check.sh' }] }),
 	implement: () => (write('src/export.sh', 'echo a,b\n'), { summary: 'wrote src/export.sh' }),
 	arbitrate: () => ({ cause: 'undetermined', answer: 'unscripted', evidence: '' }),

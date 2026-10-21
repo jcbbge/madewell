@@ -37,7 +37,7 @@ export const DISCOVER: Step = {
 	job: 'discover',
 	stage: 'discovery',
 	profile: 'ideator',
-	duty: 'Turn the operator\'s raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered. Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator\'s terms. Surface uncertainty instead of guessing. Do not plan or implement.',
+	duty: 'Turn the operator\'s raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator\'s terms. Surface uncertainty instead of guessing. Do not plan or implement.',
 }
 
 export const ARBITER: Step = {
@@ -89,7 +89,10 @@ export const Check = Schema.Struct({
 })
 export type Check = typeof Check.Type
 const Blocked = Schema.Struct({ blocked: Schema.NonEmptyString.annotate({ description: 'what stops you doing the step as written; only when something does' }) })
-const Candidate = Schema.Struct({ title: Text, kind: Schema.Literals(['feature', 'fix', 'chore']), objective: Text, text: Text })
+const Candidate = Schema.Struct({
+	title: Text, kind: Schema.Literals(['feature', 'fix', 'chore']), objective: Text, text: Text,
+	after: Schema.optionalKey(Schema.Array(Schema.Int).annotate({ description: 'positions (1 is the first) of earlier items in this list that must ship before this one starts, because it builds on them' })),
+})
 export type Candidate = typeof Candidate.Type
 
 export const PLAN = Schema.Struct({
@@ -99,7 +102,6 @@ export const PLAN = Schema.Struct({
 	steps: Schema.Array(Text).annotate({ description: 'exact instructions with paths; nothing left to decide' }),
 	doneWhen: Schema.Array(DoneWhen),
 	decisions: Decisions,
-	waitsOn: Schema.Array(Text),
 })
 export type Plan = typeof PLAN.Type
 
@@ -151,9 +153,14 @@ export function validate(job: Job, output: string, plan?: Plan): { ok: true; val
 		const report = lastJson(output)
 		if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' }
 		const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
-		const items = (report.items as Record<string, unknown>[])
-			.filter((i) => text(i?.title) && text(i?.objective))
-			.map((i): Candidate => ({ title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature' }))
+		const all = report.items as Record<string, unknown>[]
+		const kept = all.flatMap((i, n) => (text(i?.title) && text(i?.objective) ? [n] : []))
+		const items = kept.map((n, k): Candidate => {
+			const i = all[n]!
+			// "after" may name only earlier kept items; positions are renumbered past any dropped item.
+			const after = [...new Set((Array.isArray(i.after) ? i.after : []).map((p) => kept.indexOf(Number(p) - 1)).filter((m) => m >= 0 && m < k))].map((m) => m + 1)
+			return { title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature', ...(after.length ? { after } : {}) }
+		})
 		return { ok: true, value: { items } }
 	}
 	if (job === 'verify') return { ok: false, reason: 'verify is Made Well\'s own code, not an agent job.' }
