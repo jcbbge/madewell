@@ -90,7 +90,7 @@ rmSync(dir, { recursive: true, force: true })
 test('prescriptions add harness entries without code, and every card must name one', () => {
 	assert.deepEqual(shell.tools, shellEntry.tools)
 	assert.equal(unknown.code, 'prescriptions_invalid')
-	assert.deepEqual(unknown.context.card, card('aider'))
+	assert.deepEqual((unknown.context as { card: unknown }).card, card('aider'))
 })
 
 const runShell = (prompt: string, budget?: WorkerRequest['budget'], worker: Layer.Layer<Worker> = harnessWorker) =>

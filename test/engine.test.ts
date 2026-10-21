@@ -34,7 +34,7 @@ type Script = (req: WorkerRequest, n: number) => WorkerResult | undefined
  */
 function setup(script: Script = () => undefined) {
 	const dir = mkdtempSync(join(tmpdir(), 'mw-'))
-	writeFileSync(join(dir, 'madewell.json'), JSON.stringify({ ship: 'echo "$PWD" > SHIPPED' }))
+	writeFileSync(join(dir, 'projects.json'), JSON.stringify([{ path: dir, ship: 'echo "$PWD" > SHIPPED' }]))
 	const store = openStore(join(dir, 'mw.db'))
 	const calls: WorkerRequest[] = []
 	const answerFor = (req: WorkerRequest): WorkerResult => {
@@ -267,10 +267,10 @@ test('holds stop only that item, name their next commands, and release on an ans
 test('a passing item without a ship command holds with the command that fixes it', async () => {
 	const t = setup()
 	try {
-		rmSync(join(t.dir, 'madewell.json'))
+		rmSync(join(t.dir, 'projects.json'))
 		const item = await t.run(drive(t.item.id, { prescriptions }))
 		assert.equal(item.hold?.code, 'no_ship_command')
-		assert.match(nextFor(item)[0]!.run, /madewell\.json/)
+		assert.match(nextFor(item)[0]!.run, new RegExp(`^mw init --workspace ${t.dir} --ship "<`))
 		assert.equal(existsSync(join(t.dir, 'SHIPPED')), false)
 	} finally {
 		t.cleanup()

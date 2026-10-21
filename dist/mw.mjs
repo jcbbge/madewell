@@ -6,8 +6,8 @@ var __export = (target, all3) => {
 };
 
 // src/cli.ts
-import { readFileSync as readFileSync3, writeFileSync as writeFileSync4 } from "node:fs";
-import { basename, resolve as resolve3 } from "node:path";
+import { existsSync as existsSync2, readFileSync as readFileSync3, writeFileSync as writeFileSync5 } from "node:fs";
+import { basename, dirname as dirname4, resolve as resolve3 } from "node:path";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -6985,8 +6985,8 @@ var Metric$ = class {
       this.#extraAttributes = extraAttributes;
       this.#key = makeKey(this, mergeAttributes(this.attributes, extraAttributes));
     }
-    const registry = get(context3, MetricRegistry);
-    let metadata = registry.get(this.#key);
+    const registry2 = get(context3, MetricRegistry);
+    let metadata = registry2.get(this.#key);
     if (isUndefined(metadata)) {
       metadata = {
         id: this.id,
@@ -6995,7 +6995,7 @@ var Metric$ = class {
         attributes: Object.keys(extraAttributes).length > 0 ? mergeAttributes(this.attributes, extraAttributes) : this.attributes,
         hooks: this.createHooks()
       };
-      registry.set(this.#key, metadata);
+      registry2.set(this.#key, metadata);
     }
     return metadata.hooks;
   }
@@ -10663,8 +10663,8 @@ var Context = class {
   /** Used for constructor default values (e.g. `withConstructorDefault` API) */
   constructorDefault;
   annotations;
-  constructor(isOptional2, isMutable2, constructorDefault = void 0, annotations = void 0) {
-    this.isOptional = isOptional2;
+  constructor(isOptional3, isMutable2, constructorDefault = void 0, annotations = void 0) {
+    this.isOptional = isOptional3;
     this.isMutable = isMutable2;
     this.constructorDefault = constructorDefault;
     this.annotations = annotations;
@@ -12089,8 +12089,8 @@ var nonFiniteLiterals = /* @__PURE__ */ new Union([/* @__PURE__ */ new Literal("
 function formatIsMutable(isMutable2) {
   return isMutable2 ? "" : "readonly ";
 }
-function formatIsOptional(isOptional2) {
-  return isOptional2 ? "?" : "";
+function formatIsOptional(isOptional3) {
+  return isOptional3 ? "?" : "";
 }
 var Suspend = class extends ASTNodeImpl {
   _tag = "Suspend";
@@ -14990,7 +14990,7 @@ function toBaseStandardJSONSchemaV1(ast, target) {
   throw new globalThis.Error(`Unsupported target: ${target}`);
 }
 function toStandardJSONSchemaV1(self) {
-  const jsonSchema = {
+  const jsonSchema2 = {
     input(options) {
       return toBaseStandardJSONSchemaV1(self.ast, options.target);
     },
@@ -15002,7 +15002,7 @@ function toStandardJSONSchemaV1(self) {
     const out = self;
     if ("jsonSchema" in out["~standard"]) return out;
     Object.assign(out["~standard"], {
-      jsonSchema
+      jsonSchema: jsonSchema2
     });
     return out;
   }
@@ -15010,7 +15010,7 @@ function toStandardJSONSchemaV1(self) {
     "~standard": {
       version: 1,
       vendor: "effect",
-      jsonSchema
+      jsonSchema: jsonSchema2
     }
   });
 }
@@ -18079,11 +18079,11 @@ function makeIsMultipleOf(options) {
     });
   };
 }
-function encodeNumberPayload(number4) {
-  if (!globalThis.Number.isFinite(number4)) {
-    throw new globalThis.RangeError(`Expected a finite number, got ${format(number4)}`);
+function encodeNumberPayload(number3) {
+  if (!globalThis.Number.isFinite(number3)) {
+    throw new globalThis.RangeError(`Expected a finite number, got ${format(number3)}`);
   }
-  return number4;
+  return number3;
 }
 var isGreaterThan4 = /* @__PURE__ */ makeIsGreaterThan({
   order: Number2,
@@ -20777,7 +20777,81 @@ function resolveAnnotationsKey(schema) {
 import { readFileSync } from "node:fs";
 
 // src/errors.ts
+var Next = Schema_exports.Struct({ run: Schema_exports.String, why: Schema_exports.String }).annotate({ identifier: "Next" });
+var quote2 = (s) => /^[\w@%+=:,./-]+$/.test(s) ? s : `'${s.replaceAll("'", `'\\''`)}'`;
+var Id = Schema_exports.Int;
+var Hold = Schema_exports.Struct({ code: Schema_exports.String, message: Schema_exports.String, context: Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown) });
+var ERRORS = {
+  usage: {
+    means: "The command line is wrong: an unknown command or option, missing input, or a <placeholder> left unfilled. `mw` prints every command with its input schema.",
+    context: Schema_exports.Struct({ command: Schema_exports.NullOr(Schema_exports.String) })
+  },
+  source_unreadable: { means: "The file named by --source-file cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String }) },
+  workspace_missing: { means: "The workspace directory does not exist.", context: Schema_exports.Struct({ workspace: Schema_exports.String }) },
+  project_not_found: {
+    means: "The workspace is not a registered project; `mw init` registers it with its ship command.",
+    context: Schema_exports.Struct({ workspace: Schema_exports.String, projects: Schema_exports.Array(Schema_exports.String) })
+  },
+  projects_invalid: { means: "The project registry in Made Well's home is not valid.", context: Schema_exports.Struct({ path: Schema_exports.String, problems: Schema_exports.String }) },
+  item_not_found: { means: "No work item has this number.", context: Schema_exports.Struct({ id: Id }) },
+  not_held: { means: "The item is not waiting on the operator, so there is nothing to answer or retry.", context: Schema_exports.Struct({ id: Id, status: Schema_exports.String, job: Schema_exports.String }) },
+  not_answerable: { means: "The item holds on something an answer does not resolve; `next` names what does.", context: Schema_exports.Struct({ id: Id, hold: Hold }) },
+  cause_required: { means: "The item holds on a failed check; the answer must name its cause with --cause.", context: Schema_exports.Struct({ id: Id, hold: Hold }) },
+  answer_required: { means: "The item waits on the operator's answer, not a retry.", context: Schema_exports.Struct({ id: Id, hold: Hold }) },
+  not_discovered: { means: "The item is not a finished discovery run, so it has no candidates to promote.", context: Schema_exports.Struct({ id: Id, status: Schema_exports.String, job: Schema_exports.String }) },
+  not_a_candidate: {
+    means: "Some named items are not candidates of this discovery run.",
+    context: Schema_exports.Struct({ discovery: Id, unknown: Schema_exports.Array(Id), candidates: Schema_exports.Array(Schema_exports.Struct({ id: Id, title: Schema_exports.String })) })
+  },
+  store_locked: {
+    means: "Another live runner is delivering from this store; queued work reaches it by itself.",
+    context: Schema_exports.Struct({
+      store: Schema_exports.String,
+      owner: Schema_exports.Struct({ pid: Schema_exports.Int, since: Schema_exports.String, item: Schema_exports.NullOr(Schema_exports.Struct({ id: Id, title: Schema_exports.String, job: Schema_exports.String, status: Schema_exports.String })) })
+    })
+  },
+  prescriptions_unreadable: { means: "The prescriptions file cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String, reason: Schema_exports.String }) },
+  prescriptions_invalid: {
+    means: "The prescriptions file is not valid JSON, does not match its shape, or names an undefined tier.",
+    context: Schema_exports.Struct({
+      path: Schema_exports.String,
+      reason: Schema_exports.optionalKey(Schema_exports.String),
+      problems: Schema_exports.optionalKey(Schema_exports.String),
+      job: Schema_exports.optionalKey(Schema_exports.String),
+      tier: Schema_exports.optionalKey(Schema_exports.String),
+      tiers: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String)),
+      card: Schema_exports.optionalKey(Schema_exports.Unknown),
+      harnesses: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String))
+    })
+  },
+  export_failed: { means: "The export folder cannot be written.", context: Schema_exports.Struct({ id: Id, dir: Schema_exports.String, reason: Schema_exports.String }) },
+  git_failed: { means: "A git command Made Well ran in a workspace failed.", context: Schema_exports.Struct({ dir: Schema_exports.String, args: Schema_exports.Array(Schema_exports.String), exitCode: Schema_exports.Int, stderr: Schema_exports.String }) },
+  bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema_exports.Struct({ name: Schema_exports.String }) },
+  worktree_root_unclean: {
+    means: "Job worktrees would sit inside the product repo or below a guidance file, so agents would read instructions that are not the product's.",
+    context: Schema_exports.Struct({ root: Schema_exports.String, repo: Schema_exports.String, guidanceAbove: Schema_exports.Array(Schema_exports.String), insideRepo: Schema_exports.Boolean })
+  },
+  base_not_found: { means: "The commit an item starts from is not in the product repo.", context: Schema_exports.Struct({ repo: Schema_exports.String, base: Schema_exports.String }) },
+  path_outside_workspace: { means: "A snapshot was asked for files outside the workspace.", context: Schema_exports.Struct({ dir: Schema_exports.String, outside: Schema_exports.Array(Schema_exports.String) }) },
+  workspace_written: { means: "A read-only call changed the workspace.", context: Schema_exports.Struct({ dir: Schema_exports.String, changes: Schema_exports.Unknown }) },
+  branch_moved: {
+    means: "A branch moved while an item was in flight; only ship may move it.",
+    context: Schema_exports.Struct({ repo: Schema_exports.String, ref: Schema_exports.String, recorded: Schema_exports.String, now: Schema_exports.String, landed: Schema_exports.Array(Schema_exports.String) })
+  },
+  out_of_scope: {
+    means: "The change touches files outside the plan's declared scope.",
+    context: Schema_exports.Struct({ dir: Schema_exports.String, base: Schema_exports.String, declared: Schema_exports.Array(Schema_exports.String), outside: Schema_exports.Array(Schema_exports.String), changed: Schema_exports.Array(Schema_exports.String) })
+  },
+  leftovers: { means: "A job left untracked or ignored files behind.", context: Schema_exports.Struct({ dir: Schema_exports.String, files: Schema_exports.Array(Schema_exports.String) }) },
+  teardown_failed: {
+    means: "Some resources an agent provisioned could not be torn down.",
+    context: Schema_exports.Struct({ cwd: Schema_exports.String, failed: Schema_exports.Array(Schema_exports.Unknown), records: Schema_exports.Array(Schema_exports.Unknown) })
+  }
+};
 var MadeWellError = class extends Data_exports.TaggedError("MadeWellError") {
+  constructor(fields) {
+    super(fields);
+  }
 };
 var errorJson = (e) => ({
   error: e.code,
@@ -20843,8 +20917,8 @@ var runGroup = (o) => Effect_exports.callback((resume) => {
   });
 });
 var overBudgetError = (who, o) => `${who} went over its budget: ${o.exceeded === "minutes" ? `ran ${(o.ms / 6e4).toFixed(1)} of ${o.budget.minutes} minutes` : `used ${o.tokens} of ${o.budget.tokens} tokens`}; its process group was killed.`;
-var commandWorker = (command) => Layer_exports.succeed(Worker, {
-  run: (request3) => runGroup({ command: "sh", args: ["-c", command], cwd: request3.cwd, env: process.env, input: JSON.stringify(request3), budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
+var commandWorker = (command2) => Layer_exports.succeed(Worker, {
+  run: (request3) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: JSON.stringify(request3), budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
     Effect_exports.map(({ code, stdout, stderr, stdinError, overBudget }) => {
       if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
       try {
@@ -21103,7 +21177,7 @@ var Prescriptions = Schema_exports.Struct({
 var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   const text2 = yield* Effect_exports.try({
     try: () => readFileSync(path, "utf8"),
-    catch: (e) => new MadeWellError({ code: "prescriptions_unreadable", message: `Cannot read prescriptions file ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: "mw doctor", why: "see which prescriptions file Made Well uses" }] })
+    catch: (e) => new MadeWellError({ code: "prescriptions_unreadable", message: `Cannot read prescriptions file ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: `MW_PRESCRIPTIONS=<readable prescriptions file> mw run`, why: "point Made Well at a prescriptions file it can read" }] })
   });
   const value3 = yield* Effect_exports.try({
     try: () => JSON.parse(text2),
@@ -21136,81 +21210,12 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/engine.ts
-import { execFile } from "node:child_process";
-import { readFileSync as readFileSync2 } from "node:fs";
-import { join as join4 } from "node:path";
+import { execFile as execFile2 } from "node:child_process";
 
-// src/lane.ts
-var DELIVERY = [
-  { job: "ideate", stage: "ideation", profile: "ideator", duty: "Shape the outcome and bounded options; recommend the smallest useful approach. Do not implement." },
-  { job: "challenge", stage: "ideation", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Do not implement." },
-  { job: "plan", stage: "planning", profile: "planner", duty: "Inspect the workspace and write the contract: Making / Not making / Done when / Waits on, with exact paths and instructions. Resolve every design choice. Do not implement." },
-  { job: "test-plan", stage: "planning", profile: "test architect", duty: "From the plan alone, write the checks for this work item and the exact commands that run them. Do not write product code." },
-  { job: "implement", stage: "implementation", profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan or the checks." },
-  { job: "verify", stage: "verification", profile: "verifier", duty: "Run only this item's checks and report what you observed. Never repair, retry or broaden." }
-];
-var DISCOVER = {
-  job: "discover",
-  stage: "discovery",
-  profile: "ideator",
-  duty: "Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered. Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement."
-};
-var ARBITER = {
-  job: "arbitrate",
-  stage: "verification",
-  profile: "arbiter",
-  duty: "A check failed or a step could not be done as written. Decide whose it is: a pre-existing bug, a bad implementation, or a bad test."
-};
-var stepOf = (job) => job === "arbitrate" ? ARBITER : job === "discover" ? DISCOVER : DELIVERY.find((s) => s.job === job);
-var ENDS_WITH = {
-  discover: '{"items": [{"title": string, "kind": "feature"|"fix"|"chore", "objective": string, "text": string}]}',
-  "test-plan": '{"blocked": string} only if something stops you from doing the step as written',
-  implement: '{"blocked": string} only if the plan is wrong or a step cannot be done as written',
-  verify: '{"outcome": "pass"|"fail", "summary": string}',
-  arbitrate: '{"cause": "pre-existing"|"implementation"|"test"|"undetermined", "answer": string, "evidence": string}'
-};
-var MAX_CORRECTIONS = 3;
-function route(job, output, corrections) {
-  const report = lastJson(output);
-  if (job === "discover") {
-    if (!Array.isArray(report?.items)) return { to: "malformed", expected: ENDS_WITH.discover };
-    const text2 = (v) => typeof v === "string" ? v.trim() : "";
-    const items = report.items.filter((i2) => text2(i2?.title) && text2(i2?.objective)).map((i2) => ({ title: text2(i2.title), objective: text2(i2.objective), text: text2(i2.text), kind: i2.kind === "fix" || i2.kind === "chore" ? i2.kind : "feature" }));
-    return { to: "discovered", items };
-  }
-  if ((job === "implement" || job === "test-plan") && typeof report?.blocked === "string" && report.blocked.trim()) {
-    return { to: "arbitrate", failure: `The ${stepOf(job).profile} (${job}) could not do the step as written: ${report.blocked}` };
-  }
-  if (job === "verify") {
-    if (report?.outcome === "pass") return { to: "ship" };
-    if (report?.outcome === "fail") return { to: "arbitrate", failure: output };
-    return { to: "malformed", expected: ENDS_WITH.verify };
-  }
-  if (job === "arbitrate") {
-    const cause = report?.cause;
-    const answer2 = typeof report?.answer === "string" ? report.answer : "";
-    if (cause !== "pre-existing" && cause !== "implementation" && cause !== "test" && cause !== "undetermined") {
-      return { to: "malformed", expected: ENDS_WITH.arbitrate };
-    }
-    if (cause === "undetermined") return { to: "hold", code: "arbiter_undetermined", message: `The arbiter could not decide whose failure this is: ${answer2}` };
-    if (corrections >= MAX_CORRECTIONS) return { to: "hold", code: "too_many_corrections", message: `${corrections} corrections have not made the checks pass. Last ruling: ${cause}: ${answer2}` };
-    if (cause === "pre-existing") return { to: "prerequisite", answer: answer2 };
-    return { to: "rework", job: cause === "test" ? "test-plan" : "plan", cause, answer: answer2 };
-  }
-  const i = DELIVERY.findIndex((s) => s.job === job);
-  return { to: "next", job: DELIVERY[i + 1].job };
-}
-function lastJson(text2) {
-  text2 = text2.replace(/\s*```\s*$/, "");
-  for (let start = text2.lastIndexOf("{"); start !== -1; start = text2.lastIndexOf("{", start - 1)) {
-    try {
-      const value3 = JSON.parse(text2.slice(start).trim());
-      if (value3 && typeof value3 === "object" && !Array.isArray(value3)) return value3;
-    } catch {
-    }
-  }
-  return void 0;
-}
+// src/project.ts
+import { execFile } from "node:child_process";
+import { existsSync, mkdirSync as mkdirSync4, readFileSync as readFileSync2, writeFileSync as writeFileSync4 } from "node:fs";
+import { dirname as dirname3, join as join4, sep } from "node:path";
 
 // src/store.ts
 import { mkdirSync as mkdirSync3, renameSync, writeFileSync as writeFileSync3 } from "node:fs";
@@ -21370,6 +21375,80 @@ build(); pos = Math.max(0, steps.length - 1); render();
 import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync as mkdirSync2 } from "node:fs";
 import { dirname, matchesGlob } from "node:path";
+
+// src/lane.ts
+var DELIVERY = [
+  { job: "ideate", stage: "ideation", profile: "ideator", duty: "Shape the outcome and bounded options; recommend the smallest useful approach. Do not implement." },
+  { job: "challenge", stage: "ideation", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Do not implement." },
+  { job: "plan", stage: "planning", profile: "planner", duty: "Inspect the workspace and write the contract: Making / Not making / Done when / Waits on, with exact paths and instructions. Resolve every design choice. Do not implement." },
+  { job: "test-plan", stage: "planning", profile: "test architect", duty: "From the plan alone, write the checks for this work item and the exact commands that run them. Do not write product code." },
+  { job: "implement", stage: "implementation", profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan or the checks." },
+  { job: "verify", stage: "verification", profile: "verifier", duty: "Run only this item's checks and report what you observed. Never repair, retry or broaden." }
+];
+var DISCOVER = {
+  job: "discover",
+  stage: "discovery",
+  profile: "ideator",
+  duty: "Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered. Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement."
+};
+var ARBITER = {
+  job: "arbitrate",
+  stage: "verification",
+  profile: "arbiter",
+  duty: "A check failed or a step could not be done as written. Decide whose it is: a pre-existing bug, a bad implementation, or a bad test."
+};
+var stepOf = (job) => job === "arbitrate" ? ARBITER : job === "discover" ? DISCOVER : DELIVERY.find((s) => s.job === job);
+var ENDS_WITH = {
+  discover: '{"items": [{"title": string, "kind": "feature"|"fix"|"chore", "objective": string, "text": string}]}',
+  "test-plan": '{"blocked": string} only if something stops you from doing the step as written',
+  implement: '{"blocked": string} only if the plan is wrong or a step cannot be done as written',
+  verify: '{"outcome": "pass"|"fail", "summary": string}',
+  arbitrate: '{"cause": "pre-existing"|"implementation"|"test"|"undetermined", "answer": string, "evidence": string}'
+};
+var MAX_CORRECTIONS = 3;
+function route(job, output, corrections) {
+  const report = lastJson(output);
+  if (job === "discover") {
+    if (!Array.isArray(report?.items)) return { to: "malformed", expected: ENDS_WITH.discover };
+    const text2 = (v) => typeof v === "string" ? v.trim() : "";
+    const items = report.items.filter((i2) => text2(i2?.title) && text2(i2?.objective)).map((i2) => ({ title: text2(i2.title), objective: text2(i2.objective), text: text2(i2.text), kind: i2.kind === "fix" || i2.kind === "chore" ? i2.kind : "feature" }));
+    return { to: "discovered", items };
+  }
+  if ((job === "implement" || job === "test-plan") && typeof report?.blocked === "string" && report.blocked.trim()) {
+    return { to: "arbitrate", failure: `The ${stepOf(job).profile} (${job}) could not do the step as written: ${report.blocked}` };
+  }
+  if (job === "verify") {
+    if (report?.outcome === "pass") return { to: "ship" };
+    if (report?.outcome === "fail") return { to: "arbitrate", failure: output };
+    return { to: "malformed", expected: ENDS_WITH.verify };
+  }
+  if (job === "arbitrate") {
+    const cause = report?.cause;
+    const answer2 = typeof report?.answer === "string" ? report.answer : "";
+    if (cause !== "pre-existing" && cause !== "implementation" && cause !== "test" && cause !== "undetermined") {
+      return { to: "malformed", expected: ENDS_WITH.arbitrate };
+    }
+    if (cause === "undetermined") return { to: "hold", code: "arbiter_undetermined", message: `The arbiter could not decide whose failure this is: ${answer2}` };
+    if (corrections >= MAX_CORRECTIONS) return { to: "hold", code: "too_many_corrections", message: `${corrections} corrections have not made the checks pass. Last ruling: ${cause}: ${answer2}` };
+    if (cause === "pre-existing") return { to: "prerequisite", answer: answer2 };
+    return { to: "rework", job: cause === "test" ? "test-plan" : "plan", cause, answer: answer2 };
+  }
+  const i = DELIVERY.findIndex((s) => s.job === job);
+  return { to: "next", job: DELIVERY[i + 1].job };
+}
+function lastJson(text2) {
+  text2 = text2.replace(/\s*```\s*$/, "");
+  for (let start = text2.lastIndexOf("{"); start !== -1; start = text2.lastIndexOf("{", start - 1)) {
+    try {
+      const value3 = JSON.parse(text2.slice(start).trim());
+      if (value3 && typeof value3 === "object" && !Array.isArray(value3)) return value3;
+    } catch {
+    }
+  }
+  return void 0;
+}
+
+// src/telemetry.ts
 var WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "create_file", "undo_edit", "file_change", "edit", "write"];
 var lines = (raw) => raw.split("\n").flatMap((l) => {
   try {
@@ -21695,6 +21774,64 @@ var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   debugLayer(join3(dirname2(path), "debug.jsonl"))
 );
 
+// src/project.ts
+var Project = Schema_exports.Struct({
+  path: Schema_exports.String.annotate({ description: "the project's absolute workspace path" }),
+  ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace after every check passes: merge to main and deploy" })),
+  alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" }))
+}).annotate({ identifier: "Project" });
+var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
+var projectsPath = (storePath2) => join4(dirname3(storePath2), "projects.json");
+var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
+  if (!existsSync(path)) return [];
+  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync2(path, "utf8")).pipe(
+    Effect_exports.mapError((e) => new MadeWellError({
+      code: "projects_invalid",
+      message: `The project registry ${path} is not valid.`,
+      context: { path, problems: String(e) },
+      cause: "It must be a JSON array of {path, ship?, alert?}.",
+      next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
+    }))
+  );
+});
+var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep)).sort((a, b) => b.path.length - a.path.length)[0];
+var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project) {
+  const projects = yield* readProjects(path);
+  const merged = { ...projects.find((p) => p.path === project.path), ...project };
+  mkdirSync4(dirname3(path), { recursive: true });
+  writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
+  return merged;
+});
+var openHolds = (store) => store.list().filter((i) => i.status === "held" && i.hold !== void 0).map((item) => {
+  const events2 = store.events(item.id);
+  const at = events2.findLastIndex((e) => e.kind === "held");
+  const alert = events2.slice(at + 1).find((e) => e.kind === "alerted");
+  return {
+    item: item.id,
+    title: item.title,
+    workspace: item.workspace,
+    ...item.hold,
+    since: events2[at]?.at ?? item.updated,
+    alerted: alert ? { at: alert.at, exitCode: alert.data.exitCode } : null
+  };
+}).sort((a, b) => a.since.localeCompare(b.since));
+var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
+  const store = yield* Store;
+  const holds = openHolds(store).filter((h) => !h.alerted);
+  if (!holds.length) return;
+  const projects = yield* readProjects(registry2);
+  for (const hold2 of holds) {
+    const command2 = projectFor(projects, hold2.workspace)?.alert;
+    if (!command2) continue;
+    const exitCode = yield* Effect_exports.promise(() => new Promise((done3) => {
+      const env = { ...process.env, MW_ITEM: String(hold2.item), MW_TITLE: hold2.title, MW_HOLD: hold2.code, MW_MESSAGE: hold2.message };
+      const child = execFile("sh", ["-c", command2], { cwd: dirname3(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
+      child.stdin?.end(JSON.stringify(hold2));
+    }));
+    store.save(store.get(hold2.item), "alerted", { code: hold2.code, command: command2, exitCode });
+  }
+});
+
 // src/engine.ts
 var MAX_LAUNCHES = 3;
 var MAX_TURNS = 3;
@@ -21938,19 +22075,15 @@ ${item.failure ?? ""}`,
 var hold = (store, item, code, message, context3) => void store.save({ ...item, status: "held", hold: { code, message, context: context3 } }, "held", { code, message });
 var ship = Effect_exports.fn("mw.ship")(function* (item) {
   const store = yield* Store;
-  const config = join4(item.workspace, "madewell.json");
-  let command;
-  try {
-    command = JSON.parse(readFileSync2(config, "utf8")).ship;
-  } catch {
-  }
-  if (!command) return hold(store, item, "no_ship_command", `Item #${item.id} passed verification, but its workspace has no ship command.`, { workspace: item.workspace, config });
+  const projects = projectsPath(store.path);
+  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship;
+  if (!command2) return hold(store, item, "no_ship_command", `Item #${item.id} passed verification, but its project has no ship command.`, { workspace: item.workspace, projects });
   const { code, stdout, stderr } = yield* Effect_exports.promise(
-    () => new Promise((done3) => execFile("sh", ["-c", command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature" } }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
+    () => new Promise((done3) => execFile2("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature" } }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
   );
   const tail = (s) => s.slice(-4e3);
-  if (code !== 0) return hold(store, item, "ship_failed", `Item #${item.id} passed verification, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) });
-  store.save({ ...item, status: "shipped", shipped: { command, output: tail(stdout) } }, "shipped", { command, output: tail(stdout) });
+  if (code !== 0) return hold(store, item, "ship_failed", `Item #${item.id} passed verification, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command: command2, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) });
+  store.save({ ...item, status: "shipped", shipped: { command: command2, output: tail(stdout) } }, "shipped", { command: command2, output: tail(stdout) });
 });
 function nextFor(item) {
   if (item.status !== "held") return [];
@@ -21963,10 +22096,7 @@ function nextFor(item) {
     return ["implementation", "test", "pre-existing"].map((cause) => ({ run: `mw answer ${id2} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: "the new code or its plan is wrong: the planner replans", test: "the check is wrong: the test architect rewrites it", "pre-existing": "the defect predates this work: it gets its own fix first" }[cause] }));
   }
   if (code === "no_ship_command") {
-    return [
-      { run: `printf '{"ship": "git push origin HEAD:main"}\\n' > ${join4(item.workspace, "madewell.json")}`, why: "tell Made Well how this project ships (merge to main, deploy, or both)" },
-      { run: `mw retry ${id2}`, why: "verify again and ship" }
-    ];
+    return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that merges to main and deploys>"`, why: "register how this project ships; the item then verifies again and ships" }];
   }
   if (code === "ship_failed") return [{ run: `mw retry ${id2}`, why: "after fixing what context.stderr shows: verify again and ship" }];
   return [
@@ -21984,12 +22114,16 @@ var held = (id2) => Effect_exports.gen(function* () {
   return { store, item };
 });
 var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
-  const { store, item } = yield* held(id2);
+  const store = yield* Store;
+  const events2 = store.events(id2);
+  const repeat3 = events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => (e.data.by === "operator" || e.data.originator === "operator") && e.data.cause === cause && (e.data.answer ?? store.get(e.data.prerequisite)?.objective) === text2);
+  if (repeat3) return;
+  const { item } = yield* held(id2);
   const released = { ...item, status: "queued", hold: void 0, launches: 0 };
   if (NQ_HOLDS.includes(item.hold.code)) {
     const x = item.exchange;
     const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: text2, by: "operator" } : t);
-    store.save({ ...released, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job: item.job, originator: "operator" });
+    store.save({ ...released, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job: item.job, originator: "operator", answer: text2 });
     return;
   }
   if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -21999,25 +22133,28 @@ var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
   const operator = { kind: "operator" };
   if (cause === "pre-existing") return openPrerequisite(store, { ...released, from: operator }, text2, operator);
   const job = cause === "test" ? "test-plan" : "plan";
-  store.save({ ...released, job, from: operator, exchange: void 0, rework: { cause, answer: text2 }, failure: void 0, round: item.round + 1, corrections: item.corrections + 1 }, "ruling", { cause, to: job, by: "operator" });
+  store.save({ ...released, job, from: operator, exchange: void 0, rework: { cause, answer: text2 }, failure: void 0, round: item.round + 1, corrections: item.corrections + 1 }, "ruling", { cause, to: job, by: "operator", answer: text2 });
 });
 var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
   const store = yield* Store;
   const run2 = store.get(discovery);
   if (!run2) return yield* notFound2(discovery);
-  const candidates = store.list().filter((i) => i.discovery === discovery && i.status === "candidate");
+  const found2 = store.list().filter((i) => i.discovery === discovery);
+  const candidates = found2.filter((i) => i.status === "candidate");
   if (run2.status !== "discovered") {
     return yield* new MadeWellError({ code: "not_discovered", message: `Item #${discovery} is not a finished discovery run (it is ${run2.status}).`, context: { id: discovery, status: run2.status, job: run2.job }, next: [{ run: "mw status", why: "find the discovery run and its candidates" }] });
   }
-  const unknown2 = ids.filter((id2) => !candidates.some((c) => c.id === id2));
+  const unknown2 = ids.filter((id2) => !found2.some((c) => c.id === id2));
   if (unknown2.length) {
-    return yield* new MadeWellError({ code: "not_a_candidate", message: `Not waiting candidates of discovery #${discovery}: ${unknown2.join(", ")}.`, context: { discovery, unknown: unknown2, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: "promote every waiting candidate" }] });
+    return yield* new MadeWellError({ code: "not_a_candidate", message: `Not candidates of discovery #${discovery}: ${unknown2.join(", ")}.`, context: { discovery, unknown: unknown2, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: "promote every waiting candidate" }] });
   }
-  const chosen = ids.length ? candidates.filter((c) => ids.includes(c.id)) : candidates;
-  for (const c of chosen) store.save({ ...c, status: "queued" }, "promoted", { discovery });
+  const chosen = ids.length ? found2.filter((c) => ids.includes(c.id)) : found2;
+  for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery });
   return chosen.map((c) => store.get(c.id));
 });
 var retry3 = (id2) => Effect_exports.gen(function* () {
+  const events2 = (yield* Store).events(id2);
+  if (events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => e.kind === "retried")) return;
   const { store, item } = yield* held(id2);
   if (NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
@@ -22077,22 +22214,58 @@ var executePacket = (item, x) => JSON.stringify({
 }, null, 2);
 
 // src/cli.ts
-var USAGE = [
-  { run: "mw discover --source-file <raw notes> [--workspace <dir>]", why: "turn raw input into candidate work items" },
-  { run: "mw promote <discovery id> [item ids...]", why: "send all (or the named) candidates into delivery" },
-  { run: 'mw start --objective "<one line>" --source-file <file> [--workspace <dir>]', why: "add one work item straight to the delivery queue" },
-  { run: "mw run [--watch]", why: "deliver queued items, oldest first" },
-  { run: "mw status [id]", why: "what is running, what waits on you, what shipped" },
-  { run: "mw show <id>", why: "one item with its full event history" },
-  { run: 'mw answer <id> "<answer>"', why: "answer an agent's open questions on a held item" },
-  { run: 'mw answer <id> --cause implementation|test|pre-existing "<answer>"', why: "rule on a held failed check" },
-  { run: "mw retry <id>", why: "run a held item again from where it stopped" },
-  { run: "mw replay [--out <file.html>]", why: "write the replay of the whole flow to one self-contained page" },
-  { run: "mw export <id> [--out <dir>]", why: "one folder per agent call: brief, packet, answer, raw stream, tool events and flags" }
-];
-var usageError = (message, context3 = {}) => new MadeWellError({ code: "usage", message, context: context3, next: USAGE });
+var storePath = defaultStorePath();
+var registry = projectsPath(storePath);
 var prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL("../prescriptions.json", import.meta.url).pathname;
+var SHIP_SLOT = `"<the operator's command that merges to main and deploys>"`;
 var workerLayer = Layer_exports.unwrap(Effect_exports.sync(() => process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker));
+var usageError = (command2, message) => new MadeWellError({ code: "usage", message, context: { command: command2 }, next: [{ run: "mw", why: "read the manual: every command and its input schema" }] });
+var Id2 = Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThan(0)))).annotate({ description: "a work item number" });
+var optional3 = (description) => Schema_exports.optionalKey(Schema_exports.String.annotate({ description }));
+var Workspace = optional3("the project directory; defaults to the current directory");
+var Source = { source: optional3("the operator's own words; or give --source-file"), "source-file": optional3("a file holding the operator's own words") };
+var Fact = Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown);
+var ItemView = Schema_exports.Struct({
+  id: Schema_exports.Int,
+  title: Schema_exports.String,
+  status: Schema_exports.String,
+  stage: Schema_exports.String,
+  job: Schema_exports.String,
+  profile: Schema_exports.String,
+  kind: Schema_exports.optionalKey(Schema_exports.String),
+  discovery: Schema_exports.optionalKey(Schema_exports.Int),
+  nq: Schema_exports.optionalKey(Schema_exports.Struct({ from: Schema_exports.String, status: Schema_exports.String, turns: Schema_exports.Int })),
+  round: Schema_exports.Int,
+  waitsOn: Schema_exports.optionalKey(Schema_exports.Int),
+  resumesAt: Schema_exports.optionalKey(Schema_exports.String),
+  hold: Schema_exports.optionalKey(Schema_exports.Struct({ code: Schema_exports.String, message: Schema_exports.String, context: Fact })),
+  shipped: Schema_exports.optionalKey(Schema_exports.Struct({ command: Schema_exports.String, output: Schema_exports.String })),
+  next: Schema_exports.Array(Next)
+}).annotate({ identifier: "Item" });
+var HoldView = Schema_exports.Struct({
+  item: Schema_exports.Int,
+  title: Schema_exports.String,
+  workspace: Schema_exports.String,
+  code: Schema_exports.String,
+  message: Schema_exports.String,
+  context: Fact,
+  since: Schema_exports.String,
+  alerted: Schema_exports.NullOr(Schema_exports.Struct({ at: Schema_exports.String, exitCode: Schema_exports.Int })),
+  next: Schema_exports.Array(Next)
+}).annotate({ identifier: "Hold" });
+var Board = Schema_exports.Struct({ summary: Schema_exports.String, items: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }).annotate({ identifier: "Board" });
+var Action = Schema_exports.Union([
+  Schema_exports.Struct({ action: Schema_exports.Literal("run"), run: Schema_exports.String, why: Schema_exports.String }),
+  Schema_exports.Struct({
+    action: Schema_exports.Literal("relay"),
+    say: Schema_exports.String.annotate({ description: "what to tell the operator" }),
+    hold: Schema_exports.optionalKey(HoldView),
+    candidates: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({ id: Schema_exports.Int, title: Schema_exports.String, kind: Schema_exports.String, objective: Schema_exports.String }))),
+    then: Schema_exports.Array(Next).annotate({ description: "run the one that fits the operator's reply, with their words in place of the <...> slot" })
+  }),
+  Schema_exports.Struct({ action: Schema_exports.Literal("wait"), until: Schema_exports.String.annotate({ description: "ISO time" }), why: Schema_exports.String, then: Schema_exports.Literal("mw next") })
+]).annotate({ identifier: "Action", description: "run a command, relay to the operator, or wait until a time" });
+var Created = Schema_exports.Struct({ item: ItemView, next: Schema_exports.Array(Next) });
 var view = (item) => ({
   id: item.id,
   title: item.title,
@@ -22110,102 +22283,358 @@ var view = (item) => ({
   ...item.shipped ? { shipped: item.shipped } : {},
   next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
 });
-var number3 = (value3) => {
-  const id2 = Number(value3);
-  return Number.isInteger(id2) && id2 > 0 ? Effect_exports.succeed(id2) : Effect_exports.fail(usageError(`Expected a work item number, got ${JSON.stringify(value3 ?? null)}.`));
+var holdView = (store, h) => ({ ...h, next: nextFor(store.get(h.item)) });
+var board = (store) => {
+  const items = store.list();
+  const count = (s) => items.filter((i) => i.status === s).length;
+  const held2 = items.filter((i) => i.status === "held");
+  return {
+    summary: `${count("held")} need you, ${count("candidate")} candidates, ${count("running") + count("waiting-quota") + count("waiting-prerequisite")} in progress, ${count("queued")} queued, ${count("shipped")} shipped`,
+    items: items.map(view),
+    next: held2.length ? held2.flatMap(nextFor) : count("queued") ? [{ run: "mw run", why: "deliver queued items" }] : []
+  };
 };
-var program = Effect_exports.gen(function* () {
-  const { positionals, values: values2 } = yield* Effect_exports.try({
-    try: () => parseArgs({ allowPositionals: true, options: { out: { type: "string" }, objective: { type: "string" }, title: { type: "string" }, source: { type: "string" }, "source-file": { type: "string" }, workspace: { type: "string" }, cause: { type: "string" }, watch: { type: "boolean" } } }),
-    catch: (e) => usageError(String(e.message))
+var found = (store, id2) => {
+  const item = store.get(id2);
+  return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
+};
+var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
+  const path = resolve3(workspace ?? ".");
+  const projects = yield* readProjects(registry);
+  if (projectFor(projects, path)?.ship) return path;
+  return yield* new MadeWellError({
+    code: "project_not_found",
+    message: `${path} is not a registered project with a ship command.`,
+    context: { workspace: path, projects: projects.map((p) => p.path) },
+    next: [{ run: `mw init --workspace ${quote2(path)} --ship ${SHIP_SLOT}`, why: "register it with how it ships, then run this command again" }]
   });
-  const [command, ...args2] = positionals;
-  const store = yield* Store;
-  switch (command) {
-    case "start": {
-      if (!values2.objective) return yield* usageError("start needs --objective.");
-      let source = values2.source;
-      if (values2["source-file"]) {
-        const path = resolve3(values2["source-file"]);
-        source = yield* Effect_exports.try({ try: () => readFileSync3(path, "utf8"), catch: () => usageError(`Cannot read --source-file ${path}.`, { path }) });
-      }
-      if (!source) return yield* usageError(`start needs the operator's own words: --source "<text>" or --source-file <file>.`);
-      const item = store.create({ title: values2.title ?? values2.objective, objective: values2.objective, source, workspace: resolve3(values2.workspace ?? ".") });
-      return { item: view(item), next: [{ run: "mw run", why: "deliver it; it moves through all four stages and ships on a passing check" }] };
-    }
-    case "discover": {
-      if (!values2["source-file"] && !values2.source) return yield* usageError('discover needs the raw input: --source-file <file> or --source "<text>".');
-      const path = values2["source-file"] && resolve3(values2["source-file"]);
-      const source = path ? yield* Effect_exports.try({ try: () => readFileSync3(path, "utf8"), catch: () => usageError(`Cannot read --source-file ${path}.`, { path }) }) : values2.source;
-      const item = store.create({ title: values2.title ?? `Discovery of ${path ? basename(path) : "raw input"}`, objective: "Turn the raw input into candidate work items.", source, workspace: resolve3(values2.workspace ?? "."), job: "discover" });
-      return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
-    }
-    case "promote": {
-      const promoted = yield* promote(yield* number3(args2[0]), yield* Effect_exports.all(args2.slice(1).map(number3)));
-      return { promoted: promoted.map(view), next: [{ run: "mw run", why: "deliver them, oldest first" }] };
-    }
-    case "replay": {
-      const out = resolve3(values2.out ?? "madewell-replay.html");
-      writeFileSync4(out, replayHtml(snapshot2(store)));
-      return { replay: out, next: [{ run: `open ${out}`, why: "step through the whole flow" }] };
-    }
-    case "export": {
-      const id2 = yield* number3(args2[0]);
-      const exported = yield* exportItem(store, id2, resolve3(values2.out ?? `madewell-export-${id2}`));
-      return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${exported.dir}`, why: "one folder per call: brief, packet, answer, raw stream, tool events and flags" }] };
-    }
-    case "run": {
-      const prescriptions = yield* loadPrescriptions(prescriptionsPath());
-      const items = yield* runQueue({ prescriptions }, { watch: values2.watch });
-      const held2 = items.filter((i) => i.status === "held");
-      return { summary: `${items.filter((i) => i.status === "shipped").length} shipped, ${held2.length} need you`, items: items.map(view), next: held2.flatMap(nextFor) };
-    }
-    case "status": {
-      if (args2[0]) {
-        const item = store.get(yield* number3(args2[0]));
-        if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${args2[0]}.`, context: { id: args2[0] }, next: [{ run: "mw status", why: "list every work item" }] });
-        return view(item);
-      }
-      const items = store.list();
-      const count = (s) => items.filter((i) => i.status === s).length;
-      const held2 = items.filter((i) => i.status === "held");
-      return {
-        summary: `${count("held")} need you, ${count("candidate")} candidates, ${count("running") + count("waiting-quota") + count("waiting-prerequisite")} in progress, ${count("queued")} queued, ${count("shipped")} shipped`,
-        items: items.map(view),
-        next: held2.length ? held2.flatMap(nextFor) : count("queued") ? [{ run: "mw run", why: "deliver queued items" }] : []
-      };
-    }
-    case "show": {
-      const id2 = yield* number3(args2[0]);
-      const item = store.get(id2);
-      if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
-      return { ...view(item), item, events: store.events(id2) };
-    }
-    case "answer": {
-      const id2 = yield* number3(args2[0]);
-      const text2 = args2.slice(1).join(" ").trim();
-      if (!text2) return yield* usageError("answer needs the answer text.");
-      const cause = values2.cause;
-      if (cause && !["implementation", "test", "pre-existing"].includes(cause)) return yield* usageError(`--cause must be implementation, test or pre-existing, got ${cause}.`);
-      yield* answer(id2, text2, cause);
-      return { item: view(store.get(id2)), next: [{ run: "mw run", why: "continue delivering it" }] };
-    }
-    case "retry": {
-      const id2 = yield* number3(args2[0]);
-      yield* retry3(id2);
-      return { item: view(store.get(id2)), next: [{ run: "mw run", why: "continue delivering it" }] };
-    }
-    default:
-      return yield* usageError(command ? `Unknown command "${command}".` : "No command given.");
-  }
 });
-var exit3 = await Effect_exports.runPromise(
-  program.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(), workerLayer)),
-    Effect_exports.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })
-  )
+var readSource = (input) => {
+  if (!input["source-file"]) return Effect_exports.succeed(input.source);
+  const path = resolve3(input["source-file"]);
+  return Effect_exports.try({
+    try: () => readFileSync3(path, "utf8"),
+    catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
+  });
+};
+var createOnce = (store, fields) => store.list().find((i) => i.parent === void 0 && i.discovery === void 0 && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace) ?? store.create(fields);
+var runner = (store) => store.claimRunner().pipe(
+  Effect_exports.map(() => (store.releaseRunner(), null)),
+  Effect_exports.catchIf((e) => e.code === "store_locked", (e) => Effect_exports.succeed(e.context.owner))
 );
-var text = JSON.stringify(exit3.out, null, 2) + "\n";
+var MOVING = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
+var nextAction = Effect_exports.fn("mw.next")(function* () {
+  const store = yield* Store;
+  const items = store.list();
+  const moving = items.filter((i) => i.parent === void 0 && MOVING.includes(i.status));
+  const owner = moving.length ? yield* runner(store) : null;
+  if (moving.length && !owner) {
+    return { action: "run", run: "mw run", why: `${moving.length} item(s) can move without the operator. It returns once every item has shipped or holds for the operator, and it is safe to repeat.` };
+  }
+  const [hold2] = openHolds(store);
+  if (hold2) {
+    const questions = Array.isArray(hold2.context.questions) ? ` Questions: ${hold2.context.questions.join(" ")}` : "";
+    return { action: "relay", say: `Item #${hold2.item} (${hold2.title}) is waiting on you: ${hold2.message}${questions}`, hold: holdView(store, hold2), then: nextFor(store.get(hold2.item)) };
+  }
+  if (owner) {
+    const now2 = yield* Clock_exports.currentTimeMillis;
+    const quota = items.filter((i) => i.status === "waiting-quota" && i.resetsAt !== void 0);
+    const busy = items.some((i) => i.status === "running" || i.status === "queued");
+    const until = busy || !quota.length ? now2 + 6e4 : Math.max(now2, Math.min(...quota.map((i) => i.resetsAt)));
+    const on = owner.item ? ` on #${owner.item.id} (${owner.item.job})` : "";
+    return { action: "wait", until: new Date(until).toISOString(), why: busy || !quota.length ? `The runner (pid ${owner.pid}) is working${on}.` : "Every account is at its usage limit; the runner continues by itself at the earliest reset.", then: "mw next" };
+  }
+  const run2 = items.find((i) => i.status === "discovered" && items.some((c) => c.discovery === i.id && c.status === "candidate"));
+  if (run2) {
+    const candidates = items.filter((c) => c.discovery === run2.id && c.status === "candidate");
+    return {
+      action: "relay",
+      say: `Discovery #${run2.id} found ${candidates.length} candidate work item(s). Which should Made Well deliver?`,
+      candidates: candidates.map((c) => ({ id: c.id, title: c.title, kind: c.kind ?? "feature", objective: c.objective })),
+      then: [{ run: `mw promote ${run2.id}`, why: "deliver every candidate" }, ...candidates.map((c) => ({ run: `mw promote ${run2.id} ${c.id}`, why: `deliver "${c.title}"; name several ids to deliver several` }))]
+    };
+  }
+  const cwd = process.cwd();
+  const project = projectFor(yield* readProjects(registry), cwd);
+  if (!project?.ship) {
+    const init = `mw init --workspace ${quote2(project?.path ?? cwd)} --ship ${SHIP_SLOT}`;
+    return {
+      action: "relay",
+      say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: what command merges to main and deploys?`,
+      then: [{ run: init, why: "register the project with how it ships" }, { run: `${init} --alert "<a command that notifies the operator>"`, why: "also say how to reach the operator when an item holds" }]
+    };
+  }
+  const at = quote2(project.path);
+  return {
+    action: "relay",
+    say: "Nothing is moving and nothing waits on you. What should Made Well work on next?",
+    then: [
+      { run: `mw discover --workspace ${at} --source "<the operator's raw notes>"`, why: "turn raw notes, transcripts or meetings into candidate work items" },
+      { run: `mw start --workspace ${at} --objective "<one line>" --source "<the operator's own words>"`, why: "deliver one work item straight away" }
+    ]
+  };
+});
+var command = (c) => c;
+var COMMANDS = [
+  command({
+    name: "next",
+    summary: "The one action to take now: a command to run, something to relay to the operator, or a time to wait until. Do it, then run `mw next` again.",
+    input: Schema_exports.Struct({}),
+    output: Action,
+    idempotent: true,
+    run: () => nextAction()
+  }),
+  command({
+    name: "init",
+    summary: "Register a project, or update its config. The config lives in Made Well's home, never in the project. Items held for a missing ship command go on.",
+    input: Schema_exports.Struct({
+      workspace: Workspace,
+      ship: optional3("shell command run in the workspace after every check passes: merge to main and deploy. Required the first time."),
+      alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set")
+    }),
+    output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const store = yield* Store;
+      const path = resolve3(input.workspace ?? ".");
+      if (!existsSync2(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      const projects = yield* readProjects(registry);
+      if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that merges to main and deploys.`);
+      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {} });
+      const updated = yield* readProjects(registry);
+      const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
+      for (const h of waiting) yield* retry3(h.item);
+      return { project, released: waiting.map((h) => view(store.get(h.item))), next: [{ run: "mw next", why: "see what to do now" }] };
+    })
+  }),
+  command({
+    name: "discover",
+    summary: "Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.",
+    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run") }),
+    output: Created,
+    idempotent: true,
+    prepare: (input) => Effect_exports.gen(function* () {
+      const source = yield* readSource(input);
+      if (!source) return yield* usageError("discover", 'discover needs the raw input: --source "<text>" or --source-file <file>.');
+      return { source, workspace: yield* registered(input.workspace) };
+    }),
+    run: (input, { source, workspace }) => Effect_exports.gen(function* () {
+      const title = input.title ?? `Discovery of ${input["source-file"] ? basename(input["source-file"]) : "raw input"}`;
+      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: "discover" });
+      return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
+    })
+  }),
+  command({
+    name: "promote",
+    summary: "Send a discovery run's candidates into delivery: all of them, or the ones named.",
+    args: ["discovery", "ids..."],
+    input: Schema_exports.Struct({ discovery: Id2.annotate({ description: "the discovery run" }), ids: Schema_exports.Array(Id2).annotate({ description: "the candidates to promote; none means all" }) }),
+    output: Schema_exports.Struct({ promoted: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
+    idempotent: true,
+    run: (input) => promote(input.discovery, input.ids).pipe(Effect_exports.map((promoted) => ({ promoted: promoted.map(view), next: [{ run: "mw run", why: "deliver them, oldest first" }] })))
+  }),
+  command({
+    name: "start",
+    summary: "Add one work item straight to the delivery queue.",
+    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective") }),
+    output: Created,
+    idempotent: true,
+    prepare: (input) => Effect_exports.gen(function* () {
+      const source = yield* readSource(input);
+      if (!source) return yield* usageError("start", `start needs the operator's own words: --source "<text>" or --source-file <file>.`);
+      return { source, workspace: yield* registered(input.workspace) };
+    }),
+    run: (input, { source, workspace }) => Effect_exports.gen(function* () {
+      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace });
+      return { item: view(item), next: [{ run: "mw run", why: "deliver it; it moves through all four stages and ships on a passing check" }] };
+    })
+  }),
+  command({
+    name: "run",
+    summary: "Deliver every item that can move, oldest first, and alert each new hold once. Returns once every item has shipped or holds; --watch keeps waiting for new work.",
+    input: Schema_exports.Struct({ watch: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "keep running and pick up new work as it arrives" })) }),
+    output: Board,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const prescriptions = yield* loadPrescriptions(prescriptionsPath());
+      yield* Effect_exports.forkScoped(Effect_exports.forever(Effect_exports.andThen(Effect_exports.sleep("2 seconds"), alertHolds(registry))));
+      yield* runQueue({ prescriptions }, { watch: input.watch });
+      yield* alertHolds(registry);
+      return board(yield* Store);
+    }).pipe(Effect_exports.scoped)
+  }),
+  command({
+    name: "status",
+    summary: "Every item and what moves it; or one item.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Schema_exports.optionalKey(Id2) }),
+    output: Schema_exports.Union([Board, ItemView]),
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const store = yield* Store;
+      return input.id === void 0 ? board(store) : view(yield* found(store, input.id));
+    })
+  }),
+  command({
+    name: "show",
+    summary: "One item with its full record and event history.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Id2 }),
+    output: Schema_exports.Struct({ ...ItemView.fields, item: Fact, events: Schema_exports.Array(Fact) }),
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const store = yield* Store;
+      const item = yield* found(store, input.id);
+      return { ...view(item), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) };
+    })
+  }),
+  command({
+    name: "holds",
+    summary: "Every open hold, oldest first: what the operator must answer or fix, and whether its alert went out.",
+    input: Schema_exports.Struct({}),
+    output: Schema_exports.Struct({ holds: Schema_exports.Array(HoldView), next: Schema_exports.Array(Next) }),
+    idempotent: true,
+    run: () => Effect_exports.gen(function* () {
+      const store = yield* Store;
+      const holds = openHolds(store).map((h) => holdView(store, h));
+      return { holds, next: holds.flatMap((h) => h.next) };
+    })
+  }),
+  command({
+    name: "answer",
+    summary: "Answer a held item: an agent's open questions, or, with --cause, a failed check.",
+    args: ["id", "text..."],
+    input: Schema_exports.Struct({
+      id: Id2,
+      text: Schema_exports.NonEmptyString.annotate({ description: "the operator's answer" }),
+      cause: Schema_exports.optionalKey(Schema_exports.Literals(["implementation", "test", "pre-existing"]).annotate({ description: "for a failed check: the new code is wrong, the check is wrong, or the defect predates this work" }))
+    }),
+    output: Created,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      yield* answer(input.id, input.text, input.cause);
+      return { item: view((yield* Store).get(input.id)), next: [{ run: "mw run", why: "continue delivering it" }] };
+    })
+  }),
+  command({
+    name: "retry",
+    summary: "Run a held item again from where it stopped.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Id2 }),
+    output: Created,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      yield* retry3(input.id);
+      return { item: view((yield* Store).get(input.id)), next: [{ run: "mw run", why: "continue delivering it" }] };
+    })
+  }),
+  command({
+    name: "replay",
+    summary: "Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.",
+    input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
+    output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
+    run: (input) => Effect_exports.gen(function* () {
+      const out = resolve3(input.out ?? resolve3(dirname4(storePath), "replay.html"));
+      writeFileSync5(out, replayHtml(snapshot2(yield* Store)));
+      return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
+    })
+  }),
+  command({
+    name: "export",
+    summary: "One folder per agent call of an item: brief, packet, answer, raw stream, tool events and flags. Written beside the store unless --out names a directory.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Id2, out: optional3("defaults to exports/<id> beside the store") }),
+    output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const exported = yield* exportItem(yield* Store, input.id, resolve3(input.out ?? resolve3(dirname4(storePath), "exports", String(input.id))));
+      return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
+    })
+  })
+];
+var fieldsOf = (c) => Object.entries(c.input.fields);
+var positional = (c) => (c.args ?? []).map((a) => a.replace("...", ""));
+var isOptional2 = (f) => f.ast.context?.isOptional === true;
+var usageOf = (c) => {
+  const fields = c.input.fields;
+  const args2 = (c.args ?? []).map((a) => {
+    const name = a.replace("...", "");
+    const rest = a.endsWith("...") ? "..." : "";
+    return isOptional2(fields[name]) || fields[name].ast._tag === "Arrays" ? `[${name}${rest}]` : `<${name}${rest}>`;
+  });
+  const options = fieldsOf(c).filter(([k]) => !positional(c).includes(k)).map(([k, f]) => {
+    const flag = f.ast._tag === "Boolean" ? `--${k}` : `--${k} <${k}>`;
+    return isOptional2(f) ? `[${flag}]` : flag;
+  });
+  return ["mw", c.name, ...args2, ...options].join(" ");
+};
+var DEFAULTS = { additionalProperties: true, minimum: Number.MIN_SAFE_INTEGER, maximum: Number.MAX_SAFE_INTEGER };
+var $defs = {};
+var jsonSchema = (schema) => {
+  const doc = JSON.parse(JSON.stringify(Schema_exports.toJsonSchemaDocument(schema), (k, v) => DEFAULTS[k] === v ? void 0 : v));
+  Object.assign($defs, doc.definitions);
+  return doc.schema;
+};
+var manual = Effect_exports.gen(function* () {
+  const store = yield* Store;
+  const items = store.list();
+  const commands = COMMANDS.map((c) => ({ name: c.name, usage: usageOf(c), summary: c.summary, idempotent: c.idempotent ?? false, input: jsonSchema(Schema_exports.toType(c.input)), output: jsonSchema(c.output) }));
+  return {
+    manual: "mw",
+    about: "Made Well delivers software work items to production with coding agents: ideation, planning, implementation and verification, each a separate agent, shipping when every check passes. Discovery turns raw notes into candidate items; the operator promotes the ones to deliver.",
+    use: "Run `mw next` and do its action: run its command; or relay what it says to the operator and run the `then` command that fits their reply, with their words in place of the <...> slot; or wait until its time. Then run `mw next` again.",
+    output: "Every command prints JSON. Results go to stdout. Errors go to stderr as {error, message, context, cause?, next} with exit code 1; `error` is one of the codes below and `context` has that code's shape.",
+    commands,
+    errors: Object.fromEntries(Object.entries(ERRORS).map(([code, e]) => [code, { means: e.means, context: jsonSchema(e.context) }])),
+    $defs,
+    state: {
+      home: dirname4(registry),
+      store: existsSync2(storePath) ? storePath : null,
+      projects: yield* readProjects(registry),
+      items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
+      next: yield* nextAction()
+    }
+  };
+});
+var SLOT = /^<[^<>]+>$/;
+var program = Effect_exports.gen(function* () {
+  const [name, ...argv] = process.argv.slice(2);
+  if (name === void 0) return { store: false, effect: manual };
+  const c = COMMANDS.find((c2) => c2.name === name);
+  if (!c) return yield* usageError(name, `Unknown command "${name}". The commands are: ${COMMANDS.map((c2) => c2.name).join(", ")}.`);
+  const names = positional(c);
+  const { positionals, values: values2 } = yield* Effect_exports.try({
+    try: () => parseArgs({
+      args: argv,
+      allowPositionals: true,
+      strict: true,
+      options: Object.fromEntries(fieldsOf(c).filter(([k]) => !names.includes(k)).map(([k, f]) => [k, { type: f.ast._tag === "Boolean" ? "boolean" : "string" }]))
+    }),
+    catch: (e) => usageError(name, e.message)
+  });
+  const raw = { ...values2 };
+  (c.args ?? []).forEach((a, i) => {
+    const field = a.replace("...", "");
+    const value3 = a.endsWith("...") ? c.input.fields[field].ast._tag === "Arrays" ? positionals.slice(i) : positionals.slice(i).join(" ").trim() || void 0 : positionals[i];
+    if (value3 !== void 0) raw[field] = value3;
+  });
+  if (positionals.length > names.length && !c.args?.at(-1)?.endsWith("...")) return yield* usageError(name, `Unexpected argument "${positionals[names.length]}". Usage: ${usageOf(c)}`);
+  const slot = [...positionals, ...Object.values(values2)].find((v) => typeof v === "string" && SLOT.test(v.trim()));
+  if (slot) return yield* usageError(name, `Replace the placeholder ${slot} with the real value before running the command.`);
+  const input = yield* Schema_exports.decodeUnknownEffect(c.input)(raw).pipe(
+    Effect_exports.mapError((e) => usageError(name, `${e.message}
+Usage: ${usageOf(c)}`))
+  );
+  if (!c.prepare) return { store: false, effect: c.run(input, void 0) };
+  const prepared = yield* c.prepare(input);
+  return { store: true, effect: c.run(input, prepared) };
+}).pipe(
+  Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync2(storePath) ? storePath : ":memory:"), workerLayer))
+  ))
+);
+var exit3 = await Effect_exports.runPromise(program.pipe(Effect_exports.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })));
+var text = JSON.stringify(exit3.out) + "\n";
 if (exit3.code) process.stderr.write(text);
 else process.stdout.write(text);
 process.exitCode = exit3.code;

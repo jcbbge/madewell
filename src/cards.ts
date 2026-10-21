@@ -41,7 +41,7 @@ export const loadPrescriptions = (path: string) =>
 	Effect.gen(function* () {
 		const text = yield* Effect.try({
 			try: () => readFileSync(path, 'utf8'),
-			catch: (e) => new MadeWellError({ code: 'prescriptions_unreadable', message: `Cannot read prescriptions file ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: 'check the file exists and is readable' }, { run: 'mw doctor', why: 'see which prescriptions file Made Well uses' }] }),
+			catch: (e) => new MadeWellError({ code: 'prescriptions_unreadable', message: `Cannot read prescriptions file ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: 'check the file exists and is readable' }, { run: `MW_PRESCRIPTIONS=<readable prescriptions file> mw run`, why: 'point Made Well at a prescriptions file it can read' }] }),
 		})
 		const value = yield* Effect.try({
 			try: () => JSON.parse(text) as unknown,

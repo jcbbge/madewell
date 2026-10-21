@@ -12,11 +12,10 @@
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { execFile } from 'node:child_process'
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { Clock, Effect } from 'effect'
 import { cardsFor, pickCard, type Card, type Prescriptions } from './cards.ts'
-import { MadeWellError, type Next } from './errors.ts'
+import { MadeWellError, quote, type Next } from './errors.ts'
+import { projectFor, projectsPath, readProjects } from './project.ts'
 import { DELIVERY, ENDS_WITH, lastJson, route, stepOf, type Cause, type Job } from './lane.ts'
 import { Store, type Exchange, type Item, type Origin } from './store.ts'
 import { Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
@@ -259,15 +258,12 @@ const openPrerequisite = (store: Store['Service'], item: Item, answer: string, b
 const hold = (store: Store['Service'], item: Item, code: string, message: string, context: Record<string, unknown>) =>
 	void store.save({ ...item, status: 'held', hold: { code, message, context } }, 'held', { code, message })
 
-/** Verification passed: ship it with the project's own command. */
+/** Verification passed: ship it with the project's own command, from its config in Made Well's home. */
 const ship = Effect.fn('mw.ship')(function* (item: Item) {
 	const store = yield* Store
-	const config = join(item.workspace, 'madewell.json')
-	let command: string | undefined
-	try {
-		command = (JSON.parse(readFileSync(config, 'utf8')) as { ship?: string }).ship
-	} catch {}
-	if (!command) return hold(store, item, 'no_ship_command', `Item #${item.id} passed verification, but its workspace has no ship command.`, { workspace: item.workspace, config })
+	const projects = projectsPath(store.path)
+	const command = projectFor(yield* readProjects(projects), item.workspace)?.ship
+	if (!command) return hold(store, item, 'no_ship_command', `Item #${item.id} passed verification, but its project has no ship command.`, { workspace: item.workspace, projects })
 	const { code, stdout, stderr } = yield* Effect.promise(
 		() => new Promise<{ code: number; stdout: string; stderr: string }>((done) => execFile('sh', ['-c', command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? 'feature' } }, (error, stdout, stderr) => done({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }))),
 	)
@@ -288,10 +284,7 @@ export function nextFor(item: Item): Next[] {
 		return (['implementation', 'test', 'pre-existing'] as const).map((cause) => ({ run: `mw answer ${id} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: 'the new code or its plan is wrong: the planner replans', test: 'the check is wrong: the test architect rewrites it', 'pre-existing': 'the defect predates this work: it gets its own fix first' }[cause] }))
 	}
 	if (code === 'no_ship_command') {
-		return [
-			{ run: `printf '{"ship": "git push origin HEAD:main"}\\n' > ${join(item.workspace, 'madewell.json')}`, why: 'tell Made Well how this project ships (merge to main, deploy, or both)' },
-			{ run: `mw retry ${id}`, why: 'verify again and ship' },
-		]
+		return [{ run: `mw init --workspace ${quote(item.workspace)} --ship "<the operator's command that merges to main and deploys>"`, why: 'register how this project ships; the item then verifies again and ships' }]
 	}
 	if (code === 'ship_failed') return [{ run: `mw retry ${id}`, why: 'after fixing what context.stderr shows: verify again and ship' }]
 	return [
@@ -311,15 +304,24 @@ const held = (id: number) =>
 		return { store, item: item as Item & { hold: NonNullable<Item['hold']> } }
 	})
 
-/** The operator answers a hold: a question goes back to the receiving agent; a failed check is routed by its cause. */
+/**
+ * The operator answers a hold: a question goes back to the receiving agent; a failed check is routed by its cause.
+ * Repeating the answer that released the item's last hold changes nothing.
+ */
 export const answer = (id: number, text: string, cause?: Cause) =>
 	Effect.gen(function* () {
-		const { store, item } = yield* held(id)
+		const store = yield* Store
+		const events = store.events(id)
+		const repeat = events.slice(events.findLastIndex((e) => e.kind === 'held') + 1).some((e) =>
+			(e.data.by === 'operator' || e.data.originator === 'operator') && e.data.cause === cause
+			&& (e.data.answer ?? store.get(e.data.prerequisite as number)?.objective) === text)
+		if (repeat) return
+		const { item } = yield* held(id)
 		const released = { ...item, status: 'queued' as const, hold: undefined, launches: 0 }
 		if (NQ_HOLDS.includes(item.hold.code)) {
 			const x = item.exchange!
 			const turns = x.turns.map((t, i) => (i === x.turns.length - 1 ? { ...t, answer: text, by: 'operator' as const } : t))
-			store.save({ ...released, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job: item.job, originator: 'operator' })
+			store.save({ ...released, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job: item.job, originator: 'operator', answer: text })
 			return
 		}
 		if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -329,30 +331,37 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 		const operator: Origin = { kind: 'operator' }
 		if (cause === 'pre-existing') return openPrerequisite(store, { ...released, from: operator }, text, operator)
 		const job: Job = cause === 'test' ? 'test-plan' : 'plan'
-		store.save({ ...released, job, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1 }, 'ruling', { cause, to: job, by: 'operator' })
+		store.save({ ...released, job, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1 }, 'ruling', { cause, to: job, by: 'operator', answer: text })
 	})
 
-/** The operator promotes candidates from a discovery run into the delivery queue: all of them, or the ones named. */
+/**
+ * The operator promotes candidates from a discovery run into the delivery queue: all of them, or the ones named.
+ * Returns every named (or every) item of the run that is now promoted, so a repeat returns the same items.
+ */
 export const promote = (discovery: number, ids: ReadonlyArray<number> = []) =>
 	Effect.gen(function* () {
 		const store = yield* Store
 		const run = store.get(discovery)
 		if (!run) return yield* notFound(discovery)
-		const candidates = store.list().filter((i) => i.discovery === discovery && i.status === 'candidate')
+		const found = store.list().filter((i) => i.discovery === discovery)
+		const candidates = found.filter((i) => i.status === 'candidate')
 		if (run.status !== 'discovered') {
 			return yield* new MadeWellError({ code: 'not_discovered', message: `Item #${discovery} is not a finished discovery run (it is ${run.status}).`, context: { id: discovery, status: run.status, job: run.job }, next: [{ run: 'mw status', why: 'find the discovery run and its candidates' }] })
 		}
-		const unknown = ids.filter((id) => !candidates.some((c) => c.id === id))
+		const unknown = ids.filter((id) => !found.some((c) => c.id === id))
 		if (unknown.length) {
-			return yield* new MadeWellError({ code: 'not_a_candidate', message: `Not waiting candidates of discovery #${discovery}: ${unknown.join(', ')}.`, context: { discovery, unknown, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: 'promote every waiting candidate' }] })
+			return yield* new MadeWellError({ code: 'not_a_candidate', message: `Not candidates of discovery #${discovery}: ${unknown.join(', ')}.`, context: { discovery, unknown, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: 'promote every waiting candidate' }] })
 		}
-		const chosen = ids.length ? candidates.filter((c) => ids.includes(c.id)) : candidates
-		for (const c of chosen) store.save({ ...c, status: 'queued' }, 'promoted', { discovery })
+		const chosen = ids.length ? found.filter((c) => ids.includes(c.id)) : found
+		for (const c of chosen) if (c.status === 'candidate') store.save({ ...c, status: 'queued' }, 'promoted', { discovery })
 		return chosen.map((c) => store.get(c.id)!)
 	})
 
+/** Releases a held item to run again from where it stopped. Repeating it before the item holds again changes nothing. */
 export const retry = (id: number) =>
 	Effect.gen(function* () {
+		const events = (yield* Store).events(id)
+		if (events.slice(events.findLastIndex((e) => e.kind === 'held') + 1).some((e) => e.kind === 'retried')) return
 		const { store, item } = yield* held(id)
 		if (NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })

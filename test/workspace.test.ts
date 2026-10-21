@@ -35,7 +35,7 @@ function setup() {
 }
 
 const run = <A>(effect: Effect.Effect<A, MadeWellError>) => Effect.runPromise(effect)
-const error = (effect: Effect.Effect<unknown, MadeWellError>) => Effect.runPromise(Effect.flip(effect))
+const error = (effect: Effect.Effect<unknown, MadeWellError>) => Effect.runPromise(Effect.flip(effect)) as Promise<MadeWellError & { context: Record<string, any> }>
 
 test('a job worktree starts at the base commit outside the product repo and leaves no trace, even when the job fails', async () => {
 	const t = setup()
@@ -53,9 +53,9 @@ test('a job worktree starts at the base commit outside the product repo and leav
 		const failed = await error(Effect.scoped(Effect.gen(function* () {
 			const ws = yield* worktree(t.repo, t.head, 'item-7-verify')
 			writeFileSync(join(ws.path, 'probe.txt'), 'x')
-			return yield* Effect.fail({ code: 'job_failed' } as MadeWellError)
+			return yield* Effect.fail({ code: 'job_failed' } as unknown as MadeWellError)
 		})))
-		assert.equal(failed.code, 'job_failed')
+		assert.equal(failed.code as string, 'job_failed')
 		assert.deepEqual(readdirSync(worktreesRoot()), [], 'removed after a failed job too')
 		assert.deepEqual({ refs: t.git('for-each-ref'), status: t.git('status', '--porcelain', '--ignored'), files: readdirSync(join(t.repo, '.git')).sort() }, before, 'no ref, file or worktree record left in the product repo')
 		assert.equal(t.git('worktree', 'list').split('\n').length, 1)

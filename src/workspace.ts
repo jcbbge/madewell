@@ -6,7 +6,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, rmSync,
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { Effect } from 'effect'
-import { MadeWellError, type Next } from './errors.ts'
+import { type ERRORS, type ErrorCode, MadeWellError, type Next } from './errors.ts'
 
 /** Files a harness reads as instructions from the working directory and every directory above it. */
 const GUIDANCE = ['AGENTS.md', 'AGENT.md', 'CLAUDE.md', 'CLAUDE.local.md', 'GEMINI.md', '.cursorrules']
@@ -15,8 +15,8 @@ const TEARDOWN_TIMEOUT_MS = 5 * 60_000
 /** Where job worktrees live: under Made Well's home, never inside a product repo. */
 export const worktreesRoot = () => join(process.env.MW_HOME ?? join(homedir(), '.local', 'share', 'madewell'), 'worktrees')
 
-const fail = (code: string, message: string, context: Record<string, unknown>, next: Next[], cause?: string) =>
-	new MadeWellError({ code, message, context, next, ...(cause ? { cause } : {}) })
+const fail = <C extends ErrorCode>(code: C, message: string, context: (typeof ERRORS)[C]['context']['Type'], next: Next[], cause?: string) =>
+	new MadeWellError({ code, message, context, next, ...(cause ? { cause } : {}) } as ConstructorParameters<typeof MadeWellError>[0])
 
 const exec = (command: string, args: string[], cwd: string, timeout = 0) =>
 	Effect.promise(() => new Promise<{ code: number; stdout: string; stderr: string }>((done) =>
