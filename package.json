@@ -1,0 +1,23 @@
+{
+  "name": "madewell",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "mw": "src/cli.ts"
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "effect": "^4.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}
