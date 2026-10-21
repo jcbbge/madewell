@@ -1,8 +1,8 @@
 // The delivery lane: one work item in, one shipped change out.
 // Four stages, six agent profiles, each a separate job on its own card. The arbiter rules on failures.
 
-export type Job = 'ideate' | 'challenge' | 'plan' | 'test-plan' | 'implement' | 'verify' | 'arbitrate'
-export type Stage = 'ideation' | 'planning' | 'implementation' | 'verification'
+export type Job = 'discover' | 'ideate' | 'challenge' | 'plan' | 'test-plan' | 'implement' | 'verify' | 'arbitrate'
+export type Stage = 'discovery' | 'ideation' | 'planning' | 'implementation' | 'verification'
 export type Cause = 'pre-existing' | 'implementation' | 'test'
 
 export interface Step {
@@ -21,6 +21,14 @@ export const DELIVERY: ReadonlyArray<Step> = [
 	{ job: 'verify', stage: 'verification', profile: 'verifier', duty: 'Run only this item\'s checks and report what you observed. Never repair, retry or broaden.' },
 ]
 
+/** Discovery: raw input in, candidate work items out. The ideator runs it. */
+export const DISCOVER: Step = {
+	job: 'discover',
+	stage: 'discovery',
+	profile: 'ideator',
+	duty: 'Turn the operator\'s raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered. Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator\'s terms. Surface uncertainty instead of guessing. Do not plan or implement.',
+}
+
 export const ARBITER: Step = {
 	job: 'arbitrate',
 	stage: 'verification',
@@ -28,10 +36,11 @@ export const ARBITER: Step = {
 	duty: 'A check failed or a step could not be done as written. Decide whose it is: a pre-existing bug, a bad implementation, or a bad test.',
 }
 
-export const stepOf = (job: Job): Step => (job === 'arbitrate' ? ARBITER : DELIVERY.find((s) => s.job === job)!)
+export const stepOf = (job: Job): Step => (job === 'arbitrate' ? ARBITER : job === 'discover' ? DISCOVER : DELIVERY.find((s) => s.job === job)!)
 
 /** What each job must end its answer with, as a JSON object on its own. */
 export const ENDS_WITH: Partial<Record<Job, string>> = {
+	discover: '{"items": [{"title": string, "kind": "feature"|"fix"|"chore", "objective": string, "text": string}]}',
 	'test-plan': '{"blocked": string} only if something stops you from doing the step as written',
 	implement: '{"blocked": string} only if the plan is wrong or a step cannot be done as written',
 	verify: '{"outcome": "pass"|"fail", "summary": string}',
@@ -39,7 +48,15 @@ export const ENDS_WITH: Partial<Record<Job, string>> = {
 }
 
 /** Where the work goes after a job reports. Pure: the engine applies it. */
+export interface Candidate {
+	readonly title: string
+	readonly kind: 'feature' | 'fix' | 'chore'
+	readonly objective: string
+	readonly text: string
+}
+
 export type Route =
+	| { readonly to: 'discovered'; readonly items: ReadonlyArray<Candidate> }
 	| { readonly to: 'next'; readonly job: Job }
 	| { readonly to: 'ship' }
 	| { readonly to: 'arbitrate'; readonly failure: string }
@@ -52,6 +69,14 @@ export const MAX_CORRECTIONS = 3
 
 export function route(job: Job, output: string, corrections: number): Route {
 	const report = lastJson(output)
+	if (job === 'discover') {
+		if (!Array.isArray(report?.items)) return { to: 'malformed', expected: ENDS_WITH.discover! }
+		const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+		const items = (report.items as Record<string, unknown>[])
+			.filter((i) => text(i?.title) && text(i?.objective))
+			.map((i): Candidate => ({ title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature' }))
+		return { to: 'discovered', items }
+	}
 	if ((job === 'implement' || job === 'test-plan') && typeof report?.blocked === 'string' && report.blocked.trim()) {
 		return { to: 'arbitrate', failure: `The ${stepOf(job).profile} (${job}) could not do the step as written: ${report.blocked}` }
 	}
@@ -75,8 +100,9 @@ export function route(job: Job, output: string, corrections: number): Route {
 	return { to: 'next', job: DELIVERY[i + 1]!.job }
 }
 
-/** The last top-level JSON object in a worker's answer, or undefined. */
+/** The last top-level JSON object in a worker's answer, or undefined. A closing code fence after it is allowed. */
 export function lastJson(text: string): Record<string, unknown> | undefined {
+	text = text.replace(/\s*```\s*$/, '')
 	for (let start = text.lastIndexOf('{'); start !== -1; start = text.lastIndexOf('{', start - 1)) {
 		try {
 			const value = JSON.parse(text.slice(start).trim())

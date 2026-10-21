@@ -9,7 +9,7 @@ import type { Card } from './cards.ts'
 import { MadeWellError } from './errors.ts'
 import type { Cause, Job } from './lane.ts'
 
-export type Status = 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped'
+export type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered'
 
 export interface Hold {
 	readonly code: string
@@ -65,6 +65,9 @@ export interface Item {
 	/** Set after a quota swap: the next card is picking up an interrupted job. */
 	readonly pickingUp?: string
 	readonly parent?: number
+	/** For a candidate: the discovery run that found it. */
+	readonly discovery?: number
+	readonly kind?: 'feature' | 'fix' | 'chore'
 	readonly waitsOn?: number
 	readonly resetsAt?: number
 	readonly hold?: Hold
@@ -79,6 +82,24 @@ export interface Event {
 	readonly at: string
 	readonly kind: string
 	readonly data: Record<string, unknown>
+}
+
+/** One agent call, recorded in full: the glass the whole flow is replayed through. */
+export interface Call {
+	readonly id: number
+	readonly item: number
+	readonly kind: string
+	readonly job: string
+	readonly profile: string
+	readonly card: Card
+	readonly system: string
+	readonly prompt: string
+	readonly outcome: 'ok' | 'limit' | 'error'
+	readonly output: string | null
+	readonly error: string | null
+	readonly raw: string | null
+	readonly started: string
+	readonly ms: number
 }
 
 export const defaultStorePath = () => process.env.MW_STORE ?? join(process.env.MW_HOME ?? join(homedir(), '.local', 'share', 'madewell'), 'madewell.db')
@@ -98,6 +119,7 @@ export function openStore(path: string) {
 	db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
+		CREATE TABLE IF NOT EXISTS calls (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, kind TEXT NOT NULL, job TEXT NOT NULL, profile TEXT NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`)
 
@@ -121,13 +143,13 @@ export function openStore(path: string) {
 
 	return {
 		path,
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework'>>): Item {
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs'>>): Item {
 			return tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')
-				const item: Item = { job: 'ideate', from: { kind: 'dispatcher' }, ...fields, id: Number(lastInsertRowid), status: 'queued', round: 1, corrections: 0, launches: 0, outputs: {}, created: now, updated: now }
+				const item: Item = { job: 'ideate', from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(item), item.id)
-				event(item.id, 'created', { title: item.title, job: item.job, parent: item.parent ?? null })
+				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item
 			})
 		},
@@ -148,6 +170,18 @@ export function openStore(path: string) {
 		},
 		events(id: number): Event[] {
 			return (db.prepare('SELECT * FROM events WHERE item = ? ORDER BY seq').all(id) as { seq: number; item: number; at: string; kind: string; data: string }[]).map((r) => ({ ...r, data: JSON.parse(r.data) }))
+		},
+		recordCall(call: Omit<Call, 'id'>): number {
+			const { lastInsertRowid } = db
+				.prepare('INSERT INTO calls (item, kind, job, profile, card, system, prompt, outcome, output, error, raw, started, ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+				.run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms)
+			return Number(lastInsertRowid)
+		},
+		calls(): Call[] {
+			return (db.prepare('SELECT * FROM calls ORDER BY id').all() as (Omit<Call, 'card'> & { card: string })[]).map((r) => ({ ...r, card: JSON.parse(r.card) }))
+		},
+		allEvents(): Event[] {
+			return (db.prepare('SELECT * FROM events ORDER BY seq').all() as { seq: number; item: number; at: string; kind: string; data: string }[]).map((r) => ({ ...r, data: JSON.parse(r.data) }))
 		},
 		exhausted(): Record<string, number> {
 			return Object.fromEntries((db.prepare('SELECT account, resets_at FROM accounts').all() as { account: string; resets_at: number }[]).map((r) => [r.account, r.resets_at]))

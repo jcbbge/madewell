@@ -1,44 +1,40 @@
 #!/usr/bin/env node
 // `mw`: one command, plain verbs, JSON out. Results go to stdout; errors go to stderr as
 // {error, message, context, cause, next} with exit code 1. Every answer names its next commands.
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import { basename, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { Effect, Layer } from 'effect'
 import { loadPrescriptions } from './cards.ts'
-import { answer, nextFor, retry, runQueue } from './engine.ts'
+import { answer, nextFor, promote, retry, runQueue } from './engine.ts'
 import { MadeWellError, errorJson, type Next } from './errors.ts'
 import { stepOf, type Cause } from './lane.ts'
 import { Store, storeLayer, type Item } from './store.ts'
-import { commandWorker, Worker } from './worker.ts'
+import { harnessWorker } from './harness.ts'
+import { replayHtml, snapshot } from './replay.ts'
+import { commandWorker } from './worker.ts'
 
 const USAGE: Next[] = [
-	{ run: 'mw start --objective "<one line>" --source-file <file> [--workspace <dir>]', why: 'add a work item to the delivery queue' },
+	{ run: 'mw discover --source-file <raw notes> [--workspace <dir>]', why: 'turn raw input into candidate work items' },
+	{ run: 'mw promote <discovery id> [item ids...]', why: 'send all (or the named) candidates into delivery' },
+	{ run: 'mw start --objective "<one line>" --source-file <file> [--workspace <dir>]', why: 'add one work item straight to the delivery queue' },
 	{ run: 'mw run [--watch]', why: 'deliver queued items, oldest first' },
 	{ run: 'mw status [id]', why: 'what is running, what waits on you, what shipped' },
 	{ run: 'mw show <id>', why: 'one item with its full event history' },
 	{ run: 'mw answer <id> "<answer>"', why: 'answer an agent\'s open questions on a held item' },
 	{ run: 'mw answer <id> --cause implementation|test|pre-existing "<answer>"', why: 'rule on a held failed check' },
 	{ run: 'mw retry <id>', why: 'run a held item again from where it stopped' },
+	{ run: 'mw serve [--port 7788]', why: 'watch the whole flow live, and replay it step by step' },
+	{ run: 'mw replay [--out <file.html>]', why: 'write the replay of the whole flow to one self-contained page' },
 ]
 
 const usageError = (message: string, context: Record<string, unknown> = {}) => new MadeWellError({ code: 'usage', message, context, next: USAGE })
 
 const prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL('../prescriptions.json', import.meta.url).pathname
 
-const workerLayer = Layer.unwrap(Effect.sync(() => {
-	const command = process.env.MW_WORKER_COMMAND
-	if (command) return commandWorker(command)
-	return Layer.succeed(Worker, {
-		run: (request) => Effect.fail(new MadeWellError({
-			code: 'no_worker',
-			message: 'No harness adapter is configured to run jobs yet.',
-			context: { job: request.job, card: request.card },
-			cause: 'Built-in Claude Code, Codex and pi adapters are the next milestone of the rewrite.',
-			next: [{ run: 'MW_WORKER_COMMAND="<command>" mw run', why: 'plug in any harness: the command reads the job request as JSON on stdin and prints {ok, output} | {ok:false, limit} | {ok:false, error}' }],
-		})),
-	})
-}))
+// MW_WORKER_COMMAND plugs in any harness; otherwise the built-in Claude Code, Codex and pi workers run.
+const workerLayer = Layer.unwrap(Effect.sync(() => (process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker)))
 
 const view = (item: Item) => ({
 	id: item.id,
@@ -47,13 +43,15 @@ const view = (item: Item) => ({
 	stage: stepOf(item.job).stage,
 	job: item.job,
 	profile: stepOf(item.job).profile,
+	...(item.kind ? { kind: item.kind } : {}),
+	...(item.discovery !== undefined ? { discovery: item.discovery } : {}),
 	...(item.exchange && item.exchange.status !== 'clear' ? { nq: { from: item.exchange.from.kind === 'job' ? stepOf(item.exchange.from.job).profile : item.exchange.from.kind, status: item.exchange.status, turns: item.exchange.turns.filter((t) => t.answer !== undefined).length } } : {}),
 	round: item.round,
 	...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),
 	...(item.hold ? { hold: item.hold } : {}),
 	...(item.shipped ? { shipped: item.shipped } : {}),
-	next: item.status === 'held' ? nextFor(item) : item.status === 'shipped' ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
+	next: item.status === 'held' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped'].includes(item.status) ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
 })
 
 const number = (value: string | undefined) => {
@@ -63,7 +61,7 @@ const number = (value: string | undefined) => {
 
 const program = Effect.gen(function* () {
 	const { positionals, values } = yield* Effect.try({
-		try: () => parseArgs({ allowPositionals: true, options: { objective: { type: 'string' }, title: { type: 'string' }, source: { type: 'string' }, 'source-file': { type: 'string' }, workspace: { type: 'string' }, cause: { type: 'string' }, watch: { type: 'boolean' } } }),
+		try: () => parseArgs({ allowPositionals: true, options: { port: { type: 'string' }, out: { type: 'string' }, objective: { type: 'string' }, title: { type: 'string' }, source: { type: 'string' }, 'source-file': { type: 'string' }, workspace: { type: 'string' }, cause: { type: 'string' }, watch: { type: 'boolean' } } }),
 		catch: (e) => usageError(String((e as Error).message)),
 	})
 	const [command, ...args] = positionals
@@ -79,6 +77,32 @@ const program = Effect.gen(function* () {
 			if (!source) return yield* usageError('start needs the operator\'s own words: --source "<text>" or --source-file <file>.')
 			const item = store.create({ title: values.title ?? values.objective, objective: values.objective, source, workspace: resolve(values.workspace ?? '.') })
 			return { item: view(item), next: [{ run: 'mw run', why: 'deliver it; it moves through all four stages and ships on a passing check' }] }
+		}
+		case 'discover': {
+			if (!values['source-file'] && !values.source) return yield* usageError('discover needs the raw input: --source-file <file> or --source "<text>".')
+			const path = values['source-file'] && resolve(values['source-file'])
+			const source = path ? yield* Effect.try({ try: () => readFileSync(path, 'utf8'), catch: () => usageError(`Cannot read --source-file ${path}.`, { path }) }) : values.source!
+			const item = store.create({ title: values.title ?? `Discovery of ${path ? basename(path) : 'raw input'}`, objective: 'Turn the raw input into candidate work items.', source, workspace: resolve(values.workspace ?? '.'), job: 'discover' })
+			return { item: view(item), next: [{ run: 'mw run', why: 'run discovery; its candidates wait for promotion' }] }
+		}
+		case 'promote': {
+			const promoted = yield* promote(yield* number(args[0]), yield* Effect.all(args.slice(1).map(number)))
+			return { promoted: promoted.map(view), next: [{ run: 'mw run', why: 'deliver them, oldest first' }] }
+		}
+		case 'replay': {
+			const out = resolve(values.out ?? 'madewell-replay.html')
+			writeFileSync(out, replayHtml(snapshot(store), false))
+			return { replay: out, next: [{ run: `open ${out}`, why: 'step through the whole flow' }] }
+		}
+		case 'serve': {
+			const port = Number(values.port ?? 7788)
+			createServer((req, res) => {
+				const data = snapshot(store)
+				if (req.url?.startsWith('/data.json')) return res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(data))
+				res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }).end(replayHtml(data, true))
+			}).listen(port)
+			process.stderr.write(JSON.stringify({ serving: `http://localhost:${port}/`, store: store.path }) + '\n')
+			return yield* Effect.never
 		}
 		case 'run': {
 			const prescriptions = yield* loadPrescriptions(prescriptionsPath())
@@ -96,7 +120,7 @@ const program = Effect.gen(function* () {
 			const count = (s: Item['status']) => items.filter((i) => i.status === s).length
 			const held = items.filter((i) => i.status === 'held')
 			return {
-				summary: `${count('held')} need you, ${count('running') + count('waiting-quota') + count('waiting-prerequisite')} in progress, ${count('queued')} queued, ${count('shipped')} shipped`,
+				summary: `${count('held')} need you, ${count('candidate')} candidates, ${count('running') + count('waiting-quota') + count('waiting-prerequisite')} in progress, ${count('queued')} queued, ${count('shipped')} shipped`,
 				items: items.map(view),
 				next: held.length ? held.flatMap(nextFor) : count('queued') ? [{ run: 'mw run', why: 'deliver queued items' }] : [],
 			}

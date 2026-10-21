@@ -6,13 +6,13 @@ import { test } from 'node:test'
 import { Effect, Fiber, Layer } from 'effect'
 import { TestClock } from 'effect/testing'
 import type { Prescriptions } from '../src/cards.ts'
-import { answer, drive, nextFor, retry } from '../src/engine.ts'
+import { answer, drive, nextFor, promote, retry } from '../src/engine.ts'
 import type { Job } from '../src/lane.ts'
 import { openStore, Store } from '../src/store.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
 
 const card = (account: string) => ({ harness: 'claude' as const, provider: account, account, model: `${account}-model`, effort: 'low' as const })
-const JOBS: Job[] = ['ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate']
+const JOBS: Job[] = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate']
 const prescriptions: Prescriptions = {
 	tiers: { all: [card('anthropic'), card('openai')] },
 	jobs: Object.fromEntries(JOBS.map((job) => [job, { tier: 'all', access: 'read' }])) as Prescriptions['jobs'],
@@ -76,6 +76,21 @@ test('an item passes through six profiles, each confirming its hand-off before e
 		assert.deepEqual(Object.keys(implement.accepted), ['ideate', 'challenge', 'plan', 'test-plan'])
 		assert.equal(implement.exchange.from, 'test architect')
 		assert.equal(implement.exchange.handoff, 'test-plan deliverable')
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('answers that end in a fenced JSON block are read on the first call', async () => {
+	const fenced = (json: string) => ok(`Here it is.\n\`\`\`json\n${json}\n\`\`\`\n`)
+	const t = setup((req) =>
+		req.kind === 'intake' ? fenced('{"understanding":"I see the job","questions":[],"notes":[]}')
+		: req.job === 'verify' ? fenced('{"outcome":"pass","summary":"2/2 passed"}')
+		: undefined)
+	try {
+		const done = await t.run(drive(t.item.id, { prescriptions }))
+		assert.equal(done.status, 'shipped')
+		assert.equal(t.calls.length, 12, 'no call is repeated')
 	} finally {
 		t.cleanup()
 	}
@@ -257,6 +272,38 @@ test('a passing item without a ship command holds with the command that fixes it
 		assert.equal(item.hold?.code, 'no_ship_command')
 		assert.match(nextFor(item)[0]!.run, /madewell\.json/)
 		assert.equal(existsSync(join(t.dir, 'SHIPPED')), false)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('discovery turns raw input into candidates that wait for promotion; each promoted item is handed over by discovery and ships', async () => {
+	const items = [
+		{ title: 'Plant list with photos', kind: 'feature', objective: 'Upload a photo per plant', text: 'Each plant has a photo and a name.' },
+		{ title: 'Watering schedule', kind: 'feature', objective: 'Set a schedule per plant', text: 'Days of the week per plant.' },
+		{ title: 'Untitled' },
+	]
+	const t = setup((req) => (req.kind === 'execute' && req.job === 'discover' ? ok(`Found two pieces of work.\n${JSON.stringify({ items })}`) : undefined))
+	try {
+		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'raw notes: plants, photos, watering', workspace: t.dir, job: 'discover' })
+		const found = await t.run(drive(run.id, { prescriptions }))
+		assert.equal(found.status, 'discovered')
+		const candidates = t.store.list().filter((i) => i.discovery === run.id)
+		assert.deepEqual(candidates.map((c) => [c.title, c.status]), [['Plant list with photos', 'candidate'], ['Watering schedule', 'candidate']], 'an item without an objective is not a candidate')
+		assert.equal(JSON.parse(t.calls.find((c) => c.kind === 'intake' && c.job === 'discover')!.prompt).handoff.from, 'dispatcher')
+
+		const notCandidate = await t.run(Effect.flip(promote(run.id, [999])))
+		assert.equal(notCandidate.code, 'not_a_candidate')
+		await t.run(promote(run.id, [candidates[1]!.id]))
+		assert.deepEqual(t.store.list().filter((i) => i.discovery === run.id).map((c) => c.status), ['candidate', 'queued'])
+
+		t.calls.length = 0
+		const shipped = await t.run(drive(candidates[1]!.id, { prescriptions }))
+		assert.equal(shipped.status, 'shipped')
+		const firstIntake = JSON.parse(t.calls[0]!.prompt)
+		assert.equal(firstIntake.handoff.from, 'ideator')
+		assert.match(firstIntake.handoff.content, /^feature: Watering schedule\nObjective: Set a schedule per plant/)
+		assert.equal(t.store.calls().filter((c) => c.item === candidates[1]!.id).length, 12, 'every call is on the record')
 	} finally {
 		t.cleanup()
 	}
