@@ -7,7 +7,7 @@ Made Well is a durable software delivery pipeline for coding agents: discovery t
 Requires Node 22.18 or later.
 
 ```sh
-npm install -g github:jcbbge/madewell
+npm install -g --install-links github:jcbbge/madewell
 ```
 
 ## Use
