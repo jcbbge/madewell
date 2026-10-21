@@ -11,5 +11,6 @@ if (request.kind === 'execute' && request.job === hangJob && marker && !existsSy
 	setInterval(() => {}, 1000)
 	await new Promise(() => {})
 }
-const output = request.kind === 'intake' ? '{"understanding":"clear","questions":[],"notes":[]}' : request.job === 'verify' ? 'Ran the checks.\n{"outcome":"pass","summary":"1/1 passed"}' : `${request.job} deliverable`
+const discovered = JSON.stringify({ items: [{ title: 'First piece', kind: 'feature', objective: 'Do the first thing', text: 'details' }, { title: 'Second piece', kind: 'chore', objective: 'Do the second thing', text: 'details' }] })
+const output = request.kind === 'intake' ? '{"understanding":"clear","questions":[],"notes":[]}' : request.job === 'discover' ? `Found two pieces.\n${discovered}` : request.job === 'verify' ? 'Ran the checks.\n{"outcome":"pass","summary":"1/1 passed"}' : `${request.job} deliverable`
 process.stdout.write(JSON.stringify({ ok: true, output }))

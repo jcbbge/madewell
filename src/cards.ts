@@ -6,7 +6,7 @@ import { MadeWellError } from './errors.ts'
 import type { Job } from './lane.ts'
 
 const Card = Schema.Struct({
-	harness: Schema.Literals(['claude', 'codex', 'pi']),
+	harness: Schema.Literals(['amp', 'claude', 'codex', 'pi']),
 	provider: Schema.NonEmptyString,
 	account: Schema.NonEmptyString,
 	model: Schema.NonEmptyString,
@@ -17,7 +17,7 @@ export type Card = typeof Card.Type
 const Access = Schema.Literals(['read', 'checks', 'make', 'run'])
 export type Access = typeof Access.Type
 
-const JOBS = ['ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate'] as const
+const JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate'] as const
 
 const Prescriptions = Schema.Struct({
 	tiers: Schema.Record(Schema.String, Schema.NonEmptyArray(Card)),

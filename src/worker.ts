@@ -28,10 +28,11 @@ export interface UsageLimit {
 	readonly message: string
 }
 
+/** `raw`: the harness's own transcript of the run, kept on the record for replay. */
 export type WorkerResult =
-	| { readonly ok: true; readonly output: string }
-	| { readonly ok: false; readonly limit: UsageLimit }
-	| { readonly ok: false; readonly error: string }
+	| { readonly ok: true; readonly output: string; readonly raw?: string }
+	| { readonly ok: false; readonly limit: UsageLimit; readonly raw?: string }
+	| { readonly ok: false; readonly error: string; readonly raw?: string }
 
 export class Worker extends Context.Service<Worker, {
 	readonly run: (request: WorkerRequest) => Effect.Effect<WorkerResult, MadeWellError>

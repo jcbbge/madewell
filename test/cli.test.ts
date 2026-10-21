@@ -31,7 +31,7 @@ test('start → run ships through the CLI, and every answer names its next comma
 	assert.equal(ran.code, 0, JSON.stringify(ran.err))
 	assert.equal(ran.out.items[0].status, 'shipped')
 	assert.deepEqual(readFileSync(join(dir, 'calls.log'), 'utf8').trim().split('\n').filter((l) => l.startsWith('execute')), ['execute ideate ideator', 'execute challenge ideation peer', 'execute plan planner', 'execute test-plan test architect', 'execute implement implementer', 'execute verify verifier'])
-	assert.match(mw('status').out.summary, /0 need you, 0 in progress, 0 queued, 1 shipped/)
+	assert.match(mw('status').out.summary, /0 need you, 0 candidates, 0 in progress, 0 queued, 1 shipped/)
 })
 
 test('errors are JSON on stderr with context and next commands', () => {

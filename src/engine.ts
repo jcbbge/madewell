@@ -56,7 +56,7 @@ export const drive = Effect.fn('mw.drive')(function* (id: number, config: Engine
 	for (;;) {
 		const item = store.get(id)
 		if (!item) return yield* notFound(id)
-		if (item.status === 'held' || item.status === 'shipped') return item
+		if (['held', 'shipped', 'discovered', 'candidate'].includes(item.status)) return item
 
 		if (item.waitsOn !== undefined) {
 			const pre = yield* drive(item.waitsOn, config)
@@ -151,6 +151,15 @@ const execute = Effect.fn('mw.execute')(function* (item: Item, x: Exchange, conf
 	const accepted = { outputs: { ...current.outputs, [item.job]: call.output }, launches: 0, pickingUp: undefined, exchange: undefined } as const
 	const by: Origin = { kind: 'job', job: item.job }
 	switch (r.to) {
+		case 'discovered': {
+			// Each candidate waits for promotion; its originator is this discovery, answering from its report.
+			const ids = r.items.map((c) => store.create({
+				title: c.title, objective: c.objective, kind: c.kind, workspace: current.workspace, status: 'candidate', discovery: current.id,
+				source: current.source, from: by, outputs: { discover: `${c.kind}: ${c.title}\nObjective: ${c.objective}\n\n${c.text}` },
+			}).id)
+			store.save({ ...current, ...accepted, status: 'discovered' }, 'discovered', { candidates: ids })
+			return
+		}
 		case 'next': {
 			// A bad test is corrected and run again; the valid implementation is not rebuilt.
 			const job = item.job === 'test-plan' && current.rework?.cause === 'test' ? 'verify' : r.job
@@ -185,9 +194,15 @@ const callAgent = Effect.fn('mw.call')(function* (id: number, config: EngineConf
 	const worker = yield* Worker
 	const card = pinned ?? (yield* pickOrWait(id, config, tierJob))
 	const item = store.get(id)!
+	const started = new Date()
 	const result = yield* worker
 		.run({ ...request, item: id, card, cwd: item.workspace })
 		.pipe(Effect.withSpan(`mw.${request.kind}.${request.job}`, { attributes: { item: id, job: request.job, kind: request.kind, profile: request.profile, harness: card.harness, model: card.model, account: card.account } }))
+	store.recordCall({
+		item: id, kind: request.kind, job: request.job, profile: request.profile, card, system: request.system, prompt: request.prompt,
+		outcome: result.ok ? 'ok' : 'limit' in result ? 'limit' : 'error', output: result.ok ? result.output : null,
+		error: result.ok ? null : 'limit' in result ? result.limit.message : result.error, raw: result.raw ?? null, started: started.toISOString(), ms: Date.now() - started.getTime(),
+	})
 	if (result.ok) return { retry: false, output: result.output, card } as const
 	if ('limit' in result) yield* recordLimit(store.get(id)!, card, result.limit, request)
 	else yield* launchFailed(store.get(id)!, card, result.error)
@@ -254,11 +269,11 @@ const ship = Effect.fn('mw.ship')(function* (item: Item) {
 	} catch {}
 	if (!command) return hold(store, item, 'no_ship_command', `Item #${item.id} passed verification, but its workspace has no ship command.`, { workspace: item.workspace, config })
 	const { code, stdout, stderr } = yield* Effect.promise(
-		() => new Promise<{ code: number; stdout: string; stderr: string }>((done) => execFile('sh', ['-c', command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024 }, (error, stdout, stderr) => done({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }))),
+		() => new Promise<{ code: number; stdout: string; stderr: string }>((done) => execFile('sh', ['-c', command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env: { ...process.env, MW_ITEM: String(item.id), MW_TITLE: item.title, MW_KIND: item.kind ?? 'feature' } }, (error, stdout, stderr) => done({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }))),
 	)
 	const tail = (s: string) => s.slice(-4000)
 	if (code !== 0) return hold(store, item, 'ship_failed', `Item #${item.id} passed verification, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) })
-	store.save({ ...item, status: 'shipped', shipped: { command, output: tail(stdout) } }, 'shipped', { command })
+	store.save({ ...item, status: 'shipped', shipped: { command, output: tail(stdout) } }, 'shipped', { command, output: tail(stdout) })
 })
 
 /** The commands that move a held item, for the agent reading its status. */
@@ -317,6 +332,25 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 		store.save({ ...released, job, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1 }, 'ruling', { cause, to: job, by: 'operator' })
 	})
 
+/** The operator promotes candidates from a discovery run into the delivery queue: all of them, or the ones named. */
+export const promote = (discovery: number, ids: ReadonlyArray<number> = []) =>
+	Effect.gen(function* () {
+		const store = yield* Store
+		const run = store.get(discovery)
+		if (!run) return yield* notFound(discovery)
+		const candidates = store.list().filter((i) => i.discovery === discovery && i.status === 'candidate')
+		if (run.status !== 'discovered') {
+			return yield* new MadeWellError({ code: 'not_discovered', message: `Item #${discovery} is not a finished discovery run (it is ${run.status}).`, context: { id: discovery, status: run.status, job: run.job }, next: [{ run: 'mw status', why: 'find the discovery run and its candidates' }] })
+		}
+		const unknown = ids.filter((id) => !candidates.some((c) => c.id === id))
+		if (unknown.length) {
+			return yield* new MadeWellError({ code: 'not_a_candidate', message: `Not waiting candidates of discovery #${discovery}: ${unknown.join(', ')}.`, context: { discovery, unknown, candidates: candidates.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: 'promote every waiting candidate' }] })
+		}
+		const chosen = ids.length ? candidates.filter((c) => ids.includes(c.id)) : candidates
+		for (const c of chosen) store.save({ ...c, status: 'queued' }, 'promoted', { discovery })
+		return chosen.map((c) => store.get(c.id)!)
+	})
+
 export const retry = (id: number) =>
 	Effect.gen(function* () {
 		const { store, item } = yield* held(id)
@@ -334,7 +368,7 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}
 		yield* Effect.addFinalizer(() => Effect.sync(() => store.releaseRunner()))
 		const results: Item[] = []
 		for (;;) {
-			const ready = store.list().find((i) => i.parent === undefined && i.status !== 'held' && i.status !== 'shipped')
+			const ready = store.list().find((i) => i.parent === undefined && ['queued', 'running', 'waiting-quota', 'waiting-prerequisite'].includes(i.status))
 			if (ready) {
 				results.push(yield* drive(ready.id, config))
 				continue
@@ -375,6 +409,7 @@ const EXECUTE_SYSTEM = (job: Job) => {
 const itemFacts = (item: Item) => ({ id: item.id, title: item.title, objective: item.objective, source: item.source, workspace: item.workspace, round: item.round })
 
 const acceptedBefore = (item: Item) => {
+	if (item.job === 'discover') return {}
 	const before = item.job === 'arbitrate' ? DELIVERY : DELIVERY.slice(0, DELIVERY.findIndex((s) => s.job === item.job))
 	return Object.fromEntries(before.filter((s) => item.outputs[s.job] !== undefined).map((s) => [s.job, item.outputs[s.job]]))
 }
