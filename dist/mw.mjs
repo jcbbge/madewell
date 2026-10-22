@@ -22054,13 +22054,16 @@ var Card = Schema_exports.Struct({
 });
 var Access = Schema_exports.Literals(["none", "read", "checks", "make", "run"]);
 var INTAKE_ACCESS = "none";
-var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "verify", "arbitrate"];
+var AGENT_JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
 var Positive = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
 var JobBudget = Schema_exports.optional(Schema_exports.Struct({ minutes: Positive, tokens: Schema_exports.optional(Positive) }));
 var Prescription = Schema_exports.Struct({ tier: Schema_exports.String, access: Access, budget: JobBudget });
 var Prescriptions = Schema_exports.Struct({
   tiers: Schema_exports.Record(Schema_exports.String, Schema_exports.NonEmptyArray(Card)),
-  jobs: Schema_exports.Struct(Object.fromEntries(JOBS.map((job) => [job, Prescription]))),
+  jobs: Schema_exports.Struct({
+    ...Object.fromEntries(AGENT_JOBS.map((job) => [job, Prescription])),
+    verify: Schema_exports.Struct({ budget: JobBudget })
+  }),
   /** Harness entries added to, or replacing, the built-in ones. */
   harnesses: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Harness)),
   /** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
@@ -22088,7 +22091,7 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
       return yield* new MadeWellError({ code: "prescriptions_invalid", message: `Tier "${tier}" has a card on harness "${unknown2.harness}", which has no entry.`, context: { path, tier, card: unknown2, harnesses: Object.keys(harnesses) }, next: [{ run: `$EDITOR ${path}`, why: `use one of ${Object.keys(harnesses).join(", ")}, or add "${unknown2.harness}" under "harnesses": command, output, answer, limit and tools per access level` }] });
     }
   }
-  for (const job of JOBS) {
+  for (const job of AGENT_JOBS) {
     const tier = p.jobs[job].tier;
     if (!p.tiers[tier]) {
       return yield* new MadeWellError({ code: "prescriptions_invalid", message: `Job "${job}" uses tier "${tier}", which is not defined.`, context: { path, job, tier, tiers: Object.keys(p.tiers) }, next: [{ run: `$EDITOR ${path}`, why: `define tier "${tier}" or point "${job}" at one of: ${Object.keys(p.tiers).join(", ")}` }] });
@@ -22096,7 +22099,8 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   }
   return p;
 });
-var cardsFor = (p, job) => p.tiers[p.jobs[job].tier];
+var prescriptionOf = (p, job) => p.jobs[job];
+var cardsFor = (p, job) => p.tiers[prescriptionOf(p, job).tier];
 var budgetFor = (p, job) => p.jobs[job].budget ?? DEFAULT_BUDGET;
 var harnessOf = (p, name) => {
   const harness = p.harnesses?.[name] ?? HARNESSES[name];
@@ -23397,7 +23401,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   yield* callAgent(id2, job, config, {
     kind: "execute",
     profile: stepOf(job).profile,
-    access: config.prescriptions.jobs[job].access,
+    access: prescriptionOf(config.prescriptions, job).access,
     card: x.card,
     required: requiredOf(DELIVERABLES[job]),
     ...job === "implement" && plan ? { scope: plan.scope } : {},
@@ -23406,7 +23410,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
     prepare: (dir) => maker ? applyPatch(dir, patchPath(home, `${job}.partial`)) : job === "arbitrate" ? candidate(item, dir) : Effect_exports.void,
     ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
     packet: (dir) => packet(item, job, dir, executeParts(item, job, t, x))
-  }, (dir, call) => accept(id2, job, config, dir, call));
+  }, (dir, call) => accept(id2, job, dir, call));
 });
 var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_exports.gen(function* () {
   const store = yield* Store;
@@ -23494,7 +23498,7 @@ var refuse = Effect_exports.fn("mw.refuse")(function* (id2, job, call, reason) {
   store.rejectCall(call.callId, reason);
   yield* launchFailed(id2, job, call.card, reason, {}, { rejected: reason });
 });
-var accept = Effect_exports.fn("mw.accept")(function* (id2, job, config, dir, call) {
+var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, call) {
   const store = yield* Store;
   const item = store.get(id2);
   const plan = planOf(item);
@@ -24014,7 +24018,7 @@ var executeParts = (item, job, t, x) => ({
 import { readFileSync as readFileSync6 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
-var JOBS2 = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
+var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
 var MIN_OUT_MS2 = 5 * 6e4;
 var EvalCard = Schema_exports.Struct({
@@ -24138,7 +24142,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const at = new Date(yield* Clock_exports.currentTimeMillis).toISOString();
   const run2 = Number(db.prepare("INSERT INTO evals (at, job, card, brief, items, calls) VALUES (?, ?, ?, ?, ?, ?)").run(at, o.job, o.card ?? null, briefPath ?? null, JSON.stringify(ids), JSON.stringify(calls.map((c) => c.id))).lastInsertRowid);
   const insert = db.prepare("INSERT INTO eval_calls (eval, call, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-  const accessOf = (c) => c.kind === "execute" ? p.jobs[o.job].access : "read";
+  const accessOf = (c) => c.kind === "execute" ? prescriptionOf(p, o.job).access : "read";
   const budget = budgetFor(p, o.job);
   const rulesOf = (c) => {
     const { head: _, changed: __, ...recorded } = c.facts ?? {};
@@ -24217,7 +24221,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
     const [x, y] = [cost(a), cost(b)];
     return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
   })[0];
-  const prescribed = p.jobs[o.job].tier;
+  const prescribed = prescriptionOf(p, o.job).tier;
   const tierOf = (card) => p.tiers[prescribed].some((c) => sameCard(c, card)) ? prescribed : Object.keys(p.tiers).find((t) => p.tiers[t].some((c) => sameCard(c, card))) ?? null;
   const overall = totals(calls.map(recordedScore));
   const tokens = (t) => t.tokens === null ? "unreported tokens" : `${t.tokens} tokens`;
@@ -24673,7 +24677,7 @@ var COMMANDS = [
     summary: "Replay a job's recorded calls on another card or brief through the worker, score record and replay deterministically (required JSON fields, rule-break flags, seconds, tokens), and recommend the cheapest card that matches or beats the record. Replays run in throwaway worktrees; results go only to the store; no file changes.",
     args: ["job"],
     input: Schema_exports.Struct({
-      job: Schema_exports.Literals(JOBS2).annotate({ description: "the job whose recorded calls to replay: its intake, originator and execute calls" }),
+      job: Schema_exports.Literals(JOBS).annotate({ description: "the job whose recorded calls to replay: its intake, originator and execute calls" }),
       card: optional3("a tier name (every card in it) or one card as JSON {harness, provider, account, model, effort}; defaults to each call's recorded card"),
       brief: optional3("a file whose text replaces the job's brief; only execute calls are replayed"),
       item: optional3("only calls of these work items, comma-separated: 3,5"),

@@ -159,7 +159,7 @@ const fill = (template: string, vars: unknown) =>
 const glob = (names: ReadonlyArray<string>) => (name: string) => names.some((n) => (n.endsWith('*') ? name.startsWith(n.slice(0, -1)) : name === n))
 
 /** The agent's whole environment: the allowlisted variables of the runner's, and MW_WORKER=1. */
-export const agentEnv = (allow: ReadonlyArray<string>, from: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv => ({
+const agentEnv = (allow: ReadonlyArray<string>, from: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv => ({
 	...Object.fromEntries(Object.entries(from).filter(([name]) => glob(allow)(name))),
 	...Object.fromEntries(allow.filter((a) => a.includes('=')).map((a) => [a.slice(0, a.indexOf('=')), a.slice(a.indexOf('=') + 1)])),
 	MW_WORKER: '1',

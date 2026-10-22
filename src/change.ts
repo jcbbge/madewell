@@ -23,7 +23,7 @@ export const writePatch = (path: string, patch: string) => {
 	writeFileSync(path, patch)
 }
 
-export const readPatch = (path: string) => {
+const readPatch = (path: string) => {
 	try {
 		return readFileSync(path, 'utf8')
 	} catch {

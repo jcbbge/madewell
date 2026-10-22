@@ -19,10 +19,13 @@ const OPUS = card('claude', 'anthropic', 'opus')
 const ASTRA = card('codex', 'openai', 'astra')
 const SONNET = card('claude', 'anthropic', 'sonnet')
 const HAIKU = card('claude', 'anthropic', 'haiku')
-const JOBS: Job[] = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate']
+const JOBS: Job[] = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate']
 const prescriptions: Prescriptions = {
 	tiers: { deep: [OPUS, ASTRA], coding: [SONNET, card('codex', 'openai', 'sol')], intake: [HAIKU, card('codex', 'openai', 'luna')] },
-	jobs: Object.fromEntries(JOBS.map((job) => [job, { tier: job === 'implement' ? 'coding' : 'deep', access: job === 'implement' ? 'make' : job === 'test-plan' ? 'checks' : job === 'arbitrate' ? 'run' : 'read', budget: { minutes: 1 } }])) as Prescriptions['jobs'],
+	jobs: {
+		...Object.fromEntries(JOBS.map((job) => [job, { tier: job === 'implement' ? 'coding' : 'deep', access: job === 'implement' ? 'make' : job === 'test-plan' ? 'checks' : job === 'arbitrate' ? 'run' : 'read', budget: { minutes: 1 } }])),
+		verify: { budget: { minutes: 1 } },
+	} as Prescriptions['jobs'],
 }
 const config = { prescriptions }
 
@@ -530,7 +533,7 @@ test('a usage limit mid-job hands the job and its unfinished work to an agent on
 })
 
 test('a pre-existing defect becomes its own item from planning; the original waits, then runs its checks again and ships', async () => {
-	const t = setup((req, n) => {
+	const t = setup((req) => {
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'test-plan') return checks(req, `[ -f src/fixed.sh ] && ${CHECK}`)
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'arbitrate') return ruling('pre-existing')
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/fixed.sh'] }

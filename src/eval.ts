@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { Clock, Effect, Schema } from 'effect'
-import { budgetFor, cardsFor, harnessOf, type Access, type Card, type Prescriptions } from './cards.ts'
+import { budgetFor, cardsFor, harnessOf, prescriptionOf, type Access, type Card, type Prescriptions } from './cards.ts'
 import { MadeWellError, Next, quote } from './errors.ts'
 import { HARNESSES } from './harness.ts'
 import { decode, INTAKE, lastJson, ORIGINATOR, validate, type Job } from './lane.ts'
@@ -169,7 +169,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	const run = Number(db.prepare('INSERT INTO evals (at, job, card, brief, items, calls) VALUES (?, ?, ?, ?, ?, ?)').run(at, o.job, o.card ?? null, briefPath ?? null, JSON.stringify(ids), JSON.stringify(calls.map((c) => c.id))).lastInsertRowid)
 	const insert = db.prepare('INSERT INTO eval_calls (eval, call, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 
-	const accessOf = (c: Call): Access => (c.kind === 'execute' ? p.jobs[o.job].access : 'read')
+	const accessOf = (c: Call): Access => (c.kind === 'execute' ? prescriptionOf(p, o.job).access : 'read')
 	const budget = budgetFor(p, o.job)
 	/** The rules both sides are held to: the recorded facts, else the job's access and budget. Head and changed files are per run. */
 	const rulesOf = (c: Call): Facts => {
@@ -253,7 +253,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 		const [x, y] = [cost(a), cost(b)]
 		return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]!
 	})[0]
-	const prescribed = p.jobs[o.job].tier
+	const prescribed = prescriptionOf(p, o.job).tier
 	const tierOf = (card: Card) => (p.tiers[prescribed]!.some((c) => sameCard(c, card)) ? prescribed : Object.keys(p.tiers).find((t) => p.tiers[t]!.some((c) => sameCard(c, card))) ?? null)
 	const overall = totals(calls.map(recordedScore))
 	const tokens = (t: Totals) => (t.tokens === null ? 'unreported tokens' : `${t.tokens} tokens`)

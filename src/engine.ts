@@ -22,7 +22,7 @@
 import { execFile } from 'node:child_process'
 import { mkdirSync, rmSync } from 'node:fs'
 import { Clock, Effect, Queue, Result, Semaphore } from 'effect'
-import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
+import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, itemHome, patchPath, removeHome, revParse, runChecks, takeChange, writePatch } from './change.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
 import { NEUTRAL_HOST } from './harness.ts'
@@ -35,8 +35,8 @@ import { Store, type Exchange, type Item, type Origin, type Track } from './stor
 import { capture, changes, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, type Changes, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
 
-export const MAX_LAUNCHES = 3
-export const MAX_TURNS = 3
+const MAX_LAUNCHES = 3
+const MAX_TURNS = 3
 const UNKNOWN_RESET_MS = 60 * 60_000
 const MIN_OUT_MS = 5 * 60_000
 const NQ_HOLDS = ['nq_turns', 'question_for_operator', 'authority']
@@ -44,9 +44,9 @@ const CHECK_HOLDS = ['arbiter_undetermined', 'too_many_corrections']
 const DONE: ReadonlyArray<Item['status']> = ['held', 'shipped', 'discovered', 'candidate']
 const READY: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quota', 'waiting-prerequisite']
 /** The prescribed tier intake runs on: the cheapest cards. Without it, intake uses the job's own tier. */
-export const INTAKE_TIER = 'intake'
+const INTAKE_TIER = 'intake'
 
-export interface EngineConfig {
+interface EngineConfig {
 	readonly prescriptions: Prescriptions
 	/** How long an idle `mw run --watch` waits before looking at the queue again. */
 	readonly pollMs?: number
@@ -58,7 +58,7 @@ type StoreService = Store['Service']
 const notFound = (id: number) =>
 	new MadeWellError({ code: 'item_not_found', message: `There is no work item #${id}.`, context: { id }, next: [{ run: 'mw status', why: 'list every work item and its state' }] })
 
-export const profileOf = (o: Origin) => (o.kind === 'job' ? stepOf(o.job).profile : o.kind)
+const profileOf = (o: Origin) => (o.kind === 'job' ? stepOf(o.job).profile : o.kind)
 
 // ── Tracks: the item's one hand-off, or after planning one per maker ──────────────────────────────────
 
@@ -264,14 +264,14 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 	const plan = planOf(item)
 	const maker = isMaker(job)
 	yield* callAgent(id, job, config, {
-		kind: 'execute', profile: stepOf(job).profile, access: config.prescriptions.jobs[job].access, card: x.card, required: requiredOf(DELIVERABLES[job as keyof typeof DELIVERABLES]),
+		kind: 'execute', profile: stepOf(job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: requiredOf(DELIVERABLES[job as keyof typeof DELIVERABLES]),
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
 		// The arbiter works on the candidate Made Well verified: the change committed on main, the checks applied.
 		...(job === 'arbitrate' && item.verification ? { at: item.verification.on } : {}),
 		prepare: (dir) => (maker ? applyPatch(dir, patchPath(home, `${job as Maker}.partial`)) : job === 'arbitrate' ? candidate(item, dir) : Effect.void),
 		...(maker ? { onFail: (dir: string) => keepPartial(dir, item, job as Maker) } : {}),
 		packet: (dir) => packet(item, job, dir, executeParts(item, job, t, x)),
-	}, (dir, call) => accept(id, job, config, dir, call))
+	}, (dir, call) => accept(id, job, dir, call))
 })
 
 interface CallSpec {
@@ -390,7 +390,7 @@ const refuse = Effect.fn('mw.refuse')(function* (id: number, job: Job, call: Cal
  * Accepts a job's deliverable once it holds to its contract: its schema, its done-when ids, its scope, and the
  * branch untouched. A maker's work leaves its worktree as a patch kept in Made Well's home.
  */
-const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, config: EngineConfig, dir: string, call: Called) {
+const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: string, call: Called) {
 	const store = yield* Store
 	const item = store.get(id)!
 	const plan = planOf(item)
@@ -700,7 +700,7 @@ const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Jo
 })
 
 /** The items this one builds on that have not shipped; it starts once they have. */
-export const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => store.get(id)?.status !== 'shipped')
+const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => store.get(id)?.status !== 'shipped')
 
 /** Whether an item cannot move until the operator acts: something it waits on is held, or was never promoted. */
 export const stuck = (store: StoreService, item: Item): boolean => {

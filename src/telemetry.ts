@@ -58,7 +58,7 @@ export interface Flag {
 }
 
 /** Every harness's own editing tools: Claude Code, Amp, Codex and pi. */
-export const WRITE_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'edit_file', 'create_file', 'undo_edit', 'file_change', 'edit', 'write']
+const WRITE_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'edit_file', 'create_file', 'undo_edit', 'file_change', 'edit', 'write']
 
 const lines = (raw: string) => raw.split('\n').flatMap((l) => {
 	try {
@@ -284,7 +284,7 @@ interface Tally { calls: number; minutes: number; tokens: number; refused: numbe
 /** Agent minutes by call kind: intake and originator are NQ's share, execute is the work itself. */
 type Kinds = Record<string, number>
 interface ItemRef { item: number; store: string; minutes: number }
-export interface ProjectStats extends Tally {
+interface ProjectStats extends Tally {
 	host: string
 	workspace: string
 	kinds: Kinds
