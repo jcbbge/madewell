@@ -15,7 +15,7 @@ The operator's law for Made Well. It binds every implementation, every agent and
 9. **Only the item's own checks gate its merge to main,** even when items run in parallel. Never the whole suite.
 10. **Every decision is settled in ideation and planning, by the experience rubric.** Every question passes through its three governing questions, and the answer they give is the decision. The operator hears of a question only when an NQ exchange is still open after three turns, because that means the design, brief, spec or plan is wrong.
 11. **Checks are disposable.** They exist for one work item and are gone once it ships. A later problem re-enters the pipeline and gets new checks.
-12. **After planning, the work splits.** The implementer and the test architect work from the same plan, in parallel, as different agents on different runtimes, and neither sees the other's output. Only the verifier receives both. The maker never runs its own checks: it would change the code to pass them and hide the three possible causes, which are a pre-existing defect, a wrong implementation or a wrong test.
+12. **After planning, the work splits.** The implementer and the test architect work from the same plan, in parallel, as different agents on different runtimes, and neither sees the other's output. Only Made Well's own run of the checks receives both (ruling 14). The maker never runs its own checks: it would change the code to pass them and hide the three possible causes, which are a pre-existing defect, a wrong implementation or a wrong test.
 13. **Conservation: leave no trace.** Every job ends with aftercare. Worktrees are removed, processes are stopped, and anything provisioned (database branches, dev clones, servers) is torn down. Made Well keeps the smallest footprint: no stray files, markdown or artifacts in the product repo or on the machine, and no trace that an agent did the work beyond the delivered change itself. The same applies to Made Well's own code.
 14. **A pass ships without an agent.** Made Well runs the item's check commands itself, and exit 0 ships. Only a failure calls an agent: the Arbiter, with the logs. The verifier's job becomes Made Well's own code. The six agents are the ideator, ideation peer, planner, test architect, implementer and Arbiter.
 
@@ -76,15 +76,15 @@ Every item carries its purpose, decisions, scope, and acceptance conditions acro
 | **Ideator** | Understand, shape, and explore the work. Also runs discovery. |
 | **Ideation peer** | Challenge, strengthen, and sharpen ideas. Failure questions route through NQ to the responsible answerer; this profile is not automatically the answerer for every failure. |
 | **Planner** | Inspect the actual environment and produce the grounded plan and actionable contract. |
-| **Test architect** | Derive the checks independently from the agreed contract, before the making. |
+| **Test architect** | Derive the checks from the agreed plan, in parallel with the making and blind to it. |
 | **Implementer** | Execute the fixed implementation instructions without changing scope. |
-| **Verifier** | Run the checks and report, without becoming the maker. |
+| **Arbiter** | Rule on a failed check: whose question it is. Ruling on a failure is its own job, separate from the ideation peer. |
 
-Two more parties sit outside the six. The **Arbiter** rules on a failed check; ruling on a failure is its own job, separate from the ideation peer. The **dispatcher** starts, stops and steers work and never does it. The **operator** is the person who decides.
+Verification is not an agent. Made Well runs the item's checks itself, merges and ships on a pass, and calls the Arbiter only on a failure (ruling 14). Two parties sit outside the six: the **dispatcher** starts, stops and steers work and never does it; the **operator** is the person who decides.
 
-The six-agent default separates the ideator from its challenging peer and separates test design from implementation and test execution. The planner grounds work in actual sources; the implementer follows the specification; the test architect derives checks from that specification independently of implementation; the verifier runs and reports. No agent accepts its own contribution. Profiles are not permanently running processes: each job is one call on its prescribed card.
+The six agents separate the ideator from its challenging peer and separate test design from implementation and from test execution. The planner grounds work in actual sources; the implementer follows the plan; the test architect derives checks from the same plan without seeing the making; Made Well runs the checks. No agent accepts its own contribution. Profiles are not permanently running processes: each job is one call on its prescribed card.
 
-**The implementer and the verifier are vending machines.** They execute. They do not think, plan, design or improvise, and they never change the spec under everyone else. If the plan is wrong, they stop and report it.
+**After planning, the implementer and the test architect are vending machines.** They execute the plan. They do not think, plan, design or improvise, and they never change the spec under everyone else. If the plan cannot be done as written, they stop and report it, and the Arbiter rules.
 
 ## Inner loop: ideation → planning → implementation → verification
 
@@ -92,18 +92,18 @@ These four stages are required and distinct:
 
 1. **Ideation:** shape and challenge what should be done (ideator, ideation peer).
 2. **Planning:** ground the actionable implementation and independent test design in the real environment and agreed contract (planner). The plan then splits: the test architect writes the checks while the implementer makes (ruling 12).
-3. **Implementation:** execute the fixed plan (implementer).
-4. **Verification:** run the checks against the contract (verifier).
+3. **Implementation:** execute the fixed plan (implementer), while the test architect writes the checks.
+4. **Verification:** Made Well runs the item's checks against the implementer's change on the current main. A pass merges and ships; a failure goes to the Arbiter with the logs (ruling 14).
 
 Everything is front-loaded. Ideation and planning resolve every design choice; after planning, agents execute the plan exactly as written: they do not think, improvise, change or alter. A plan that cannot be followed as written is a question for the Arbiter, never a workaround.
 
 A failed attempt accumulates evidence. It does not erase history, redefine the objective, or silently reopen scope. A revision is made by planning again, never smuggled into implementation.
 
-### Checks come first
+### Checks are written from the plan, blind to the making
 
 Checks are written from the plan, blind to the making, and the maker never sees them. They verify intent, not only correctness: correct code that ignores the project's design system passes a correctness check and still misses the point. A correctness check after the making is an optional extra, not part of the minimal setup.
 
-Only the work item's own checks are run: a delivery is one work item, and the verifier runs that item's named checks, never the whole suite, pipeline or app.
+Only the work item's own checks are run: a delivery is one work item, and Made Well runs that item's named checks, never the whole suite, pipeline or app.
 
 ### Dependency holds preserve position
 
@@ -200,8 +200,8 @@ Every failed test is a question, and every question needs an answer from its res
 | Cause | Who answers | Re-entry |
 |---|---|---|
 | **Bad test** | Test architect | Correct the test, then re-run verification. Valid implementation is not rebuilt. |
-| **Bad implementation** | Planner | Replan the correction; then test design, implementation and verification follow again. |
-| **Pre-existing defect** | A linked prerequisite work item | The defect is fixed through its own plan → test design → implement → verify. The original work waits, then re-runs its checks. |
+| **Bad implementation** | Planner | Replan the correction; then the checks and the implementation are redone in parallel, and verification follows again. |
+| **Pre-existing defect** | A linked prerequisite work item | The defect is fixed through its own plan → checks and implementation → verify. The original work waits, then re-runs its checks. |
 | **Undetermined** | **The human** | The Arbiter cannot decide from the evidence: flag the human, who names the cause and answers. |
 
 The answer goes to the responsible party as its assignment for the new round; prior attempts stay on the record. Three corrections that still fail hold for the human, and so does a pre-existing defect found more than two prerequisites deep.
@@ -210,7 +210,7 @@ The answer goes to the responsible party as its assignment for the new round; pr
 
 ## The maker never verifies its own work: stages are the separation
 
-*Operator ruling, 2026-10-12.* This is built into Made Well itself. Every stage is a different agent, and every stage hands off to the next; the verifier is never the implementer, and the maker never writes or runs its own check. Handoff to a different agent is the acceptance. No additional reviewer, receipt or evidence-binding layer sits on top of the stages.
+*Operator ruling, 2026-10-12.* This is built into Made Well itself. Every stage is a different agent, and every stage hands off to the next; the maker never writes or runs its own check, and the checks are run by Made Well, not by an agent (ruling 14). Handoff to a different agent is the acceptance. No additional reviewer, receipt or evidence-binding layer sits on top of the stages.
 
 ## Recoverability: redrive the saved state
 
@@ -218,11 +218,11 @@ The work item is the durable object, not the agent. Every transition is saved be
 
 ## Uninterrupted: prescribed cards, automatic swap
 
-Every job has a prescription. Prescriptions are a config file: each job maps to a tier and an access level; each tier maps to an ordered list of cards spanning several provider accounts. A card is always harness + provider + model (+ effort). Quota belongs to the provider account, not the harness.
+Every job has a prescription. Prescriptions are a config file: each agent job maps to a tier, an access level and a budget; verification, which is Made Well's own code, has a budget only (each check's timeout). Each tier maps to an ordered list of cards spanning several provider accounts. A card is always harness + provider + model (+ effort). Quota belongs to the provider account, not the harness.
 
 When an account hits its usage limit, it is marked out until its reset and the same job continues on the next card in the same tier on another account, in the same workspace, told it is picking up the work. The swap is written to the work record. When every account is out, the work waits for the earliest reset and continues by itself. A usage limit never reaches the human. *The operator called this non-negotiable on 2026-10-21.*
 
-**One worktree per work item, for now.** A VM or sandbox per item is the likely direction, but that infrastructure is not built until the industry settles.
+**One disposable worktree per agent call, for now.** Each call works in its own worktree of the product repo, removed when the call ends; Made Well alone brings the change onto main. A VM or sandbox per item is the likely direction, but that infrastructure is not built until the industry settles.
 
 ## Work-level observability
 
@@ -231,6 +231,21 @@ The operator's primary questions are: **Is the work done? What result and accept
 A failed or lost worker does not end the work: it is redriven on its saved state. A viewer never becomes a scheduler, acceptance authority, or second tracking system.
 
 Visible completion comes from recorded acceptance, not model-written status, process presence, or a timer. A stale observation is not proof of success. Views are disposable, written after each saved transition; the durable record is the one authority.
+
+## Architecture as built
+
+*Recorded 2026-10-22. This describes the implementation. Where it differs from the law above, the law governs and the difference is a named gap.*
+
+- **One command, `mw`.** A TypeScript + Effect program bundled into one file, installed globally from GitHub. Every command prints JSON; `mw` alone prints the manual, generated from the command table. Every failure is a closed error code with the facts to act on and `next` commands. `mw next` returns the one action to take: run, relay to the operator, or wait.
+- **Made Well's home** (`~/.local/share/madewell`, or `MW_HOME`) serves every project on the machine: the store (`madewell.db`, one SQLite file: items, events, calls, tool events, accounts, the runner claim, evals), `projects.json` (each project's ship and alert commands, written by `mw init`), the glass (`glass.html`, rewritten after each saved transition), the per-call worktrees, and each item's patch and checks until it ships. Nothing of Made Well is written into a product repo.
+- **The engine** drives each item from its saved state, one step at a time; each step is a traced Effect span. `mw run` drives every item that can move, up to `parallel` at once (default 3). An item that builds on others (`after`, declared by discovery) starts once they ship. A hold stops only its own item.
+- **Every agent call** opens with its NQ exchange: intake runs with no tools on the cheap `intake` tier and answers the three questions as JSON; the originator answers; three turns that still leave questions, or a question of authority, hold the item. The job then runs in its own worktree of the product repo at the current main, inside its prescribed access (`read`, `checks`, `make`, `run`), budget, allowlisted tools and environment, in its own process group. A read call that writes, a maker outside the plan's scope, files left in the product repo, changed git settings, a moved main and a malformed answer are each refused or held, deterministically. When the call ends, its worktree is removed, its processes are killed, including any that left the group, and what it reports as provisioned is torn down once.
+- **The lane.** Discovery: the ideator turns raw notes into candidates; the operator promotes them. Delivery: ideate (ideator) → challenge (ideation peer) → plan (planner: scope and done-when ids) → implement (implementer) and write the checks (test architect) in parallel, blind to each other, the test architect preferring a different harness → verify: Made Well applies the change on the current main and runs only the item's checks. A pass fast-forwards main and runs the project's ship command; if main moved in between, the checks run again. A failure goes to the Arbiter with the logs, and its ruling routes the work as in the table above.
+- **Briefs.** One shared brief for every call (the experience rubric, the neutral host, conservation, the sub-agent rule), plus a packet: the item, what this job receives, a snapshot, its role and its exchange. Answers are schema-first JSON.
+- **Harnesses are data.** Built-in entries for Claude Code, Codex, pi and Amp; operators add or replace entries in the prescriptions without code. A card is harness + provider + account + model + effort.
+- **Observability.** The store keeps every call in full: brief, packet, answer, raw stream, tool events, tokens and rule-break flags. `mw status`, `show`, `holds`, `export` and `replay` read it. With `MW_TELEMETRY`, every event, call, refusal, eval and span is also appended to the machine's own JSONL file, stamped with the build and the harness version (`MW_TELEMETRY_LEVEL=metrics` drops free text); `mw stats` reads the files from every machine. `mw eval` replays recorded calls on another card or brief and recommends the cheapest card that matches. `mw prune` removes finished work and returns the space.
+- **Demonstrated:** the whole pipeline with a scripted worker in the tests; live runs on Amp only (discovery, NQ and planning on this engine; six items shipped on the previous one). The Claude Code, Codex and pi entries follow their documentation and have not run live.
+- **Named gaps:** the five-minute check-in is not implemented; calls have wall-time budgets instead. No VM or sandbox per item.
 
 ## Decision record
 
