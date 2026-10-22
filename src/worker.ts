@@ -46,7 +46,7 @@ export interface UsageLimit {
 }
 
 /** Evidence of a call stopped for going over its budget. `tokens` is null when the harness reports none. */
-export interface OverBudget {
+interface OverBudget {
 	readonly exceeded: 'minutes' | 'tokens'
 	readonly budget: Budget
 	readonly ms: number
@@ -64,7 +64,7 @@ export class Worker extends Context.Service<Worker, {
 	readonly run: (request: WorkerRequest) => Effect.Effect<WorkerResult, MadeWellError>
 }>()('madewell/Worker') {}
 
-export interface Exited {
+interface Exited {
 	readonly code: number | null
 	readonly stdout: string
 	readonly stderr: string

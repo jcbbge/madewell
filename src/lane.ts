@@ -9,21 +9,21 @@
 import { Result, Schema } from 'effect'
 
 export type Job = 'discover' | 'ideate' | 'challenge' | 'plan' | 'test-plan' | 'implement' | 'verify' | 'arbitrate'
-export type Stage = 'discovery' | 'ideation' | 'planning' | 'implementation' | 'verification'
+type Stage = 'discovery' | 'ideation' | 'planning' | 'implementation' | 'verification'
 export type Cause = 'pre-existing' | 'implementation' | 'test'
 /** The two jobs that run in parallel after planning. */
 export type Maker = 'implement' | 'test-plan'
 export const MAKERS: ReadonlyArray<Maker> = ['implement', 'test-plan']
 export const isMaker = (job: Job): job is Maker => job === 'implement' || job === 'test-plan'
 
-export interface Step {
+interface Step {
 	readonly job: Job
 	readonly stage: Stage
 	readonly profile: string
 	readonly duty: string
 }
 
-export const DELIVERY: ReadonlyArray<Step> = [
+const DELIVERY: ReadonlyArray<Step> = [
 	{ job: 'ideate', stage: 'ideation', profile: 'ideator', duty: 'Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement.' },
 	{ job: 'challenge', stage: 'ideation', profile: 'ideation peer', duty: 'Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement.' },
 	{ job: 'plan', stage: 'planning', profile: 'planner', duty: 'Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement.' },
@@ -33,14 +33,14 @@ export const DELIVERY: ReadonlyArray<Step> = [
 ]
 
 /** Discovery: raw input in, candidate work items out. The ideator runs it. */
-export const DISCOVER: Step = {
+const DISCOVER: Step = {
 	job: 'discover',
 	stage: 'discovery',
 	profile: 'ideator',
 	duty: 'Turn the operator\'s raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator\'s terms. Surface uncertainty instead of guessing. Do not plan or implement.',
 }
 
-export const ARBITER: Step = {
+const ARBITER: Step = {
 	job: 'arbitrate',
 	stage: 'verification',
 	profile: 'arbiter',
@@ -80,8 +80,8 @@ export const Resource = Schema.Struct({
 	teardown: Text.annotate({ description: 'shell command that removes it' }),
 })
 const Provisioned = Schema.optionalKey(Schema.Array(Resource).annotate({ description: 'anything you started or created that is still standing; Made Well tears each down' }))
-export const DoneWhen = Schema.Struct({ id: Text.annotate({ description: 'short and unique, for example D1' }), text: Text })
-export type DoneWhen = typeof DoneWhen.Type
+const DoneWhen = Schema.Struct({ id: Text.annotate({ description: 'short and unique, for example D1' }), text: Text })
+type DoneWhen = typeof DoneWhen.Type
 export const Check = Schema.Struct({
 	id: Text.annotate({ description: 'short and unique, for example C1' }),
 	doneWhen: Text.annotate({ description: 'the id of the plan\'s done-when item this check proves' }),
@@ -93,7 +93,7 @@ const Candidate = Schema.Struct({
 	title: Text, kind: Schema.Literals(['feature', 'fix', 'chore']), objective: Text, text: Text,
 	after: Schema.optionalKey(Schema.Array(Schema.Int).annotate({ description: 'positions (1 is the first) of earlier items in this list that must ship before this one starts, because it builds on them' })),
 })
-export type Candidate = typeof Candidate.Type
+type Candidate = typeof Candidate.Type
 
 export const PLAN = Schema.Struct({
 	making: Text,
@@ -114,7 +114,6 @@ export const DELIVERABLES = {
 	implement: Schema.Union([Schema.Struct({ summary: Text, provisioned: Provisioned }), Blocked]),
 	arbitrate: Schema.Struct({ cause: Schema.Literals(['pre-existing', 'implementation', 'test', 'undetermined']), answer: Text, evidence: Text, provisioned: Provisioned }),
 } as const
-export type Deliverable<J extends keyof typeof DELIVERABLES> = (typeof DELIVERABLES)[J]['Type']
 
 /** The receiver's reply at intake: the three NQ questions, each a list. */
 export const INTAKE = Schema.Struct({
@@ -189,7 +188,7 @@ export function validate(job: Job, output: string, plan?: Plan): { ok: true; val
 }
 
 /** Where the work goes after a single-track job's deliverable is accepted. Pure: the engine applies it. */
-export type Route =
+type Route =
 	| { readonly to: 'discovered'; readonly items: ReadonlyArray<Candidate> }
 	| { readonly to: 'next'; readonly job: Job }
 	| { readonly to: 'split' }
@@ -198,7 +197,7 @@ export type Route =
 	| { readonly to: 'prerequisite'; readonly answer: string }
 	| { readonly to: 'hold'; readonly code: string; readonly message: string }
 
-export const MAX_CORRECTIONS = 3
+const MAX_CORRECTIONS = 3
 
 export const blockedOf = (job: Job, value: Record<string, unknown>) =>
 	typeof value.blocked === 'string' ? `The ${stepOf(job).profile} (${job}) could not do the step as written: ${value.blocked}` : undefined

@@ -24,7 +24,9 @@ export type Access = typeof Access.Type
 /** NQ intake judges the packet alone, so a fact it lacks becomes a question to the sender. */
 export const INTAKE_ACCESS = 'none' satisfies Access
 
-const JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'verify', 'arbitrate'] as const
+/** The jobs an agent does. verify is Made Well's own run of the checks: it has a budget (each check's timeout) and no card. */
+const AGENT_JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'] as const
+export type AgentJob = (typeof AGENT_JOBS)[number]
 
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0))
 /** Wall time for every call of the job, and tokens where the harness reports them. Default: DEFAULT_BUDGET. */
@@ -33,7 +35,10 @@ const Prescription = Schema.Struct({ tier: Schema.String, access: Access, budget
 
 const Prescriptions = Schema.Struct({
 	tiers: Schema.Record(Schema.String, Schema.NonEmptyArray(Card)),
-	jobs: Schema.Struct(Object.fromEntries(JOBS.map((job) => [job, Prescription])) as Record<Job, typeof Prescription>),
+	jobs: Schema.Struct({
+		...(Object.fromEntries(AGENT_JOBS.map((job) => [job, Prescription])) as Record<AgentJob, typeof Prescription>),
+		verify: Schema.Struct({ budget: JobBudget }),
+	}),
 	/** Harness entries added to, or replacing, the built-in ones. */
 	harnesses: Schema.optional(Schema.Record(Schema.String, Harness)),
 	/** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
@@ -64,7 +69,7 @@ export const loadPrescriptions = (path: string) =>
 				return yield* new MadeWellError({ code: 'prescriptions_invalid', message: `Tier "${tier}" has a card on harness "${unknown.harness}", which has no entry.`, context: { path, tier, card: unknown, harnesses: Object.keys(harnesses) }, next: [{ run: `$EDITOR ${path}`, why: `use one of ${Object.keys(harnesses).join(', ')}, or add "${unknown.harness}" under "harnesses": command, output, answer, limit and tools per access level` }] })
 			}
 		}
-		for (const job of JOBS) {
+		for (const job of AGENT_JOBS) {
 			const tier = p.jobs[job].tier
 			if (!p.tiers[tier]) {
 				return yield* new MadeWellError({ code: 'prescriptions_invalid', message: `Job "${job}" uses tier "${tier}", which is not defined.`, context: { path, job, tier, tiers: Object.keys(p.tiers) }, next: [{ run: `$EDITOR ${path}`, why: `define tier "${tier}" or point "${job}" at one of: ${Object.keys(p.tiers).join(', ')}` }] })
@@ -73,7 +78,10 @@ export const loadPrescriptions = (path: string) =>
 		return p
 	})
 
-export const cardsFor = (p: Prescriptions, job: Job): ReadonlyArray<Card> => p.tiers[p.jobs[job].tier]!
+/** An agent job's prescription. The engine runs verify itself before any agent path, so verify never comes here. */
+export const prescriptionOf = (p: Prescriptions, job: Job) => p.jobs[job as AgentJob]
+
+export const cardsFor = (p: Prescriptions, job: Job): ReadonlyArray<Card> => p.tiers[prescriptionOf(p, job).tier]!
 
 export const budgetFor = (p: Prescriptions, job: Job): Budget => p.jobs[job].budget ?? DEFAULT_BUDGET
 

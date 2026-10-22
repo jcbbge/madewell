@@ -18,7 +18,7 @@ after(() => rmSync(root, { recursive: true, force: true }))
 const card = (model: string): Card => ({ harness: 'claude', provider: 'anthropic', account: model, model, effort: 'low' })
 const prescriptions: Prescriptions = {
 	tiers: { all: [card('big')], candidates: [card('cheap'), card('flaggy'), card('mid'), card('big'), card('limited')] },
-	jobs: Object.fromEntries(JOBS.map((job) => [job, { tier: 'all', access: 'read' }])) as Prescriptions['jobs'],
+	jobs: { ...Object.fromEntries(JOBS.map((job) => [job, { tier: 'all', access: 'read' }])), verify: {} } as Prescriptions['jobs'],
 }
 /** A Claude Code stream that used `tools` and spent `tokens`. */
 const raw = (tokens: number, tools: string[] = []) => [
@@ -166,7 +166,7 @@ test('mw eval replays a delivered item\'s calls through the worker command and p
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	assert.equal(mw('run').out.items[0].status, 'shipped')
 
-	const evaluated = mw('eval', 'plan', '--card', 'fast', '--limit', '5')
+	const evaluated = mw('eval', 'plan', '--card', 'intake', '--limit', '5')
 	assert.equal(evaluated.code, 0, JSON.stringify(evaluated.err))
 	const report = evaluated.out
 	assert.deepEqual(Object.keys(report), ['eval', 'job', 'brief', 'recorded', 'cards', 'recommendation', 'next'])
@@ -179,7 +179,7 @@ test('mw eval replays a delivered item\'s calls through the worker command and p
 	t.untouched()
 
 	const bad = mw('eval', 'plan', '--card', 'nosuch')
-	assert.deepEqual([bad.err.error, bad.err.context.tiers], ['eval_card_invalid', ['deep', 'coding', 'steady', 'fast', 'intake']])
+	assert.deepEqual([bad.err.error, bad.err.context.tiers], ['eval_card_invalid', ['deep', 'coding', 'intake']])
 	const none = mw('eval', 'arbitrate')
 	assert.deepEqual([none.err.error, none.err.context.recorded.plan, none.err.next[0].run.startsWith('mw eval ')], ['eval_no_calls', 2, true])
 	assert.deepEqual(mw('eval', 'plan', '--item', '2,3').err.context.items, [2, 3], 'only the named items\' calls are replayed')

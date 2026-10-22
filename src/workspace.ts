@@ -29,7 +29,7 @@ export const git = (dir: string, ...args: string[]) =>
 		code === 0 ? Effect.succeed(stdout) : Effect.fail(fail('git_failed', `git ${args[0]} failed in ${dir}.`, { dir, args, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args.join(' ')}`, why: 'run it yourself to see the full error' }]))))
 const lines = (out: string) => out.split('\0').filter(Boolean)
 
-export interface Worktree {
+interface Worktree {
 	readonly path: string
 	readonly repo: string
 	/** The full commit the worktree was made from. */

@@ -351,7 +351,7 @@ test('prune removes finished work before the cutoff with its record and files, a
 	const held = start(busy, 'Add XLS export')
 	t.mw('run')
 	delete t.env.FAKE_ASK
-	assert.equal(t.mw('eval', 'plan', '--card', 'fast', '--item', String(old)).code, 0)
+	assert.equal(t.mw('eval', 'plan', '--card', 'intake', '--item', String(old)).code, 0)
 	t.mw('export', String(old))
 	t.mw('export', String(last))
 	t.mw('replay')
