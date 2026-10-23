@@ -117,6 +117,11 @@ const alive = (pid: number) => {
 		return false
 	}
 }
+/** Whether the process is gone within two seconds: a killed orphan stays visible until its new parent reaps it. */
+const gone = async (pid: number) => {
+	for (let i = 0; i < 100 && alive(pid); i++) await new Promise((r) => setTimeout(r, 20))
+	return !alive(pid)
+}
 
 test('a prescribed harness entry runs neutral: allowlisted environment, per-call files removed, and its stray processes killed', async () => {
 	process.env.PORT = '31435'
@@ -134,8 +139,8 @@ test('a prescribed harness entry runs neutral: allowlisted environment, per-call
 		assert.ok(!existsSync(path!), 'the per-call settings file is gone')
 		const stray = Number(readFileSync(pidFile, 'utf8'))
 		await new Promise((r) => setTimeout(r, 50))
-		assert.equal(alive(stray), false, 'the stray server died with the call')
-		assert.equal(alive(Number(readFileSync(daemonFile, 'utf8'))), false, 'the daemon that left the group died with the call too')
+		assert.ok(await gone(stray), 'the stray server died with the call')
+		assert.ok(await gone(Number(readFileSync(daemonFile, 'utf8'))), 'the daemon that left the group died with the call too')
 	} finally {
 		delete process.env.PORT
 		delete process.env.MW_PROBE
@@ -227,7 +232,7 @@ test('mw run stops cleanly on SIGTERM: the agent process group dies and the runn
 		const code = await new Promise((r) => runner.once('exit', r))
 		assert.equal(code, 143)
 		assert.deepEqual(JSON.parse(stderr).interrupted, 'SIGTERM')
-		assert.equal(alive(agent), false, 'the agent\'s process group was killed')
+		assert.ok(await gone(agent), 'the agent\'s process group was killed')
 		const db = new DatabaseSync(join(dir, 'home', 'madewell.db'))
 		const stopped = db.prepare(`SELECT data FROM events WHERE kind = 'runner-stopped'`).all()
 		db.close()
@@ -254,12 +259,12 @@ test('a daemon left by a runner that was SIGKILLed is killed when the next runne
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: 'ignore' })
 		while (!existsSync(daemonFile) || !readFileSync(daemonFile, 'utf8').trim()) await new Promise((r) => setTimeout(r, 20))
 		const daemon = Number(readFileSync(daemonFile, 'utf8'))
+		// Checked before the kill: once its runner is dead, any runner on the machine may sweep it, including another test file's.
+		assert.equal(alive(daemon), true, 'the daemon is running in a session of its own')
 		runner.kill('SIGKILL')
 		await new Promise((r) => runner.once('exit', r))
-		await new Promise((r) => setTimeout(r, 200))
-		assert.equal(alive(daemon), true, 'the daemon outlived its runner')
 		mw('run')
-		assert.equal(alive(daemon), false, 'the next runner killed it')
+		assert.ok(await gone(daemon), 'the next runner killed it')
 	} finally {
 		rmSync(dir, { recursive: true, force: true })
 	}

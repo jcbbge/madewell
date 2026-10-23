@@ -262,14 +262,15 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 	assert.ok(metrics!.some((l) => l.t === 'span' && l.name === 'mw.drive'))
 	assert.ok(!JSON.stringify(metrics).includes('CSV'), 'no objective, packet, answer, question or hold message')
 
-	// A third machine with two stores on one project, written elsewhere and collected here. Item ids repeat across
+	// A third machine with two stores on one project, written elsewhere and collected here. Its records are dated after
+	// the two live machines', whenever the test runs, so they are the latest the report reads. Item ids repeat across
 	// stores. Store 1a2b3c4d: items 1-3 ship after 40, 120 and 10 minutes; item 4 holds, its alert follows, and its
 	// store's last record is at 10:05. Store 5e6f7a8b: its item 1 ships after 30 minutes, later than everything else.
 	// Item 1's implement job: an intake, an originator answer, a call refused afterwards; plan: an intake and a call.
 	const card = { harness: 'codex', provider: 'openai', account: 'openai', model: 'sol', effort: 'high' }
 	const vps = (store: string) => ({ host: 'vps', store, workspace: '/srv/app' })
-	const vpsEvent = (store: string, item: number, at: string, kind: string, data = {}) => ({ t: 'event', ...vps(store), item, at: `2026-10-22T${at}:00.000Z`, kind, data })
-	const vpsCall = (id: number, kind: string, job: string, started: string, ms: number, extra = {}) => ({ t: 'call', ...vps('1a2b3c4d'), id, item: 1, kind, job, card, outcome: 'ok', started: `2026-10-22T${started}:00.000Z`, ms, tokens: null, flags: [], ...extra })
+	const vpsEvent = (store: string, item: number, at: string, kind: string, data = {}) => ({ t: 'event', ...vps(store), item, at: `2099-10-22T${at}:00.000Z`, kind, data })
+	const vpsCall = (id: number, kind: string, job: string, started: string, ms: number, extra = {}) => ({ t: 'call', ...vps('1a2b3c4d'), id, item: 1, kind, job, card, outcome: 'ok', started: `2099-10-22T${started}:00.000Z`, ms, tokens: null, flags: [], ...extra })
 	writeFileSync(join(telemetry, 'vps-1a2b3c4d.jsonl'), [
 		vpsEvent('1a2b3c4d', 1, '08:00', 'created', { job: 'ideate', status: 'queued' }),
 		vpsEvent('1a2b3c4d', 2, '08:05', 'created', { job: 'ideate', status: 'queued' }),
@@ -279,7 +280,7 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 		vpsCall(5, 'intake', 'implement', '08:00', 30_000),
 		vpsCall(6, 'originator', 'implement', '08:00', 60_000),
 		vpsCall(7, 'execute', 'implement', '08:01', 90_000, { tokens: { input: 1000, output: 200, cacheRead: 0, cacheWrite: 0 }, flags: [{ rule: 'out-of-scope', evidence: 'README.md' }] }),
-		{ t: 'rejected', ...vps('1a2b3c4d'), call: 7, at: '2026-10-22T08:02:00.000Z', reason: 'out of scope' },
+		{ t: 'rejected', ...vps('1a2b3c4d'), call: 7, at: '2099-10-22T08:02:00.000Z', reason: 'out of scope' },
 		vpsCall(8, 'intake', 'plan', '08:03', 60_000),
 		vpsCall(9, 'execute', 'plan', '08:04', 120_000),
 		vpsEvent('1a2b3c4d', 1, '08:40', 'shipped'),
@@ -296,7 +297,7 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 
 	const report = machines[0]!.mw('stats').out
 	assert.equal(report.files.length, 4)
-	assert.equal(report.to, '2026-10-22T11:30:00.000Z')
+	assert.equal(report.to, '2099-10-22T11:30:00.000Z')
 	const [a, b, srv] = [...machines.map((t) => report.projects.find((p: { workspace: string }) => p.workspace === t.repo)), report.projects.find((p: { host: string }) => p.host === 'vps')]
 	for (const p of [a, b]) {
 		assert.deepEqual([p.items, p.nq.questions, p.refused], [{ created: 1, shipped: 1, held: 1 }, 1, 0])
