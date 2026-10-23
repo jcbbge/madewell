@@ -291,6 +291,22 @@ test('a read call that writes is refused and asked again; an answer off its sche
 	}
 })
 
+test('an answer wrapped in the packet\'s "answer" key is accepted as its shape, at intake and for the deliverable', async () => {
+	const t = setup((req) => {
+		if (req.kind === 'intake') return { answer: clear }
+		if (req.kind === 'execute' && req.job === 'ideate') return { answer: standard(req) }
+		return undefined
+	})
+	try {
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		assert.deepEqual(t.store.calls(t.item.id).filter((c) => c.outcome === 'rejected'), [], 'no call is refused for the wrapper')
+		assert.match(t.packet('intake', 'ideate').you.task, /not wrapped in an "answer" key/)
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('a plan that creates a kind of file the repo already has must name the existing one it follows; three refusals hold the item before anything is made', async () => {
 	const plans = [
 		{ ...PLAN, scope: ['src/export.sh', 'tools/gen.py'], follows: [] },

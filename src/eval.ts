@@ -9,7 +9,7 @@
 // and `eval_calls` tables beside the calls they replay). No file is changed.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { DatabaseSync } from 'node:sqlite'
+import { DatabaseSync } from './sqlite.ts'
 import { Clock, Effect, Schema } from 'effect'
 import { budgetFor, cardsFor, harnessOf, prescriptionOf, type Access, type Card, type Prescriptions } from './cards.ts'
 import { MadeWellError, Next, quote } from './errors.ts'

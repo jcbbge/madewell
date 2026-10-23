@@ -22359,7 +22359,21 @@ import { dirname as dirname5, join as join8, sep } from "node:path";
 import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
 import { dirname as dirname4, join as join7 } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+
+// src/sqlite.ts
+import { createRequire } from "node:module";
+var load = () => {
+  const emit = process.emitWarning;
+  process.emitWarning = ((warning, ...rest) => {
+    if (!String(warning instanceof Error ? warning.message : warning).includes("SQLite")) emit.call(process, warning, ...rest);
+  });
+  try {
+    return createRequire(import.meta.url)("node:sqlite");
+  } finally {
+    process.emitWarning = emit;
+  }
+};
+var { DatabaseSync } = load();
 
 // src/replay.ts
 import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync4 } from "node:fs";
@@ -22615,7 +22629,14 @@ function decode5(schema, output) {
   const json = lastJson(output);
   if (!json) return { ok: false, reason: "The answer did not end with a JSON object." };
   const r = Schema_exports.decodeUnknownResult(schema)(json, { errors: "all" });
-  return Result_exports.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` };
+  if (Result_exports.isSuccess(r)) return { ok: true, value: r.success };
+  const inner = Object.keys(json).length === 1 ? json.answer : void 0;
+  const wrapped = inner !== null && typeof inner === "object" && !Array.isArray(inner);
+  if (wrapped) {
+    const u = Schema_exports.decodeUnknownResult(schema)(inner, { errors: "all" });
+    if (Result_exports.isSuccess(u)) return { ok: true, value: u.success };
+  }
+  return { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}${wrapped ? '\nPut the fields at the top level of the JSON object, not under "answer".' : ""}` };
 }
 var dupes = (ids) => ids.filter((id2, i) => ids.indexOf(id2) !== i);
 var entryOf = (entry) => {
@@ -24096,7 +24117,7 @@ var you = (job, kind) => {
   const step2 = stepOf(job);
   return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
 };
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`;
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with one JSON object of the shape under you.answer, its fields at the top level and not wrapped in an "answer" key, even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
   you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
@@ -24132,7 +24153,6 @@ var executeParts = (item, job, t, x) => ({
 // src/eval.ts
 import { readFileSync as readFileSync6 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
-import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
 var MIN_OUT_MS2 = 5 * 6e4;
@@ -24248,7 +24268,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
     });
   }
   const db = yield* Effect_exports.acquireRelease(Effect_exports.sync(() => {
-    const db2 = new DatabaseSync2(store.path);
+    const db2 = new DatabaseSync(store.path);
     db2.exec(`PRAGMA busy_timeout = 5000;
 			CREATE TABLE IF NOT EXISTS evals (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, job TEXT NOT NULL, card TEXT, brief TEXT, items TEXT NOT NULL, calls TEXT NOT NULL, report TEXT);
 			CREATE TABLE IF NOT EXISTS eval_calls (id INTEGER PRIMARY KEY AUTOINCREMENT, eval INTEGER NOT NULL, call INTEGER NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL, tokens TEXT, facts TEXT NOT NULL, flags TEXT NOT NULL, score TEXT NOT NULL);`);
