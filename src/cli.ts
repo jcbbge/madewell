@@ -18,7 +18,7 @@ import { answer, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { stepOf } from './lane.ts'
-import { Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
+import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
 import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
 import { exportItem, replayHtml, snapshot } from './replay.ts'
@@ -309,6 +309,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			workspace: Workspace,
 			ship: optional('shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time.'),
 			alert: optional('shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set'),
+			gates: optional('the repo\'s own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item\'s changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.'),
 		}),
 		output: Schema.Struct({ project: Project, released: Schema.Array(ItemView), next: Schema.Array(Next) }),
 		idempotent: true,
@@ -318,7 +319,10 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			if (!existsSync(path)) return yield* new MadeWellError({ code: 'workspace_missing', message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: 'pwd', why: 'run mw init from the project directory, or pass its path with --workspace' }] })
 			const projects = yield* readProjects(registry)
 			if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError('init', `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`)
-			const project = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}) })
+			const gates = input.gates === undefined ? undefined : yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Array(Gate)))(input.gates).pipe(
+				Effect.mapError((e) => usageError('init', `--gates must be a JSON array of {run, glob?}: ${e.message}`)),
+			)
+			const project = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(gates ? { gates } : {}) })
 			const updated = yield* readProjects(registry)
 			const waiting = openHolds(store).filter((h) => h.code === 'no_ship_command' && projectFor(updated, h.workspace)?.path === path)
 			for (const h of waiting) yield* retry(h.item)

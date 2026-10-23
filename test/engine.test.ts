@@ -611,6 +611,43 @@ test('holds stop only that item, name their next commands, and release on an ans
 	}
 })
 
+test('the project\'s gates run on the change\'s own files before the checks: a formatter\'s fix ships, a failing gate goes to the arbiter and the dispatcher answers for it', async () => {
+	const t = setup((req, n) => {
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'implement') return implement(req, 'echo a,b # bad')
+		if (req.item === 2 && req.kind === 'intake' && req.job === 'arbitrate' && n === 1) return ask('Who wrote this gate?')
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'arbitrate') return ruling('undetermined')
+		return undefined
+	})
+	try {
+		const log = join(t.tmp, 'gates.log')
+		writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{
+			path: t.repo, ship: `echo "$MW_ITEM $MW_COMMIT" >> ${t.tmp}/shipped.log`,
+			gates: [
+				{ run: `echo "format {files}" >> ${log}; for f in {files}; do { echo '# formatted'; cat "$f"; } > "$f.tmp" && mv "$f.tmp" "$f"; done`, glob: '*.sh' },
+				{ run: `echo css >> ${log}`, glob: '*.css' },
+				{ run: `echo "lint {files}" >> ${log}; if grep -q bad {files}; then echo "lint: bad in {files}"; exit 1; fi` },
+			],
+		}]))
+		const first = await t.run(drive(t.item.id, config))
+		assert.equal(first.status, 'shipped')
+		assert.equal(git(t.repo, 'show', 'main:src/export.sh'), '# formatted\necho a,b', 'the formatter\'s fix ships with the change')
+		assert.deepEqual(readFileSync(log, 'utf8').trim().split('\n'), ['format src/export.sh', 'lint src/export.sh'], 'a gate whose glob matches nothing never runs, and no gate sees the check files')
+		assert.deepEqual(first.verification?.results.map((r) => r.id), ['G1', 'G3', 'C1'])
+		assert.deepEqual(t.store.events(t.item.id).find((e) => e.kind === 'verified')?.data.fixed, ['src/export.sh'])
+
+		const second = t.create('Second')
+		const main = git(t.repo, 'rev-parse', 'main')
+		const held = await t.run(drive(second.id, config))
+		assert.equal(held.hold?.code, 'arbiter_undetermined')
+		assert.equal(git(t.repo, 'rev-parse', 'main'), main, 'a failing gate keeps the change off main')
+		const arbiter = JSON.parse(t.of('execute', 'arbitrate', second.id)[0]!.prompt)
+		assert.match(arbiter.exchange.handoff, /^1 of 3 gates and checks failed[\s\S]*The project's gate G3 exited 1[\s\S]*lint: bad in src\/export\.sh/)
+		assert.deepEqual(t.of('originator', 'arbitrate', second.id).map((c) => c.profile), ['dispatcher'], 'the gates are the operator\'s: the dispatcher answers for them, not the test architect')
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('a passing item without a ship command holds before main moves, and ships once one is registered', async () => {
 	const t = setup()
 	try {

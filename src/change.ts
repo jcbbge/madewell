@@ -1,11 +1,12 @@
 // What Made Well itself does to the product repo: it records the branch an item starts from, takes each
 // maker's work out of its worktree as a patch kept in Made Well's home, builds the candidate commit, runs
-// the item's checks against it, and brings the verified commit onto the branch. No agent does any of it.
+// the project's gates and the item's checks against it, and brings the verified commit onto the branch. No agent does any of it.
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { basename, dirname, join, matchesGlob } from 'node:path'
 import { Effect } from 'effect'
-import { MadeWellError } from './errors.ts'
+import { MadeWellError, quote } from './errors.ts'
 import type { Check } from './lane.ts'
+import type { Gate } from './project.ts'
 import type { CheckResult } from './store.ts'
 import { git } from './workspace.ts'
 import { runGroup, type Budget } from './worker.ts'
@@ -69,6 +70,30 @@ export const bringOnto = Effect.fn('mw.bringOnto')(function* (repo: string, ref:
 	const checkedOut = (yield* Effect.orElseSucceed(git(repo, 'symbolic-ref', '-q', 'HEAD'), () => '')).trim() === ref
 	if (checkedOut) yield* git(repo, 'merge', '--ff-only', '--quiet', to)
 	else yield* git(repo, 'update-ref', ref, to, from)
+})
+
+/** The done-when a gate's result carries in place of a plan's id: gates prove the repo's standing rules, not a done-when item. */
+export const GATE = '(gate)'
+
+/**
+ * Runs the project's gates on the change's own files, with the change applied and staged and nothing else.
+ * A gate runs on the files its glob matches, and not at all when none does. Files a gate rewrites among them
+ * (a formatter's fixes) are staged and written back to the item's change, so they ship and a redrive keeps them.
+ */
+export const runGates = Effect.fn('mw.gates')(function* (dir: string, base: string, gates: ReadonlyArray<Gate>, change: string, budget: Budget, env: NodeJS.ProcessEnv) {
+	const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=d', '-z', base))
+	const runs = gates.flatMap((g, i) => {
+		const matched = g.glob ? files.filter((f) => matchesGlob(g.glob!.includes('/') ? f : basename(f), g.glob!)) : files
+		return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll('{files}', matched.map(quote).join(' ')) }] : []
+	})
+	if (!runs.length) return { results: [], fixed: [] }
+	const results = yield* runChecks(dir, runs, budget, env)
+	const fixed = lines(yield* git(dir, 'diff', '--name-only', '-z', '--', ...files))
+	if (fixed.length) {
+		yield* git(dir, 'add', '--', ...fixed)
+		writePatch(change, yield* git(dir, 'diff', '--cached', '--binary', '--no-renames', base))
+	}
+	return { results, fixed }
 })
 
 /** Runs each check from the repo root in its own process group, under the budget, and records what it did. */

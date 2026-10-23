@@ -7,10 +7,17 @@ import { Effect, Schema } from 'effect'
 import { MadeWellError } from './errors.ts'
 import { Store, type Hold, type Item } from './store.ts'
 
+export const Gate = Schema.Struct({
+	run: Schema.NonEmptyString.annotate({ description: 'shell command run from the repo root; {files} becomes the matched changed files, quoted. Exit 0 passes; files it rewrites among them (a formatter\'s fixes) are kept in the change.' }),
+	glob: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'which changed files it runs on, such as "*.{ts,tsx}"; a glob without "/" matches the file name at any depth. Without it, every changed file. No match, no run.' })),
+}).annotate({ identifier: 'Gate' })
+export type Gate = typeof Gate.Type
+
 export const Project = Schema.Struct({
 	path: Schema.String.annotate({ description: 'the project\'s absolute workspace path' }),
 	ship: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run in the workspace once Made Well has brought a passing item onto main: deploy it' })),
 	alert: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set' })),
+	gates: Schema.optionalKey(Schema.Array(Gate).annotate({ description: 'the repo\'s own gates (linters, formatters), run by Made Well on each item\'s changed files before its checks; they replace a git hook manager such as lefthook' })),
 }).annotate({ identifier: 'Project' })
 export type Project = typeof Project.Type
 
@@ -25,7 +32,7 @@ export const readProjects = Effect.fn('mw.readProjects')(function* (path: string
 	return yield* Schema.decodeUnknownEffect(Registry)(readFileSync(path, 'utf8')).pipe(
 		Effect.mapError((e) => new MadeWellError({
 			code: 'projects_invalid', message: `The project registry ${path} is not valid.`, context: { path, problems: String(e) },
-			cause: 'It must be a JSON array of {path, ship?, alert?}.',
+			cause: 'It must be a JSON array of {path, ship?, alert?, gates?: [{run, glob?}]}.',
 			next: [{ run: `cat ${path}`, why: 'fix the entries named in context.problems' }],
 		})),
 	)

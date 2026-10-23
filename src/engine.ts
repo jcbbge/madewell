@@ -23,7 +23,7 @@ import { execFile } from 'node:child_process'
 import { mkdirSync, rmSync } from 'node:fs'
 import { Clock, Effect, Queue, Result, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
-import { applyPatch, bringOnto, branchOf, commit, itemHome, patchPath, removeHome, revParse, runChecks, takeChange, writePatch } from './change.ts'
+import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
 import { NEUTRAL_HOST } from './harness.ts'
 import { projectFor, projectsPath, readProjects } from './project.ts'
@@ -597,14 +597,19 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		store.save({ ...item, job: 'plan', from: { kind: 'dispatcher' }, base: undefined, exchange: undefined, launches: 0 }, 'replan', { reason: 'no checks or change on record to verify' })
 		return
 	}
+	const gates = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.gates ?? []
+	const budget = budgetFor(config.prescriptions, 'verify')
+	const env = { ...process.env, MW_ITEM: String(id) }
 	const run = yield* Effect.scoped(Effect.gen(function* () {
 		const wt = yield* worktree(item.workspace, item.base!.ref, `item-${id}-verify`)
 		const change = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'change')))
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
+		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
+		const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, 'change'), budget, env)
 		const built = yield* commit(wt.path, item.title)
 		const applied = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'checks')))
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
-		return { kind: 'ran', on: wt.base, commit: built, results: yield* runChecks(wt.path, checks, budgetFor(config.prescriptions, 'verify'), { ...process.env, MW_ITEM: String(id) }) } as const
+		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...(yield* runChecks(wt.path, checks, budget, env))] } as const
 	}))
 	const now = store.get(id)!
 	if (run.kind === 'conflict') {
@@ -616,17 +621,19 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	const passed = run.results.every((r) => r.exitCode === 0)
 	const verification = { on: run.on, commit: run.commit, results: run.results, passed }
 	const summary = run.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }))
+	const fixed = run.fixed.length ? { fixed: run.fixed } : {}
 	if (passed) {
-		store.save({ ...now, verification }, 'verified', { on: run.on, results: summary })
+		store.save({ ...now, verification }, 'verified', { on: run.on, results: summary, ...fixed })
 		return
 	}
 	const failed = run.results.filter((r) => r.exitCode !== 0)
 	const failure = [
-		`${failed.length} of ${run.results.length} checks failed when Made Well ran them on ${now.base!.ref} at ${run.on.slice(0, 12)} with the implementer's change.`,
-		...failed.map((r) => `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}\n${r.output}`),
+		`${failed.length} of ${run.results.length} ${run.results.some((r) => r.doneWhen === GATE) ? 'gates and checks' : 'checks'} failed when Made Well ran them on ${now.base!.ref} at ${run.on.slice(0, 12)} with the implementer's change.`,
+		...failed.map((r) => (r.doneWhen === GATE ? `The project's gate ${r.id} exited ${r.exitCode}: ${r.run}\n${r.output}` : `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}\n${r.output}`)),
 	].join('\n\n')
-	// The checks' author answers the arbiter's questions about them.
-	store.save({ ...now, verification, job: 'arbitrate', from: { kind: 'job', job: 'test-plan' }, failure, exchange: undefined, launches: 0 }, 'failure', { from: 'verify', results: summary })
+	// A failed check's author answers the arbiter's questions about it; the gates are the operator's, so the dispatcher answers for them.
+	const from: Origin = failed.some((r) => r.doneWhen !== GATE) ? { kind: 'job', job: 'test-plan' } : { kind: 'dispatcher' }
+	store.save({ ...now, verification, job: 'arbitrate', from, failure, exchange: undefined, launches: 0 }, 'failure', { from: 'verify', results: summary, ...fixed })
 })
 
 /** The change is on the branch: the project's own ship command deploys it. Then the item's checks are gone (ruling 11). */

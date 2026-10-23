@@ -8,7 +8,7 @@ var __export = (target, all4) => {
 // src/cli.ts
 import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename, dirname as dirname6, join as join9, resolve as resolve6 } from "node:path";
+import { basename as basename2, dirname as dirname6, join as join9, resolve as resolve6 } from "node:path";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -22115,7 +22115,7 @@ function pickCard(cards, exhausted, now2) {
 
 // src/change.ts
 import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
-import { dirname as dirname2, join as join4 } from "node:path";
+import { basename, dirname as dirname2, join as join4, matchesGlob } from "node:path";
 
 // src/workspace.ts
 import { execFile as execFile2 } from "node:child_process";
@@ -22310,6 +22310,22 @@ var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref, from, to
   if (checkedOut) yield* git(repo, "merge", "--ff-only", "--quiet", to);
   else yield* git(repo, "update-ref", ref, to, from);
 });
+var GATE = "(gate)";
+var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change, budget, env) {
+  const files = lines2(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=d", "-z", base));
+  const runs = gates.flatMap((g, i) => {
+    const matched = g.glob ? files.filter((f) => matchesGlob(g.glob.includes("/") ? f : basename(f), g.glob)) : files;
+    return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll("{files}", matched.map(quote2).join(" ")) }] : [];
+  });
+  if (!runs.length) return { results: [], fixed: [] };
+  const results2 = yield* runChecks2(dir, runs, budget, env);
+  const fixed = lines2(yield* git(dir, "diff", "--name-only", "-z", "--", ...files));
+  if (fixed.length) {
+    yield* git(dir, "add", "--", ...fixed);
+    writePatch(change, yield* git(dir, "diff", "--cached", "--binary", "--no-renames", base));
+  }
+  return { results: results2, fixed };
+});
 var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budget, env) {
   const results2 = [];
   for (const check2 of checks) {
@@ -22489,7 +22505,7 @@ build(); pos = Math.max(0, steps.length - 1); render();
 import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
 import { hostname } from "node:os";
-import { dirname as dirname3, join as join6, matchesGlob, resolve as resolve4 } from "node:path";
+import { dirname as dirname3, join as join6, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // src/lane.ts
@@ -22785,7 +22801,7 @@ var inScope = (file, scope3) => {
   const f = file.replace(/^\.\//, "");
   return scope3.some((s) => {
     const p = s.replace(/^\.\//, "");
-    return /[*?[{]/.test(p) ? matchesGlob(f, p) : f === p || f.startsWith(p.endsWith("/") ? p : `${p}/`);
+    return /[*?[{]/.test(p) ? matchesGlob2(f, p) : f === p || f.startsWith(p.endsWith("/") ? p : `${p}/`);
   });
 };
 function flagsFor(facts, observed) {
@@ -23191,10 +23207,15 @@ var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
 );
 
 // src/project.ts
+var Gate = Schema_exports.Struct({
+  run: Schema_exports.NonEmptyString.annotate({ description: "shell command run from the repo root; {files} becomes the matched changed files, quoted. Exit 0 passes; files it rewrites among them (a formatter's fixes) are kept in the change." }),
+  glob: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'which changed files it runs on, such as "*.{ts,tsx}"; a glob without "/" matches the file name at any depth. Without it, every changed file. No match, no run.' }))
+}).annotate({ identifier: "Gate" });
 var Project = Schema_exports.Struct({
   path: Schema_exports.String.annotate({ description: "the project's absolute workspace path" }),
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
-  alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" }))
+  alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" })),
+  gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
 var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
@@ -23205,7 +23226,7 @@ var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, gates?: [{run, glob?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
@@ -23713,14 +23734,18 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     store.save({ ...item, job: "plan", from: { kind: "dispatcher" }, base: void 0, exchange: void 0, launches: 0 }, "replan", { reason: "no checks or change on record to verify" });
     return;
   }
+  const gates = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.gates ?? [];
+  const budget = budgetFor(config.prescriptions, "verify");
+  const env = { ...process.env, MW_ITEM: String(id2) };
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
+    const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env);
     const built = yield* commit(wt.path, item.title);
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
-    return { kind: "ran", on: wt.base, commit: built, results: yield* runChecks2(wt.path, checks, budgetFor(config.prescriptions, "verify"), { ...process.env, MW_ITEM: String(id2) }) };
+    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env)] };
   }));
   const now2 = store.get(id2);
   if (run2.kind === "conflict") {
@@ -23733,17 +23758,20 @@ ${run2.error.context.stderr ?? run2.error.message}`;
   const passed = run2.results.every((r) => r.exitCode === 0);
   const verification = { on: run2.on, commit: run2.commit, results: run2.results, passed };
   const summary = run2.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }));
+  const fixed = run2.fixed.length ? { fixed: run2.fixed } : {};
   if (passed) {
-    store.save({ ...now2, verification }, "verified", { on: run2.on, results: summary });
+    store.save({ ...now2, verification }, "verified", { on: run2.on, results: summary, ...fixed });
     return;
   }
   const failed = run2.results.filter((r) => r.exitCode !== 0);
   const failure = [
-    `${failed.length} of ${run2.results.length} checks failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
-    ...failed.map((r) => `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}
+    `${failed.length} of ${run2.results.length} ${run2.results.some((r) => r.doneWhen === GATE) ? "gates and checks" : "checks"} failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
+    ...failed.map((r) => r.doneWhen === GATE ? `The project's gate ${r.id} exited ${r.exitCode}: ${r.run}
+${r.output}` : `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}
 ${r.output}`)
   ].join("\n\n");
-  store.save({ ...now2, verification, job: "arbitrate", from: { kind: "job", job: "test-plan" }, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary });
+  const from = failed.some((r) => r.doneWhen !== GATE) ? { kind: "job", job: "test-plan" } : { kind: "dispatcher" };
+  store.save({ ...now2, verification, job: "arbitrate", from, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary, ...fixed });
 });
 var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   const store = yield* Store;
@@ -24526,7 +24554,8 @@ var COMMANDS = [
     input: Schema_exports.Struct({
       workspace: Workspace,
       ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time."),
-      alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set")
+      alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
+      gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
     output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
     idempotent: true,
@@ -24536,7 +24565,10 @@ var COMMANDS = [
       if (!existsSync3(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const projects = yield* readProjects(registry);
       if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`);
-      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {} });
+      const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
+        Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
+      );
+      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...gates ? { gates } : {} });
       const updated = yield* readProjects(registry);
       const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
       for (const h of waiting) yield* retry3(h.item);
@@ -24555,7 +24587,7 @@ var COMMANDS = [
       return { source, workspace: yield* registered(input.workspace) };
     }),
     run: (input, { source, workspace }) => Effect_exports.gen(function* () {
-      const title = input.title ?? `Discovery of ${input["source-file"] ? basename(input["source-file"]) : "raw input"}`;
+      const title = input.title ?? `Discovery of ${input["source-file"] ? basename2(input["source-file"]) : "raw input"}`;
       const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: "discover" });
       return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
     })
