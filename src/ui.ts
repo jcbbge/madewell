@@ -6,6 +6,7 @@ import { closeSync, existsSync, fstatSync, openSync, readdirSync, readFileSync, 
 import { createServer } from 'node:http'
 import { basename, dirname, join } from 'node:path'
 import { Effect } from 'effect'
+import { GATE } from './change.ts'
 import { CONSOLE } from './console.ts'
 import { MadeWellError } from './errors.ts'
 import { stepOf, type Job } from './lane.ts'
@@ -66,11 +67,16 @@ export const sayOf = (e: Event, title?: string): string => {
 		case 'prepare-started': return `The project's prepare command runs for ${d.job}: ${short(d.command, 120)}`
 		case 'prepared': return `Prepare for ${d.job} exited ${d.exitCode}${d.provisioned?.length ? `, provisioned ${d.provisioned.map((p: any) => `${p.kind} ${p.id}`).join(', ')}` : ''}`
 		case 'verify-started': return `Made Well runs ${d.gates?.length ?? 0} gate${d.gates?.length === 1 ? '' : 's'} and ${d.checks?.length ?? 0} check${d.checks?.length === 1 ? '' : 's'} on the change`
-		case 'verified': return `All ${d.results?.length ?? 0} gates and checks passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${d.fixed.length} files)` : ''}`
+		case 'verified': {
+			const gates = (d.results ?? []).filter((r: any) => r.doneWhen === GATE).length
+			const checks = (d.results ?? []).length - gates
+			return `All ${checks} check${checks === 1 ? '' : 's'}${gates ? ` and ${gates} gate${gates === 1 ? '' : 's'}` : ''} passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${d.fixed.length} files)` : ''}`
+		}
 		case 'main-moved': return 'The branch moved since the checks ran; they run again'
+		case 'rebased': return `Another item shipped since this one started and its ${d.conflict === 'implement' ? 'change' : 'check files'} no longer apply; the planner plans again from ${String(d.ref).replace('refs/heads/', '')} as it is now`
 		case 'merged': return `Merged onto ${d.ref} at ${String(d.main).slice(0, 12)}`
 		case 'ship-started': return `The ship command runs: ${short(d.command, 120)}`
-		case 'shipped': return `Shipped. ${short(String(d.output ?? '').trim().split('\n').pop(), 160)}`
+		case 'shipped': return `Shipped${String(d.output ?? '').trim() ? `: ${short(String(d.output).trim().split('\n').pop(), 160)}` : ''}`
 		case 'held': return `Held for the operator: ${d.code}: ${short(d.message, 240)}`
 		case 'alerted': return `Alert sent for ${d.code} (exit ${d.exitCode})`
 		case 'retried': return `The operator retries ${d.job}`
@@ -78,6 +84,7 @@ export const sayOf = (e: Event, title?: string): string => {
 		case 'discovered': return `Discovery finished with ${d.candidates?.length ?? 0} candidates`
 		case 'dropped': return `The operator drops it (was ${d.from})`
 		case 'prerequisite-shipped': return `Prerequisite #${d.prerequisite} shipped; verification runs again`
+		case 'prerequisite-dropped': return `Prerequisite #${d.prerequisite} was dropped; verification runs again on the branch as it is now`
 		case 'replan': return `Planned again: ${d.reason}`
 		case 'torn-down': return `Torn down: ${(d.records ?? []).map((r: any) => `${r.kind} ${r.id} (exit ${r.exitCode})`).join(', ')}`
 		case 'worktree-leftovers': return `The ${d.job} call left files behind: ${(d.files ?? []).join(', ')}`
@@ -155,6 +162,7 @@ export const minutesOf = (events: ReadonlyArray<Event>, items: ReadonlyArray<Ite
 		else if (['shipped', 'dropped', 'discovered'].includes(e.kind)) where.delete(e.item)
 		else if (e.kind === 'handed-off') where.set(e.item, stageOf((Array.isArray(d.to) ? d.to[0] : d.to) as Job))
 		else if (e.kind === 'failure') where.set(e.item, 'verification')
+		else if (e.kind === 'rebased') where.set(e.item, 'planning')
 		else if (e.kind === 'ruling' && d.to) where.set(e.item, stageOf(d.to as Job))
 		else if ((e.kind === 'call-started' || e.kind === 'running' || e.kind === 'retried') && d.job) where.set(e.item, stageOf(d.job as Job))
 		else if (e.kind === 'promoted') where.set(e.item, 'ideation')
@@ -330,20 +338,32 @@ const fit = (s: string, w: number) => {
 }
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour12: false })
 
-/** The last line of a live file worth showing: for a JSON stream, its text, else the line itself. */
+/** One stream line as what the agent is doing: its words, the tool it calls or the command it runs; prompt echoes and tool results say nothing. */
+const doing = (line: string) => {
+	if (!line.startsWith('{')) return short(line, 200)
+	try {
+		const v = JSON.parse(line)
+		if (v.type === 'user' || v.type === 'system') return ''
+		const parts: { type: string; text?: string; name?: string; input?: unknown }[] = Array.isArray(v.message?.content) ? v.message.content : []
+		for (const p of parts.toReversed()) {
+			if (p.type === 'tool_use') return short(`→ ${p.name} ${JSON.stringify(p.input ?? {})}`, 200)
+			if (p.type === 'text' && p.text) return short(p.text, 200)
+		}
+		if (v.item?.command) return short(`$ ${v.item.command}`, 200)
+		const s = JSON.stringify(v).match(/"(?:text|result|command|delta)":"((?:[^"\\]|\\.){2,})"/)?.[1]
+		return s ? short(s.replace(/\\n/g, ' ').replace(/\\"/g, '"'), 200) : ''
+	} catch {
+		return short(line, 200)
+	}
+}
+
+/** The latest line of a live file worth showing. */
 const lastLine = (file?: string) => {
 	if (!file) return ''
-	const { text } = readFrom(file, 0, 16 * 1024)
-	const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
+	const lines = readFrom(file, 0, 16 * 1024).text.split('\n').map((l) => l.trim()).filter(Boolean)
 	for (const l of lines.reverse()) {
-		try {
-			const v = JSON.parse(l)
-			const s = JSON.stringify(v).match(/"(?:text|content|message|result|command)":"((?:[^"\\]|\\.){4,})"/)?.[1]
-			if (s) return short(s.replace(/\\n/g, ' ').replace(/\\"/g, '"'), 200)
-			continue
-		} catch {
-			return short(l, 200)
-		}
+		const said = doing(l)
+		if (said) return said
 	}
 	return ''
 }

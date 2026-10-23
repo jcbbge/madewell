@@ -7,7 +7,7 @@ import { test } from 'node:test'
 import { Effect, Fiber, Layer } from 'effect'
 import { TestClock } from 'effect/testing'
 import type { Card, Prescriptions } from '../src/cards.ts'
-import { answer, BRIEF, drive, nextFor, promote, retry, runQueue } from '../src/engine.ts'
+import { answer, BRIEF, drive, drop, nextFor, promote, retry, runQueue } from '../src/engine.ts'
 import { NEUTRAL_HOST } from '../src/harness.ts'
 import type { Job } from '../src/lane.ts'
 import { openStore, Store } from '../src/store.ts'
@@ -472,6 +472,43 @@ test('items in parallel: another item\'s ship mid-flight trips no guard, and che
 	}
 })
 
+test('items in parallel on the same file: when another item\'s ship leaves a change that no longer applies, the planner plans again from the branch as it is now, with no arbiter', async () => {
+	const plan = (id: string) => ({ ...PLAN, scope: ['src/app.sh'], follows: [], doneWhen: [{ id: 'D1', text: `app prints ${id}` }] })
+	const check = (req: WorkerRequest, word: string) => (write(req, `checks/${word}.check.sh`, `sh src/app.sh | grep -qx ${word}\n`), { checks: [{ id: 'C1', doneWhen: 'D1', run: `sh checks/${word}.check.sh` }] })
+	const t = setup((req, n) => {
+		const word = req.item === 1 ? 'one' : 'two'
+		if (req.kind === 'execute' && req.job === 'plan') return plan(word)
+		if (req.kind === 'execute' && req.job === 'test-plan') return check(req, word)
+		if (req.item === 1 && req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/app.sh', 'echo app\necho one\n'), { summary: 'one' })
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'implement') {
+			if (n > 1) return (write(req, 'src/app.sh', `${readFileSync(join(req.cwd, 'src/app.sh'), 'utf8')}echo two\n`), { summary: 'two, again' })
+			// The first change is made on the old branch while item 1 ships the same lines.
+			return (async () => {
+				while (!t.store.get(1)?.merged) await new Promise((r) => setTimeout(r, 10))
+				return (write(req, 'src/app.sh', 'echo app\necho two\n'), { summary: 'two' })
+			})()
+		}
+		return undefined
+	})
+	try {
+		const second = t.create('Second')
+		const [a, b] = await t.run(Effect.all([drive(t.item.id, config), drive(second.id, config)], { concurrency: 2 }))
+		assert.deepEqual([a.status, b.status], ['shipped', 'shipped'])
+		assert.equal(git(t.repo, 'show', 'main:src/app.sh'), 'echo app\necho one\necho two', 'both changes are on main')
+		assert.deepEqual(t.store.events(2).filter((e) => e.kind === 'rebased').map((e) => e.data.conflict), ['implement'])
+		assert.equal(t.calls.filter((c) => c.job === 'arbitrate').length, 0, 'no arbiter: nobody failed')
+		assert.equal(t.store.list().length, 2, 'no fix item')
+		assert.deepEqual(['plan', 'test-plan', 'implement'].map((j) => t.of('execute', j as Job, 2).length), [2, 2, 2], 'planned again, and both makers worked from the new plan')
+		const replan = JSON.parse(t.of('execute', 'plan', 2)[1]!.prompt)
+		assert.match(replan.pickingUp, /no longer apply[\s\S]*Plan again from the branch as it is now/, 'the planner is told why it plans again')
+		assert.equal(b.base?.commit, a.shipped?.main, 'the item started again from the branch the first ship left')
+		assertNoTrace(t, 1)
+		assertNoTrace(t, 2)
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('mw run drives no more items at once than the prescriptions allow', async () => {
 	const t = setup((req) => {
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'], follows: [{ path: 'src/other.sh', follows: 'src/app.sh' }] }
@@ -555,19 +592,29 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 	}
 })
 
-test('an originator that says only the operator can decide holds the item for the operator', async () => {
-	const t = setup((req) => {
-		if (req.kind === 'intake' && req.job === 'challenge') return ask('May we drop PDF export?')
-		if (req.kind === 'originator' && req.job === 'challenge') return reply('Dropping a format is the operator\'s call.', true)
+test('an originator that says only the operator can decide goes to the dispatcher, who answers from the operator\'s source; only what the source leaves open holds', async () => {
+	const asks = (dispatcher: ReturnType<typeof reply>) => setup((req, n) => {
+		if (req.kind === 'intake' && req.job === 'challenge' && n === 1) return ask('May we drop PDF export?')
+		if (req.kind === 'originator' && req.job === 'challenge') return req.profile === 'dispatcher' ? dispatcher : reply('Dropping a format is the operator\'s call.', true)
 		return undefined
 	})
+	const settled = asks(reply('The source asks for CSV export only, so PDF is not part of it.'))
 	try {
-		const item = await t.run(drive(t.item.id, config))
-		assert.equal(item.hold?.code, 'authority')
-		assert.deepEqual(item.hold?.context.questions, ['May we drop PDF export?'])
-		assert.equal(item.hold?.context.originator, 'ideator')
+		const item = await settled.run(drive(settled.item.id, config))
+		assert.equal(item.status, 'shipped', 'the source settled it, so nothing waited on the operator')
+		const sent = JSON.parse(settled.calls.find((c) => c.profile === 'dispatcher')!.prompt)
+		assert.deepEqual([sent.questions, sent.originator.says, sent.item.source], [['May we drop PDF export?'], 'Dropping a format is the operator\'s call.', settled.item.source], 'the dispatcher reads the question, the originator\'s claim and the operator\'s source')
+		assert.deepEqual(settled.packet('execute', 'challenge').exchange.turns.map((t: { answer: string }) => t.answer), ['The source asks for CSV export only, so PDF is not part of it.'])
 	} finally {
-		t.cleanup()
+		settled.cleanup()
+	}
+	const open = asks(reply('The source does not say, and dropping a shipped format is irreversible for its users.', true))
+	try {
+		const item = await open.run(drive(open.item.id, config))
+		assert.equal(item.hold?.code, 'authority')
+		assert.deepEqual([item.hold?.context.questions, item.hold?.context.originator, item.hold?.context.dispatcherSays], [['May we drop PDF export?'], 'ideator', 'The source does not say, and dropping a shipped format is irreversible for its users.'])
+	} finally {
+		open.cleanup()
 	}
 })
 
@@ -619,6 +666,28 @@ test('a pre-existing defect becomes its own item from planning; the original wai
 		assert.equal(t.store.events(t.item.id).filter((e) => e.kind === 'verified').length, 1)
 		assert.equal(done.verification?.on, pre.shipped?.main, 'the original\'s checks ran again on the main that holds the fix')
 		assert.deepEqual(t.shipped().map((l) => l.split(' ')[0]), [String(pre.id), String(t.item.id)])
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('dropping a prerequisite fix releases the item waiting on it: its checks run again on the branch as it is now', async () => {
+	const t = setup((req, n) => {
+		if (req.item === 1 && req.kind === 'execute' && req.job === 'test-plan') return checks(req, `[ -f ${t.tmp}/settled ] && ${CHECK}`)
+		if (req.item === 1 && req.kind === 'execute' && req.job === 'arbitrate' && n === 1) return ruling('pre-existing')
+		if (req.item === 2 && req.kind === 'intake') return ask('Is this really a defect?')
+		return undefined
+	})
+	try {
+		let item = await t.run(drive(t.item.id, config))
+		assert.equal(item.status, 'waiting-prerequisite')
+		assert.equal(t.store.get(2)?.hold?.code, 'nq_turns')
+		await t.run(drop(2))
+		writeFileSync(join(t.tmp, 'settled'), '')
+		const { items } = await t.run(runQueue(config))
+		item = items.find((i) => i.id === t.item.id)!
+		assert.equal(item.status, 'shipped', 'mw run picks the item up: it no longer waits on a fix that will never ship')
+		assert.deepEqual(t.store.events(t.item.id).filter((e) => e.kind === 'prerequisite-dropped').map((e) => e.data.prerequisite), [2])
 	} finally {
 		t.cleanup()
 	}

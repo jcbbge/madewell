@@ -23462,8 +23462,8 @@ var drive = Effect_exports.fn("mw.drive")(function* (id2, config) {
     if (DONE.includes(item.status) || unshipped(store, item).length) return item;
     if (item.waitsOn !== void 0) {
       const pre = yield* drive(item.waitsOn, config);
-      if (pre.status !== "shipped") return store.get(id2);
-      store.save({ ...item, waitsOn: void 0, status: "running", job: "verify", exchange: void 0, launches: 0, verification: void 0 }, "prerequisite-shipped", { prerequisite: pre.id });
+      if (pre.status !== "shipped" && pre.status !== "dropped") return store.get(id2);
+      store.save({ ...item, waitsOn: void 0, status: "running", job: "verify", exchange: void 0, launches: 0, verification: void 0 }, pre.status === "shipped" ? "prerequisite-shipped" : "prerequisite-dropped", { prerequisite: pre.id });
       continue;
     }
     store.runnerOn(id2);
@@ -23578,12 +23578,45 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   if (!call) return;
   const reply = decode5(ORIGINATOR, call.output);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
-  const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: reply.value.answer, by: "originator" } : t);
+  let answer2 = reply.value.answer;
   if (reply.value.needsOperator) {
     const pendingQ = x.turns.at(-1);
-    return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(job).profile} asked.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer });
+    const ruled = x.from.kind === "dispatcher" ? void 0 : yield* dispatch(id2, job, config, from, pendingQ.questions, reply.value.answer);
+    if (ruled === null) return;
+    if (!ruled || ruled.needsOperator) {
+      return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(job).profile} asked; the operator's source leaves it open.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...ruled ? { dispatcherSays: ruled.answer } : {} });
+    }
+    answer2 = ruled.answer;
   }
-  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from });
+  const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: answer2, by: "originator" } : t);
+  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from, ...reply.value.needsOperator ? { dispatcher: true } : {} });
+});
+var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
+  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, "ideate"));
+  if (!card) return null;
+  const item = (yield* Store).get(id2);
+  const call = yield* callAgent(id2, job, config, {
+    kind: "originator",
+    profile: "dispatcher",
+    access: "read",
+    card,
+    required: requiredOf(ORIGINATOR),
+    packet: (dir) => packet(item, job, dir, {
+      you: {
+        profile: "dispatcher",
+        call: "authority",
+        task: `The ${originator} says only the operator can settle what the ${stepOf(job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+        replyFormat: shapeOf(ORIGINATOR)
+      },
+      receiver: stepOf(job).profile,
+      questions,
+      originator: { profile: originator, says: originatorSays }
+    }, false)
+  });
+  if (!call) return null;
+  const reply = decode5(ORIGINATOR, call.output);
+  if (!reply.ok) return yield* refuse(id2, job, call, reply.reason), null;
+  return reply.value;
 });
 var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   const store = yield* Store;
@@ -23945,10 +23978,24 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   if (store.get(id2).status === "held") return;
   const now2 = store.get(id2);
   if (run2.kind === "conflict") {
-    const what = run2.by === "implement" ? "The implementer's change" : "The test architect's check files";
-    const failure2 = `${what} no longer apply to ${now2.base.ref} at ${run2.on.slice(0, 12)}, which moved since the item started.
-${run2.error.context.stderr ?? run2.error.message}`;
-    store.save({ ...now2, job: "arbitrate", from: { kind: "job", job: run2.by }, failure: failure2, exchange: void 0, launches: 0 }, "failure", { from: "verify", conflict: run2.by });
+    const why = run2.error.context.stderr?.trim() || run2.error.message;
+    for (const m of MAKERS) rmSync5(patchPath(home, `${m}.partial`), { force: true });
+    store.save({
+      ...now2,
+      job: "plan",
+      from: { kind: "job", job: "challenge" },
+      base: void 0,
+      split: void 0,
+      change: void 0,
+      checks: void 0,
+      verification: void 0,
+      exchange: void 0,
+      launches: 0,
+      round: now2.round + 1,
+      pickingUp: `Made Well shipped other work onto ${now2.base.ref} after this item was planned, and its ${run2.by === "implement" ? "change" : "check files"} no longer apply there:
+${why}
+Plan again from the branch as it is now.`
+    }, "rebased", { conflict: run2.by, from: now2.base.commit, ref: now2.base.ref, reason: why.slice(0, 2e3) });
     return;
   }
   const passed = run2.results.every((r) => r.exitCode === 0);
@@ -24044,7 +24091,8 @@ var holdTurns = (store, item, job, context3) => hold(store, item, "nq_turns", `T
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
   const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
-  return item.waitsOn !== void 0 && blocked(item.waitsOn) || unshipped(store, item).some(blocked);
+  const fixBlocked = (id2) => store.get(id2)?.status !== "dropped" && blocked(id2);
+  return item.waitsOn !== void 0 && fixBlocked(item.waitsOn) || unshipped(store, item).some(blocked);
 };
 var openPrerequisite = (store, item, answer2, by) => {
   const pre = store.create({
@@ -24270,7 +24318,7 @@ var whereYouAre = (job) => {
 };
 var TASKS = {
   plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
-  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks.",
+  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer's change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree.",
   implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself.",
   arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to."
 };
@@ -24692,8 +24740,9 @@ function stateAt(n) {
     else if (e.kind === 'handed-off') { it.job = Array.isArray(d.to) ? 'implement' : d.to; }
     else if (e.kind === 'call-started' || e.kind === 'running' || e.kind === 'retried') { if (d.job) it.job = d.job; it.status = 'running'; }
     else if (e.kind === 'failure') { it.job = 'arbitrate'; }
+    else if (e.kind === 'rebased') { it.job = 'plan'; }
     else if (e.kind === 'ruling') { if (d.to) it.job = d.to; it.status = d.prerequisite ? 'waiting-prerequisite' : 'running'; }
-    else if (e.kind === 'verify-started' || e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
+    else if (e.kind === 'verify-started' || e.kind === 'prerequisite-shipped' || e.kind === 'prerequisite-dropped') { it.job = 'verify'; it.status = 'running'; }
     else if (e.kind === 'held') { it.status = 'held'; it.hold = d.code; }
     else if (e.kind === 'shipped' || e.kind === 'discovered' || e.kind === 'dropped' || e.kind === 'waiting-quota') { it.status = e.kind; }
     else if (e.kind === 'promoted' || e.kind === 'nq-corrected' || (e.kind === 'nq-answer' && d.originator === 'operator')) { it.status = 'queued'; it.hold = null; }
@@ -24764,10 +24813,23 @@ function lastLine(text) {
   for (var i = lines.length - 1; i >= 0; i--) { var s = streamText(lines[i]); if (s) return s; }
   return '';
 }
+// One line of an agent's stream, as what the agent is doing: its words, the tool it calls, or the command it runs.
+// Echoes of the prompt and tool results ('user', 'system') say nothing about that.
 function streamText(line) {
   var t = line.trim();
   if (t[0] !== '{') return t;
-  try { var m = JSON.stringify(JSON.parse(t)).match(/"(?:text|content|message|result|command|delta)":"((?:[^"\\]|\\.){2,})"/); return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').slice(0, 400) : ''; } catch (e) { return t; }
+  try {
+    var v = JSON.parse(t);
+    if (v.type === 'user' || v.type === 'system') return '';
+    var parts = (v.message && Array.isArray(v.message.content)) ? v.message.content : [];
+    for (var i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].type === 'tool_use') return '→ ' + parts[i].name + ' ' + JSON.stringify(parts[i].input || {}).slice(0, 300);
+      if (parts[i].type === 'text' && parts[i].text) return parts[i].text.replace(/\s+/g, ' ').slice(0, 400);
+    }
+    if (v.item && v.item.command) return '$ ' + v.item.command;
+    var m = JSON.stringify(v).match(/"(?:text|result|command|delta)":"((?:[^"\\]|\\.){2,})"/);
+    return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').slice(0, 400) : '';
+  } catch (e) { return t; }
 }
 
 function chip(i, st, live) {
@@ -25093,16 +25155,21 @@ var sayOf = (e, title) => {
       return `Prepare for ${d.job} exited ${d.exitCode}${d.provisioned?.length ? `, provisioned ${d.provisioned.map((p) => `${p.kind} ${p.id}`).join(", ")}` : ""}`;
     case "verify-started":
       return `Made Well runs ${d.gates?.length ?? 0} gate${d.gates?.length === 1 ? "" : "s"} and ${d.checks?.length ?? 0} check${d.checks?.length === 1 ? "" : "s"} on the change`;
-    case "verified":
-      return `All ${d.results?.length ?? 0} gates and checks passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${d.fixed.length} files)` : ""}`;
+    case "verified": {
+      const gates = (d.results ?? []).filter((r) => r.doneWhen === GATE).length;
+      const checks = (d.results ?? []).length - gates;
+      return `All ${checks} check${checks === 1 ? "" : "s"}${gates ? ` and ${gates} gate${gates === 1 ? "" : "s"}` : ""} passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${d.fixed.length} files)` : ""}`;
+    }
     case "main-moved":
       return "The branch moved since the checks ran; they run again";
+    case "rebased":
+      return `Another item shipped since this one started and its ${d.conflict === "implement" ? "change" : "check files"} no longer apply; the planner plans again from ${String(d.ref).replace("refs/heads/", "")} as it is now`;
     case "merged":
       return `Merged onto ${d.ref} at ${String(d.main).slice(0, 12)}`;
     case "ship-started":
       return `The ship command runs: ${short(d.command, 120)}`;
     case "shipped":
-      return `Shipped. ${short(String(d.output ?? "").trim().split("\n").pop(), 160)}`;
+      return `Shipped${String(d.output ?? "").trim() ? `: ${short(String(d.output).trim().split("\n").pop(), 160)}` : ""}`;
     case "held":
       return `Held for the operator: ${d.code}: ${short(d.message, 240)}`;
     case "alerted":
@@ -25117,6 +25184,8 @@ var sayOf = (e, title) => {
       return `The operator drops it (was ${d.from})`;
     case "prerequisite-shipped":
       return `Prerequisite #${d.prerequisite} shipped; verification runs again`;
+    case "prerequisite-dropped":
+      return `Prerequisite #${d.prerequisite} was dropped; verification runs again on the branch as it is now`;
     case "replan":
       return `Planned again: ${d.reason}`;
     case "torn-down":
@@ -25189,6 +25258,7 @@ var minutesOf = (events2, items, now2) => {
     else if (["shipped", "dropped", "discovered"].includes(e.kind)) where.delete(e.item);
     else if (e.kind === "handed-off") where.set(e.item, stageOf(Array.isArray(d.to) ? d.to[0] : d.to));
     else if (e.kind === "failure") where.set(e.item, "verification");
+    else if (e.kind === "rebased") where.set(e.item, "planning");
     else if (e.kind === "ruling" && d.to) where.set(e.item, stageOf(d.to));
     else if ((e.kind === "call-started" || e.kind === "running" || e.kind === "retried") && d.job) where.set(e.item, stageOf(d.job));
     else if (e.kind === "promoted") where.set(e.item, "ideation");
@@ -25346,19 +25416,29 @@ var fit = (s, w) => {
   return out;
 };
 var clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
+var doing = (line) => {
+  if (!line.startsWith("{")) return short(line, 200);
+  try {
+    const v = JSON.parse(line);
+    if (v.type === "user" || v.type === "system") return "";
+    const parts2 = Array.isArray(v.message?.content) ? v.message.content : [];
+    for (const p of parts2.toReversed()) {
+      if (p.type === "tool_use") return short(`\u2192 ${p.name} ${JSON.stringify(p.input ?? {})}`, 200);
+      if (p.type === "text" && p.text) return short(p.text, 200);
+    }
+    if (v.item?.command) return short(`$ ${v.item.command}`, 200);
+    const s = JSON.stringify(v).match(/"(?:text|result|command|delta)":"((?:[^"\\]|\\.){2,})"/)?.[1];
+    return s ? short(s.replace(/\\n/g, " ").replace(/\\"/g, '"'), 200) : "";
+  } catch {
+    return short(line, 200);
+  }
+};
 var lastLine = (file) => {
   if (!file) return "";
-  const { text: text2 } = readFrom(file, 0, 16 * 1024);
-  const lines4 = text2.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines4 = readFrom(file, 0, 16 * 1024).text.split("\n").map((l) => l.trim()).filter(Boolean);
   for (const l of lines4.reverse()) {
-    try {
-      const v = JSON.parse(l);
-      const s = JSON.stringify(v).match(/"(?:text|content|message|result|command)":"((?:[^"\\]|\\.){4,})"/)?.[1];
-      if (s) return short(s.replace(/\\n/g, " ").replace(/\\"/g, '"'), 200);
-      continue;
-    } catch {
-      return short(l, 200);
-    }
+    const said = doing(l);
+    if (said) return said;
   }
   return "";
 };

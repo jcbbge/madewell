@@ -134,7 +134,7 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 	t.mw('run')
 	const alerts = () => readFileSync(join(t.dir, 'alerts.log'), 'utf8').trim().split('\n')
 	assert.deepEqual(alerts(), [`${id} authority`], 'one alert, though the runner ran twice')
-	assert.equal(JSON.parse(readFileSync(join(t.dir, 'alert.json'), 'utf8')).message, 'Only the operator can settle what the planner asked.')
+	assert.equal(JSON.parse(readFileSync(join(t.dir, 'alert.json'), 'utf8')).message, 'Only the operator can settle what the planner asked; the operator\'s source leaves it open.')
 
 	const [hold] = t.mw('holds').out.holds
 	assert.deepEqual([hold.item, hold.code, hold.alerted.exitCode], [id, 'authority', 0])

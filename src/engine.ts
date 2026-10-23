@@ -137,9 +137,9 @@ export const drive = Effect.fn('mw.drive')(function* (id: number, config: Engine
 
 		if (item.waitsOn !== undefined) {
 			const pre = yield* drive(item.waitsOn, config)
-			if (pre.status !== 'shipped') return store.get(id)!
-			// The prerequisite fix shipped: run this item's checks again, on the main that now holds the fix.
-			store.save({ ...item, waitsOn: undefined, status: 'running', job: 'verify', exchange: undefined, launches: 0, verification: undefined }, 'prerequisite-shipped', { prerequisite: pre.id })
+			if (pre.status !== 'shipped' && pre.status !== 'dropped') return store.get(id)!
+			// The prerequisite fix shipped, or the operator dropped it: run this item's checks again, on the main as it is now.
+			store.save({ ...item, waitsOn: undefined, status: 'running', job: 'verify', exchange: undefined, launches: 0, verification: undefined }, pre.status === 'shipped' ? 'prerequisite-shipped' : 'prerequisite-dropped', { prerequisite: pre.id })
 			continue
 		}
 
@@ -263,13 +263,52 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	if (!call) return
 	const reply = decode(ORIGINATOR, call.output)
 	if (!reply.ok) return yield* refuse(id, job, call, reply.reason)
-	const turns = x.turns.map((t, i) => (i === x.turns.length - 1 ? { ...t, answer: reply.value.answer, by: 'originator' as const } : t))
+	let answer = reply.value.answer
 	if (reply.value.needsOperator) {
 		const pendingQ = x.turns.at(-1)!
-		return hold(store, store.get(id)!, 'authority', `Only the operator can settle what the ${stepOf(job).profile} asked.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer })
+		// Authority: the dispatcher reads the operator's own source first. It holds only when the source leaves the question open
+		// and the action is the kind only the operator can authorize. The dispatcher as originator has already read it.
+		const ruled = x.from.kind === 'dispatcher' ? undefined : yield* dispatch(id, job, config, from, pendingQ.questions, reply.value.answer)
+		if (ruled === null) return
+		if (!ruled || ruled.needsOperator) {
+			return hold(store, store.get(id)!, 'authority', `Only the operator can settle what the ${stepOf(job).profile} asked; the operator's source leaves it open.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...(ruled ? { dispatcherSays: ruled.answer } : {}) })
+		}
+		answer = ruled.answer
 	}
-	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from })
+	const turns = x.turns.map((t, i) => (i === x.turns.length - 1 ? { ...t, answer, by: 'originator' as const } : t))
+	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from, ...(reply.value.needsOperator ? { dispatcher: true } : {}) })
 })
+
+/**
+ * An originator's "only the operator can authorize this", handed to the dispatcher, who holds the operator's source. It
+ * answers when the source authorizes or forbids it, and says needsOperator only when the source leaves it open and it is
+ * destructive, irreversible, production beyond this item's ship, money, credentials or outside the workspace. Null when the
+ * call did not complete: the drive loop goes again.
+ */
+const dispatch = (id: number, job: Job, config: EngineConfig, originator: string, questions: ReadonlyArray<string>, originatorSays: string) =>
+	Effect.gen(function* () {
+		const card = yield* pickOrWait(id, cardsFor(config.prescriptions, 'ideate'))
+		if (!card) return null
+		const item = (yield* Store).get(id)!
+		const call = yield* callAgent(id, job, config, {
+			kind: 'originator', profile: 'dispatcher', access: 'read', card, required: requiredOf(ORIGINATOR),
+			packet: (dir) => packet(item, job, dir, {
+				you: {
+					profile: 'dispatcher', call: 'authority',
+					task: `The ${originator} says only the operator can settle what the ${stepOf(job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+					replyFormat: shapeOf(ORIGINATOR),
+				},
+				receiver: stepOf(job).profile,
+				questions,
+				originator: { profile: originator, says: originatorSays },
+			}, false),
+		})
+		if (!call) return null
+		const reply = decode(ORIGINATOR, call.output)
+		if (!reply.ok) return (yield* refuse(id, job, call, reply.reason), null)
+		return reply.value
+	})
+
 
 // ── The job itself ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -703,9 +742,16 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	if (store.get(id)!.status === 'held') return
 	const now = store.get(id)!
 	if (run.kind === 'conflict') {
-		const what = run.by === 'implement' ? 'The implementer\'s change' : 'The test architect\'s check files'
-		const failure = `${what} no longer apply to ${now.base!.ref} at ${run.on.slice(0, 12)}, which moved since the item started.\n${(run.error.context as { stderr?: string }).stderr ?? run.error.message}`
-		store.save({ ...now, job: 'arbitrate', from: { kind: 'job', job: run.by }, failure, exchange: undefined, launches: 0 }, 'failure', { from: 'verify', conflict: run.by })
+		// Only Made Well's ship moves the branch, so another item shipped since this one started and its work no longer applies.
+		// No check failed and nobody erred, so no arbiter: the plan was grounded on a branch that is gone, so the planner plans
+		// again from the branch as it is now, and both makers work from that plan.
+		const why = (run.error.context as { stderr?: string }).stderr?.trim() || run.error.message
+		for (const m of MAKERS) rmSync(patchPath(home, `${m}.partial`), { force: true })
+		store.save({
+			...now, job: 'plan', from: { kind: 'job', job: 'challenge' }, base: undefined, split: undefined, change: undefined, checks: undefined, verification: undefined,
+			exchange: undefined, launches: 0, round: now.round + 1,
+			pickingUp: `Made Well shipped other work onto ${now.base!.ref} after this item was planned, and its ${run.by === 'implement' ? 'change' : 'check files'} no longer apply there:\n${why}\nPlan again from the branch as it is now.`,
+		}, 'rebased', { conflict: run.by, from: now.base!.commit, ref: now.base!.ref, reason: why.slice(0, 2000) })
 		return
 	}
 	const passed = run.results.every((r) => r.exitCode === 0)
@@ -825,7 +871,9 @@ const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter
 /** Whether an item cannot move until the operator acts: something it waits on is held, or was never promoted. */
 export const stuck = (store: StoreService, item: Item): boolean => {
 	const blocked = (id: number) => ((p) => !p || p.status === 'held' || p.status === 'candidate' || p.status === 'dropped' || stuck(store, p))(store.get(id))
-	return (item.waitsOn !== undefined && blocked(item.waitsOn)) || unshipped(store, item).some(blocked)
+	// A dropped prerequisite fix releases the item waiting on it (drive runs its checks again); dropped work it builds on does not.
+	const fixBlocked = (id: number) => store.get(id)?.status !== 'dropped' && blocked(id)
+	return (item.waitsOn !== undefined && fixBlocked(item.waitsOn)) || unshipped(store, item).some(blocked)
 }
 
 const openPrerequisite = (store: StoreService, item: Item, answer: string, by: Origin) => {
@@ -1090,7 +1138,7 @@ const whereYouAre = (job: Job) => {
 
 const TASKS: Partial<Record<Job, string>> = {
 	plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
-	'test-plan': 'Write each check\'s files in your checkout, at paths outside the plan\'s scope. Made Well keeps them outside the product repo and runs each check\'s command itself, from the repo root, against the implementer\'s change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks.',
+	'test-plan': 'Write each check\'s files in your checkout, at paths outside the plan\'s scope. Made Well keeps them outside the product repo and runs each check\'s command itself, from the repo root, against the implementer\'s change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer\'s change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree.',
 	implement: 'Change only the files in the plan\'s scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item\'s checks itself.',
 	arbitrate: 'Your checkout holds the implementer\'s change as its last commit, with the test architect\'s check files applied on top, uncommitted. Reproduce the failure if you need to.',
 }

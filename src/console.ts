@@ -142,8 +142,9 @@ function stateAt(n) {
     else if (e.kind === 'handed-off') { it.job = Array.isArray(d.to) ? 'implement' : d.to; }
     else if (e.kind === 'call-started' || e.kind === 'running' || e.kind === 'retried') { if (d.job) it.job = d.job; it.status = 'running'; }
     else if (e.kind === 'failure') { it.job = 'arbitrate'; }
+    else if (e.kind === 'rebased') { it.job = 'plan'; }
     else if (e.kind === 'ruling') { if (d.to) it.job = d.to; it.status = d.prerequisite ? 'waiting-prerequisite' : 'running'; }
-    else if (e.kind === 'verify-started' || e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
+    else if (e.kind === 'verify-started' || e.kind === 'prerequisite-shipped' || e.kind === 'prerequisite-dropped') { it.job = 'verify'; it.status = 'running'; }
     else if (e.kind === 'held') { it.status = 'held'; it.hold = d.code; }
     else if (e.kind === 'shipped' || e.kind === 'discovered' || e.kind === 'dropped' || e.kind === 'waiting-quota') { it.status = e.kind; }
     else if (e.kind === 'promoted' || e.kind === 'nq-corrected' || (e.kind === 'nq-answer' && d.originator === 'operator')) { it.status = 'queued'; it.hold = null; }
@@ -214,10 +215,23 @@ function lastLine(text) {
   for (var i = lines.length - 1; i >= 0; i--) { var s = streamText(lines[i]); if (s) return s; }
   return '';
 }
+// One line of an agent's stream, as what the agent is doing: its words, the tool it calls, or the command it runs.
+// Echoes of the prompt and tool results ('user', 'system') say nothing about that.
 function streamText(line) {
   var t = line.trim();
   if (t[0] !== '{') return t;
-  try { var m = JSON.stringify(JSON.parse(t)).match(/"(?:text|content|message|result|command|delta)":"((?:[^"\\]|\\.){2,})"/); return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').slice(0, 400) : ''; } catch (e) { return t; }
+  try {
+    var v = JSON.parse(t);
+    if (v.type === 'user' || v.type === 'system') return '';
+    var parts = (v.message && Array.isArray(v.message.content)) ? v.message.content : [];
+    for (var i = parts.length - 1; i >= 0; i--) {
+      if (parts[i].type === 'tool_use') return '→ ' + parts[i].name + ' ' + JSON.stringify(parts[i].input || {}).slice(0, 300);
+      if (parts[i].type === 'text' && parts[i].text) return parts[i].text.replace(/\s+/g, ' ').slice(0, 400);
+    }
+    if (v.item && v.item.command) return '$ ' + v.item.command;
+    var m = JSON.stringify(v).match(/"(?:text|result|command|delta)":"((?:[^"\\]|\\.){2,})"/);
+    return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').slice(0, 400) : '';
+  } catch (e) { return t; }
 }
 
 function chip(i, st, live) {
