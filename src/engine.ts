@@ -196,8 +196,10 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 	const cheap = pickCard(p.tiers[INTAKE_TIER] ?? [], store.exhausted(), yield* Clock.currentTimeMillis).card ?? card
 	const item = store.get(id)!
 	const x = trackOf(item, job).exchange!
+	// Intake judges the packet the job will get: the same tree under its snapshot, the same evidence.
 	const call = yield* callAgent(id, job, config, {
 		kind: 'intake', profile: stepOf(job).profile, access: INTAKE_ACCESS, card: cheap, required: requiredOf(INTAKE),
+		...jobTree(item, job),
 		packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, 'intake')),
 	})
 	if (!call) return
@@ -261,18 +263,29 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 		saveTrack(store, id, job, { exchange: { ...x, status: 'awaiting-receiver', card: undefined } }, 'nq-replacement', { job, from: x.card ?? null })
 		return
 	}
-	const home = itemHome(store.path, id)
 	const plan = planOf(item)
 	const maker = isMaker(job)
 	yield* callAgent(id, job, config, {
 		kind: 'execute', profile: stepOf(job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: requiredOf(DELIVERABLES[job as keyof typeof DELIVERABLES]),
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
-		// The arbiter works on the candidate Made Well verified: the change committed on main, the checks applied.
-		...(job === 'arbitrate' && item.verification ? { at: item.verification.on } : {}),
-		prepare: (dir) => (maker ? applyPatch(dir, patchPath(home, `${job as Maker}.partial`)) : job === 'arbitrate' ? candidate(item, dir) : Effect.void),
+		...jobTree(item, job),
 		...(maker ? { onFail: (dir: string) => keepPartial(dir, item, job as Maker) } : {}),
 		packet: (dir) => packet(item, job, dir, executeParts(item, job, t, x)),
 	}, (dir, call) => accept(id, job, dir, call))
+})
+
+/**
+ * The tree a job works on, which its intake's snapshot shows too. A maker resumes its kept partial work; the
+ * arbiter works on the candidate Made Well verified: the change committed on main, the checks applied.
+ */
+const jobTree = (item: Item, job: Job): Pick<CallSpec, 'at' | 'prepare'> => ({
+	...(job === 'arbitrate' && item.verification ? { at: item.verification.on } : {}),
+	prepare: (dir) =>
+		Effect.gen(function* () {
+			const home = itemHome((yield* Store).path, item.id)
+			if (isMaker(job)) return yield* applyPatch(dir, patchPath(home, `${job as Maker}.partial`))
+			if (job === 'arbitrate') return yield* candidate(item, dir)
+		}),
 })
 
 interface CallSpec {
@@ -1023,11 +1036,16 @@ const handoffView = (item: Item, job: Job, x: Exchange) =>
 
 const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake') => ({
 	you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
+	...jobEvidence(item, job),
 	handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
 	round: item.round,
 	...(trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}),
 })
+
+/** What a job judges beyond its hand-off, the same at intake and in the job: the arbiter gets Made Well's whole run of the checks. */
+const jobEvidence = (item: Item, job: Job) =>
+	job === 'arbitrate' && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {}
 
 const deliverableShape = (job: Job) => (job in DELIVERABLES ? shapeOf(DELIVERABLES[job as keyof typeof DELIVERABLES]) : undefined)
 
@@ -1046,7 +1064,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange) => ({
 
 const executeParts = (item: Item, job: Job, t: Track, x: Exchange) => ({
 	you: { ...you(job, 'execute'), ...(TASKS[job] ? { task: TASKS[job] } : {}), replyFormat: deliverableShape(job) },
-	...(job === 'arbitrate' && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {}),
+	...jobEvidence(item, job),
 	exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
 	...(item.outputs[job] !== undefined && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {}),
 	round: item.round,

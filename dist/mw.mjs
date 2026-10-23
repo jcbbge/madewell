@@ -8,7 +8,7 @@ var __export = (target, all4) => {
 // src/cli.ts
 import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename2, dirname as dirname6, join as join9, resolve as resolve6 } from "node:path";
+import { basename as basename2, dirname as dirname6, join as join10, resolve as resolve6 } from "node:path";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -3427,6 +3427,40 @@ var fiberJoin = (self) => {
     return sync(self.addObserver(resume));
   });
 };
+var fiberJoinAll = (self) => callback((resume) => {
+  const fibers = Array.from(self);
+  if (fibers.length === 0) return resume(succeed3(empty2()));
+  const out = new Array(fibers.length);
+  const observers = empty2();
+  const removeObservers = () => {
+    for (let i = 0; i < observers.length; i++) {
+      fibers[i].removeObserver(observers[i]);
+    }
+  };
+  let done3 = 0;
+  let failed = false;
+  for (let i = 0; i < fibers.length; i++) {
+    if (failed) break;
+    const observer = (exit4) => {
+      done3++;
+      if (exit4._tag === "Failure") {
+        failed = true;
+        removeObservers();
+        return resume(exit4);
+      }
+      out[i] = exit4.value;
+      if (done3 === fibers.length) {
+        resume(succeed3(out));
+      }
+    };
+    observers.push(observer);
+    fibers[i].addObserver(observer);
+  }
+  return sync(() => {
+    failed = true;
+    removeObservers();
+  });
+});
 var fiberInterrupt = (self) => withFiber((fiber3) => fiberInterruptAs(self, fiber3.id));
 var fiberInterruptAs = /* @__PURE__ */ dual((args2) => hasProperty(args2[0], FiberTypeId), (self, fiberId3, annotations) => withFiber((parent) => {
   let ann = fiberStackAnnotations(parent);
@@ -3443,6 +3477,15 @@ var fiberInterruptAll = (fibers) => withFiber((parent) => {
   }
   return asVoid(fiberAwaitAll(fiberArr));
 });
+var fiberInterruptAllAs = /* @__PURE__ */ dual(2, (fibers, fiberId3) => withFiber((parent) => {
+  const annotations = fiberStackAnnotations(parent);
+  const fiberArr = empty2();
+  for (const fiber3 of fibers) {
+    fiber3.interruptUnsafe(fiberId3, annotations);
+    fiberArr.push(fiber3);
+  }
+  return asVoid(fiberAwaitAll(fiberArr));
+}));
 var succeed3 = exitSucceed;
 var failCause = exitFailCause;
 var fail3 = exitFail;
@@ -4440,7 +4483,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join10 = (fiber3, run2) => {
+  const join11 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4451,7 +4494,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join10(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join11(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
@@ -4463,7 +4506,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       awaiters: 0
     };
     current = run2;
-    const joined = join10(fiber3, run2);
+    const joined = join11(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
@@ -4916,6 +4959,18 @@ var runForkWith = (context3) => (effect2, options) => {
   }
   return fiber3;
 };
+var fiberRunIn = /* @__PURE__ */ dual(2, (self, scope3) => {
+  if (self._exit) {
+    return self;
+  } else if (scope3.state._tag === "Closed") {
+    self.interruptUnsafe(self.id);
+    return self;
+  }
+  scopeRemoveFinalizerUnsafe(scope3, self);
+  scopeAddFinalizerUnsafe(scope3, self, () => fiberInterrupt(self));
+  self.addObserver(() => scopeRemoveFinalizerUnsafe(scope3, self));
+  return self;
+});
 var runFork = /* @__PURE__ */ runForkWith(/* @__PURE__ */ empty());
 var runCallbackWith = (context3) => {
   const runFork3 = runForkWith(context3);
@@ -20915,6 +20970,33 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
+// node_modules/effect/dist/Fiber.js
+var Fiber_exports = {};
+__export(Fiber_exports, {
+  await: () => await_,
+  awaitAll: () => awaitAll,
+  getCurrent: () => getCurrent,
+  interrupt: () => interrupt3,
+  interruptAll: () => interruptAll,
+  interruptAllAs: () => interruptAllAs,
+  interruptAs: () => interruptAs,
+  isFiber: () => isFiber,
+  join: () => join,
+  joinAll: () => joinAll,
+  runIn: () => runIn
+});
+var await_ = fiberAwait;
+var awaitAll = fiberAwaitAll;
+var join = fiberJoin;
+var joinAll = fiberJoinAll;
+var interrupt3 = fiberInterrupt;
+var interruptAs = fiberInterruptAs;
+var interruptAll = fiberInterruptAll;
+var interruptAllAs = fiberInterruptAllAs;
+var isFiber = (u) => hasProperty(u, FiberTypeId);
+var getCurrent = getCurrentFiber;
+var runIn = fiberRunIn;
+
 // node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
@@ -21026,7 +21108,7 @@ var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
   asEnqueue: () => asEnqueue,
-  await: () => await_,
+  await: () => await_2,
   bounded: () => bounded,
   clear: () => clear2,
   collect: () => collect,
@@ -21038,7 +21120,7 @@ __export(Queue_exports, {
   failCauseUnsafe: () => failCauseUnsafe,
   flush: () => flush,
   flushUnsafe: () => flushUnsafe,
-  interrupt: () => interrupt3,
+  interrupt: () => interrupt4,
   into: () => into,
   isDequeue: () => isDequeue,
   isEnqueue: () => isEnqueue,
@@ -21202,7 +21284,7 @@ var failCauseUnsafe = (self, cause) => {
 };
 var end = (self) => failCause4(self, causeFail(Done()));
 var endUnsafe = (self) => failCauseUnsafe(self, causeFail(Done()));
-var interrupt3 = (self) => withFiber((fiber3) => failCause4(self, causeInterrupt(fiber3.id)));
+var interrupt4 = (self) => withFiber((fiber3) => failCause4(self, causeInterrupt(fiber3.id)));
 var shutdown = (self) => sync(() => shutdownUnsafe(self));
 var shutdownUnsafe = (self) => {
   if (self.state._tag === "Done") {
@@ -21280,7 +21362,7 @@ var takeUnsafe = (self) => {
 };
 var flushUnsafe = (self) => releaseTakers(self);
 var flush = (self) => sync(() => flushUnsafe(self));
-var await_ = (self) => callback((resume) => {
+var await_2 = (self) => callback((resume) => {
   const awaiter = (effect2) => resume(catchDone(effect2, () => exitVoid));
   if (self.state._tag === "Done") {
     return awaiter(self.state.exit);
@@ -21685,14 +21767,14 @@ var errorJson = (e) => ({
 import { execFile } from "node:child_process";
 import { mkdtempSync as mkdtempSync2, rmSync as rmSync2, writeFileSync as writeFileSync2 } from "node:fs";
 import { tmpdir as tmpdir2 } from "node:os";
-import { join as join2 } from "node:path";
+import { join as join3 } from "node:path";
 
 // src/worker.ts
 import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join as join2 } from "node:path";
 var DEFAULT_BUDGET = { minutes: 30 };
 var Worker = class extends Context_exports.Service()("madewell/Worker") {
 };
@@ -21785,10 +21867,10 @@ var overBudgetError = (who, o) => `${who} went over its budget: ${o.exceeded ===
 var commandWorker = (command2) => Layer_exports.succeed(Worker, {
   run: (request3) => Effect_exports.acquireUseRelease(
     Effect_exports.sync(() => {
-      const dir = mkdtempSync(join(tmpdir(), "madewell-"));
+      const dir = mkdtempSync(join2(tmpdir(), "madewell-"));
       const input = Buffer.from(JSON.stringify(request3));
-      writeFileSync(join(dir, "request.json"), input);
-      return { dir, size: input.length, fd: openSync(join(dir, "request.json"), "r") };
+      writeFileSync(join2(dir, "request.json"), input);
+      return { dir, size: input.length, fd: openSync(join2(dir, "request.json"), "r") };
     }),
     ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
       Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
@@ -21940,7 +22022,7 @@ var agentEnv = (allow, from = process.env) => ({
   MW_WORKER: "1"
 });
 function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
-  const settings = join2(call.dir, "settings.json");
+  const settings = join3(call.dir, "settings.json");
   const vars = { ...card, ...call, tools: harness.tools[access], settings };
   const [binary, ...args2] = harness.command.flatMap((a) => a === "{...tools}" ? vars.tools : [fill(a, vars)]);
   const files = harness.settings ? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v]))) } : {};
@@ -22022,7 +22104,7 @@ var harnessWorker = Layer_exports.succeed(Worker, {
     const budget = request3.budget ?? DEFAULT_BUDGET;
     return Effect_exports.acquireUseRelease(
       // Per-call files (settings) live in a directory removed when the call ends.
-      Effect_exports.sync(() => mkdtempSync2(join2(tmpdir2(), "madewell-"))),
+      Effect_exports.sync(() => mkdtempSync2(join3(tmpdir2(), "madewell-"))),
       (dir) => {
         const launch2 = buildLaunch(request3.card, request3.access, { system: request3.system, prompt: request3.prompt, title: `mw #${request3.item} ${request3.job} \xB7 ${request3.profile} \xB7 ${request3.kind}`, dir }, harness);
         for (const [path, content] of Object.entries(launch2.files)) writeFileSync2(path, content);
@@ -22121,27 +22203,27 @@ function pickCard(cards, exhausted, now2) {
 
 // src/change.ts
 import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
-import { basename, dirname as dirname2, join as join4, matchesGlob } from "node:path";
+import { basename, dirname as dirname2, join as join5, matchesGlob } from "node:path";
 
 // src/workspace.ts
 import { execFile as execFile2 } from "node:child_process";
 import { existsSync, lstatSync, readdirSync, readFileSync as readFileSync2, readlinkSync, rmSync as rmSync3, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, isAbsolute, join as join3, relative, resolve as resolve3 } from "node:path";
+import { dirname, isAbsolute, join as join4, relative, resolve as resolve3 } from "node:path";
 var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI.md", ".cursorrules"];
 var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
-var worktreesRoot = () => join3(process.env.MW_STORE ? dirname(process.env.MW_STORE) : process.env.MW_HOME ?? join3(homedir(), ".local", "share", "madewell"), "worktrees");
+var worktreesRoot = () => join4(process.env.MW_STORE ? dirname(process.env.MW_STORE) : process.env.MW_HOME ?? join4(homedir(), ".local", "share", "madewell"), "worktrees");
 var fail8 = (code, message, context3, next, cause) => new MadeWellError({ code, message, context: context3, next, ...cause ? { cause } : {} });
 var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile2(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
 var git = (dir, ...args2) => exec("git", ["--no-optional-locks", "-C", dir, ...args2], dir).pipe(Effect_exports.flatMap(({ code, stdout, stderr }) => code === 0 ? Effect_exports.succeed(stdout) : Effect_exports.fail(fail8("git_failed", `git ${args2[0]} failed in ${dir}.`, { dir, args: args2, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args2.join(" ")}`, why: "run it yourself to see the full error" }]))));
 var lines = (out) => out.split("\0").filter(Boolean);
 var worktree = Effect_exports.fn("mw.worktree")(function* (repo, base, name) {
   const root = worktreesRoot();
-  const path = join3(root, name);
+  const path = join4(root, name);
   if (!/^[\w.-]+$/.test(name)) return yield* fail8("bad_worktree_name", `Worktree name "${name}" must be letters, digits, ".", "_" or "-".`, { name }, []);
   const above = [];
   for (let dir = root; ; dir = dirname(dir)) {
-    above.push(...GUIDANCE.map((f) => join3(dir, f)).filter((f) => existsSync(f)));
+    above.push(...GUIDANCE.map((f) => join4(dir, f)).filter((f) => existsSync(f)));
     if (dirname(dir) === dir) break;
   }
   const inside = !relative(resolve3(repo), root).startsWith("..");
@@ -22174,7 +22256,7 @@ var snapshot2 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
   const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
   const tracked = lines(yield* git(dir, "ls-files", "-z"));
   const contents = Object.fromEntries(files.map((f) => {
-    const p = join3(dir, f);
+    const p = join4(dir, f);
     return [f, existsSync(p) && statSync(p).isFile() ? readFileSync2(p, "utf8") : null];
   }));
   return { head: head3, files: tracked, contents };
@@ -22191,7 +22273,7 @@ var capture = Effect_exports.fn("mw.capture")(function* (dir, shared = true) {
   return { dir, head: head3, refs, files };
 });
 function walk(root, rel, into2, label2 = "") {
-  const p = join3(root, rel);
+  const p = join4(root, rel);
   let s;
   try {
     s = lstatSync(p, { bigint: true });
@@ -22254,7 +22336,7 @@ var leftovers = Effect_exports.fn("mw.leftovers")(function* (dir, before) {
     const files = [...created, ...control];
     return yield* fail8("leftovers", `${files.length} file(s) were left or changed in ${dir}.`, { dir, files }, [
       ...created.length ? [{ run: `git -C ${dir} clean -fdx -- ${created.map((f) => JSON.stringify(f)).join(" ")}`, why: "remove exactly the untracked files the job left behind" }] : [],
-      ...control.length ? [{ run: `ls -l ${control.map((f) => JSON.stringify(join3(dir, f))).join(" ")}`, why: "git settings, excludes or hooks changed; git cannot restore them, so check and restore each by hand" }] : []
+      ...control.length ? [{ run: `ls -l ${control.map((f) => JSON.stringify(join4(dir, f))).join(" ")}`, why: "git settings, excludes or hooks changed; git cannot restore them, so check and restore each by hand" }] : []
     ]);
   }
 });
@@ -22280,8 +22362,8 @@ var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
 // src/change.ts
 var lines2 = (out) => out.split("\0").filter(Boolean);
 var tail = (s) => s.slice(-4e3);
-var itemHome = (storePath2, id2) => join4(dirname2(storePath2), "items", String(id2));
-var patchPath = (home, name) => join4(home, `${name}.patch`);
+var itemHome = (storePath2, id2) => join5(dirname2(storePath2), "items", String(id2));
+var patchPath = (home, name) => join5(home, `${name}.patch`);
 var writePatch = (path, patch) => {
   mkdirSync(dirname2(path), { recursive: true });
   writeFileSync3(path, patch);
@@ -22353,17 +22435,17 @@ import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
 // src/project.ts
 import { execFile as execFile3 } from "node:child_process";
 import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync5, writeFileSync as writeFileSync6 } from "node:fs";
-import { dirname as dirname5, join as join8, sep } from "node:path";
+import { dirname as dirname5, join as join9, sep } from "node:path";
 
 // src/store.ts
 import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, join as join7 } from "node:path";
+import { dirname as dirname4, join as join8 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 // src/replay.ts
 import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync4 } from "node:fs";
-import { join as join5 } from "node:path";
+import { join as join6 } from "node:path";
 var snapshot3 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
 var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const item = store.get(id2);
@@ -22372,13 +22454,13 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   yield* Effect_exports.try({
     try: () => {
       mkdirSync2(dir, { recursive: true });
-      writeFileSync4(join5(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      writeFileSync4(join6(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
       calls.forEach((c, i) => {
-        const folder = join5(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        const folder = join6(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
         mkdirSync2(folder, { recursive: true });
         const { system, prompt, output, raw, tools, flags, ...meta } = c;
         const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
-        for (const [name, text2] of files) writeFileSync4(join5(folder, name), text2);
+        for (const [name, text2] of files) writeFileSync4(join6(folder, name), text2);
       });
     },
     catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
@@ -22513,7 +22595,7 @@ build(); pos = Math.max(0, steps.length - 1); render();
 import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
 import { hostname } from "node:os";
-import { dirname as dirname3, join as join6, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
+import { dirname as dirname3, join as join7, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // src/lane.ts
@@ -22847,7 +22929,7 @@ var buildOf = () => {
   try {
     const here = dirname3(fileURLToPath(import.meta.url));
     const hash2 = createHash("sha256");
-    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join6(here, f)));
+    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join7(here, f)));
     build2 = hash2.digest("hex").slice(0, 12);
   } catch {
     build2 = null;
@@ -22861,7 +22943,7 @@ function telemetry(storePath2) {
   if (!dir || storePath2 === ":memory:") return void 0;
   const host = hostname();
   const store = createHash("sha256").update(resolve4(storePath2)).digest("hex").slice(0, 8);
-  const file = join6(resolve4(dir), `${host}-${store}.jsonl`);
+  const file = join7(resolve4(dir), `${host}-${store}.jsonl`);
   const full = [void 0, "", "full"].includes(process.env.MW_TELEMETRY_LEVEL);
   return {
     file,
@@ -22994,7 +23076,7 @@ function stats(lines4) {
 }
 
 // src/store.ts
-var defaultStorePath = () => process.env.MW_STORE ?? join7(process.env.MW_HOME ?? join7(homedir2(), ".local", "share", "madewell"), "madewell.db");
+var defaultStorePath = () => process.env.MW_STORE ?? join8(process.env.MW_HOME ?? join8(homedir2(), ".local", "share", "madewell"), "madewell.db");
 var alive2 = (pid) => {
   try {
     process.kill(pid, 0);
@@ -23032,7 +23114,7 @@ function openStore(path) {
       throw e;
     }
   };
-  const glass = join7(dirname4(path), "glass.html");
+  const glass = join8(dirname4(path), "glass.html");
   const insertTools = (call, tools) => {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
@@ -23217,7 +23299,7 @@ var Store = class extends Context_exports.Service()("madewell/Store") {
 };
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
-  debugLayer(join7(dirname4(path), "debug.jsonl"), telemetry(path))
+  debugLayer(join8(dirname4(path), "debug.jsonl"), telemetry(path))
 );
 
 // src/project.ts
@@ -23233,7 +23315,7 @@ var Project = Schema_exports.Struct({
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
-var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
+var projectsPath = (storePath2) => join9(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
   return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync5(path, "utf8")).pipe(
@@ -23275,12 +23357,14 @@ var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
   for (const hold2 of holds) {
     const command2 = projectFor(projects, hold2.workspace)?.alert;
     if (!command2) continue;
-    const exitCode = yield* Effect_exports.promise(() => new Promise((done3) => {
-      const env = { ...process.env, MW_ITEM: String(hold2.item), MW_TITLE: hold2.title, MW_HOLD: hold2.code, MW_MESSAGE: hold2.message };
-      const child = execFile3("sh", ["-c", command2], { cwd: dirname5(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
-      child.stdin?.end(JSON.stringify(hold2));
+    yield* Effect_exports.uninterruptible(Effect_exports.gen(function* () {
+      const exitCode = yield* Effect_exports.promise(() => new Promise((done3) => {
+        const env = { ...process.env, MW_ITEM: String(hold2.item), MW_TITLE: hold2.title, MW_HOLD: hold2.code, MW_MESSAGE: hold2.message };
+        const child = execFile3("sh", ["-c", command2], { cwd: dirname5(registry2), env }, (error) => done3(error ? typeof error.code === "number" ? error.code : 1 : 0));
+        child.stdin?.end(JSON.stringify(hold2));
+      }));
+      store.save(store.get(hold2.item), "alerted", { code: hold2.code, command: command2, exitCode });
     }));
-    store.save(store.get(hold2.item), "alerted", { code: hold2.code, command: command2, exitCode });
   }
 });
 
@@ -23399,6 +23483,7 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
     access: INTAKE_ACCESS,
     card: cheap,
     required: requiredOf(INTAKE),
+    ...jobTree(item, job),
     packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake"))
   });
   if (!call) return;
@@ -23459,7 +23544,6 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
     saveTrack(store, id2, job, { exchange: { ...x, status: "awaiting-receiver", card: void 0 } }, "nq-replacement", { job, from: x.card ?? null });
     return;
   }
-  const home = itemHome(store.path, id2);
   const plan = planOf(item);
   const maker = isMaker(job);
   yield* callAgent(id2, job, config, {
@@ -23469,12 +23553,18 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
     card: x.card,
     required: requiredOf(DELIVERABLES[job]),
     ...job === "implement" && plan ? { scope: plan.scope } : {},
-    // The arbiter works on the candidate Made Well verified: the change committed on main, the checks applied.
-    ...job === "arbitrate" && item.verification ? { at: item.verification.on } : {},
-    prepare: (dir) => maker ? applyPatch(dir, patchPath(home, `${job}.partial`)) : job === "arbitrate" ? candidate(item, dir) : Effect_exports.void,
+    ...jobTree(item, job),
     ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
     packet: (dir) => packet(item, job, dir, executeParts(item, job, t, x))
   }, (dir, call) => accept(id2, job, dir, call));
+});
+var jobTree = (item, job) => ({
+  ...job === "arbitrate" && item.verification ? { at: item.verification.on } : {},
+  prepare: (dir) => Effect_exports.gen(function* () {
+    const home = itemHome((yield* Store).path, item.id);
+    if (isMaker(job)) return yield* applyPatch(dir, patchPath(home, `${job}.partial`));
+    if (job === "arbitrate") return yield* candidate(item, dir);
+  })
 });
 var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_exports.gen(function* () {
   const store = yield* Store;
@@ -24100,11 +24190,13 @@ var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job}
 var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
   you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
+  ...jobEvidence(item, job),
   handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
   round: item.round,
   ...trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}
 });
+var jobEvidence = (item, job) => job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {};
 var deliverableShape = (job) => job in DELIVERABLES ? shapeOf(DELIVERABLES[job]) : void 0;
 var originatorParts = (item, job, x) => ({
   you: {
@@ -24121,7 +24213,7 @@ var originatorParts = (item, job, x) => ({
 });
 var executeParts = (item, job, t, x) => ({
   you: { ...you(job, "execute"), ...TASKS[job] ? { task: TASKS[job] } : {}, replyFormat: deliverableShape(job) },
-  ...job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {},
+  ...jobEvidence(item, job),
   exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
   ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
   round: item.round,
@@ -24545,7 +24637,7 @@ var retention = (store, before) => {
 var sizeOf = (path) => {
   if (!existsSync3(path)) return 0;
   const s = statSync2(path);
-  return s.isDirectory() ? readdirSync3(path).reduce((n, f) => n + sizeOf(join9(path, f)), 0) : s.size;
+  return s.isDirectory() ? readdirSync3(path).reduce((n, f) => n + sizeOf(join10(path, f)), 0) : s.size;
 };
 var nextAction = Effect_exports.fn("mw.next")(function* () {
   const store = yield* Store;
@@ -24686,8 +24778,9 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const prescriptions = yield* loadPrescriptions(prescriptionsPath());
-      yield* Effect_exports.forkScoped(Effect_exports.forever(Effect_exports.andThen(Effect_exports.sleep("2 seconds"), alertHolds(registry))));
+      const sweep = yield* Effect_exports.forkScoped(Effect_exports.forever(Effect_exports.andThen(Effect_exports.sleep("2 seconds"), alertHolds(registry))));
       yield* runQueue({ prescriptions }, { watch: input.watch });
+      yield* Fiber_exports.interrupt(sweep);
       yield* alertHolds(registry);
       return board(yield* Store);
     }).pipe(Effect_exports.scoped)
@@ -24804,7 +24897,7 @@ var COMMANDS = [
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync3(dir) ? readdirSync3(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync7(join9(dir, f), "utf8").split("\n").filter(Boolean));
+      const lines4 = files.flatMap((f) => readFileSync7(join10(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
@@ -24858,12 +24951,12 @@ var COMMANDS = [
       }
       const { ids, kept } = retention(store, before);
       const home = dirname6(storePath);
-      const files = [...ids.flatMap((id2) => [join9(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join9(home, "replay.html")] : []].filter(existsSync3);
+      const files = [...ids.flatMap((id2) => [join10(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join10(home, "replay.html")] : []].filter(existsSync3);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
         for (const f of files) rmSync6(f, { recursive: true, force: true });
-        if (existsSync3(join9(home, "exports")) && !readdirSync3(join9(home, "exports")).length) rmSync6(join9(home, "exports"), { recursive: true });
+        if (existsSync3(join10(home, "exports")) && !readdirSync3(join10(home, "exports")).length) rmSync6(join10(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;

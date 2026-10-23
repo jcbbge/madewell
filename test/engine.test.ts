@@ -254,6 +254,12 @@ test('a failing check goes to the arbiter with its logs; a bad test is rewritten
 		assert.match(arbiter.exchange.handoff, /1 of 1 checks failed[\s\S]*Check C1 \(done-when D1\) exited 1[\s\S]*expected a;b/)
 		assert.equal(arbiter.verification.results[0].doneWhen, 'D1')
 		assert.equal(seen, 'echo a,b\nAdd CSV exportecho "expected a;b"; exit 1\n', 'the arbiter works on the candidate: the change committed, the checks applied')
+		// Its intake judges the same packet: the same run of the checks, and the snapshot of the candidate, not of main.
+		const intake = t.packet('intake', 'arbitrate')
+		assert.deepEqual(intake.verification, arbiter.verification)
+		assert.deepEqual([intake.change, intake.checks], [arbiter.change, arbiter.checks])
+		assert.equal(intake.snapshot.contents['src/export.sh'], 'echo a,b\n', 'the snapshot shows the implementer\'s change')
+		assert.deepEqual(intake.snapshot.contents, arbiter.snapshot.contents, 'intake and job see the same candidate tree')
 		assert.equal(t.of('originator', 'arbitrate')[0]!.profile, 'test architect', 'the checks\' author answers the arbiter\'s questions')
 		const rework = t.packet('execute', 'test-plan', 1)
 		assert.equal(rework.exchange.from, 'arbiter')

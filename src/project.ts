@@ -85,11 +85,14 @@ export const alertHolds = Effect.fn('mw.alertHolds')(function* (registry: string
 	for (const hold of holds) {
 		const command = projectFor(projects, hold.workspace)?.alert
 		if (!command) continue
-		const exitCode = yield* Effect.promise(() => new Promise<number>((done) => {
-			const env = { ...process.env, MW_ITEM: String(hold.item), MW_TITLE: hold.title, MW_HOLD: hold.code, MW_MESSAGE: hold.message }
-			const child = execFile('sh', ['-c', command], { cwd: dirname(registry), env }, (error) => done(error ? (typeof error.code === 'number' ? error.code : 1) : 0))
-			child.stdin?.end(JSON.stringify(hold))
+		// Sending and recording are one step: an interrupt waits for it, so no alert goes out unrecorded.
+		yield* Effect.uninterruptible(Effect.gen(function* () {
+			const exitCode = yield* Effect.promise(() => new Promise<number>((done) => {
+				const env = { ...process.env, MW_ITEM: String(hold.item), MW_TITLE: hold.title, MW_HOLD: hold.code, MW_MESSAGE: hold.message }
+				const child = execFile('sh', ['-c', command], { cwd: dirname(registry), env }, (error) => done(error ? (typeof error.code === 'number' ? error.code : 1) : 0))
+				child.stdin?.end(JSON.stringify(hold))
+			}))
+			store.save(store.get(hold.item)!, 'alerted', { code: hold.code, command, exitCode })
 		}))
-		store.save(store.get(hold.item)!, 'alerted', { code: hold.code, command, exitCode })
 	}
 })

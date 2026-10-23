@@ -11,7 +11,7 @@ import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync 
 import { constants as osConstants } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { Clock, Effect, Layer, Schema } from 'effect'
+import { Clock, Effect, Fiber, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
 import { itemHome } from './change.ts'
 import { answer, drop, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
@@ -384,8 +384,10 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		run: (input) => Effect.gen(function* () {
 			const prescriptions = yield* loadPrescriptions(prescriptionsPath())
 			// The first sweep waits until runQueue holds the runner claim, so only the runner ever alerts.
-			yield* Effect.forkScoped(Effect.forever(Effect.andThen(Effect.sleep('2 seconds'), alertHolds(registry))))
+			const sweep = yield* Effect.forkScoped(Effect.forever(Effect.andThen(Effect.sleep('2 seconds'), alertHolds(registry))))
 			yield* runQueue({ prescriptions }, { watch: input.watch })
+			// The last sweep runs alone: one still sending an alert would send it again.
+			yield* Fiber.interrupt(sweep)
 			yield* alertHolds(registry)
 			return board(yield* Store)
 		}).pipe(Effect.scoped),
