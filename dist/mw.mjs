@@ -21753,14 +21753,19 @@ var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callbac
     kill();
   });
 }));
+var MARKER = / MW_CALL=(\d+-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?=\s|$)/;
 function killMarked(match7) {
   try {
-    const ps = execFileSync("ps", ["axeww", "-o", "pid=,command="], { encoding: "utf8", maxBuffer: 256 << 20, stdio: ["ignore", "pipe", "ignore"] });
-    for (const line of ps.split("\n")) {
-      const call = / MW_CALL=(\S+)/.exec(line)?.[1];
+    const ps = (flags) => execFileSync("ps", [flags, "-o", "pid=,command="], { encoding: "utf8", maxBuffer: 256 << 20, stdio: ["ignore", "pipe", "ignore"] }).split("\n").map((l) => l.trim()).filter(Boolean);
+    const commands = new Map(ps("axww").map((l) => [l.split(" ")[0], l]));
+    for (const line of ps("axeww")) {
+      const pid = line.split(" ")[0];
+      const command2 = commands.get(pid);
+      if (!command2 || !line.startsWith(command2)) continue;
+      const call = MARKER.exec(line.slice(command2.length))?.[1];
       if (!call || !match7(call)) continue;
       try {
-        process.kill(Number(line.trim().split(" ")[0]), "SIGKILL");
+        process.kill(Number(pid), "SIGKILL");
       } catch {
       }
     }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -9,7 +10,7 @@ import { Effect, Layer } from 'effect'
 import { harnessOf, loadPrescriptions } from '../src/cards.ts'
 import { buildLaunch, clockToEpoch, HARNESSES, harnessWorker, parseRun, tokensIn, type Harness } from '../src/harness.ts'
 import { toolEvents } from '../src/telemetry.ts'
-import { commandWorker, Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
+import { commandWorker, killOrphans, Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
 
 const NOW = Date.UTC(2026, 9, 16, 12, 0)
 const lines = (...events: object[]) => events.map((e) => JSON.stringify(e)).join('\n')
@@ -267,5 +268,19 @@ test('a daemon left by a runner that was SIGKILLed is killed when the next runne
 		assert.ok(await gone(daemon), 'the next runner killed it')
 	} finally {
 		rmSync(dir, { recursive: true, force: true })
+	}
+})
+
+test('the orphan sweep kills a process carrying a dead runner\'s marker in its environment, and never one that only mentions the marker', async () => {
+	const marker = `${spawnSync('true').pid}-${randomUUID()}` // a runner that is gone
+	const orphan = spawn('sleep', ['30'], { env: { ...process.env, MW_CALL: marker }, detached: true, stdio: 'ignore' })
+	const bystander = spawn('sh', ['-c', 'sleep 30', 'grep', `MW_CALL=${marker}`], { detached: true, stdio: 'ignore' })
+	try {
+		await new Promise((r) => setTimeout(r, 200))
+		killOrphans()
+		assert.ok(await gone(orphan.pid!), 'the orphan is killed')
+		assert.equal(alive(bystander.pid!), true, 'a command line that mentions the marker is not an orphan')
+	} finally {
+		for (const p of [orphan, bystander]) p.kill('SIGKILL')
 	}
 })
