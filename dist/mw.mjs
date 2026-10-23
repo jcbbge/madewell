@@ -23493,18 +23493,18 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   const questions = [...unclear, ...ambiguous, ...missing2].filter((q) => q.trim() !== "");
   const receiver = stepOf(job).profile;
   if (!questions.length) {
-    saveTrack(store, id2, job, { launches: 0, rejected: void 0, exchange: { ...x, status: "clear", understanding, notes: [...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap });
+    saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "clear", understanding, notes: [...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap });
     return;
   }
   const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }] };
   const answered = x.turns.filter((t) => t.answer !== void 0).length;
   const context3 = { job, receiver, originator: profileOf(x.from), questions, turns: x.turns };
   const now2 = withTrack(store.get(id2), job, { ...trackOf(store.get(id2), job), exchange: asked });
-  if (answered >= MAX_TURNS) return hold(store, now2, "nq_turns", `The ${receiver} still has questions after ${answered} answered turns: the hand-off or its scope is wrong.`, context3);
+  if (answered >= MAX_TURNS) return holdTurns(store, now2, job, context3);
   if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
     return hold(store, now2, "question_for_operator", `The ${receiver} has questions about your answer before it can ${job}.`, context3);
   }
-  saveTrack(store, id2, job, { launches: 0, rejected: void 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions });
+  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions });
 });
 var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
@@ -23532,7 +23532,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
     const pendingQ = x.turns.at(-1);
     return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(job).profile} asked.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer });
   }
-  saveTrack(store, id2, job, { launches: 0, rejected: void 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from });
+  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from });
 });
 var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   const store = yield* Store;
@@ -23572,7 +23572,11 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const item = store.get(id2);
   const p = config.prescriptions;
   const wt = yield* worktree(item.workspace, spec.at ?? item.base.commit, `item-${id2}-${job}-${spec.kind}`);
-  if (spec.access !== "none" && !(yield* prepareWorktree(id2, job, wt.path, `item-${id2}-${job}-${spec.kind}`, wt.base))) return void 0;
+  if (spec.access !== "none") {
+    const failed = yield* prepareWorktree(id2, job, wt.path, `item-${id2}-${job}-${spec.kind}`, wt.base);
+    if (failed && spec.kind === "originator") return void hold(store, store.get(id2), "prepare_failed", failed.message, failed.context);
+    if (failed) return void (yield* launchFailed(id2, job, spec.kind, spec.card, failed.message, failed.context));
+  }
   if (spec.prepare) yield* spec.prepare(wt.path);
   const prompt = yield* spec.packet(wt.path);
   const budget = budgetFor(p, job);
@@ -23632,13 +23636,13 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   if (!res.ok) {
     if (spec.onFail) yield* spec.onFail(wt.path);
     if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
-    else yield* launchFailed(id2, job, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
+    else yield* launchFailed(id2, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
     return void 0;
   }
   if (read && changed) {
     const reason = `The ${spec.kind} call changed its read-only checkout: ${[...changed.added, ...changed.removed, ...changed.modified].join(", ") || "refs or HEAD"}.`;
     store.rejectCall(callId, reason);
-    yield* launchFailed(id2, job, spec.card, reason, { changes: changed });
+    yield* launchFailed(id2, job, spec.kind, spec.card, reason, { changes: changed });
     return void 0;
   }
   const left = product ? yield* Effect_exports.result(withLock(item.workspace, leftovers(item.workspace, product))) : void 0;
@@ -23647,13 +23651,13 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     holdFor(store, id2, left.failure, job);
     return void 0;
   }
-  const called = { output: res.output, callId, card: spec.card, ...before ? { before } : {} };
+  const called = { kind: spec.kind, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
   return after ? yield* after(wt.path, called) : called;
 }));
 var refuse = Effect_exports.fn("mw.refuse")(function* (id2, job, call, reason) {
   const store = yield* Store;
   store.rejectCall(call.callId, reason);
-  yield* launchFailed(id2, job, call.card, reason, {}, { rejected: reason });
+  yield* launchFailed(id2, job, call.kind, call.card, reason, {}, { rejected: reason });
 });
 var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, call) {
   const store = yield* Store;
@@ -23780,17 +23784,18 @@ var prepareWorktree = Effect_exports.fn("mw.prepare")(function* (id2, job, dir, 
   const store = yield* Store;
   const item = store.get(id2);
   const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
-  if (!project?.prepare) return true;
+  if (!project?.prepare) return void 0;
   const env = { ...process.env, MW_ITEM: String(id2), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base };
   const r = yield* runGroup({ command: "sh", args: ["-c", project.prepare], cwd: dir, env, input: "", budget: PREPARE_BUDGET });
   const reported = Schema_exports.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {});
   const resources = Result_exports.isSuccess(reported) ? reported.success.provisioned : [];
   const now2 = store.get(id2);
-  const saved = store.save({ ...now2, provisioned: [...now2.provisioned ?? [], ...resources.map((x) => ({ kind: x.kind, id: x.id, teardown: x.teardown, job }))] }, "prepared", { job, name, exitCode: r.code, provisioned: resources.map((x) => ({ kind: x.kind, id: x.id })) });
-  if (r.code === 0 && !r.overBudget) return true;
+  store.save({ ...now2, provisioned: [...now2.provisioned ?? [], ...resources.map((x) => ({ kind: x.kind, id: x.id, teardown: x.teardown, job }))] }, "prepared", { job, name, exitCode: r.code, provisioned: resources.map((x) => ({ kind: x.kind, id: x.id })) });
+  if (r.code === 0 && !r.overBudget) return void 0;
   const why = r.overBudget ? `ran past its ${PREPARE_BUDGET.minutes} minutes` : `exited ${r.code}`;
-  hold(store, saved, "prepare_failed", `The project's prepare command ${why} in ${name}, so the ${job} job did not run.`, { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4e3), stderr: r.stderr.slice(-4e3) });
-  return false;
+  const said = (r.stderr.trim() || r.stdout.trim()).slice(-1500);
+  return { message: `The project's prepare command ${why} in ${name}, so the ${job} job did not run.${said ? ` It said:
+${said}` : ""}`, context: { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4e3), stderr: r.stderr.slice(-4e3) } };
 });
 var locks = /* @__PURE__ */ new Map();
 var withLock = (repo, effect2) => {
@@ -23865,7 +23870,8 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const env = { ...process.env, MW_ITEM: String(id2) };
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
-    if (!(yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base))) return { kind: "held" };
+    const failed2 = yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base);
+    if (failed2) return { kind: "unprepared", ...failed2 };
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
     const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env);
@@ -23874,7 +23880,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
     return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env)] };
   }));
-  if (run2.kind === "held") return;
+  if (run2.kind === "unprepared") return hold(store, store.get(id2), "prepare_failed", run2.message, run2.context);
   yield* aftercare(id2, "verify");
   if (store.get(id2).status === "held") return;
   const now2 = store.get(id2);
@@ -23951,10 +23957,21 @@ var recordLimit = Effect_exports.fn("mw.recordLimit")(function* (id2, job, card,
   const pickingUp = kind === "execute" ? `The ${profile}'s previous run of this job, on ${card.harness} \xB7 ${card.model}, stopped at a usage limit (${limit.message}). You are picking up the same job${isMaker(job) ? ": your checkout holds the work it had done. Continue from there; do not repeat it." : "."}` : t.pickingUp;
   saveTrack(store, id2, job, { pickingUp }, "quota-swap", { kind, job, from: card, account: limit.account, resetsAt: new Date(resetsAt).toISOString(), message: limit.message });
 });
-var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, card, error, evidence = {}, patch = {}) {
+var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kind, card, error, evidence = {}, patch = {}) {
   const store = yield* Store;
   const item = store.get(id2);
   const t = trackOf(item, job);
+  const x = t.exchange;
+  if (kind !== "originator" && x) {
+    const receiver = stepOf(job).profile;
+    const question = `My ${kind === "intake" ? "intake" : job} call failed, so I could not ${kind === "intake" ? "confirm the hand-off" : `do the ${job} job`}: ${error}`;
+    const answered = x.turns.filter((turn) => turn.answer !== void 0).length;
+    const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding: x.understanding ?? "", questions: [question] }] };
+    const context3 = { job, receiver, originator: profileOf(x.from), questions: [question], turns: x.turns, card, ...evidence };
+    if (answered >= MAX_TURNS) return holdTurns(store, withTrack(item, job, { ...t, ...patch, exchange: asked }), job, context3);
+    saveTrack(store, id2, job, { ...patch, launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions: [question], error: true, card, ...evidence });
+    return;
+  }
   const launches = t.launches + 1;
   if (launches < MAX_LAUNCHES) {
     saveTrack(store, id2, job, { ...patch, launches }, "launch-failed", { job, card, error, ...evidence });
@@ -23962,6 +23979,7 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, car
   }
   hold(store, withTrack(item, job, { ...t, ...patch, launches }), "worker_failing", `A call for the ${job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job, card, lastError: error, ...evidence });
 });
+var holdTurns = (store, item, job, context3) => hold(store, item, "nq_turns", `The ${stepOf(job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
   const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
@@ -24033,6 +24051,17 @@ var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
     const job2 = item.hold.context.job ?? item.job;
     const t = trackOf(free, job2);
     const x = t.exchange;
+    if (item.hold.code === "nq_turns") {
+      const open = x.turns.at(-1)?.questions ?? [];
+      const handoff = `${x.handoff}
+
+The operator's correction, after the exchange on this hand-off ran out of turns with these questions open:
+${open.map((q) => `- ${q}`).join("\n")}
+
+${text2}`;
+      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", answer: text2 });
+      return;
+    }
     const turns = x.turns.map((turn, i) => i === x.turns.length - 1 ? { ...turn, answer: text2, by: "operator" } : turn);
     store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", answer: text2 });
     return;

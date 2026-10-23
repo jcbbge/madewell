@@ -279,7 +279,7 @@ test('a failing check goes to the arbiter with its logs; a bad test is rewritten
 	}
 })
 
-test('a read call that writes is refused and asked again; an answer off its schema is refused before it counts as a failed launch', async () => {
+test('a read call that writes is refused and an answer off its schema is refused: each is the receiver\'s question to its originator, who answers before it runs again', async () => {
 	const t = setup((req, n) => {
 		if (req.kind === 'execute' && req.job === 'plan' && n === 1) return (write(req, 'notes.md', 'my plan'), PLAN)
 		if (req.kind === 'execute' && req.job === 'ideate' && n === 1) return 'I think we should export CSV.'
@@ -298,17 +298,21 @@ test('a read call that writes is refused and asked again; an answer off its sche
 		assert.deepEqual(plan.flags.map((f) => f.rule), ['write-under-read'])
 		assert.match(t.packet('execute', 'ideate', 1).yourLastAnswerWasRefused, /did not end with a JSON object/)
 		assert.match(t.packet('execute', 'test-plan', 1).yourLastAnswerWasRefused, /D9[\s\S]*without a check: D1/)
-		assert.ok(t.store.events(t.item.id).some((e) => e.kind === 'launch-failed' && /D1/.test(String(e.data.error))))
+		const asked = t.store.events(t.item.id).filter((e) => e.kind === 'nq-question' && e.data.error)
+		assert.deepEqual(asked.map((e) => e.data.job), ['ideate', 'plan', 'test-plan'], 'each refusal went to the originator as a question')
+		assert.match(String((asked[2]!.data.questions as string[])[0]), /D1/)
+		assert.deepEqual(t.of('originator', 'plan').map((c) => c.profile), ['ideation peer'], 'the one who handed over the work answers')
 		assertNoTrace(t)
 	} finally {
 		t.cleanup()
 	}
 })
 
-test('a plan that creates a kind of file the repo already has must name the existing one it follows; three refusals hold the item before anything is made', async () => {
+test('a plan that creates a kind of file the repo already has must name the existing one it follows; a refusal after three answered turns holds the item before anything is made', async () => {
 	const plans = [
 		{ ...PLAN, scope: ['src/export.sh', 'tools/gen.py'], follows: [] },
 		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'src/missing.sh' }] },
+		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
 		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
 	]
 	const t = setup((req, n) => (req.kind === 'execute' && req.job === 'plan' ? plans[n - 1] : undefined))
@@ -318,15 +322,16 @@ test('a plan that creates a kind of file the repo already has must name the exis
 		git(t.repo, 'commit', '-qm', 'notes')
 		const item = await t.run(drive(t.item.id, config))
 		const refused = t.store.calls(t.item.id).filter((c) => c.kind === 'execute' && c.job === 'plan').map((c) => [c.outcome, c.error])
-		assert.equal(refused.length, 3)
+		assert.equal(refused.length, 4, 'three refusals answered by the ideation peer, and a fourth that holds')
+		assert.equal(t.of('originator', 'plan').length, 3)
 		assert.ok(refused.every(([outcome]) => outcome === 'rejected'))
 		assert.match(refused[0]![1]!, /src\/export\.sh is new: name the existing \.sh file it follows/)
 		assert.doesNotMatch(refused[0]![1]!, /gen\.py/, 'the repo has no .py file yet: nothing is settled for it to follow')
 		assert.match(refused[1]![1]!, /follows src\/missing\.sh, which is not a file in the repo/)
 		assert.match(refused[2]![1]!, /follows notes\.txt, which is a different kind of file/)
-		assert.equal(item.hold?.code, 'worker_failing')
+		assert.equal(item.hold?.code, 'nq_turns')
 		assert.equal(item.hold?.context.job, 'plan')
-		assert.equal(item.hold?.context.lastError, refused[2]![1])
+		assert.ok(String((item.hold?.context.questions as string[])[0]).endsWith(refused[3]![1]!), 'the hold names the last refusal as the open question')
 		assert.deepEqual(t.calls.filter((c) => c.job === 'implement' || c.job === 'test-plan'), [], 'nothing is made from an ungrounded plan')
 	} finally {
 		t.cleanup()
@@ -540,7 +545,10 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 		await t.run(answer(item.id, 'Only CSV; nothing else.'))
 		item = await t.run(drive(item.id, config))
 		assert.equal(item.status, 'shipped')
-		assert.deepEqual(t.packet('execute', 'implement').exchange.turns.at(-1), { understanding: 'Mostly clear', questions: ['Question 4?'], answer: 'Only CSV; nothing else.', by: 'operator' })
+		// Three turns were spent: the operator's answer corrects the hand-off, and a new exchange starts from turn one.
+		const corrected = t.packet('execute', 'implement').exchange
+		assert.deepEqual(corrected.turns, [], 'no fourth turn')
+		assert.match(corrected.handoff, /operator's correction[\s\S]*- Question 4\?[\s\S]*Only CSV; nothing else\.$/)
 		assert.equal(t.of('execute', 'test-plan').length, 1, 'the finished track is not redone')
 	} finally {
 		t.cleanup()
@@ -618,7 +626,7 @@ test('a pre-existing defect becomes its own item from planning; the original wai
 
 test('holds stop only that item, name their next commands, and release on an answer or retry; over-budget evidence reaches the hold', async () => {
 	const over = { exceeded: 'minutes' as const, budget: { minutes: 1 }, ms: 61_000, tokens: null }
-	let failImplement = 3
+	let failImplement = 4
 	const t = setup((req) => {
 		if (req.kind === 'execute' && req.job === 'implement' && failImplement-- > 0) return { ok: false, error: 'claude went over its budget', overBudget: over }
 		if (req.kind === 'execute' && req.job === 'test-plan') return checks(req, 'exit 1')
@@ -627,12 +635,13 @@ test('holds stop only that item, name their next commands, and release on an ans
 	})
 	try {
 		let item = await t.run(drive(t.item.id, config))
-		assert.equal(item.hold?.code, 'worker_failing')
+		assert.equal(item.hold?.code, 'nq_turns', 'each failed call was a question to the planner; the fourth holds')
 		assert.equal(item.hold?.context.job, 'implement')
 		assert.deepEqual(item.hold?.context.overBudget, over)
-		assert.deepEqual(nextFor(item).map((n) => n.run), [`mw show ${item.id}`, `mw retry ${item.id}`])
+		assert.equal(t.of('originator', 'implement').length, 3)
+		assert.equal(nextFor(item)[0]!.run, `mw answer ${item.id} "<your answer to context.questions>"`)
 
-		await t.run(retry(item.id))
+		await t.run(answer(item.id, 'The budget is fine; finish the change.'))
 		item = await t.run(drive(item.id, config))
 		assert.equal(item.hold?.code, 'arbiter_undetermined')
 		assert.equal(nextFor(item).length, 3)

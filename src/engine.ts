@@ -209,18 +209,18 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 	const questions = [...unclear, ...ambiguous, ...missing].filter((q) => q.trim() !== '')
 	const receiver = stepOf(job).profile
 	if (!questions.length) {
-		saveTrack(store, id, job, { launches: 0, rejected: undefined, exchange: { ...x, status: 'clear', understanding, notes: [...notes], card } }, 'nq-clear', { job, profile: receiver, card, intakeCard: cheap })
+		saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'clear', understanding, notes: [...notes], card } }, 'nq-clear', { job, profile: receiver, card, intakeCard: cheap })
 		return
 	}
 	const asked: Exchange = { ...x, status: 'awaiting-originator', turns: [...x.turns, { understanding, questions }] }
 	const answered = x.turns.filter((t) => t.answer !== undefined).length
 	const context = { job, receiver, originator: profileOf(x.from), questions, turns: x.turns }
 	const now = withTrack(store.get(id)!, job, { ...trackOf(store.get(id)!, job), exchange: asked })
-	if (answered >= MAX_TURNS) return hold(store, now, 'nq_turns', `The ${receiver} still has questions after ${answered} answered turns: the hand-off or its scope is wrong.`, context)
+	if (answered >= MAX_TURNS) return holdTurns(store, now, job, context)
 	if (x.from.kind === 'operator' || x.turns.at(-1)?.by === 'operator') {
 		return hold(store, now, 'question_for_operator', `The ${receiver} has questions about your answer before it can ${job}.`, context)
 	}
-	saveTrack(store, id, job, { launches: 0, rejected: undefined, exchange: asked }, 'nq-question', { job, receiver, originator: profileOf(x.from), questions })
+	saveTrack(store, id, job, { launches: 0, exchange: asked }, 'nq-question', { job, receiver, originator: profileOf(x.from), questions })
 })
 
 /** The originator answers the receiver's questions from its own hand-off. Read-only. */
@@ -246,7 +246,7 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 		const pendingQ = x.turns.at(-1)!
 		return hold(store, store.get(id)!, 'authority', `Only the operator can settle what the ${stepOf(job).profile} asked.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer })
 	}
-	saveTrack(store, id, job, { launches: 0, rejected: undefined, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from })
+	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from })
 })
 
 // ── The job itself ─────────────────────────────────────────────────────────────────────────────────────
@@ -303,6 +303,7 @@ interface CallSpec {
 }
 
 interface Called {
+	readonly kind: WorkerRequest['kind']
 	readonly output: string
 	readonly callId: number
 	readonly card: Card
@@ -324,7 +325,12 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const p = config.prescriptions
 		const wt = yield* worktree(item.workspace, spec.at ?? item.base!.commit, `item-${id}-${job}-${spec.kind}`)
 		// A call with no access never sees its worktree, so it gets nothing prepared.
-		if (spec.access !== 'none' && !(yield* prepareWorktree(id, job, wt.path, `item-${id}-${job}-${spec.kind}`, wt.base))) return undefined
+		if (spec.access !== 'none') {
+			const failed = yield* prepareWorktree(id, job, wt.path, `item-${id}-${job}-${spec.kind}`, wt.base)
+			// The receiver's broken worktree is its question to the originator; the originator's has nobody above it.
+			if (failed && spec.kind === 'originator') return void hold(store, store.get(id)!, 'prepare_failed', failed.message, failed.context)
+			if (failed) return void (yield* launchFailed(id, job, spec.kind, spec.card, failed.message, failed.context))
+		}
 		if (spec.prepare) yield* spec.prepare(wt.path)
 		const prompt = yield* spec.packet(wt.path)
 		const budget = budgetFor(p, job)
@@ -377,13 +383,13 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		if (!res.ok) {
 			if (spec.onFail) yield* spec.onFail(wt.path)
 			if ('limit' in res) yield* recordLimit(id, job, spec.card, res.limit, spec.kind)
-			else yield* launchFailed(id, job, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {})
+			else yield* launchFailed(id, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {})
 			return undefined
 		}
 		if (read && changed) {
 			const reason = `The ${spec.kind} call changed its read-only checkout: ${[...changed.added, ...changed.removed, ...changed.modified].join(', ') || 'refs or HEAD'}.`
 			store.rejectCall(callId, reason)
-			yield* launchFailed(id, job, spec.card, reason, { changes: changed })
+			yield* launchFailed(id, job, spec.kind, spec.card, reason, { changes: changed })
 			return undefined
 		}
 		// Under the repo's lock: a parallel item's ship never shows its own files mid-merge as this call's leftovers.
@@ -393,7 +399,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			holdFor(store, id, left.failure, job)
 			return undefined
 		}
-		const called: Called = { output: res.output, callId, card: spec.card, ...(before ? { before } : {}) }
+		const called: Called = { kind: spec.kind, output: res.output, callId, card: spec.card, ...(before ? { before } : {}) }
 		return after ? yield* after(wt.path, called) : (called as A)
 	}))
 
@@ -401,7 +407,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 const refuse = Effect.fn('mw.refuse')(function* (id: number, job: Job, call: Called, reason: string) {
 	const store = yield* Store
 	store.rejectCall(call.callId, reason)
-	yield* launchFailed(id, job, call.card, reason, {}, { rejected: reason })
+	yield* launchFailed(id, job, call.kind, call.card, reason, {}, { rejected: reason })
 })
 
 /**
@@ -534,23 +540,23 @@ const Prepared = Schema.Struct({ provisioned: Schema.Array(Resource) })
  * Ruling 13's first half. A git worktree has none of the repo's ignored files (dependencies, env, a database), so the
  * project's prepare command stocks each fresh one before anything runs in it, and before its baseline is taken, so
  * its files are never leftovers. What it reports as provisioned is saved on the item before the job starts and torn
- * down like an agent's. False when it failed: the item holds, and no job runs.
+ * down like an agent's. When it fails, the failure comes back and nothing runs in the worktree.
  */
 const prepareWorktree = Effect.fn('mw.prepare')(function* (id: number, job: Job, dir: string, name: string, base: string) {
 	const store = yield* Store
 	const item = store.get(id)!
 	const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
-	if (!project?.prepare) return true
+	if (!project?.prepare) return undefined
 	const env = { ...process.env, MW_ITEM: String(id), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base }
 	const r = yield* runGroup({ command: 'sh', args: ['-c', project.prepare], cwd: dir, env, input: '', budget: PREPARE_BUDGET })
 	const reported = Schema.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {})
 	const resources = Result.isSuccess(reported) ? reported.success.provisioned : []
 	const now = store.get(id)!
-	const saved = store.save({ ...now, provisioned: [...(now.provisioned ?? []), ...resources.map((x) => ({ kind: x.kind, id: x.id, teardown: x.teardown, job }))] }, 'prepared', { job, name, exitCode: r.code, provisioned: resources.map((x) => ({ kind: x.kind, id: x.id })) })
-	if (r.code === 0 && !r.overBudget) return true
+	store.save({ ...now, provisioned: [...(now.provisioned ?? []), ...resources.map((x) => ({ kind: x.kind, id: x.id, teardown: x.teardown, job }))] }, 'prepared', { job, name, exitCode: r.code, provisioned: resources.map((x) => ({ kind: x.kind, id: x.id })) })
+	if (r.code === 0 && !r.overBudget) return undefined
 	const why = r.overBudget ? `ran past its ${PREPARE_BUDGET.minutes} minutes` : `exited ${r.code}`
-	hold(store, saved, 'prepare_failed', `The project's prepare command ${why} in ${name}, so the ${job} job did not run.`, { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4000), stderr: r.stderr.slice(-4000) })
-	return false
+	const said = (r.stderr.trim() || r.stdout.trim()).slice(-1500)
+	return { message: `The project's prepare command ${why} in ${name}, so the ${job} job did not run.${said ? ` It said:\n${said}` : ''}`, context: { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4000), stderr: r.stderr.slice(-4000) } }
 })
 
 // ── Guards and aftercare ───────────────────────────────────────────────────────────────────────────────
@@ -648,7 +654,8 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	const env = { ...process.env, MW_ITEM: String(id) }
 	const run = yield* Effect.scoped(Effect.gen(function* () {
 		const wt = yield* worktree(item.workspace, item.base!.ref, `item-${id}-verify`)
-		if (!(yield* prepareWorktree(id, 'verify', wt.path, `item-${id}-verify`, wt.base))) return { kind: 'held' } as const
+		const failed = yield* prepareWorktree(id, 'verify', wt.path, `item-${id}-verify`, wt.base)
+		if (failed) return { kind: 'unprepared', ...failed } as const
 		const change = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'change')))
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
 		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
@@ -658,7 +665,8 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
 		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...(yield* runChecks(wt.path, checks, budget, env))] } as const
 	}))
-	if (run.kind === 'held') return
+	// Verify is Made Well's own step, not an agent's: a worktree it cannot prepare holds for the operator.
+	if (run.kind === 'unprepared') return hold(store, store.get(id)!, 'prepare_failed', run.message, run.context)
 	// What prepare stood up for the check run comes down now: a pass merges and ships in this same step.
 	yield* aftercare(id, 'verify')
 	if (store.get(id)!.status === 'held') return
@@ -746,10 +754,27 @@ const recordLimit = Effect.fn('mw.recordLimit')(function* (id: number, job: Job,
 	saveTrack(store, id, job, { pickingUp }, 'quota-swap', { kind, job, from: card, account: limit.account, resetsAt: new Date(resetsAt).toISOString(), message: limit.message })
 })
 
-const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Job, card: Card, error: string, evidence: Record<string, unknown> = {}, patch: Partial<Track> = {}) {
+/**
+ * Every error in a receiver's call (a failed launch, a refused answer, a broken rule, a prepare that failed) is
+ * the receiver's question to whoever handed it the work, and counts as one NQ turn: the originator answers, the
+ * receiver confirms or asks, and a third answered turn that still leaves an error or a question holds the item.
+ * An originator's own failed call has nobody above it in the exchange: it is retried, and holds after three.
+ */
+const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Job, kind: WorkerRequest['kind'], card: Card, error: string, evidence: Record<string, unknown> = {}, patch: Partial<Track> = {}) {
 	const store = yield* Store
 	const item = store.get(id)!
 	const t = trackOf(item, job)
+	const x = t.exchange
+	if (kind !== 'originator' && x) {
+		const receiver = stepOf(job).profile
+		const question = `My ${kind === 'intake' ? 'intake' : job} call failed, so I could not ${kind === 'intake' ? 'confirm the hand-off' : `do the ${job} job`}: ${error}`
+		const answered = x.turns.filter((turn) => turn.answer !== undefined).length
+		const asked: Exchange = { ...x, status: 'awaiting-originator', turns: [...x.turns, { understanding: x.understanding ?? '', questions: [question] }] }
+		const context = { job, receiver, originator: profileOf(x.from), questions: [question], turns: x.turns, card, ...evidence }
+		if (answered >= MAX_TURNS) return holdTurns(store, withTrack(item, job, { ...t, ...patch, exchange: asked }), job, context)
+		saveTrack(store, id, job, { ...patch, launches: 0, exchange: asked }, 'nq-question', { job, receiver, originator: profileOf(x.from), questions: [question], error: true, card, ...evidence })
+		return
+	}
 	const launches = t.launches + 1
 	if (launches < MAX_LAUNCHES) {
 		saveTrack(store, id, job, { ...patch, launches }, 'launch-failed', { job, card, error, ...evidence })
@@ -757,6 +782,10 @@ const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Jo
 	}
 	hold(store, withTrack(item, job, { ...t, ...patch, launches }), 'worker_failing', `A call for the ${job} job failed ${launches} times in a row on ${card.harness} · ${card.model}.`, { job, card, lastError: error, ...evidence })
 })
+
+/** Three answered turns and the receiver still asks: the hand-off, its scope or its provisioning is wrong. */
+const holdTurns = (store: StoreService, item: Item, job: Job, context: Record<string, unknown>) =>
+	hold(store, item, 'nq_turns', `The ${stepOf(job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context)
 
 /** The items this one builds on that have not shipped; it starts once they have. */
 const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => store.get(id)?.status !== 'shipped')
@@ -839,6 +868,13 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 			const job = (item.hold.context.job as Job | undefined) ?? item.job
 			const t = trackOf(free, job)
 			const x = t.exchange!
+			if (item.hold.code === 'nq_turns') {
+				// Three turns are spent: the operator's answer corrects the hand-off, and a new exchange judges it from turn one.
+				const open = x.turns.at(-1)?.questions ?? []
+				const handoff = `${x.handoff}\n\nThe operator's correction, after the exchange on this hand-off ran out of turns with these questions open:\n${open.map((q) => `- ${q}`).join('\n')}\n\n${text}`
+				store.save(withTrack(free, job, { ...t, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [] } }), 'nq-corrected', { job, originator: 'operator', answer: text })
+				return
+			}
 			const turns = x.turns.map((turn, i) => (i === x.turns.length - 1 ? { ...turn, answer: text, by: 'operator' as const } : turn))
 			store.save(withTrack(free, job, { ...t, exchange: { ...x, status: 'awaiting-receiver', turns } }), 'nq-answer', { job, originator: 'operator', answer: text })
 			return
