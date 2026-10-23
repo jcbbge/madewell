@@ -22559,7 +22559,11 @@ var PLAN = Schema_exports.Struct({
   scope: Schema_exports.Array(Text).annotate({ description: 'every file the change may touch, repo-relative; a directory ends in "/". A change outside it is refused.' }),
   steps: Schema_exports.Array(Text).annotate({ description: "exact instructions with paths; nothing left to decide" }),
   doneWhen: Schema_exports.Array(DoneWhen),
-  decisions: Decisions
+  decisions: Decisions,
+  follows: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
+    path: Text.annotate({ description: "a scope entry that does not exist yet" }),
+    follows: Text.annotate({ description: "the existing file (same extension) or directory it is modelled on" })
+  })).annotate({ description: "for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind." }))
 });
 var DELIVERABLES = {
   discover: Schema_exports.Struct({ items: Schema_exports.Array(Candidate) }),
@@ -22590,7 +22594,29 @@ function decode5(schema, output) {
   return Result_exports.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` };
 }
 var dupes = (ids) => ids.filter((id2, i) => ids.indexOf(id2) !== i);
-function validate3(job, output, plan) {
+var entryOf = (entry) => {
+  const dir = entry.endsWith("/") || entry.endsWith("/**");
+  const path = entry.replace(/\/(\*\*)?$/, "");
+  return /[*?[{]/.test(path) ? void 0 : { path, dir };
+};
+function unfollowed(p, tracked) {
+  const isDir = (d) => tracked.some((f) => f.startsWith(d + "/"));
+  const ext = (f) => /\.[^./]+$/.exec(f)?.[0] ?? "";
+  const misses = [];
+  for (const entry of p.scope) {
+    const e = entryOf(entry);
+    if (!e || (e.dir ? isDir(e.path) : tracked.includes(e.path))) continue;
+    const settled = e.dir ? tracked.some((f) => f.includes("/")) : tracked.some((f) => ext(f) === ext(e.path));
+    if (!settled) continue;
+    const named = p.follows?.find((f) => entryOf(f.path)?.path === e.path)?.follows;
+    const target = named === void 0 ? void 0 : entryOf(named)?.path;
+    if (named === void 0) misses.push(`${entry} is new: name the existing ${e.dir ? "directory" : `${ext(e.path) || "extensionless"} file`} it follows.`);
+    else if (!target || !(e.dir ? isDir(target) : tracked.includes(target))) misses.push(`${entry} follows ${named}, which is not ${e.dir ? "a directory" : "a file"} in the repo.`);
+    else if (!e.dir && ext(target) !== ext(e.path)) misses.push(`${entry} follows ${named}, which is a different kind of file: name an existing ${ext(e.path) || "extensionless"} file.`);
+  }
+  return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(" ")}` : void 0;
+}
+function validate3(job, output, plan, tracked) {
   if (job === "discover") {
     const report = lastJson(output);
     if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
@@ -22615,6 +22641,8 @@ function validate3(job, output, plan) {
     if (outside.length) return { ok: false, reason: `Scope entries must be repo-relative paths inside the repo: ${outside.join(", ")}.` };
     if (!p.doneWhen.length) return { ok: false, reason: "The plan has no done-when items." };
     if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(", ")}.` };
+    const missed = tracked && unfollowed(p, tracked);
+    if (missed) return { ok: false, reason: missed };
   }
   if (job === "test-plan" && "checks" in value3 && plan) {
     const checks = value3.checks;
@@ -23503,7 +23531,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, call) {
   const item = store.get(id2);
   const plan = planOf(item);
   const home = itemHome(store.path, id2);
-  const v = validate3(job, call.output, plan);
+  const v = validate3(job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0);
   const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
@@ -23959,7 +23987,8 @@ var receivedBy = (item, job) => Object.fromEntries(RECEIVES[job].flatMap((j) => 
 var snapshotFor = (item, job, dir) => {
   const plan = planOf(item);
   if (!plan || !RECEIVES[job].includes("plan")) return Effect_exports.succeed(void 0);
-  return snapshot2(dir, plan.scope.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f)));
+  const files = [.../* @__PURE__ */ new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])];
+  return snapshot2(dir, files.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f) && !f.startsWith("/") && !f.split("/").includes("..")));
 };
 var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.map(snapshotFor(item, job, dir), (snap) => JSON.stringify({
   item: itemFacts(item),
@@ -23972,7 +24001,7 @@ var whereYouAre = (job) => {
   return step2.stage === "discovery" ? "Made Well's discovery" : `Made Well's delivery lane (${step2.stage})`;
 };
 var TASKS = {
-  plan: "Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. Give each done-when item a short unique id; the checks prove them by id.",
+  plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
   "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks.",
   implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself.",
   arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to."

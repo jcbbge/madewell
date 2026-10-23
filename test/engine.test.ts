@@ -30,7 +30,7 @@ const prescriptions: Prescriptions = {
 const config = { prescriptions }
 
 const PLAN = {
-	making: 'A CSV export script', notMaking: ['PDF export'], scope: ['src/export.sh', 'src/app.sh'],
+	making: 'A CSV export script', notMaking: ['PDF export'], scope: ['src/export.sh'], follows: [{ path: 'src/export.sh', follows: 'src/app.sh' }],
 	steps: ['Create src/export.sh printing a,b'], doneWhen: [{ id: 'D1', text: 'sh src/export.sh prints a,b' }],
 	decisions: [{ question: 'Which separator?', decision: 'Comma', why: 'every spreadsheet opens it' }],
 }
@@ -168,7 +168,7 @@ test('an item passes through six profiles, splits after planning, and ships when
 		const impl = t.packet('execute', 'implement')
 		assert.deepEqual(Object.keys(impl).slice(0, 4), ['item', 'received', 'snapshot', 'you'])
 		assert.deepEqual(Object.keys(impl.received), ['plan'])
-		assert.deepEqual(impl.snapshot.contents, { 'src/export.sh': null, 'src/app.sh': 'echo app\n' })
+		assert.deepEqual(impl.snapshot.contents, { 'src/export.sh': null, 'src/app.sh': 'echo app\n' }, 'the makers receive the existing file the new one follows')
 		assert.deepEqual(Object.keys(t.packet('execute', 'test-plan').received), ['plan'])
 		assert.deepEqual(Object.keys(t.packet('execute', 'plan').received), ['ideate', 'challenge'])
 		assert.equal(impl.exchange.from, 'planner')
@@ -287,6 +287,34 @@ test('a read call that writes is refused and asked again; an answer off its sche
 	}
 })
 
+test('a plan that creates a kind of file the repo already has must name the existing one it follows; three refusals hold the item before anything is made', async () => {
+	const plans = [
+		{ ...PLAN, scope: ['src/export.sh', 'tools/gen.py'], follows: [] },
+		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'src/missing.sh' }] },
+		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
+	]
+	const t = setup((req, n) => (req.kind === 'execute' && req.job === 'plan' ? plans[n - 1] : undefined))
+	try {
+		writeFileSync(join(t.repo, 'notes.txt'), 'notes\n')
+		git(t.repo, 'add', '.')
+		git(t.repo, 'commit', '-qm', 'notes')
+		const item = await t.run(drive(t.item.id, config))
+		const refused = t.store.calls(t.item.id).filter((c) => c.kind === 'execute' && c.job === 'plan').map((c) => [c.outcome, c.error])
+		assert.equal(refused.length, 3)
+		assert.ok(refused.every(([outcome]) => outcome === 'rejected'))
+		assert.match(refused[0]![1]!, /src\/export\.sh is new: name the existing \.sh file it follows/)
+		assert.doesNotMatch(refused[0]![1]!, /gen\.py/, 'the repo has no .py file yet: nothing is settled for it to follow')
+		assert.match(refused[1]![1]!, /follows src\/missing\.sh, which is not a file in the repo/)
+		assert.match(refused[2]![1]!, /follows notes\.txt, which is a different kind of file/)
+		assert.equal(item.hold?.code, 'worker_failing')
+		assert.equal(item.hold?.context.job, 'plan')
+		assert.equal(item.hold?.context.lastError, refused[2]![1])
+		assert.deepEqual(t.calls.filter((c) => c.job === 'implement' || c.job === 'test-plan'), [], 'nothing is made from an ungrounded plan')
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('an implementer that strays outside the plan\'s scope is refused, and the next call picks up its work to revert the stray file', async () => {
 	let carried = false
 	const t = setup((req, n) => {
@@ -385,7 +413,7 @@ test('items in parallel: another item\'s ship mid-flight trips no guard, and che
 				return implement(req)
 			})()
 		}
-		if (req.item === 1 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'], doneWhen: [{ id: 'D1', text: 'other prints b' }] }
+		if (req.item === 1 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'], follows: [{ path: 'src/other.sh', follows: 'src/app.sh' }], doneWhen: [{ id: 'D1', text: 'other prints b' }] }
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/other.sh', 'echo b\n'), { summary: 'other' })
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'test-plan') return (write(req, 'checks/other.check.sh', '[ "$(sh src/other.sh)" = b ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/other.check.sh' }] })
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'test-plan') return (write(req, 'checks/export.check.sh', `[ -f src/other.sh ] && ${CHECK}\n`), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/export.check.sh' }] })
@@ -408,7 +436,7 @@ test('items in parallel: another item\'s ship mid-flight trips no guard, and che
 
 test('mw run drives no more items at once than the prescriptions allow', async () => {
 	const t = setup((req) => {
-		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'] }
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'], follows: [{ path: 'src/other.sh', follows: 'src/app.sh' }] }
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/other.sh', 'echo b\n'), { summary: 'other' })
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'test-plan') return (write(req, 'checks/other.check.sh', '[ "$(sh src/other.sh)" = b ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/other.check.sh' }] })
 		return undefined
@@ -434,7 +462,7 @@ test('a ship that lands between another item\'s check run and its merge sends th
 				return clear
 			})()
 		}
-		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'] }
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/other.sh'], follows: [{ path: 'src/other.sh', follows: 'src/app.sh' }] }
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/other.sh', 'echo b\n'), { summary: 'other' })
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'test-plan') return (write(req, 'checks/other.check.sh', '[ "$(sh src/other.sh)" = b ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/other.check.sh' }] })
 		return undefined
@@ -536,7 +564,7 @@ test('a pre-existing defect becomes its own item from planning; the original wai
 	const t = setup((req) => {
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'test-plan') return checks(req, `[ -f src/fixed.sh ] && ${CHECK}`)
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'arbitrate') return ruling('pre-existing')
-		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/fixed.sh'] }
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'plan') return { ...PLAN, scope: ['src/fixed.sh'], follows: [{ path: 'src/fixed.sh', follows: 'src/app.sh' }] }
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/fixed.sh', 'true\n'), { summary: 'fixed' })
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'test-plan') return (write(req, 'checks/fixed.sh', '[ -f src/fixed.sh ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/fixed.sh' }] })
 		return undefined

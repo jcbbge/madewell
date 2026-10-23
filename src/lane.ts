@@ -102,6 +102,10 @@ export const PLAN = Schema.Struct({
 	steps: Schema.Array(Text).annotate({ description: 'exact instructions with paths; nothing left to decide' }),
 	doneWhen: Schema.Array(DoneWhen),
 	decisions: Decisions,
+	follows: Schema.optionalKey(Schema.Array(Schema.Struct({
+		path: Text.annotate({ description: 'a scope entry that does not exist yet' }),
+		follows: Text.annotate({ description: 'the existing file (same extension) or directory it is modelled on' }),
+	})).annotate({ description: 'for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind.' })),
 })
 export type Plan = typeof PLAN.Type
 
@@ -145,8 +149,37 @@ export function decode<S extends Schema.Top & Schema.ConstraintDecoder<unknown>>
 
 const dupes = (ids: ReadonlyArray<string>) => ids.filter((id, i) => ids.indexOf(id) !== i)
 
-/** Checks a job's deliverable beyond its schema. Pure: the plan carries the done-when ids the checks must thread. */
-export function validate(job: Job, output: string, plan?: Plan): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
+/** A scope entry as a path: a directory entry loses its "/" or "/**"; undefined for a glob, which names no one path. */
+const entryOf = (entry: string) => {
+	const dir = entry.endsWith('/') || entry.endsWith('/**')
+	const path = entry.replace(/\/(\*\*)?$/, '')
+	return /[*?[{]/.test(path) ? undefined : { path, dir }
+}
+
+/** Why the plan breaks the follows rule against the files tracked at its base, or undefined. A kind the repo has none of yet needs nothing to follow. */
+function unfollowed(p: Plan, tracked: ReadonlyArray<string>): string | undefined {
+	const isDir = (d: string) => tracked.some((f) => f.startsWith(d + '/'))
+	const ext = (f: string) => /\.[^./]+$/.exec(f)?.[0] ?? ''
+	const misses: string[] = []
+	for (const entry of p.scope) {
+		const e = entryOf(entry)
+		if (!e || (e.dir ? isDir(e.path) : tracked.includes(e.path))) continue
+		const settled = e.dir ? tracked.some((f) => f.includes('/')) : tracked.some((f) => ext(f) === ext(e.path))
+		if (!settled) continue
+		const named = p.follows?.find((f) => entryOf(f.path)?.path === e.path)?.follows
+		const target = named === undefined ? undefined : entryOf(named)?.path
+		if (named === undefined) misses.push(`${entry} is new: name the existing ${e.dir ? 'directory' : `${ext(e.path) || 'extensionless'} file`} it follows.`)
+		else if (!target || !(e.dir ? isDir(target) : tracked.includes(target))) misses.push(`${entry} follows ${named}, which is not ${e.dir ? 'a directory' : 'a file'} in the repo.`)
+		else if (!e.dir && ext(target) !== ext(e.path)) misses.push(`${entry} follows ${named}, which is a different kind of file: name an existing ${ext(e.path) || 'extensionless'} file.`)
+	}
+	return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(' ')}` : undefined
+}
+
+/**
+ * Checks a job's deliverable beyond its schema. Pure: the plan carries the done-when ids the checks must thread.
+ * `tracked`, the files at the plan's base, enables the follows rule; without it (re-reading a stored plan) the rule is not applied.
+ */
+export function validate(job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
 	if (job === 'discover') {
 		// Discovery keeps what it can: an item without a title or objective is dropped, not the whole run.
 		const report = lastJson(output)
@@ -173,6 +206,8 @@ export function validate(job: Job, output: string, plan?: Plan): { ok: true; val
 		if (outside.length) return { ok: false, reason: `Scope entries must be repo-relative paths inside the repo: ${outside.join(', ')}.` }
 		if (!p.doneWhen.length) return { ok: false, reason: 'The plan has no done-when items.' }
 		if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(', ')}.` }
+		const missed = tracked && unfollowed(p, tracked)
+		if (missed) return { ok: false, reason: missed }
 	}
 	if (job === 'test-plan' && 'checks' in value && plan) {
 		const checks = value.checks as Check[]

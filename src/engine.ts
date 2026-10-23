@@ -395,7 +395,8 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	const item = store.get(id)!
 	const plan = planOf(item)
 	const home = itemHome(store.path, id)
-	const v = validate(job, call.output, plan)
+	// A plan is held to what its base already holds: the files tracked in its own checkout.
+	const v = validate(job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined)
 	const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect.void
 	const refused = (reason: string) => Effect.andThen(keep, refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
@@ -905,11 +906,12 @@ const receivedBy = (item: Item, job: Job) =>
 		return d === undefined ? [] : [[j, d]]
 	}))
 
-/** The files the plan names, as they are in the call's checkout. */
+/** The files the plan names, as they are in the call's checkout: its scope, and the existing files its new ones follow. */
 const snapshotFor = (item: Item, job: Job, dir: string) => {
 	const plan = planOf(item)
 	if (!plan || !RECEIVES[job].includes('plan')) return Effect.succeed(undefined)
-	return snapshot(dir, plan.scope.filter((f) => !f.endsWith('/') && !/[*?[{]/.test(f)))
+	const files = [...new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])]
+	return snapshot(dir, files.filter((f) => !f.endsWith('/') && !/[*?[{]/.test(f) && !f.startsWith('/') && !f.split('/').includes('..')))
 }
 
 /**
@@ -930,7 +932,7 @@ const whereYouAre = (job: Job) => {
 }
 
 const TASKS: Partial<Record<Job, string>> = {
-	plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. Give each done-when item a short unique id; the checks prove them by id.',
+	plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
 	'test-plan': 'Write each check\'s files in your checkout, at paths outside the plan\'s scope. Made Well keeps them outside the product repo and runs each check\'s command itself, from the repo root, against the implementer\'s change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks.',
 	implement: 'Change only the files in the plan\'s scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item\'s checks itself.',
 	arbitrate: 'Your checkout holds the implementer\'s change as its last commit, with the test architect\'s check files applied on top, uncommitted. Reproduce the failure if you need to.',
