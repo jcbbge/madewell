@@ -6,7 +6,7 @@
 import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { DatabaseSync } from './sqlite.ts'
+import { DatabaseSync } from 'node:sqlite'
 import { Context, Effect, Layer } from 'effect'
 import type { Card } from './cards.ts'
 import { MadeWellError, type Next } from './errors.ts'

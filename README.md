@@ -4,7 +4,7 @@ Made Well is a durable software delivery pipeline for coding agents: discovery t
 
 ## Install
 
-Requires Node 22.18 or later.
+Requires Node 24.15 or later.
 
 ```sh
 npm install -g --install-links github:jcbbge/madewell

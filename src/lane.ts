@@ -139,23 +139,12 @@ export const requiredOf = (schema: Schema.Top): string[] => {
 	return s.required ?? []
 }
 
-/**
- * The last JSON object in `output`, decoded against `schema`; or why it is refused. The packet names the
- * shape under `you.answer`, so an answer wrapped as {"answer": {...}} is unwrapped once when it does not
- * decode as given.
- */
+/** The last JSON object in `output`, decoded against `schema`; or why it is refused. */
 export function decode<S extends Schema.Top & Schema.ConstraintDecoder<unknown>>(schema: S, output: string): { ok: true; value: S['Type'] } | { ok: false; reason: string } {
 	const json = lastJson(output)
 	if (!json) return { ok: false, reason: 'The answer did not end with a JSON object.' }
 	const r = Schema.decodeUnknownResult(schema)(json, { errors: 'all' })
-	if (Result.isSuccess(r)) return { ok: true, value: r.success }
-	const inner = Object.keys(json).length === 1 ? json.answer : undefined
-	const wrapped = inner !== null && typeof inner === 'object' && !Array.isArray(inner)
-	if (wrapped) {
-		const u = Schema.decodeUnknownResult(schema)(inner, { errors: 'all' })
-		if (Result.isSuccess(u)) return { ok: true, value: u.success }
-	}
-	return { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}${wrapped ? '\nPut the fields at the top level of the JSON object, not under "answer".' : ''}` }
+	return Result.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` }
 }
 
 const dupes = (ids: ReadonlyArray<string>) => ids.filter((id, i) => ids.indexOf(id) !== i)

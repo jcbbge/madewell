@@ -952,7 +952,7 @@ const SUBAGENT_RULE = 'If your tools can start another agent, that is an NQ exch
 
 /** The one brief every call carries, identical for every job and kind, so calls share a cached prefix. Packets say who you are. */
 export const BRIEF = [
-	'You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and the JSON answer it needs. It runs from what every call of this work item shares to what is yours alone.',
+	'You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.',
 	NEUTRAL_HOST,
 	[
 		'Settle every decision by the experience rubric. Its three governing questions have equal standing:',
@@ -964,7 +964,7 @@ export const BRIEF = [
 	'Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo\'s own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.',
 	'Honor the product repo\'s coding conventions.',
 	SUBAGENT_RULE,
-	'Your final message is ONLY the JSON object your packet asks for.',
+	'Your final message is ONLY one JSON object that matches you.replyFormat, with that schema\'s properties as its own top-level keys.',
 ].join('\n\n')
 
 const itemFacts = (item: Item) => ({ id: item.id, title: item.title, ...(item.kind ? { kind: item.kind } : {}), objective: item.objective, source: item.source })
@@ -1014,7 +1014,7 @@ const you = (job: Job, kind: WorkerRequest['kind']) => {
 }
 
 const INTAKE_TASK = (job: Job, originator: string) =>
-	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with one JSON object of the shape under you.answer, its fields at the top level and not wrapped in an "answer" key, even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`
+	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job\'s own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`
 
 const handoffView = (item: Item, job: Job, x: Exchange) =>
 	x.from.kind === 'job' && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job]
@@ -1022,7 +1022,7 @@ const handoffView = (item: Item, job: Job, x: Exchange) =>
 		: x.handoff
 
 const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake') => ({
-	you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
+	you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
 	handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
 	round: item.round,
@@ -1035,7 +1035,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange) => ({
 	you: {
 		profile: profileOf(x.from), call: 'originator',
 		task: `You handed this work over as the ${profileOf(x.from)}. The ${stepOf(job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
-		answer: shapeOf(ORIGINATOR),
+		replyFormat: shapeOf(ORIGINATOR),
 	},
 	yourHandoff: x.from.kind === 'job' && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
 	receiver: stepOf(job).profile,
@@ -1045,7 +1045,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange) => ({
 })
 
 const executeParts = (item: Item, job: Job, t: Track, x: Exchange) => ({
-	you: { ...you(job, 'execute'), ...(TASKS[job] ? { task: TASKS[job] } : {}), answer: deliverableShape(job) },
+	you: { ...you(job, 'execute'), ...(TASKS[job] ? { task: TASKS[job] } : {}), replyFormat: deliverableShape(job) },
 	...(job === 'arbitrate' && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {}),
 	exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
 	...(item.outputs[job] !== undefined && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {}),

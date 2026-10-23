@@ -22359,21 +22359,7 @@ import { dirname as dirname5, join as join8, sep } from "node:path";
 import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
 import { dirname as dirname4, join as join7 } from "node:path";
-
-// src/sqlite.ts
-import { createRequire } from "node:module";
-var load = () => {
-  const emit = process.emitWarning;
-  process.emitWarning = ((warning, ...rest) => {
-    if (!String(warning instanceof Error ? warning.message : warning).includes("SQLite")) emit.call(process, warning, ...rest);
-  });
-  try {
-    return createRequire(import.meta.url)("node:sqlite");
-  } finally {
-    process.emitWarning = emit;
-  }
-};
-var { DatabaseSync } = load();
+import { DatabaseSync } from "node:sqlite";
 
 // src/replay.ts
 import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync4 } from "node:fs";
@@ -22629,14 +22615,7 @@ function decode5(schema, output) {
   const json = lastJson(output);
   if (!json) return { ok: false, reason: "The answer did not end with a JSON object." };
   const r = Schema_exports.decodeUnknownResult(schema)(json, { errors: "all" });
-  if (Result_exports.isSuccess(r)) return { ok: true, value: r.success };
-  const inner = Object.keys(json).length === 1 ? json.answer : void 0;
-  const wrapped = inner !== null && typeof inner === "object" && !Array.isArray(inner);
-  if (wrapped) {
-    const u = Schema_exports.decodeUnknownResult(schema)(inner, { errors: "all" });
-    if (Result_exports.isSuccess(u)) return { ok: true, value: u.success };
-  }
-  return { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}${wrapped ? '\nPut the fields at the top level of the JSON object, not under "answer".' : ""}` };
+  return Result_exports.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` };
 }
 var dupes = (ids) => ids.filter((id2, i) => ids.indexOf(id2) !== i);
 var entryOf = (entry) => {
@@ -24072,7 +24051,7 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
 }).pipe(Effect_exports.scoped);
 var SUBAGENT_RULE = "If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.";
 var BRIEF = [
-  "You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and the JSON answer it needs. It runs from what every call of this work item shares to what is yours alone.",
+  "You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
   NEUTRAL_HOST,
   [
     "Settle every decision by the experience rubric. Its three governing questions have equal standing:",
@@ -24084,7 +24063,7 @@ var BRIEF = [
   `Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
   "Honor the product repo's coding conventions.",
   SUBAGENT_RULE,
-  "Your final message is ONLY the JSON object your packet asks for."
+  "Your final message is ONLY one JSON object that matches you.replyFormat, with that schema's properties as its own top-level keys."
 ].join("\n\n");
 var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source });
 var receivedBy = (item, job) => Object.fromEntries(RECEIVES[job].flatMap((j) => {
@@ -24117,10 +24096,10 @@ var you = (job, kind) => {
   const step2 = stepOf(job);
   return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
 };
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with one JSON object of the shape under you.answer, its fields at the top level and not wrapped in an "answer" key, even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`;
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
-  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
+  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
   handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
   round: item.round,
@@ -24132,7 +24111,7 @@ var originatorParts = (item, job, x) => ({
     profile: profileOf(x.from),
     call: "originator",
     task: `You handed this work over as the ${profileOf(x.from)}. The ${stepOf(job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
-    answer: shapeOf(ORIGINATOR)
+    replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
   receiver: stepOf(job).profile,
@@ -24141,7 +24120,7 @@ var originatorParts = (item, job, x) => ({
   earlierTurns: x.turns.slice(0, -1)
 });
 var executeParts = (item, job, t, x) => ({
-  you: { ...you(job, "execute"), ...TASKS[job] ? { task: TASKS[job] } : {}, answer: deliverableShape(job) },
+  you: { ...you(job, "execute"), ...TASKS[job] ? { task: TASKS[job] } : {}, replyFormat: deliverableShape(job) },
   ...job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {},
   exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
   ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
@@ -24153,6 +24132,7 @@ var executeParts = (item, job, t, x) => ({
 // src/eval.ts
 import { readFileSync as readFileSync6 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
+import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
 var MIN_OUT_MS2 = 5 * 6e4;
@@ -24268,7 +24248,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
     });
   }
   const db = yield* Effect_exports.acquireRelease(Effect_exports.sync(() => {
-    const db2 = new DatabaseSync(store.path);
+    const db2 = new DatabaseSync2(store.path);
     db2.exec(`PRAGMA busy_timeout = 5000;
 			CREATE TABLE IF NOT EXISTS evals (id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, job TEXT NOT NULL, card TEXT, brief TEXT, items TEXT NOT NULL, calls TEXT NOT NULL, report TEXT);
 			CREATE TABLE IF NOT EXISTS eval_calls (id INTEGER PRIMARY KEY AUTOINCREMENT, eval INTEGER NOT NULL, call INTEGER NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL, tokens TEXT, facts TEXT NOT NULL, flags TEXT NOT NULL, score TEXT NOT NULL);`);

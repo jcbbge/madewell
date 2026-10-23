@@ -164,6 +164,14 @@ test('an item passes through six profiles, splits after planning, and ships when
 		assert.match(t.packet('intake', 'plan').you.task, /What is unclear\? What is ambiguous\? Do I have everything I need to proceed\?/)
 		assert.match(t.packet('intake', 'plan').you.task, /no tools and no checkout in this call, by design[\s\S]*Never ask for file access/)
 		assert.equal(t.packet('intake', 'plan').you.where, 'Made Well\'s delivery lane (planning)')
+		// Every call names its reply's schema under you.replyFormat, and no packet key is called "answer": an
+		// agent told to reply with the shape under "answer" wrapped its reply in that key.
+		for (const c of t.calls) {
+			const you = JSON.parse(c.prompt).you
+			assert.ok(you.replyFormat && typeof you.replyFormat === 'object', `${c.kind} ${c.job} names its reply format`)
+			assert.equal(you.answer, undefined, `${c.kind} ${c.job} has no "answer" key`)
+		}
+		assert.match(BRIEF, /ONLY one JSON object that matches you\.replyFormat/)
 
 		// Packets run stable to volatile, and each job receives only what the static table gives it.
 		const impl = t.packet('execute', 'implement')
@@ -286,22 +294,6 @@ test('a read call that writes is refused and asked again; an answer off its sche
 		assert.match(t.packet('execute', 'test-plan', 1).yourLastAnswerWasRefused, /D9[\s\S]*without a check: D1/)
 		assert.ok(t.store.events(t.item.id).some((e) => e.kind === 'launch-failed' && /D1/.test(String(e.data.error))))
 		assertNoTrace(t)
-	} finally {
-		t.cleanup()
-	}
-})
-
-test('an answer wrapped in the packet\'s "answer" key is accepted as its shape, at intake and for the deliverable', async () => {
-	const t = setup((req) => {
-		if (req.kind === 'intake') return { answer: clear }
-		if (req.kind === 'execute' && req.job === 'ideate') return { answer: standard(req) }
-		return undefined
-	})
-	try {
-		const done = await t.run(drive(t.item.id, config))
-		assert.equal(done.status, 'shipped')
-		assert.deepEqual(t.store.calls(t.item.id).filter((c) => c.outcome === 'rejected'), [], 'no call is refused for the wrapper')
-		assert.match(t.packet('intake', 'ideate').you.task, /not wrapped in an "answer" key/)
 	} finally {
 		t.cleanup()
 	}
