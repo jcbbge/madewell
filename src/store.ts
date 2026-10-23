@@ -161,6 +161,15 @@ export interface Call {
 	readonly flags: ReadonlyArray<Flag>
 }
 
+/** A call without its texts, with their sizes: what a live view polls. */
+export type CallHead = Pick<Call, 'id' | 'item' | 'kind' | 'job' | 'profile' | 'card' | 'outcome' | 'error' | 'started' | 'ms' | 'tokens' | 'flags'> & {
+	readonly systemBytes: number
+	readonly packetBytes: number
+	readonly answerBytes: number | null
+	readonly rawBytes: number | null
+	readonly toolCount: number
+}
+
 export const defaultStorePath = () => process.env.MW_STORE ?? join(process.env.MW_HOME ?? join(homedir(), '.local', 'share', 'madewell'), 'madewell.db')
 
 const alive = (pid: number) => {
@@ -255,6 +264,11 @@ export function openStore(path: string) {
 		get(id: number) {
 			return read(id)
 		},
+		/** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
+		note(id: number, kind: string, data: Record<string, unknown> = {}) {
+			tx(() => event(id, kind, data))
+			view()
+		},
 		/** Saves the new state of an item together with the event that explains it. */
 		save(item: Item, kind: string, data: Record<string, unknown> = {}): Item {
 			const next = { ...item, updated: new Date().toISOString() }
@@ -292,8 +306,9 @@ export function openStore(path: string) {
 			emit('rejected', { call: id, at: new Date().toISOString(), reason })
 		},
 		/** Every call, or one item's, oldest first. */
-		calls(item?: number): Call[] {
-			const rows = db.prepare(`SELECT * FROM calls ${item === undefined ? '' : 'WHERE item = ?'} ORDER BY id`).all(...(item === undefined ? [] : [item])) as (Omit<Call, 'card' | 'tools' | 'tokens' | 'facts' | 'flags'> & { card: string; tokens: string | null; facts: string | null; flags: string })[]
+		calls(item?: number, id?: number): Call[] {
+			const where = id !== undefined ? 'WHERE id = ?' : item !== undefined ? 'WHERE item = ?' : ''
+			const rows = db.prepare(`SELECT * FROM calls ${where} ORDER BY id`).all(...(id !== undefined ? [id] : item !== undefined ? [item] : [])) as (Omit<Call, 'card' | 'tools' | 'tokens' | 'facts' | 'flags'> & { card: string; tokens: string | null; facts: string | null; flags: string })[]
 			const tools = db.prepare('SELECT seq, tool, digest, input_bytes AS inputBytes, output_bytes AS outputBytes, tokens, at, ms, error FROM tool_events WHERE call = ? ORDER BY seq')
 			return rows.map((r): Call => ({
 				...r,
@@ -303,6 +318,18 @@ export function openStore(path: string) {
 				flags: JSON.parse(r.flags),
 				tools: (tools.all(r.id) as (Omit<ToolEvent, 'error'> & { error: number })[]).map((t) => ({ ...t, error: t.error === 1 })),
 			}))
+		},
+		/** Every call without its texts (brief, packet, answer, raw stream), which `call` returns: what a live view polls. */
+		callHeads(): CallHead[] {
+			const rows = db.prepare('SELECT id, item, kind, job, profile, card, outcome, error, started, ms, tokens, flags, length(system) AS systemBytes, length(prompt) AS packetBytes, length(output) AS answerBytes, length(raw) AS rawBytes, (SELECT COUNT(*) FROM tool_events t WHERE t.call = calls.id) AS toolCount FROM calls ORDER BY id').all() as (Omit<CallHead, 'card' | 'tokens' | 'flags'> & { card: string; tokens: string | null; flags: string })[]
+			return rows.map((r) => ({ ...r, card: JSON.parse(r.card), tokens: r.tokens ? JSON.parse(r.tokens) : null, flags: JSON.parse(r.flags) }))
+		},
+		call(id: number): Call | undefined {
+			return store.calls(undefined, id)[0]
+		},
+		/** The newest event and call: a view looks again only when either moved. */
+		mark() {
+			return db.prepare('SELECT (SELECT COALESCE(MAX(seq), 0) FROM events) AS events, (SELECT COALESCE(MAX(id), 0) FROM calls) AS calls').get() as { events: number; calls: number }
 		},
 		allEvents(): Event[] {
 			return (db.prepare('SELECT * FROM events ORDER BY seq').all() as { seq: number; item: number; at: string; kind: string; data: string }[]).map((r) => ({ ...r, data: JSON.parse(r.data) }))
@@ -393,9 +420,10 @@ export function openStore(path: string) {
 
 export class Store extends Context.Service<Store, ReturnType<typeof openStore>>()('madewell/Store') {}
 
-/** The store, and its spans: to the telemetry file with MW_TELEMETRY, else with MW_DEBUG=1 to debug.jsonl beside the store. */
+/** The store, and its spans: to the telemetry file with MW_TELEMETRY, else to spans.jsonl beside the store (MW_DEBUG=0 turns them off). */
+export const spansPath = (path: string) => join(dirname(path), 'spans.jsonl')
 export const storeLayer = (path = defaultStorePath()) =>
 	Layer.mergeAll(
 		Layer.effect(Store, Effect.acquireRelease(Effect.sync(() => openStore(path)), (s) => Effect.sync(() => s.close()))),
-		debugLayer(join(dirname(path), 'debug.jsonl'), telemetry(path)),
+		debugLayer(path === ':memory:' ? ':memory:' : spansPath(path), telemetry(path)),
 	)

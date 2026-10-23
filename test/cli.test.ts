@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'drop', 'replay', 'export', 'stats', 'eval', 'prune']
+const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -254,6 +254,51 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.equal(t.git('status', '--porcelain', '--ignored'), '')
 	// The resumed implementer was clear before the crash and keeps the same card: no new intake.
 	assert.equal(calls.filter((l) => l === 'intake implement implementer').length, 1)
+})
+
+test('the console shows each step while it runs: the call in flight with its live output, then its end; watch streams every event with who acted and what happened', async () => {
+	const t = setup()
+	const gate = join(t.dir, 'gate')
+	writeFileSync(gate, '')
+	t.env.FAKE_PAUSE = `plan:${gate}`
+	t.mw('init', '--ship', 'true')
+	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, stdio: 'ignore' })
+	const ran = new Promise((r) => runner.once('exit', r))
+	const ui = spawn(process.execPath, [cli, 'ui', '--port', '0'], { env: t.env, cwd: t.repo, stdio: ['ignore', 'pipe', 'ignore'] })
+	try {
+		const url: string = await new Promise((r) => ui.stdout!.once('data', (d) => r(JSON.parse(String(d)).ui)))
+		const get = async (path: string) => (await fetch(url + path)).json()
+		for (let i = 0; !existsSync(`${gate}.started`); i++) {
+			assert.ok(i < 500, 'the planner\'s call never started')
+			await new Promise((r) => setTimeout(r, 20))
+		}
+		const during = await get('api/state')
+		const flight = during.flights.find((f: { what: string }) => f.what === 'job · plan')
+		assert.deepEqual([flight?.item, flight?.who, flight?.cutOff], [1, 'planner', false], 'the planner\'s job shows as running while it runs')
+		assert.ok(during.live.some((f: { name: string }) => f.name === 'item-1-plan-execute.log'), 'its output streams to a live file')
+		assert.equal((await get('api/live/item-1-plan-execute.log')).gone, undefined)
+		const page = await (await fetch(url)).text()
+		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the console page\'s script parses')
+
+		rmSync(gate)
+		await ran
+		const after = await get('api/state')
+		assert.deepEqual(after.flights, [], 'nothing is in flight once the run ends')
+		assert.deepEqual(after.live, [], 'live files go once each step is saved')
+		const ends = after.events.filter((e: { kind: string; data: { job: string; kind: string } }) => e.kind === 'call-finished' && e.data.job === 'plan' && e.data.kind === 'execute')
+		assert.equal(ends.length, 1)
+		assert.equal(ends[0].say, 'The planner\'s plan call ended ok after ' + (ends[0].data.ms / 1000).toFixed(1) + 's')
+		assert.equal((await get(`api/call/${ends[0].data.call}`)).profile, 'planner', 'the finished call opens with its full record')
+	} finally {
+		ui.kill()
+	}
+	const lines = String(spawnSync(process.execPath, [cli, 'watch', '--once'], { env: t.env, cwd: t.repo }).stdout).trim().split('\n').map((l) => JSON.parse(l))
+	const events = lines.filter((l) => l.event).map((l) => l.event)
+	assert.ok(events.length > 10 && events.every((e) => ['operator', 'agent', 'made well', 'runner'].includes(e.actor) && e.say), 'every event says who acted and what happened')
+	assert.equal(events.find((e) => e.kind === 'shipped').actor, 'made well')
+	assert.equal(lines.filter((l) => l.call).length, events.filter((e) => e.kind === 'call-finished').length, 'every call is streamed once, as each call ends')
+	assert.deepEqual(lines.at(-1).next, [{ run: `mw watch --since ${events.at(-1).seq}`, why: 'carry on from here' }])
 })
 
 test('a running runner reloads a new build in place: it finishes the step in flight, keeps its pid and claim, and carries on', async () => {

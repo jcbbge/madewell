@@ -21,7 +21,8 @@
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { execFile } from 'node:child_process'
-import { mkdirSync, rmSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
@@ -57,6 +58,25 @@ interface EngineConfig {
 
 type Services = Store | Worker
 type StoreService = Store['Service']
+
+/**
+ * The file a long step's output streams to while it runs, beside the store under live/: emptied when the step
+ * starts and removed once its result is saved, so whatever is in live/ is running now or was cut off. An
+ * in-memory store has none.
+ */
+const liveFile = (store: StoreService, name: string) => {
+	if (store.path === ':memory:') return undefined
+	try {
+		const dir = join(dirname(store.path), 'live')
+		mkdirSync(dir, { recursive: true })
+		const file = join(dir, `${name}.log`)
+		writeFileSync(file, '')
+		return file
+	} catch {
+		return undefined
+	}
+}
+const endLive = (file: string | undefined) => file && rmSync(file, { force: true })
 
 const notFound = (id: number) =>
 	new MadeWellError({ code: 'item_not_found', message: `There is no work item #${id}.`, context: { id }, next: [{ run: 'mw status', why: 'list every work item and its state' }] })
@@ -343,10 +363,12 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const product = none ? undefined : yield* capture(item.workspace)
 		const before = read || none ? undefined : yield* capture(wt.path)
 		const head = before?.head ?? (yield* revParse(wt.path, 'HEAD'))
+		const live = liveFile(store, `item-${id}-${job}-${spec.kind}`)
+		store.note(id, 'call-started', { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...(live ? { live } : {}) })
 		const started = new Date()
 		let result: WorkerResult | undefined
 		const run = worker
-			.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id, cwd: wt.path, budget, ...(harness ? { harness } : {}) })
+			.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id, cwd: wt.path, budget, ...(harness ? { harness } : {}), ...(live ? { live } : {}) })
 			.pipe(
 				Effect.tap((r) => Effect.sync(() => (result = r))),
 				Effect.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } }),
@@ -382,6 +404,8 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			...(harness && !harness.command.includes('{...tools}') ? { allowlist: harness.tools[spec.access] } : {}),
 			required: spec.required,
 		})
+		store.note(id, 'call-finished', { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...(call.error ? { error: call.error.slice(0, 2000) } : {}) })
+		endLive(live)
 		if (!res.ok) {
 			if (spec.onFail) yield* spec.onFail(wt.path)
 			if ('limit' in res) yield* recordLimit(id, job, spec.card, res.limit, spec.kind)
@@ -550,7 +574,10 @@ const prepareWorktree = Effect.fn('mw.prepare')(function* (id: number, job: Job,
 	const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
 	if (!project?.prepare) return undefined
 	const env = { ...process.env, MW_ITEM: String(id), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base }
-	const r = yield* runGroup({ command: 'sh', args: ['-c', project.prepare], cwd: dir, env, input: '', budget: PREPARE_BUDGET })
+	const live = liveFile(store, `${name}-prepare`)
+	store.note(id, 'prepare-started', { job, name, command: project.prepare, ...(live ? { live } : {}) })
+	const r = yield* runGroup({ command: 'sh', args: ['-c', project.prepare], cwd: dir, env, input: '', budget: PREPARE_BUDGET, ...(live ? { live } : {}) })
+	endLive(live)
 	const reported = Schema.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {})
 	const resources = Result.isSuccess(reported) ? reported.success.provisioned : []
 	const now = store.get(id)!
@@ -654,6 +681,8 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	const gates = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.gates ?? []
 	const budget = budgetFor(config.prescriptions, 'verify')
 	const env = { ...process.env, MW_ITEM: String(id) }
+	const live = liveFile(store, `item-${id}-verify`)
+	store.note(id, 'verify-started', { gates: gates.map((g) => g.run), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...(live ? { live } : {}) })
 	const run = yield* Effect.scoped(Effect.gen(function* () {
 		const wt = yield* worktree(item.workspace, item.base!.ref, `item-${id}-verify`)
 		const failed = yield* prepareWorktree(id, 'verify', wt.path, `item-${id}-verify`, wt.base)
@@ -661,12 +690,12 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		const change = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'change')))
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
 		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
-		const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, 'change'), budget, env)
+		const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, 'change'), budget, env, live)
 		const built = yield* commit(wt.path, item.title)
 		const applied = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'checks')))
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
-		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...(yield* runChecks(wt.path, checks, budget, env))] } as const
-	}))
+		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...(yield* runChecks(wt.path, checks, budget, env, live))] } as const
+	})).pipe(Effect.ensuring(Effect.sync(() => endLive(live))))
 	// Verify is Made Well's own step, not an agent's: a worktree it cannot prepare holds for the operator.
 	if (run.kind === 'unprepared') return hold(store, store.get(id)!, 'prepare_failed', run.message, run.context)
 	// What prepare stood up for the check run comes down now: a pass merges and ships in this same step.
@@ -705,6 +734,7 @@ const shipCommand = Effect.fn('mw.ship')(function* (id: number) {
 	const command = projectFor(yield* readProjects(projects), item.workspace)?.ship
 	if (!command) return hold(store, item, 'no_ship_command', `Item #${id} is on ${item.merged!.ref}, but its project has no ship command.`, { workspace: item.workspace, projects })
 	const env = { ...process.env, MW_ITEM: String(id), MW_TITLE: item.title, MW_KIND: item.kind ?? 'feature', MW_COMMIT: item.merged!.commit }
+	store.note(id, 'ship-started', { command, main: item.merged!.commit })
 	const { code, stdout, stderr } = yield* Effect.promise(
 		() => new Promise<{ code: number; stdout: string; stderr: string }>((done) => execFile('sh', ['-c', command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout, stderr) => done({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }))),
 	)

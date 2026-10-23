@@ -6,9 +6,9 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, realpathSync, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync4, readdirSync as readdirSync4, readFileSync as readFileSync8, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename2, dirname as dirname6, join as join10, resolve as resolve6 } from "node:path";
+import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -3061,10 +3061,10 @@ var cleanErrorStack = (stack, error, annotations) => {
   return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n");
 };
 var addStackAnnotations = (stack, annotations) => {
-  const frame = annotations?.get(StackTraceKey.key);
-  if (frame) {
+  const frame2 = annotations?.get(StackTraceKey.key);
+  if (frame2) {
     stack = `${stack}
-${currentStackTrace(frame)}`;
+${currentStackTrace(frame2)}`;
   }
   return stack;
 };
@@ -3072,15 +3072,15 @@ var interruptCauseStack = (error, interrupts) => {
   const out = [`${error.name}: ${error.message}`];
   for (const current of interrupts) {
     const fiberId3 = current.fiberId !== void 0 ? `#${current.fiberId}` : "unknown";
-    const frame = current.annotations.get(InterruptorStackTrace.key);
+    const frame2 = current.annotations.get(InterruptorStackTrace.key);
     out.push(`    at fiber (${fiberId3})`);
-    if (frame) out.push(currentStackTrace(frame));
+    if (frame2) out.push(currentStackTrace(frame2));
   }
   return out.join("\n");
 };
-var currentStackTrace = (frame) => {
+var currentStackTrace = (frame2) => {
   const out = [];
-  let current = frame;
+  let current = frame2;
   let i = 0;
   while (current && i < 10) {
     const stack = current.stack();
@@ -4266,9 +4266,9 @@ var timeout = /* @__PURE__ */ dual(2, (self, duration) => {
   });
 });
 var timeoutOption = /* @__PURE__ */ dual(2, (self, duration) => raceFirst(asSome(self), as(sleep(duration), none2())));
-var timed = (self) => clockWith((clock) => {
-  const start = clock.monotonicTimeNanosUnsafe();
-  return map5(self, (a) => [nanos(clock.monotonicTimeNanosUnsafe() - start), a]);
+var timed = (self) => clockWith((clock2) => {
+  const start = clock2.monotonicTimeNanosUnsafe();
+  return map5(self, (a) => [nanos(clock2.monotonicTimeNanosUnsafe() - start), a]);
 });
 var ScopeTypeId = "~effect/Scope";
 var ScopeCloseableTypeId = "~effect/Scope/Closeable";
@@ -4484,7 +4484,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join11 = (fiber3, run2) => {
+  const join13 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4495,25 +4495,25 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join11(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join13(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
     }
     exit4 = void 0;
-    const clock = fiber3.getRef(ClockRef);
+    const clock2 = fiber3.getRef(ClockRef);
     const run2 = {
       fiber: new FiberImpl(fiber3.context),
       awaiters: 0
     };
     current = run2;
-    const joined = join11(fiber3, run2);
+    const joined = join13(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
       if (exitHasInterrupts(exit_)) return;
       const duration = ttlMillis(exit_);
-      expiresAt = duration === Infinity ? Infinity : clock.currentTimeMillisUnsafe() + duration;
+      expiresAt = duration === Infinity ? Infinity : clock2.currentTimeMillisUnsafe() + duration;
       exit4 = exit_;
     }));
     return run2.fiber._exit ?? joined;
@@ -5073,7 +5073,7 @@ var makeSpanUnsafe = (fiber3, name, options) => {
     });
   } else {
     const tracer3 = fiber3.cache.tracer ?? nativeTracer;
-    const clock = fiber3.getRef(ClockRef);
+    const clock2 = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
     const annotationsFromEnv = fiber3.getRef(TracerSpanAnnotations);
     const linksFromEnv = fiber3.getRef(TracerSpanLinks);
@@ -5084,7 +5084,7 @@ var makeSpanUnsafe = (fiber3, name, options) => {
       parent,
       annotations: options?.annotations ?? empty(),
       links,
-      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : bigint02,
+      startTime: timingEnabled ? clock2.currentTimeNanosUnsafe() : bigint02,
       kind: options?.kind ?? "internal",
       root: options?.root ?? false,
       sampled: options?.sampled ?? (isSome2(parent) && parent.value.sampled === false ? false : !isLogLevelGreaterThan(fiber3.getRef(MinimumTraceLevel), level))
@@ -5104,9 +5104,9 @@ var makeSpan = (name, options) => withFiber((fiber3) => succeed3(makeSpanUnsafe(
 var makeSpanScoped = (name, options) => uninterruptible(withFiber((fiber3) => {
   const scope3 = getUnsafe(fiber3.context, scopeTag);
   const span2 = makeSpanUnsafe(fiber3, name, options ?? {});
-  const clock = fiber3.getRef(ClockRef);
+  const clock2 = fiber3.getRef(ClockRef);
   const timingEnabled = fiber3.getRef(TracerTimingEnabled);
-  return as(scopeAddFinalizerExit(scope3, (exit4) => endSpan(span2, exit4, clock, timingEnabled)), span2);
+  return as(scopeAddFinalizerExit(scope3, (exit4) => endSpan(span2, exit4, clock2, timingEnabled)), span2);
 }));
 var withSpanScoped = function() {
   const dataFirst = typeof arguments[0] !== "string";
@@ -5136,18 +5136,18 @@ var linkSpans = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, span2
   }));
   return updateService(self, TracerSpanLinks, (current) => [...current, ...links]);
 });
-var endSpan = (span2, exit4, clock, timingEnabled) => sync(() => {
+var endSpan = (span2, exit4, clock2, timingEnabled) => sync(() => {
   if (span2.status._tag === "Ended") return;
-  span2.end(timingEnabled ? clock.currentTimeNanosUnsafe() : bigint02, exit4);
+  span2.end(timingEnabled ? clock2.currentTimeNanosUnsafe() : bigint02, exit4);
 });
 var useSpan = (name, ...args2) => {
   const options = args2.length === 1 ? void 0 : args2[0];
   const evaluate3 = args2[args2.length - 1];
   return withFiber((fiber3) => {
     const span2 = makeSpanUnsafe(fiber3, name, options);
-    const clock = fiber3.getRef(ClockRef);
+    const clock2 = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
-    onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock, timingEnabled));
+    onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock2, timingEnabled));
     return evaluate3(span2);
   });
 };
@@ -5277,10 +5277,10 @@ var wallTimeNanos = /* @__PURE__ */ (function() {
   };
 })();
 var clockWith = (f) => withFiber((fiber3) => f(fiber3.getRef(ClockRef)));
-var sleep = (duration) => clockWith((clock) => clock.sleep(fromInputUnsafe(duration)));
-var currentTimeMillis = /* @__PURE__ */ clockWith((clock) => clock.currentTimeMillis);
-var currentTimeNanos = /* @__PURE__ */ clockWith((clock) => clock.currentTimeNanos);
-var monotonicTimeNanos = /* @__PURE__ */ clockWith((clock) => clock.monotonicTimeNanos);
+var sleep = (duration) => clockWith((clock2) => clock2.sleep(fromInputUnsafe(duration)));
+var currentTimeMillis = /* @__PURE__ */ clockWith((clock2) => clock2.currentTimeMillis);
+var currentTimeNanos = /* @__PURE__ */ clockWith((clock2) => clock2.currentTimeNanos);
+var monotonicTimeNanos = /* @__PURE__ */ clockWith((clock2) => clock2.monotonicTimeNanos);
 var TimeoutErrorTypeId = "~effect/Cause/TimeoutError";
 var TimeoutError = class extends (/* @__PURE__ */ TaggedError("TimeoutError")) {
   [TimeoutErrorTypeId] = TimeoutErrorTypeId;
@@ -5433,10 +5433,10 @@ var logWithLevel = (level) => (...message) => {
     if (isLogLevelGreaterThan(fiber3.cache.minimumLogLevel, logLevel)) {
       return void_2;
     }
-    const clock = fiber3.getRef(ClockRef);
+    const clock2 = fiber3.getRef(ClockRef);
     const loggers = fiber3.getRef(CurrentLoggers);
     if (loggers.size > 0) {
-      const date = new Date(clock.currentTimeMillisUnsafe());
+      const date = new Date(clock2.currentTimeMillisUnsafe());
       for (const logger of loggers) {
         logger.log({
           cause,
@@ -5504,7 +5504,7 @@ var tracerLogger = /* @__PURE__ */ loggerMake(({
   logLevel,
   message
 }) => {
-  const clock = fiber3.getRef(ClockRef);
+  const clock2 = fiber3.getRef(ClockRef);
   const annotations = fiber3.getRef(CurrentLogAnnotations);
   const span2 = fiber3.cache.span;
   if (span2 === void 0 || span2._tag === "ExternalSpan") return;
@@ -5517,7 +5517,7 @@ var tracerLogger = /* @__PURE__ */ loggerMake(({
   if (cause.reasons.length > 0) {
     attributes["effect.cause"] = causePretty(cause);
   }
-  span2.event(toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message), clock.currentTimeNanosUnsafe(), attributes);
+  span2.event(toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message), clock2.currentTimeNanosUnsafe(), attributes);
 });
 function interruptChildrenPatch() {
   fiberMiddleware.interruptChildren ??= fiberInterruptChildren;
@@ -6652,10 +6652,10 @@ var fromStepWithMetadata = (step2) => fromStep(map5(step2, (f) => {
   return (now2, input) => f(meta(now2, input));
 }));
 var toStep = (schedule2) => catchCause(schedule2.step, (cause) => succeed3(() => failCause(cause)));
-var toStepWithMetadata = (schedule2) => clockWith((clock) => map5(toStep(schedule2), (step2) => {
+var toStepWithMetadata = (schedule2) => clockWith((clock2) => map5(toStep(schedule2), (step2) => {
   const metaFn = metadataFn();
   return (input) => suspend(() => {
-    const now2 = clock.currentTimeMillisUnsafe();
+    const now2 = clock2.currentTimeMillisUnsafe();
     return flatMap3(step2(now2, input), ([output, duration]) => {
       const meta = metaFn(now2, input);
       meta.output = output;
@@ -6801,7 +6801,7 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
   let stepAttempt = 0;
   const emit = (event) => ignoreCause(onEvent(event));
   return {
-    begin: clockWith((clock) => suspend(() => {
+    begin: clockWith((clock2) => suspend(() => {
       const meta = currentMetadata();
       if (meta.stepIndex !== lastStepIndex) {
         lastStepIndex = meta.stepIndex;
@@ -6812,7 +6812,7 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
         attempt: meta.attempt,
         stepAttempt,
         stepIndex: meta.stepIndex,
-        startNanos: clock.monotonicTimeNanosUnsafe()
+        startNanos: clock2.monotonicTimeNanosUnsafe()
       };
       return as(emit({
         _tag: "AttemptStart",
@@ -6821,8 +6821,8 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
         stepIndex: state.stepIndex
       }), state);
     })),
-    end: (state, exit4) => clockWith((clock) => {
-      const duration = nanos(clock.monotonicTimeNanosUnsafe() - state.startNanos);
+    end: (state, exit4) => clockWith((clock2) => {
+      const duration = nanos(clock2.monotonicTimeNanosUnsafe() - state.startNanos);
       return emit(exit4._tag === "Success" ? {
         _tag: "AttemptSuccess",
         attempt: state.attempt,
@@ -7466,10 +7466,10 @@ var trackDefects = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, m
   const input = f === void 0 ? defect : f(defect);
   return update(metric, input);
 }));
-var trackDuration = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => clockWith3((clock) => {
-  const startTime = clock.monotonicTimeNanosUnsafe();
+var trackDuration = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => clockWith3((clock2) => {
+  const startTime = clock2.monotonicTimeNanosUnsafe();
   return onExit2(self, () => {
-    const endTime = clock.monotonicTimeNanosUnsafe();
+    const endTime = clock2.monotonicTimeNanosUnsafe();
     const duration = subtract(fromInputUnsafe(endTime), fromInputUnsafe(startTime));
     const input = f === void 0 ? duration : f(duration);
     return update(metric, input);
@@ -7482,8 +7482,8 @@ var tx = (effect2) => withFiber2((fiber3) => {
   if (state && !completedTransactions.has(state)) {
     return effect2;
   }
-  const clock = fiber3.getRef(ClockRef);
-  const now2 = clock.currentTimeMillisUnsafe();
+  const clock2 = fiber3.getRef(ClockRef);
+  const now2 = clock2.currentTimeMillisUnsafe();
   const mutable3 = {
     journal: /* @__PURE__ */ new Map(),
     retry: false,
@@ -7505,7 +7505,7 @@ var tx = (effect2) => withFiber2((fiber3) => {
       while: () => !result3,
       body: () => {
         if (mutable3.attempt > 1) {
-          stampTransaction(mutable3, clock.currentTimeMillisUnsafe());
+          stampTransaction(mutable3, clock2.currentTimeMillisUnsafe());
         }
         return run2;
       },
@@ -10743,8 +10743,8 @@ var decodeJsonError = (input) => {
 };
 var encodeUnknownAsJson = (input) => {
   try {
-    const json = formatJson(input);
-    return json === void 0 ? format(input) : JSON.parse(json);
+    const json2 = formatJson(input);
+    return json2 === void 0 ? format(input) : JSON.parse(json2);
   } catch {
     return format(input);
   }
@@ -12912,18 +12912,18 @@ function isTree(u, isLeaf) {
       }
     }
     while (stack.length > 0) {
-      const frame = stack[stack.length - 1];
-      const keys3 = frame.keys;
+      const frame2 = stack[stack.length - 1];
+      const keys3 = frame2.keys;
       if (typeof keys3 === "number") {
-        if (frame.index < keys3) {
-          u = frame.value[frame.index++];
+        if (frame2.index < keys3) {
+          u = frame2.value[frame2.index++];
           continue outer;
         }
-      } else if (frame.index < keys3.length) {
-        u = frame.value[keys3[frame.index++]];
+      } else if (frame2.index < keys3.length) {
+        u = frame2.value[keys3[frame2.index++]];
         continue outer;
       }
-      cache2.set(frame.value, true);
+      cache2.set(frame2.value, true);
       stack.pop();
     }
     return true;
@@ -20116,8 +20116,8 @@ var dnsSeconds = /* @__PURE__ */ dnsUint32.pipe(/* @__PURE__ */ decodeTo2(Durati
 var dnsRecordOfType = (type, fields) => declare((u) => isDnsRecord(u) && u._tag === type, {
   identifier: `Dns${type.charAt(0)}${type.slice(1).toLowerCase()}Record`,
   toCodecJson: () => {
-    const json = TaggedStruct(type, fields);
-    return link()(json, transformEffect2({
+    const json2 = TaggedStruct(type, fields);
+    return link()(json2, transformEffect2({
       decode: (input, options) => {
         const {
           _tag,
@@ -21727,6 +21727,7 @@ var ERRORS = {
   },
   brief_unreadable: { means: "The file named by --brief cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String }) },
   export_failed: { means: "The export folder cannot be written.", context: Schema_exports.Struct({ id: Id, dir: Schema_exports.String, reason: Schema_exports.String }) },
+  ui_unavailable: { means: "The console cannot listen on the address asked for: the port is taken or not allowed.", context: Schema_exports.Struct({ host: Schema_exports.String, port: Schema_exports.Int, reason: Schema_exports.String }) },
   git_failed: { means: "A git command Made Well ran in a workspace failed.", context: Schema_exports.Struct({ dir: Schema_exports.String, args: Schema_exports.Array(Schema_exports.String), exitCode: Schema_exports.Int, stderr: Schema_exports.String }) },
   bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema_exports.Struct({ name: Schema_exports.String }) },
   worktree_root_unclean: {
@@ -21773,7 +21774,7 @@ import { join as join3 } from "node:path";
 // src/worker.ts
 import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join2 } from "node:path";
 var DEFAULT_BUDGET = { minutes: 30 };
@@ -21789,7 +21790,7 @@ var stamped = (line, at) => {
     return line;
   }
 };
-var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
+var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callback((resume) => {
   const started = Date.now();
   const call = `${process.pid}-${randomUUID()}`;
   const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
@@ -21811,19 +21812,27 @@ var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callbac
     kill();
   };
   const timer = setTimeout(() => over("minutes"), o.budget.minutes * 6e4);
+  const tee = (chunk) => {
+    if (!o.live) return;
+    try {
+      appendFileSync(o.live, chunk);
+    } catch {
+    }
+  };
   const take4 = (raw, end2) => {
-    const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw;
+    const line = o.stamp ? stamped(raw, clock2.currentTimeMillisUnsafe()) : raw;
     stdout += line + end2;
     const n = o.tokensIn?.(line);
     if (n) tokens = (tokens ?? 0) + n;
   };
   child.stdout.setEncoding("utf8").on("data", (chunk) => {
+    tee(chunk);
     const lines4 = (partial + chunk).split("\n");
     partial = lines4.pop();
     for (const line of lines4) take4(line, "\n");
     if (o.budget.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
   });
-  child.stderr.setEncoding("utf8").on("data", (chunk) => stderr += chunk);
+  child.stderr.setEncoding("utf8").on("data", (chunk) => (tee(chunk), stderr += chunk));
   child.stdin?.on("error", (e) => stdinError = e.message);
   child.on("exit", kill);
   child.on("close", (code) => {
@@ -21873,7 +21882,7 @@ var commandWorker = (command2) => Layer_exports.succeed(Worker, {
       writeFileSync(join2(dir, "request.json"), input);
       return { dir, size: input.length, fd: openSync(join2(dir, "request.json"), "r") };
     }),
-    ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
+    ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET, ...request3.live ? { live: request3.live } : {} }).pipe(
       Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
         if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
         try {
@@ -22010,11 +22019,11 @@ var HARNESSES = {
 };
 var get5 = (value3, path) => path.split(".").reduce((v, k) => v && typeof v === "object" ? v[k] : void 0, value3);
 var matches = (event, match7) => Object.entries(match7).every(([path, want]) => want === "*" ? get5(event, path) != null : get5(event, path) === want);
-var fill = (template, vars) => template.replace(/\{([\w.]+)(\|json)?\}/g, (whole, path, json) => {
+var fill = (template, vars) => template.replace(/\{([\w.]+)(\|json)?\}/g, (whole, path, json2) => {
   const v = get5(vars, path);
   if (v === void 0 || v === null) return whole;
   const s = Array.isArray(v) ? v.join(",") : String(v);
-  return json ? JSON.stringify(s) : s;
+  return json2 ? JSON.stringify(s) : s;
 });
 var glob = (names) => (name) => names.some((n) => n.endsWith("*") ? name.startsWith(n.slice(0, -1)) : name === n);
 var agentEnv = (allow, from = process.env) => ({
@@ -22083,8 +22092,8 @@ function parseRun(harness, stdout, account, now2) {
     const signal = harness.limit.signals?.map((s) => ({ s, e: evs.findLast((e) => matches(e, s.when)) })).find((x) => x.e);
     if (said || signal) {
       const machine = signal?.s.resetsAt.map((p) => get5(signal.e, p)).find((v) => typeof v === "number" && Number.isFinite(v));
-      const { clock, minutes: minutes2 } = said?.groups ?? {};
-      const resetsAt = machine !== void 0 ? machine * 1e3 : clock ? clockToEpoch(clock, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
+      const { clock: clock2, minutes: minutes2 } = said?.groups ?? {};
+      const resetsAt = machine !== void 0 ? machine * 1e3 : clock2 ? clockToEpoch(clock2, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
       limit = { account, resetsAt, message: said?.[0] ?? fill(signal.s.message, signal.e) };
     }
   }
@@ -22112,7 +22121,7 @@ var harnessWorker = Layer_exports.succeed(Worker, {
         const cwd = request3.access === "none" ? dir : request3.cwd;
         const env = agentEnv([...BASE_ENV, ...harness.env ?? []]);
         return Effect_exports.zip(
-          runGroup({ command: launch2.command, args: launch2.args, cwd, env, input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl" }),
+          runGroup({ command: launch2.command, args: launch2.args, cwd, env, input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl", ...request3.live ? { live: request3.live } : {} }),
           versionOf(launch2.command, harness.version ?? ["--version"], env),
           { concurrent: true }
         );
@@ -22203,7 +22212,7 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/change.ts
-import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { appendFileSync as appendFileSync2, mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { basename, dirname as dirname2, join as join5, matchesGlob } from "node:path";
 
 // src/workspace.ts
@@ -22402,14 +22411,14 @@ var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref, from, to
   else yield* git(repo, "update-ref", ref, to, from);
 });
 var GATE = "(gate)";
-var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change, budget, env) {
+var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change, budget, env, live) {
   const files = lines2(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=d", "-z", base));
   const runs = gates.flatMap((g, i) => {
     const matched = g.glob ? files.filter((f) => matchesGlob(g.glob.includes("/") ? f : basename(f), g.glob)) : files;
     return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll("{files}", matched.map(quote2).join(" ")) }] : [];
   });
   if (!runs.length) return { results: [], fixed: [] };
-  const results2 = yield* runChecks2(dir, runs, budget, env);
+  const results2 = yield* runChecks2(dir, runs, budget, env, live);
   const fixed = lines2(yield* git(dir, "diff", "--name-only", "-z", "--", ...files));
   if (fixed.length) {
     yield* git(dir, "add", "--", ...fixed);
@@ -22417,11 +22426,19 @@ var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change
   }
   return { results: results2, fixed };
 });
-var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budget, env) {
+var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budget, env, live) {
   const results2 = [];
   for (const check2 of checks) {
     const started = Date.now();
-    const r = yield* runGroup({ command: "sh", args: ["-c", check2.run], cwd: dir, env, input: "", budget });
+    if (live) {
+      try {
+        appendFileSync2(live, `
+$ ${check2.run}
+`);
+      } catch {
+      }
+    }
+    const r = yield* runGroup({ command: "sh", args: ["-c", check2.run], cwd: dir, env, input: "", budget, ...live ? { live } : {} });
     const over = r.overBudget ? `
 [made well] stopped after ${(r.overBudget.ms / 6e4).toFixed(1)} of ${budget.minutes} minutes` : "";
     results2.push({ ...check2, exitCode: r.overBudget ? 124 : r.code ?? 1, ms: Date.now() - started, output: tail(r.stdout + r.stderr + over) });
@@ -22431,7 +22448,8 @@ var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budge
 
 // src/engine.ts
 import { execFile as execFile4 } from "node:child_process";
-import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
+import { mkdirSync as mkdirSync6, rmSync as rmSync5, writeFileSync as writeFileSync7 } from "node:fs";
+import { dirname as dirname6, join as join10 } from "node:path";
 
 // src/project.ts
 import { execFile as execFile3 } from "node:child_process";
@@ -22594,7 +22612,7 @@ build(); pos = Math.max(0, steps.length - 1); render();
 
 // src/telemetry.ts
 import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
+import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
 import { hostname } from "node:os";
 import { dirname as dirname3, join as join7, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22695,9 +22713,9 @@ var requiredOf = (schema) => {
   return s.required ?? [];
 };
 function decode5(schema, output) {
-  const json = lastJson(output);
-  if (!json) return { ok: false, reason: "The answer did not end with a JSON object." };
-  const r = Schema_exports.decodeUnknownResult(schema)(json, { errors: "all" });
+  const json2 = lastJson(output);
+  if (!json2) return { ok: false, reason: "The answer did not end with a JSON object." };
+  const r = Schema_exports.decodeUnknownResult(schema)(json2, { errors: "all" });
   return Result_exports.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` };
 }
 var dupes = (ids) => ids.filter((id2, i) => ids.indexOf(id2) !== i);
@@ -22951,7 +22969,7 @@ function telemetry(storePath2) {
     write(t, record2) {
       try {
         mkdirSync3(dirname3(file), { recursive: true });
-        appendFileSync(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+        appendFileSync3(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
       } catch {
       }
     }
@@ -22959,10 +22977,10 @@ function telemetry(storePath2) {
 }
 var nanosToMs = (n) => Number(n / 1000000n);
 var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => {
-  if (!sink && process.env.MW_DEBUG !== "1") return Layer_exports.empty;
+  if (process.env.MW_DEBUG === "0" || !sink && file.startsWith(":memory:")) return Layer_exports.empty;
   const write = sink ? (span2) => sink.write("span", span2) : (span2) => {
     mkdirSync3(dirname3(file), { recursive: true });
-    appendFileSync(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+    appendFileSync3(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
   };
   return Layer_exports.succeed(Tracer_exports.Tracer, Tracer_exports.make({
     span(options) {
@@ -23166,6 +23184,11 @@ function openStore(path) {
     get(id2) {
       return read(id2);
     },
+    /** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
+    note(id2, kind, data = {}) {
+      tx2(() => event(id2, kind, data));
+      view2();
+    },
     /** Saves the new state of an item together with the event that explains it. */
     save(item, kind, data = {}) {
       const next = { ...item, updated: (/* @__PURE__ */ new Date()).toISOString() };
@@ -23201,8 +23224,9 @@ function openStore(path) {
       emit("rejected", { call: id2, at: (/* @__PURE__ */ new Date()).toISOString(), reason });
     },
     /** Every call, or one item's, oldest first. */
-    calls(item) {
-      const rows = db.prepare(`SELECT * FROM calls ${item === void 0 ? "" : "WHERE item = ?"} ORDER BY id`).all(...item === void 0 ? [] : [item]);
+    calls(item, id2) {
+      const where = id2 !== void 0 ? "WHERE id = ?" : item !== void 0 ? "WHERE item = ?" : "";
+      const rows = db.prepare(`SELECT * FROM calls ${where} ORDER BY id`).all(...id2 !== void 0 ? [id2] : item !== void 0 ? [item] : []);
       const tools = db.prepare("SELECT seq, tool, digest, input_bytes AS inputBytes, output_bytes AS outputBytes, tokens, at, ms, error FROM tool_events WHERE call = ? ORDER BY seq");
       return rows.map((r) => ({
         ...r,
@@ -23212,6 +23236,18 @@ function openStore(path) {
         flags: JSON.parse(r.flags),
         tools: tools.all(r.id).map((t) => ({ ...t, error: t.error === 1 }))
       }));
+    },
+    /** Every call without its texts (brief, packet, answer, raw stream), which `call` returns: what a live view polls. */
+    callHeads() {
+      const rows = db.prepare("SELECT id, item, kind, job, profile, card, outcome, error, started, ms, tokens, flags, length(system) AS systemBytes, length(prompt) AS packetBytes, length(output) AS answerBytes, length(raw) AS rawBytes, (SELECT COUNT(*) FROM tool_events t WHERE t.call = calls.id) AS toolCount FROM calls ORDER BY id").all();
+      return rows.map((r) => ({ ...r, card: JSON.parse(r.card), tokens: r.tokens ? JSON.parse(r.tokens) : null, flags: JSON.parse(r.flags) }));
+    },
+    call(id2) {
+      return store.calls(void 0, id2)[0];
+    },
+    /** The newest event and call: a view looks again only when either moved. */
+    mark() {
+      return db.prepare("SELECT (SELECT COALESCE(MAX(seq), 0) FROM events) AS events, (SELECT COALESCE(MAX(id), 0) FROM calls) AS calls").get();
     },
     allEvents() {
       return db.prepare("SELECT * FROM events ORDER BY seq").all().map((r) => ({ ...r, data: JSON.parse(r.data) }));
@@ -23298,9 +23334,10 @@ function openStore(path) {
 }
 var Store = class extends Context_exports.Service()("madewell/Store") {
 };
+var spansPath = (path) => join8(dirname4(path), "spans.jsonl");
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
-  debugLayer(join8(dirname4(path), "debug.jsonl"), telemetry(path))
+  debugLayer(path === ":memory:" ? ":memory:" : spansPath(path), telemetry(path))
 );
 
 // src/project.ts
@@ -23379,6 +23416,19 @@ var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections"];
 var DONE = ["held", "shipped", "discovered", "candidate", "dropped"];
 var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var INTAKE_TIER = "intake";
+var liveFile = (store, name) => {
+  if (store.path === ":memory:") return void 0;
+  try {
+    const dir = join10(dirname6(store.path), "live");
+    mkdirSync6(dir, { recursive: true });
+    const file = join10(dir, `${name}.log`);
+    writeFileSync7(file, "");
+    return file;
+  } catch {
+    return void 0;
+  }
+};
+var endLive = (file) => file && rmSync5(file, { force: true });
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
 var profileOf = (o) => o.kind === "job" ? stepOf(o.job).profile : o.kind;
 var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
@@ -23587,9 +23637,11 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const product = none3 ? void 0 : yield* capture(item.workspace);
   const before = read || none3 ? void 0 : yield* capture(wt.path);
   const head3 = before?.head ?? (yield* revParse(wt.path, "HEAD"));
+  const live = liveFile(store, `item-${id2}-${job}-${spec.kind}`);
+  store.note(id2, "call-started", { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...live ? { live } : {} });
   const started = /* @__PURE__ */ new Date();
   let result3;
-  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {} }).pipe(
+  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {}, ...live ? { live } : {} }).pipe(
     Effect_exports.tap((r) => Effect_exports.sync(() => result3 = r)),
     Effect_exports.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id2, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } })
   );
@@ -23634,6 +23686,8 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     ...harness && !harness.command.includes("{...tools}") ? { allowlist: harness.tools[spec.access] } : {},
     required: spec.required
   });
+  store.note(id2, "call-finished", { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...call.error ? { error: call.error.slice(0, 2e3) } : {} });
+  endLive(live);
   if (!res.ok) {
     if (spec.onFail) yield* spec.onFail(wt.path);
     if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
@@ -23787,7 +23841,10 @@ var prepareWorktree = Effect_exports.fn("mw.prepare")(function* (id2, job, dir, 
   const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
   if (!project?.prepare) return void 0;
   const env = { ...process.env, MW_ITEM: String(id2), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base };
-  const r = yield* runGroup({ command: "sh", args: ["-c", project.prepare], cwd: dir, env, input: "", budget: PREPARE_BUDGET });
+  const live = liveFile(store, `${name}-prepare`);
+  store.note(id2, "prepare-started", { job, name, command: project.prepare, ...live ? { live } : {} });
+  const r = yield* runGroup({ command: "sh", args: ["-c", project.prepare], cwd: dir, env, input: "", budget: PREPARE_BUDGET, ...live ? { live } : {} });
+  endLive(live);
   const reported = Schema_exports.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {});
   const resources = Result_exports.isSuccess(reported) ? reported.success.provisioned : [];
   const now2 = store.get(id2);
@@ -23869,18 +23926,20 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const gates = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.gates ?? [];
   const budget = budgetFor(config.prescriptions, "verify");
   const env = { ...process.env, MW_ITEM: String(id2) };
+  const live = liveFile(store, `item-${id2}-verify`);
+  store.note(id2, "verify-started", { gates: gates.map((g) => g.run), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...live ? { live } : {} });
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
     const failed2 = yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base);
     if (failed2) return { kind: "unprepared", ...failed2 };
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
-    const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env);
+    const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
     const built = yield* commit(wt.path, item.title);
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
-    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env)] };
-  }));
+    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env, live)] };
+  })).pipe(Effect_exports.ensuring(Effect_exports.sync(() => endLive(live))));
   if (run2.kind === "unprepared") return hold(store, store.get(id2), "prepare_failed", run2.message, run2.context);
   yield* aftercare(id2, "verify");
   if (store.get(id2).status === "held") return;
@@ -23917,6 +23976,7 @@ var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship;
   if (!command2) return hold(store, item, "no_ship_command", `Item #${id2} is on ${item.merged.ref}, but its project has no ship command.`, { workspace: item.workspace, projects });
   const env = { ...process.env, MW_ITEM: String(id2), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature", MW_COMMIT: item.merged.commit };
+  store.note(id2, "ship-started", { command: command2, main: item.merged.commit });
   const { code, stdout, stderr } = yield* Effect_exports.promise(
     () => new Promise((done3) => execFile4("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
   );
@@ -24485,6 +24545,915 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   return report;
 }, Effect_exports.scoped);
 
+// src/ui.ts
+import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync3, readFileSync as readFileSync7, readSync as readSync2, statSync as statSync2 } from "node:fs";
+import { createServer } from "node:http";
+import { basename as basename2, dirname as dirname7, join as join11 } from "node:path";
+
+// src/console.ts
+var CONSOLE = String.raw`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Made Well · console</title>
+<style>
+:root { --ink:#111827; --mute:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --bg:#f5f6f8; --card:#fff;
+  --blue:#2563eb; --blue-bg:#eff4ff; --green:#15803d; --green-bg:#ecfdf3; --red:#b91c1c; --red-bg:#fef2f2;
+  --amber:#b45309; --amber-bg:#fffbeb; --violet:#7c3aed; --violet-bg:#f5f3ff; --gray-bg:#f3f4f6;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+* { box-sizing:border-box }
+body { margin:0; font:14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); background:var(--bg) }
+.top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 22px; background:#fff; border-bottom:1px solid var(--line) }
+.top h1 { font-size:15px; margin:0; font-weight:650 } .top .path { color:var(--mute); font:12px var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 }
+.top .grow { flex:1 }
+.pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:2px 10px; border-radius:999px; white-space:nowrap; font-weight:500 }
+.pill.ok { color:var(--green); background:var(--green-bg) } .pill.warn { color:var(--amber); background:var(--amber-bg) } .pill.bad { color:var(--red); background:var(--red-bg) } .pill.mute { color:var(--mute); background:var(--gray-bg) }
+.dot { width:7px; height:7px; border-radius:50%; background:currentColor }
+.dot.pulse { animation:pulse 1.4s infinite } @keyframes pulse { 50% { opacity:.25 } }
+main { max-width:1440px; margin:0 auto; padding:18px 22px 60px; display:grid; gap:16px }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; min-width:0 }
+.card > h2 { margin:0 0 12px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; display:flex; gap:8px; align-items:baseline }
+.card > h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--faint) }
+button { font:inherit; font-weight:500; padding:7px 14px; border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; color:var(--ink) }
+button:hover { border-color:#9ca3af } button.primary { background:var(--blue); color:#fff; border-color:var(--blue) } button.on { background:var(--blue-bg); border-color:var(--blue); color:var(--blue) }
+button.small { padding:2px 8px; font-size:12px }
+.controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap } .controls .pos { margin-left:auto; font:13px var(--mono); color:var(--mute) }
+.bar { margin-top:14px; height:6px; background:var(--gray-bg); border-radius:99px; cursor:pointer; position:relative } .bar > div { height:100%; background:var(--blue); border-radius:99px }
+.now { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; align-items:baseline }
+.badge { font:600 11px var(--mono); letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:6px; white-space:nowrap }
+.a-operator { color:var(--violet); background:var(--violet-bg) } .a-agent { color:var(--blue); background:var(--blue-bg) } .a-made { color:var(--green); background:var(--green-bg) } .a-runner { color:var(--mute); background:var(--gray-bg) }
+.now .head { font-size:19px; font-weight:600 } .now .last { font-size:14px } .now .why { color:var(--mute); margin-bottom:8px } .now code { font:12px var(--mono); background:var(--gray-bg); padding:1px 6px; border-radius:5px }
+.flights { margin-top:14px; display:grid; gap:8px }
+.flight { border:1px solid #c7d7fe; background:var(--blue-bg); border-radius:10px; padding:10px 12px; cursor:pointer }
+.flight.cut { border-color:#fcd34d; background:var(--amber-bg) }
+.flight .l1 { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap } .flight .t { font:13px var(--mono); margin-left:auto; color:var(--blue) } .flight.cut .t { color:var(--amber) }
+.flight .l2 { font:12px var(--mono); color:#374151; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.lanes { display:grid; grid-template-columns: 1.15fr .85fr 3.2fr .7fr; gap:12px }
+.lane { border:1px dashed #d1d5db; border-radius:10px; padding:12px; min-width:0 }
+.lane h3 { margin:0 0 10px; font-size:13px; font-weight:650; letter-spacing:.02em } .lane.op h3 { color:var(--violet) }
+.stages { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px }
+.stage { border:1px solid var(--line); border-radius:10px; padding:10px; min-height:120px; min-width:0 } .stage.hot { border:2px solid var(--blue); padding:9px }
+.stage b { display:block; font-size:14px } .stage .jobs { font:12px var(--mono); color:var(--mute); margin:2px 0 8px }
+.steps { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px }
+.step { font-size:12px; border:1px solid #bbf7d0; color:var(--green); background:var(--green-bg); padding:2px 8px; border-radius:6px }
+.lane.op .step { border-color:#ddd6fe; color:var(--violet); background:var(--violet-bg) }
+.chips { display:flex; flex-wrap:wrap; gap:6px }
+.chip { font:12px var(--mono); padding:3px 8px; border-radius:6px; cursor:pointer; border:1px solid transparent; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.chip:hover { border-color:currentColor }
+.s-running, .s-queued { color:var(--blue); background:var(--blue-bg) } .s-held { color:var(--red); background:var(--red-bg) } .s-shipped, .s-discovered { color:var(--green); background:var(--green-bg) }
+.s-candidate, .s-waiting-quota, .s-waiting-prerequisite { color:var(--amber); background:var(--amber-bg) } .s-dropped { color:var(--faint); background:var(--gray-bg); text-decoration:line-through }
+.chip.live { animation:ring 1.4s infinite } @keyframes ring { 0%, 100% { box-shadow:0 0 0 2px var(--blue) inset } 50% { box-shadow:0 0 0 2px #93b4fb inset } }
+.done-n { font-size:32px; font-weight:700; color:var(--green); text-align:center; margin:6px 0 }
+.row3 { display:grid; grid-template-columns: 1fr 1.15fr 1.15fr; gap:16px }
+.term { background:#fbfbfc; border:1px solid var(--line); border-radius:10px; padding:14px 16px; font:13px/1.65 var(--mono); white-space:pre-wrap; word-break:break-word; max-height:560px; overflow:auto }
+.term .g { color:var(--green) } .term .m { color:var(--mute) } .term .r { color:var(--red) } .term .b { color:var(--blue) }
+table { border-collapse:collapse; width:100% } th { text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line) }
+td { padding:8px; border-bottom:1px solid #f1f2f4; vertical-align:top } tr.click { cursor:pointer } tr.click:hover td { background:#fafbff }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums } .id { font:13px var(--mono); color:var(--mute) } .meta { font-size:12px; color:var(--mute) }
+.state { font:600 11px var(--mono); padding:2px 7px; border-radius:5px; text-transform:uppercase; white-space:nowrap }
+.tiles { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px }
+.tile { border:1px solid var(--line); border-radius:10px; padding:10px 12px } .tile .v { font:600 22px var(--mono) } .tile .k { font-size:12px; color:var(--mute) }
+.tile.bad .v { color:var(--red) } .tile.ok .v { color:var(--green) }
+.mins { margin-top:14px; display:grid; grid-template-columns: 110px 1fr 64px; gap:6px 10px; align-items:center; font-size:13px }
+.mins .track { height:9px; background:var(--gray-bg); border-radius:99px; overflow:hidden } .mins .fill { height:100%; background:var(--blue) } .mins .fill.wait { background:var(--violet) } .mins .fill.quota { background:var(--amber) }
+.mins .n { text-align:right; font:12px var(--mono); color:var(--mute) }
+.log { max-height:520px; overflow:auto } .log td { font-size:13px } .log td.t { font:12px var(--mono); color:var(--mute); white-space:nowrap } .log tr.cur td { background:var(--blue-bg) } .log tr.future td { opacity:.35 }
+.filter { display:flex; gap:8px; margin:-4px 0 10px } .filter input { flex:1; font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:8px }
+.rule-ok { color:var(--green) } .rule-bad { color:var(--red); font-weight:600 }
+.drawer { position:fixed; top:0; right:0; bottom:0; width:min(760px, 96vw); background:#fff; border-left:1px solid var(--line); box-shadow:-12px 0 32px rgba(17,24,39,.08); z-index:10; display:none; flex-direction:column }
+.drawer.open { display:flex } .drawer header { display:flex; gap:10px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line) } .drawer header h3 { margin:0; font-size:16px; flex:1; min-width:0 }
+.drawer .body { overflow:auto; padding:16px 18px 40px }
+.drawer h4 { margin:18px 0 6px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute) }
+.kv { display:grid; grid-template-columns:130px 1fr; gap:4px 12px; font-size:13px } .kv > div:nth-child(odd) { color:var(--mute) } .kv > div { min-width:0; overflow-wrap:anywhere }
+pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:12px/1.5 var(--mono); max-height:460px; overflow:auto; margin:4px 0 }
+details summary { cursor:pointer; color:var(--blue); margin:8px 0; font-size:13px }
+.hold { border:1px solid #fecaca; background:var(--red-bg); border-radius:10px; padding:12px 14px } .hold b { color:var(--red) }
+.cmd { display:flex; gap:8px; align-items:baseline; margin-top:6px } .cmd code { font:12px var(--mono); background:#fff; border:1px solid var(--line); padding:3px 8px; border-radius:6px; overflow-wrap:anywhere } .cmd span { font-size:12px; color:var(--mute) }
+.span { display:grid; grid-template-columns: 1fr 70px; gap:8px; font:12px var(--mono); padding:2px 0 } .span .bar2 { height:6px; background:var(--blue); border-radius:3px; margin-top:6px; min-width:2px } .span.err { color:var(--red) } .span.err .bar2 { background:var(--red) }
+.stream { font:12px/1.5 var(--mono); background:#0f172a; color:#e2e8f0; border-radius:8px; padding:10px 12px; max-height:520px; overflow:auto; white-space:pre-wrap; word-break:break-word }
+.stream .k { color:#93c5fd } .stream .x { color:#94a3b8 }
+.empty { color:var(--faint); font-size:13px }
+@media (max-width: 1100px) { .lanes, .row3 { grid-template-columns:1fr } .stages { grid-template-columns:repeat(2, minmax(0,1fr)) } }
+</style></head><body>
+<div class="top"><h1>Made Well</h1><span class="path" id="path"></span><span class="grow"></span><span id="runner"></span><span id="conn" class="pill mute"><span class="dot"></span>connecting</span></div>
+<main>
+  <section class="card">
+    <div class="controls">
+      <button id="back">◀ Back</button><button id="step" class="primary">Step ▶</button><button id="play">Play</button><button id="live" class="on">● Live</button><button id="over">Start over</button>
+      <span class="pos" id="pos"></span>
+    </div>
+    <div class="bar" id="bar"><div id="fill" style="width:0"></div></div>
+  </section>
+  <section class="card"><h2>Happening now <span class="sub" id="nowsub"></span></h2><div class="now" id="now"></div><div class="flights" id="flights"></div></section>
+  <section class="card"><h2>Where the work is <span class="sub" id="lanesub"></span></h2><div class="lanes" id="lanes"></div></section>
+  <div class="row3">
+    <section class="card"><h2>What the operator sees <span class="sub">mw status</span></h2><div class="term" id="term"></div></section>
+    <section class="card"><h2>The one list <span class="sub" id="listsub"></span></h2><div id="list"></div></section>
+    <section class="card"><h2>Telemetry</h2><div class="tiles" id="tiles"></div><div class="mins" id="mins"></div></section>
+  </div>
+  <section class="card"><h2>Rules checked on this run <span class="sub">every agent call is checked against each rule; a break links to its call</span></h2><div id="rules"></div></section>
+  <section class="card"><h2>Event log <span class="sub" id="logsub"></span></h2>
+    <div class="filter"><input id="q" placeholder="Filter: an item (#3), a job, an actor, any word"></div>
+    <div class="log" id="log"></div></section>
+</main>
+<aside class="drawer" id="drawer"><header><h3 id="dtitle"></h3><button class="small" id="dclose">Close ✕</button></header><div class="body" id="dbody"></div></aside>
+<script>
+var S = null, MARK = '', pos = -1, follow = true, timer = null, open = null, liveTail = null, lastOk = 0;
+var LIVE_MS = 1000;
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function num(n) { return Number(n || 0).toLocaleString('en-US'); }
+function clock(iso) { return iso ? new Date(iso).toLocaleTimeString('en-GB', { hour12: false }) : ''; }
+function dur(ms) { ms = Math.max(0, ms); if (ms < 60000) return (ms / 1000).toFixed(1) + 's'; var m = Math.floor(ms / 60000); return m < 60 ? m + 'm ' + String(Math.round((ms % 60000) / 1000)).padStart(2, '0') + 's' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; }
+function mins(m) { return m < 1 ? (m * 60).toFixed(0) + 's' : m < 90 ? m.toFixed(m < 10 ? 1 : 0) + ' min' : (m / 60).toFixed(1) + ' h'; }
+function tok(t) { return t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0; }
+function actorClass(a) { return a === 'operator' ? 'a-operator' : a === 'agent' ? 'a-agent' : a === 'runner' ? 'a-runner' : 'a-made'; }
+var STAGE_OF = { discover: 'discovery', ideate: 'ideation', challenge: 'ideation', plan: 'planning', 'test-plan': 'planning', implement: 'implementation', verify: 'verification', arbitrate: 'verification' };
+var PROFILE = { discover: 'ideator', ideate: 'ideator', challenge: 'ideation peer', plan: 'planner', 'test-plan': 'test architect', implement: 'implementer', verify: 'made well', arbitrate: 'arbiter' };
+var STAGES = [['ideation', 'Ideation', 'ideate · challenge'], ['planning', 'Planning', 'plan · test-plan'], ['implementation', 'Implementation', 'implement'], ['verification', 'Verification', 'verify · arbitrate']];
+var RULES = {
+  'write-under-read': 'A read-only call wrote nothing in its checkout',
+  'head-moved': 'No call moved the branch head; only Made Well\'s ship does',
+  'out-of-scope': 'A making call touched only the files its plan declared',
+  'over-budget': 'Each call stayed inside its time and token budget',
+  'tool-not-allowed': 'Each call used only the tools its access allows',
+  'missing-fields': 'Each answer carried every field its schema requires'
+};
+function item(id) { return S && S.items.find(function (i) { return i.id === id; }); }
+function last() { return S ? S.events.length - 1 : -1; }
+
+// The state of every item after step n, read from the events alone (the live end uses the record itself).
+function stateAt(n) {
+  var st = {};
+  if (!S) return st;
+  if (n >= last()) { S.items.forEach(function (i) { st[i.id] = { status: i.status, job: i.job, hold: i.hold && i.hold.code }; }); return st; }
+  for (var k = 0; k <= n; k++) {
+    var e = S.events[k], d = e.data; if (!e.item) continue;
+    var it = st[e.item] || (st[e.item] = { status: 'queued', job: 'ideate' });
+    if (e.kind === 'created') { it.status = d.status || 'queued'; it.job = d.job; }
+    else if (e.kind === 'handed-off') { it.job = Array.isArray(d.to) ? 'implement' : d.to; }
+    else if (e.kind === 'call-started' || e.kind === 'running' || e.kind === 'retried') { if (d.job) it.job = d.job; it.status = 'running'; }
+    else if (e.kind === 'failure') { it.job = 'arbitrate'; }
+    else if (e.kind === 'ruling') { if (d.to) it.job = d.to; it.status = d.prerequisite ? 'waiting-prerequisite' : 'running'; }
+    else if (e.kind === 'verify-started' || e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
+    else if (e.kind === 'held') { it.status = 'held'; it.hold = d.code; }
+    else if (e.kind === 'shipped' || e.kind === 'discovered' || e.kind === 'dropped' || e.kind === 'waiting-quota') { it.status = e.kind; }
+    else if (e.kind === 'promoted' || e.kind === 'nq-corrected' || (e.kind === 'nq-answer' && d.originator === 'operator')) { it.status = 'queued'; it.hold = null; }
+  }
+  return st;
+}
+// What was in flight at step n: started and not finished by then.
+function flightsAt(n) {
+  if (n >= last()) return S.flights;
+  var open = {}, ends = { 'call-finished': 'call-started', prepared: 'prepare-started', verified: 'verify-started', shipped: 'ship-started' };
+  for (var k = 0; k <= n; k++) {
+    var e = S.events[k], d = e.data, key;
+    if (/-started$/.test(e.kind) && !/^runner-/.test(e.kind)) { key = e.item + ':' + e.kind + ':' + (d.job || '') + ':' + (d.kind || '') + ':' + (d.name || ''); open[key] = { item: e.item, what: e.kind === 'call-started' ? (d.kind === 'execute' ? 'job' : d.kind) + ' · ' + d.job : e.kind.replace('-started', ''), who: d.profile || 'made well', since: e.at, card: d.card ? [d.card.harness, d.card.model, d.card.effort].join(' · ') : '', live: d.live }; }
+    var start = ends[e.kind] || ((e.kind === 'failure' || e.kind === 'held') ? 'verify-started' : null);
+    if (start) Object.keys(open).forEach(function (x) { if (x.indexOf(e.item + ':' + start + ':') === 0 && (start !== 'call-started' || x.indexOf(':' + d.job + ':' + d.kind + ':') > 0) && (start !== 'prepare-started' || x.slice(-(':' + d.name).length) === ':' + d.name)) delete open[x]; });
+    if (e.kind === 'runner-started' || e.kind === 'runner-stopped' || e.kind === 'runner-lost') open = {};
+  }
+  return Object.keys(open).map(function (x) { return open[x]; });
+}
+
+function render() {
+  if (!S) return;
+  if (follow || pos > last()) pos = last();
+  var n = S.events.length, cur = S.events[pos];
+  $('pos').textContent = n ? clock(cur && cur.at) + ' · step ' + (pos + 1) + ' of ' + n : 'no steps yet';
+  $('fill').style.width = n ? ((pos + 1) / n * 100) + '%' : '0';
+  $('live').className = follow ? 'on' : '';
+  renderNow(cur); renderLanes(); renderTerm(); renderList(); renderTiles(); renderRules(); renderLog();
+  if (open && open.type === 'item') drawItem(open.id, true);
+}
+
+function renderNow(cur) {
+  var at = pos >= last();
+  $('nowsub').textContent = at ? 'live' : 'at step ' + (pos + 1) + ', ' + clock(cur && cur.at);
+  var fl = flightsAt(pos);
+  if (!cur) { $('now').innerHTML = '<div class="empty">Nothing recorded yet. Start with <code>mw discover --source-file notes.md</code> or <code>mw start --objective "…"</code> in a registered project.</div>'; }
+  else {
+    var it = item(cur.item), html = '';
+    // At the live end with nothing running, what matters is what stands still and why.
+    if (at && !fl.filter(function (f) { return !f.cutOff; }).length) {
+      var held = S.items.filter(function (i) { return i.status === 'held'; }), moving = S.items.filter(function (i) { return ['queued', 'running', 'waiting-quota', 'waiting-prerequisite'].indexOf(i.status) >= 0; });
+      if (held.length) html += '<span class="badge a-operator">you</span><span class="head">' + held.length + ' item' + (held.length === 1 ? ' waits' : 's wait') + ' on you</span><span></span><span class="why">' +
+        held.map(function (i) { var v = (S.board.items || []).find(function (x) { return x.id === i.id; }) || {}; return '<a href="#" data-item="' + i.id + '">#' + i.id + '</a> ' + esc(i.hold.code) + ': ' + esc(i.hold.message) + ((v.next || [])[0] ? ' <code>' + esc(v.next[0].run) + '</code>' : ''); }).join('<br>') + '</span>';
+      else if (moving.length && !S.runner) html += '<span class="badge a-runner">stopped</span><span class="head">' + moving.length + ' item' + (moving.length === 1 ? '' : 's') + ' can move, but no runner is driving</span><span></span><span class="why">Run <code>mw run</code>; every item resumes where it stopped.</span>';
+      else if (!moving.length) html += '<span class="badge a-made">idle</span><span class="head">Nothing is moving and nothing waits on you</span><span></span><span class="why">' + esc((S.board.summary || '')) + '</span>';
+    }
+    html += '<span class="badge ' + actorClass(cur.actor) + '">' + esc(cur.actor) + '</span><span class="' + (html ? 'last' : 'head') + '">' + (html ? 'Last: ' : '') + esc(cur.say) + '</span><span></span><span class="why">' +
+      (it ? '<a href="#" data-item="' + it.id + '">#' + it.id + '</a> ' + esc(it.title) + ' · ' : '') + esc(cur.kind) + ' · ' + clock(cur.at) + ' · <a href="#" data-ev="' + cur.seq + '">every variable</a></span>';
+    $('now').innerHTML = html;
+  }
+  $('flights').innerHTML = fl.map(function (f, i) {
+    var it = item(f.item), cut = at && f.cutOff;
+    return '<div class="flight' + (cut ? ' cut' : '') + '" data-fl="' + i + '"><div class="l1"><b>#' + f.item + ' ' + esc(f.what) + '</b><span class="meta">' + esc(f.who) + (f.card ? ' · ' + esc(f.card) : '') + '</span><span class="meta">' + esc(it ? it.title : '') + '</span>' +
+      '<span class="t" data-since="' + esc(f.since) + '" data-cut="' + (cut ? 1 : 0) + '">' + (cut ? 'cut off · no runner' : at ? dur(Date.now() - Date.parse(f.since)) : 'running') + '</span></div>' +
+      (f.live && at ? '<div class="l2" data-tail="' + esc(f.live.split('/').pop()) + '">waiting for output…</div>' : '') + '</div>';
+  }).join('');
+  if (at) fl.forEach(function (f) { if (f.live) peek(f.live.split('/').pop()); });
+}
+
+var peeks = {};
+function peek(name) {
+  if (peeks[name] && Date.now() - peeks[name].t < 1500) return show();
+  fetch('api/live/' + encodeURIComponent(name) + '?from=0').then(function (r) { return r.json(); }).then(function (d) { peeks[name] = { t: Date.now(), line: lastLine(d.text) }; show(); }).catch(function () {});
+  function show() { document.querySelectorAll('[data-tail="' + name + '"]').forEach(function (el) { el.textContent = peeks[name] ? (peeks[name].line || 'no output yet') : ''; }); }
+}
+function lastLine(text) {
+  var lines = (text || '').split('\n').filter(function (l) { return l.trim(); });
+  for (var i = lines.length - 1; i >= 0; i--) { var s = streamText(lines[i]); if (s) return s; }
+  return '';
+}
+function streamText(line) {
+  var t = line.trim();
+  if (t[0] !== '{') return t;
+  try { var m = JSON.stringify(JSON.parse(t)).match(/"(?:text|content|message|result|command|delta)":"((?:[^"\\]|\\.){2,})"/); return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').slice(0, 400) : ''; } catch (e) { return t; }
+}
+
+function chip(i, st, live) {
+  var s = st[i.id]; if (!s) return '';
+  var label = '#' + i.id + (s.status === 'held' ? ' held ' + (s.hold || '') : s.status === 'candidate' ? ' ' + i.title : s.status === 'shipped' || s.status === 'discovered' ? '' : ' ' + s.job);
+  return '<span class="chip s-' + s.status + (live ? ' live' : '') + '" data-item="' + i.id + '" title="' + esc(i.title + ' · ' + s.status + ' · ' + s.job) + '">' + esc(label) + '</span>';
+}
+function renderLanes() {
+  var st = stateAt(pos), fl = flightsAt(pos), flying = {};
+  fl.forEach(function (f) { flying[f.item] = true; });
+  $('lanesub').textContent = pos >= last() ? 'live' : 'as it was at step ' + (pos + 1);
+  var its = S.items.filter(function (i) { return st[i.id]; });
+  var gone = function (s) { return ['held', 'candidate', 'shipped', 'dropped', 'discovered'].indexOf(s.status) >= 0; };
+  var disc = its.filter(function (i) { return i.job === 'discover'; });
+  var op = its.filter(function (i) { return st[i.id].status === 'held' || st[i.id].status === 'candidate'; });
+  var done = its.filter(function (i) { return st[i.id].status === 'shipped'; });
+  var dropped = its.filter(function (i) { return st[i.id].status === 'dropped'; });
+  var html = '<div class="lane"><h3>DISCOVERY</h3><div class="steps"><span class="step">raw input</span><span class="step">discover</span><span class="step">candidates</span></div><div class="chips">' +
+    (disc.length ? disc.map(function (i) { return chip(i, st, flying[i.id]) + (st[i.id].status === 'discovered' ? ' <span class="meta">→ ' + S.items.filter(function (c) { return c.discovery === i.id; }).length + ' candidates</span>' : ''); }).join('') : '<span class="empty">no discovery runs</span>') + '</div></div>';
+  html += '<div class="lane op"><h3>OPERATOR</h3><div class="steps"><span class="step">promote</span><span class="step">answer</span><span class="step">retry · drop</span></div><div class="chips">' + (op.length ? op.map(function (i) { return chip(i, st); }).join('') : '<span class="empty">nothing needs you</span>') + '</div></div>';
+  html += '<div class="lane"><h3>DELIVERY</h3><div class="stages">' + STAGES.map(function (sg) {
+    var here = its.filter(function (i) { return i.job !== 'discover' && !gone(st[i.id]) && STAGE_OF[st[i.id].job] === sg[0]; });
+    var hot = here.some(function (i) { return flying[i.id]; });
+    return '<div class="stage' + (hot ? ' hot' : '') + '"><b>' + sg[1] + '</b><div class="jobs">' + sg[2] + '</div><div class="chips">' + here.map(function (i) { return chip(i, st, flying[i.id]); }).join('') + '</div></div>';
+  }).join('') + '</div></div>';
+  html += '<div class="lane"><h3>DONE</h3><div class="done-n">' + done.length + '</div><div class="chips">' + done.map(function (i) { return chip(i, st); }).join('') + '</div>' + (dropped.length ? '<div class="meta" style="margin-top:8px">dropped</div><div class="chips">' + dropped.map(function (i) { return chip(i, st); }).join('') + '</div>' : '') + '</div>';
+  $('lanes').innerHTML = html;
+}
+
+function renderTerm() {
+  var b = S.board || {}, items = b.items || [];
+  var g = function (f) { return items.filter(f); };
+  var now = g(function (i) { return ['running', 'waiting-quota', 'waiting-prerequisite'].indexOf(i.status) >= 0; });
+  var held = g(function (i) { return i.status === 'held'; }), todo = g(function (i) { return i.status === 'queued' || i.status === 'candidate'; }), done = g(function (i) { return i.status === 'shipped'; });
+  var line = function (i, extra) { return '  <span class="m">#' + i.id + '</span> ' + esc(i.title) + (extra ? ' <span class="m">' + esc(extra) + '</span>' : ''); };
+  var ws = S.items.length ? S.items[S.items.length - 1].workspace.split('/').filter(Boolean).pop() : 'madewell';
+  var out = '<b>' + esc(ws) + '</b>  ' + (held.length ? '<span class="r">' + held.length + ' need' + (held.length === 1 ? 's' : '') + ' you</span>' : '<span class="g">nothing needs you</span>') + '\n<span class="m">' + esc(b.summary || '') + '</span>\n\n';
+  out += 'NOW ' + now.length + '\n' + (now.map(function (i) { return line(i, '▸ ' + i.stage + ' · ' + i.job + ' · ' + i.profile + (S.runner ? '' : ' · no runner')); }).join('\n') || '  <span class="m">—</span>') + '\n\n';
+  if (held.length) out += '<span class="r">NEEDS YOU ' + held.length + '</span>\n' + held.map(function (i) { return line(i, (i.hold ? i.hold.code : '') + ' · ' + i.job) + (i.next || []).slice(0, 1).map(function (n) { return '\n    <span class="b">' + esc(n.run) + '</span>'; }).join(''); }).join('\n') + '\n\n';
+  out += 'TO-DO ' + todo.length + '\n' + (todo.map(function (i) { return line(i, i.status === 'candidate' ? 'candidate' : 'queued'); }).join('\n') || '  <span class="m">—</span>') + '\n\n';
+  out += '<span class="g">DONE ' + done.length + '</span>' + (done.length ? ' ' + done.map(function (i) { return '#' + i.id; }).join(' ') : '') + '\n';
+  if ((b.next || []).length) out += '\nNEXT\n' + b.next.slice(0, 4).map(function (n) { return '  <span class="b">' + esc(n.run) + '</span>\n  <span class="m">' + esc(n.why) + '</span>'; }).join('\n');
+  $('term').innerHTML = out;
+}
+
+function renderList() {
+  var rows = S.items.slice().reverse();
+  $('listsub').textContent = rows.length + ' items';
+  $('list').innerHTML = rows.length ? '<table><tr><th>#</th><th>Item</th><th>State</th></tr>' + rows.map(function (i) {
+    var where = i.job === 'discover' ? 'discovery' : 'delivery · ' + (STAGE_OF[i.job] || '') + ' · ' + i.job + ' · ' + (PROFILE[i.job] || '');
+    var from = i.discovery ? ' · from #' + i.discovery : i.parent ? ' · fix for #' + i.parent : '';
+    return '<tr class="click" data-item="' + i.id + '"><td class="id">#' + i.id + '</td><td>' + esc(i.title) + '<div class="meta">' + esc(where + from) + (i.hold ? ' · <span style="color:var(--red)">' + esc(i.hold.code) + '</span>' : '') + '</div></td><td><span class="state s-' + i.status + '">' + esc(i.status) + '</span></td></tr>';
+  }).join('') + '</table>' : '<div class="empty">No items yet.</div>';
+}
+
+function renderTiles() {
+  var c = function (s) { return S.items.filter(function (i) { return s.indexOf(i.status) >= 0; }).length; };
+  var held = S.events.filter(function (e) { return e.kind === 'held'; }).length;
+  var wait = 0, totals = {};
+  Object.keys(S.minutes).forEach(function (id) { var m = S.minutes[id]; Object.keys(m).forEach(function (k) { totals[k] = (totals[k] || 0) + m[k]; }); });
+  wait = totals['operator wait'] || 0;
+  var pass = 0, fail = 0;
+  S.items.forEach(function (i) { (i.verification ? i.verification.results : []).forEach(function (r) { if (r.exitCode === 0) pass++; else fail++; }); });
+  var tokens = S.calls.reduce(function (n, x) { return n + tok(x.tokens); }, 0), agentMs = S.calls.reduce(function (n, x) { return n + x.ms; }, 0);
+  var breaks = S.calls.reduce(function (n, x) { return n + x.flags.length; }, 0), failed = S.calls.filter(function (x) { return x.outcome !== 'ok'; }).length;
+  var t = [[c(['candidate', 'queued']), 'to-do'], [c(['running', 'waiting-quota', 'waiting-prerequisite']), 'in progress'], [c(['shipped']), 'shipped', 'ok'],
+    [c(['held']), 'need you now', c(['held']) ? 'bad' : ''], [held, 'operator stops'], [mins(wait), 'waited on operator'],
+    [pass + '/' + (pass + fail), 'checks passed', fail ? '' : pass ? 'ok' : ''], [fail, 'checks failed', fail ? 'bad' : ''], [S.calls.length, 'agent calls'],
+    [failed, 'calls failed or refused', failed ? 'bad' : ''], [mins(agentMs / 60000), 'agent time'], [tokens >= 1e6 ? (tokens / 1e6).toFixed(1) + 'M' : tokens >= 1e3 ? Math.round(tokens / 1e3) + 'k' : tokens, 'tokens'],
+    [breaks, 'rule breaks', breaks ? 'bad' : 'ok'], [S.flights.length, 'steps running'], [S.spans ? (S.spans / 1024).toFixed(0) + ' KB' : '0', 'traces recorded']];
+  $('tiles').innerHTML = t.map(function (x) { return '<div class="tile ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('');
+  var rows = ['discovery', 'ideation', 'planning', 'implementation', 'verification', 'operator wait', 'quota wait'];
+  var max = Math.max.apply(null, rows.map(function (r) { return totals[r] || 0; }).concat([0.0001]));
+  $('mins').innerHTML = '<div class="meta" style="grid-column:1/-1">Time per stage, every item</div>' + rows.map(function (r) {
+    var v = totals[r] || 0;
+    return '<div>' + r[0].toUpperCase() + r.slice(1) + '</div><div class="track"><div class="fill' + (r === 'operator wait' ? ' wait' : r === 'quota wait' ? ' quota' : '') + '" style="width:' + (v / max * 100) + '%"></div></div><div class="n">' + mins(v) + '</div>';
+  }).join('');
+}
+
+function renderRules() {
+  var checked = S.calls.length;
+  var html = '<table><tr><th>Rule</th><th class="num">Calls checked</th><th class="num">Breaks</th><th>Where</th></tr>' + Object.keys(RULES).map(function (r) {
+    var bad = S.calls.filter(function (c) { return c.flags.some(function (f) { return f.rule === r; }); });
+    return '<tr><td><span class="' + (bad.length ? 'rule-bad' : 'rule-ok') + '">' + (bad.length ? '✕' : '✓') + '</span> ' + esc(RULES[r]) + ' <span class="meta">' + r + '</span></td><td class="num">' + checked + '</td><td class="num">' + bad.length + '</td><td>' +
+      bad.slice(0, 8).map(function (c) { return '<span class="chip s-held" data-call="' + c.id + '">#' + c.item + ' ' + esc(c.kind + ' ' + c.job) + '</span>'; }).join(' ') + '</td></tr>';
+  }).join('') + '</table>';
+  $('rules').innerHTML = html;
+}
+
+function renderLog() {
+  var q = $('q').value.trim().toLowerCase();
+  var rows = S.events.map(function (e, k) { return [e, k]; }).filter(function (x) {
+    if (!q) return true; var e = x[0];
+    if (/^#\d+$/.test(q)) return e.item === Number(q.slice(1));
+    return (e.actor + ' ' + e.kind + ' ' + e.say + ' #' + e.item).toLowerCase().indexOf(q) >= 0;
+  });
+  $('logsub').textContent = S.events.length + ' events, newest first';
+  var el = $('log'), keep = el.scrollTop;
+  el.innerHTML = '<table>' + rows.reverse().slice(0, 1500).map(function (x) {
+    var e = x[0], k = x[1];
+    return '<tr class="click' + (k === pos ? ' cur' : k > pos ? ' future' : '') + '" data-pos="' + k + '"><td class="t">' + clock(e.at) + '</td><td><span class="badge ' + actorClass(e.actor) + '">' + esc(e.actor) + '</span></td><td class="id">' + (e.item ? '#' + e.item : '') + '</td><td>' + esc(e.say) + '</td></tr>';
+  }).join('') + '</table>';
+  el.scrollTop = keep;
+}
+
+// ── The drawer: everything about one item, call, event or running step ──
+function drawer(title, html, keep) { var y = $('dbody').scrollTop; $('dtitle').innerHTML = title; $('dbody').innerHTML = html; $('dbody').scrollTop = keep ? y : 0; $('drawer').classList.add('open'); }
+function closeDrawer() { $('drawer').classList.remove('open'); open = null; liveTail = null; }
+function json(v) { return '<pre>' + esc(JSON.stringify(v, null, 2)) + '</pre>'; }
+// A hold's facts, shown as they are: questions as a list, text as text, anything else as JSON.
+function factList(ctx) {
+  return '<div class="kv" style="margin-top:10px">' + Object.keys(ctx || {}).map(function (k) {
+    var v = ctx[k];
+    var body = Array.isArray(v) && v.every(function (x) { return typeof x === 'string'; }) ? '<ol style="margin:0;padding-left:18px">' + v.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>'
+      : typeof v === 'string' ? (v.length > 160 || v.indexOf('\n') >= 0 ? '<pre>' + esc(v) + '</pre>' : esc(v)) : typeof v === 'number' || typeof v === 'boolean' || v == null ? esc(String(v)) : '<pre>' + esc(JSON.stringify(v, null, 2)) + '</pre>';
+    return '<div>' + esc(k) + '</div><div>' + body + '</div>';
+  }).join('') + '</div>';
+}
+function nextCmds(list) { return (list || []).map(function (n) { return '<div class="cmd"><code>' + esc(n.run) + '</code><span>' + esc(n.why) + '</span></div>'; }).join(''); }
+
+function drawItem(id, refresh) {
+  var i = item(id); if (!i) return;
+  open = { type: 'item', id: id };
+  var view = (S.board.items || []).find(function (v) { return v.id === id; }) || {};
+  var evs = S.events.filter(function (e) { return e.item === id; }), calls = S.calls.filter(function (c) { return c.item === id; });
+  var m = S.minutes[id] || {};
+  var opened = {}; $('dbody').querySelectorAll('details[open]').forEach(function (d) { opened[d.dataset.k] = true; });
+  var det = function (k, label, body) { return '<details data-k="' + k + '"' + (opened[k] ? ' open' : '') + '><summary>' + label + '</summary>' + body + '</details>'; };
+  var html = '<div class="kv"><div>status</div><div><span class="state s-' + i.status + '">' + esc(i.status) + '</span></div><div>where</div><div>' + esc((STAGE_OF[i.job] || '') + ' · ' + i.job + ' · ' + (PROFILE[i.job] || '')) + '</div>' +
+    '<div>round</div><div>' + i.round + ' · corrections ' + i.corrections + ' · failed launches ' + i.launches + '</div><div>workspace</div><div>' + esc(i.workspace) + '</div>' +
+    (i.base ? '<div>base</div><div>' + esc(i.base.ref + ' @ ' + i.base.commit.slice(0, 12)) + '</div>' : '') + (i.merged ? '<div>merged</div><div>' + esc(i.merged.ref + ' @ ' + i.merged.commit.slice(0, 12)) + '</div>' : '') +
+    '<div>created</div><div>' + esc(i.created) + '</div><div>updated</div><div>' + esc(i.updated) + '</div></div>';
+  if (i.hold) html += '<h4>Needs you</h4><div class="hold"><b>' + esc(i.hold.code) + '</b> ' + esc(i.hold.message) + factList(i.hold.context) + nextCmds(view.next) + '</div>';
+  else if ((view.next || []).length) html += '<h4>Next</h4>' + nextCmds(view.next);
+  if (i.exchange) html += '<h4>NQ exchange</h4>' + json(i.exchange);
+  html += '<h4>Objective</h4><pre>' + esc(i.objective) + '</pre>' + det('src', 'operator\'s source', '<pre>' + esc(i.source) + '</pre>');
+  html += '<h4>Time per stage</h4><div class="mins">' + Object.keys(m).map(function (k) { return '<div>' + esc(k) + '</div><div class="track"><div class="fill' + (k === 'operator wait' ? ' wait' : '') + '" style="width:' + (m[k] / Math.max.apply(null, Object.values(m).concat([0.0001])) * 100) + '%"></div></div><div class="n">' + mins(m[k]) + '</div>'; }).join('') + '</div>';
+  html += '<h4>Agent calls (' + calls.length + ')</h4>' + (calls.length ? '<table><tr><th>#</th><th>Call</th><th>Card</th><th class="num">Time</th><th class="num">Tokens</th><th>Outcome</th></tr>' + calls.map(function (c) {
+    return '<tr class="click" data-call="' + c.id + '"><td class="id">' + c.id + '</td><td>' + esc(c.profile) + '<div class="meta">' + esc(c.kind + ' · ' + c.job) + '</div></td><td class="meta">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + num(tok(c.tokens)) + '</td><td>' + esc(c.outcome) + (c.flags.length ? ' <span class="state s-held">' + c.flags.length + ' break</span>' : '') + '</td></tr>';
+  }).join('') + '</table>' : '<div class="empty">none yet</div>');
+  html += '<h4>Every event (' + evs.length + ')</h4><table class="log">' + evs.map(function (e) { return '<tr class="click" data-ev="' + e.seq + '"><td class="t">' + clock(e.at) + '</td><td><span class="badge ' + actorClass(e.actor) + '">' + esc(e.actor) + '</span></td><td>' + esc(e.say) + '</td></tr>'; }).join('') + '</table>';
+  html += '<h4>Deliverables</h4>' + (Object.keys(i.outputs || {}).map(function (j) { return det('out-' + j, esc(j), '<pre>' + esc(i.outputs[j]) + '</pre>'); }).join('') || '<div class="empty">none accepted yet</div>');
+  if (i.verification) html += '<h4>Verification</h4>' + i.verification.results.map(function (r) { return det('chk-' + r.id, (r.exitCode === 0 ? '✓ ' : '✕ ') + esc(r.id + ' · ' + r.run) + ' <span class="meta">exit ' + r.exitCode + ' · ' + dur(r.ms) + '</span>', '<pre>' + esc(r.output) + '</pre>'); }).join('');
+  html += '<h4>Trace</h4><div id="spans"><span class="empty">loading spans…</span></div>';
+  html += det('rec', 'full record', json(i));
+  drawer('#' + i.id + ' ' + esc(i.title), html, refresh);
+  fetch('api/spans?item=' + id).then(function (r) { return r.json(); }).then(function (spans) { var el = $('spans'); if (el) el.innerHTML = spanTree(spans); });
+}
+function spanTree(spans) {
+  if (!spans.length) return '<div class="empty">No spans for this item yet. Spans are written beside the store while Made Well runs (MW_DEBUG=0 turns them off).</div>';
+  var by = {}, roots = [], max = Math.max.apply(null, spans.map(function (s) { return s.ms; }).concat([1]));
+  spans.forEach(function (s) { by[s.span] = s; s.kids = []; });
+  spans.forEach(function (s) { if (s.parent && by[s.parent]) by[s.parent].kids.push(s); else roots.push(s); });
+  var out = '', walk = function (s, d) {
+    out += '<div class="span' + (s.outcome === 'error' ? ' err' : '') + '" title="' + esc(JSON.stringify(s.attributes)) + '"><div style="padding-left:' + (d * 14) + 'px">' + esc(s.name) + ' <span class="meta">' + clock(s.start) + (s.attributes.job ? ' · ' + esc(s.attributes.job) : '') + '</span><div class="bar2" style="width:' + Math.max(1, s.ms / max * 100) + '%"></div></div><div class="meta" style="text-align:right">' + dur(s.ms) + '</div></div>';
+    s.kids.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (k) { walk(k, d + 1); });
+  };
+  roots.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).slice(-40).forEach(function (r) { walk(r, 0); });
+  return out;
+}
+function drawCall(id) {
+  open = { type: 'call', id: id };
+  fetch('api/call/' + id).then(function (r) { return r.json(); }).then(function (c) {
+    if (!c) return;
+    var html = '<div class="kv"><div>item</div><div><a href="#" data-item="' + c.item + '">#' + c.item + '</a></div><div>card</div><div>' + esc([c.card.harness, c.card.provider, c.card.model, c.card.effort, c.card.account].filter(Boolean).join(' · ')) + '</div>' +
+      '<div>outcome</div><div>' + esc(c.outcome) + '</div><div>started</div><div>' + esc(c.started) + ' · ' + dur(c.ms) + '</div>' +
+      '<div>tokens</div><div>' + (c.tokens ? num(tok(c.tokens)) + ' <span class="meta">' + num(c.tokens.input) + ' in · ' + num(c.tokens.output) + ' out · ' + num(c.tokens.cacheRead) + ' cache read · ' + num(c.tokens.cacheWrite) + ' cache write</span>' : '<span class="meta">not reported by the harness</span>') + '</div></div>';
+    if (c.error) html += '<h4>Error</h4><pre>' + esc(c.error) + '</pre>';
+    html += '<h4>Rules</h4>' + (c.flags.length ? c.flags.map(function (f) { return '<div class="hold" style="margin-bottom:6px"><b>' + esc(f.rule) + '</b> ' + esc(RULES[f.rule] || '') + json(f.evidence) + '</div>'; }).join('') : '<div class="rule-ok">✓ no rule broken' + (c.facts ? '' : ' (no facts recorded)') + '</div>');
+    html += '<h4>Tool calls (' + c.tools.length + ')</h4>' + (c.tools.length ? '<table><tr><th>#</th><th>Tool</th><th>Input</th><th class="num">In</th><th class="num">Out</th><th class="num">ms</th></tr>' + c.tools.map(function (t) { return '<tr' + (t.error ? ' style="color:var(--red)"' : '') + '><td class="id">' + t.seq + '</td><td>' + esc(t.tool) + '</td><td class="meta" style="font-family:var(--mono)">' + esc(t.digest) + '</td><td class="num">' + num(t.inputBytes) + '</td><td class="num">' + num(t.outputBytes) + '</td><td class="num">' + (t.ms == null ? '' : num(t.ms)) + '</td></tr>'; }).join('') + '</table>' : '<div class="empty">none</div>');
+    html += '<h4>Answer</h4><pre>' + esc(c.output || '(none)') + '</pre>';
+    html += '<details><summary>Packet the agent was given (' + num((c.prompt || '').length) + ' chars)</summary><pre>' + esc(c.prompt) + '</pre></details>';
+    html += '<details><summary>Brief (system prompt)</summary><pre>' + esc(c.system) + '</pre></details>';
+    html += '<details><summary>Facts the rules were checked against</summary>' + json(c.facts) + '</details>';
+    html += '<details><summary>Raw stream (' + num((c.raw || '').length) + ' bytes)</summary><div class="stream">' + streamHtml(c.raw || '') + '</div></details>';
+    drawer(esc(c.profile) + ' · ' + esc(c.kind) + ' · ' + esc(c.job) + ' <span class="meta">call ' + c.id + '</span>', html);
+  });
+}
+function streamHtml(text) {
+  return text.split('\n').filter(function (l) { return l.trim(); }).map(function (l) {
+    var t = l.trim(); if (t[0] !== '{') return esc(t);
+    try { var v = JSON.parse(t), said = streamText(t); return '<span class="k">' + esc(v.type || v.event || v.kind || '·') + '</span> ' + (said ? esc(said) : '<span class="x">' + esc(t.length > 600 ? t.slice(0, 600) + '…' : t) + '</span>'); } catch (e) { return esc(t); }
+  }).join('\n');
+}
+function drawFlight(f) {
+  var name = f.live ? f.live.split('/').pop() : null;
+  open = { type: 'flight' };
+  var html = '<div class="kv"><div>item</div><div><a href="#" data-item="' + f.item + '">#' + f.item + '</a></div><div>who</div><div>' + esc(f.who) + '</div>' + (f.card ? '<div>card</div><div>' + esc(f.card) + '</div>' : '') + '<div>since</div><div>' + esc(f.since) + '</div><div>output</div><div>' + esc(f.live || 'none streamed') + '</div></div>' +
+    '<h4>Live output</h4><div class="stream" id="tail">' + (name ? 'waiting for output…' : 'This step streams no output.') + '</div>';
+  drawer('#' + f.item + ' ' + esc(f.what) + ' <span class="meta">running</span>', html);
+  liveTail = name ? { name: name, from: 0, text: '' } : null;
+  tail();
+}
+function tail() {
+  if (!liveTail) return;
+  var t = liveTail;
+  fetch('api/live/' + encodeURIComponent(t.name) + '?from=' + t.from).then(function (r) { return r.json(); }).then(function (d) {
+    if (liveTail !== t) return;
+    if (d.gone) { $('tail').innerHTML += '\n<span class="k">— the step ended; its record is in the item\'s calls —</span>'; liveTail = null; return; }
+    t.from = d.next; t.text = (t.text + d.text).slice(-400000);
+    var el = $('tail'), stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
+    el.innerHTML = streamHtml(t.text) || 'waiting for output…';
+    if (stick) el.scrollTop = el.scrollHeight;
+  }).catch(function () {});
+}
+function drawEvent(seq) {
+  var e = S.events.find(function (x) { return x.seq === seq; }); if (!e) return;
+  open = { type: 'event' };
+  drawer(esc(e.kind) + ' <span class="meta">event ' + e.seq + '</span>', '<div class="kv"><div>when</div><div>' + esc(e.at) + '</div><div>who</div><div><span class="badge ' + actorClass(e.actor) + '">' + esc(e.actor) + '</span></div><div>item</div><div>' + (e.item ? '<a href="#" data-item="' + e.item + '">#' + e.item + '</a>' : 'the runner') + '</div></div><h4>What happened</h4><p>' + esc(e.say) + '</p><h4>Every variable</h4>' + json(e.data) +
+    (e.kind === 'call-finished' && e.data.call ? '<p><a href="#" data-call="' + e.data.call + '">open the call: packet, answer, tools, raw stream →</a></p>' : ''));
+}
+
+// ── Wiring ──
+document.addEventListener('click', function (ev) {
+  var t = ev.target.closest('[data-item],[data-call],[data-ev],[data-pos],[data-fl]'); if (!t) return;
+  if (t.tagName === 'A') ev.preventDefault();
+  if (t.dataset.call) return drawCall(Number(t.dataset.call));
+  if (t.dataset.item) return drawItem(Number(t.dataset.item));
+  if (t.dataset.ev) return drawEvent(Number(t.dataset.ev));
+  if (t.dataset.fl) return drawFlight(flightsAt(pos)[Number(t.dataset.fl)]);
+  if (t.dataset.pos) { go(Number(t.dataset.pos)); drawEvent(S.events[Number(t.dataset.pos)].seq); }
+});
+function go(n) { if (!S) return; pos = Math.max(0, Math.min(last(), n)); follow = pos === last() && follow; render(); }
+$('back').onclick = function () { follow = false; go(pos - 1); };
+$('step').onclick = function () { follow = false; go(pos + 1); };
+$('over').onclick = function () { follow = false; stop(); go(0); };
+$('live').onclick = function () { follow = true; stop(); render(); };
+$('play').onclick = function () { if (timer) return stop(); follow = false; $('play').textContent = 'Pause'; if (pos >= last()) pos = -1; timer = setInterval(function () { if (pos >= last()) { stop(); follow = true; render(); return; } go(pos + 1); }, 700); };
+function stop() { if (timer) clearInterval(timer); timer = null; $('play').textContent = 'Play'; }
+$('bar').onclick = function (ev) { var r = this.getBoundingClientRect(); follow = false; go(Math.round((ev.clientX - r.left) / r.width * (S.events.length - 1))); };
+$('q').oninput = function () { if (S) renderLog(); };
+$('dclose').onclick = closeDrawer;
+document.addEventListener('keydown', function (ev) { if (ev.target.tagName === 'INPUT') return; if (ev.key === 'ArrowLeft') $('back').click(); if (ev.key === 'ArrowRight') $('step').click(); if (ev.key === 'Escape') closeDrawer(); if (ev.key === 'l') $('live').click(); });
+
+function header() {
+  $('path').textContent = S ? S.store : '';
+  $('runner').innerHTML = !S ? '' : S.runner ? '<span class="pill ok"><span class="dot pulse"></span>runner ' + S.runner.pid + (S.runner.item ? ' on #' + S.runner.item : '') + ' since ' + clock(S.runner.since) + '</span>' : '<span class="pill warn"><span class="dot"></span>no runner · nothing moves until <code>mw run</code></span>';
+}
+function poll() {
+  fetch('api/mark').then(function (r) { return r.json(); }).then(function (m) {
+    lastOk = Date.now();
+    if (m.store === null) { S = null; $('path').textContent = m.path; $('now').innerHTML = '<div class="empty">No store yet at ' + esc(m.path) + '. It appears with the first <code>mw discover</code> or <code>mw start</code>; this page picks it up by itself.</div>'; return; }
+    var key = JSON.stringify(m);
+    if (key === MARK) return tick();
+    MARK = key;
+    return fetch('api/state').then(function (r) { return r.json(); }).then(function (s) { S = s; header(); render(); });
+  }).catch(function () {}).then(function () {
+    var ok = Date.now() - lastOk < 4000;
+    $('conn').className = 'pill ' + (ok ? 'ok' : 'bad'); $('conn').innerHTML = '<span class="dot' + (ok ? ' pulse' : '') + '"></span>' + (ok ? 'live' : 'disconnected: is mw ui still running?');
+    tail();
+  });
+}
+function tick() {
+  document.querySelectorAll('[data-since]').forEach(function (el) { if (el.dataset.cut !== '1' && pos >= last()) el.textContent = dur(Date.now() - Date.parse(el.dataset.since)); });
+  if (S && pos >= last()) S.flights.forEach(function (f) { if (f.live) peek(f.live.split('/').pop()); });
+}
+poll(); setInterval(poll, LIVE_MS);
+</script></body></html>`;
+
+// src/ui.ts
+var actorOf = (e) => {
+  const d = e.data;
+  if (e.kind.startsWith("runner-")) return "runner";
+  if (["promoted", "retried", "dropped", "nq-corrected"].includes(e.kind)) return "operator";
+  if (e.kind === "nq-answer") return d.originator === "operator" ? "operator" : "agent";
+  if (e.kind === "ruling") return d.by === "operator" ? "operator" : "agent";
+  if (e.kind === "created") return d.discovery == null ? "operator" : "agent";
+  if (["call-started", "call-finished", "nq-question", "nq-clear", "accepted"].includes(e.kind)) return "agent";
+  return "made well";
+};
+var secs = (ms) => ms < 6e4 ? `${(ms / 1e3).toFixed(1)}s` : `${Math.floor(ms / 6e4)}m${String(Math.round(ms % 6e4 / 1e3)).padStart(2, "0")}s`;
+var short = (s, n = 160) => {
+  const t = String(s ?? "").replace(/\s+/g, " ").trim();
+  return t.length > n ? `${t.slice(0, n - 1)}\u2026` : t;
+};
+var cardOf = (c) => {
+  const card = c;
+  return card ? [card.harness, card.model, card.effort].filter(Boolean).join(" \xB7 ") : "";
+};
+var jobs = (j) => Array.isArray(j) ? j.join(" + ") : String(j ?? "");
+var sayOf = (e, title) => {
+  const d = e.data;
+  switch (e.kind) {
+    case "created":
+      return d.job === "discover" ? `Discovery run started: ${title ?? ""}` : d.discovery != null ? `Candidate found by discovery #${d.discovery}: ${title ?? ""}` : `Work item created: ${title ?? ""}`;
+    case "running":
+      return `Running ${d.job}`;
+    case "base":
+      return `Starts from ${d.ref} at ${String(d.main).slice(0, 12)}`;
+    case "handoff":
+      return `${d.from} hands ${d.job} to the ${d.to}`;
+    case "nq-question":
+      return `The ${d.receiver} asks the ${d.originator} ${d.questions?.length ?? 0} question${d.questions?.length === 1 ? "" : "s"}${d.error ? " about an error" : ""}: ${short((d.questions ?? []).join(" \xB7 "), 220)}`;
+    case "nq-answer":
+      return `The ${d.originator} answers the ${d.job} hand-off${d.answer ? `: ${short(d.answer, 200)}` : ""}`;
+    case "nq-corrected":
+      return `The operator corrects the ${d.job} hand-off: ${short(d.answer, 200)}`;
+    case "nq-clear":
+      return `The ${d.profile} is clear on ${d.job} and starts on ${cardOf(d.card)}`;
+    case "nq-replacement":
+      return `A new agent takes ${d.job}; it goes through intake again`;
+    case "call-started":
+      return `The ${d.profile} starts ${d.kind === "execute" ? "the job" : d.kind} for ${d.job} on ${cardOf(d.card)} (${d.access} access, ${d.budget?.minutes ?? "?"} min budget)`;
+    case "call-finished":
+      return `The ${d.profile}'s ${d.kind === "execute" ? d.job : `${d.kind} for ${d.job}`} call ended ${d.outcome} after ${secs(d.ms ?? 0)}${d.error ? `: ${short(d.error, 200)}` : ""}`;
+    case "accepted":
+      return `Made Well accepts the ${e.data.job ?? ""} deliverable`;
+    case "launch-failed":
+      return `The ${d.job} call failed (${cardOf(d.card)}): ${short(d.error, 220)}`;
+    case "quota-swap":
+      return `${cardOf(d.from)} hit a usage limit; the ${d.job} call moves to another card`;
+    case "waiting-quota":
+      return `Every card for ${d.job} is out of quota; waits until ${d.resetsAt}`;
+    case "handed-off":
+      return `${jobs(d.from)} \u2192 ${jobs(d.to)}`;
+    case "failure":
+      return `${d.conflict ? `The ${d.conflict} patch no longer applies` : d.results ? `${d.results.filter((r) => r.exitCode !== 0).length} of ${d.results.length} checks failed` : `${jobs(d.from)} could not finish`}; the arbiter decides whose it is`;
+    case "ruling":
+      return d.prerequisite ? `The ${d.by} rules it a pre-existing defect; fix #${d.prerequisite} goes first` : `The ${d.by} rules the cause ${d.cause}; back to ${d.to}${d.answer ? `: ${short(d.answer, 160)}` : ""}`;
+    case "prepare-started":
+      return `The project's prepare command runs for ${d.job}: ${short(d.command, 120)}`;
+    case "prepared":
+      return `Prepare for ${d.job} exited ${d.exitCode}${d.provisioned?.length ? `, provisioned ${d.provisioned.map((p) => `${p.kind} ${p.id}`).join(", ")}` : ""}`;
+    case "verify-started":
+      return `Made Well runs ${d.gates?.length ?? 0} gate${d.gates?.length === 1 ? "" : "s"} and ${d.checks?.length ?? 0} check${d.checks?.length === 1 ? "" : "s"} on the change`;
+    case "verified":
+      return `All ${d.results?.length ?? 0} gates and checks passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${d.fixed.length} files)` : ""}`;
+    case "main-moved":
+      return "The branch moved since the checks ran; they run again";
+    case "merged":
+      return `Merged onto ${d.ref} at ${String(d.main).slice(0, 12)}`;
+    case "ship-started":
+      return `The ship command runs: ${short(d.command, 120)}`;
+    case "shipped":
+      return `Shipped. ${short(String(d.output ?? "").trim().split("\n").pop(), 160)}`;
+    case "held":
+      return `Held for the operator: ${d.code}: ${short(d.message, 240)}`;
+    case "alerted":
+      return `Alert sent for ${d.code} (exit ${d.exitCode})`;
+    case "retried":
+      return `The operator retries ${d.job}`;
+    case "promoted":
+      return `The operator promotes it into delivery`;
+    case "discovered":
+      return `Discovery finished with ${d.candidates?.length ?? 0} candidates`;
+    case "dropped":
+      return `The operator drops it (was ${d.from})`;
+    case "prerequisite-shipped":
+      return `Prerequisite #${d.prerequisite} shipped; verification runs again`;
+    case "replan":
+      return `Planned again: ${d.reason}`;
+    case "torn-down":
+      return `Torn down: ${(d.records ?? []).map((r) => `${r.kind} ${r.id} (exit ${r.exitCode})`).join(", ")}`;
+    case "worktree-leftovers":
+      return `The ${d.job} call left files behind: ${(d.files ?? []).join(", ")}`;
+    case "runner-started":
+      return `Runner started (pid ${d.pid}${d.replaced ? `, replacing ${d.replaced}` : ""})`;
+    case "runner-reloaded":
+      return `Runner swapped in a new build (pid ${d.pid})`;
+    case "runner-stopped":
+      return `Runner stopped (pid ${d.pid})`;
+    case "runner-lost":
+      return `Runner ${d.pid} died while on ${d.item ? `#${d.item}` : "no item"}`;
+    case "pruned":
+      return `Pruned finished work before ${d.before}`;
+    default:
+      return `${e.kind} ${short(JSON.stringify(d), 200)}`;
+  }
+};
+var stageOf = (job) => stepOf(job).stage;
+var ENDS = {
+  "call-started": ["call-finished"],
+  "prepare-started": ["prepared"],
+  "verify-started": ["verified", "failure", "held"],
+  "ship-started": ["shipped", "held"]
+};
+var inFlight = (events2) => {
+  const open = /* @__PURE__ */ new Map();
+  for (const e of events2) {
+    const d = e.data;
+    const key = (kind) => `${e.item}:${kind}:${kind === "call-started" ? `${d.job}:${d.kind}` : kind === "prepare-started" ? d.name : ""}`;
+    if (ENDS[e.kind]) {
+      const what = e.kind === "call-started" ? `${d.kind === "execute" ? "job" : d.kind} \xB7 ${d.job}` : e.kind.replace("-started", "");
+      const who = e.kind === "call-started" ? d.profile : "made well";
+      open.set(key(e.kind), { item: e.item, what, job: d.job ?? e.kind.replace("-started", ""), who, since: e.at, seq: e.seq, ...d.live ? { live: d.live } : {}, ...d.card ? { card: cardOf(d.card) } : {} });
+    }
+    for (const [start, ends] of Object.entries(ENDS)) if (ends.includes(e.kind)) {
+      if (start === "call-started") open.delete(key(start));
+      else if (start === "prepare-started") open.delete(`${e.item}:${start}:${d.name}`);
+      else open.delete(key(start));
+    }
+    if (e.kind === "runner-started" || e.kind === "runner-reloaded" || e.kind === "runner-lost" || e.kind === "runner-stopped") {
+      if (e.kind !== "runner-reloaded") open.clear();
+    }
+  }
+  return [...open.values()];
+};
+var minutesOf = (events2, items, now2) => {
+  const per = {};
+  const where = /* @__PURE__ */ new Map();
+  const last = /* @__PURE__ */ new Map();
+  const add4 = (id2, until) => {
+    const from = last.get(id2);
+    const at = where.get(id2);
+    if (from === void 0 || at === void 0) return;
+    const m = per[id2] ??= {};
+    m[at] = (m[at] ?? 0) + Math.max(0, until - from) / 6e4;
+  };
+  for (const e of events2) {
+    if (!e.item) continue;
+    const t = Date.parse(e.at);
+    add4(e.item, t);
+    last.set(e.item, t);
+    const d = e.data;
+    const cur = where.get(e.item);
+    if (e.kind === "created") where.set(e.item, d.status === "candidate" ? "operator wait" : stageOf(d.job));
+    else if (e.kind === "held") where.set(e.item, "operator wait");
+    else if (e.kind === "waiting-quota") where.set(e.item, "quota wait");
+    else if (["shipped", "dropped", "discovered"].includes(e.kind)) where.delete(e.item);
+    else if (e.kind === "handed-off") where.set(e.item, stageOf(Array.isArray(d.to) ? d.to[0] : d.to));
+    else if (e.kind === "failure") where.set(e.item, "verification");
+    else if (e.kind === "ruling" && d.to) where.set(e.item, stageOf(d.to));
+    else if ((e.kind === "call-started" || e.kind === "running" || e.kind === "retried") && d.job) where.set(e.item, stageOf(d.job));
+    else if (e.kind === "promoted") where.set(e.item, "ideation");
+    else if (cur === void 0 && e.kind !== "alerted") where.set(e.item, stageOf(items.find((i) => i.id === e.item)?.job ?? "ideate"));
+  }
+  for (const i of items) if (!["shipped", "dropped", "discovered"].includes(i.status)) add4(i.id, now2);
+  return per;
+};
+var liveDir = (path) => join11(dirname7(path), "live");
+var liveFiles = (path) => {
+  try {
+    return readdirSync3(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => {
+      const s = statSync2(join11(liveDir(path), f));
+      return { name: f, bytes: s.size, at: new Date(s.mtimeMs).toISOString() };
+    }).sort((a, b) => b.at.localeCompare(a.at));
+  } catch {
+    return [];
+  }
+};
+var stateOf = (store, boardOf) => {
+  const now2 = Date.now();
+  const items = store.list();
+  const events2 = store.allEvents();
+  const runner2 = store.runner();
+  const titles = new Map(items.map((i) => [i.id, i.title]));
+  return {
+    at: new Date(now2).toISOString(),
+    store: store.path,
+    runner: runner2,
+    board: boardOf(store),
+    items,
+    events: events2.map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
+    calls: store.callHeads(),
+    holds: openHolds(store),
+    flights: inFlight(events2).map((f) => ({ ...f, cutOff: runner2 === null })),
+    minutes: minutesOf(events2, items, now2),
+    live: liveFiles(store.path),
+    spans: existsSync3(spansPath(store.path)) ? statSync2(spansPath(store.path)).size : 0
+  };
+};
+var readFrom = (file, from, max5 = 256 * 1024) => {
+  try {
+    const fd = openSync2(file, "r");
+    try {
+      const size7 = fstatSync(fd).size;
+      const start = from > size7 ? 0 : Math.max(from, size7 - max5);
+      const buf = Buffer.alloc(size7 - start);
+      readSync2(fd, buf, 0, buf.length, start);
+      return { text: buf.toString("utf8"), next: size7, skipped: start > from ? start - from : 0 };
+    } finally {
+      closeSync2(fd);
+    }
+  } catch {
+    return { text: "", next: 0, skipped: 0, gone: true };
+  }
+};
+var spansOf = (path, item) => {
+  const file = spansPath(path);
+  if (!existsSync3(file)) return [];
+  const lines4 = readFileSync7(file, "utf8").split("\n").filter(Boolean);
+  const all4 = lines4.flatMap((l) => {
+    try {
+      return [JSON.parse(l)];
+    } catch {
+      return [];
+    }
+  });
+  if (item === void 0) return all4.slice(-500);
+  const mine = all4.filter((s) => s.attributes.item === item);
+  const traces = new Set(mine.map((s) => s.trace));
+  const keep = new Set(mine.map((s) => s.span));
+  for (let grew = true; grew; ) {
+    grew = false;
+    for (const s of all4) if (traces.has(s.trace) && !keep.has(s.span) && all4.some((c) => keep.has(c.span) && c.parent === s.span)) keep.add(s.span), grew = true;
+  }
+  return all4.filter((s) => keep.has(s.span)).slice(-2e3);
+};
+var storeWatcher = (path) => {
+  let store;
+  return () => {
+    if (!store && existsSync3(path)) store = openStore(path);
+    return store;
+  };
+};
+var json = (res, body, code = 200) => {
+  res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+  res.end(JSON.stringify(body));
+};
+var serve = (path, boardOf, host, port) => Effect_exports.callback((resume) => {
+  const open = storeWatcher(path);
+  const server = createServer((req, res) => {
+    const url = new URL(req.url ?? "/", "http://console");
+    const store = open();
+    try {
+      if (url.pathname === "/") {
+        res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+        return res.end(CONSOLE);
+      }
+      if (!store) return json(res, { store: null, path, at: (/* @__PURE__ */ new Date()).toISOString() });
+      if (url.pathname === "/api/mark") {
+        const r = store.runner();
+        return json(res, { ...store.mark(), runner: r?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(","), spans: existsSync3(spansPath(path)) ? statSync2(spansPath(path)).size : 0 });
+      }
+      if (url.pathname === "/api/state") return json(res, stateOf(store, boardOf));
+      const call = /^\/api\/call\/(\d+)$/.exec(url.pathname);
+      if (call) return json(res, store.call(Number(call[1])) ?? null, store.call(Number(call[1])) ? 200 : 404);
+      const live = /^\/api\/live\/([\w.-]+\.log)$/.exec(url.pathname);
+      if (live) return json(res, readFrom(join11(liveDir(path), basename2(live[1])), Number(url.searchParams.get("from") ?? 0)));
+      if (url.pathname === "/api/spans") return json(res, spansOf(path, url.searchParams.has("item") ? Number(url.searchParams.get("item")) : void 0));
+      json(res, { error: "not_found", path: url.pathname }, 404);
+    } catch (e) {
+      json(res, { error: "console_failed", message: String(e) }, 500);
+    }
+  });
+  server.on("error", (e) => resume(Effect_exports.fail(new MadeWellError({
+    code: "ui_unavailable",
+    message: `The console cannot listen on ${host}:${port}: ${e.message}`,
+    context: { host, port, reason: e.message },
+    next: [{ run: `mw ui --port ${port + 1}`, why: "serve it on another port" }]
+  }))));
+  server.listen(port, host, () => {
+    const bound = server.address().port;
+    const url = `http://${host.includes(":") ? `[${host}]` : host}:${bound}/`;
+    process.stdout.write(JSON.stringify({
+      ui: url,
+      store: path,
+      next: [
+        { run: `open ${url}`, why: "watch every lane, step, call and hold live; it updates as the run moves" },
+        { run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: "from another computer, then open the same address there" },
+        { run: "mw watch", why: "the same view in a terminal" }
+      ]
+    }) + "\n");
+  });
+  return Effect_exports.sync(() => void server.close());
+});
+var ESC = "\x1B[";
+var paint = (code, s) => `${ESC}${code}m${s}${ESC}0m`;
+var dim = (s) => paint("2", s);
+var bold = (s) => paint("1", s);
+var COLOR = { held: "31", shipped: "32", running: "34", queued: "36", candidate: "33", discovered: "32", "waiting-quota": "33", "waiting-prerequisite": "33", dropped: "2" };
+var ACTOR = { operator: "35", agent: "34", "made well": "32", runner: "2" };
+var visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, "");
+var fit = (s, w) => {
+  if (visible(s).length <= w) return s;
+  let out = "";
+  let n = 0;
+  for (const part of s.split(/(\x1b\[[0-9;]*m)/)) {
+    if (part.startsWith("\x1B[")) out += part;
+    else for (const ch of part) {
+      if (n === w - 1) return `${out}\u2026${ESC}0m`;
+      out += ch;
+      n++;
+    }
+  }
+  return out;
+};
+var clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
+var lastLine = (file) => {
+  if (!file) return "";
+  const { text: text2 } = readFrom(file, 0, 16 * 1024);
+  const lines4 = text2.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (const l of lines4.reverse()) {
+    try {
+      const v = JSON.parse(l);
+      const s = JSON.stringify(v).match(/"(?:text|content|message|result|command)":"((?:[^"\\]|\\.){4,})"/)?.[1];
+      if (s) return short(s.replace(/\\n/g, " ").replace(/\\"/g, '"'), 200);
+      continue;
+    } catch {
+      return short(l, 200);
+    }
+  }
+  return "";
+};
+var STAGE_ROWS = [
+  ["DISCOVERY", (i) => i.job === "discover" && i.status !== "discovered"],
+  ["OPERATOR", (i) => i.status === "held" || i.status === "candidate"],
+  ["IDEATION", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "ideation"],
+  ["PLANNING", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "planning"],
+  ["IMPLEMENTATION", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "implementation"],
+  ["VERIFICATION", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "verification"],
+  ["DONE", (i) => i.status === "shipped" || i.status === "discovered"]
+];
+var frame = (s, cols, rows) => {
+  const out = [];
+  const now2 = Date.parse(s.at);
+  const board2 = s.board;
+  out.push(`${bold("MADE WELL")}  ${dim(s.store)}  ${s.runner ? paint("32", `\u25CF runner ${s.runner.pid}${s.runner.item ? ` on #${s.runner.item}` : ""} since ${clock(s.runner.since)}`) : paint("33", "\u25CB no runner: nothing moves until `mw run`")}  ${dim(clock(s.at))}`);
+  out.push(board2.summary ?? "");
+  out.push("");
+  out.push(bold("NOW"));
+  if (!s.flights.length) out.push(dim("  nothing running"));
+  for (const f of s.flights) {
+    const item = s.items.find((i) => i.id === f.item);
+    out.push(`  ${bold(`#${f.item}`)} ${f.what} \xB7 ${f.who}${f.card ? dim(` \xB7 ${f.card}`) : ""}  ${f.cutOff ? paint("33", `cut off ${secs(now2 - Date.parse(f.since))} ago`) : paint("34", secs(now2 - Date.parse(f.since)))}  ${dim(short(item?.title ?? "", 60))}`);
+    const line = lastLine(f.live);
+    if (line) out.push(dim(`     \u2502 ${line}`));
+  }
+  out.push("");
+  out.push(bold("WHERE THE WORK IS"));
+  for (const [name, test] of STAGE_ROWS) {
+    const here = s.items.filter(test);
+    const chips = here.map((i) => {
+      const extra = i.status === "held" ? ` ${i.hold?.code ?? ""}` : i.status === "candidate" ? " candidate" : name === "DONE" ? "" : ` ${i.job}`;
+      return paint(COLOR[i.status] ?? "0", `#${i.id}${extra}`);
+    });
+    out.push(`  ${name.padEnd(15)}${chips.length ? chips.join("  ") : dim("\u2014")}`);
+  }
+  if (s.holds.length) {
+    out.push("");
+    out.push(bold("NEEDS YOU"));
+    for (const h of s.holds) {
+      out.push(`  ${paint("31", `#${h.item} ${h.code}`)} ${short(h.message, 300)}`);
+      const item = s.items.find((i) => i.id === h.item);
+      const next = (board2.next ?? []).filter((n) => n.run.includes(` ${h.item}`) || n.run.includes(`${h.item} `)).slice(0, 2);
+      for (const n of next) out.push(`    ${paint("36", n.run)}  ${dim(n.why)}`);
+      if (!next.length && item) out.push(dim(`    mw show ${item.id}`));
+    }
+  }
+  out.push("");
+  out.push(bold("LOG"));
+  const room = Math.max(4, rows - out.length - 2);
+  for (const e of s.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : "     "}${e.say}`);
+  out.push(dim("Ctrl-C quits \xB7 mw ui opens the full console \xB7 mw show <id> for one item's record"));
+  return out.map((l) => fit(l, cols)).join("\n");
+};
+var watch = (path, boardOf, opts) => Effect_exports.callback((resume) => {
+  const open = storeWatcher(path);
+  let seq = opts.since;
+  let calls = opts.since > 0 ? open()?.mark().calls ?? 0 : 0;
+  let lastFrame = "";
+  const tick = () => {
+    const store = open();
+    if (opts.tty) {
+      const text2 = store ? frame(stateOf(store, boardOf), process.stdout.columns || 120, process.stdout.rows || 40) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.`;
+      if (text2 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text2}
+`);
+      lastFrame = text2;
+      return;
+    }
+    if (!store) return;
+    const titles = new Map(store.list().map((i) => [i.id, i.title]));
+    for (const e of store.allEvents().filter((e2) => e2.seq > seq)) {
+      process.stdout.write(JSON.stringify({ event: { ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) } }) + "\n");
+      seq = e.seq;
+    }
+    for (const c of store.callHeads().filter((c2) => c2.id > calls)) {
+      process.stdout.write(JSON.stringify({ call: c }) + "\n");
+      calls = c.id;
+    }
+  };
+  const done3 = () => resume(Effect_exports.succeed({ watched: path, next: [{ run: `mw watch --since ${seq}`, why: "carry on from here" }] }));
+  tick();
+  if (opts.once) {
+    if (opts.tty) process.stdout.write("\n");
+    done3();
+    return;
+  }
+  if (opts.tty) process.stdout.write(`${ESC}?25l`);
+  const timer = setInterval(tick, 1e3);
+  return Effect_exports.sync(() => {
+    clearInterval(timer);
+    if (opts.tty) process.stdout.write(`${ESC}?25h`);
+  });
+});
+
 // src/cli.ts
 var storePath = defaultStorePath();
 var registry = projectsPath(storePath);
@@ -24632,7 +25601,7 @@ var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve6(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync7(path, "utf8"),
+    try: () => readFileSync8(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
@@ -24667,9 +25636,9 @@ var retention = (store, before) => {
   return { ids, kept };
 };
 var sizeOf = (path) => {
-  if (!existsSync3(path)) return 0;
-  const s = statSync2(path);
-  return s.isDirectory() ? readdirSync3(path).reduce((n, f) => n + sizeOf(join10(path, f)), 0) : s.size;
+  if (!existsSync4(path)) return 0;
+  const s = statSync3(path);
+  return s.isDirectory() ? readdirSync4(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
 };
 var nextAction = Effect_exports.fn("mw.next")(function* () {
   const store = yield* Store;
@@ -24747,7 +25716,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
       const path = resolve6(input.workspace ?? ".");
-      if (!existsSync3(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      if (!existsSync4(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const projects = yield* readProjects(registry);
       if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`);
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
@@ -24772,7 +25741,7 @@ var COMMANDS = [
       return { source, workspace: yield* registered(input.workspace) };
     }),
     run: (input, { source, workspace }) => Effect_exports.gen(function* () {
-      const title = input.title ?? `Discovery of ${input["source-file"] ? basename2(input["source-file"]) : "raw input"}`;
+      const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
       const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: "discover" });
       return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
     })
@@ -24899,13 +25868,34 @@ var COMMANDS = [
     }).pipe(Effect_exports.scoped)
   }),
   command({
+    name: "ui",
+    summary: "The live console: a web page on this machine showing every lane, stage, step and agent call as it happens, every hold with its cause and next command, the event log, telemetry, rule checks and traces, and a scrubber to step back through the whole run. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.",
+    input: Schema_exports.Struct({
+      port: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: "defaults to 4747; 0 picks a free one" })),
+      host: optional3("the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network")
+    }),
+    output: Schema_exports.Struct({ ui: Schema_exports.String, store: Schema_exports.String, next: Schema_exports.Array(Next) }),
+    run: (input) => serve(storePath, board, input.host ?? "127.0.0.1", input.port ?? 4747)
+  }),
+  command({
+    name: "watch",
+    summary: "Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log). Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.",
+    input: Schema_exports.Struct({
+      since: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThanOrEqualTo(0)))).annotate({ description: "stream only events after this seq" })),
+      once: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "print what there is now, then stop" }))
+    }),
+    output: Schema_exports.Struct({ watched: Schema_exports.String, next: Schema_exports.Array(Next) }),
+    idempotent: true,
+    run: (input) => watch(storePath, board, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false })
+  }),
+  command({
     name: "replay",
     summary: "Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.",
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve6(input.out ?? resolve6(dirname6(storePath), "replay.html"));
-      writeFileSync7(out, replayHtml(snapshot3(yield* Store)));
+      const out = resolve6(input.out ?? resolve6(dirname8(storePath), "replay.html"));
+      writeFileSync8(out, replayHtml(snapshot3(yield* Store)));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
     })
   }),
@@ -24917,7 +25907,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve6(input.out ?? resolve6(dirname6(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve6(input.out ?? resolve6(dirname8(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -24930,8 +25920,8 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync3(dir) ? readdirSync3(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync7(join10(dir, f), "utf8").split("\n").filter(Boolean));
+      const files = existsSync4(dir) ? readdirSync4(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const lines4 = files.flatMap((f) => readFileSync8(join12(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
@@ -24984,13 +25974,13 @@ var COMMANDS = [
         }));
       }
       const { ids, kept } = retention(store, before);
-      const home = dirname6(storePath);
-      const files = [...ids.flatMap((id2) => [join10(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join10(home, "replay.html")] : []].filter(existsSync3);
+      const home = dirname8(storePath);
+      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync4);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
         for (const f of files) rmSync6(f, { recursive: true, force: true });
-        if (existsSync3(join10(home, "exports")) && !readdirSync3(join10(home, "exports")).length) rmSync6(join10(home, "exports"), { recursive: true });
+        if (existsSync4(join12(home, "exports")) && !readdirSync4(join12(home, "exports")).length) rmSync6(join12(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
@@ -25045,8 +26035,8 @@ var manual = Effect_exports.gen(function* () {
     errors: Object.fromEntries(Object.entries(ERRORS).map(([code, e]) => [code, { means: e.means, context: jsonSchema(e.context) }])),
     $defs,
     state: {
-      home: dirname6(registry),
-      store: existsSync3(storePath) ? storePath : null,
+      home: dirname8(registry),
+      store: existsSync4(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
       next: yield* nextAction()
@@ -25087,14 +26077,14 @@ Usage: ${usageOf(c)}`))
   return { store: true, effect: c.run(input, prepared) };
 }).pipe(
   Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync3(storePath) ? storePath : ":memory:"), workerLayer))
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync4(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
 function reloadWatch() {
   const self = fileURLToPath2(import.meta.url);
   const stamp = () => {
     try {
-      const s = statSync2(self);
+      const s = statSync3(self);
       return `${s.mtimeMs}:${s.size}:${s.ino}`;
     } catch {
       return void 0;

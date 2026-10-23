@@ -69,6 +69,7 @@ export const ERRORS = {
 	},
 	brief_unreadable: { means: 'The file named by --brief cannot be read.', context: Schema.Struct({ path: Schema.String }) },
 	export_failed: { means: 'The export folder cannot be written.', context: Schema.Struct({ id: Id, dir: Schema.String, reason: Schema.String }) },
+	ui_unavailable: { means: 'The console cannot listen on the address asked for: the port is taken or not allowed.', context: Schema.Struct({ host: Schema.String, port: Schema.Int, reason: Schema.String }) },
 	git_failed: { means: 'A git command Made Well ran in a workspace failed.', context: Schema.Struct({ dir: Schema.String, args: Schema.Array(Schema.String), exitCode: Schema.Int, stderr: Schema.String }) },
 	bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema.Struct({ name: Schema.String }) },
 	worktree_root_unclean: {

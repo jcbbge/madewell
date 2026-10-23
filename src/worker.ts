@@ -2,7 +2,7 @@
 // The built-in harness worker reads harness entries (src/harness.ts); tests use a scripted fake.
 import { execFileSync, spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context, Effect, Layer } from 'effect'
@@ -36,6 +36,8 @@ export interface WorkerRequest {
 	readonly budget?: Budget
 	/** The card's harness entry from prescriptions (harnessOf); the built-in entry when absent. */
 	readonly harness?: Harness
+	/** A file the call's output is appended to as it arrives, so it can be watched while the call runs. */
+	readonly live?: string
 }
 
 export interface UsageLimit {
@@ -95,9 +97,10 @@ const stamped = (line: string, at: number) => {
  * `tokensIn` counts tokens reported on one stdout line, for the token budget. `files` is the call's own
  * directory, removed if the runner dies mid-call (the caller removes it otherwise). `stamp` adds each
  * JSON line's arrival time as `mw_at`, so tool events get their timing even when the harness gives none.
- * `stdin`, an open file descriptor, replaces `input` as the process's stdin.
+ * `stdin`, an open file descriptor, replaces `input` as the process's stdin. `live` is a file stdout and stderr
+ * are appended to as they arrive, for watching the process while it runs; a failed write never stops it.
  */
-export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number }) =>
+export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number; live?: string }) =>
 	Effect.clockWith((clock) => Effect.callback<Exited>((resume) => {
 		const started = Date.now()
 		// The marker names the runner that owns the call, so a later runner can tell its strays from a live runner's agents.
@@ -121,6 +124,12 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			kill()
 		}
 		const timer = setTimeout(() => over('minutes'), o.budget.minutes * 60_000)
+		const tee = (chunk: string) => {
+			if (!o.live) return
+			try {
+				appendFileSync(o.live, chunk)
+			} catch {}
+		}
 		const take = (raw: string, end: string) => {
 			const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw
 			stdout += line + end
@@ -128,12 +137,13 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			if (n) tokens = (tokens ?? 0) + n
 		}
 		child.stdout!.setEncoding('utf8').on('data', (chunk: string) => {
+			tee(chunk)
 			const lines = (partial + chunk).split('\n')
 			partial = lines.pop()!
 			for (const line of lines) take(line, '\n')
 			if (o.budget.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
 		})
-		child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (stderr += chunk))
+		child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (tee(chunk), (stderr += chunk)))
 		child.stdin?.on('error', (e) => (stdinError = e.message))
 		child.on('exit', kill)
 		child.on('close', (code) => {
@@ -206,7 +216,7 @@ export const commandWorker = (command: string) =>
 					return { dir, size: input.length, fd: openSync(join(dir, 'request.json'), 'r') }
 				}),
 				({ dir, size, fd }) =>
-					runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: '', stdin: fd, files: dir, budget: request.budget ?? DEFAULT_BUDGET }).pipe(
+					runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: '', stdin: fd, files: dir, budget: request.budget ?? DEFAULT_BUDGET, ...(request.live ? { live: request.live } : {}) }).pipe(
 						Effect.map(({ code, stdout, stderr, overBudget }): WorkerResult => {
 							if (overBudget) return { ok: false, error: overBudgetError('The worker command', overBudget), overBudget, raw: stdout }
 							try {

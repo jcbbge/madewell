@@ -24,6 +24,7 @@ import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
 import { exportItem, replayHtml, snapshot } from './replay.ts'
 import { stats } from './telemetry.ts'
+import { serve, watch } from './ui.ts'
 import { Worker, commandWorker } from './worker.ts'
 
 const storePath = defaultStorePath()
@@ -474,6 +475,27 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			yield* drop(input.id)
 			return { item: view(store.get(input.id)!), next: [{ run: 'mw next', why: 'see what to do now' }] }
 		}).pipe(Effect.scoped),
+	}),
+	command({
+		name: 'ui',
+		summary: 'The live console: a web page on this machine showing every lane, stage, step and agent call as it happens, every hold with its cause and next command, the event log, telemetry, rule checks and traces, and a scrubber to step back through the whole run. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.',
+		input: Schema.Struct({
+			port: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: 'defaults to 4747; 0 picks a free one' })),
+			host: optional('the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network'),
+		}),
+		output: Schema.Struct({ ui: Schema.String, store: Schema.String, next: Schema.Array(Next) }),
+		run: (input) => serve(storePath, board, input.host ?? '127.0.0.1', input.port ?? 4747),
+	}),
+	command({
+		name: 'watch',
+		summary: 'Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log). Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.',
+		input: Schema.Struct({
+			since: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))).annotate({ description: 'stream only events after this seq' })),
+			once: Schema.optionalKey(Schema.Boolean.annotate({ description: 'print what there is now, then stop' })),
+		}),
+		output: Schema.Struct({ watched: Schema.String, next: Schema.Array(Next) }),
+		idempotent: true,
+		run: (input) => watch(storePath, board, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false }),
 	}),
 	command({
 		name: 'replay',

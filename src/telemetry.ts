@@ -257,10 +257,13 @@ export type Telemetry = NonNullable<ReturnType<typeof telemetry>>
 
 const nanosToMs = (n: bigint) => Number(n / 1_000_000n)
 
-/** Each finished Effect span, as one line: to the telemetry sink when there is one, else with MW_DEBUG=1 to `file`. Never printed. */
+/**
+ * Each finished Effect span, as one line: to the telemetry sink when there is one, else to `file` beside the store.
+ * On by default, so every step of every run can be traced; MW_DEBUG=0 turns it off. Never printed.
+ */
 export const debugLayer = (file: string, sink?: Telemetry) =>
 	Layer.unwrap(Effect.sync(() => {
-		if (!sink && process.env.MW_DEBUG !== '1') return Layer.empty
+		if (process.env.MW_DEBUG === '0' || (!sink && file.startsWith(':memory:'))) return Layer.empty
 		const write = sink ? (span: Record<string, unknown>) => sink.write('span', span) : (span: Record<string, unknown>) => {
 			mkdirSync(dirname(file), { recursive: true })
 			appendFileSync(file, JSON.stringify(span, (_, v) => (typeof v === 'bigint' ? String(v) : v)) + '\n')

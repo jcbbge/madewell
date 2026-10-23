@@ -280,7 +280,7 @@ export const harnessWorker = Layer.succeed(Worker, {
 				const cwd = request.access === 'none' ? dir : request.cwd
 				const env = agentEnv([...BASE_ENV, ...(harness.env ?? [])])
 				return Effect.zip(
-					runGroup({ command: launch.command, args: launch.args, cwd, env, input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === 'jsonl' }),
+					runGroup({ command: launch.command, args: launch.args, cwd, env, input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === 'jsonl', ...(request.live ? { live: request.live } : {}) }),
 					versionOf(launch.command, harness.version ?? ['--version'], env),
 					{ concurrent: true },
 				)
