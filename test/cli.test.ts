@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'replay', 'export', 'stats', 'eval', 'prune']
+const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'drop', 'replay', 'export', 'stats', 'eval', 'prune']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -84,6 +84,7 @@ test('an agent following next delivers a work item through commands run as writt
 	assert.equal(idle.action, 'relay')
 	assert.match(idle.then[0].run, new RegExp(`^mw discover --workspace ${t.repo} --source "<`))
 	assert.ok(existsSync(join(t.dir, 'shipped')))
+	assert.equal(t.mw('drop', String(started.out.item.id)).err.error, 'not_droppable', 'a shipped item is on main: there is nothing to drop')
 	assert.equal(t.git('show', 'main:src/export.sh'), 'echo a,b', 'Made Well brought the change onto main')
 	assert.deepEqual([t.git('status', '--porcelain', '--ignored'), readdirSync(t.repo).sort().join(' ')], ['', '.git src'], 'nothing of Made Well is left in the product repo')
 })
@@ -155,6 +156,21 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 	assert.deepEqual(t.mw('retry', String(id)).out, retried.out)
 	assert.equal(t.mw('show', String(id)).out.events.filter((e: { kind: string }) => e.kind === 'retried').length, 1)
 	assert.equal(t.mw('run').out.items[0].status, 'shipped')
+})
+
+test('an item that will never ship is dropped: it leaves the holds and next, keeps its record, and dropping twice drops once', () => {
+	const t = setup({ FAKE_ASK: 'plan' })
+	t.mw('init', '--ship', 'true')
+	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
+	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
+	const dropped = t.mw('drop', String(id))
+	assert.deepEqual([dropped.out.item.status, dropped.out.item.next], ['dropped', []])
+	assert.deepEqual(t.mw('drop', String(id)).out, dropped.out)
+	assert.deepEqual(t.mw('holds').out.holds, [])
+	assert.equal(t.mw('next').out.hold, undefined, 'next no longer relays it')
+	assert.equal(t.mw('show', String(id)).out.events.filter((e: { kind: string }) => e.kind === 'dropped').length, 1, 'its record stays')
+	assert.equal(t.mw('answer', String(id), 'CSV').err.error, 'not_held')
+	assert.equal(t.mw('drop', '99').err.error, 'item_not_found')
 })
 
 test('status shows each maker\'s track after planning, with its open NQ exchange', () => {

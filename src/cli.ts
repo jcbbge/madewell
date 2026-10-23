@@ -14,7 +14,7 @@ import { parseArgs } from 'node:util'
 import { Clock, Effect, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
 import { itemHome } from './change.ts'
-import { answer, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
+import { answer, drop, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { stepOf } from './lane.ts'
@@ -133,7 +133,7 @@ const view = (item: Item, driven = true): typeof ItemView.Type => ({
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),
 	...(item.hold ? { hold: item.hold } : {}),
 	...(item.shipped ? { shipped: item.shipped } : {}),
-	next: item.status === 'held' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped'].includes(item.status) ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
+	next: item.status === 'held' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped', 'dropped'].includes(item.status) ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
 })
 
 const holdView = (store: Store['Service'], h: OpenHold): typeof HoldView.Type => ({ ...h, next: nextFor(store.get(h.item)!) })
@@ -191,14 +191,14 @@ const runner = (store: Store['Service']) =>
 const MOVING: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quota', 'waiting-prerequisite']
 
 /**
- * What prune removes: finished work (shipped items and discovery runs) last changed before the cutoff. Every
+ * What prune removes: finished work (shipped and dropped items, and discovery runs) last changed before the cutoff. Every
  * other item is still moving or waits on the operator, and keeps what it builds on, waits on, was found by or
  * spawned; a missing one would block it for good. In a workspace with work in flight, the item merged last
  * stays too: in-flight items check the branch against its merge.
  */
 const retention = (store: Store['Service'], before: string) => {
 	const items = store.list()
-	const live = items.filter((i) => i.status !== 'shipped' && i.status !== 'discovered')
+	const live = items.filter((i) => i.status !== 'shipped' && i.status !== 'discovered' && i.status !== 'dropped')
 	const links = (i: Item) => [i.waitsOn, i.parent, i.discovery, ...(i.after ?? [])]
 	const lastMerge = new Map<string, { id: number; seq: number }>()
 	for (const i of items.filter((i) => i.merged && live.some((l) => l.workspace === i.workspace))) {
@@ -456,6 +456,20 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 	}),
 	command({
+		name: 'drop',
+		summary: 'Abandon an item that will never ship (a duplicate, a mistake, work done another way): what it provisioned is torn down, its patches and checks are removed, an open prerequisite fix goes with it, and its record stays. Dropped items leave the holds and next; prune removes them like finished work. Holds the runner claim, so it waits while `mw run` is live.',
+		args: ['id'],
+		input: Schema.Struct({ id: Id }),
+		output: Created,
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			const store = yield* Store
+			yield* Effect.acquireRelease(store.claimRunner(), () => Effect.sync(() => store.releaseRunner()))
+			yield* drop(input.id)
+			return { item: view(store.get(input.id)!), next: [{ run: 'mw next', why: 'see what to do now' }] }
+		}).pipe(Effect.scoped),
+	}),
+	command({
 		name: 'replay',
 		summary: 'Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.',
 		input: Schema.Struct({ out: optional('defaults to replay.html beside the store') }),
@@ -511,7 +525,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'prune',
-		summary: 'Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator\'s and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.',
+		summary: 'Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator\'s and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.',
 		input: Schema.Struct({
 			before: Schema.String.annotate({ description: 'an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z' }),
 			'dry-run': Schema.optionalKey(Schema.Boolean.annotate({ description: 'report what would go and change nothing' })),

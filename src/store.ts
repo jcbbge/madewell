@@ -15,7 +15,7 @@ import type { Resource, TeardownRecord } from './workspace.ts'
 import { replayHtml, snapshot } from './replay.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
-type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered'
+type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered' | 'dropped'
 
 export interface Hold {
 	readonly code: string

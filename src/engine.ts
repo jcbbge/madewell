@@ -42,7 +42,7 @@ const UNKNOWN_RESET_MS = 60 * 60_000
 const MIN_OUT_MS = 5 * 60_000
 const NQ_HOLDS = ['nq_turns', 'question_for_operator', 'authority']
 const CHECK_HOLDS = ['arbiter_undetermined', 'too_many_corrections']
-const DONE: ReadonlyArray<Item['status']> = ['held', 'shipped', 'discovered', 'candidate']
+const DONE: ReadonlyArray<Item['status']> = ['held', 'shipped', 'discovered', 'candidate', 'dropped']
 const READY: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quota', 'waiting-prerequisite']
 /** The prescribed tier intake runs on: the cheapest cards. Without it, intake uses the job's own tier. */
 const INTAKE_TIER = 'intake'
@@ -750,7 +750,7 @@ const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter
 
 /** Whether an item cannot move until the operator acts: something it waits on is held, or was never promoted. */
 export const stuck = (store: StoreService, item: Item): boolean => {
-	const blocked = (id: number) => ((p) => !p || p.status === 'held' || p.status === 'candidate' || stuck(store, p))(store.get(id))
+	const blocked = (id: number) => ((p) => !p || p.status === 'held' || p.status === 'candidate' || p.status === 'dropped' || stuck(store, p))(store.get(id))
 	return (item.waitsOn !== undefined && blocked(item.waitsOn)) || unshipped(store, item).some(blocked)
 }
 
@@ -884,6 +884,31 @@ export const retry = (id: number) =>
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
 		store.save(released(item), 'retried', { job: item.job })
+	})
+
+/**
+ * Abandons an item that will never ship: a duplicate, a mistake, work done another way. What it provisioned is torn
+ * down, its patches and checks leave Made Well's home, an open prerequisite fix goes with it, and its record stays.
+ * The caller holds the runner claim, so no call is in flight on it. Repeating it changes nothing.
+ */
+export const drop = (id: number): Effect.Effect<void, MadeWellError, Store> =>
+	Effect.gen(function* () {
+		const store = yield* Store
+		const item = store.get(id)
+		if (!item) return yield* notFound(id)
+		if (item.status === 'dropped') return
+		if (item.status === 'shipped') {
+			return yield* new MadeWellError({ code: 'not_droppable', message: `Item #${id} has shipped; its change is on main.`, context: { id, status: item.status }, next: [{ run: `mw start --objective "Revert #${id}: ${item.title}" --source "<why it should go>"`, why: 'take the change back out through the pipeline' }] })
+		}
+		if (item.waitsOn !== undefined && store.get(item.waitsOn)?.status !== 'shipped') yield* drop(item.waitsOn)
+		yield* aftercare(id)
+		const now = store.get(id)!
+		if (pending(now).length) {
+			const h = now.hold!
+			return yield* new MadeWellError({ code: 'teardown_failed', message: `Item #${id} was not dropped: ${h.message}`, context: h.context as { cwd: string; failed: unknown[]; records: unknown[] }, next: [...(h.next ?? []), { run: `mw drop ${id}`, why: 'drop it once its resources are torn down' }] })
+		}
+		removeHome(itemHome(store.path, id))
+		store.save({ ...now, status: 'dropped', hold: undefined }, 'dropped', { from: item.status })
 	})
 
 /** Runs the queue: every item that can move, up to `parallel` at once. A held item never stops the others. */

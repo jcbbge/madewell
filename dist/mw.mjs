@@ -21608,6 +21608,7 @@ var ERRORS = {
   cause_required: { means: "The item holds on a failed check; the answer must name its cause with --cause.", context: Schema_exports.Struct({ id: Id, hold: Hold }) },
   answer_required: { means: "The item waits on the operator's answer, not a retry.", context: Schema_exports.Struct({ id: Id, hold: Hold }) },
   not_discovered: { means: "The item is not a finished discovery run, so it has no candidates to promote.", context: Schema_exports.Struct({ id: Id, status: Schema_exports.String, job: Schema_exports.String }) },
+  not_droppable: { means: "The item has shipped: its change is on main, so there is nothing to abandon.", context: Schema_exports.Struct({ id: Id, status: Schema_exports.String }) },
   not_a_candidate: {
     means: "Some named items are not candidates of this discovery run.",
     context: Schema_exports.Struct({ discovery: Id, unknown: Schema_exports.Array(Id), candidates: Schema_exports.Array(Schema_exports.Struct({ id: Id, title: Schema_exports.String })) })
@@ -23290,7 +23291,7 @@ var UNKNOWN_RESET_MS = 60 * 6e4;
 var MIN_OUT_MS = 5 * 6e4;
 var NQ_HOLDS = ["nq_turns", "question_for_operator", "authority"];
 var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections"];
-var DONE = ["held", "shipped", "discovered", "candidate"];
+var DONE = ["held", "shipped", "discovered", "candidate", "dropped"];
 var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var INTAKE_TIER = "intake";
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
@@ -23873,7 +23874,7 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, car
 });
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
-  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || stuck(store, p))(store.get(id2));
+  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
   return item.waitsOn !== void 0 && blocked(item.waitsOn) || unshipped(store, item).some(blocked);
 };
 var openPrerequisite = (store, item, answer2, by) => {
@@ -23997,6 +23998,24 @@ var retry3 = (id2) => Effect_exports.gen(function* () {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   }
   store.save(released(item), "retried", { job: item.job });
+});
+var drop = (id2) => Effect_exports.gen(function* () {
+  const store = yield* Store;
+  const item = store.get(id2);
+  if (!item) return yield* notFound2(id2);
+  if (item.status === "dropped") return;
+  if (item.status === "shipped") {
+    return yield* new MadeWellError({ code: "not_droppable", message: `Item #${id2} has shipped; its change is on main.`, context: { id: id2, status: item.status }, next: [{ run: `mw start --objective "Revert #${id2}: ${item.title}" --source "<why it should go>"`, why: "take the change back out through the pipeline" }] });
+  }
+  if (item.waitsOn !== void 0 && store.get(item.waitsOn)?.status !== "shipped") yield* drop(item.waitsOn);
+  yield* aftercare(id2);
+  const now2 = store.get(id2);
+  if (pending(now2).length) {
+    const h = now2.hold;
+    return yield* new MadeWellError({ code: "teardown_failed", message: `Item #${id2} was not dropped: ${h.message}`, context: h.context, next: [...h.next ?? [], { run: `mw drop ${id2}`, why: "drop it once its resources are torn down" }] });
+  }
+  removeHome(itemHome(store.path, id2));
+  store.save({ ...now2, status: "dropped", hold: void 0 }, "dropped", { from: item.status });
 });
 var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const store = yield* Store;
@@ -24455,7 +24474,7 @@ var view = (item, driven = true) => ({
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},
   ...item.hold ? { hold: item.hold } : {},
   ...item.shipped ? { shipped: item.shipped } : {},
-  next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
+  next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "dropped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
 });
 var holdView = (store, h) => ({ ...h, next: nextFor(store.get(h.item)) });
 var board = (store) => {
@@ -24501,7 +24520,7 @@ var runner = (store) => store.claimRunner().pipe(
 var MOVING = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var retention = (store, before) => {
   const items = store.list();
-  const live = items.filter((i) => i.status !== "shipped" && i.status !== "discovered");
+  const live = items.filter((i) => i.status !== "shipped" && i.status !== "discovered" && i.status !== "dropped");
   const links = (i) => [i.waitsOn, i.parent, i.discovery, ...i.after ?? []];
   const lastMerge = /* @__PURE__ */ new Map();
   for (const i of items.filter((i2) => i2.merged && live.some((l) => l.workspace === i2.workspace))) {
@@ -24739,6 +24758,20 @@ var COMMANDS = [
     })
   }),
   command({
+    name: "drop",
+    summary: "Abandon an item that will never ship (a duplicate, a mistake, work done another way): what it provisioned is torn down, its patches and checks are removed, an open prerequisite fix goes with it, and its record stays. Dropped items leave the holds and next; prune removes them like finished work. Holds the runner claim, so it waits while `mw run` is live.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Id2 }),
+    output: Created,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const store = yield* Store;
+      yield* Effect_exports.acquireRelease(store.claimRunner(), () => Effect_exports.sync(() => store.releaseRunner()));
+      yield* drop(input.id);
+      return { item: view(store.get(input.id)), next: [{ run: "mw next", why: "see what to do now" }] };
+    }).pipe(Effect_exports.scoped)
+  }),
+  command({
     name: "replay",
     summary: "Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.",
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
@@ -24794,7 +24827,7 @@ var COMMANDS = [
   }),
   command({
     name: "prune",
-    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
+    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
     input: Schema_exports.Struct({
       before: Schema_exports.String.annotate({ description: "an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z" }),
       "dry-run": Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "report what would go and change nothing" }))

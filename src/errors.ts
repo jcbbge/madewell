@@ -33,6 +33,7 @@ export const ERRORS = {
 	cause_required: { means: 'The item holds on a failed check; the answer must name its cause with --cause.', context: Schema.Struct({ id: Id, hold: Hold }) },
 	answer_required: { means: 'The item waits on the operator\'s answer, not a retry.', context: Schema.Struct({ id: Id, hold: Hold }) },
 	not_discovered: { means: 'The item is not a finished discovery run, so it has no candidates to promote.', context: Schema.Struct({ id: Id, status: Schema.String, job: Schema.String }) },
+	not_droppable: { means: 'The item has shipped: its change is on main, so there is nothing to abandon.', context: Schema.Struct({ id: Id, status: Schema.String }) },
 	not_a_candidate: {
 		means: 'Some named items are not candidates of this discovery run.',
 		context: Schema.Struct({ discovery: Id, unknown: Schema.Array(Id), candidates: Schema.Array(Schema.Struct({ id: Id, title: Schema.String })) }),
