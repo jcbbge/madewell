@@ -6,7 +6,7 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync4, readdirSync as readdirSync4, readFileSync as readFileSync8, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync4, readdirSync as readdirSync5, readFileSync as readFileSync8, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -22448,7 +22448,7 @@ $ ${check2.run}
 
 // src/engine.ts
 import { execFile as execFile4 } from "node:child_process";
-import { mkdirSync as mkdirSync6, rmSync as rmSync5, writeFileSync as writeFileSync7 } from "node:fs";
+import { mkdirSync as mkdirSync6, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync7 } from "node:fs";
 import { dirname as dirname6, join as join10 } from "node:path";
 
 // src/project.ts
@@ -23429,6 +23429,14 @@ var liveFile = (store, name) => {
   }
 };
 var endLive = (file) => file && rmSync5(file, { force: true });
+var endLiveOf = (store, id2) => {
+  if (store.path === ":memory:") return;
+  const dir = join10(dirname6(store.path), "live");
+  try {
+    for (const f of readdirSync3(dir)) if (f.startsWith(`item-${id2}-`)) rmSync5(join10(dir, f), { force: true });
+  } catch {
+  }
+};
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
 var profileOf = (o) => o.kind === "job" ? stepOf(o.job).profile : o.kind;
 var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
@@ -24243,6 +24251,7 @@ var drop = (id2) => Effect_exports.gen(function* () {
     return yield* new MadeWellError({ code: "teardown_failed", message: `Item #${id2} was not dropped: ${h.message}`, context: h.context, next: [...h.next ?? [], { run: `mw drop ${id2}`, why: "drop it once its resources are torn down" }] });
   }
   removeHome(itemHome(store.path, id2));
+  endLiveOf(store, id2);
   store.save({ ...now2, status: "dropped", hold: void 0 }, "dropped", { from: item.status });
 });
 var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
@@ -24594,7 +24603,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
 }, Effect_exports.scoped);
 
 // src/ui.ts
-import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync3, readFileSync as readFileSync7, readSync as readSync2, statSync as statSync2 } from "node:fs";
+import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync7, readSync as readSync2, statSync as statSync2 } from "node:fs";
 import { createServer } from "node:http";
 import { basename as basename2, dirname as dirname7, join as join11 } from "node:path";
 
@@ -25270,7 +25279,7 @@ var minutesOf = (events2, items, now2) => {
 var liveDir = (path) => join11(dirname7(path), "live");
 var liveFiles = (path) => {
   try {
-    return readdirSync3(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => {
+    return readdirSync4(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => {
       const s = statSync2(join11(liveDir(path), f));
       return { name: f, bytes: s.size, at: new Date(s.mtimeMs).toISOString() };
     }).sort((a, b) => b.at.localeCompare(a.at));
@@ -25718,7 +25727,7 @@ var retention = (store, before) => {
 var sizeOf = (path) => {
   if (!existsSync4(path)) return 0;
   const s = statSync3(path);
-  return s.isDirectory() ? readdirSync4(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
+  return s.isDirectory() ? readdirSync5(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
 };
 var nextAction = Effect_exports.fn("mw.next")(function* () {
   const store = yield* Store;
@@ -26000,7 +26009,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync4(dir) ? readdirSync4(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const files = existsSync4(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
       const lines4 = files.flatMap((f) => readFileSync8(join12(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
@@ -26060,7 +26069,7 @@ var COMMANDS = [
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
         for (const f of files) rmSync6(f, { recursive: true, force: true });
-        if (existsSync4(join12(home, "exports")) && !readdirSync4(join12(home, "exports")).length) rmSync6(join12(home, "exports"), { recursive: true });
+        if (existsSync4(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync6(join12(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;

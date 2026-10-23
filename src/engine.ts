@@ -21,7 +21,7 @@
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { execFile } from 'node:child_process'
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
@@ -77,6 +77,14 @@ const liveFile = (store: StoreService, name: string) => {
 	}
 }
 const endLive = (file: string | undefined) => file && rmSync(file, { force: true })
+/** The live files an item's cut-off steps left behind, removed once the item will never run again. */
+const endLiveOf = (store: StoreService, id: number) => {
+	if (store.path === ':memory:') return
+	const dir = join(dirname(store.path), 'live')
+	try {
+		for (const f of readdirSync(dir)) if (f.startsWith(`item-${id}-`)) rmSync(join(dir, f), { force: true })
+	} catch {}
+}
 
 const notFound = (id: number) =>
 	new MadeWellError({ code: 'item_not_found', message: `There is no work item #${id}.`, context: { id }, next: [{ run: 'mw status', why: 'list every work item and its state' }] })
@@ -1037,6 +1045,7 @@ export const drop = (id: number): Effect.Effect<void, MadeWellError, Store> =>
 			return yield* new MadeWellError({ code: 'teardown_failed', message: `Item #${id} was not dropped: ${h.message}`, context: h.context as { cwd: string; failed: unknown[]; records: unknown[] }, next: [...(h.next ?? []), { run: `mw drop ${id}`, why: 'drop it once its resources are torn down' }] })
 		}
 		removeHome(itemHome(store.path, id))
+		endLiveOf(store, id)
 		store.save({ ...now, status: 'dropped', hold: undefined }, 'dropped', { from: item.status })
 	})
 

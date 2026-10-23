@@ -163,8 +163,12 @@ test('an item that will never ship is dropped: it leaves the holds and next, kee
 	t.mw('init', '--ship', 'true')
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
+	// A call cut off mid-run leaves its live output behind; another item's stays.
+	mkdirSync(join(t.home, 'live'), { recursive: true })
+	for (const f of [`item-${id}-plan-execute.log`, `item-${id + 1}-plan-execute.log`]) writeFileSync(join(t.home, 'live', f), 'partial output')
 	const dropped = t.mw('drop', String(id))
 	assert.deepEqual([dropped.out.item.status, dropped.out.item.next], ['dropped', []])
+	assert.deepEqual(readdirSync(join(t.home, 'live')), [`item-${id + 1}-plan-execute.log`], 'the dropped item\'s live output goes with it')
 	assert.deepEqual(t.mw('drop', String(id)).out, dropped.out)
 	assert.deepEqual(t.mw('holds').out.holds, [])
 	assert.equal(t.mw('next').out.hold, undefined, 'next no longer relays it')
