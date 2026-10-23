@@ -667,6 +667,40 @@ test('the project\'s gates run on the change\'s own files before the checks: a f
 	}
 })
 
+test('the project\'s prepare command stocks every worktree an agent or the checks work in, before the job; what it provisions is torn down once; a failing prepare holds before the job runs', async () => {
+	let seen = ''
+	const t = setup((req) => {
+		if (req.item === 1 && req.kind === 'execute' && req.job === 'implement') return (seen = readFileSync(join(req.cwd, '.env.local'), 'utf8'), implement(req))
+		if (req.item === 1 && req.kind === 'execute' && req.job === 'test-plan') return checks(req, `grep -q 'db=item-1-verify' .env.local && ${CHECK}`)
+		return undefined
+	})
+	try {
+		writeFileSync(join(t.repo, '.gitignore'), '.env.local\n')
+		git(t.repo, 'add', '.')
+		git(t.repo, 'commit', '-qm', 'ignore env')
+		const [prepared, torn] = [join(t.tmp, 'prepared.log'), join(t.tmp, 'torn.log')]
+		const project = (prepare: string) => writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo, ship: `echo "$MW_ITEM $MW_COMMIT" >> ${t.tmp}/shipped.log`, prepare }]))
+		project(`echo "$MW_NAME $MW_JOB" >> ${prepared}; echo "db=$MW_NAME" > .env.local; printf '{"provisioned": [{"kind": "database-branch", "id": "%s", "teardown": "echo %s >> ${torn}"}]}\\n' "$MW_NAME" "$MW_NAME"`)
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		assert.equal(seen, 'db=item-1-implement-execute\n', 'the implementer\'s worktree was stocked for it alone')
+		const names = readFileSync(prepared, 'utf8').trim().split('\n')
+		assert.ok(names.includes('item-1-verify verify'), 'the checks ran in a prepared worktree')
+		assert.ok(!names.some((n) => n.includes('intake')), 'intake never sees a worktree, so it gets nothing prepared')
+		assert.deepEqual(readFileSync(torn, 'utf8').trim().split('\n').sort(), [...new Set(names.map((n) => n.split(' ')[0]))].sort(), 'everything prepare stood up came down, each once')
+		assertNoTrace(t)
+
+		project('echo "no database login" >&2; exit 3')
+		const second = t.create('Second')
+		const held = await t.run(drive(second.id, config))
+		assert.deepEqual([held.hold?.code, held.hold?.context.job, held.hold?.context.exitCode], ['prepare_failed', 'ideate', 3])
+		assert.match(String(held.hold?.context.stderr), /no database login/)
+		assert.deepEqual(t.calls.filter((c) => c.item === second.id).map((c) => c.kind), ['intake'], 'no job runs in an unprepared worktree')
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('a passing item without a ship command holds before main moves, and ships once one is registered', async () => {
 	const t = setup()
 	try {

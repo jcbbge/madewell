@@ -15,25 +15,26 @@
 //
 // Every call runs in its own worktree of the product repo, removed when the call ends. Read calls are proved
 // read-only; after a making call the branch must not have moved, and the change must stay in the plan's scope;
-// no call may leave files in the product repo; whatever a job provisioned is torn down once (ruling 13).
+// no call may leave files in the product repo; whatever a job provisioned is torn down once (ruling 13). The
+// project's prepare command stocks each worktree before anything runs in it, and what it provisions comes down too.
 //
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { execFile } from 'node:child_process'
 import { mkdirSync, rmSync } from 'node:fs'
-import { Clock, Effect, Queue, Result, Semaphore } from 'effect'
+import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
 import { NEUTRAL_HOST } from './harness.ts'
 import { projectFor, projectsPath, readProjects } from './project.ts'
 import {
-	DELIVERABLES, INTAKE, MAKERS, ORIGINATOR, RECEIVES, blockedOf, decode, isMaker, lastJson, requiredOf, route, shapeOf, stepOf, validate,
+	DELIVERABLES, INTAKE, MAKERS, ORIGINATOR, RECEIVES, Resource, blockedOf, decode, isMaker, lastJson, requiredOf, route, shapeOf, stepOf, validate,
 	type Cause, type Check, type Job, type Maker, type Plan,
 } from './lane.ts'
 import { Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { capture, changes, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, type Changes, type State, type TeardownRecord } from './workspace.ts'
-import { killOrphans, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
+import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
 
 const MAX_LAUNCHES = 3
 const MAX_TURNS = 3
@@ -309,6 +310,8 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const item = store.get(id)!
 		const p = config.prescriptions
 		const wt = yield* worktree(item.workspace, spec.at ?? item.base!.commit, `item-${id}-${job}-${spec.kind}`)
+		// A call with no access never sees its worktree, so it gets nothing prepared.
+		if (spec.access !== 'none' && !(yield* prepareWorktree(id, job, wt.path, `item-${id}-${job}-${spec.kind}`, wt.base))) return undefined
 		if (spec.prepare) yield* spec.prepare(wt.path)
 		const prompt = yield* spec.packet(wt.path)
 		const budget = budgetFor(p, job)
@@ -509,6 +512,34 @@ const candidate = (item: Item, dir: string) =>
 		yield* Effect.ignore(applyPatch(dir, patchPath(home, 'checks')))
 	})
 
+// ── Prepare: the project makes each fresh worktree usable ──────────────────────────────────────────────
+
+const PREPARE_BUDGET = { minutes: 10 }
+const Prepared = Schema.Struct({ provisioned: Schema.Array(Resource) })
+
+/**
+ * Ruling 13's first half. A git worktree has none of the repo's ignored files (dependencies, env, a database), so the
+ * project's prepare command stocks each fresh one before anything runs in it, and before its baseline is taken, so
+ * its files are never leftovers. What it reports as provisioned is saved on the item before the job starts and torn
+ * down like an agent's. False when it failed: the item holds, and no job runs.
+ */
+const prepareWorktree = Effect.fn('mw.prepare')(function* (id: number, job: Job, dir: string, name: string, base: string) {
+	const store = yield* Store
+	const item = store.get(id)!
+	const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
+	if (!project?.prepare) return true
+	const env = { ...process.env, MW_ITEM: String(id), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base }
+	const r = yield* runGroup({ command: 'sh', args: ['-c', project.prepare], cwd: dir, env, input: '', budget: PREPARE_BUDGET })
+	const reported = Schema.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {})
+	const resources = Result.isSuccess(reported) ? reported.success.provisioned : []
+	const now = store.get(id)!
+	const saved = store.save({ ...now, provisioned: [...(now.provisioned ?? []), ...resources.map((x) => ({ kind: x.kind, id: x.id, teardown: x.teardown, job }))] }, 'prepared', { job, name, exitCode: r.code, provisioned: resources.map((x) => ({ kind: x.kind, id: x.id })) })
+	if (r.code === 0 && !r.overBudget) return true
+	const why = r.overBudget ? `ran past its ${PREPARE_BUDGET.minutes} minutes` : `exited ${r.code}`
+	hold(store, saved, 'prepare_failed', `The project's prepare command ${why} in ${name}, so the ${job} job did not run.`, { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4000), stderr: r.stderr.slice(-4000) })
+	return false
+})
+
 // ── Guards and aftercare ───────────────────────────────────────────────────────────────────────────────
 
 // One runner drives the store, so an in-process lock per product repo orders every move of its branch
@@ -604,6 +635,7 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	const env = { ...process.env, MW_ITEM: String(id) }
 	const run = yield* Effect.scoped(Effect.gen(function* () {
 		const wt = yield* worktree(item.workspace, item.base!.ref, `item-${id}-verify`)
+		if (!(yield* prepareWorktree(id, 'verify', wt.path, `item-${id}-verify`, wt.base))) return { kind: 'held' } as const
 		const change = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'change')))
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
 		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
@@ -613,6 +645,10 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
 		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...(yield* runChecks(wt.path, checks, budget, env))] } as const
 	}))
+	if (run.kind === 'held') return
+	// What prepare stood up for the check run comes down now: a pass merges and ships in this same step.
+	yield* aftercare(id, 'verify')
+	if (store.get(id)!.status === 'held') return
 	const now = store.get(id)!
 	if (run.kind === 'conflict') {
 		const what = run.by === 'implement' ? 'The implementer\'s change' : 'The test architect\'s check files'

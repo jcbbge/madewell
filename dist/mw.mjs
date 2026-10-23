@@ -23223,6 +23223,7 @@ var Project = Schema_exports.Struct({
   path: Schema_exports.String.annotate({ description: "the project's absolute workspace path" }),
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" })),
+  prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
@@ -23234,7 +23235,7 @@ var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?, gates?: [{run, glob?}]}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, gates?: [{run, glob?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
@@ -23475,6 +23476,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const item = store.get(id2);
   const p = config.prescriptions;
   const wt = yield* worktree(item.workspace, spec.at ?? item.base.commit, `item-${id2}-${job}-${spec.kind}`);
+  if (spec.access !== "none" && !(yield* prepareWorktree(id2, job, wt.path, `item-${id2}-${job}-${spec.kind}`, wt.base))) return void 0;
   if (spec.prepare) yield* spec.prepare(wt.path);
   const prompt = yield* spec.packet(wt.path);
   const budget = budgetFor(p, job);
@@ -23676,6 +23678,24 @@ var candidate = (item, dir) => Effect_exports.gen(function* () {
   yield* Effect_exports.ignore(Effect_exports.andThen(applyPatch(dir, patchPath(home, "change")), commit(dir, item.title)));
   yield* Effect_exports.ignore(applyPatch(dir, patchPath(home, "checks")));
 });
+var PREPARE_BUDGET = { minutes: 10 };
+var Prepared = Schema_exports.Struct({ provisioned: Schema_exports.Array(Resource) });
+var prepareWorktree = Effect_exports.fn("mw.prepare")(function* (id2, job, dir, name, base) {
+  const store = yield* Store;
+  const item = store.get(id2);
+  const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+  if (!project?.prepare) return true;
+  const env = { ...process.env, MW_ITEM: String(id2), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base };
+  const r = yield* runGroup({ command: "sh", args: ["-c", project.prepare], cwd: dir, env, input: "", budget: PREPARE_BUDGET });
+  const reported = Schema_exports.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {});
+  const resources = Result_exports.isSuccess(reported) ? reported.success.provisioned : [];
+  const now2 = store.get(id2);
+  const saved = store.save({ ...now2, provisioned: [...now2.provisioned ?? [], ...resources.map((x) => ({ kind: x.kind, id: x.id, teardown: x.teardown, job }))] }, "prepared", { job, name, exitCode: r.code, provisioned: resources.map((x) => ({ kind: x.kind, id: x.id })) });
+  if (r.code === 0 && !r.overBudget) return true;
+  const why = r.overBudget ? `ran past its ${PREPARE_BUDGET.minutes} minutes` : `exited ${r.code}`;
+  hold(store, saved, "prepare_failed", `The project's prepare command ${why} in ${name}, so the ${job} job did not run.`, { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4e3), stderr: r.stderr.slice(-4e3) });
+  return false;
+});
 var locks = /* @__PURE__ */ new Map();
 var withLock = (repo, effect2) => {
   let lock = locks.get(repo);
@@ -23749,6 +23769,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const env = { ...process.env, MW_ITEM: String(id2) };
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
+    if (!(yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base))) return { kind: "held" };
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
     const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env);
@@ -23757,6 +23778,9 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
     return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env)] };
   }));
+  if (run2.kind === "held") return;
+  yield* aftercare(id2, "verify");
+  if (store.get(id2).status === "held") return;
   const now2 = store.get(id2);
   if (run2.kind === "conflict") {
     const what = run2.by === "implement" ? "The implementer's change" : "The test architect's check files";
@@ -24567,6 +24591,7 @@ var COMMANDS = [
       workspace: Workspace,
       ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time."),
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
+      prepare: optional3("shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output"),
       gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
     output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
@@ -24580,7 +24605,7 @@ var COMMANDS = [
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
-      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...gates ? { gates } : {} });
+      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {} });
       const updated = yield* readProjects(registry);
       const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
       for (const h of waiting) yield* retry3(h.item);
