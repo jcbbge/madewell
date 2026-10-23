@@ -51,6 +51,8 @@ interface EngineConfig {
 	readonly prescriptions: Prescriptions
 	/** How long an idle `mw run --watch` waits before looking at the queue again. */
 	readonly pollMs?: number
+	/** True once the runner should hand over to a new build: it starts no new work and returns when in-flight work settles. */
+	readonly reloading?: () => boolean
 }
 
 type Services = Store | Worker
@@ -961,18 +963,23 @@ export const drop = (id: number): Effect.Effect<void, MadeWellError, Store> =>
 	})
 
 /** Runs the queue: every item that can move, up to `parallel` at once. A held item never stops the others. */
-export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}) =>
+/**
+ * Drives every item that can move. With `config.reloading`, once it turns true no new item starts, and the queue
+ * returns `reload: true` as soon as the items in flight have each settled, keeping the runner claim for the next build.
+ */
+export const runQueue = (config: EngineConfig, options: { watch?: boolean; keepClaim?: () => boolean } = {}) =>
 	Effect.gen(function* () {
 		const store = yield* Store
 		yield* store.claimRunner()
-		yield* Effect.addFinalizer(() => Effect.sync(() => store.releaseRunner()))
+		yield* Effect.addFinalizer(() => Effect.sync(() => (options.keepClaim?.() ? undefined : store.releaseRunner())))
 		yield* Effect.sync(killOrphans)
 		const finished = yield* Queue.unbounded<Item>()
 		const running = new Set<number>()
 		const results: Item[] = []
 		const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL
 		for (;;) {
-			for (const i of store.list()) {
+			const reloading = config.reloading?.() ?? false
+			for (const i of reloading ? [] : store.list()) {
 				if (running.size >= parallel) break
 				if (i.parent !== undefined || !READY.includes(i.status) || running.has(i.id) || stuck(store, i) || unshipped(store, i).length) continue
 				running.add(i.id)
@@ -983,11 +990,12 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean } = {}
 			}
 			if (!running.size) {
 				store.runnerOn(null)
-				if (!options.watch) return results
+				if (reloading) return { items: results, reload: true }
+				if (!options.watch) return { items: results, reload: false }
 				yield* Effect.sleep(config.pollMs ?? 2000)
 				continue
 			}
-			const done = options.watch ? yield* Effect.raceFirst(Queue.take(finished), Effect.as(Effect.sleep(config.pollMs ?? 2000), undefined)) : yield* Queue.take(finished)
+			const done = options.watch || config.reloading ? yield* Effect.raceFirst(Queue.take(finished), Effect.as(Effect.sleep(config.pollMs ?? 2000), undefined)) : yield* Queue.take(finished)
 			if (done) {
 				running.delete(done.id)
 				results.push(done)

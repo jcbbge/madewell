@@ -7,9 +7,10 @@
 //
 // Reading never creates anything: a command opens the store only if it exists, except `start` and
 // `discover`, which create it once their input is known to be good.
-import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { constants as osConstants } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Fiber, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
@@ -377,7 +378,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'run',
-		summary: 'Deliver every item that can move, oldest first, and alert each new hold once. Returns once every item has shipped or holds; --watch keeps waiting for new work.',
+		summary: 'Deliver every item that can move, oldest first, and alert each new hold once. Returns once every item has shipped or holds; --watch keeps waiting for new work. When Made Well is reinstalled or SIGHUP arrives, the runner finishes the steps in flight, starts nothing new, and replaces itself with the new build in the same process: it keeps the runner claim and carries on.',
 		input: Schema.Struct({ watch: Schema.optionalKey(Schema.Boolean.annotate({ description: 'keep running and pick up new work as it arrives' })) }),
 		output: Board,
 		idempotent: true,
@@ -385,10 +386,13 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const prescriptions = yield* loadPrescriptions(prescriptionsPath())
 			// The first sweep waits until runQueue holds the runner claim, so only the runner ever alerts.
 			const sweep = yield* Effect.forkScoped(Effect.forever(Effect.andThen(Effect.sleep('2 seconds'), alertHolds(registry))))
-			yield* runQueue({ prescriptions }, { watch: input.watch })
+			const reload = reloadWatch()
+			const done = yield* runQueue({ prescriptions, reloading: reload.wanted }, { watch: input.watch, keepClaim: reload.wanted }).pipe(Effect.ensuring(Effect.sync(reload.stop)))
 			// The last sweep runs alone: one still sending an alert would send it again.
 			yield* Fiber.interrupt(sweep)
 			yield* alertHolds(registry)
+			// Every step in flight is saved: the new build takes this process, its pid and the runner claim, and redrives.
+			if (done.reload) reload.exec()
 			return board(yield* Store)
 		}).pipe(Effect.scoped),
 	}),
@@ -663,6 +667,39 @@ const program = Effect.gen(function* () {
 		Effect.provide(Layer.mergeAll(storeLayer(store || existsSync(storePath) ? storePath : ':memory:'), workerLayer)),
 	)),
 )
+
+/**
+ * Hot reload for `mw run`. The installed build is this file: when it changes on disk (npm reinstalled Made Well),
+ * or the runner gets SIGHUP, the runner stops starting work and, once the steps in flight are saved, execs the
+ * build now on disk with the same arguments in the same process. Every step is saved before the next one, so the
+ * new build redrives the queue from the store exactly as a restart would, with nothing stopped and no claim lost.
+ */
+function reloadWatch() {
+	const self = fileURLToPath(import.meta.url)
+	const stamp = () => {
+		try {
+			const s = statSync(self)
+			return `${s.mtimeMs}:${s.size}:${s.ino}`
+		} catch {
+			return undefined
+		}
+	}
+	const was = stamp()
+	let wanted = false
+	const want = () => void (wanted = true)
+	process.on('SIGHUP', want)
+	// npm replaces the file (a new inode) or rewrites it: either changes the stamp. A missing file mid-install waits.
+	const timer = setInterval(() => {
+		const now = stamp()
+		if (now && now !== was) wanted = true
+	}, 1000)
+	timer.unref()
+	return {
+		wanted: () => wanted,
+		stop: () => (clearInterval(timer), process.off('SIGHUP', want)),
+		exec: () => process.execve!(process.execPath, [process.execPath, ...process.execArgv, realpathSync(process.argv[1]!), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? '' }),
+	}
+}
 
 // SIGINT and SIGTERM interrupt the work, so its finalizers kill agent process groups and release the runner.
 const signalled = Effect.callback<{ out: unknown; code: number }>((resume) => {

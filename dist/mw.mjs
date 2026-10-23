@@ -6,9 +6,10 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, realpathSync, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename2, dirname as dirname6, join as join10, resolve as resolve6 } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
 // node_modules/effect/dist/Pipeable.js
@@ -23229,7 +23230,7 @@ function openStore(path) {
           if (row && row.pid !== process.pid && alive2(row.pid)) return row;
           if (row && row.pid !== process.pid) event(row.item ?? 0, "runner-lost", { pid: row.pid, since: row.since, item: row.item });
           db.prepare("INSERT INTO runner (id, pid, since) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET pid = excluded.pid, since = excluded.since, item = NULL").run(process.pid, (/* @__PURE__ */ new Date()).toISOString());
-          event(0, "runner-started", { pid: process.pid, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
+          event(0, row?.pid === process.pid ? "runner-reloaded" : "runner-started", { pid: process.pid, ...process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
           return void 0;
         });
         if (!owner) return Effect_exports.sync(view2);
@@ -24139,14 +24140,15 @@ var drop = (id2) => Effect_exports.gen(function* () {
 var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const store = yield* Store;
   yield* store.claimRunner();
-  yield* Effect_exports.addFinalizer(() => Effect_exports.sync(() => store.releaseRunner()));
+  yield* Effect_exports.addFinalizer(() => Effect_exports.sync(() => options.keepClaim?.() ? void 0 : store.releaseRunner()));
   yield* Effect_exports.sync(killOrphans);
   const finished = yield* Queue_exports.unbounded();
   const running = /* @__PURE__ */ new Set();
   const results2 = [];
   const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL;
   for (; ; ) {
-    for (const i of store.list()) {
+    const reloading = config.reloading?.() ?? false;
+    for (const i of reloading ? [] : store.list()) {
       if (running.size >= parallel) break;
       if (i.parent !== void 0 || !READY.includes(i.status) || running.has(i.id) || stuck(store, i) || unshipped(store, i).length) continue;
       running.add(i.id);
@@ -24157,11 +24159,12 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
     }
     if (!running.size) {
       store.runnerOn(null);
-      if (!options.watch) return results2;
+      if (reloading) return { items: results2, reload: true };
+      if (!options.watch) return { items: results2, reload: false };
       yield* Effect_exports.sleep(config.pollMs ?? 2e3);
       continue;
     }
-    const done3 = options.watch ? yield* Effect_exports.raceFirst(Queue_exports.take(finished), Effect_exports.as(Effect_exports.sleep(config.pollMs ?? 2e3), void 0)) : yield* Queue_exports.take(finished);
+    const done3 = options.watch || config.reloading ? yield* Effect_exports.raceFirst(Queue_exports.take(finished), Effect_exports.as(Effect_exports.sleep(config.pollMs ?? 2e3), void 0)) : yield* Queue_exports.take(finished);
     if (done3) {
       running.delete(done3.id);
       results2.push(done3);
@@ -24801,16 +24804,18 @@ var COMMANDS = [
   }),
   command({
     name: "run",
-    summary: "Deliver every item that can move, oldest first, and alert each new hold once. Returns once every item has shipped or holds; --watch keeps waiting for new work.",
+    summary: "Deliver every item that can move, oldest first, and alert each new hold once. Returns once every item has shipped or holds; --watch keeps waiting for new work. When Made Well is reinstalled or SIGHUP arrives, the runner finishes the steps in flight, starts nothing new, and replaces itself with the new build in the same process: it keeps the runner claim and carries on.",
     input: Schema_exports.Struct({ watch: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "keep running and pick up new work as it arrives" })) }),
     output: Board,
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const prescriptions = yield* loadPrescriptions(prescriptionsPath());
       const sweep = yield* Effect_exports.forkScoped(Effect_exports.forever(Effect_exports.andThen(Effect_exports.sleep("2 seconds"), alertHolds(registry))));
-      yield* runQueue({ prescriptions }, { watch: input.watch });
+      const reload = reloadWatch();
+      const done3 = yield* runQueue({ prescriptions, reloading: reload.wanted }, { watch: input.watch, keepClaim: reload.wanted }).pipe(Effect_exports.ensuring(Effect_exports.sync(reload.stop)));
       yield* Fiber_exports.interrupt(sweep);
       yield* alertHolds(registry);
+      if (done3.reload) reload.exec();
       return board(yield* Store);
     }).pipe(Effect_exports.scoped)
   }),
@@ -25085,6 +25090,31 @@ Usage: ${usageOf(c)}`))
     Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync3(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
+function reloadWatch() {
+  const self = fileURLToPath2(import.meta.url);
+  const stamp = () => {
+    try {
+      const s = statSync2(self);
+      return `${s.mtimeMs}:${s.size}:${s.ino}`;
+    } catch {
+      return void 0;
+    }
+  };
+  const was = stamp();
+  let wanted = false;
+  const want = () => void (wanted = true);
+  process.on("SIGHUP", want);
+  const timer = setInterval(() => {
+    const now2 = stamp();
+    if (now2 && now2 !== was) wanted = true;
+  }, 1e3);
+  timer.unref();
+  return {
+    wanted: () => wanted,
+    stop: () => (clearInterval(timer), process.off("SIGHUP", want)),
+    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
+  };
+}
 var signalled = Effect_exports.callback((resume) => {
   const on = (signal) => resume(Effect_exports.succeed({ out: { interrupted: signal, next: [{ run: "mw next", why: "the interrupted work resumes where it stopped" }] }, code: 128 + osConstants.signals[signal] }));
   process.once("SIGINT", on).once("SIGTERM", on);

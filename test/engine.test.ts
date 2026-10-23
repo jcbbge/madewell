@@ -481,7 +481,7 @@ test('mw run drives no more items at once than the prescriptions allow', async (
 	})
 	try {
 		t.create('Second')
-		const items = await t.run(runQueue({ prescriptions: { ...prescriptions, parallel: 1 } }))
+		const { items } = await t.run(runQueue({ prescriptions: { ...prescriptions, parallel: 1 } }))
 		assert.deepEqual(items.map((i) => [i.id, i.status]), [[1, 'shipped'], [2, 'shipped']])
 		const order = t.calls.map((c) => c.item)
 		assert.deepEqual(order, [...order].sort(), 'item 2 makes no call until item 1 is done')

@@ -256,6 +256,49 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.equal(calls.filter((l) => l === 'intake implement implementer').length, 1)
 })
 
+test('a running runner reloads a new build in place: it finishes the step in flight, keeps its pid and claim, and carries on', async () => {
+	const t = setup()
+	// The runner runs a copy of the build that the test can rewrite, as npm does on a reinstall.
+	const build = join(t.dir, 'pkg', 'dist')
+	mkdirSync(build, { recursive: true })
+	writeFileSync(join(t.dir, 'pkg', 'prescriptions.json'), readFileSync(join(import.meta.dirname, '../prescriptions.json')))
+	const entry = join(build, 'mw.mjs')
+	const bundle = join(import.meta.dirname, '../dist/mw.mjs')
+	writeFileSync(entry, readFileSync(bundle))
+	const gate = join(t.dir, 'gate')
+	writeFileSync(gate, '')
+	t.env.FAKE_PAUSE = `plan:${gate}`
+	t.mw('init', '--ship', 'true')
+	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+
+	const runner = spawn(process.execPath, [entry, 'run'], { env: t.env, cwd: t.repo, stdio: ['ignore', 'pipe', 'pipe'] })
+	let [out, err] = ['', '']
+	runner.stdout!.on('data', (d) => (out += d))
+	runner.stderr!.on('data', (d) => (err += d))
+	const exited = new Promise((r) => runner.once('exit', r))
+	for (let i = 0; !existsSync(`${gate}.started`); i++) {
+		assert.ok(i < 500 && runner.exitCode === null, `the planner's call never started: ${err}`)
+		await new Promise((r) => setTimeout(r, 20))
+	}
+	// A new build lands while the planner is mid-call.
+	writeFileSync(entry, `${readFileSync(bundle, 'utf8')}\n// rebuilt\n`)
+	await new Promise((r) => setTimeout(r, 1500))
+	rmSync(gate)
+	const code = await exited
+
+	assert.equal(code, 0, err)
+	assert.equal(JSON.parse(out).items[0].status, 'shipped', 'the new build carried the item on to shipping')
+	const db = new DatabaseSync(join(t.home, 'madewell.db'), { readOnly: true })
+	const runnerEvents = db.prepare('SELECT kind, data FROM events WHERE item = 0 ORDER BY seq').all() as { kind: string; data: string }[]
+	db.close()
+	const kinds = runnerEvents.map((e) => e.kind)
+	assert.deepEqual(kinds, ['runner-started', 'runner-reloaded', 'runner-stopped'], 'one runner: started, reloaded in place, stopped once')
+	const pids = new Set(runnerEvents.map((e) => JSON.parse(e.data).pid))
+	assert.deepEqual([...pids], [runner.pid], 'the same process throughout')
+	const plans = readFileSync(join(t.dir, 'calls.log'), 'utf8').trim().split('\n').filter((l) => l === 'execute plan planner')
+	assert.equal(plans.length, 1, 'the step in flight finished and was saved, so the new build did not repeat it')
+})
+
 test('with MW_TELEMETRY, every machine writes its own file there, and stats reads them all together', () => {
 	const telemetry = mkdtempSync(join(root, 'telemetry-'))
 	// The second machine writes metrics only. On both, the planner asks once and the operator answers.

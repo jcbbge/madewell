@@ -321,7 +321,8 @@ export function openStore(path: string) {
 					if (row && row.pid !== process.pid && alive(row.pid)) return row
 					if (row && row.pid !== process.pid) event(row.item ?? 0, 'runner-lost', { pid: row.pid, since: row.since, item: row.item })
 					db.prepare('INSERT INTO runner (id, pid, since) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET pid = excluded.pid, since = excluded.since, item = NULL').run(process.pid, new Date().toISOString())
-					event(0, 'runner-started', { pid: process.pid, ...(row && row.pid !== process.pid ? { replaced: row.pid } : {}) })
+					// The same pid already holding the claim is this runner's new build, swapped in by reload.
+					event(0, row?.pid === process.pid ? 'runner-reloaded' : 'runner-started', { pid: process.pid, ...(process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}), ...(row && row.pid !== process.pid ? { replaced: row.pid } : {}) })
 					return undefined
 				})
 				if (!owner) return Effect.sync(view)

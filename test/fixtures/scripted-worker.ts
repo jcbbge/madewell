@@ -13,6 +13,12 @@ if (request.kind === 'execute' && request.job === hangJob && marker && !existsSy
 	setInterval(() => {}, 1000)
 	await new Promise(() => {})
 }
+// FAKE_PAUSE=<job>:<file>: that job's call waits until the file is gone, so a test can act while it is in flight.
+const [pauseJob, pauseFile] = (process.env.FAKE_PAUSE ?? '').split(':')
+if (request.kind === 'execute' && request.job === pauseJob && pauseFile) {
+	writeFileSync(`${pauseFile}.started`, '')
+	while (existsSync(pauseFile)) await new Promise((r) => setTimeout(r, 20))
+}
 const write = (path: string, content: string) => {
 	mkdirSync(path.split('/').slice(0, -1).join('/') || '.', { recursive: true })
 	writeFileSync(path, content)
