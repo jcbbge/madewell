@@ -115,7 +115,8 @@ const Stats = Schema.Struct({
 const nqOf = (x: Item['exchange']) =>
 	x && x.status !== 'clear' ? { nq: { from: x.from.kind === 'job' ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== undefined).length } } : {}
 
-const view = (item: Item): typeof ItemView.Type => ({
+/** `driven`: a live runner holds the store. Without one, an item marked running is not moving until `mw run`. */
+const view = (item: Item, driven = true): typeof ItemView.Type => ({
 	id: item.id,
 	title: item.title,
 	status: item.status,
@@ -132,7 +133,7 @@ const view = (item: Item): typeof ItemView.Type => ({
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),
 	...(item.hold ? { hold: item.hold } : {}),
 	...(item.shipped ? { shipped: item.shipped } : {}),
-	next: item.status === 'held' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped'].includes(item.status) ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
+	next: item.status === 'held' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped'].includes(item.status) ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
 })
 
 const holdView = (store: Store['Service'], h: OpenHold): typeof HoldView.Type => ({ ...h, next: nextFor(store.get(h.item)!) })
@@ -141,10 +142,12 @@ const board = (store: Store['Service']): typeof Board.Type => {
 	const items = store.list()
 	const count = (s: Item['status']) => items.filter((i) => i.status === s).length
 	const held = items.filter((i) => i.status === 'held')
+	const driven = store.runner() !== null
+	const moving = count('running') + count('waiting-quota') + count('waiting-prerequisite')
 	return {
-		summary: `${count('held')} need you, ${count('candidate')} candidates, ${count('running') + count('waiting-quota') + count('waiting-prerequisite')} in progress, ${count('queued')} queued, ${count('shipped')} shipped`,
-		items: items.map(view),
-		next: held.length ? held.flatMap(nextFor) : count('queued') ? [{ run: 'mw run', why: 'deliver queued items' }] : [],
+		summary: `${count('held')} need you, ${count('candidate')} candidates, ${moving} in progress${moving && !driven ? ' with no runner' : ''}, ${count('queued')} queued, ${count('shipped')} shipped`,
+		items: items.map((i) => view(i, driven)),
+		next: held.length ? held.flatMap(nextFor) : count('queued') || (moving && !driven) ? [{ run: 'mw run', why: 'deliver queued items and resume any whose runner stopped' }] : [],
 	}
 }
 
@@ -353,7 +356,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		input: Schema.Struct({ discovery: Id.annotate({ description: 'the discovery run' }), ids: Schema.Array(Id).annotate({ description: 'the candidates to promote; none means all' }) }),
 		output: Schema.Struct({ promoted: Schema.Array(ItemView), next: Schema.Array(Next) }),
 		idempotent: true,
-		run: (input) => promote(input.discovery, input.ids).pipe(Effect.map((promoted) => ({ promoted: promoted.map(view), next: [{ run: 'mw run', why: 'deliver them, oldest first' }] }))),
+		run: (input) => promote(input.discovery, input.ids).pipe(Effect.map((promoted) => ({ promoted: promoted.map((i) => view(i)), next: [{ run: 'mw run', why: 'deliver them, oldest first' }] }))),
 	}),
 	command({
 		name: 'start',
@@ -395,7 +398,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
 			const store = yield* Store
-			return input.id === undefined ? board(store) : view(yield* found(store, input.id))
+			return input.id === undefined ? board(store) : view(yield* found(store, input.id), store.runner() !== null)
 		}),
 	}),
 	command({
@@ -408,7 +411,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		run: (input) => Effect.gen(function* () {
 			const store = yield* Store
 			const item = yield* found(store, input.id)
-			return { ...view(item), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) }
+			return { ...view(item, store.runner() !== null), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) }
 		}),
 	}),
 	command({

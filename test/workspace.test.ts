@@ -101,7 +101,7 @@ test('a snapshot carries HEAD, every tracked path and the named files in full', 
 	}
 })
 
-test('a read-only call that writes anything is caught with exactly what it changed', async () => {
+test('a read-only call that writes in its checkout is caught with exactly what it changed; the refs and git settings it shares with the repo are not its own', async () => {
 	const t = setup()
 	try {
 		writeFileSync(join(t.repo, 'a.txt'), 'dirty before the call\n')
@@ -113,16 +113,17 @@ test('a read-only call that writes anything is caught with exactly what it chang
 			mkdirSync(join(t.repo, '.amp', 'in'), { recursive: true })
 			writeFileSync(join(t.repo, '.amp', 'in', 'check.sh'), 'x')
 			rmSync(join(t.repo, 'src', 'b.ts'))
+			// Any session in the repo moves these (a push, a fetch); the product repo's leftovers check guards its settings.
 			appendFileSync(join(t.repo, '.git', 'info', 'exclude'), 'probe.txt\n')
 			t.git('branch', 'scratch')
 		})))
 		assert.equal(e.code, 'workspace_written')
 		const { head, refs, added, removed, modified } = e.context.changes as any
 		assert.equal(head, undefined)
-		assert.deepEqual(refs, [{ ref: 'refs/heads/scratch', from: null, to: t.head }])
+		assert.deepEqual(refs, [])
 		assert.deepEqual(added, ['.amp/in/check.sh', 'probe.txt'])
 		assert.deepEqual(removed, ['src/b.ts'])
-		assert.deepEqual(modified, ['.git/info/exclude', 'a.txt'])
+		assert.deepEqual(modified, ['a.txt'])
 	} finally {
 		t.cleanup()
 	}

@@ -99,13 +99,16 @@ export interface State {
 	readonly files: Readonly<Record<string, string>>
 }
 
-export const capture = Effect.fn('mw.capture')(function* (dir: string) {
+export const capture = Effect.fn('mw.capture')(function* (dir: string, shared = true) {
 	const head = (yield* git(dir, 'rev-parse', 'HEAD')).trim()
-	const refs = Object.fromEntries((yield* git(dir, 'for-each-ref', '--format=%(refname) %(objectname)')).split('\n').filter(Boolean).map((l) => l.split(' ')))
-	const common = resolve(dir, (yield* git(dir, 'rev-parse', '--git-common-dir')).trim())
 	const files: Record<string, string> = {}
 	walk(dir, '', files)
+	if (!shared) return { dir, head, refs: {}, files } satisfies State
+	const refs = Object.fromEntries((yield* git(dir, 'for-each-ref', '--format=%(refname) %(objectname)')).split('\n').filter(Boolean).map((l) => l.split(' ')))
+	const common = resolve(dir, (yield* git(dir, 'rev-parse', '--git-common-dir')).trim())
 	for (const part of ['config', 'info', 'hooks']) walk(common, part, files, '.git/')
+	// Server info that git regenerates (update-server-info, gc), not a setting.
+	delete files['.git/info/refs']
 	return { dir, head, refs, files } satisfies State
 })
 
@@ -145,12 +148,16 @@ export function changes(before: State, after: State): Changes | undefined {
 	return head || refs.length || added.length || removed.length || modified.length ? { ...(head ? { head } : {}), refs, added, removed, modified } : undefined
 }
 
-/** Runs `effect` and proves it left the workspace exactly as it found it. */
+/**
+ * Runs `effect` and proves it left the worktree exactly as it found it: its HEAD and every file in it. The refs and
+ * git settings it shares with the product repo are left out, because any session working in that repo moves them
+ * (a push, a fetch) while the call runs; the product repo's own leftovers check guards its settings.
+ */
 export const readOnly = <A, E, R>(dir: string, effect: Effect.Effect<A, E, R>) =>
 	Effect.gen(function* () {
-		const before = yield* capture(dir)
+		const before = yield* capture(dir, false)
 		const result = yield* effect
-		const changed = changes(before, yield* capture(dir))
+		const changed = changes(before, yield* capture(dir, false))
 		if (changed) {
 			return yield* fail('workspace_written', `A read-only call changed ${dir}.`, { dir, changes: changed },
 				[{ run: `git -C ${dir} status --ignored`, why: 'see the changes in context.changes; a read-only job gets no write access, so its result is not accepted' }])

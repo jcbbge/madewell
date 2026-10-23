@@ -162,6 +162,7 @@ test('an item passes through six profiles, splits after planning, and ships when
 		assert.ok(BRIEF.includes(NEUTRAL_HOST) && BRIEF.includes('Honor the product repo\'s coding conventions.'))
 		for (const q of ['What moves us toward a 10× better experience of developing, understanding, inspecting, and recovering the work?', 'What moves us toward a 10× better experience for the person the resulting system serves?', 'What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?']) assert.ok(BRIEF.includes(q))
 		assert.match(t.packet('intake', 'plan').you.task, /What is unclear\? What is ambiguous\? Do I have everything I need to proceed\?/)
+		assert.match(t.packet('intake', 'plan').you.task, /no tools and no checkout in this call, by design[\s\S]*Never ask for file access/)
 		assert.equal(t.packet('intake', 'plan').you.where, 'Made Well\'s delivery lane (planning)')
 
 		// Packets run stable to volatile, and each job receives only what the static table gives it.
@@ -185,6 +186,9 @@ test('an item passes through six profiles, splits after planning, and ships when
 		assert.equal(made.facts?.access, 'make')
 		assert.deepEqual(made.facts?.budget, { ms: 60_000 })
 		assert.deepEqual(made.flags, [])
+		assert.deepEqual(made.facts?.allowlist, ['Read', 'Grep', 'Glob', 'Bash', 'Edit', 'Write'])
+		const checked = recorded.find((c) => c.kind === 'execute' && c.job === 'test-plan')!
+		assert.deepEqual([checked.card.harness, checked.facts?.allowlist], ['codex', undefined], 'Codex takes sandbox flags, not tool names: there is no allowlist to judge its tools by')
 		assert.deepEqual(recorded.find((c) => c.kind === 'execute' && c.job === 'plan')!.facts?.required, ['making', 'notMaking', 'scope', 'steps', 'doneWhen', 'decisions'])
 	} finally {
 		t.cleanup()
@@ -310,6 +314,21 @@ test('a plan that creates a kind of file the repo already has must name the exis
 		assert.equal(item.hold?.context.job, 'plan')
 		assert.equal(item.hold?.context.lastError, refused[2]![1])
 		assert.deepEqual(t.calls.filter((c) => c.job === 'implement' || c.job === 'test-plan'), [], 'nothing is made from an ungrounded plan')
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('another session pushing to the product repo while a read call runs is not the agent\'s write', async () => {
+	const t = setup((req) => {
+		if (req.kind === 'execute' && req.job === 'plan') git(t.repo, 'branch', 'chore/upgrade')
+		return undefined
+	})
+	try {
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		const plan = t.store.calls(t.item.id).filter((c) => c.kind === 'execute' && c.job === 'plan')
+		assert.deepEqual(plan.map((c) => [c.outcome, c.flags]), [['ok', []]], 'the shared refs moved, the checkout did not')
 	} finally {
 		t.cleanup()
 	}

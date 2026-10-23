@@ -224,8 +224,9 @@ export function openStore(path: string) {
 		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
 		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
 	}
-	/** The glass is a view: rewritten after each transition, never read back. A failed write never stops the work. */
+	/** The glass is a view: rewritten after each transition, never read back. A failed write never stops the work. An in-memory store has none: its glass would land in the working directory, often a product repo. */
 	const view = () => {
+		if (path === ':memory:') return
 		try {
 			writeFileSync(`${glass}.tmp`, replayHtml(snapshot(store)))
 			renameSync(`${glass}.tmp`, glass)
@@ -367,6 +368,11 @@ export function openStore(path: string) {
 			if ((db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count) db.exec('VACUUM')
 			db.exec('PRAGMA wal_checkpoint(TRUNCATE)')
 			return removed
+		},
+		/** The live runner's claim, or null when there is none or its process is gone. Only reads: the next runner to claim records the loss. */
+		runner() {
+			const row = db.prepare('SELECT pid, since, item FROM runner WHERE id = 1').get() as { pid: number; since: string; item: number | null } | undefined
+			return row && alive(row.pid) ? row : null
 		},
 		runnerOn(item: number | null) {
 			db.prepare('UPDATE runner SET item = ? WHERE id = 1 AND pid = ?').run(item, process.pid)

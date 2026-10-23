@@ -21811,7 +21811,7 @@ var common = {
   stdin: Schema_exports.optional(Schema_exports.String),
   /** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
   settings: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
-  /** The allowlist for each access level: tool names, joined with commas for {tools}. `none` must leave the agent no tool at all. */
+  /** The allowlist for each access level: tool names, joined with commas for {tools}; or, for a harness with no allowlist, launch arguments expanded by {...tools} (then calls are not judged by tool name). `none` must leave the agent no tool at all. */
   tools: Schema_exports.Struct({ none: Strings, read: Strings, checks: Strings, make: Strings, run: Strings }),
   /** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix; NAME=value sets a fixed value. */
   env: Schema_exports.optional(Strings),
@@ -22173,13 +22173,15 @@ var snapshot2 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
   }));
   return { head: head3, files: tracked, contents };
 });
-var capture = Effect_exports.fn("mw.capture")(function* (dir) {
+var capture = Effect_exports.fn("mw.capture")(function* (dir, shared = true) {
   const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
-  const refs = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
-  const common2 = resolve3(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
   const files = {};
   walk(dir, "", files);
+  if (!shared) return { dir, head: head3, refs: {}, files };
+  const refs = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
+  const common2 = resolve3(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
   for (const part of ["config", "info", "hooks"]) walk(common2, part, files, ".git/");
+  delete files[".git/info/refs"];
   return { dir, head: head3, refs, files };
 });
 function walk(root, rel, into2, label2 = "") {
@@ -22207,9 +22209,9 @@ function changes(before, after) {
   return head3 || refs.length || added.length || removed.length || modified.length ? { ...head3 ? { head: head3 } : {}, refs, added, removed, modified } : void 0;
 }
 var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
-  const before = yield* capture(dir);
+  const before = yield* capture(dir, false);
   const result3 = yield* effect2;
-  const changed = changes(before, yield* capture(dir));
+  const changed = changes(before, yield* capture(dir, false));
   if (changed) {
     return yield* fail8(
       "workspace_written",
@@ -23046,6 +23048,7 @@ function openStore(path) {
     emit("event", { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data });
   };
   const view2 = () => {
+    if (path === ":memory:") return;
     try {
       writeFileSync5(`${glass}.tmp`, replayHtml(snapshot3(store)));
       renameSync(`${glass}.tmp`, glass);
@@ -23183,6 +23186,11 @@ function openStore(path) {
       if (db.prepare("PRAGMA freelist_count").get().freelist_count) db.exec("VACUUM");
       db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
       return removed;
+    },
+    /** The live runner's claim, or null when there is none or its process is gone. Only reads: the next runner to claim records the loss. */
+    runner() {
+      const row = db.prepare("SELECT pid, since, item FROM runner WHERE id = 1").get();
+      return row && alive2(row.pid) ? row : null;
     },
     runnerOn(item) {
       db.prepare("UPDATE runner SET item = ? WHERE id = 1 AND pid = ?").run(item, process.pid);
@@ -23515,10 +23523,12 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const callId = store.recordCall(call, {
     access: spec.access,
     head: { before: head3, after: changed?.head?.to ?? head3 },
-    changed: changed ? [...changed.added, ...changed.removed, ...changed.modified] : [],
+    // The worktree's own files: git settings are shared with every session in the repo, and leftovers guards them.
+    changed: changed ? [...changed.added, ...changed.removed, ...changed.modified].filter((f) => !f.startsWith(".git/")) : [],
     ...spec.scope ? { scope: spec.scope } : {},
     budget: { ...budget.tokens !== void 0 ? { tokens: budget.tokens } : {}, ms: budget.minutes * 6e4 },
-    ...harness ? { allowlist: harness.tools[spec.access] } : {},
+    // A harness that takes launch arguments in place of tool names ({...tools}, Codex's sandbox flags) has no allowlist to judge tools by.
+    ...harness && !harness.command.includes("{...tools}") ? { allowlist: harness.tools[spec.access] } : {},
     required: spec.required
   });
   if (!res.ok) {
@@ -24038,7 +24048,7 @@ var you = (job, kind) => {
   const step2 = stepOf(job);
   return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
 };
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`;
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
   you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), answer: shapeOf(INTAKE) },
@@ -24399,7 +24409,7 @@ var Stats = Schema_exports.Struct({
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Stats" });
 var nqOf = (x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
-var view = (item) => ({
+var view = (item, driven = true) => ({
   id: item.id,
   title: item.title,
   status: item.status,
@@ -24416,17 +24426,19 @@ var view = (item) => ({
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},
   ...item.hold ? { hold: item.hold } : {},
   ...item.shipped ? { shipped: item.shipped } : {},
-  next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
+  next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
 });
 var holdView = (store, h) => ({ ...h, next: nextFor(store.get(h.item)) });
 var board = (store) => {
   const items = store.list();
   const count = (s) => items.filter((i) => i.status === s).length;
   const held2 = items.filter((i) => i.status === "held");
+  const driven = store.runner() !== null;
+  const moving = count("running") + count("waiting-quota") + count("waiting-prerequisite");
   return {
-    summary: `${count("held")} need you, ${count("candidate")} candidates, ${count("running") + count("waiting-quota") + count("waiting-prerequisite")} in progress, ${count("queued")} queued, ${count("shipped")} shipped`,
-    items: items.map(view),
-    next: held2.length ? held2.flatMap(nextFor) : count("queued") ? [{ run: "mw run", why: "deliver queued items" }] : []
+    summary: `${count("held")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped`,
+    items: items.map((i) => view(i, driven)),
+    next: held2.length ? held2.flatMap(nextFor) : count("queued") || moving && !driven ? [{ run: "mw run", why: "deliver queued items and resume any whose runner stopped" }] : []
   };
 };
 var found = (store, id2) => {
@@ -24599,7 +24611,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ discovery: Id2.annotate({ description: "the discovery run" }), ids: Schema_exports.Array(Id2).annotate({ description: "the candidates to promote; none means all" }) }),
     output: Schema_exports.Struct({ promoted: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
     idempotent: true,
-    run: (input) => promote(input.discovery, input.ids).pipe(Effect_exports.map((promoted) => ({ promoted: promoted.map(view), next: [{ run: "mw run", why: "deliver them, oldest first" }] })))
+    run: (input) => promote(input.discovery, input.ids).pipe(Effect_exports.map((promoted) => ({ promoted: promoted.map((i) => view(i)), next: [{ run: "mw run", why: "deliver them, oldest first" }] })))
   }),
   command({
     name: "start",
@@ -24640,7 +24652,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
-      return input.id === void 0 ? board(store) : view(yield* found(store, input.id));
+      return input.id === void 0 ? board(store) : view(yield* found(store, input.id), store.runner() !== null);
     })
   }),
   command({
@@ -24653,7 +24665,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
       const item = yield* found(store, input.id);
-      return { ...view(item), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) };
+      return { ...view(item, store.runner() !== null), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) };
     })
   }),
   command({

@@ -222,7 +222,12 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	process.kill(-runner.pid!, 'SIGKILL') // the runner and its hung worker, as in a crash
 	await new Promise((r) => runner.once('exit', r))
 
+	const stale = t.mw('status').out
+	assert.match(stale.summary, /1 in progress with no runner/, 'status reads the runner as gone, though the item still says running')
+	assert.deepEqual([stale.items[0].status, stale.items[0].next.map((n: { run: string }) => n.run), stale.next.map((n: { run: string }) => n.run)], ['running', ['mw run'], ['mw run']])
+	assert.ok(!t.mw('show', '1').out.events.some((e: { kind: string }) => e.kind === 'runner-lost'), 'reading records nothing')
 	assert.equal(t.mw('next').out.run, 'mw run', 'a dead runner\'s work is picked up by a new run')
+	assert.ok(t.mw('show', '1').out.events.some((e: { kind: string }) => e.kind === 'runner-lost'), 'next takes over the dead claim and records the loss against the item')
 	const resumed = t.mw('run')
 	assert.equal(resumed.code, 0, JSON.stringify(resumed.err))
 	assert.equal(resumed.out.items[0].status, 'shipped')

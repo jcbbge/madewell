@@ -350,10 +350,12 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const callId = store.recordCall(call, {
 			access: spec.access,
 			head: { before: head, after: changed?.head?.to ?? head },
-			changed: changed ? [...changed.added, ...changed.removed, ...changed.modified] : [],
+			// The worktree's own files: git settings are shared with every session in the repo, and leftovers guards them.
+			changed: changed ? [...changed.added, ...changed.removed, ...changed.modified].filter((f) => !f.startsWith('.git/')) : [],
 			...(spec.scope ? { scope: spec.scope } : {}),
 			budget: { ...(budget.tokens !== undefined ? { tokens: budget.tokens } : {}), ms: budget.minutes * 60_000 },
-			...(harness ? { allowlist: harness.tools[spec.access] } : {}),
+			// A harness that takes launch arguments in place of tool names ({...tools}, Codex's sandbox flags) has no allowlist to judge tools by.
+			...(harness && !harness.command.includes('{...tools}') ? { allowlist: harness.tools[spec.access] } : {}),
 			required: spec.required,
 		})
 		if (!res.ok) {
@@ -951,7 +953,7 @@ const you = (job: Job, kind: WorkerRequest['kind']) => {
 }
 
 const INTAKE_TASK = (job: Job, originator: string) =>
-	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`
+	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply with the shape under "answer", even after your questions are answered: you do the ${job} job, and return what is under "laterDeliverable", in a later call.`
 
 const handoffView = (item: Item, job: Job, x: Exchange) =>
 	x.from.kind === 'job' && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job]

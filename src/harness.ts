@@ -29,7 +29,7 @@ const common = {
 	stdin: Schema.optional(Schema.String),
 	/** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
 	settings: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
-	/** The allowlist for each access level: tool names, joined with commas for {tools}. `none` must leave the agent no tool at all. */
+	/** The allowlist for each access level: tool names, joined with commas for {tools}; or, for a harness with no allowlist, launch arguments expanded by {...tools} (then calls are not judged by tool name). `none` must leave the agent no tool at all. */
 	tools: Schema.Struct({ none: Strings, read: Strings, checks: Strings, make: Strings, run: Strings }),
 	/** Environment variables the harness needs beyond BASE_ENV, such as its credentials. A trailing * matches a prefix; NAME=value sets a fixed value. */
 	env: Schema.optional(Strings),
