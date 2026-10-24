@@ -19,6 +19,11 @@ The operator's law for Made Well. It binds every implementation, every agent and
 13. **Conservation: leave no trace.** Every job ends with aftercare. Worktrees are removed, processes are stopped, and anything provisioned (database branches, dev clones, servers) is torn down. Made Well keeps the smallest footprint: no stray files, markdown or artifacts in the product repo or on the machine, and no trace that an agent did the work beyond the delivered change itself. The same applies to Made Well's own code.
 14. **A pass ships without an agent.** Made Well runs the item's check commands itself, and exit 0 ships. Only a failure calls an agent: the Arbiter, with the logs. The verifier's job becomes Made Well's own code. The six agents are the ideator, ideation peer, planner, test architect, implementer and Arbiter.
 
+## Rulings of 2026-10-24
+
+15. **Made Well is a console that takes cartridges.** `madewell()` is two while loops: discovery takes raw input (notes, transcripts, meetings) and returns what it discovered; delivery takes each discovered item and returns it delivered. The console is the fixed part: the loops, the durable item, NQ, holds, card swaps, recording and visibility. Cartridges plug into it, each a function with a contract: the shape it accepts and the shape it returns, the same shape every time for the same shape of input. Cartridges can be swapped, added and removed: delivery can run three phases or ten, and testing can be unplugged. The four stages and six profiles of this document are the default, minimal cartridge set, for software. Made Well is about work, not software: it is agnostic to provider, runtime, model, harness, platform, environment, machine, user and the kind of work (software, design, product, finance, marketing). It is built for largely non-technical people, and nothing specific to one host, orb or product goes into it. It is the next iteration of what exists, not a rewrite. See "Console and cartridges".
+16. **The operator talks to one agent, and it stays outside the glass.** Nobody wants a thousand agents. The operator has one agent, the operator's agent, the one they talk to. It looks into the machine from outside and never enters it. It sees every record, log, trace and metric; it narrates, explains and reports the state of every item, step and call, so the operator never searches, digs or opens the hood. It never moves the work. See "The operator's agent".
+
 ## Governing rubric: purpose, intent, and volition
 
 **Before judgment, evaluation, proclamation, or prescription, reconstruct the whole.**
@@ -69,6 +74,24 @@ Prefer appropriately scoped context, bounded exchanges, reused valid evidence, d
 
 Every item carries its purpose, decisions, scope, and acceptance conditions across the seam, with the discovery report as its handoff. The source is preserved, not replaced by a summary.
 
+## Console and cartridges
+
+*Operator ruling, 2026-10-24 (ruling 15).*
+
+```
+madewell() {
+  while (rawInput: notes, transcripts, …) { console discovery() { cartridge … cartridge; return discovered } }
+  while (discovered)                      { console delivery()  { ideation() planning() implementation() verification() } }
+}
+```
+
+- **The console** is what never changes: the two loops, the durable work item and its record, NQ at every hand-off, holds and the operator's answers, prescribed cards and the quota swap, aftercare, and the views. Every guarantee in this document that is not about a particular stage belongs to it.
+- **A cartridge** is a unit of work plugged into a loop: a named step or group of steps, each with a profile, a duty, what it receives and the shape of what it returns. The console accepts a cartridge only when it honors the contract, checked deterministically before any work runs, and holds every deliverable to its declared shape.
+- **Swappable.** Discovery can hold one cartridge or eight; delivery can run three phases or ten, and a cartridge can be unplugged, testing included. What the console's own machinery acts on stays the console's contract: the plan's scope and done-when items that hold the makers, the blind split of the makers, and Made Well's own run of the checks, merge and ship. Unplugging testing leaves verification to the project's gates.
+- **The default cartridge set** is software development: the four stages and six profiles of this document. Other kinds of work bring their own set; the console does not change for them.
+
+**Required; not yet implemented.** Today the default software set is welded into the engine (the stages, profiles, schemas and hand-off table live in the console's code). Making the set a declared, swappable pack is the open gap.
+
 ## Six agents, one per job
 
 | Profile | Responsibility |
@@ -80,7 +103,7 @@ Every item carries its purpose, decisions, scope, and acceptance conditions acro
 | **Implementer** | Execute the fixed implementation instructions without changing scope. |
 | **Arbiter** | Rule on a failed check: whose question it is. Ruling on a failure is its own job, separate from the ideation peer. |
 
-Verification is not an agent. Made Well runs the item's checks itself, merges and ships on a pass, and calls the Arbiter only on a failure (ruling 14). Two parties sit outside the six: the **dispatcher** starts, stops and steers work and never does it; the **operator** is the person who decides.
+Verification is not an agent. Made Well runs the item's checks itself, merges and ships on a pass, and calls the Arbiter only on a failure (ruling 14). Three parties sit outside the six: the **dispatcher** starts, stops and steers work and never does it; the **operator** is the person who decides; the **operator's agent** is the one agent the operator talks to, which watches through the glass and never moves the work (ruling 16).
 
 The six agents separate the ideator from its challenging peer and separate test design from implementation and from test execution. The planner grounds work in actual sources; the implementer follows the plan; the test architect derives checks from the same plan without seeing the making; Made Well runs the checks. No agent accepts its own contribution. Profiles are not permanently running processes: each job is one call on its prescribed card.
 
@@ -231,6 +254,17 @@ The operator's primary questions are: **Is the work done? What result and accept
 A failed or lost worker does not end the work: it is redriven on its saved state. A viewer never becomes a scheduler, acceptance authority, or second tracking system.
 
 Visible completion comes from recorded acceptance, not model-written status, process presence, or a timer. A stale observation is not proof of success. Views are disposable, written after each saved transition; the durable record is the one authority.
+
+## The operator's agent: outside the glass
+
+*Operator ruling, 2026-10-24 (ruling 16).* The industry builds agents for everything. The operator wants one: the agent they talk to, a white-glove service through the whole process. It was once called the concierge; that role inside the pipeline is gone. What remains is this agent outside it.
+
+- **Outside, looking in.** The engine shop is the six profiles, the dispatcher and Made Well's own code. The operator's agent never enters it: it is not a profile, takes no job, joins no NQ exchange and holds no card in a prescription. It is whatever agent the operator already uses, in any harness, on any machine.
+- **It sees everything.** Every part of the process is durable, logged and traced, so it can follow any item through any step: the store, every event, every call with its brief, packet, answer and stream, the spans, the live output of a step in flight, the telemetry and the metrics. Its window is Made Well's read surface: the JSON every `mw` read command prints (`next`, `status`, `show`, `holds`, `export`, `stats`, `watch`), and the console's JSON (`mw ui`: `/api/model`, `/api/item/<id>`, `/api/call/<id>`, `/api/spans/<id>`, `/api/live/<file>`). Whatever surface Made Well exposes later (an API, an MCP server) is a wider window, never a door.
+- **It narrates and explains.** At any moment it can say what is done, what proves it, what is running and what that agent is doing, what holds and why, and who owes the next move. When something needs the operator, it lays out the decision in plain words: what was asked, what each answer would cause, and the exact command that carries it out. It answers the operator's questions about the work from the record, so the operator never has to search, dig or read a log themselves.
+- **It never moves the work.** It does not start, run, answer, retry, promote, drop, prune or edit anything in Made Well, its store, its home or the product repo, and it never speaks for the operator. A decision is the operator's: the agent prepares it and the operator makes it. Fixing Made Well itself is separate work with its own authorization; it is never a remedy the observing agent applies on its own.
+
+Made Well serves this agent by making the record complete and self-explaining: every state durable, every failure with its facts and `next` commands, every view derived from the store. A gap the agent cannot see through the glass is a defect in Made Well's read surface, not a reason for the agent to go inside.
 
 ## Architecture as built
 
