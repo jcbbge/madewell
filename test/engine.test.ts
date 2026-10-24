@@ -7,10 +7,10 @@ import { test } from 'node:test'
 import { Effect, Fiber, Layer } from 'effect'
 import { TestClock } from 'effect/testing'
 import type { Card, Prescriptions } from '../src/cards.ts'
-import { answer, BRIEF, drive, drop, nextFor, promote, retry, runQueue } from '../src/engine.ts'
+import { answer, BRIEF, drive, drop, go, nextFor, promote, retry, runQueue } from '../src/engine.ts'
 import { NEUTRAL_HOST } from '../src/harness.ts'
-import { problemsOf, SOFTWARE, type Job, type Pack } from '../src/lane.ts'
-import { openStore, Store } from '../src/store.ts'
+import { deliverableShape, laneOf, problemsOf, SOFTWARE, type Job, type Pack } from '../src/lane.ts'
+import { openStore, Store, type Autonomy } from '../src/store.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
 import { worktreesRoot } from '../src/workspace.ts'
 
@@ -73,7 +73,7 @@ const git = (dir: string, ...args: string[]) => execFileSync('git', ['-C', dir, 
  * worker. The project ships by logging the merged commit. `script` answers calls; n counts calls of the same
  * kind and job of the same item; anything it leaves undefined gets the standard answer.
  */
-function setup(script: Script = () => undefined) {
+function setup(script: Script = () => undefined, autonomy?: Autonomy) {
 	const tmp = realpathSync(mkdtempSync(join(tmpdir(), 'mw-engine-')))
 	const home = join(tmp, 'home')
 	const repo = join(tmp, 'product')
@@ -103,7 +103,7 @@ function setup(script: Script = () => undefined) {
 	}
 	const worker = Layer.succeed(Worker, { run: (req) => Effect.promise(() => answerFor(req)) })
 	const run = <A, E>(effect: Effect.Effect<A, E, Store | Worker>) => Effect.runPromise(effect.pipe(Effect.provide(Layer.mergeAll(Layer.succeed(Store, store), worker))))
-	const create = (title = 'Add CSV export') => store.create({ title, objective: 'Users can export a report as CSV', source: 'operator: please add CSV export', workspace: repo })
+	const create = (title = 'Add CSV export') => store.create({ title, objective: 'Users can export a report as CSV', source: 'operator: please add CSV export', workspace: repo, ...(autonomy ? { autonomy } : {}) })
 	const item = create()
 	const of = (kind: string, job: Job, id = item.id) => calls.filter((c) => c.kind === kind && c.job === job && c.item === id)
 	const packet = (kind: string, job: Job, i = 0) => JSON.parse(of(kind, job)[i]!.prompt)
@@ -319,7 +319,7 @@ test('a plan that creates a kind of file the repo already has must name the exis
 		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
 		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
 	]
-	const t = setup((req, n) => (req.kind === 'execute' && req.job === 'plan' ? plans[n - 1] : undefined))
+	const t = setup((req, n) => (req.kind === 'execute' && req.job === 'plan' ? plans[n - 1] : undefined), 'checkpoints')
 	try {
 		writeFileSync(join(t.repo, 'notes.txt'), 'notes\n')
 		git(t.repo, 'add', '.')
@@ -602,7 +602,7 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 		if (req.kind === 'intake' && req.job === 'test-plan' && n === 1) return { ...clear, ambiguous: ['Is an empty export an error?'] }
 		if (req.kind === 'originator' && req.job === 'test-plan') return reply('No: it prints an empty line.')
 		return undefined
-	})
+	}, 'checkpoints')
 	try {
 		let item = await t.run(drive(t.item.id, config))
 		assert.equal(item.hold?.code, 'nq_turns')
@@ -614,6 +614,9 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 		assert.deepEqual(t.packet('execute', 'test-plan').exchange.turns, [{ understanding: 'I see the job', questions: ['Is an empty export an error?'], answer: 'No: it prints an empty line.', by: 'originator' }])
 
 		await t.run(answer(item.id, 'Only CSV; nothing else.'))
+		item = await t.run(drive(item.id, config))
+		assert.equal(item.status, 'paused', 'at checkpoints, the verified change waits for the operator before it ships')
+		await t.run(go(item.id))
 		item = await t.run(drive(item.id, config))
 		assert.equal(item.status, 'shipped')
 		// Three turns were spent: the operator's answer corrects the hand-off, and a new exchange starts from turn one.
@@ -735,7 +738,7 @@ test('holds stop only that item, name their next commands, and release on an ans
 		if (req.kind === 'execute' && req.job === 'test-plan') return checks(req, 'exit 1')
 		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling('undetermined')
 		return undefined
-	})
+	}, 'checkpoints')
 	try {
 		let item = await t.run(drive(t.item.id, config))
 		assert.equal(item.hold?.code, 'nq_turns', 'each failed call was a question to the planner; the fourth holds')
@@ -762,7 +765,7 @@ test('the project\'s gates run on the change\'s own files before the checks: a f
 		if (req.item === 2 && req.kind === 'intake' && req.job === 'arbitrate' && n === 1) return ask('Who wrote this gate?')
 		if (req.item === 2 && req.kind === 'execute' && req.job === 'arbitrate') return ruling('undetermined')
 		return undefined
-	})
+	}, 'checkpoints')
 	try {
 		const log = join(t.tmp, 'gates.log')
 		writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{
@@ -773,6 +776,8 @@ test('the project\'s gates run on the change\'s own files before the checks: a f
 				{ run: `echo "lint {files}" >> ${log}; if grep -q bad {files}; then echo "lint: bad in {files}"; exit 1; fi` },
 			],
 		}]))
+		assert.equal((await t.run(drive(t.item.id, config))).status, 'paused')
+		await t.run(go(t.item.id))
 		const first = await t.run(drive(t.item.id, config))
 		assert.equal(first.status, 'shipped')
 		assert.equal(git(t.repo, 'show', 'main:src/export.sh'), '# formatted\necho a,b', 'the formatter\'s fix ships with the change')
@@ -827,23 +832,33 @@ test('the project\'s prepare command stocks every worktree an agent or the check
 	}
 })
 
-test('a passing item without a ship command holds before main moves, and ships once one is registered', async () => {
+test('without a ship command, shipping pushes main to its upstream, or is done once the change is on main; the commit says why', async () => {
 	const t = setup()
 	try {
-		const start = git(t.repo, 'rev-parse', 'main')
-		writeFileSync(join(t.home, 'projects.json'), '[]')
-		let item = await t.run(drive(t.item.id, config))
-		assert.equal(item.hold?.code, 'no_ship_command')
-		assert.match(nextFor(item)[0]!.run, new RegExp(`^mw init --workspace ${t.repo} --ship "<`))
-		assert.equal(git(t.repo, 'rev-parse', 'main'), start, 'main does not move until the item can ship')
-
-		writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo, ship: `echo "$MW_ITEM $MW_COMMIT" >> ${t.tmp}/shipped.log` }]))
-		await t.run(retry(item.id))
-		item = await t.run(drive(item.id, config))
+		writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo }]))
+		execFileSync('git', ['init', '-q', '--bare', '-b', 'main', join(t.tmp, 'up.git')])
+		git(t.repo, 'remote', 'add', 'origin', join(t.tmp, 'up.git'))
+		git(t.repo, 'push', '-q', '-u', 'origin', 'main')
+		const item = await t.run(drive(t.item.id, config))
 		assert.equal(item.status, 'shipped')
-		assert.equal(t.store.events(item.id).filter((e) => e.kind === 'verified').length, 1, 'the checks passed on this main already: not run again')
+		assert.equal(item.shipped?.command, `git push origin refs/heads/main:refs/heads/main`)
+		assert.equal(git(join(t.tmp, 'up.git'), 'rev-parse', 'main'), git(t.repo, 'rev-parse', 'main'), 'main reached its upstream')
+		const message = git(t.repo, 'log', '-1', '--format=%B', 'main')
+		assert.equal(message.split('\n')[0], 'Add CSV export')
+		for (const part of ['Users can export a report as CSV', 'Done when:\n- sh src/export.sh prints a,b', '- Format? CSV (the operator asked for it)', '- Which separator? Comma (every spreadsheet opens it)']) assert.ok(message.includes(part), `the commit carries: ${part}\n${message}`)
+		assert.doesNotMatch(message, /Made Well|Amp|agent/i, 'nothing in it names who did the work')
 	} finally {
 		t.cleanup()
+	}
+	const bare = setup()
+	try {
+		writeFileSync(join(bare.home, 'projects.json'), JSON.stringify([{ path: bare.repo }]))
+		const item = await bare.run(drive(bare.item.id, config))
+		assert.equal(item.status, 'shipped', 'no upstream: on main is shipped')
+		assert.equal(item.shipped?.command, '')
+		assert.equal(git(bare.repo, 'show', 'main:src/export.sh'), 'echo a,b')
+	} finally {
+		bare.cleanup()
 	}
 })
 
@@ -855,7 +870,7 @@ test('discovery turns raw input into candidates that wait for promotion; each pr
 	]
 	const t = setup((req) => (req.kind === 'execute' && req.job === 'discover' ? { items } : undefined))
 	try {
-		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'raw notes: plants, photos, watering', workspace: t.repo, job: 'discover' })
+		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'raw notes: plants, photos, watering', workspace: t.repo, job: 'discover', autonomy: 'checkpoints' })
 		const found = await t.run(drive(run.id, config))
 		assert.equal(found.status, 'discovered')
 		const candidates = t.store.list().filter((i) => i.discovery === run.id)
@@ -868,6 +883,8 @@ test('discovery turns raw input into candidates that wait for promotion; each pr
 		await t.run(promote(run.id, [candidates[1]!.id]))
 		assert.deepEqual(t.store.list().filter((i) => i.discovery === run.id).map((c) => c.status), ['candidate', 'queued'])
 
+		assert.equal((await t.run(drive(candidates[1]!.id, config))).status, 'paused', 'a candidate inherits its discovery\'s checkpoints')
+		await t.run(go(candidates[1]!.id))
 		const shipped = await t.run(drive(candidates[1]!.id, config))
 		assert.equal(shipped.status, 'shipped')
 		const first = JSON.parse(t.of('intake', 'ideate', candidates[1]!.id)[0]!.prompt)
@@ -946,4 +963,57 @@ test('a pack that breaks the console\'s contract is refused with every problem n
 		'delivery: its last step is "verify", Made Well\'s run of the checks, merge and ship.',
 	])
 	assert.deepEqual(problemsOf(SOFTWARE), [], 'the default pack plugs in')
+})
+
+test('full autonomy runs A to Z: discovery sends every candidate into delivery, and a question out of turns is decided by the delegating agent by the rubric', async () => {
+	const decided = 'Use commas; a header row is not part of it.'
+	const t = setup((req) => {
+		if (req.kind === 'execute' && req.job === 'discover') return { items: [{ title: 'CSV export', kind: 'feature', objective: 'Users can export a report as CSV', text: 'a,b' }] }
+		// The implementer asks until the planner's rubric decision reaches its hand-off.
+		if (req.kind === 'intake' && req.job === 'implement') return req.prompt.includes(decided) ? undefined : ask('Header row or not?')
+		if (req.kind === 'originator' && req.job === 'implement') return req.prompt.includes('nobody else will answer') ? reply(decided) : reply('See the plan.')
+		return undefined
+	})
+	try {
+		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'notes: csv export', workspace: t.repo, job: 'discover' })
+		await t.run(drive(run.id, config))
+		const [candidate] = t.store.list().filter((i) => i.discovery === run.id)
+		assert.equal(candidate!.status, 'queued', 'no promotion step: the candidate goes straight into delivery')
+		assert.equal(t.store.events(run.id).find((e) => e.kind === 'discovered')?.data.promoted, true)
+
+		const done = await t.run(drive(candidate!.id, config))
+		assert.equal(done.status, 'shipped', 'nothing waited on the operator')
+		const kinds = t.store.events(candidate!.id).map((e) => e.kind)
+		assert.ok(kinds.includes('nq-deciding') && kinds.includes('nq-decided') && !kinds.includes('held'))
+		const deciding = JSON.parse(t.of('originator', 'implement', candidate!.id).at(-1)!.prompt)
+		assert.match(deciding.you.task, /full autonomy[\s\S]*a choice that satisfies two of the three is the answer/)
+		assert.match(JSON.parse(t.of('execute', 'implement', candidate!.id)[0]!.prompt).exchange.handoff, /decided these by the rubric[\s\S]*- Header row or not\?[\s\S]*Use commas; a header row is not part of it\.$/)
+		const arbiterShape = deliverableShape(laneOf(), 'arbitrate', true) as { properties: { cause: { enum: string[] } } }
+		assert.deepEqual(arbiterShape.properties.cause.enum, ['pre-existing', 'implementation', 'test', 'environment'], 'in full autonomy the arbiter must name a cause')
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('every step: the item stops between cartridges and before it ships; the operator goes on or steers, and the next step hears the steer', async () => {
+	const t = setup(() => undefined, 'steps')
+	try {
+		const stops: string[] = []
+		let item = await t.run(drive(t.item.id, config))
+		while (item.status === 'paused') {
+			stops.push(`${item.hold!.context.after} → ${item.hold!.context.next}`)
+			assert.deepEqual(nextFor(item).map((n) => n.run.split(' ').slice(0, 2).join(' ')), ['mw go', 'mw answer', 'mw drop'])
+			if (item.job === 'plan' && !t.store.events(item.id).some((e) => e.kind === 'steered')) await t.run(answer(item.id, 'Keep the script under ten lines.'))
+			else await t.run(go(item.id))
+			item = await t.run(drive(item.id, config))
+		}
+		assert.equal(item.status, 'shipped')
+		assert.deepEqual(stops, ['ideation → plan', 'planning → implement', 'implementation → verify', 'verification → ship'])
+		assert.match(JSON.parse(t.of('intake', 'plan')[0]!.prompt).handoff.content, /The operator's word at the checkpoint before this step: Keep the script under ten lines\.$/)
+		await t.run(go(item.id))
+		assert.equal(t.store.events(item.id).filter((e) => e.kind === 'go').length, 3, 'a repeated go changes nothing')
+		assert.equal((await t.run(Effect.flip(go(t.create('Other').id)))).code, 'not_held', 'an item that never stopped has no checkpoint to pass')
+	} finally {
+		t.cleanup()
+	}
 })

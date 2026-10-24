@@ -294,6 +294,8 @@ const stepsOf = (item: Item, calls: ReadonlyArray<CallHead>, events: ReadonlyArr
 		else if (job === 'arbitrate') state = item.job === 'arbitrate' ? (item.status === 'held' ? 'held' : 'active') : 'done'
 		else if (job === 'verify' && item.job === 'arbitrate') state = 'failed'
 		else if (job === 'verify' && item.status === 'waiting-prerequisite') state = 'waiting'
+		else if (item.status === 'paused' && item.hold?.context.next === 'ship') state = job === 'ship' ? 'waiting' : 'done'
+		else if (item.status === 'paused' && (job === item.job || track)) state = 'waiting'
 		else if (track) state = track.done ? 'done' : item.status === 'held' ? 'held' : 'active'
 		else if (job === 'ship') state = item.merged ? (item.status === 'held' ? 'held' : 'active') : 'todo'
 		else if (ORDER[job]! < at) state = 'done'
@@ -317,6 +319,7 @@ const doingOf = (store: StoreService, item: Item, flying: ReadonlyArray<Flight>,
 		case 'dropped': return { doing: 'Dropped by the operator', owes: '' }
 		case 'candidate': return { doing: 'Candidate: waits for you to promote it into delivery', owes: 'operator' }
 		case 'held': return { doing: item.hold?.message ?? 'Held for the operator', owes: 'operator', next: nextOf(item) }
+		case 'paused': return { doing: item.hold?.message ?? 'Stopped at a checkpoint for you', owes: 'operator', next: nextOf(item) }
 		case 'waiting-quota': return { doing: `Every card is out of quota; resumes by itself at ${item.resetsAt ? new Date(item.resetsAt).toISOString().slice(11, 16) : 'the earliest reset'} UTC`, owes: 'quota reset' }
 		case 'waiting-prerequisite': return { doing: `Its check failed on a pre-existing defect; waits for fix ${title(item.waitsOn!)} to ship, then runs its checks again`, owes: title(item.waitsOn!) }
 	}
@@ -361,7 +364,7 @@ const itemViews = (store: StoreService, items: ReadonlyArray<Item>, events: Read
 			after: (item.after ?? []).map((id) => ({ id, status: store.get(id)?.status ?? 'missing' })), ...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 			round: item.round, steps: stepsOf(item, mine, evs, fl), doing, owes, since: evs.at(-1)?.at ?? item.updated, started: start, ...(end ? { ended: end } : {}),
 			...tally(mine), questions: evs.filter((e) => e.kind === 'nq-question').reduce((n, e) => n + ((e.data.questions as unknown[])?.length ?? 0), 0),
-			...(item.hold ? { hold: item.hold } : {}), next: item.status === 'held' ? nextOf(item) : [],
+			...(item.hold ? { hold: item.hold } : {}), next: item.status === 'held' || item.status === 'paused' ? nextOf(item) : [],
 			...(item.shipped?.main ?? item.merged?.commit ? { commit: item.shipped?.main ?? item.merged?.commit } : {}),
 			...(results.length ? { checks: { passed: results.filter((r) => r.exitCode === 0).length, total: results.length } } : {}),
 			...(item.change ? { files: item.change.files.length } : {}),
@@ -423,7 +426,7 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 		projects: [...new Set(items.map((i) => i.workspace))],
 		runner,
 		summary: {
-			shipped: count('shipped'), moving: count('running', 'waiting-quota', 'waiting-prerequisite'), queued: count('queued'), held: count('held'), candidates: count('candidate'), dropped: count('dropped'),
+			shipped: count('shipped'), moving: count('running', 'waiting-quota', 'waiting-prerequisite'), queued: count('queued'), held: count('held', 'paused'), candidates: count('candidate'), dropped: count('dropped'),
 			items: delivery.length,
 			...tally(calls), nqMs: nq.reduce((n, c) => n + c.ms, 0), intakes: calls.filter((c) => c.kind === 'intake').length,
 			questions: events.filter((e) => e.kind === 'nq-question').reduce((n, e) => n + ((e.data.questions as unknown[])?.length ?? 0), 0),

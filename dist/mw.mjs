@@ -6,7 +6,8 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync4, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
+import { spawn as spawn2 } from "node:child_process";
+import { existsSync as existsSync4, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -4738,7 +4739,7 @@ var iterateConcurrentImpl = (options) => {
       done3 = true;
       return fibers && fibers.size > 0 ? flatMap3(uninterruptible(fiberInterruptAll(Array.from(fibers))), () => terminal ?? defect) : defect;
     };
-    const go = () => {
+    const go2 = () => {
       let paused = false;
       for (; !terminal && index2 < end2; index2++) {
         const item = items[index2];
@@ -4754,7 +4755,7 @@ var iterateConcurrentImpl = (options) => {
             resume = cb;
             let result3;
             try {
-              result3 = go();
+              result3 = go2();
             } catch (error) {
               return cb(failDefect(error));
             }
@@ -4789,11 +4790,11 @@ var iterateConcurrentImpl = (options) => {
                 const result3 = step2(state, item, exit4, currentIndex);
                 if (result3) {
                   terminal = result3;
-                  go();
+                  go2();
                 }
               }
               if (paused) {
-                const eff2 = go();
+                const eff2 = go2();
                 if (eff2) resume(eff2);
               } else if (done3 && fibers.size === 0) {
                 resume(terminal ?? void_2);
@@ -4826,7 +4827,7 @@ var iterateConcurrentImpl = (options) => {
         }
       }
     };
-    return go();
+    return go2();
   };
 };
 var iterateConcurrent = () => (options) => iterateConcurrentImpl(options);
@@ -11520,7 +11521,7 @@ var FINITE_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?";
 function getIndexSignatureKeys(input, parameter, options = defaultParseOptions) {
   let stringKeys;
   let symbolKeys;
-  function go(parameter2) {
+  function go2(parameter2) {
     switch (parameter2._tag) {
       case "String":
       case "TemplateLiteral":
@@ -11530,12 +11531,12 @@ function getIndexSignatureKeys(input, parameter, options = defaultParseOptions) 
       case "Symbol":
         return (symbolKeys ??= Object.getOwnPropertySymbols(input)).filter((k) => Object.prototype.propertyIsEnumerable.call(input, k) && parameter2.matchKey(k, options) !== void 0);
       case "Union":
-        return [...new Set(parameter2.types.flatMap(go))];
+        return [...new Set(parameter2.types.flatMap(go2))];
       default:
         return [];
     }
   }
-  return go(parameterFromPropertyKey(toEncoded(parameter)));
+  return go2(parameterFromPropertyKey(toEncoded(parameter)));
 }
 var PropertySignature = class {
   name;
@@ -12562,7 +12563,7 @@ function decodeTo(from, to, transformation) {
 function parseParameter(ast) {
   const literals = [];
   const parameters = [];
-  function go(ast2) {
+  function go2(ast2) {
     switch (ast2._tag) {
       case "Literal":
         if (isPropertyKey(ast2.literal) && !literals.includes(ast2.literal)) {
@@ -12578,14 +12579,14 @@ function parseParameter(ast) {
         return;
       case "Union":
         for (let i = 0; i < ast2.types.length; i++) {
-          go(ast2.types[i]);
+          go2(ast2.types[i]);
         }
         return;
       default:
         parameters.push(ast2);
     }
   }
-  go(ast);
+  go2(ast);
   return {
     literals,
     parameters
@@ -12706,7 +12707,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
   if (ast.suffixLengths[0] > inputLength) return void 0;
   const out = new Array(parts2.length);
   let failures;
-  function go(i, pos) {
+  function go2(i, pos) {
     if (i === parts2.length) return pos === inputLength;
     if (failures?.has(i * (inputLength + 1) + pos)) return false;
     const part = parts2[i];
@@ -12718,7 +12719,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
       }
     } else if (part._tag === "Literal") {
       const s = literals[i];
-      if (input.startsWith(s, pos) && go(i + 1, pos + s.length)) {
+      if (input.startsWith(s, pos) && go2(i + 1, pos + s.length)) {
         out[i] = s;
         return true;
       }
@@ -12728,7 +12729,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
       let end2 = anchor === void 0 ? maximumEnd : input.lastIndexOf(anchor, maximumEnd);
       while (end2 >= pos) {
         const s = input.slice(pos, end2);
-        if (part.matchPart(s, options) !== void 0 && go(i + 1, end2)) {
+        if (part.matchPart(s, options) !== void 0 && go2(i + 1, end2)) {
           out[i] = s;
           return true;
         }
@@ -12740,7 +12741,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
     failures.add(i * (inputLength + 1) + pos);
     return false;
   }
-  return go(0, 0) ? out : void 0;
+  return go2(0, 0) ? out : void 0;
 }
 var parameterFromPropertyKey = /* @__PURE__ */ applyToSelfOrLastLinkEncodingIdempotent((ast) => {
   switch (ast._tag) {
@@ -23381,6 +23382,7 @@ var Project = Schema_exports.Struct({
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" })),
   prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
+  autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: full (the default), checkpoints or steps; FOUNDATION ruling 17" })),
   cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the cartridge pack file this project's new work runs; without it, the default software pack" })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
@@ -23393,7 +23395,7 @@ var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, cartridges?, gates?: [{run, glob?}]}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, autonomy?, cartridges?, gates?: [{run, glob?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
@@ -23406,9 +23408,9 @@ var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project, 
   writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
   return merged;
 });
-var openHolds = (store) => store.list().filter((i) => i.status === "held" && i.hold !== void 0).map((item) => {
+var openHolds = (store) => store.list().filter((i) => (i.status === "held" || i.status === "paused") && i.hold !== void 0).map((item) => {
   const events2 = store.events(item.id);
-  const at = events2.findLastIndex((e) => e.kind === "held");
+  const at = events2.findLastIndex((e) => e.kind === "held" || e.kind === "paused");
   const alert = events2.slice(at + 1).find((e) => e.kind === "alerted");
   return {
     item: item.id,
@@ -23448,7 +23450,7 @@ var UNKNOWN_RESET_MS = 60 * 6e4;
 var MIN_OUT_MS = 5 * 6e4;
 var NQ_HOLDS = ["nq_turns", "question_for_operator", "authority"];
 var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections"];
-var DONE = ["held", "shipped", "discovered", "candidate", "dropped"];
+var DONE = ["held", "paused", "shipped", "discovered", "candidate", "dropped"];
 var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var INTAKE_TIER = "intake";
 var liveFile = (store, name) => {
@@ -23474,6 +23476,7 @@ var endLiveOf = (store, id2) => {
 };
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
 var L = (item) => laneOf(item.pack);
+var auto = (item) => (item.autonomy ?? "full") === "full";
 var profileOf = (item, o) => o.kind === "job" ? stepOf(L(item), o.job).profile : o.kind;
 var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
 var withTrack = (item, job, t) => isMaker(job) && item.split?.[job] ? { ...item, split: { ...item.split, [job]: t } } : { ...item, from: t.from, exchange: t.exchange, launches: t.launches, pickingUp: t.pickingUp, rejected: t.rejected };
@@ -23540,7 +23543,10 @@ var step = Effect_exports.fn("mw.step")(function* (id2, job, config) {
   const t = trackOf(item, job);
   const x = t.exchange;
   if (!x) {
-    saveTrack(store, id2, job, { exchange: { from: t.from, handoff: handoffOf(item, job, t), status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job });
+    const handoff = item.steer ? `${handoffOf(item, job, t)}
+
+The operator's word at the checkpoint before this step: ${item.steer}` : handoffOf(item, job, t);
+    saveTrack(store, id2, job, { exchange: { from: t.from, handoff, status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job });
   } else if (x.status === "awaiting-receiver") {
     yield* intake(id2, job, config);
   } else if (x.status === "awaiting-originator") {
@@ -23572,7 +23578,16 @@ var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
     return;
   }
   store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: makers, to: "verify" });
+  stopBetween(store, id2, "implement", "verify");
 });
+var pause = (store, item, key, message, context3) => void store.save({ ...item, status: "paused", hold: { code: "checkpoint", message, context: { ...context3, key } } }, "paused", { key, message });
+var stopBetween = (store, id2, from, to) => {
+  const item = store.get(id2);
+  if (item.autonomy !== "steps" || item.status === "held") return;
+  const [a, b] = [stepOf(L(item), from).cartridge, stepOf(L(item), to).cartridge];
+  if (a === b) return;
+  pause(store, item, `${item.round}:${to}`, `Checkpoint: ${a} is done for #${id2}; ${b} (${to}) is next.`, { after: a, next: to });
+};
 var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   const store = yield* Store;
   const p = config.prescriptions;
@@ -23632,12 +23647,24 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
   let answer2 = reply.value.answer;
+  if (x.deciding) {
+    const open = x.turns.at(-1)?.questions ?? [];
+    const handoff = `${x.handoff}
+
+The ${from} decided these by the rubric, under full autonomy, after the exchange on this hand-off ran out of turns with them open:
+${open.map((q) => `- ${q}`).join("\n")}
+
+${answer2}`;
+    saveTrack(store, id2, job, { launches: 0, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [], decided: true } }, "nq-decided", { job, originator: from, questions: open, answer: answer2 });
+    return;
+  }
   if (reply.value.needsOperator) {
     const pendingQ = x.turns.at(-1);
     const ruled = x.from.kind === "dispatcher" ? void 0 : yield* dispatch(id2, job, config, from, pendingQ.questions, reply.value.answer);
     if (ruled === null) return;
     if (!ruled || ruled.needsOperator) {
-      return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(L(item), job).profile} asked; the operator's source leaves it open.`, { job, receiver: stepOf(L(item), job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...ruled ? { dispatcherSays: ruled.answer } : {} });
+      const why = auto(item) ? "it needs something only the operator has" : "the operator's source leaves it open";
+      return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(L(item), job).profile} asked: ${why}.`, { job, receiver: stepOf(L(item), job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...ruled ? { dispatcherSays: ruled.answer } : {} });
     }
     answer2 = ruled.answer;
   }
@@ -23659,7 +23686,7 @@ var dispatch = (id2, job, config, originator, questions, originatorSays) => Effe
       you: {
         profile: "dispatcher",
         call: "authority",
-        task: `The ${originator} says only the operator can settle what the ${stepOf(L(item), job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+        task: `The ${originator} says only the operator can settle what the ${stepOf(L(item), job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`,
         replyFormat: shapeOf(ORIGINATOR)
       },
       receiver: stepOf(L(item), job).profile,
@@ -23689,7 +23716,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
     profile: stepOf(L(item), job).profile,
     access: prescriptionOf(config.prescriptions, job).access,
     card: x.card,
-    required: deliverableShape(L(item), job)?.required ?? [],
+    required: deliverableShape(L(item), job, auto(item))?.required ?? [],
     ...job === "implement" && plan ? { scope: plan.scope } : {},
     ...jobTree(item, job),
     ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
@@ -23831,7 +23858,7 @@ var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* ()
     harnessVersion: res.version ?? null
   }, { access: "none" });
   store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`);
-  const ok = res.ok && (call.kind === "execute" ? !malformed(L(store.get(id2)), job, res.output) : lastJson(res.output) !== void 0);
+  const ok = res.ok && (call.kind === "execute" ? !malformed(L(store.get(id2)), job, res.output, auto(store.get(id2))) : lastJson(res.output) !== void 0);
   store.note(id2, "repaired", { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok });
   return ok && res.ok ? { ...call, output: res.output } : void 0;
 });
@@ -23845,9 +23872,9 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const item = store.get(id2);
   const plan = planOf(item);
   const home = itemHome(store.path, id2);
-  const problem = malformed(L(item), job, answered.output);
-  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job), problem)) ?? answered : answered;
-  const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0);
+  const problem = malformed(L(item), job, answered.output, auto(item));
+  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered : answered;
+  const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item));
   const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
@@ -23878,7 +23905,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   if (isMaker(job)) rmSync5(patchPath(home, `${job}.partial`), { force: true });
   const now2 = store.get(id2);
   const provisioned = [...now2.provisioned ?? [], ...(value3.provisioned ?? []).map((r) => ({ kind: r.kind, id: r.id, teardown: r.teardown, job }))];
-  const fields = { outputs: { ...now2.outputs, [job]: call.output }, provisioned, ...artifacts };
+  const fields = { outputs: { ...now2.outputs, [job]: call.output }, provisioned, ...artifacts, steer: void 0 };
   const settled = { launches: 0, pickingUp: void 0, rejected: void 0, exchange: void 0 };
   if (isMaker(job) && now2.split?.[job]) {
     saveTrack(store, id2, job, { ...settled, done: true }, "accepted", { job }, fields);
@@ -23900,21 +23927,22 @@ function applyRoute(store, id2, job, value3, fields) {
           objective: c.objective,
           kind: c.kind,
           workspace: current.workspace,
-          status: "candidate",
+          status: auto(current) ? "queued" : "candidate",
           discovery: current.id,
           source: current.source,
           from: by,
           outputs: { discover: JSON.stringify(c) },
           ...after ? { after: after.map((p) => ids[p - 1]) } : {},
-          ...current.pack ? { pack: current.pack } : {}
+          ...current.pack ? { pack: current.pack } : {},
+          ...current.autonomy ? { autonomy: current.autonomy } : {}
         }).id);
       }
-      store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids });
+      store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids, ...auto(current) ? { promoted: true } : {} });
       return;
     }
     case "next":
       store.save({ ...current, job: r.job, from: by, rework: void 0, ...r.job === "plan" ? { base: void 0 } : {} }, "handed-off", { from: job, to: r.job });
-      return;
+      return stopBetween(store, id2, job, r.job);
     case "split":
       store.save({
         ...current,
@@ -23927,7 +23955,7 @@ function applyRoute(store, id2, job, value3, fields) {
         merged: void 0,
         split: Object.fromEntries(L(current).makers.map((m) => [m, { from: by, launches: 0 }]))
       }, "handed-off", { from: job, to: L(current).makers });
-      return;
+      return stopBetween(store, id2, job, "implement");
     case "arbitrate":
       store.save({ ...current, job: "arbitrate", from: by, failure: r.failure }, "failure", { from: job });
       return;
@@ -24033,11 +24061,11 @@ var verifyAndShip = Effect_exports.fn("mw.verifyAndShip")(function* (id2, config
       item = store.get(id2);
       if (item.job !== "verify" || !item.verification?.passed) return;
     }
-    const projects = projectsPath(store.path);
-    if (!projectFor(yield* readProjects(projects), item.workspace)?.ship) {
-      return hold(store, item, "no_ship_command", `Item #${id2} passed its checks, but its project has no ship command.`, { workspace: item.workspace, projects });
-    }
     const verified = item.verification;
+    const key = `ship:${verified.commit}`;
+    if ((item.autonomy ?? "full") !== "full" && item.passed !== key) {
+      return pause(store, item, key, `Checkpoint: #${id2} passed its ${item.verification.results.length ? "checks" : "verification"} and waits for you before it merges and ships.`, { after: "verification", next: "ship", commit: verified.commit, files: item.change?.files ?? [] });
+    }
     const merged = yield* withLock(item.workspace, Effect_exports.gen(function* () {
       const now2 = yield* revParse(item.workspace, item.base.ref);
       if (now2 !== verified.on) return false;
@@ -24070,7 +24098,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
     const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
-    const built = yield* commit(wt.path, item.title);
+    const built = yield* commit(wt.path, commitMessage(item));
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
     return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env, live)] };
@@ -24120,12 +24148,40 @@ ${r.output}`)
   const from = failed.some((r) => r.doneWhen !== GATE) ? { kind: "job", job: "test-plan" } : { kind: "dispatcher" };
   store.save({ ...now2, verification, job: "arbitrate", from, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary, ...fixed });
 });
+var commitMessage = (item) => {
+  const plan = planOf(item);
+  const decisions = [...stepsBefore(item), "plan"].flatMap((job) => {
+    const d = deliverableOf(item, job);
+    return Array.isArray(d?.decisions) ? d.decisions : [];
+  }).filter((d) => typeof d.decision === "string");
+  return [
+    item.title,
+    item.objective !== item.title ? item.objective : "",
+    plan?.doneWhen.length ? `Done when:
+${plan.doneWhen.map((d) => `- ${d.text}`).join("\n")}` : "",
+    decisions.length ? `Decisions:
+${decisions.map((d) => `- ${typeof d.question === "string" ? `${d.question} ` : ""}${d.decision}${typeof d.why === "string" ? ` (${d.why})` : ""}`).join("\n")}` : ""
+  ].filter(Boolean).join("\n\n");
+};
+var stepsBefore = (item) => {
+  const steps = L(item).delivery.map((s) => s.job);
+  return steps.slice(0, steps.indexOf("plan"));
+};
+var pushCommand = (repo, ref) => Effect_exports.map(Effect_exports.result(git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", `${ref.replace("refs/heads/", "")}@{upstream}`)), (r) => {
+  const upstream = Result_exports.isSuccess(r) ? r.success.trim() : "";
+  const slash = upstream.indexOf("/");
+  return slash > 0 ? `git push ${quote2(upstream.slice(0, slash))} ${quote2(`${ref}:refs/heads/${upstream.slice(slash + 1)}`)}` : void 0;
+});
 var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   const store = yield* Store;
   const item = store.get(id2);
   const projects = projectsPath(store.path);
-  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship;
-  if (!command2) return hold(store, item, "no_ship_command", `Item #${id2} is on ${item.merged.ref}, but its project has no ship command.`, { workspace: item.workspace, projects });
+  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship ?? (yield* pushCommand(item.workspace, item.merged.ref));
+  if (!command2) {
+    removeHome(itemHome(store.path, id2));
+    const output = `On ${item.merged.ref.replace("refs/heads/", "")}; the project has no ship command and the branch no upstream to push to.`;
+    return void store.save({ ...item, status: "shipped", shipped: { command: "", output, main: item.merged.commit } }, "shipped", { command: "", output, main: item.merged.commit });
+  }
   const env = { ...process.env, MW_ITEM: String(id2), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature", MW_COMMIT: item.merged.commit };
   store.note(id2, "ship-started", { command: command2, main: item.merged.commit });
   const { code, stdout, stderr } = yield* Effect_exports.promise(
@@ -24191,10 +24247,16 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
   }
   hold(store, withTrack(item, job, { ...t, ...patch, launches }), "worker_failing", `A call for the ${job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job, card, lastError: error, ...evidence });
 });
-var holdTurns = (store, item, job, context3) => hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
+var holdTurns = (store, item, job, context3) => {
+  const x = trackOf(item, job).exchange;
+  if (auto(item) && x && !x.decided) {
+    return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: "awaiting-originator", deciding: true } }), "nq-deciding", { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] });
+  }
+  return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
+};
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
-  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
+  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "paused" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
   const fixBlocked = (id2) => store.get(id2)?.status !== "dropped" && blocked(id2);
   return item.waitsOn !== void 0 && fixBlocked(item.waitsOn) || unshipped(store, item).some(blocked);
 };
@@ -24210,22 +24272,29 @@ var openPrerequisite = (store, item, answer2, by) => {
 
 Failure:
 ${item.failure ?? ""}`,
-    rework: { cause: "pre-existing", answer: answer2 }
+    rework: { cause: "pre-existing", answer: answer2 },
+    ...item.pack ? { pack: item.pack } : {},
+    ...item.autonomy ? { autonomy: item.autonomy } : {}
   });
   store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(item, by) });
 };
 function nextFor(item) {
-  if (item.status !== "held") return [];
   const id2 = item.id;
+  if (item.status === "paused") {
+    const ship = item.hold?.context.next === "ship";
+    return [
+      { run: `mw go ${id2}`, why: ship ? "it merges onto main and ships" : `it goes on to ${String(item.hold?.context.next ?? "the next step")}` },
+      { run: `mw answer ${id2} "<what should change>"`, why: ship ? "the planner plans again from your words, the change is made again and checked, and it stops here again" : "it goes on, and the next step receives your words as the operator's" },
+      { run: `mw drop ${id2}`, why: "abandon it; nothing of it ships" }
+    ];
+  }
+  if (item.status !== "held") return [];
   const code = item.hold.code;
   if (NQ_HOLDS.includes(code)) {
     return [{ run: `mw answer ${id2} "<your answer to context.questions>"`, why: "your answer goes to the receiving agent, which confirms it understands or asks again" }];
   }
   if (CHECK_HOLDS.includes(code)) {
     return ["implementation", "test", "pre-existing"].map((cause) => ({ run: `mw answer ${id2} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: "the new code or its plan is wrong: the planner replans", test: "the check is wrong: the test architect rewrites it", "pre-existing": "the defect predates this work: it gets its own fix first" }[cause] }));
-  }
-  if (code === "no_ship_command") {
-    return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: "register how this project ships; the item then ships" }];
   }
   if (code === "leftovers") {
     return [...item.hold.next ?? [], { run: `mw retry ${id2}`, why: "go on: once the files in context.files are dealt with, or at once if the operator made them while the call ran" }];
@@ -24241,7 +24310,7 @@ var held = (id2) => Effect_exports.gen(function* () {
   const store = yield* Store;
   const item = store.get(id2);
   if (!item) return yield* notFound2(id2);
-  if (item.status !== "held") {
+  if (item.status !== "held" && item.status !== "paused") {
     return yield* new MadeWellError({ code: "not_held", message: `Item #${id2} is ${item.status}, not waiting on you.`, context: { id: id2, status: item.status, job: item.job }, next: [{ run: `mw status ${id2}`, why: "see what it is doing now" }] });
   }
   return { store, item };
@@ -24260,6 +24329,14 @@ var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
   if (repeat3) return;
   const { item } = yield* held(id2);
   const free = released(item);
+  if (item.status === "paused") {
+    if (item.hold.context.next === "ship") {
+      store.save({ ...free, job: "plan", from: { kind: "operator" }, exchange: void 0, rework: { cause: "implementation", answer: text2 }, round: item.round + 1, base: void 0, verification: void 0 }, "ruling", { cause: "implementation", to: "plan", by: "operator", answer: text2 });
+    } else {
+      store.save({ ...free, passed: String(item.hold.context.key), steer: text2 }, "steered", { job: item.job, answer: text2, by: "operator" });
+    }
+    return;
+  }
   if (NQ_HOLDS.includes(item.hold.code)) {
     const job2 = item.hold.context.job ?? item.job;
     const t = trackOf(free, job2);
@@ -24322,11 +24399,22 @@ var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
   for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery });
   return chosen.map((c) => store.get(c.id));
 });
+var go = (id2) => Effect_exports.gen(function* () {
+  const store = yield* Store;
+  const item = store.get(id2);
+  if (!item) return yield* notFound2(id2);
+  if (item.status === "discovered") return void (yield* promote(id2));
+  if (item.status !== "paused") {
+    if (store.events(id2).findLast((e) => e.kind === "paused" || e.kind === "go")?.kind === "go") return;
+    return yield* new MadeWellError({ code: "not_held", message: `Item #${id2} is ${item.status}, not stopped at a checkpoint.`, context: { id: id2, status: item.status, job: item.job }, next: [{ run: `mw status ${id2}`, why: "see what it is doing now" }] });
+  }
+  store.save({ ...released(item), passed: String(item.hold.context.key) }, "go", { job: item.job, at: item.hold.context.key });
+});
 var retry3 = (id2) => Effect_exports.gen(function* () {
   const events2 = (yield* Store).events(id2);
   if (events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => e.kind === "retried")) return;
   const { store, item } = yield* held(id2);
-  if (NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
+  if (item.status === "paused" || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   }
   store.save(released(item), "retried", { job: item.job });
@@ -24384,6 +24472,7 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
     }
   }
 }).pipe(Effect_exports.scoped);
+var FULL_AUTHORITY = "Made Well runs in full autonomy: nobody is there to decide, so decide even what the operator's source leaves open, by the rubric (a choice that satisfies two of the three governing questions is the answer). Set needsOperator only when the work needs something only the operator has and Made Well cannot supply: a credential, an account, or money.";
 var SUBAGENT_RULE = "If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.";
 var briefOf = (lane) => [
   "You are an agent in Made Well, a pipeline that takes one work item from ideation through planning and making to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
@@ -24393,7 +24482,7 @@ var briefOf = (lane) => [
     "- Developer experience: What moves us toward a 10\xD7 better experience of developing, understanding, inspecting, and recovering the work?",
     "- User experience: What moves us toward a 10\xD7 better experience for the person the resulting system serves?",
     "- Agentic experience: What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?",
-    "The answer they give is the decision. Ideation and planning settle every decision and record it with why; no decision is left for the operator."
+    "A choice that satisfies two of the three is the answer, and it is what is done. Ideation and planning settle every decision and record it with why; no decision is left for the operator."
   ].join("\n"),
   `Leave no trace. Your working directory is a disposable worktree of the project's repository, removed when your call ends: write only there, never in the repository's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
   "Honor the conventions the project's repository already has.",
@@ -24435,7 +24524,7 @@ var arbiterTask = (lane, autonomous) => [
   autonomous ? "Nobody is there to decide for you: name the cause the evidence best supports." : "undetermined: the operator decides."
 ].join(" ");
 var taskOf = (item, job) => {
-  const own = job === "arbitrate" ? arbiterTask(L(item), false) : TASKS[job];
+  const own = job === "arbitrate" ? arbiterTask(L(item), auto(item)) : TASKS[job];
   const extra = stepOf(L(item), job).task;
   return own && extra ? `${own} ${extra}` : own ?? extra;
 };
@@ -24446,7 +24535,7 @@ var you = (item, job, kind) => {
 var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
-  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job), replyFormat: shapeOf(INTAKE) },
+  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
   ...jobEvidence(item, job),
   handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
@@ -24458,7 +24547,7 @@ var originatorParts = (item, job, x) => ({
   you: {
     profile: profileOf(item, x.from),
     call: "originator",
-    task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+    task: x.deciding ? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10\xD7 developer experience, a 10\xD7 user experience and a 10\xD7 agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.` : `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`,
     replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
@@ -24468,7 +24557,7 @@ var originatorParts = (item, job, x) => ({
   earlierTurns: x.turns.slice(0, -1)
 });
 var executeParts = (item, job, t, x) => ({
-  you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: deliverableShape(L(item), job) },
+  you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: deliverableShape(L(item), job, auto(item)) },
   ...jobEvidence(item, job),
   exchange: { from: profileOf(item, x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
   ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
@@ -24781,7 +24870,7 @@ h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fa
 .row .m { font:12px var(--mono); color:var(--mute); text-align:right; line-height:1.6 } .row .m .owes { font-family:inherit; color:var(--ink2) }
 .tag { display:inline-block; font:600 10.5px var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:2px; background:var(--line2); color:var(--mute) }
 .tag.fix { background:#fff1f2; color:#be123c } .tag.feature { background:var(--blue-bg); color:var(--blue) } .tag.chore { background:#f5f5f4; color:#57534e } .tag.discovery { background:var(--violet-bg); color:var(--violet) } .tag.prerequisite { background:var(--amber-bg); color:var(--amber) }
-.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-dropped { text-decoration:line-through }
+.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-paused { background:var(--amber-bg, #fff4dc); color:var(--amber) } .tag.st-dropped { text-decoration:line-through }
 .pipe { display:flex; align-items:center; gap:3px; justify-self:start }
 .pipe .col { display:flex; flex-direction:column; gap:3px }
 .seg { font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--line); color:var(--faint); background:#fff; white-space:nowrap; min-width:62px; text-align:center; position:relative; line-height:1.3 }
@@ -24905,7 +24994,7 @@ function renderHero() {
     : s.held ? '<b style="color:var(--red)">' + plural(s.held, 'item waits', 'items wait') + ' on you.</b> Everything else keeps moving.'
     : s.candidates && !s.moving && !s.queued ? '<b style="color:var(--red)">' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.</b> Nothing else is moving.'
     : !open_ ? 'All work is done: every item has shipped, been dropped, or waits for promotion.'
-    : !M.runner && LIVE ? '<b style="color:var(--amber)">No runner is driving the store.</b> Run <code>mw run --watch</code>; every item resumes where it stopped.'
+    : !M.runner && LIVE ? '<b style="color:var(--amber)">The machine is stopped.</b> Any command that gives it work starts it again, or <code>mw run</code>; every item resumes where it stopped.'
     : plural(s.moving, 'item') + ' moving, ' + s.queued + ' queued.' + (s.candidates ? ' ' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.' : ' Nothing needs you.');
   var span = s.first ? (Date.parse(s.last) > Date.parse(s.first) ? (LIVE && open_ ? now() : Date.parse(s.last)) - Date.parse(s.first) : 0) : 0;
   var nq = s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0;
@@ -24951,10 +25040,10 @@ function renderWork() {
   var dropped = M.items.length - items.length;
   $('worksub').textContent = items.length ? plural(items.length, 'item') + (dropped ? ' · ' + dropped + ' dropped' : '') : '';
   // What needs a person first, then what moves, then what waits, then what is done.
-  var rank = { held: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
+  var rank = { held: 0, paused: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
   items.sort(function (a, b) { return (rank[a.status] - rank[b.status]) || a.id - b.id; });
   $('work').innerHTML = items.length ? items.map(function (i) {
-    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
+    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'paused' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
     return '<div class="row" data-item="' + i.id + '"><div><div class="t"><span class="id">#' + i.id + '</span>' + esc(i.title) + tags + '</div><div class="d">' + esc(i.doing) + '</div></div>' + pipe(i.steps) + '<div class="m">' + rowMeta(i) + '</div></div>';
   }).join('') : '<div class="empty">No work items yet.</div>';
 }
@@ -25513,6 +25602,8 @@ var stepsOf = (item, calls, events2, flying) => {
     else if (job === "arbitrate") state = item.job === "arbitrate" ? item.status === "held" ? "held" : "active" : "done";
     else if (job === "verify" && item.job === "arbitrate") state = "failed";
     else if (job === "verify" && item.status === "waiting-prerequisite") state = "waiting";
+    else if (item.status === "paused" && item.hold?.context.next === "ship") state = job === "ship" ? "waiting" : "done";
+    else if (item.status === "paused" && (job === item.job || track2)) state = "waiting";
     else if (track2) state = track2.done ? "done" : item.status === "held" ? "held" : "active";
     else if (job === "ship") state = item.merged ? item.status === "held" ? "held" : "active" : "todo";
     else if (ORDER[job] < at) state = "done";
@@ -25538,6 +25629,8 @@ var doingOf = (store, item, flying, driven, nextOf, events2) => {
       return { doing: "Candidate: waits for you to promote it into delivery", owes: "operator" };
     case "held":
       return { doing: item.hold?.message ?? "Held for the operator", owes: "operator", next: nextOf(item) };
+    case "paused":
+      return { doing: item.hold?.message ?? "Stopped at a checkpoint for you", owes: "operator", next: nextOf(item) };
     case "waiting-quota":
       return { doing: `Every card is out of quota; resumes by itself at ${item.resetsAt ? new Date(item.resetsAt).toISOString().slice(11, 16) : "the earliest reset"} UTC`, owes: "quota reset" };
     case "waiting-prerequisite":
@@ -25594,7 +25687,7 @@ var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.
     ...tally(mine),
     questions: evs.filter((e) => e.kind === "nq-question").reduce((n, e) => n + (e.data.questions?.length ?? 0), 0),
     ...item.hold ? { hold: item.hold } : {},
-    next: item.status === "held" ? nextOf(item) : [],
+    next: item.status === "held" || item.status === "paused" ? nextOf(item) : [],
     ...item.shipped?.main ?? item.merged?.commit ? { commit: item.shipped?.main ?? item.merged?.commit } : {},
     ...results2.length ? { checks: { passed: results2.filter((r) => r.exitCode === 0).length, total: results2.length } } : {},
     ...item.change ? { files: item.change.files.length } : {}
@@ -25652,7 +25745,7 @@ var modelOf = (store, nextOf) => {
       shipped: count("shipped"),
       moving: count("running", "waiting-quota", "waiting-prerequisite"),
       queued: count("queued"),
-      held: count("held"),
+      held: count("held", "paused"),
       candidates: count("candidate"),
       dropped: count("dropped"),
       items: delivery.length,
@@ -25935,7 +26028,6 @@ var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
 var storePath = defaultStorePath();
 var registry = projectsPath(storePath);
 var prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL("../prescriptions.json", import.meta.url).pathname;
-var SHIP_SLOT = `"<the operator's command that deploys what is on main>"`;
 var workerLayer = Layer_exports.unwrap(Effect_exports.sync(() => process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker));
 var usageError = (command2, message) => new MadeWellError({ code: "usage", message, context: { command: command2 }, next: [{ run: "mw", why: "read the manual: every command and its input schema" }] });
 var Id2 = Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThan(0)))).annotate({ description: "a work item number" });
@@ -25987,7 +26079,6 @@ var Pruned = Schema_exports.Struct({
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Pruned" });
 var Action = Schema_exports.Union([
-  Schema_exports.Struct({ action: Schema_exports.Literal("run"), run: Schema_exports.String, why: Schema_exports.String }),
   Schema_exports.Struct({
     action: Schema_exports.Literal("relay"),
     say: Schema_exports.String.annotate({ description: "what to tell the operator" }),
@@ -25996,7 +26087,7 @@ var Action = Schema_exports.Union([
     then: Schema_exports.Array(Next).annotate({ description: "run the one that fits the operator's reply, with their words in place of the <...> slot" })
   }),
   Schema_exports.Struct({ action: Schema_exports.Literal("wait"), until: Schema_exports.String.annotate({ description: "ISO time" }), why: Schema_exports.String, then: Schema_exports.Literal("mw next") })
-]).annotate({ identifier: "Action", description: "run a command, relay to the operator, or wait until a time" });
+]).annotate({ identifier: "Action", description: "relay to the operator, or wait until a time; Made Well never asks anyone else to drive it" });
 var Created = Schema_exports.Struct({ item: ItemView, next: Schema_exports.Array(Next) });
 var Tally = Schema_exports.Struct({ calls: Schema_exports.Int, minutes: Schema_exports.Number, tokens: Schema_exports.Number, refused: Schema_exports.Int });
 var Kinds = Schema_exports.Record(Schema_exports.String, Schema_exports.Number).annotate({ description: "agent minutes by call kind: intake, originator (NQ) and execute" });
@@ -26044,19 +26135,19 @@ var view = (item, driven = true) => ({
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},
   ...item.hold ? { hold: item.hold } : {},
   ...item.shipped ? { shipped: item.shipped } : {},
-  next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "dropped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
+  next: item.status === "held" || item.status === "paused" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "dropped"].includes(item.status) ? [] : item.status === "queued" ? driven || process.env.MW_AUTORUN !== "0" ? [{ run: `mw status ${item.id}`, why: "queued: the machine picks it up by itself" }] : [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
 });
 var holdView = (store, h) => ({ ...h, next: nextFor(store.get(h.item)) });
 var board = (store) => {
   const items = store.list();
   const count = (s) => items.filter((i) => i.status === s).length;
-  const held2 = items.filter((i) => i.status === "held");
+  const held2 = items.filter((i) => i.status === "held" || i.status === "paused");
   const driven = store.runner() !== null;
   const moving = count("running") + count("waiting-quota") + count("waiting-prerequisite");
   return {
-    summary: `${count("held")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped`,
+    summary: `${count("held") + count("paused")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped`,
     items: items.map((i) => view(i, driven)),
-    next: held2.length ? held2.flatMap(nextFor) : count("queued") || moving && !driven ? [{ run: "mw run", why: "deliver queued items and resume any whose runner stopped" }] : []
+    next: held2.length ? held2.flatMap(nextFor) : (count("queued") || moving) && !driven ? [{ run: "mw run", why: "deliver queued items and resume any whose runner stopped" }] : []
   };
 };
 var found = (store, id2) => {
@@ -26066,13 +26157,27 @@ var found = (store, id2) => {
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
   const path = resolve6(workspace ?? ".");
   const projects = yield* readProjects(registry);
-  if (projectFor(projects, path)?.ship) return path;
+  const project = projectFor(projects, path);
+  if (project) return { path, project };
   return yield* new MadeWellError({
     code: "project_not_found",
-    message: `${path} is not a registered project with a ship command.`,
+    message: `${path} is not a registered project.`,
     context: { workspace: path, projects: projects.map((p) => p.path) },
-    next: [{ run: `mw init --workspace ${quote2(path)} --ship ${SHIP_SLOT}`, why: "register it with how it ships, then run this command again" }]
+    next: [{ run: `mw init --workspace ${quote2(path)}`, why: 'register it, then run this command again; add --ship "<command>" if shipping means more than pushing main' }]
   });
+});
+var AutonomyInput = Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is: full (default; no stops, questions decided by the rubric), checkpoints (stop after discovery and before each ship), steps (also between cartridges)" }));
+var wake = Effect_exports.fn("mw.wake")(function* (id2) {
+  const store = yield* Store;
+  const watch2 = [{ run: id2 === void 0 ? "mw status" : `mw status ${id2}`, why: "the machine is working on it by itself; this shows where it is" }, { run: "mw ui", why: "watch every step live" }];
+  if (process.env.MW_AUTORUN === "0") return [{ run: "mw run", why: "deliver it: the operator starts the runner (MW_AUTORUN=0)" }];
+  const movable = store.list().some((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
+  if (!movable || (yield* runner(store))) return watch2;
+  const home = dirname8(store.path);
+  mkdirSync7(home, { recursive: true });
+  const log2 = openSync3(join12(home, "runner.log"), "a");
+  spawn2(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
+  return watch2;
 });
 var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
   const path = projectFor(yield* readProjects(registry), workspace)?.cartridges;
@@ -26127,7 +26232,7 @@ var nextAction = Effect_exports.fn("mw.next")(function* () {
   const moving = items.filter((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
   const owner = moving.length ? yield* runner(store) : null;
   if (moving.length && !owner) {
-    return { action: "run", run: "mw run", why: `${moving.length} item(s) can move without the operator. It returns once every item has shipped or holds for the operator, and it is safe to repeat.` };
+    return { action: "relay", say: `The machine stopped with ${moving.length} item(s) it can move by itself. It starts again with any command that gives it work, or with \`mw run\`.`, then: [{ run: "mw run", why: "the operator restarts the machine; every item resumes where it stopped" }] };
   }
   const [hold2] = openHolds(store);
   if (hold2) {
@@ -26154,12 +26259,12 @@ var nextAction = Effect_exports.fn("mw.next")(function* () {
   }
   const cwd = process.cwd();
   const project = projectFor(yield* readProjects(registry), cwd);
-  if (!project?.ship) {
-    const init = `mw init --workspace ${quote2(project?.path ?? cwd)} --ship ${SHIP_SLOT}`;
+  if (!project) {
+    const init = `mw init --workspace ${quote2(cwd)}`;
     return {
       action: "relay",
-      say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: once Made Well brings a passing item onto main, what command deploys it?`,
-      then: [{ run: init, why: "register the project with how it ships" }, { run: `${init} --alert "<a command that notifies the operator>"`, why: "also say how to reach the operator when an item holds" }]
+      say: `${cwd} is not a Made Well project yet. Register it, and shipping pushes main to its upstream; add a ship command if shipping means a deploy too.`,
+      then: [{ run: init, why: "register the project" }, { run: `${init} --ship "<the command that deploys what is on main>"`, why: "register it with how it deploys" }]
     };
   }
   const at = quote2(project.path);
@@ -26187,31 +26292,26 @@ var COMMANDS = [
     summary: "Register a project, or update its config. The config lives in Made Well's home, never in the project. Items held for a missing ship command go on.",
     input: Schema_exports.Struct({
       workspace: Workspace,
-      ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time."),
+      ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Without one, shipping pushes main to its upstream."),
+      autonomy: AutonomyInput,
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
       prepare: optional3("shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output"),
       cartridges: optional3('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
       gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
-    output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
+    output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const store = yield* Store;
       const path = resolve6(input.workspace ?? ".");
       if (!existsSync4(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
-      const projects = yield* readProjects(registry);
-      if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`);
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
       const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve6(input.cartridges);
       if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
-      const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...cartridges ? { cartridges } : {} });
+      const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
       const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
-      const updated = yield* readProjects(registry);
-      const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
-      for (const h of waiting) yield* retry3(h.item);
-      return { project, released: waiting.map((h) => view(store.get(h.item))), next: [{ run: "mw next", why: "see what to do now" }] };
+      return { project, next: [{ run: `mw discover --workspace ${quote2(path)} --source-file <notes>`, why: "put the raw notes in: Made Well discovers the work and delivers it" }, { run: `mw start --workspace ${quote2(path)} --objective "<one line>" --source "<the operator's own words>"`, why: "deliver one piece of work straight away" }] };
     })
   }),
   command({
@@ -26247,19 +26347,20 @@ var COMMANDS = [
   command({
     name: "discover",
     summary: "Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.",
-    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run") }),
+    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run"), autonomy: AutonomyInput }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
       const source = yield* readSource(input);
       if (!source) return yield* usageError("discover", 'discover needs the raw input: --source "<text>" or --source-file <file>.');
-      return { source, workspace: yield* registered(input.workspace) };
+      return { source, ...yield* registered(input.workspace) };
     }),
-    run: (input, { source, workspace }) => Effect_exports.gen(function* () {
+    run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
       const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
       const pack = yield* packFor(workspace);
-      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, ...pack ? { pack } : {} });
-      return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
+      const autonomy = input.autonomy ?? project.autonomy ?? "full";
+      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, autonomy, ...pack ? { pack } : {} });
+      return { item: view(item), next: yield* wake(item.id) };
     })
   }),
   command({
@@ -26269,23 +26370,27 @@ var COMMANDS = [
     input: Schema_exports.Struct({ discovery: Id2.annotate({ description: "the discovery run" }), ids: Schema_exports.Array(Id2).annotate({ description: "the candidates to promote; none means all" }) }),
     output: Schema_exports.Struct({ promoted: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
     idempotent: true,
-    run: (input) => promote(input.discovery, input.ids).pipe(Effect_exports.map((promoted) => ({ promoted: promoted.map((i) => view(i)), next: [{ run: "mw run", why: "deliver them, oldest first" }] })))
+    run: (input) => Effect_exports.gen(function* () {
+      const promoted = yield* promote(input.discovery, input.ids);
+      return { promoted: promoted.map((i) => view(i)), next: yield* wake() };
+    })
   }),
   command({
     name: "start",
     summary: "Add one work item straight to the delivery queue.",
-    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective") }),
+    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective"), autonomy: AutonomyInput }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
       const source = yield* readSource(input);
       if (!source) return yield* usageError("start", `start needs the operator's own words: --source "<text>" or --source-file <file>.`);
-      return { source, workspace: yield* registered(input.workspace) };
+      return { source, ...yield* registered(input.workspace) };
     }),
-    run: (input, { source, workspace }) => Effect_exports.gen(function* () {
+    run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
       const pack = yield* packFor(workspace);
-      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, ...pack ? { pack } : {} });
-      return { item: view(item), next: [{ run: "mw run", why: "deliver it; it moves through all four stages and ships on a passing check" }] };
+      const autonomy = input.autonomy ?? project.autonomy ?? "full";
+      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...pack ? { pack } : {} });
+      return { item: view(item), next: yield* wake(item.id) };
     })
   }),
   command({
@@ -26344,7 +26449,7 @@ var COMMANDS = [
   }),
   command({
     name: "answer",
-    summary: "Answer a held item: an agent's open questions, or, with --cause, a failed check.",
+    summary: "Answer an item that waits on you: an agent's open questions, a failed check (with --cause), or, at a checkpoint, what should change.",
     args: ["id", "text..."],
     input: Schema_exports.Struct({
       id: Id2,
@@ -26355,7 +26460,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       yield* answer(input.id, input.text, input.cause);
-      return { item: view((yield* Store).get(input.id)), next: [{ run: "mw run", why: "continue delivering it" }] };
+      return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
     })
   }),
   command({
@@ -26367,7 +26472,19 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       yield* retry3(input.id);
-      return { item: view((yield* Store).get(input.id)), next: [{ run: "mw run", why: "continue delivering it" }] };
+      return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
+    })
+  }),
+  command({
+    name: "go",
+    summary: "Let an item past the checkpoint it stopped at (autonomy checkpoints or steps): it goes on to its next step, or merges and ships. On a finished discovery run, sends every waiting candidate into delivery.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Id2 }),
+    output: Created,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      yield* go(input.id);
+      return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
     })
   }),
   command({

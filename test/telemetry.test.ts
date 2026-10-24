@@ -164,7 +164,7 @@ const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: str
 		mkdirSync(repo)
 		spawnSync('sh', ['-c', 'git init -q -b main && git config user.name Operator && git config user.email op@example.com && git commit -q --allow-empty -m first'], { cwd: repo })
 	}
-	const r = spawnSync(process.execPath, [cli, ...args], { env: { ...env, MW_STORE: join(home, 'mw.db'), MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(home, 'calls.log'), ...extra }, cwd: repo, encoding: 'utf8' })
+	const r = spawnSync(process.execPath, [cli, ...args], { env: { ...env, MW_STORE: join(home, 'mw.db'), MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(home, 'calls.log'), MW_AUTORUN: '0', ...extra }, cwd: repo, encoding: 'utf8' })
 	return { code: r.status, out: r.stdout ? JSON.parse(r.stdout) : null, err: r.stderr ? JSON.parse(r.stderr) : null }
 }
 

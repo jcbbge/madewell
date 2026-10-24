@@ -14,7 +14,14 @@ import { laneOf, type Check, type Cause, type Job, type Maker, type Pack } from 
 import type { Resource, TeardownRecord } from './workspace.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
-type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered' | 'dropped'
+type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'discovered' | 'dropped'
+
+/**
+ * How involved the operator is (FOUNDATION, ruling 17). full: no stops, and what would go to the operator is decided by the
+ * delegating agent by the rubric. checkpoints: stops after discovery and before each item ships. steps: also between the
+ * cartridges of a loop. Absent means full.
+ */
+export type Autonomy = 'full' | 'checkpoints' | 'steps'
 
 export interface Hold {
 	readonly code: string
@@ -45,6 +52,10 @@ export interface Exchange {
 	readonly notes?: ReadonlyArray<string>
 	/** The receiver's card. A different card is a different agent, and goes through NQ again. */
 	readonly card?: Card
+	/** Full autonomy: the exchange ran out of turns, and the originator decides the open questions by the rubric. */
+	readonly deciding?: boolean
+	/** The originator has decided once by the rubric on this hand-off; running out of turns again holds. */
+	readonly decided?: boolean
 }
 
 /** One job's hand-off and attempts. The item carries one at its top level; after planning it carries two, one per maker. */
@@ -118,6 +129,12 @@ export interface Item {
 	readonly kind?: 'feature' | 'fix' | 'chore'
 	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
 	readonly pack?: Pack
+	/** How involved the operator is with it; candidates and fix items inherit it. Absent means full. */
+	readonly autonomy?: Autonomy
+	/** The checkpoint the operator last let it pass, so it does not stop there twice. */
+	readonly passed?: string
+	/** The operator's word at a checkpoint, for the next hand-off. */
+	readonly steer?: string
 	readonly waitsOn?: number
 	/** For a candidate: the items it builds on. It starts once they have shipped. */
 	readonly after?: ReadonlyArray<number>
@@ -240,7 +257,7 @@ export function openStore(path: string) {
 
 	const store = {
 		path,
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack'>>): Item {
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')

@@ -35,7 +35,7 @@ import {
 	type Cause, type Check, type Job, type Lane, type Maker, type Plan, type Step,
 } from './lane.ts'
 import { Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
-import { capture, changes, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, type Changes, type State, type TeardownRecord } from './workspace.ts'
+import { capture, changes, git, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, type Changes, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
 
 const MAX_LAUNCHES = 3
@@ -46,7 +46,7 @@ const UNKNOWN_RESET_MS = 60 * 60_000
 const MIN_OUT_MS = 5 * 60_000
 const NQ_HOLDS = ['nq_turns', 'question_for_operator', 'authority']
 const CHECK_HOLDS = ['arbiter_undetermined', 'too_many_corrections']
-const DONE: ReadonlyArray<Item['status']> = ['held', 'shipped', 'discovered', 'candidate', 'dropped']
+const DONE: ReadonlyArray<Item['status']> = ['held', 'paused', 'shipped', 'discovered', 'candidate', 'dropped']
 const READY: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quota', 'waiting-prerequisite']
 /** The prescribed tier intake runs on: the cheapest cards. Without it, intake uses the job's own tier. */
 const INTAKE_TIER = 'intake'
@@ -94,6 +94,9 @@ const notFound = (id: number) =>
 
 /** The lane an item runs: its own cartridge pack, or the default software pack. */
 const L = (item: Item) => laneOf(item.pack)
+
+/** Full autonomy: nobody is there to answer, so what would go to the operator is decided by the delegating agent, by the rubric. */
+const auto = (item: Item) => (item.autonomy ?? 'full') === 'full'
 
 const profileOf = (item: Item, o: Origin) => (o.kind === 'job' ? stepOf(L(item), o.job).profile : o.kind)
 
@@ -192,7 +195,9 @@ const step = Effect.fn('mw.step')(function* (id: number, job: Job, config: Engin
 	const t = trackOf(item, job)
 	const x = t.exchange
 	if (!x) {
-		saveTrack(store, id, job, { exchange: { from: t.from, handoff: handoffOf(item, job, t), status: 'awaiting-receiver', turns: [] } }, 'handoff', { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job })
+		// The operator's word at the checkpoint before this step travels with its hand-off.
+		const handoff = item.steer ? `${handoffOf(item, job, t)}\n\nThe operator's word at the checkpoint before this step: ${item.steer}` : handoffOf(item, job, t)
+		saveTrack(store, id, job, { exchange: { from: t.from, handoff, status: 'awaiting-receiver', turns: [] } }, 'handoff', { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job })
 	} else if (x.status === 'awaiting-receiver') {
 		yield* intake(id, job, config)
 	} else if (x.status === 'awaiting-originator') {
@@ -228,7 +233,24 @@ const runSplit = Effect.fn('mw.split')(function* (id: number, config: EngineConf
 		return
 	}
 	store.save({ ...joined, job: 'verify', from: { kind: 'job', job: 'implement' } }, 'handed-off', { from: makers, to: 'verify' })
+	stopBetween(store, id, 'implement', 'verify')
 })
+
+/**
+ * A checkpoint (ruling 17): the item stops, with nothing wrong, until the operator goes on, steers or drops it. `key` names it,
+ * so once the operator lets it pass it does not stop there again.
+ */
+const pause = (store: StoreService, item: Item, key: string, message: string, context: Record<string, unknown>) =>
+	void store.save({ ...item, status: 'paused', hold: { code: 'checkpoint', message, context: { ...context, key } } }, 'paused', { key, message })
+
+/** At the "every step" level the item stops each time it crosses from one cartridge into the next. */
+const stopBetween = (store: StoreService, id: number, from: Job, to: Job) => {
+	const item = store.get(id)!
+	if (item.autonomy !== 'steps' || item.status === 'held') return
+	const [a, b] = [stepOf(L(item), from).cartridge, stepOf(L(item), to).cartridge]
+	if (a === b) return
+	pause(store, item, `${item.round}:${to}`, `Checkpoint: ${a} is done for #${id}; ${b} (${to}) is next.`, { after: a, next: to })
+}
 
 // ── NQ ─────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -290,6 +312,13 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	const reply = yield* decodeOrRepair(id, job, call, ORIGINATOR)
 	if (!reply.ok) return yield* refuse(id, job, call, reply.reason)
 	let answer = reply.value.answer
+	if (x.deciding) {
+		// Full autonomy, out of turns: the delegating agent's decision corrects the hand-off, and a new exchange judges it from turn one.
+		const open = x.turns.at(-1)?.questions ?? []
+		const handoff = `${x.handoff}\n\nThe ${from} decided these by the rubric, under full autonomy, after the exchange on this hand-off ran out of turns with them open:\n${open.map((q) => `- ${q}`).join('\n')}\n\n${answer}`
+		saveTrack(store, id, job, { launches: 0, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [], decided: true } }, 'nq-decided', { job, originator: from, questions: open, answer })
+		return
+	}
 	if (reply.value.needsOperator) {
 		const pendingQ = x.turns.at(-1)!
 		// Authority: the dispatcher reads the operator's own source first. It holds only when the source leaves the question open
@@ -297,7 +326,8 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 		const ruled = x.from.kind === 'dispatcher' ? undefined : yield* dispatch(id, job, config, from, pendingQ.questions, reply.value.answer)
 		if (ruled === null) return
 		if (!ruled || ruled.needsOperator) {
-			return hold(store, store.get(id)!, 'authority', `Only the operator can settle what the ${stepOf(L(item), job).profile} asked; the operator's source leaves it open.`, { job, receiver: stepOf(L(item), job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...(ruled ? { dispatcherSays: ruled.answer } : {}) })
+			const why = auto(item) ? 'it needs something only the operator has' : 'the operator\'s source leaves it open'
+			return hold(store, store.get(id)!, 'authority', `Only the operator can settle what the ${stepOf(L(item), job).profile} asked: ${why}.`, { job, receiver: stepOf(L(item), job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...(ruled ? { dispatcherSays: ruled.answer } : {}) })
 		}
 		answer = ruled.answer
 	}
@@ -322,7 +352,7 @@ const dispatch = (id: number, job: Job, config: EngineConfig, originator: string
 			packet: (dir) => packet(item, job, dir, {
 				you: {
 					profile: 'dispatcher', call: 'authority',
-					task: `The ${originator} says only the operator can settle what the ${stepOf(L(item), job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+					task: `The ${originator} says only the operator can settle what the ${stepOf(L(item), job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`,
 					replyFormat: shapeOf(ORIGINATOR),
 				},
 				receiver: stepOf(L(item), job).profile,
@@ -354,7 +384,7 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 	const plan = planOf(item)
 	const maker = isMaker(job)
 	yield* callAgent(id, job, config, {
-		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (deliverableShape(L(item), job)?.required as string[] | undefined) ?? [],
+		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (deliverableShape(L(item), job, auto(item))?.required as string[] | undefined) ?? [],
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
 		...jobTree(item, job),
 		...(maker ? { onFail: (dir: string) => keepPartial(dir, item, job as Maker) } : {}),
@@ -529,7 +559,7 @@ const repair = (id: number, job: Job, call: Called, shape: unknown, problem: str
 			output: res.ok ? res.output : null, error: res.ok ? null : 'limit' in res ? res.limit.message : res.error, raw: res.raw ?? null, started: started.toISOString(), ms, harnessVersion: res.version ?? null,
 		}, { access: 'none' })
 		store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`)
-		const ok = res.ok && (call.kind === 'execute' ? !malformed(L(store.get(id)!), job, res.output) : lastJson(res.output) !== undefined)
+		const ok = res.ok && (call.kind === 'execute' ? !malformed(L(store.get(id)!), job, res.output, auto(store.get(id)!)) : lastJson(res.output) !== undefined)
 		store.note(id, 'repaired', { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok })
 		return ok && res.ok ? { ...call, output: res.output } : undefined
 	})
@@ -551,10 +581,10 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	const plan = planOf(item)
 	const home = itemHome(store.path, id)
 	// A malformed answer is re-asked as it is, by Made Well's own code: the work in the checkout stands.
-	const problem = malformed(L(item), job, answered.output)
-	const call = problem ? ((yield* repair(id, job, answered, deliverableShape(L(item), job), problem)) ?? answered) : answered
+	const problem = malformed(L(item), job, answered.output, auto(item))
+	const call = problem ? ((yield* repair(id, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered) : answered
 	// A plan is held to what its base already holds: the files tracked in its own checkout.
-	const v = validate(L(item), job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined)
+	const v = validate(L(item), job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined, auto(item))
 	const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect.void
 	const refused = (reason: string) => Effect.andThen(keep, refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
@@ -587,7 +617,8 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 
 	const now = store.get(id)!
 	const provisioned = [...(now.provisioned ?? []), ...((value.provisioned as Item['provisioned']) ?? []).map((r) => ({ kind: r.kind, id: r.id, teardown: r.teardown, job }))]
-	const fields: Partial<Item> = { outputs: { ...now.outputs, [job]: call.output }, provisioned, ...artifacts }
+	// The operator's word at a checkpoint has reached every hand-off of the step it preceded once one of them delivers.
+	const fields: Partial<Item> = { outputs: { ...now.outputs, [job]: call.output }, provisioned, ...artifacts, steer: undefined }
 	const settled = { launches: 0, pickingUp: undefined, rejected: undefined, exchange: undefined }
 	if (isMaker(job) && now.split?.[job]) {
 		saveTrack(store, id, job, { ...settled, done: true }, 'accepted', { job }, fields)
@@ -604,29 +635,30 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 	const by: Origin = { kind: 'job', job }
 	switch (r.to) {
 		case 'discovered': {
-			// Each candidate waits for promotion; its originator is this discovery, answering from its report.
+			// Each candidate waits for promotion; in full autonomy every one goes straight into delivery. Its originator is this
+			// discovery, answering from its report.
 			const ids: number[] = []
 			for (const { after, ...c } of r.items) {
 				ids.push(store.create({
-					title: c.title, objective: c.objective, kind: c.kind, workspace: current.workspace, status: 'candidate', discovery: current.id,
+					title: c.title, objective: c.objective, kind: c.kind, workspace: current.workspace, status: auto(current) ? 'queued' : 'candidate', discovery: current.id,
 					source: current.source, from: by, outputs: { discover: JSON.stringify(c) }, ...(after ? { after: after.map((p) => ids[p - 1]!) } : {}),
-					...(current.pack ? { pack: current.pack } : {}),
+					...(current.pack ? { pack: current.pack } : {}), ...(current.autonomy ? { autonomy: current.autonomy } : {}),
 				}).id)
 			}
-			store.save({ ...current, status: 'discovered' }, 'discovered', { candidates: ids })
+			store.save({ ...current, status: 'discovered' }, 'discovered', { candidates: ids, ...(auto(current) ? { promoted: true } : {}) })
 			return
 		}
 		case 'next':
 			// The plan is the first job that reads the code to change it: it starts from the branch as it is now, not as it was at ideation.
 			store.save({ ...current, job: r.job, from: by, rework: undefined, ...(r.job === 'plan' ? { base: undefined } : {}) }, 'handed-off', { from: job, to: r.job })
-			return
+			return stopBetween(store, id, job, r.job)
 		case 'split':
 			// Ruling 12: the plan goes to both makers at once, each on its own track; the planner answers both.
 			store.save({
 				...current, job: 'implement', from: by, rework: undefined, change: undefined, checks: undefined, verification: undefined, merged: undefined,
 				split: Object.fromEntries(L(current).makers.map((m) => [m, { from: by, launches: 0 }])),
 			}, 'handed-off', { from: job, to: L(current).makers })
-			return
+			return stopBetween(store, id, job, 'implement')
 		case 'arbitrate':
 			store.save({ ...current, job: 'arbitrate', from: by, failure: r.failure }, 'failure', { from: job })
 			return
@@ -767,11 +799,12 @@ const verifyAndShip = Effect.fn('mw.verifyAndShip')(function* (id: number, confi
 			item = store.get(id)!
 			if (item.job !== 'verify' || !item.verification?.passed) return
 		}
-		const projects = projectsPath(store.path)
-		if (!projectFor(yield* readProjects(projects), item.workspace)?.ship) {
-			return hold(store, item, 'no_ship_command', `Item #${id} passed its checks, but its project has no ship command.`, { workspace: item.workspace, projects })
-		}
 		const verified = item.verification
+		// Checkpoints and every step: the operator sees the verified change before it merges and ships.
+		const key = `ship:${verified.commit}`
+		if ((item.autonomy ?? 'full') !== 'full' && item.passed !== key) {
+			return pause(store, item, key, `Checkpoint: #${id} passed its ${item.verification.results.length ? 'checks' : 'verification'} and waits for you before it merges and ships.`, { after: 'verification', next: 'ship', commit: verified.commit, files: item.change?.files ?? [] })
+		}
 		const merged = yield* withLock(item.workspace, Effect.gen(function* () {
 			const now = yield* revParse(item.workspace, item.base!.ref)
 			if (now !== verified.on) return false
@@ -808,7 +841,7 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
 		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
 		const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, 'change'), budget, env, live)
-		const built = yield* commit(wt.path, item.title)
+		const built = yield* commit(wt.path, commitMessage(item))
 		const applied = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'checks')))
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
 		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...(yield* runChecks(wt.path, checks, budget, env, live))] } as const
@@ -852,13 +885,50 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	store.save({ ...now, verification, job: 'arbitrate', from, failure, exchange: undefined, launches: 0 }, 'failure', { from: 'verify', results: summary, ...fixed })
 })
 
+/**
+ * The commit that ships (ruling 19): the item's title, its objective, what done means and the decisions that shaped it, so the
+ * repository's history says why each change was made. It is the work's own record; nothing in it names an agent or Made Well.
+ */
+const commitMessage = (item: Item) => {
+	const plan = planOf(item)
+	const decisions = [...stepsBefore(item), 'plan'].flatMap((job) => {
+		const d = deliverableOf(item, job) as { decisions?: unknown } | undefined
+		return Array.isArray(d?.decisions) ? (d.decisions as { question?: unknown; decision?: unknown; why?: unknown }[]) : []
+	}).filter((d) => typeof d.decision === 'string')
+	return [
+		item.title,
+		item.objective !== item.title ? item.objective : '',
+		plan?.doneWhen.length ? `Done when:\n${plan.doneWhen.map((d) => `- ${d.text}`).join('\n')}` : '',
+		decisions.length ? `Decisions:\n${decisions.map((d) => `- ${typeof d.question === 'string' ? `${d.question} ` : ''}${d.decision}${typeof d.why === 'string' ? ` (${d.why})` : ''}`).join('\n')}` : '',
+	].filter(Boolean).join('\n\n')
+}
+
+/** The thinking steps an item's lane runs before its plan. */
+const stepsBefore = (item: Item) => {
+	const steps = L(item).delivery.map((s) => s.job)
+	return steps.slice(0, steps.indexOf('plan'))
+}
+
 /** The change is on the branch: the project's own ship command deploys it. Then the item's checks are gone (ruling 11). */
+/** `git push` to the branch's upstream, or undefined when it has none. */
+const pushCommand = (repo: string, ref: string) =>
+	Effect.map(Effect.result(git(repo, 'rev-parse', '--abbrev-ref', '--symbolic-full-name', `${ref.replace('refs/heads/', '')}@{upstream}`)), (r) => {
+		const upstream = Result.isSuccess(r) ? r.success.trim() : ''
+		const slash = upstream.indexOf('/')
+		return slash > 0 ? `git push ${quote(upstream.slice(0, slash))} ${quote(`${ref}:refs/heads/${upstream.slice(slash + 1)}`)}` : undefined
+	})
+
 const shipCommand = Effect.fn('mw.ship')(function* (id: number) {
 	const store = yield* Store
 	const item = store.get(id)!
 	const projects = projectsPath(store.path)
-	const command = projectFor(yield* readProjects(projects), item.workspace)?.ship
-	if (!command) return hold(store, item, 'no_ship_command', `Item #${id} is on ${item.merged!.ref}, but its project has no ship command.`, { workspace: item.workspace, projects })
+	// Ruling 19: without a ship command of its own, the project ships by pushing the branch to its upstream, or once it is on main.
+	const command = projectFor(yield* readProjects(projects), item.workspace)?.ship ?? (yield* pushCommand(item.workspace, item.merged!.ref))
+	if (!command) {
+		removeHome(itemHome(store.path, id))
+		const output = `On ${item.merged!.ref.replace('refs/heads/', '')}; the project has no ship command and the branch no upstream to push to.`
+		return void store.save({ ...item, status: 'shipped', shipped: { command: '', output, main: item.merged!.commit } }, 'shipped', { command: '', output, main: item.merged!.commit })
+	}
 	const env = { ...process.env, MW_ITEM: String(id), MW_TITLE: item.title, MW_KIND: item.kind ?? 'feature', MW_COMMIT: item.merged!.commit }
 	store.note(id, 'ship-started', { command, main: item.merged!.commit })
 	const { code, stdout, stderr } = yield* Effect.promise(
@@ -941,16 +1011,24 @@ const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Jo
 	hold(store, withTrack(item, job, { ...t, ...patch, launches }), 'worker_failing', `A call for the ${job} job failed ${launches} times in a row on ${card.harness} · ${card.model}.`, { job, card, lastError: error, ...evidence })
 })
 
-/** Three answered turns and the receiver still asks: the hand-off, its scope or its provisioning is wrong. */
-const holdTurns = (store: StoreService, item: Item, job: Job, context: Record<string, unknown>) =>
-	hold(store, item, 'nq_turns', `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context)
+/**
+ * Three answered turns and the receiver still asks: the hand-off, its scope or its provisioning is wrong. The operator decides;
+ * in full autonomy the delegating agent decides once by the rubric instead, and running out of turns again holds.
+ */
+const holdTurns = (store: StoreService, item: Item, job: Job, context: Record<string, unknown>) => {
+	const x = trackOf(item, job).exchange
+	if (auto(item) && x && !x.decided) {
+		return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: 'awaiting-originator', deciding: true } }), 'nq-deciding', { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] })
+	}
+	return hold(store, item, 'nq_turns', `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context)
+}
 
 /** The items this one builds on that have not shipped; it starts once they have. */
 const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => store.get(id)?.status !== 'shipped')
 
 /** Whether an item cannot move until the operator acts: something it waits on is held, or was never promoted. */
 export const stuck = (store: StoreService, item: Item): boolean => {
-	const blocked = (id: number) => ((p) => !p || p.status === 'held' || p.status === 'candidate' || p.status === 'dropped' || stuck(store, p))(store.get(id))
+	const blocked = (id: number) => ((p) => !p || p.status === 'held' || p.status === 'paused' || p.status === 'candidate' || p.status === 'dropped' || stuck(store, p))(store.get(id))
 	// A dropped prerequisite fix releases the item waiting on it (drive runs its checks again); dropped work it builds on does not.
 	const fixBlocked = (id: number) => store.get(id)?.status !== 'dropped' && blocked(id)
 	return (item.waitsOn !== undefined && fixBlocked(item.waitsOn)) || unshipped(store, item).some(blocked)
@@ -960,7 +1038,7 @@ const openPrerequisite = (store: StoreService, item: Item, answer: string, by: O
 	const pre = store.create({
 		title: `Pre-existing defect blocking #${item.id}`, objective: answer, workspace: item.workspace, job: 'plan', parent: item.id, from: by,
 		source: `Found while verifying #${item.id} (${item.title}). The ${profileOf(item, by)}'s ruling: ${answer}\n\nFailure:\n${item.failure ?? ''}`,
-		rework: { cause: 'pre-existing', answer },
+		rework: { cause: 'pre-existing', answer }, ...(item.pack ? { pack: item.pack } : {}), ...(item.autonomy ? { autonomy: item.autonomy } : {}),
 	})
 	store.save({ ...item, status: 'waiting-prerequisite', waitsOn: pre.id, failure: undefined, exchange: undefined, corrections: item.corrections + 1 }, 'ruling', { cause: 'pre-existing', prerequisite: pre.id, by: profileOf(item, by) })
 }
@@ -969,17 +1047,22 @@ const openPrerequisite = (store: StoreService, item: Item, answer: string, by: O
 
 /** The commands that move a held item, for the agent reading its status. */
 export function nextFor(item: Item): Next[] {
-	if (item.status !== 'held') return []
 	const id = item.id
+	if (item.status === 'paused') {
+		const ship = item.hold?.context.next === 'ship'
+		return [
+			{ run: `mw go ${id}`, why: ship ? 'it merges onto main and ships' : `it goes on to ${String(item.hold?.context.next ?? 'the next step')}` },
+			{ run: `mw answer ${id} "<what should change>"`, why: ship ? 'the planner plans again from your words, the change is made again and checked, and it stops here again' : 'it goes on, and the next step receives your words as the operator\'s' },
+			{ run: `mw drop ${id}`, why: 'abandon it; nothing of it ships' },
+		]
+	}
+	if (item.status !== 'held') return []
 	const code = item.hold!.code
 	if (NQ_HOLDS.includes(code)) {
 		return [{ run: `mw answer ${id} "<your answer to context.questions>"`, why: 'your answer goes to the receiving agent, which confirms it understands or asks again' }]
 	}
 	if (CHECK_HOLDS.includes(code)) {
 		return (['implementation', 'test', 'pre-existing'] as const).map((cause) => ({ run: `mw answer ${id} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: 'the new code or its plan is wrong: the planner replans', test: 'the check is wrong: the test architect rewrites it', 'pre-existing': 'the defect predates this work: it gets its own fix first' }[cause] }))
-	}
-	if (code === 'no_ship_command') {
-		return [{ run: `mw init --workspace ${quote(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: 'register how this project ships; the item then ships' }]
 	}
 	if (code === 'leftovers') {
 		// Made Well cannot tell an agent's stray files from ones the operator made while the call ran: the operator says which.
@@ -998,7 +1081,7 @@ const held = (id: number) =>
 		const store = yield* Store
 		const item = store.get(id)
 		if (!item) return yield* notFound(id)
-		if (item.status !== 'held') {
+		if (item.status !== 'held' && item.status !== 'paused') {
 			return yield* new MadeWellError({ code: 'not_held', message: `Item #${id} is ${item.status}, not waiting on you.`, context: { id, status: item.status, job: item.job }, next: [{ run: `mw status ${id}`, why: 'see what it is doing now' }] })
 		}
 		return { store, item: item as Item & { hold: NonNullable<Item['hold']> } }
@@ -1024,6 +1107,15 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 		if (repeat) return
 		const { item } = yield* held(id)
 		const free = released(item)
+		if (item.status === 'paused') {
+			// Steering at a checkpoint: before the ship, the change itself is what changes; between steps, the next one hears it.
+			if (item.hold.context.next === 'ship') {
+				store.save({ ...free, job: 'plan', from: { kind: 'operator' }, exchange: undefined, rework: { cause: 'implementation', answer: text }, round: item.round + 1, base: undefined, verification: undefined }, 'ruling', { cause: 'implementation', to: 'plan', by: 'operator', answer: text })
+			} else {
+				store.save({ ...free, passed: String(item.hold.context.key), steer: text }, 'steered', { job: item.job, answer: text, by: 'operator' })
+			}
+			return
+		}
 		if (NQ_HOLDS.includes(item.hold.code)) {
 			const job = (item.hold.context.job as Job | undefined) ?? item.job
 			const t = trackOf(free, job)
@@ -1083,13 +1175,30 @@ export const promote = (discovery: number, ids: ReadonlyArray<number> = []) =>
 		return chosen.map((c) => store.get(c.id)!)
 	})
 
+/**
+ * The operator lets an item past its checkpoint (ruling 17), or sends every waiting candidate of a discovery run into delivery.
+ * Repeating it before the item stops again changes nothing.
+ */
+export const go = (id: number) =>
+	Effect.gen(function* () {
+		const store = yield* Store
+		const item = store.get(id)
+		if (!item) return yield* notFound(id)
+		if (item.status === 'discovered') return void (yield* promote(id))
+		if (item.status !== 'paused') {
+			if (store.events(id).findLast((e) => e.kind === 'paused' || e.kind === 'go')?.kind === 'go') return
+			return yield* new MadeWellError({ code: 'not_held', message: `Item #${id} is ${item.status}, not stopped at a checkpoint.`, context: { id, status: item.status, job: item.job }, next: [{ run: `mw status ${id}`, why: 'see what it is doing now' }] })
+		}
+		store.save({ ...released(item), passed: String(item.hold!.context.key) }, 'go', { job: item.job, at: item.hold!.context.key })
+	})
+
 /** Releases a held item to run again from where it stopped. Repeating it before the item holds again changes nothing. */
 export const retry = (id: number) =>
 	Effect.gen(function* () {
 		const events = (yield* Store).events(id)
 		if (events.slice(events.findLastIndex((e) => e.kind === 'held') + 1).some((e) => e.kind === 'retried')) return
 		const { store, item } = yield* held(id)
-		if (NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
+		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
 		store.save(released(item), 'retried', { job: item.job })
@@ -1164,6 +1273,9 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean; keepC
 
 // ── Briefs and packets ─────────────────────────────────────────────────────────────────────────────────
 
+/** What a question of authority needs in full autonomy: only what the machine cannot supply holds. */
+const FULL_AUTHORITY = 'Made Well runs in full autonomy: nobody is there to decide, so decide even what the operator\'s source leaves open, by the rubric (a choice that satisfies two of the three governing questions is the answer). Set needsOperator only when the work needs something only the operator has and Made Well cannot supply: a credential, an account, or money.'
+
 const SUBAGENT_RULE = 'If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.'
 
 /**
@@ -1178,7 +1290,7 @@ const briefOf = (lane: Lane) => [
 		'- Developer experience: What moves us toward a 10× better experience of developing, understanding, inspecting, and recovering the work?',
 		'- User experience: What moves us toward a 10× better experience for the person the resulting system serves?',
 		'- Agentic experience: What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?',
-		'The answer they give is the decision. Ideation and planning settle every decision and record it with why; no decision is left for the operator.',
+		'A choice that satisfies two of the three is the answer, and it is what is done. Ideation and planning settle every decision and record it with why; no decision is left for the operator.',
 	].join('\n'),
 	'Leave no trace. Your working directory is a disposable worktree of the project\'s repository, removed when your call ends: write only there, never in the repository\'s own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.',
 	'Honor the conventions the project\'s repository already has.',
@@ -1240,7 +1352,7 @@ const arbiterTask = (lane: Lane, autonomous: boolean) => [
 ].join(' ')
 
 const taskOf = (item: Item, job: Job) => {
-	const own = job === 'arbitrate' ? arbiterTask(L(item), false) : TASKS[job]
+	const own = job === 'arbitrate' ? arbiterTask(L(item), auto(item)) : TASKS[job]
 	const extra = stepOf(L(item), job).task
 	return own && extra ? `${own} ${extra}` : own ?? extra
 }
@@ -1259,7 +1371,7 @@ const handoffView = (item: Item, job: Job, x: Exchange) =>
 		: x.handoff
 
 const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake') => ({
-	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job), replyFormat: shapeOf(INTAKE) },
+	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
 	...jobEvidence(item, job),
 	handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
@@ -1274,7 +1386,9 @@ const jobEvidence = (item: Item, job: Job) =>
 const originatorParts = (item: Item, job: Job, x: Exchange) => ({
 	you: {
 		profile: profileOf(item, x.from), call: 'originator',
-		task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+		task: x.deciding
+			? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10× developer experience, a 10× user experience and a 10× agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.`
+			: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`,
 		replyFormat: shapeOf(ORIGINATOR),
 	},
 	yourHandoff: x.from.kind === 'job' && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
@@ -1285,7 +1399,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange) => ({
 })
 
 const executeParts = (item: Item, job: Job, t: Track, x: Exchange) => ({
-	you: { ...you(item, job, 'execute'), ...(taskOf(item, job) ? { task: taskOf(item, job) } : {}), replyFormat: deliverableShape(L(item), job) },
+	you: { ...you(item, job, 'execute'), ...(taskOf(item, job) ? { task: taskOf(item, job) } : {}), replyFormat: deliverableShape(L(item), job, auto(item)) },
 	...jobEvidence(item, job),
 	exchange: { from: profileOf(item, x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
 	...(item.outputs[job] !== undefined && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {}),

@@ -155,7 +155,7 @@ test('mw eval replays a delivered item\'s calls through the worker command and p
 	t.store.close()
 	rmSync(t.home, { recursive: true, force: true })
 	const cli = join(import.meta.dirname, '../src/cli.ts')
-	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: t.home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(t.dir, 'calls.log') }
+	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: t.home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(t.dir, 'calls.log'), MW_AUTORUN: '0' }
 	delete env.MW_STORE
 	delete env.MW_PRESCRIPTIONS
 	const mw = (...args: string[]) => {

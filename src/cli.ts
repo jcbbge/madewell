@@ -7,7 +7,8 @@
 //
 // Reading never creates anything: a command opens the store only if it exists, except `start` and
 // `discover`, which create it once their input is known to be good.
-import { existsSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
+import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { constants as osConstants } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -15,12 +16,12 @@ import { parseArgs } from 'node:util'
 import { Clock, Effect, Fiber, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
 import { itemHome } from './change.ts'
-import { answer, drop, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
+import { answer, drop, go, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { laneOf, loadPack, Pack, SOFTWARE, stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
-import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
+import { Store, defaultStorePath, storeLayer, type Autonomy, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
 import { exportItem } from './export.ts'
 import { stats } from './telemetry.ts'
@@ -30,7 +31,6 @@ import { Worker, commandWorker } from './worker.ts'
 const storePath = defaultStorePath()
 const registry = projectsPath(storePath)
 const prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL('../prescriptions.json', import.meta.url).pathname
-const SHIP_SLOT = '"<the operator\'s command that deploys what is on main>"'
 
 // MW_WORKER_COMMAND plugs in any harness; otherwise the built-in Claude Code, Codex and pi workers run.
 const workerLayer = Layer.unwrap(Effect.sync(() => (process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker)))
@@ -79,7 +79,6 @@ const Pruned = Schema.Struct({
 }).annotate({ identifier: 'Pruned' })
 
 const Action = Schema.Union([
-	Schema.Struct({ action: Schema.Literal('run'), run: Schema.String, why: Schema.String }),
 	Schema.Struct({
 		action: Schema.Literal('relay'), say: Schema.String.annotate({ description: 'what to tell the operator' }),
 		hold: Schema.optionalKey(HoldView),
@@ -87,7 +86,7 @@ const Action = Schema.Union([
 		then: Schema.Array(Next).annotate({ description: 'run the one that fits the operator\'s reply, with their words in place of the <...> slot' }),
 	}),
 	Schema.Struct({ action: Schema.Literal('wait'), until: Schema.String.annotate({ description: 'ISO time' }), why: Schema.String, then: Schema.Literal('mw next') }),
-]).annotate({ identifier: 'Action', description: 'run a command, relay to the operator, or wait until a time' })
+]).annotate({ identifier: 'Action', description: 'relay to the operator, or wait until a time; Made Well never asks anyone else to drive it' })
 
 const Created = Schema.Struct({ item: ItemView, next: Schema.Array(Next) })
 
@@ -135,7 +134,7 @@ const view = (item: Item, driven = true): typeof ItemView.Type => ({
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),
 	...(item.hold ? { hold: item.hold } : {}),
 	...(item.shipped ? { shipped: item.shipped } : {}),
-	next: item.status === 'held' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped', 'dropped'].includes(item.status) ? [] : item.status === 'queued' ? [{ run: 'mw run', why: 'deliver it' }] : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
+	next: item.status === 'held' || item.status === 'paused' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped', 'dropped'].includes(item.status) ? [] : item.status === 'queued' ? (driven || process.env.MW_AUTORUN !== '0' ? [{ run: `mw status ${item.id}`, why: 'queued: the machine picks it up by itself' }] : [{ run: 'mw run', why: 'deliver it' }]) : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
 })
 
 const holdView = (store: Store['Service'], h: OpenHold): typeof HoldView.Type => ({ ...h, next: nextFor(store.get(h.item)!) })
@@ -143,13 +142,13 @@ const holdView = (store: Store['Service'], h: OpenHold): typeof HoldView.Type =>
 const board = (store: Store['Service']): typeof Board.Type => {
 	const items = store.list()
 	const count = (s: Item['status']) => items.filter((i) => i.status === s).length
-	const held = items.filter((i) => i.status === 'held')
+	const held = items.filter((i) => i.status === 'held' || i.status === 'paused')
 	const driven = store.runner() !== null
 	const moving = count('running') + count('waiting-quota') + count('waiting-prerequisite')
 	return {
-		summary: `${count('held')} need you, ${count('candidate')} candidates, ${moving} in progress${moving && !driven ? ' with no runner' : ''}, ${count('queued')} queued, ${count('shipped')} shipped`,
+		summary: `${count('held') + count('paused')} need you, ${count('candidate')} candidates, ${moving} in progress${moving && !driven ? ' with no runner' : ''}, ${count('queued')} queued, ${count('shipped')} shipped`,
 		items: items.map((i) => view(i, driven)),
-		next: held.length ? held.flatMap(nextFor) : count('queued') || (moving && !driven) ? [{ run: 'mw run', why: 'deliver queued items and resume any whose runner stopped' }] : [],
+		next: held.length ? held.flatMap(nextFor) : (count('queued') || moving) && !driven ? [{ run: 'mw run', why: 'deliver queued items and resume any whose runner stopped' }] : [],
 	}
 }
 
@@ -158,15 +157,35 @@ const found = (store: Store['Service'], id: number) => {
 	return item ? Effect.succeed(item) : Effect.fail(new MadeWellError({ code: 'item_not_found', message: `There is no work item #${id}.`, context: { id }, next: [{ run: 'mw status', why: 'list every work item' }] }))
 }
 
-/** The workspace, if it is a registered project with a ship command. */
+/** The workspace, if it is a registered project, with its project. */
 const registered = Effect.fn('mw.registered')(function* (workspace: string | undefined) {
 	const path = resolve(workspace ?? '.')
 	const projects = yield* readProjects(registry)
-	if (projectFor(projects, path)?.ship) return path
+	const project = projectFor(projects, path)
+	if (project) return { path, project }
 	return yield* new MadeWellError({
-		code: 'project_not_found', message: `${path} is not a registered project with a ship command.`, context: { workspace: path, projects: projects.map((p) => p.path) },
-		next: [{ run: `mw init --workspace ${quote(path)} --ship ${SHIP_SLOT}`, why: 'register it with how it ships, then run this command again' }],
+		code: 'project_not_found', message: `${path} is not a registered project.`, context: { workspace: path, projects: projects.map((p) => p.path) },
+		next: [{ run: `mw init --workspace ${quote(path)}`, why: 'register it, then run this command again; add --ship "<command>" if shipping means more than pushing main' }],
 	})
+})
+
+const AutonomyInput = Schema.optionalKey(Schema.Literals(['full', 'checkpoints', 'steps']).annotate({ description: 'how involved the operator is: full (default; no stops, questions decided by the rubric), checkpoints (stop after discovery and before each ship), steps (also between cartridges)' }))
+
+/**
+ * Ruling 17: a command that gives Made Well work starts the machine when no runner is alive, so turning the knob is the whole
+ * act. MW_AUTORUN=0 leaves the runner to the operator. Returns what the operator should know next.
+ */
+const wake = Effect.fn('mw.wake')(function* (id?: number) {
+	const store = yield* Store
+	const watch: Next[] = [{ run: id === undefined ? 'mw status' : `mw status ${id}`, why: 'the machine is working on it by itself; this shows where it is' }, { run: 'mw ui', why: 'watch every step live' }]
+	if (process.env.MW_AUTORUN === '0') return [{ run: 'mw run', why: 'deliver it: the operator starts the runner (MW_AUTORUN=0)' }]
+	const movable = store.list().some((i) => i.parent === undefined && MOVING.includes(i.status) && !stuck(store, i))
+	if (!movable || (yield* runner(store))) return watch
+	const home = dirname(store.path)
+	mkdirSync(home, { recursive: true })
+	const log = openSync(join(home, 'runner.log'), 'a')
+	spawn(process.execPath, [process.argv[1]!, 'run'], { detached: true, stdio: ['ignore', log, log], cwd: home, env: process.env }).unref()
+	return watch
 })
 
 /** The cartridge pack a workspace's project plugs in, or undefined for the default software pack. */
@@ -243,7 +262,8 @@ const nextAction = Effect.fn('mw.next')(function* (): Effect.fn.Return<typeof Ac
 	const moving = items.filter((i) => i.parent === undefined && MOVING.includes(i.status) && !stuck(store, i))
 	const owner = moving.length ? yield* runner(store) : null
 	if (moving.length && !owner) {
-		return { action: 'run', run: 'mw run', why: `${moving.length} item(s) can move without the operator. It returns once every item has shipped or holds for the operator, and it is safe to repeat.` }
+		// Nobody but the operator drives the machine (ruling 16): a stopped runner is the operator's to restart.
+		return { action: 'relay', say: `The machine stopped with ${moving.length} item(s) it can move by itself. It starts again with any command that gives it work, or with \`mw run\`.`, then: [{ run: 'mw run', why: 'the operator restarts the machine; every item resumes where it stopped' }] }
 	}
 	const [hold] = openHolds(store)
 	if (hold) {
@@ -269,11 +289,11 @@ const nextAction = Effect.fn('mw.next')(function* (): Effect.fn.Return<typeof Ac
 	}
 	const cwd = process.cwd()
 	const project = projectFor(yield* readProjects(registry), cwd)
-	if (!project?.ship) {
-		const init = `mw init --workspace ${quote(project?.path ?? cwd)} --ship ${SHIP_SLOT}`
+	if (!project) {
+		const init = `mw init --workspace ${quote(cwd)}`
 		return {
-			action: 'relay', say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: once Made Well brings a passing item onto main, what command deploys it?`,
-			then: [{ run: init, why: 'register the project with how it ships' }, { run: `${init} --alert "<a command that notifies the operator>"`, why: 'also say how to reach the operator when an item holds' }],
+			action: 'relay', say: `${cwd} is not a Made Well project yet. Register it, and shipping pushes main to its upstream; add a ship command if shipping means a deploy too.`,
+			then: [{ run: init, why: 'register the project' }, { run: `${init} --ship "<the command that deploys what is on main>"`, why: 'register it with how it deploys' }],
 		}
 	}
 	const at = quote(project.path)
@@ -318,32 +338,27 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		summary: 'Register a project, or update its config. The config lives in Made Well\'s home, never in the project. Items held for a missing ship command go on.',
 		input: Schema.Struct({
 			workspace: Workspace,
-			ship: optional('shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time.'),
+			ship: optional('shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Without one, shipping pushes main to its upstream.'),
+			autonomy: AutonomyInput,
 			alert: optional('shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set'),
 			prepare: optional('shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output'),
 			cartridges: optional('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
 			gates: optional('the repo\'s own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item\'s changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.'),
 		}),
-		output: Schema.Struct({ project: Project, released: Schema.Array(ItemView), next: Schema.Array(Next) }),
+		output: Schema.Struct({ project: Project, next: Schema.Array(Next) }),
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
-			const store = yield* Store
 			const path = resolve(input.workspace ?? '.')
 			if (!existsSync(path)) return yield* new MadeWellError({ code: 'workspace_missing', message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: 'pwd', why: 'run mw init from the project directory, or pass its path with --workspace' }] })
-			const projects = yield* readProjects(registry)
-			if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError('init', `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`)
 			const gates = input.gates === undefined ? undefined : yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Array(Gate)))(input.gates).pipe(
 				Effect.mapError((e) => usageError('init', `--gates must be a JSON array of {run, glob?}: ${e.message}`)),
 			)
 			// A pack is checked against the console's contract before it is registered, so no work ever starts on one that does not plug in.
 			const cartridges = input.cartridges === undefined || input.cartridges === 'default' ? input.cartridges : resolve(input.cartridges)
 			if (cartridges && cartridges !== 'default') yield* loadPack(cartridges)
-			const saved = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(gates ? { gates } : {}), ...(cartridges ? { cartridges } : {}) })
+			const saved = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(gates ? { gates } : {}), ...(cartridges ? { cartridges } : {}), ...(input.autonomy ? { autonomy: input.autonomy } : {}) })
 			const project = cartridges === 'default' ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved
-			const updated = yield* readProjects(registry)
-			const waiting = openHolds(store).filter((h) => h.code === 'no_ship_command' && projectFor(updated, h.workspace)?.path === path)
-			for (const h of waiting) yield* retry(h.item)
-			return { project, released: waiting.map((h) => view(store.get(h.item)!)), next: [{ run: 'mw next', why: 'see what to do now' }] }
+			return { project, next: [{ run: `mw discover --workspace ${quote(path)} --source-file <notes>`, why: 'put the raw notes in: Made Well discovers the work and delivers it' }, { run: `mw start --workspace ${quote(path)} --objective "<one line>" --source "<the operator's own words>"`, why: 'deliver one piece of work straight away' }] }
 		}),
 	}),
 	command({
@@ -377,19 +392,20 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	command({
 		name: 'discover',
 		summary: 'Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.',
-		input: Schema.Struct({ ...Source, workspace: Workspace, title: optional('a title for the discovery run') }),
+		input: Schema.Struct({ ...Source, workspace: Workspace, title: optional('a title for the discovery run'), autonomy: AutonomyInput }),
 		output: Created,
 		idempotent: true,
 		prepare: (input) => Effect.gen(function* () {
 			const source = yield* readSource(input)
 			if (!source) return yield* usageError('discover', 'discover needs the raw input: --source "<text>" or --source-file <file>.')
-			return { source, workspace: yield* registered(input.workspace) }
+			return { source, ...(yield* registered(input.workspace)) }
 		}),
-		run: (input, { source, workspace }) => Effect.gen(function* () {
+		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
 			const title = input.title ?? `Discovery of ${input['source-file'] ? basename(input['source-file']) : 'raw input'}`
 			const pack = yield* packFor(workspace)
-			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]!.job, ...(pack ? { pack } : {}) })
-			return { item: view(item), next: [{ run: 'mw run', why: 'run discovery; its candidates wait for promotion' }] }
+			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? 'full'
+			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]!.job, autonomy, ...(pack ? { pack } : {}) })
+			return { item: view(item), next: yield* wake(item.id) }
 		}),
 	}),
 	command({
@@ -399,23 +415,27 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		input: Schema.Struct({ discovery: Id.annotate({ description: 'the discovery run' }), ids: Schema.Array(Id).annotate({ description: 'the candidates to promote; none means all' }) }),
 		output: Schema.Struct({ promoted: Schema.Array(ItemView), next: Schema.Array(Next) }),
 		idempotent: true,
-		run: (input) => promote(input.discovery, input.ids).pipe(Effect.map((promoted) => ({ promoted: promoted.map((i) => view(i)), next: [{ run: 'mw run', why: 'deliver them, oldest first' }] }))),
+		run: (input) => Effect.gen(function* () {
+			const promoted = yield* promote(input.discovery, input.ids)
+			return { promoted: promoted.map((i) => view(i)), next: yield* wake() }
+		}),
 	}),
 	command({
 		name: 'start',
 		summary: 'Add one work item straight to the delivery queue.',
-		input: Schema.Struct({ objective: Schema.String.annotate({ description: 'one line: what done means' }), ...Source, workspace: Workspace, title: optional('defaults to the objective') }),
+		input: Schema.Struct({ objective: Schema.String.annotate({ description: 'one line: what done means' }), ...Source, workspace: Workspace, title: optional('defaults to the objective'), autonomy: AutonomyInput }),
 		output: Created,
 		idempotent: true,
 		prepare: (input) => Effect.gen(function* () {
 			const source = yield* readSource(input)
 			if (!source) return yield* usageError('start', 'start needs the operator\'s own words: --source "<text>" or --source-file <file>.')
-			return { source, workspace: yield* registered(input.workspace) }
+			return { source, ...(yield* registered(input.workspace)) }
 		}),
-		run: (input, { source, workspace }) => Effect.gen(function* () {
+		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
 			const pack = yield* packFor(workspace)
-			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, ...(pack ? { pack } : {}) })
-			return { item: view(item), next: [{ run: 'mw run', why: 'deliver it; it moves through all four stages and ships on a passing check' }] }
+			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? 'full'
+			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...(pack ? { pack } : {}) })
+			return { item: view(item), next: yield* wake(item.id) }
 		}),
 	}),
 	command({
@@ -477,7 +497,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'answer',
-		summary: 'Answer a held item: an agent\'s open questions, or, with --cause, a failed check.',
+		summary: 'Answer an item that waits on you: an agent\'s open questions, a failed check (with --cause), or, at a checkpoint, what should change.',
 		args: ['id', 'text...'],
 		input: Schema.Struct({
 			id: Id,
@@ -488,7 +508,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
 			yield* answer(input.id, input.text, input.cause)
-			return { item: view((yield* Store).get(input.id)!), next: [{ run: 'mw run', why: 'continue delivering it' }] }
+			return { item: view((yield* Store).get(input.id)!), next: yield* wake(input.id) }
 		}),
 	}),
 	command({
@@ -500,7 +520,19 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
 			yield* retry(input.id)
-			return { item: view((yield* Store).get(input.id)!), next: [{ run: 'mw run', why: 'continue delivering it' }] }
+			return { item: view((yield* Store).get(input.id)!), next: yield* wake(input.id) }
+		}),
+	}),
+	command({
+		name: 'go',
+		summary: 'Let an item past the checkpoint it stopped at (autonomy checkpoints or steps): it goes on to its next step, or merges and ships. On a finished discovery run, sends every waiting candidate into delivery.',
+		args: ['id'],
+		input: Schema.Struct({ id: Id }),
+		output: Created,
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			yield* go(input.id)
+			return { item: view((yield* Store).get(input.id)!), next: yield* wake(input.id) }
 		}),
 	}),
 	command({

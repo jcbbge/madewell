@@ -12,9 +12,25 @@ npm install -g --install-links github:jcbbge/madewell
 
 ## Use
 
-Tell your agent, from any project: **run `mw` and follow `next`.**
+Put your notes in, from any project. That is the whole act:
 
-Every command prints JSON, and every answer and error lists the `next` commands to run. `mw next` always says what to do now.
+```sh
+mw discover --source-file notes.md        # or: mw start --objective "<one line>" --source "<your words>"
+```
+
+Made Well discovers the work in the notes, delivers each piece through ideation, planning, implementation and verification, and ships it: merged on main, pushed to its upstream, and deployed by your ship command if the project has one (`mw init --ship "<command>"`). The machine starts itself; nobody runs it.
+
+How involved you are is yours to choose, per project (`mw init --autonomy <level>`) or per run (`--autonomy` on `discover` and `start`):
+
+| Level | Made Well stops |
+|---|---|
+| `full` (default) | never: questions it would ask you are decided by the agent that has the context |
+| `checkpoints` | after discovery, and before each item ships |
+| `steps` | at the checkpoints, and between the phases of delivery |
+
+At a stop, `mw go <id>` carries on and `mw answer <id> "<what should change>"` steers. Something the machine cannot do itself (a credential, a failing ship command) holds the item at any level, with the exact command that unblocks it.
+
+Let your own agent watch: `mw next` says what needs you now, `mw status` and `mw show <id>` say where everything is, and `mw ui` shows it all live. Every command prints JSON, and every answer and error lists the `next` commands.
 
 ## Cartridges
 

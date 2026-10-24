@@ -43,7 +43,7 @@ h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fa
 .row .m { font:12px var(--mono); color:var(--mute); text-align:right; line-height:1.6 } .row .m .owes { font-family:inherit; color:var(--ink2) }
 .tag { display:inline-block; font:600 10.5px var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:2px; background:var(--line2); color:var(--mute) }
 .tag.fix { background:#fff1f2; color:#be123c } .tag.feature { background:var(--blue-bg); color:var(--blue) } .tag.chore { background:#f5f5f4; color:#57534e } .tag.discovery { background:var(--violet-bg); color:var(--violet) } .tag.prerequisite { background:var(--amber-bg); color:var(--amber) }
-.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-dropped { text-decoration:line-through }
+.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-paused { background:var(--amber-bg, #fff4dc); color:var(--amber) } .tag.st-dropped { text-decoration:line-through }
 .pipe { display:flex; align-items:center; gap:3px; justify-self:start }
 .pipe .col { display:flex; flex-direction:column; gap:3px }
 .seg { font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--line); color:var(--faint); background:#fff; white-space:nowrap; min-width:62px; text-align:center; position:relative; line-height:1.3 }
@@ -167,7 +167,7 @@ function renderHero() {
     : s.held ? '<b style="color:var(--red)">' + plural(s.held, 'item waits', 'items wait') + ' on you.</b> Everything else keeps moving.'
     : s.candidates && !s.moving && !s.queued ? '<b style="color:var(--red)">' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.</b> Nothing else is moving.'
     : !open_ ? 'All work is done: every item has shipped, been dropped, or waits for promotion.'
-    : !M.runner && LIVE ? '<b style="color:var(--amber)">No runner is driving the store.</b> Run <code>mw run --watch</code>; every item resumes where it stopped.'
+    : !M.runner && LIVE ? '<b style="color:var(--amber)">The machine is stopped.</b> Any command that gives it work starts it again, or <code>mw run</code>; every item resumes where it stopped.'
     : plural(s.moving, 'item') + ' moving, ' + s.queued + ' queued.' + (s.candidates ? ' ' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.' : ' Nothing needs you.');
   var span = s.first ? (Date.parse(s.last) > Date.parse(s.first) ? (LIVE && open_ ? now() : Date.parse(s.last)) - Date.parse(s.first) : 0) : 0;
   var nq = s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0;
@@ -213,10 +213,10 @@ function renderWork() {
   var dropped = M.items.length - items.length;
   $('worksub').textContent = items.length ? plural(items.length, 'item') + (dropped ? ' · ' + dropped + ' dropped' : '') : '';
   // What needs a person first, then what moves, then what waits, then what is done.
-  var rank = { held: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
+  var rank = { held: 0, paused: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
   items.sort(function (a, b) { return (rank[a.status] - rank[b.status]) || a.id - b.id; });
   $('work').innerHTML = items.length ? items.map(function (i) {
-    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
+    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'paused' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
     return '<div class="row" data-item="' + i.id + '"><div><div class="t"><span class="id">#' + i.id + '</span>' + esc(i.title) + tags + '</div><div class="d">' + esc(i.doing) + '</div></div>' + pipe(i.steps) + '<div class="m">' + rowMeta(i) + '</div></div>';
   }).join('') : '<div class="empty">No work items yet.</div>';
 }
