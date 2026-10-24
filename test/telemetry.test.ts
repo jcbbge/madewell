@@ -155,20 +155,6 @@ test('runner start, stop, and a lost runner are events; the loss is on the item 
 	assert.deepEqual(store.allEvents().filter((e) => e.item === 0).map((e) => [e.kind, e.data]), [['runner-started', { pid: process.pid, replaced: dead }], ['runner-stopped', { pid: process.pid }]])
 })
 
-test('the glass beside the store is rewritten after each saved transition and shows tools, tokens and flags', () => {
-	const { store, item, record } = freshStore()
-	const glass = () => JSON.parse(/const DATA = (.*);\n/.exec(readFileSync(store.glass, 'utf8'))![1]!)
-	assert.equal(glass().items.length, 1, 'written on create')
-	record('amp', AMP, { facts: { access: 'read', allowlist: ['Read'] } })
-	assert.equal(glass().calls.length, 0, 'a call alone is not a transition')
-	store.save(item, 'handed-off', { from: 'ideate', to: 'challenge' })
-	const [call] = glass().calls
-	assert.deepEqual([call.tools[0].tool, call.tokens.output, call.flags.map((f: { rule: string }) => f.rule)], ['shell_command', 25, ['tool-not-allowed']])
-	assert.equal(call.raw, undefined, 'raw streams stay out of the glass')
-	assert.equal(call.rawBytes, AMP.length)
-	assert.deepEqual(readdirSync(join(store.glass, '..')).filter((f) => f.startsWith('glass')), ['glass.html'], 'no temp file left behind')
-})
-
 const cli = join(import.meta.dirname, '../src/cli.ts')
 /** `mw` with its store in `home`, run from a product repo beside it. */
 const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: string[]) => {
@@ -232,9 +218,13 @@ test('every span goes to a JSONL file beside the store by default, never to the 
 	assert.equal(execute.trace, drive.trace, 'one trace per run')
 	assert.ok(spans.find((s) => s.span === execute.parent), 'each span names its parent')
 
-	const glass = readFileSync(join(home, 'glass.html'), 'utf8')
-	assert.match(glass, /"kind":"runner-started"/)
-	assert.match(glass, /"kind":"runner-stopped"/)
+
+	// With telemetry on, spans go to the telemetry file and still beside the store, where the console reads them.
+	const both = mkdtempSync(join(dir, 'both-'))
+	const tele = join(both, 'telemetry')
+	for (const args of [['init', '--ship', 'true'], ['start', '--objective', 'x', '--source', 'y'], ['run']]) mwIn(both, { MW_TELEMETRY: tele })(...args)
+	assert.ok(readFileSync(join(both, 'spans.jsonl'), 'utf8').includes('"mw.drive"'))
+	assert.ok(readdirSync(tele).some((f) => readFileSync(join(tele, f), 'utf8').includes('"t":"span"')))
 })
 
 test('the same records written at the metrics level give mw stats the same numbers, with no free text', () => {

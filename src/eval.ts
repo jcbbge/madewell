@@ -146,7 +146,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	// A call stopped at a usage limit was never run, so it has no result to compare. A new brief replaces the
 	// job's own brief, which only its execute calls carry; intake and originator calls keep theirs.
 	const all = store.calls()
-	const calls = all.filter((c) => c.job === o.job && c.outcome !== 'limit' && (!ids.length || ids.includes(c.item)) && (brief === undefined || c.kind === 'execute')).slice(-(o.limit ?? 0))
+	const calls = all.filter((c) => c.job === o.job && c.outcome !== 'limit' && (!ids.length || ids.includes(c.item)) && (brief === undefined || c.kind === 'execute') && c.kind !== 'repair').slice(-(o.limit ?? 0))
 	if (!calls.length) {
 		const recorded: Record<string, number> = {}
 		for (const c of all) if (c.outcome !== 'limit') recorded[c.job] = (recorded[c.job] ?? 0) + 1

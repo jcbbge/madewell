@@ -260,7 +260,7 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.equal(calls.filter((l) => l === 'intake implement implementer').length, 1)
 })
 
-test('the console shows each step while it runs: the call in flight with its live output, then its end; watch streams every event with who acted and what happened', async () => {
+test('the console shows each step while it runs: what the agent is doing, who owes the next move, then the item\'s whole story; watch streams every event with who acted and what happened', async () => {
 	const t = setup()
 	const gate = join(t.dir, 'gate')
 	writeFileSync(gate, '')
@@ -277,20 +277,29 @@ test('the console shows each step while it runs: the call in flight with its liv
 			assert.ok(i < 500, 'the planner\'s call never started')
 			await new Promise((r) => setTimeout(r, 20))
 		}
-		const during = await get('api/state')
-		const flight = during.flights.find((f: { what: string }) => f.what === 'job · plan')
-		assert.deepEqual([flight?.item, flight?.who, flight?.cutOff], [1, 'planner', false], 'the planner\'s job shows as running while it runs')
-		assert.ok(during.live.some((f: { name: string }) => f.name === 'item-1-plan-execute.log'), 'its output streams to a live file')
-		assert.equal((await get('api/live/item-1-plan-execute.log')).gone, undefined)
+		const during = await get('api/model')
+		const running = during.running.find((r: { kind: string; job: string }) => r.kind === 'execute' && r.job === 'plan')
+		assert.deepEqual([running?.item, running?.who], [1, 'planner'], 'the planner\'s job shows as running while it runs')
+		assert.match(running.live, /item-1-plan-execute\.log$/, 'its output streams to a live file')
+		const item = during.items.find((i: { id: number }) => i.id === 1)
+		assert.deepEqual([item.doing, item.owes], ['The planner is writing the plan', 'planner'], 'the item says what happens now and who owes the next move')
+		assert.deepEqual(item.steps.map((s: { job: string; state: string }) => `${s.job}:${s.state}`), ['ideate:done', 'challenge:done', 'plan:active', 'implement:todo', 'test-plan:todo', 'verify:todo', 'ship:todo'])
 		const page = await (await fetch(url)).text()
 		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the console page\'s script parses')
 
 		rmSync(gate)
 		await ran
-		const after = await get('api/state')
-		assert.deepEqual(after.flights, [], 'nothing is in flight once the run ends')
-		assert.deepEqual(after.live, [], 'live files go once each step is saved')
-		const ends = after.events.filter((e: { kind: string; data: { job: string; kind: string } }) => e.kind === 'call-finished' && e.data.job === 'plan' && e.data.kind === 'execute')
+		const after = await get('api/model')
+		assert.deepEqual([after.running, (await get('api/mark')).live], [[], ''], 'nothing is in flight once the run ends, and live files go once each step is saved')
+		assert.deepEqual([after.summary.shipped, after.items[0].owes], [1, ''], 'once shipped, nobody owes a move')
+		assert.match(after.items[0].doing, /^Shipped at [0-9a-f]{10}$/)
+		assert.ok(after.items[0].steps.every((s: { state: string }) => s.state === 'done'))
+		const story = await get('api/item/1')
+		assert.equal(story.deliverables.plan.scope[0], 'src/export.sh', 'the item opens to each job\'s deliverable')
+		assert.deepEqual(story.exchanges.map((x: { job: string; from: string; to: string }) => `${x.from} → ${x.to}`).slice(0, 3), ['dispatcher → ideator', 'ideator → ideation peer', 'ideation peer → planner'], 'and to every NQ hand-off')
+		assert.deepEqual([story.verification.passed, story.checks[0].id], [true, 'C1'])
+		assert.match(story.diff.change, /src\/export\.sh/, 'the shipped change reads as its diff')
+		const ends = story.events.filter((e: { kind: string; data: { job: string; kind: string } }) => e.kind === 'call-finished' && e.data.job === 'plan' && e.data.kind === 'execute')
 		assert.equal(ends.length, 1)
 		assert.equal(ends[0].say, 'The planner\'s plan call ended ok after ' + (ends[0].data.ms / 1000).toFixed(1) + 's')
 		assert.equal((await get(`api/call/${ends[0].data.call}`)).profile, 'planner', 'the finished call opens with its full record')
@@ -303,6 +312,12 @@ test('the console shows each step while it runs: the call in flight with its liv
 	assert.equal(events.find((e) => e.kind === 'shipped').actor, 'made well')
 	assert.equal(lines.filter((l) => l.call).length, events.filter((e) => e.kind === 'call-finished').length, 'every call is streamed once, as each call ends')
 	assert.deepEqual(lines.at(-1).next, [{ run: `mw watch --since ${events.at(-1).seq}`, why: 'carry on from here' }])
+	// The replay is the same console with the record inside it, readable with no server.
+	const replay = t.mw('replay').out.replay
+	const html = readFileSync(replay, 'utf8')
+	const data = JSON.parse(/<script>var STATIC = (.*?);<\/script>/s.exec(html)![1]!.replaceAll('<\\/', '</'))
+	assert.deepEqual([data.model.summary.shipped, data.details['1'].deliverables.plan.scope], [1, ['src/export.sh']])
+	assert.doesNotThrow(() => new Function(html.slice(html.lastIndexOf('<script>') + 8, html.lastIndexOf('</script>'))), 'its script parses')
 })
 
 test('a running runner reloads a new build in place: it finishes the step in flight, keeps its pid and claim, and carries on', async () => {
@@ -508,7 +523,6 @@ test('prune removes finished work before the cutoff with its record and files, a
 	assert.deepEqual(t.mw('status').out.items, board.items.filter((i: { id: number }) => i.id !== old), 'every other item is as it was')
 	assert.equal(t.mw('show', String(old)).err.error, 'item_not_found')
 	assert.deepEqual([existsSync(exported), existsSync(join(t.home, 'exports', String(last))), existsSync(join(t.home, 'replay.html'))], [false, true, false])
-	assert.doesNotMatch(readFileSync(join(t.home, 'glass.html'), 'utf8'), /Add CSV export/, 'the glass is rewritten without it')
 	const after = db()
 	const count = (sql: string) => (after.prepare(sql).get(old) as { n: number }).n
 	assert.deepEqual([count('SELECT COUNT(*) AS n FROM events WHERE item = ?'), count('SELECT COUNT(*) AS n FROM calls WHERE item = ?'), count('SELECT COUNT(*) AS n FROM tool_events WHERE call NOT IN (SELECT id FROM calls) AND ? > 0')], [0, 0, 0])

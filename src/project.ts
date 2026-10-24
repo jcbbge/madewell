@@ -77,10 +77,15 @@ export const openHolds = (store: Store['Service']): OpenHold[] =>
  * Only the runner calls this, so two processes never alert the same hold; an alert lost to a crash goes out
  * on the next run. A failing alert command is recorded with its exit code and not repeated.
  */
-export const alertHolds = Effect.fn('mw.alertHolds')(function* (registry: string) {
+export const alertHolds = (registry: string) =>
+	Effect.gen(function* () {
+		// The sweep runs every two seconds; only one that has an alert to send is a step worth a span.
+		const holds = openHolds(yield* Store).filter((h) => !h.alerted)
+		if (holds.length) yield* sendAlerts(registry, holds)
+	})
+
+const sendAlerts = Effect.fn('mw.alertHolds')(function* (registry: string, holds: ReadonlyArray<OpenHold>) {
 	const store = yield* Store
-	const holds = openHolds(store).filter((h) => !h.alerted)
-	if (!holds.length) return
 	const projects = yield* readProjects(registry)
 	for (const hold of holds) {
 		const command = projectFor(projects, hold.workspace)?.alert

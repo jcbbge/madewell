@@ -18,16 +18,15 @@ Every command prints JSON, and every answer and error lists the `next` commands 
 
 ## Watch a run
 
-**`mw ui`** serves the live console on this machine and prints its address (`http://127.0.0.1:4747/`). It shows:
+**`mw ui`** serves the live console on this machine and prints its address (`http://127.0.0.1:4747/`). It answers, at a glance:
 
-- what is running now, with each agent's output as it streams;
-- where every item sits in discovery, the operator's queue and the four delivery stages;
-- what needs you, with the facts and the command that resolves each hold;
-- the event log, saying who acted and what happened at every step;
-- the operator's `mw status`, telemetry, time per stage including time waiting on you, and the rule checks on every agent call;
-- for any item or call: the packet the agent was given, its brief, its answer, its tool calls, its raw stream and its trace.
+- how much has shipped, and what needs you, with the questions asked and the exact command to run;
+- every item's pipeline (ideate, challenge, plan, implement and checks side by side, verify, ship) with what is happening now and who owes the next move;
+- what each running agent is doing, read from its live output: the files it reads, the commands it runs, what it says;
+- a timeline of every agent call and Made Well step, and where the agent time and tokens go by job: NQ intake, originator answers, the job itself;
+- for any item: its idea, plan, checks and their results, the diff, every NQ question and answer, and every call with its packet, answer, transcript and trace.
 
-Back, Step, Play and Start over replay the whole run step by step; Live follows it as it moves. The console only reads the store, so it is safe beside a running `mw run`.
+The console only reads the store, so it is safe beside a running `mw run`. `mw replay` writes the same console as one page with the whole record inside it, to read or share with no server.
 
 - From another computer: `ssh -L 4747:localhost:4747 <machine>`, then open the same address.
 - In an Amp orb: `amp orb portal 4747`.

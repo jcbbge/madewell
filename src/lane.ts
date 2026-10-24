@@ -259,7 +259,8 @@ export function route(job: Job, value: Record<string, unknown>, corrections: num
 /** The last top-level JSON object in a worker's answer, or undefined. A closing code fence after it is allowed. */
 export function lastJson(text: string): Record<string, unknown> | undefined {
 	text = text.replace(/\s*```\s*$/, '')
-	for (let start = text.lastIndexOf('{'); start !== -1; start = text.lastIndexOf('{', start - 1)) {
+	// lastIndexOf with a negative start searches from 0 again, so the walk stops by itself at the first character.
+	for (let start = text.lastIndexOf('{'); start !== -1; start = start === 0 ? -1 : text.lastIndexOf('{', start - 1)) {
 		try {
 			const value = JSON.parse(text.slice(start).trim())
 			if (value && typeof value === 'object' && !Array.isArray(value)) return value

@@ -6,7 +6,7 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync4, readdirSync as readdirSync5, readFileSync as readFileSync8, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync4, readdirSync as readdirSync5, readFileSync as readFileSync8, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -9906,14 +9906,14 @@ var snapshot = (graph) => {
     })).sort((a, b) => a.index - b.index)
   };
 };
-var hydrate = (snapshot4) => {
-  const graph = make14(snapshot4.type, false);
-  for (const node of snapshot4.nodes) {
+var hydrate = (snapshot3) => {
+  const graph = make14(snapshot3.type, false);
+  for (const node of snapshot3.nodes) {
     graph.nodes.set(node.index, node.data);
     graph.adjacency.set(node.index, []);
     graph.reverseAdjacency.set(node.index, []);
   }
-  for (const edge of snapshot4.edges) {
+  for (const edge of snapshot3.edges) {
     graph.edges.set(edge.index, {
       source: edge.source,
       target: edge.target,
@@ -9921,13 +9921,13 @@ var hydrate = (snapshot4) => {
     });
     graph.adjacency.get(edge.source).push(edge.index);
     graph.reverseAdjacency.get(edge.target).push(edge.index);
-    if (snapshot4.type === "undirected") {
+    if (snapshot3.type === "undirected") {
       graph.adjacency.get(edge.target).push(edge.index);
       graph.reverseAdjacency.get(edge.source).push(edge.index);
     }
   }
-  graph.nextNodeIndex = snapshot4.nodes.length === 0 ? 0 : snapshot4.nodes[snapshot4.nodes.length - 1].index + 1;
-  graph.nextEdgeIndex = snapshot4.edges.length === 0 ? 0 : snapshot4.edges[snapshot4.edges.length - 1].index + 1;
+  graph.nextNodeIndex = snapshot3.nodes.length === 0 ? 0 : snapshot3.nodes[snapshot3.nodes.length - 1].index + 1;
+  graph.nextEdgeIndex = snapshot3.edges.length === 0 ? 0 : snapshot3.edges[snapshot3.edges.length - 1].index + 1;
   graph.acyclic = none2();
   return graph;
 };
@@ -20358,7 +20358,7 @@ function Graph(type, node, edge) {
       if (!isGraph(input) || input.mutable || input.type !== type) {
         return fail5(new InvalidType(ast, input, options));
       }
-      return flatMap5(decodeUnknownEffect(encoded)(snapshot(input), options), (snapshot4) => graphDecode(snapshot4, options));
+      return flatMap5(decodeUnknownEffect(encoded)(snapshot(input), options), (snapshot3) => graphDecode(snapshot3, options));
     };
   }, {
     representation: {
@@ -22282,8 +22282,8 @@ var capture = Effect_exports.fn("mw.capture")(function* (dir, shared = true) {
   delete files[".git/info/refs"];
   return { dir, head: head3, refs, files };
 });
-function walk(root, rel, into2, label2 = "") {
-  const p = join4(root, rel);
+function walk(root, rel2, into2, label2 = "") {
+  const p = join4(root, rel2);
   let s;
   try {
     s = lstatSync(p, { bigint: true });
@@ -22291,9 +22291,9 @@ function walk(root, rel, into2, label2 = "") {
     return;
   }
   if (s.isDirectory()) {
-    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel ? `${rel}/${name}` : name, into2, label2);
-  } else if (rel) {
-    into2[label2 + rel] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
+    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel2 ? `${rel2}/${name}` : name, into2, label2);
+  } else if (rel2) {
+    into2[label2 + rel2] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
   }
 }
 function changes(before, after) {
@@ -22448,173 +22448,26 @@ $ ${check2.run}
 
 // src/engine.ts
 import { execFile as execFile4 } from "node:child_process";
-import { mkdirSync as mkdirSync6, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync7 } from "node:fs";
-import { dirname as dirname6, join as join10 } from "node:path";
+import { mkdirSync as mkdirSync5, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { tmpdir as tmpdir3 } from "node:os";
+import { dirname as dirname6, join as join9 } from "node:path";
 
 // src/project.ts
 import { execFile as execFile3 } from "node:child_process";
-import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync5, writeFileSync as writeFileSync6 } from "node:fs";
-import { dirname as dirname5, join as join9, sep } from "node:path";
+import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync5, writeFileSync as writeFileSync4 } from "node:fs";
+import { dirname as dirname5, join as join8, sep } from "node:path";
 
 // src/store.ts
-import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
+import { mkdirSync as mkdirSync3 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, join as join8 } from "node:path";
+import { dirname as dirname4, join as join7 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-
-// src/replay.ts
-import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync4 } from "node:fs";
-import { join as join6 } from "node:path";
-var snapshot3 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
-var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
-  const item = store.get(id2);
-  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
-  const calls = store.calls(id2);
-  yield* Effect_exports.try({
-    try: () => {
-      mkdirSync2(dir, { recursive: true });
-      writeFileSync4(join6(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
-      calls.forEach((c, i) => {
-        const folder = join6(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
-        mkdirSync2(folder, { recursive: true });
-        const { system, prompt, output, raw, tools, flags, ...meta } = c;
-        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
-        for (const [name, text2] of files) writeFileSync4(join6(folder, name), text2);
-      });
-    },
-    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
-  });
-  return { dir, calls: calls.length };
-});
-var replayHtml = (data) => `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Made Well \xB7 the glass</title>
-<style>
-:root { --ink:#16181d; --mute:#6b7280; --line:#e5e7eb; --bg:#fafaf9; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --run:#1d4ed8; }
-* { box-sizing:border-box } body { margin:0; font:14px/1.45 ui-sans-serif,system-ui,sans-serif; color:var(--ink); background:var(--bg) }
-header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap; background:#fff; position:sticky; top:0; z-index:2 }
-h1 { font-size:15px; margin:0 } .mute { color:var(--mute) } button { font:inherit; padding:4px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer } button:hover { border-color:var(--ink) }
-input[type=range] { flex:1; min-width:200px } .pill { font-size:12px; padding:1px 8px; border-radius:999px; border:1px solid currentColor; white-space:nowrap }
-main { display:grid; grid-template-columns: 340px 1fr; height: calc(100vh - 58px) }
-#steps { overflow:auto; border-right:1px solid var(--line); background:#fff } .step { padding:7px 14px; border-bottom:1px solid #f3f4f6; cursor:pointer; display:grid; grid-template-columns:44px 1fr; gap:8px }
-.step.on { background:#eef2ff } .step.future { opacity:.35 } .step .n { color:var(--mute); font-variant-numeric:tabular-nums } .step b { font-weight:600 }
-#right { overflow:auto; padding:18px 22px } .board { display:grid; grid-template-columns: 1.3fr repeat(7, minmax(0, 1fr)); gap:8px; align-items:stretch }
-.col { min-width:0; background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px } .col h3 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--mute); overflow-wrap:anywhere }
-.card { border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:6px; cursor:pointer; background:#fff } .card.sel { outline:2px solid var(--run) }
-.status-shipped { color:var(--ok) } .status-held { color:var(--bad) } .status-running,.status-queued { color:var(--run) } .status-waiting-quota,.status-waiting-prerequisite,.status-candidate { color:var(--warn) } .status-discovered { color:var(--ok) }
-.card div { overflow-wrap:anywhere } .detail { margin-top:18px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px }
-pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px; max-height:420px; overflow:auto; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace }
-table.tools { border-collapse:collapse; width:100%; font-size:12px; margin:6px 0 12px } .tools th, .tools td { text-align:left; padding:3px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums } .tools th { color:var(--mute); font-weight:500 } .tools td.num, .tools th.num { text-align:right } .tools tr.err td { color:var(--bad) }
-.flag { color:var(--bad); background:#fef2f2 } ul.flags { margin:6px 0 12px; padding-left:18px } ul.flags li { margin:3px 0 } code { font:12px ui-monospace,SFMono-Regular,Menlo,monospace }
-details summary { cursor:pointer; color:var(--mute); margin:8px 0 } .kv { display:grid; grid-template-columns:120px 1fr; gap:4px 12px } .kv div:nth-child(odd) { color:var(--mute) }
-</style></head><body>
-<header><h1>Made Well \xB7 the glass</h1><span class="mute" id="meta"></span>
-<button id="first">\u23EE</button><button id="prev">\u25C0</button><button id="play">\u25B6 Play</button><button id="next">\u25B6</button><button id="last">\u23ED Now</button>
-<input type="range" id="slider" min="0" value="0"><span id="pos" class="mute"></span></header>
-<main><div id="steps"></div><div id="right"><div class="board" id="board"></div><div class="detail" id="detail"></div></div></main>
-<script>
-const DATA = ${JSON.stringify(data).replace(/</g, "\\u003c")};
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-const LANE = ['discover','ideate','challenge','plan','test-plan','implement','verify','arbitrate'];
-let steps = [], pos = 0, timer = null, selected = null;
-function build() {
-  steps = [...DATA.events.map((e) => ({ t: e.at, type: 'event', e })), ...DATA.calls.map((c) => ({ t: c.started, type: 'call', c }))]
-    .sort((a, b) => a.t.localeCompare(b.t) || (a.type === 'call' ? -1 : 1));
-}
-function stateAt(n) {
-  const s = {};
-  for (const st of steps.slice(0, n + 1)) {
-    if (st.type !== 'event') continue;
-    if (!itemById(st.e.item)) continue;
-    const e = st.e, d = e.data, it = (s[e.item] ??= { status: 'queued', job: 'ideate' });
-    if (e.kind === 'created') { it.status = d.status ?? 'queued'; it.job = d.job; }
-    else if (e.kind === 'handed-off') it.job = d.to;
-    else if (e.kind === 'failure') it.job = 'arbitrate';
-    else if (e.kind === 'ruling') { if (d.to) it.job = d.to; if (d.prerequisite) it.status = 'waiting-prerequisite'; else it.status = 'running'; }
-    else if (e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
-    else if (['held','shipped','discovered','running','waiting-quota'].includes(e.kind)) it.status = e.kind;
-    else if (['retried','promoted'].includes(e.kind) || (e.kind === 'nq-answer' && d.originator === 'operator')) it.status = 'queued';
-  }
-  return s;
-}
-const itemById = (id) => DATA.items.find((i) => i.id === id);
-const total = (t) => (t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0);
-const num = (n) => Number(n).toLocaleString('en-US');
-const flagPills = (c) => c.flags.map((f) => ' <span class="pill flag">' + esc(f.rule) + '</span>').join('');
-function label(st) {
-  if (st.type === 'call') { const c = st.c; return '<b>' + esc(c.profile) + '</b> \xB7 ' + esc(c.kind) + ' ' + esc(c.job) + ' <span class="mute">#' + c.item + ' \xB7 ' + esc(c.card.harness + ' ' + c.card.model) + ' \xB7 ' + (c.ms / 1000).toFixed(1) + 's \xB7 ' + c.tools.length + ' tools' + (c.tokens ? ' \xB7 ' + num(total(c.tokens)) + ' tok' : '') + '</span>' + (c.outcome !== 'ok' ? ' <span class="pill status-held">' + esc(c.outcome) + '</span>' : '') + flagPills(c); }
-  const e = st.e, d = e.data; let extra = '';
-  if (e.kind.startsWith('runner-')) return '<b>' + esc(e.kind) + '</b> <span class="mute">pid ' + esc(d.pid) + (e.item ? ' \xB7 #' + e.item : '') + '</span>';
-  if (e.kind === 'handoff') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
-  else if (e.kind === 'handed-off') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
-  else if (e.kind === 'nq-question') extra = esc(d.receiver) + ' asks ' + esc(d.originator) + ': ' + esc((d.questions || []).join(' \xB7 ')).slice(0, 140);
-  else if (e.kind === 'nq-clear') extra = esc(d.profile) + ' is clear';
-  else if (e.kind === 'shipped') extra = esc((d.output || '').trim().split('\\n').pop());
-  else if (e.kind === 'held' || e.kind === 'ruling') extra = esc(d.code || d.cause || '');
-  else if (e.kind === 'discovered') extra = (d.candidates || []).length + ' candidates';
-  else if (e.kind === 'created') extra = esc(itemById(e.item)?.title || '');
-  return '<b>' + esc(e.kind) + '</b> <span class="mute">#' + e.item + '</span> ' + extra;
-}
-function render() {
-  const n = steps.length; document.getElementById('slider').max = Math.max(0, n - 1); document.getElementById('slider').value = pos;
-  document.getElementById('pos').textContent = n ? (pos + 1) + ' / ' + n + ' \xB7 ' + new Date(steps[pos].t).toLocaleTimeString() : 'no steps yet';
-  const shipped = DATA.items.filter((i) => i.status === 'shipped').length;
-  const flagged = DATA.calls.filter((c) => c.flags.length).length, tokens = DATA.calls.reduce((n, c) => n + total(c.tokens), 0);
-  document.getElementById('meta').textContent = DATA.items.length + ' items \xB7 ' + shipped + ' shipped \xB7 ' + DATA.calls.length + ' agent calls \xB7 ' + num(tokens) + ' tokens \xB7 ' + flagged + ' flagged \xB7 written ' + new Date(DATA.at).toLocaleString();
-  document.getElementById('steps').innerHTML = steps.map((st, i) => '<div class="step' + (i === pos ? ' on' : '') + (i > pos ? ' future' : '') + '" data-i="' + i + '"><span class="n">' + (i + 1) + '</span><span>' + label(st) + '</span></div>').join('');
-  const on = document.querySelector('.step.on'); if (on) on.scrollIntoView({ block: 'nearest' });
-  const s = stateAt(pos), cur = steps[pos], curItem = cur ? (cur.type === 'call' ? cur.c.item : cur.e.item) : null;
-  const disc = DATA.items.filter((i) => i.job === 'discover' && s[i.id]);
-  const cards = (list) => list.map((i) => '<div class="card' + (i.id === curItem ? ' sel' : '') + '" data-item="' + i.id + '"><div><b>#' + i.id + '</b> ' + esc(i.title) + '</div><span class="pill status-' + s[i.id].status + '">' + esc(s[i.id].status) + '</span> <span class="mute">' + esc(s[i.id].job) + '</span></div>').join('') || '<div class="mute">\u2014</div>';
-  const delivery = DATA.items.filter((i) => i.job !== 'discover' && s[i.id] && s[i.id].status !== 'candidate');
-  const raw = disc[0]?.source || '';
-  document.getElementById('board').innerHTML =
-    '<div class="col"><h3>Raw input</h3><pre style="max-height:160px">' + esc(raw.slice(0, 1500)) + '</pre></div>' +
-    '<div class="col"><h3>Discovery</h3>' + cards(disc) + '</div>' +
-    '<div class="col"><h3>Queue</h3>' + cards(DATA.items.filter((i) => i.job !== 'discover' && (s[i.id]?.status === 'candidate' || (s[i.id]?.status === 'queued' && s[i.id].job === 'ideate')))) + '</div>' +
-    ['ideation','planning','implementation','verification'].map((stage) => {
-      const jobs = { ideation: ['ideate','challenge'], planning: ['plan','test-plan'], implementation: ['implement'], verification: ['verify','arbitrate'] }[stage];
-      return '<div class="col"><h3>' + stage + '</h3>' + cards(delivery.filter((i) => jobs.includes(s[i.id].job) && !['shipped','queued'].includes(s[i.id].status))) + '</div>';
-    }).join('') +
-    '<div class="col"><h3>Shipped</h3>' + cards(delivery.filter((i) => s[i.id].status === 'shipped')) + '</div>';
-  document.getElementById('detail').innerHTML = selected ? itemDetail(selected) : cur ? stepDetail(cur) : '<span class="mute">Waiting for the first step\u2026</span>';
-}
-function stepDetail(st) {
-  if (st.type === 'call') {
-    const c = st.c;
-    return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(c.profile) + ' \xB7 ' + esc(c.kind) + ' \xB7 ' + esc(c.job) + ' <span class="mute">item #' + c.item + '</span></h2>' +
-      '<div class="kv"><div>card</div><div>' + esc(c.card.harness + ' \xB7 ' + c.card.provider + ' \xB7 ' + c.card.model + ' \xB7 ' + c.card.effort) + '</div><div>outcome</div><div>' + esc(c.outcome) + '</div><div>started</div><div>' + esc(c.started) + ' (' + (c.ms / 1000).toFixed(1) + 's)</div>' +
-      '<div>tokens</div><div>' + (c.tokens ? num(total(c.tokens)) + ' <span class="mute">= ' + num(c.tokens.input) + ' in \xB7 ' + num(c.tokens.output) + ' out \xB7 ' + num(c.tokens.cacheRead) + ' cache read \xB7 ' + num(c.tokens.cacheWrite) + ' cache write</span>' : '<span class="mute">not reported</span>') + '</div>' +
-      '<div>raw stream</div><div>' + num(c.rawBytes) + ' bytes <span class="mute">\xB7 <code>mw export ' + c.item + '</code></span></div></div>' +
-      '<h3>Rule breaks</h3>' + (c.flags.length ? '<ul class="flags">' + c.flags.map((f) => '<li><span class="pill flag">' + esc(f.rule) + '</span> <code>' + esc(JSON.stringify(f.evidence)) + '</code></li>').join('') + '</ul>' : '<div class="mute">' + (c.facts ? 'none' : 'not checked: no facts recorded') + '</div>') +
-      '<h3>Tool calls (' + c.tools.length + ')</h3>' + (c.tools.length ? '<table class="tools"><tr><th class="num">#</th><th>tool</th><th>input digest</th><th class="num">in bytes</th><th class="num">out bytes</th><th class="num">tokens</th><th>at</th><th class="num">ms</th></tr>' + c.tools.map((t) => '<tr' + (t.error ? ' class="err"' : '') + '><td class="num">' + t.seq + '</td><td>' + esc(t.tool) + (t.error ? ' (error)' : '') + '</td><td><code>' + esc(t.digest) + '</code></td><td class="num">' + num(t.inputBytes) + '</td><td class="num">' + num(t.outputBytes) + '</td><td class="num">' + (t.tokens ?? '\u2014') + '</td><td>' + esc(t.at ? new Date(t.at).toLocaleTimeString() : '\u2014') + '</td><td class="num">' + (t.ms ?? '\u2014') + '</td></tr>').join('') + '</table>' : '<div class="mute">none</div>') +
-      (c.output ? '<h3>Answer</h3><pre>' + esc(c.output) + '</pre>' : '') + (c.error ? '<h3>Error</h3><pre>' + esc(c.error) + '</pre>' : '') +
-      (c.facts ? '<details><summary>Facts</summary><pre>' + esc(JSON.stringify(c.facts, null, 2)) + '</pre></details>' : '') +
-      '<details><summary>Packet (prompt)</summary><pre>' + esc(c.prompt) + '</pre></details><details><summary>System prompt</summary><pre>' + esc(c.system) + '</pre></details>';
-  }
-  return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(st.e.kind) + ' <span class="mute">' + (st.e.item ? 'item #' + st.e.item : 'the runner') + ' \xB7 ' + esc(st.e.at) + '</span></h2><pre>' + esc(JSON.stringify(st.e.data, null, 2)) + '</pre>';
-}
-function itemDetail(id) {
-  const i = itemById(id); if (!i) return '';
-  return '<h2 style="margin:0 0 8px;font-size:16px">#' + i.id + ' ' + esc(i.title) + ' <button onclick="selected=null;render()">close</button></h2><div class="kv"><div>status now</div><div>' + esc(i.status) + '</div><div>objective</div><div>' + esc(i.objective) + '</div>' + (i.shipped ? '<div>shipped</div><div>' + esc(i.shipped.command) + '</div>' : '') + (i.hold ? '<div>hold</div><div>' + esc(i.hold.code + ': ' + i.hold.message) + '</div>' : '') + '</div>' +
-    Object.entries(i.outputs || {}).map(([job, out]) => '<details><summary>' + esc(job) + ' deliverable</summary><pre>' + esc(out) + '</pre></details>').join('') + '<details><summary>Record</summary><pre>' + esc(JSON.stringify(i, null, 2)) + '</pre></details>';
-}
-const go = (i) => { pos = Math.max(0, Math.min(steps.length - 1, i)); selected = null; render(); };
-document.getElementById('steps').onclick = (ev) => { const el = ev.target.closest('.step'); if (el) go(+el.dataset.i); };
-document.getElementById('board').onclick = (ev) => { const el = ev.target.closest('.card'); if (el) { selected = +el.dataset.item; render(); } };
-document.getElementById('slider').oninput = (ev) => go(+ev.target.value);
-document.getElementById('first').onclick = () => go(0); document.getElementById('last').onclick = () => go(steps.length - 1);
-document.getElementById('prev').onclick = () => go(pos - 1); document.getElementById('next').onclick = () => go(pos + 1);
-document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; return; } document.getElementById('play').textContent = '\u23F8 Pause'; timer = setInterval(() => { if (pos >= steps.length - 1) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; } else go(pos + 1); }, 700); };
-document.onkeydown = (ev) => { if (ev.key === 'ArrowRight') go(pos + 1); if (ev.key === 'ArrowLeft') go(pos - 1); };
-build(); pos = Math.max(0, steps.length - 1); render();
-</script></body></html>`;
 
 // src/telemetry.ts
 import { createHash } from "node:crypto";
-import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
+import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync2, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
 import { hostname } from "node:os";
-import { dirname as dirname3, join as join7, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
+import { dirname as dirname3, join as join6, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // src/lane.ts
@@ -22802,7 +22655,7 @@ function route(job, value3, corrections) {
 }
 function lastJson(text2) {
   text2 = text2.replace(/\s*```\s*$/, "");
-  for (let start = text2.lastIndexOf("{"); start !== -1; start = text2.lastIndexOf("{", start - 1)) {
+  for (let start = text2.lastIndexOf("{"); start !== -1; start = start === 0 ? -1 : text2.lastIndexOf("{", start - 1)) {
     try {
       const value3 = JSON.parse(text2.slice(start).trim());
       if (value3 && typeof value3 === "object" && !Array.isArray(value3)) return value3;
@@ -22948,7 +22801,7 @@ var buildOf = () => {
   try {
     const here = dirname3(fileURLToPath(import.meta.url));
     const hash2 = createHash("sha256");
-    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join7(here, f)));
+    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join6(here, f)));
     build2 = hash2.digest("hex").slice(0, 12);
   } catch {
     build2 = null;
@@ -22962,13 +22815,13 @@ function telemetry(storePath2) {
   if (!dir || storePath2 === ":memory:") return void 0;
   const host = hostname();
   const store = createHash("sha256").update(resolve4(storePath2)).digest("hex").slice(0, 8);
-  const file = join7(resolve4(dir), `${host}-${store}.jsonl`);
+  const file = join6(resolve4(dir), `${host}-${store}.jsonl`);
   const full = [void 0, "", "full"].includes(process.env.MW_TELEMETRY_LEVEL);
   return {
     file,
     write(t, record2) {
       try {
-        mkdirSync3(dirname3(file), { recursive: true });
+        mkdirSync2(dirname3(file), { recursive: true });
         appendFileSync3(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
       } catch {
       }
@@ -22977,10 +22830,16 @@ function telemetry(storePath2) {
 }
 var nanosToMs = (n) => Number(n / 1000000n);
 var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => {
-  if (process.env.MW_DEBUG === "0" || !sink && file.startsWith(":memory:")) return Layer_exports.empty;
-  const write = sink ? (span2) => sink.write("span", span2) : (span2) => {
-    mkdirSync3(dirname3(file), { recursive: true });
-    appendFileSync3(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+  const local = !file.startsWith(":memory:");
+  if (process.env.MW_DEBUG === "0" || !sink && !local) return Layer_exports.empty;
+  const write = (span2) => {
+    sink?.write("span", span2);
+    if (!local) return;
+    try {
+      mkdirSync2(dirname3(file), { recursive: true });
+      appendFileSync3(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+    } catch {
+    }
   };
   return Layer_exports.succeed(Tracer_exports.Tracer, Tracer_exports.make({
     span(options) {
@@ -23005,11 +22864,11 @@ function stats(lines4) {
   const latest = /* @__PURE__ */ new Map();
   let from = null;
   let to = null;
-  const tally = () => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 });
+  const tally2 = () => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 });
   const kinds = () => ({ intake: 0, originator: 0, execute: 0 });
   const project = (host, workspace) => {
     const key = `${host}\0${workspace}`;
-    if (!projects.has(key)) projects.set(key, { host, workspace, ...tally(), kinds: kinds(), items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, shipped: [], open: [] }, flags: {}, jobs: {}, cards: {} });
+    if (!projects.has(key)) projects.set(key, { host, workspace, ...tally2(), kinds: kinds(), items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, shipped: [], open: [] }, flags: {}, jobs: {}, cards: {} });
     return projects.get(key);
   };
   const refused = /* @__PURE__ */ new Set();
@@ -23047,8 +22906,8 @@ function stats(lines4) {
       const card = `${r.card.harness} \xB7 ${r.card.model} \xB7 ${r.card.effort}`;
       const minutes2 = r.ms / 6e4;
       const tokens = totalTokens(r.tokens);
-      const job = p.jobs[r.job] ??= { ...tally(), kinds: kinds() };
-      for (const t of [p, job, p.cards[card] ??= tally()]) {
+      const job = p.jobs[r.job] ??= { ...tally2(), kinds: kinds() };
+      for (const t of [p, job, p.cards[card] ??= tally2()]) {
         t.calls++;
         t.minutes += minutes2;
         t.tokens += tokens;
@@ -23095,7 +22954,7 @@ function stats(lines4) {
 }
 
 // src/store.ts
-var defaultStorePath = () => process.env.MW_STORE ?? join8(process.env.MW_HOME ?? join8(homedir2(), ".local", "share", "madewell"), "madewell.db");
+var defaultStorePath = () => process.env.MW_STORE ?? join7(process.env.MW_HOME ?? join7(homedir2(), ".local", "share", "madewell"), "madewell.db");
 var alive2 = (pid) => {
   try {
     process.kill(pid, 0);
@@ -23105,7 +22964,7 @@ var alive2 = (pid) => {
   }
 };
 function openStore(path) {
-  mkdirSync4(dirname4(path), { recursive: true });
+  mkdirSync3(dirname4(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
@@ -23133,7 +22992,6 @@ function openStore(path) {
       throw e;
     }
   };
-  const glass = join8(dirname4(path), "glass.html");
   const insertTools = (call, tools) => {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
@@ -23154,21 +23012,12 @@ function openStore(path) {
     const { lastInsertRowid } = db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, at, kind, JSON.stringify(data));
     emit("event", { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data });
   };
-  const view2 = () => {
-    if (path === ":memory:") return;
-    try {
-      writeFileSync5(`${glass}.tmp`, replayHtml(snapshot3(store)));
-      renameSync(`${glass}.tmp`, glass);
-    } catch {
-    }
-  };
   const read = (id2) => {
     const row = db.prepare("SELECT doc FROM items WHERE id = ?").get(id2);
     return row && JSON.parse(row.doc);
   };
   const store = {
     path,
-    glass,
     create(fields) {
       const created = tx2(() => {
         const now2 = (/* @__PURE__ */ new Date()).toISOString();
@@ -23178,7 +23027,6 @@ function openStore(path) {
         event(item.id, "created", { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null });
         return item;
       });
-      view2();
       return created;
     },
     get(id2) {
@@ -23187,7 +23035,6 @@ function openStore(path) {
     /** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
     note(id2, kind, data = {}) {
       tx2(() => event(id2, kind, data));
-      view2();
     },
     /** Saves the new state of an item together with the event that explains it. */
     save(item, kind, data = {}) {
@@ -23196,7 +23043,6 @@ function openStore(path) {
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(next), item.id);
         event(item.id, kind, data);
       });
-      view2();
       return next;
     },
     list() {
@@ -23269,7 +23115,7 @@ function openStore(path) {
           event(0, row?.pid === process.pid ? "runner-reloaded" : "runner-started", { pid: process.pid, ...process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
           return void 0;
         });
-        if (!owner) return Effect_exports.sync(view2);
+        if (!owner) return Effect_exports.void;
         const busy = owner.item === null ? void 0 : read(owner.item);
         return Effect_exports.fail(new MadeWellError({
           code: "store_locked",
@@ -23307,7 +23153,6 @@ function openStore(path) {
         if (Object.values(r).some(Boolean)) event(0, "pruned", { before, ...r, ids });
         return r;
       });
-      view2();
       if (db.prepare("PRAGMA freelist_count").get().freelist_count) db.exec("VACUUM");
       db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
       return removed;
@@ -23324,7 +23169,6 @@ function openStore(path) {
       tx2(() => {
         if (db.prepare("DELETE FROM runner WHERE id = 1 AND pid = ?").run(process.pid).changes) event(0, "runner-stopped", { pid: process.pid });
       });
-      view2();
     },
     close() {
       db.close();
@@ -23334,7 +23178,7 @@ function openStore(path) {
 }
 var Store = class extends Context_exports.Service()("madewell/Store") {
 };
-var spansPath = (path) => join8(dirname4(path), "spans.jsonl");
+var spansPath = (path) => join7(dirname4(path), "spans.jsonl");
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
   debugLayer(path === ":memory:" ? ":memory:" : spansPath(path), telemetry(path))
@@ -23353,7 +23197,7 @@ var Project = Schema_exports.Struct({
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
-var projectsPath = (storePath2) => join9(dirname5(storePath2), "projects.json");
+var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
   return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync5(path, "utf8")).pipe(
@@ -23370,8 +23214,8 @@ var projectFor = (projects, workspace) => projects.filter((p) => workspace === p
 var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project) {
   const projects = yield* readProjects(path);
   const merged = { ...projects.find((p) => p.path === project.path), ...project };
-  mkdirSync5(dirname5(path), { recursive: true });
-  writeFileSync6(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
+  mkdirSync4(dirname5(path), { recursive: true });
+  writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
   return merged;
 });
 var openHolds = (store) => store.list().filter((i) => i.status === "held" && i.hold !== void 0).map((item) => {
@@ -23387,10 +23231,12 @@ var openHolds = (store) => store.list().filter((i) => i.status === "held" && i.h
     alerted: alert ? { at: alert.at, exitCode: alert.data.exitCode } : null
   };
 }).sort((a, b) => a.since.localeCompare(b.since));
-var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
+var alertHolds = (registry2) => Effect_exports.gen(function* () {
+  const holds = openHolds(yield* Store).filter((h) => !h.alerted);
+  if (holds.length) yield* sendAlerts(registry2, holds);
+});
+var sendAlerts = Effect_exports.fn("mw.alertHolds")(function* (registry2, holds) {
   const store = yield* Store;
-  const holds = openHolds(store).filter((h) => !h.alerted);
-  if (!holds.length) return;
   const projects = yield* readProjects(registry2);
   for (const hold2 of holds) {
     const command2 = projectFor(projects, hold2.workspace)?.alert;
@@ -23408,6 +23254,7 @@ var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
 
 // src/engine.ts
 var MAX_LAUNCHES = 3;
+var REPAIR_BUDGET = { minutes: 5 };
 var MAX_TURNS = 3;
 var UNKNOWN_RESET_MS = 60 * 6e4;
 var MIN_OUT_MS = 5 * 6e4;
@@ -23419,10 +23266,10 @@ var INTAKE_TIER = "intake";
 var liveFile = (store, name) => {
   if (store.path === ":memory:") return void 0;
   try {
-    const dir = join10(dirname6(store.path), "live");
-    mkdirSync6(dir, { recursive: true });
-    const file = join10(dir, `${name}.log`);
-    writeFileSync7(file, "");
+    const dir = join9(dirname6(store.path), "live");
+    mkdirSync5(dir, { recursive: true });
+    const file = join9(dir, `${name}.log`);
+    writeFileSync5(file, "");
     return file;
   } catch {
     return void 0;
@@ -23431,9 +23278,9 @@ var liveFile = (store, name) => {
 var endLive = (file) => file && rmSync5(file, { force: true });
 var endLiveOf = (store, id2) => {
   if (store.path === ":memory:") return;
-  const dir = join10(dirname6(store.path), "live");
+  const dir = join9(dirname6(store.path), "live");
   try {
-    for (const f of readdirSync3(dir)) if (f.startsWith(`item-${id2}-`)) rmSync5(join10(dir, f), { force: true });
+    for (const f of readdirSync3(dir)) if (f.startsWith(`item-${id2}-`)) rmSync5(join9(dir, f), { force: true });
   } catch {
   }
 };
@@ -23546,7 +23393,7 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
     packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake"))
   });
   if (!call) return;
-  const reply = decode5(INTAKE, call.output);
+  const reply = yield* decodeOrRepair(id2, job, call, INTAKE);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
   const { understanding, unclear, ambiguous, missing: missing2, notes } = reply.value;
   const questions = [...unclear, ...ambiguous, ...missing2].filter((q) => q.trim() !== "");
@@ -23584,7 +23431,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
     packet: (dir) => packet(item, by, dir, originatorParts(item, job, x), x.from.kind === "job")
   });
   if (!call) return;
-  const reply = decode5(ORIGINATOR, call.output);
+  const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
   let answer2 = reply.value.answer;
   if (reply.value.needsOperator) {
@@ -23597,7 +23444,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
     answer2 = ruled.answer;
   }
   const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: answer2, by: "originator" } : t);
-  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from, ...reply.value.needsOperator ? { dispatcher: true } : {} });
+  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from, answer: answer2, ...reply.value.needsOperator ? { dispatcher: true } : {} });
 });
 var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
   const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, "ideate"));
@@ -23622,7 +23469,7 @@ var dispatch = (id2, job, config, originator, questions, originatorSays) => Effe
     }, false)
   });
   if (!call) return null;
-  const reply = decode5(ORIGINATOR, call.output);
+  const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason), null;
   return reply.value;
 });
@@ -23747,19 +23594,65 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     holdFor(store, id2, left.failure, job);
     return void 0;
   }
-  const called = { kind: spec.kind, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
+  const called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
   return after ? yield* after(wt.path, called) : called;
 }));
+var malformed = (job, output) => {
+  if (job === "discover") return Array.isArray(lastJson(output)?.items) ? void 0 : 'The answer did not end with {"items": [...]}.';
+  if (!(job in DELIVERABLES)) return void 0;
+  const r = decode5(DELIVERABLES[job], output);
+  return r.ok ? void 0 : r.reason;
+};
+var REPAIR_TASK = "Your last answer could not be read: its JSON is malformed or does not match your reply format. Under yourAnswer is what you sent and under problem what is wrong with it. Reply with only that answer as one JSON object matching you.replyFormat: the same content, corrected, nothing added or dropped. Your work is done; this call only corrects the reply.";
+var decodeOrRepair = (id2, job, call, schema) => Effect_exports.gen(function* () {
+  const first = decode5(schema, call.output);
+  if (first.ok) return first;
+  const fixed = yield* repair(id2, job, call, shapeOf(schema), first.reason);
+  return fixed ? decode5(schema, fixed.output) : first;
+});
+var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* () {
+  const store = yield* Store;
+  const worker = yield* Worker;
+  const profile = call.profile;
+  const prompt = JSON.stringify({ you: { profile, job, call: "repair", task: REPAIR_TASK, replyFormat: shape }, yourAnswer: call.output, problem: problem.slice(0, 4e3) }, null, 2);
+  const started = /* @__PURE__ */ new Date();
+  const res = yield* worker.run({ kind: "repair", job, profile, card: call.card, access: "none", system: BRIEF, prompt, item: id2, cwd: store.path === ":memory:" ? tmpdir3() : dirname6(store.path), budget: REPAIR_BUDGET }).pipe(
+    Effect_exports.withSpan(`mw.repair.${job}`, { attributes: { item: id2, job, harness: call.card.harness, model: call.card.model } })
+  );
+  const ms = Date.now() - started.getTime();
+  const repairId = store.recordCall({
+    item: id2,
+    kind: "repair",
+    job,
+    profile,
+    card: call.card,
+    system: BRIEF,
+    prompt,
+    outcome: res.ok ? "ok" : "limit" in res ? "limit" : "error",
+    output: res.ok ? res.output : null,
+    error: res.ok ? null : "limit" in res ? res.limit.message : res.error,
+    raw: res.raw ?? null,
+    started: started.toISOString(),
+    ms,
+    harnessVersion: res.version ?? null
+  }, { access: "none" });
+  store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`);
+  const ok = res.ok && (call.kind === "execute" ? !malformed(job, res.output) : lastJson(res.output) !== void 0);
+  store.note(id2, "repaired", { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok });
+  return ok && res.ok ? { ...call, output: res.output } : void 0;
+});
 var refuse = Effect_exports.fn("mw.refuse")(function* (id2, job, call, reason) {
   const store = yield* Store;
   store.rejectCall(call.callId, reason);
   yield* launchFailed(id2, job, call.kind, call.card, reason, {}, { rejected: reason });
 });
-var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, call) {
+var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) {
   const store = yield* Store;
   const item = store.get(id2);
   const plan = planOf(item);
   const home = itemHome(store.path, id2);
+  const problem = malformed(job, answered.output);
+  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(job), problem)) ?? answered : answered;
   const v = validate3(job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0);
   const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
@@ -23825,7 +23718,7 @@ function applyRoute(store, id2, job, value3, fields) {
       return;
     }
     case "next":
-      store.save({ ...current, job: r.job, from: by, rework: void 0 }, "handed-off", { from: job, to: r.job });
+      store.save({ ...current, job: r.job, from: by, rework: void 0, ...r.job === "plan" ? { base: void 0 } : {} }, "handed-off", { from: job, to: r.job });
       return;
     case "split":
       store.save({
@@ -23918,7 +23811,7 @@ var aftercare = Effect_exports.fn("mw.aftercare")(function* (id2, job) {
   const todo = pending(store.get(id2), job);
   if (!todo.length) return;
   const home = itemHome(store.path, id2);
-  mkdirSync6(home, { recursive: true });
+  mkdirSync5(home, { recursive: true });
   const r = yield* Effect_exports.result(teardown(todo, home));
   const records = Result_exports.isSuccess(r) ? r.success : r.failure.context.records;
   const now2 = store.get(id2);
@@ -24301,6 +24194,7 @@ var BRIEF = [
   ].join("\n"),
   `Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
   "Honor the product repo's coding conventions.",
+  "Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.",
   SUBAGENT_RULE,
   "Your final message is ONLY one JSON object that matches you.replyFormat, with that schema's properties as its own top-level keys."
 ].join("\n\n");
@@ -24326,16 +24220,16 @@ var whereYouAre = (job) => {
   return step2.stage === "discovery" ? "Made Well's discovery" : `Made Well's delivery lane (${step2.stage})`;
 };
 var TASKS = {
-  plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
-  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer's change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree.",
+  plan: `Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item's own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item's own checks gate it.`,
+  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer's change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree. A check proves its done-when item from this item's change alone: never run or count the whole test suite, and never pin anything outside the plan's scope; other items ship onto the same branch while this one is in flight.",
   implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself.",
-  arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to."
+  arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause. test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change. implementation: the planner plans again from your answer, both makers redo their work, and verification follows. pre-existing: a fix item for the defect ships first, then this item's checks run again. undetermined: the operator decides."
 };
 var you = (job, kind) => {
   const step2 = stepOf(job);
   return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
 };
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
   you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
@@ -24476,7 +24370,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
-  const calls = all4.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute")).slice(-(o.limit ?? 0));
+  const calls = all4.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute") && c.kind !== "repair").slice(-(o.limit ?? 0));
   if (!calls.length) {
     const recorded = {};
     for (const c of all4) if (c.outcome !== "limit") recorded[c.job] = (recorded[c.job] ?? 0) + 1;
@@ -24602,7 +24496,32 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   return report;
 }, Effect_exports.scoped);
 
+// src/export.ts
+import { mkdirSync as mkdirSync6, writeFileSync as writeFileSync6 } from "node:fs";
+import { join as join10 } from "node:path";
+var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
+  const item = store.get(id2);
+  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
+  const calls = store.calls(id2);
+  yield* Effect_exports.try({
+    try: () => {
+      mkdirSync6(dir, { recursive: true });
+      writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      calls.forEach((c, i) => {
+        const folder = join10(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        mkdirSync6(folder, { recursive: true });
+        const { system, prompt, output, raw, tools, flags, ...meta } = c;
+        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
+        for (const [name, text2] of files) writeFileSync6(join10(folder, name), text2);
+      });
+    },
+    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
+  });
+  return { dir, calls: calls.length };
+});
+
 // src/ui.ts
+import { execFileSync as execFileSync2 } from "node:child_process";
 import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync7, readSync as readSync2, statSync as statSync2 } from "node:fs";
 import { createServer } from "node:http";
 import { basename as basename2, dirname as dirname7, join as join11 } from "node:path";
@@ -24610,492 +24529,513 @@ import { basename as basename2, dirname as dirname7, join as join11 } from "node
 // src/console.ts
 var CONSOLE = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Made Well · console</title>
+<title>Made Well</title>
 <style>
-:root { --ink:#111827; --mute:#6b7280; --faint:#9ca3af; --line:#e5e7eb; --bg:#f5f6f8; --card:#fff;
-  --blue:#2563eb; --blue-bg:#eff4ff; --green:#15803d; --green-bg:#ecfdf3; --red:#b91c1c; --red-bg:#fef2f2;
-  --amber:#b45309; --amber-bg:#fffbeb; --violet:#7c3aed; --violet-bg:#f5f3ff; --gray-bg:#f3f4f6;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+:root { --ink:#0f172a; --ink2:#334155; --mute:#64748b; --faint:#94a3b8; --line:#e2e8f0; --line2:#f1f5f9; --bg:#f8fafc; --card:#fff;
+  --blue:#2563eb; --blue-bg:#eff6ff; --blue-ln:#bfdbfe; --green:#15803d; --green-bg:#f0fdf4; --green-ln:#bbf7d0; --red:#dc2626; --red-bg:#fef2f2; --red-ln:#fecaca;
+  --amber:#b45309; --amber-bg:#fffbeb; --amber-ln:#fde68a; --violet:#7c3aed; --violet-bg:#f5f3ff; --teal:#0f766e;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --r:10px; }
 * { box-sizing:border-box }
 body { margin:0; font:14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); background:var(--bg) }
-.top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 22px; background:#fff; border-bottom:1px solid var(--line) }
-.top h1 { font-size:15px; margin:0; font-weight:650 } .top .path { color:var(--mute); font:12px var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 }
-.top .grow { flex:1 }
-.pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:2px 10px; border-radius:999px; white-space:nowrap; font-weight:500 }
-.pill.ok { color:var(--green); background:var(--green-bg) } .pill.warn { color:var(--amber); background:var(--amber-bg) } .pill.bad { color:var(--red); background:var(--red-bg) } .pill.mute { color:var(--mute); background:var(--gray-bg) }
-.dot { width:7px; height:7px; border-radius:50%; background:currentColor }
-.dot.pulse { animation:pulse 1.4s infinite } @keyframes pulse { 50% { opacity:.25 } }
-main { max-width:1440px; margin:0 auto; padding:18px 22px 60px; display:grid; gap:16px }
-.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; min-width:0 }
-.card > h2 { margin:0 0 12px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; display:flex; gap:8px; align-items:baseline }
-.card > h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--faint) }
-button { font:inherit; font-weight:500; padding:7px 14px; border:1px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; color:var(--ink) }
-button:hover { border-color:#9ca3af } button.primary { background:var(--blue); color:#fff; border-color:var(--blue) } button.on { background:var(--blue-bg); border-color:var(--blue); color:var(--blue) }
-button.small { padding:2px 8px; font-size:12px }
-.controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap } .controls .pos { margin-left:auto; font:13px var(--mono); color:var(--mute) }
-.bar { margin-top:14px; height:6px; background:var(--gray-bg); border-radius:99px; cursor:pointer; position:relative } .bar > div { height:100%; background:var(--blue); border-radius:99px }
-.now { display:grid; grid-template-columns:auto 1fr; gap:6px 14px; align-items:baseline }
-.badge { font:600 11px var(--mono); letter-spacing:.06em; text-transform:uppercase; padding:3px 8px; border-radius:6px; white-space:nowrap }
-.a-operator { color:var(--violet); background:var(--violet-bg) } .a-agent { color:var(--blue); background:var(--blue-bg) } .a-made { color:var(--green); background:var(--green-bg) } .a-runner { color:var(--mute); background:var(--gray-bg) }
-.now .head { font-size:19px; font-weight:600 } .now .last { font-size:14px } .now .why { color:var(--mute); margin-bottom:8px } .now code { font:12px var(--mono); background:var(--gray-bg); padding:1px 6px; border-radius:5px }
-.flights { margin-top:14px; display:grid; gap:8px }
-.flight { border:1px solid #c7d7fe; background:var(--blue-bg); border-radius:10px; padding:10px 12px; cursor:pointer }
-.flight.cut { border-color:#fcd34d; background:var(--amber-bg) }
-.flight .l1 { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap } .flight .t { font:13px var(--mono); margin-left:auto; color:var(--blue) } .flight.cut .t { color:var(--amber) }
-.flight .l2 { font:12px var(--mono); color:#374151; margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.lanes { display:grid; grid-template-columns: 1.15fr .85fr 3.2fr .7fr; gap:12px }
-.lane { border:1px dashed #d1d5db; border-radius:10px; padding:12px; min-width:0 }
-.lane h3 { margin:0 0 10px; font-size:13px; font-weight:650; letter-spacing:.02em } .lane.op h3 { color:var(--violet) }
-.stages { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:8px }
-.stage { border:1px solid var(--line); border-radius:10px; padding:10px; min-height:120px; min-width:0 } .stage.hot { border:2px solid var(--blue); padding:9px }
-.stage b { display:block; font-size:14px } .stage .jobs { font:12px var(--mono); color:var(--mute); margin:2px 0 8px }
-.steps { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px }
-.step { font-size:12px; border:1px solid #bbf7d0; color:var(--green); background:var(--green-bg); padding:2px 8px; border-radius:6px }
-.lane.op .step { border-color:#ddd6fe; color:var(--violet); background:var(--violet-bg) }
-.chips { display:flex; flex-wrap:wrap; gap:6px }
-.chip { font:12px var(--mono); padding:3px 8px; border-radius:6px; cursor:pointer; border:1px solid transparent; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.chip:hover { border-color:currentColor }
-.s-running, .s-queued { color:var(--blue); background:var(--blue-bg) } .s-held { color:var(--red); background:var(--red-bg) } .s-shipped, .s-discovered { color:var(--green); background:var(--green-bg) }
-.s-candidate, .s-waiting-quota, .s-waiting-prerequisite { color:var(--amber); background:var(--amber-bg) } .s-dropped { color:var(--faint); background:var(--gray-bg); text-decoration:line-through }
-.chip.live { animation:ring 1.4s infinite } @keyframes ring { 0%, 100% { box-shadow:0 0 0 2px var(--blue) inset } 50% { box-shadow:0 0 0 2px #93b4fb inset } }
-.done-n { font-size:32px; font-weight:700; color:var(--green); text-align:center; margin:6px 0 }
-.row3 { display:grid; grid-template-columns: 1fr 1.15fr 1.15fr; gap:16px }
-.term { background:#fbfbfc; border:1px solid var(--line); border-radius:10px; padding:14px 16px; font:13px/1.65 var(--mono); white-space:pre-wrap; word-break:break-word; max-height:560px; overflow:auto }
-.term .g { color:var(--green) } .term .m { color:var(--mute) } .term .r { color:var(--red) } .term .b { color:var(--blue) }
-table { border-collapse:collapse; width:100% } th { text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line) }
-td { padding:8px; border-bottom:1px solid #f1f2f4; vertical-align:top } tr.click { cursor:pointer } tr.click:hover td { background:#fafbff }
-td.num, th.num { text-align:right; font-variant-numeric:tabular-nums } .id { font:13px var(--mono); color:var(--mute) } .meta { font-size:12px; color:var(--mute) }
-.state { font:600 11px var(--mono); padding:2px 7px; border-radius:5px; text-transform:uppercase; white-space:nowrap }
-.tiles { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px }
-.tile { border:1px solid var(--line); border-radius:10px; padding:10px 12px } .tile .v { font:600 22px var(--mono) } .tile .k { font-size:12px; color:var(--mute) }
-.tile.bad .v { color:var(--red) } .tile.ok .v { color:var(--green) }
-.mins { margin-top:14px; display:grid; grid-template-columns: 110px 1fr 64px; gap:6px 10px; align-items:center; font-size:13px }
-.mins .track { height:9px; background:var(--gray-bg); border-radius:99px; overflow:hidden } .mins .fill { height:100%; background:var(--blue) } .mins .fill.wait { background:var(--violet) } .mins .fill.quota { background:var(--amber) }
-.mins .n { text-align:right; font:12px var(--mono); color:var(--mute) }
-.log { max-height:520px; overflow:auto } .log td { font-size:13px } .log td.t { font:12px var(--mono); color:var(--mute); white-space:nowrap } .log tr.cur td { background:var(--blue-bg) } .log tr.future td { opacity:.35 }
-.filter { display:flex; gap:8px; margin:-4px 0 10px } .filter input { flex:1; font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:8px }
-.rule-ok { color:var(--green) } .rule-bad { color:var(--red); font-weight:600 }
-.drawer { position:fixed; top:0; right:0; bottom:0; width:min(760px, 96vw); background:#fff; border-left:1px solid var(--line); box-shadow:-12px 0 32px rgba(17,24,39,.08); z-index:10; display:none; flex-direction:column }
-.drawer.open { display:flex } .drawer header { display:flex; gap:10px; align-items:center; padding:14px 18px; border-bottom:1px solid var(--line) } .drawer header h3 { margin:0; font-size:16px; flex:1; min-width:0 }
-.drawer .body { overflow:auto; padding:16px 18px 40px }
-.drawer h4 { margin:18px 0 6px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute) }
-.kv { display:grid; grid-template-columns:130px 1fr; gap:4px 12px; font-size:13px } .kv > div:nth-child(odd) { color:var(--mute) } .kv > div { min-width:0; overflow-wrap:anywhere }
-pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:12px/1.5 var(--mono); max-height:460px; overflow:auto; margin:4px 0 }
-details summary { cursor:pointer; color:var(--blue); margin:8px 0; font-size:13px }
-.hold { border:1px solid #fecaca; background:var(--red-bg); border-radius:10px; padding:12px 14px } .hold b { color:var(--red) }
-.cmd { display:flex; gap:8px; align-items:baseline; margin-top:6px } .cmd code { font:12px var(--mono); background:#fff; border:1px solid var(--line); padding:3px 8px; border-radius:6px; overflow-wrap:anywhere } .cmd span { font-size:12px; color:var(--mute) }
-.span { display:grid; grid-template-columns: 1fr 70px; gap:8px; font:12px var(--mono); padding:2px 0 } .span .bar2 { height:6px; background:var(--blue); border-radius:3px; margin-top:6px; min-width:2px } .span.err { color:var(--red) } .span.err .bar2 { background:var(--red) }
-.stream { font:12px/1.5 var(--mono); background:#0f172a; color:#e2e8f0; border-radius:8px; padding:10px 12px; max-height:520px; overflow:auto; white-space:pre-wrap; word-break:break-word }
-.stream .k { color:#93c5fd } .stream .x { color:#94a3b8 }
+a { color:var(--blue); text-decoration:none } a:hover { text-decoration:underline }
+code, .mono { font-family:var(--mono); font-size:12.5px }
+.top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 24px; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line) }
+.brand { font-weight:700; letter-spacing:-.01em; font-size:15px; display:flex; gap:8px; align-items:center } .brand i { width:10px; height:10px; border-radius:3px; background:linear-gradient(135deg,#2563eb,#15803d); display:inline-block }
+.top .proj { color:var(--ink2); font-weight:500 } .top .path { color:var(--faint); font:12px var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 } .grow { flex:1 }
+.pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:3px 10px; border-radius:999px; white-space:nowrap; font-weight:500; border:1px solid transparent }
+.pill.ok { color:var(--green); background:var(--green-bg); border-color:var(--green-ln) } .pill.warn { color:var(--amber); background:var(--amber-bg); border-color:var(--amber-ln) } .pill.bad { color:var(--red); background:var(--red-bg); border-color:var(--red-ln) } .pill.mute { color:var(--mute); background:var(--line2) }
+.dot { width:7px; height:7px; border-radius:50%; background:currentColor } .pulse { animation:pulse 1.4s infinite } @keyframes pulse { 50% { opacity:.3 } }
+main { max-width:1480px; margin:0 auto; padding:20px 24px 80px; display:grid; gap:18px }
+.card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px; min-width:0 }
+h2 { margin:0 0 12px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--mute); font-weight:650; display:flex; gap:10px; align-items:baseline }
+h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--faint) } h2 .right { margin-left:auto; text-transform:none; letter-spacing:0; font-weight:400 }
+.hero { display:flex; gap:28px; align-items:center; flex-wrap:wrap }
+.hero .big { font-size:30px; font-weight:700; letter-spacing:-.02em; line-height:1.1 } .hero .big small { font-size:15px; font-weight:500; color:var(--mute); letter-spacing:0 }
+.hero .verdict { font-size:15px; color:var(--ink2); margin-top:4px; max-width:620px }
+.stats { display:flex; gap:22px; flex-wrap:wrap; margin-left:auto }
+.stat .v { font:650 19px var(--mono); letter-spacing:-.02em } .stat .k { font-size:12px; color:var(--mute) } .stat.bad .v { color:var(--red) } .stat.ok .v { color:var(--green) }
+.needs { border:1px solid var(--red-ln); background:linear-gradient(0deg,#fff,#fff8f8); }
+.needs h2 { color:var(--red) }
+.need { padding:12px 0; border-top:1px solid var(--red-ln) } .need:first-of-type { border-top:0; padding-top:0 }
+.need .msg { font-size:15px; font-weight:500 } .need ol { margin:6px 0 4px; padding-left:20px; color:var(--ink2) } .need li { margin:2px 0 }
+.cmd { display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap } .cmd code { background:var(--ink); color:#e2e8f0; padding:5px 10px; border-radius:7px; overflow-wrap:anywhere }
+.cmd button { font:inherit; font-size:12px; padding:3px 9px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; color:var(--ink2) } .cmd button:hover { border-color:var(--faint) } .cmd span { font-size:12.5px; color:var(--mute) }
+.work { display:grid; gap:0 }
+.row { display:grid; grid-template-columns: minmax(260px, 1fr) 590px 200px; gap:18px; align-items:center; padding:12px 6px; border-top:1px solid var(--line2); cursor:pointer; border-radius:8px }
+.row:first-child { border-top:0 } .row:hover { background:#f8fbff }
+.row .t { font-weight:600; font-size:14.5px; line-height:1.35 } .row .t .id { color:var(--faint); font:500 13px var(--mono); margin-right:6px }
+.row .d { font-size:13px; color:var(--ink2); margin-top:3px; line-height:1.4 } .row .d b { font-weight:600 }
+.row .m { font:12px var(--mono); color:var(--mute); text-align:right; line-height:1.6 } .row .m .owes { font-family:inherit; color:var(--ink2) }
+.tag { display:inline-block; font:600 10.5px var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:2px; background:var(--line2); color:var(--mute) }
+.tag.fix { background:#fff1f2; color:#be123c } .tag.feature { background:var(--blue-bg); color:var(--blue) } .tag.chore { background:#f5f5f4; color:#57534e } .tag.discovery { background:var(--violet-bg); color:var(--violet) } .tag.prerequisite { background:var(--amber-bg); color:var(--amber) }
+.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-dropped { text-decoration:line-through }
+.pipe { display:flex; align-items:center; gap:3px; justify-self:start }
+.pipe .col { display:flex; flex-direction:column; gap:3px }
+.seg { font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--line); color:var(--faint); background:#fff; white-space:nowrap; min-width:62px; text-align:center; position:relative; line-height:1.3 }
+.seg.done { background:var(--green-bg); border-color:var(--green-ln); color:var(--green) }
+.seg.active { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.12) } .seg.active::after { content:''; position:absolute; top:-3px; right:-3px; width:7px; height:7px; border-radius:50%; background:var(--blue); animation:pulse 1.2s infinite }
+.seg.held, .seg.failed { background:var(--red-bg); border-color:var(--red); color:var(--red) } .seg.waiting { background:var(--amber-bg); border-color:var(--amber-ln); color:var(--amber) }
+.seg.skipped { border-style:dashed; color:#cbd5e1 } .seg .q { font:600 9.5px var(--mono); margin-left:3px; color:var(--amber) }
+.arrow { color:#cbd5e1; font-size:11px }
+.running { display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:12px }
+.run { border:1px solid var(--blue-ln); background:linear-gradient(180deg,var(--blue-bg),#fff 60%); border-radius:var(--r); padding:12px 14px; cursor:pointer; min-width:0 }
+.run.nq { border-color:var(--amber-ln); background:linear-gradient(180deg,var(--amber-bg),#fff 60%) } .run.mw { border-color:var(--green-ln); background:linear-gradient(180deg,var(--green-bg),#fff 60%) }
+.run .h { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap } .run .h b { font-size:14px } .run .h .tm { margin-left:auto; font:600 13px var(--mono); color:var(--blue) }
+.run .rw { font-size:12.5px; color:var(--mute) } .run .it { font-size:12.5px; color:var(--ink2); margin:2px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.act { font:12px/1.55 var(--mono); color:var(--ink2); border-left:2px solid var(--line); padding-left:9px; min-height:20px }
+.act div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis } .act .tool { color:#1e40af } .act .say { color:var(--ink2) } .act .error { color:var(--red) } .act div:last-child { color:var(--ink); font-weight:500 }
+.tl { position:relative; overflow-x:auto } .tl-in { position:relative; min-width:900px }
+.tl-axis { position:relative; height:22px; margin-left:220px; border-bottom:1px solid var(--line) } .tl-axis span { position:absolute; top:2px; font:11px var(--mono); color:var(--faint); transform:translateX(-50%) }
+.tl-row { display:flex; align-items:stretch; border-bottom:1px solid var(--line2); min-height:30px; cursor:pointer } .tl-row:hover { background:#fafcff }
+.tl-name { width:220px; flex:none; padding:5px 10px 5px 0; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink2) } .tl-name b { font:500 12px var(--mono); color:var(--faint); margin-right:4px }
+.tl-track { position:relative; flex:1 } .tl-grid { position:absolute; top:0; bottom:0; width:1px; background:var(--line2) }
+.bar { position:absolute; height:9px; border-radius:3px; min-width:3px; cursor:pointer }
+.bar:hover { outline:2px solid var(--ink); z-index:2 }
+.bar.intake { background:#93c5fd } .bar.originator { background:#fbbf24 } .bar.execute { background:var(--blue) } .bar.verify { background:#22c55e } .bar.ship { background:var(--teal) }
+.bar.arbitrate { background:var(--violet) } .bar.repair { background:#f472b6 } .bar.bad { background:repeating-linear-gradient(45deg,var(--red),var(--red) 3px,#fca5a5 3px,#fca5a5 6px) } .bar.live { animation:pulse 1.4s infinite }
+.tl-now { position:absolute; top:0; bottom:0; width:2px; background:var(--red); opacity:.5 }
+.legend { display:flex; gap:14px; font-size:12px; color:var(--mute); flex-wrap:wrap } .legend i { display:inline-block; width:14px; height:8px; border-radius:2px; margin-right:5px; vertical-align:0 }
+.two { display:grid; grid-template-columns: 1.3fr 1fr; gap:18px }
+.cost { display:grid; grid-template-columns: 96px 1fr 120px; gap:7px 12px; align-items:center; font-size:13px }
+.cost .track { height:14px; background:var(--line2); border-radius:4px; overflow:hidden; display:flex } .cost .track div { height:100% } .cost .n { font:12px var(--mono); color:var(--mute); text-align:right }
+.k-intake { background:#93c5fd } .k-originator { background:#fbbf24 } .k-execute { background:var(--blue) } .k-repair { background:#f472b6 }
+.facts { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px }
+.fact { border:1px solid var(--line); border-radius:8px; padding:10px 12px } .fact .v { font:650 17px var(--mono) } .fact .k { font-size:12px; color:var(--mute) } .fact.bad .v { color:var(--red) } .fact.ok .v { color:var(--green) }
+.log { max-height:420px; overflow:auto } .ev { display:grid; grid-template-columns: 64px 82px 40px 1fr; gap:10px; padding:5px 4px; border-bottom:1px solid var(--line2); font-size:13px; align-items:baseline }
+.ev .t { font:12px var(--mono); color:var(--faint) } .ev .i { font:12px var(--mono); color:var(--mute) }
+.who { font:600 10.5px var(--mono); letter-spacing:.05em; text-transform:uppercase; padding:1px 6px; border-radius:4px; text-align:center }
+.w-operator { color:var(--violet); background:var(--violet-bg) } .w-agent { color:var(--blue); background:var(--blue-bg) } .w-made { color:var(--green); background:var(--green-bg) } .w-runner { color:var(--mute); background:var(--line2) }
+.filter { display:flex; gap:8px; margin:-4px 0 8px } .filter input { flex:1; font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff }
 .empty { color:var(--faint); font-size:13px }
-@media (max-width: 1100px) { .lanes, .row3 { grid-template-columns:1fr } .stages { grid-template-columns:repeat(2, minmax(0,1fr)) } }
+.drawer { position:fixed; inset:0 0 0 auto; width:min(1000px, 97vw); background:#fff; border-left:1px solid var(--line); box-shadow:-20px 0 40px rgba(15,23,42,.10); z-index:10; display:none; flex-direction:column }
+.drawer.open { display:flex } .scrim { position:fixed; inset:0; background:rgba(15,23,42,.18); z-index:9; display:none } .scrim.open { display:block }
+.dh { padding:16px 22px 0; border-bottom:1px solid var(--line) } .dh .x { float:right; font:inherit; font-size:13px; padding:4px 10px; border:1px solid var(--line); border-radius:7px; background:#fff; cursor:pointer }
+.dh h3 { margin:0 0 4px; font-size:19px; letter-spacing:-.01em } .dh .sub { color:var(--ink2); font-size:13.5px; margin-bottom:10px }
+.tabs { display:flex; gap:2px; margin-top:12px } .tabs button { font:inherit; font-size:13px; font-weight:500; padding:8px 12px; border:0; background:none; color:var(--mute); border-bottom:2px solid transparent; cursor:pointer } .tabs button.on { color:var(--ink); border-color:var(--ink) }
+.tabs button .n { font:11px var(--mono); color:var(--faint); margin-left:4px }
+.db { overflow:auto; padding:18px 22px 60px; flex:1 }
+.db h4 { margin:20px 0 8px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--mute) } .db h4:first-child { margin-top:0 }
+.prose { font-size:14px; color:var(--ink2); white-space:pre-wrap } .prose.lead { font-size:15px; color:var(--ink) }
+.dec { border:1px solid var(--line); border-radius:8px; padding:9px 12px; margin:6px 0 } .dec .q { font-weight:600; font-size:13.5px } .dec .a { font-size:13.5px; margin-top:2px } .dec .y { font-size:12.5px; color:var(--mute); margin-top:4px }
+.chips { display:flex; gap:6px; flex-wrap:wrap } .chip { font:12px var(--mono); padding:2px 8px; border-radius:6px; background:var(--line2); color:var(--ink2) }
+ol.steps { padding-left:22px; margin:4px 0 } ol.steps li { margin:4px 0; font-size:13.5px }
+.dw { display:grid; grid-template-columns: 54px 1fr; gap:6px 10px; font-size:13.5px } .dw .id { font:600 12px var(--mono); color:var(--mute) }
+.turn { border-left:3px solid var(--amber-ln); padding:4px 0 4px 12px; margin:8px 0 } .turn .qh { font-size:12px; font-weight:600; color:var(--amber); text-transform:uppercase; letter-spacing:.05em }
+.turn ol { margin:4px 0; padding-left:20px; font-size:13.5px } .turn .ans { background:var(--line2); border-radius:8px; padding:8px 11px; font-size:13.5px; white-space:pre-wrap; margin-top:6px } .turn .ans b { font-size:12px; color:var(--mute); display:block; margin-bottom:2px }
+.turn.clear { border-color:var(--green-ln) } .turn.clear .qh { color:var(--green) }
+.xch { border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; margin:10px 0 } .xch .xh { font-weight:600; font-size:14px } .xch .xh span { color:var(--mute); font-weight:400; font-size:13px }
+table { border-collapse:collapse; width:100% } th { text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line) }
+td { padding:7px 8px; border-bottom:1px solid var(--line2); vertical-align:top; font-size:13px } tr.click { cursor:pointer } tr.click:hover td { background:#f8fbff } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:12.5px }
+.ok-t { color:var(--green); font-weight:600 } .bad-t { color:var(--red); font-weight:600 }
+pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:12px/1.5 var(--mono); max-height:520px; overflow:auto; margin:4px 0 }
+.diff { white-space:pre; overflow:auto; font:12px/1.5 var(--mono); border:1px solid var(--line); border-radius:8px; max-height:640px } .diff div { padding:0 10px } .diff .a { background:#ecfdf3; color:#166534 } .diff .r { background:#fef2f2; color:#991b1b } .diff .h { background:#f1f5f9; color:var(--mute) } .diff .f { background:#e2e8f0; font-weight:600 }
+details summary { cursor:pointer; color:var(--blue); margin:6px 0; font-size:13px }
+.hold { border:1px solid var(--red-ln); background:var(--red-bg); border-radius:var(--r); padding:12px 14px; margin-bottom:14px } .hold .c { font:600 12px var(--mono); color:var(--red) }
+.bigpipe { display:flex; gap:4px; align-items:stretch; margin:4px 0 2px; flex-wrap:wrap }
+.bp { flex:1; min-width:96px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12px; color:var(--mute); background:#fff }
+.bp b { display:block; font-size:13px; color:var(--ink) } .bp .w { font-size:11.5px } .bp.done { background:var(--green-bg); border-color:var(--green-ln) } .bp.active { background:var(--blue-bg); border-color:var(--blue) } .bp.held, .bp.failed { background:var(--red-bg); border-color:var(--red) } .bp.waiting { background:var(--amber-bg); border-color:var(--amber-ln) } .bp.skipped { border-style:dashed; opacity:.6 }
+.tx { font:12.5px/1.55 var(--mono) } .tx > div { padding:5px 0; border-bottom:1px dashed var(--line2) } .tx .k { display:inline-block; min-width:62px; font-size:11px; font-weight:600; text-transform:uppercase; color:var(--faint) } .tx .tool { color:#1e40af } .tx .say { white-space:pre-wrap; font-family:ui-sans-serif, system-ui, sans-serif; font-size:13.5px; color:var(--ink) }
+.span { display:grid; grid-template-columns: 1fr 74px; gap:8px; font:12px var(--mono); padding:2px 0 } .span .b2 { height:5px; background:var(--blue); border-radius:3px; margin-top:4px; min-width:2px } .span.err { color:var(--red) } .span.err .b2 { background:var(--red) }
+.back { font-size:13px; margin-bottom:10px; display:inline-block }
+@media (max-width: 1100px) { .row { grid-template-columns: 1fr } .row .m { text-align:left } .two { grid-template-columns: 1fr } .stats { margin-left:0 } }
 </style></head><body>
-<div class="top"><h1>Made Well</h1><span class="path" id="path"></span><span class="grow"></span><span id="runner"></span><span id="conn" class="pill mute"><span class="dot"></span>connecting</span></div>
+<div class="top"><span class="brand"><i></i>Made Well</span><span class="proj" id="proj"></span><span class="path" id="path"></span><span class="grow"></span><span id="runner"></span><span id="conn" class="pill mute"><span class="dot"></span>connecting</span></div>
 <main>
-  <section class="card">
-    <div class="controls">
-      <button id="back">◀ Back</button><button id="step" class="primary">Step ▶</button><button id="play">Play</button><button id="live" class="on">● Live</button><button id="over">Start over</button>
-      <span class="pos" id="pos"></span>
-    </div>
-    <div class="bar" id="bar"><div id="fill" style="width:0"></div></div>
-  </section>
-  <section class="card"><h2>Happening now <span class="sub" id="nowsub"></span></h2><div class="now" id="now"></div><div class="flights" id="flights"></div></section>
-  <section class="card"><h2>Where the work is <span class="sub" id="lanesub"></span></h2><div class="lanes" id="lanes"></div></section>
-  <div class="row3">
-    <section class="card"><h2>What the operator sees <span class="sub">mw status</span></h2><div class="term" id="term"></div></section>
-    <section class="card"><h2>The one list <span class="sub" id="listsub"></span></h2><div id="list"></div></section>
-    <section class="card"><h2>Telemetry</h2><div class="tiles" id="tiles"></div><div class="mins" id="mins"></div></section>
+  <section class="card"><div class="hero" id="hero"><span class="empty">Loading…</span></div></section>
+  <section class="card needs" id="needs" hidden></section>
+  <section class="card"><h2>Work <span class="sub" id="worksub"></span><span class="right legend"><span>● each step: <span style="color:var(--green)">done</span> · <span style="color:var(--blue)">running</span> · <span style="color:var(--red)">held or failed</span> · <span style="color:var(--amber)">?</span> = NQ questions asked</span></span></h2><div class="work" id="work"></div></section>
+  <section class="card" id="nowcard"><h2>Running now <span class="sub" id="nowsub"></span></h2><div class="running" id="running"></div></section>
+  <section class="card"><h2>Timeline <span class="sub">every agent call and Made Well step; click a bar to open its call</span><span class="right legend"><span><i class="k-intake"></i>NQ intake</span><span><i class="k-originator"></i>originator answers</span><span><i class="k-execute"></i>the job</span><span><i style="background:var(--violet)"></i>arbiter</span><span><i class="k-repair"></i>JSON repair</span><span><i style="background:#22c55e"></i>verify</span><span><i style="background:var(--teal)"></i>ship</span><span><i style="background:var(--red)"></i>failed or refused</span></span></h2><div class="tl" id="tl"></div></section>
+  <div class="two">
+    <section class="card"><h2>Where the agent time goes <span class="sub">minutes by job: NQ intake, originator answers, the job itself</span></h2><div class="cost" id="cost"></div></section>
+    <section class="card"><h2>Health</h2><div class="facts" id="facts"></div></section>
   </div>
-  <section class="card"><h2>Rules checked on this run <span class="sub">every agent call is checked against each rule; a break links to its call</span></h2><div id="rules"></div></section>
-  <section class="card"><h2>Event log <span class="sub" id="logsub"></span></h2>
-    <div class="filter"><input id="q" placeholder="Filter: an item (#3), a job, an actor, any word"></div>
-    <div class="log" id="log"></div></section>
+  <section class="card"><h2>Event log <span class="sub" id="logsub"></span></h2><div class="filter"><input id="q" placeholder="Filter: #3, a job, an actor, any word"></div><div class="log" id="log"></div></section>
 </main>
-<aside class="drawer" id="drawer"><header><h3 id="dtitle"></h3><button class="small" id="dclose">Close ✕</button></header><div class="body" id="dbody"></div></aside>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"><div class="dh" id="dh"></div><div class="db" id="db"></div></aside>
 <script>
-var S = null, MARK = '', pos = -1, follow = true, timer = null, open = null, liveTail = null, lastOk = 0;
-var LIVE_MS = 1000;
+var M = null, MARK = '', lastOk = 0, open = null, tab = 'story', liveTail = null, D = null;
+var LIVE = typeof STATIC === 'undefined';
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 function num(n) { return Number(n || 0).toLocaleString('en-US'); }
 function clock(iso) { return iso ? new Date(iso).toLocaleTimeString('en-GB', { hour12: false }) : ''; }
-function dur(ms) { ms = Math.max(0, ms); if (ms < 60000) return (ms / 1000).toFixed(1) + 's'; var m = Math.floor(ms / 60000); return m < 60 ? m + 'm ' + String(Math.round((ms % 60000) / 1000)).padStart(2, '0') + 's' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; }
-function mins(m) { return m < 1 ? (m * 60).toFixed(0) + 's' : m < 90 ? m.toFixed(m < 10 ? 1 : 0) + ' min' : (m / 60).toFixed(1) + ' h'; }
+function dur(ms) { ms = Math.max(0, ms || 0); if (ms < 60000) return (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + 's'; var m = Math.floor(ms / 60000); return m < 60 ? m + 'm ' + String(Math.round((ms % 60000) / 1000)).padStart(2, '0') + 's' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; }
+function mins(ms) { var m = (ms || 0) / 60000; return m < 1 ? Math.round(m * 60) + 's' : m < 100 ? m.toFixed(1) + 'm' : Math.round(m) + 'm'; }
+function tk(n) { n = n || 0; return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n); }
 function tok(t) { return t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0; }
-function actorClass(a) { return a === 'operator' ? 'a-operator' : a === 'agent' ? 'a-agent' : a === 'runner' ? 'a-runner' : 'a-made'; }
-var STAGE_OF = { discover: 'discovery', ideate: 'ideation', challenge: 'ideation', plan: 'planning', 'test-plan': 'planning', implement: 'implementation', verify: 'verification', arbitrate: 'verification' };
-var PROFILE = { discover: 'ideator', ideate: 'ideator', challenge: 'ideation peer', plan: 'planner', 'test-plan': 'test architect', implement: 'implementer', verify: 'made well', arbitrate: 'arbiter' };
-var STAGES = [['ideation', 'Ideation', 'ideate · challenge'], ['planning', 'Planning', 'plan · test-plan'], ['implementation', 'Implementation', 'implement'], ['verification', 'Verification', 'verify · arbitrate']];
-var RULES = {
-  'write-under-read': 'A read-only call wrote nothing in its checkout',
-  'head-moved': 'No call moved the branch head; only Made Well\'s ship does',
-  'out-of-scope': 'A making call touched only the files its plan declared',
-  'over-budget': 'Each call stayed inside its time and token budget',
-  'tool-not-allowed': 'Each call used only the tools its access allows',
-  'missing-fields': 'Each answer carried every field its schema requires'
-};
-function item(id) { return S && S.items.find(function (i) { return i.id === id; }); }
-function last() { return S ? S.events.length - 1 : -1; }
+function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+function now() { return M ? (LIVE ? Date.now() : Date.parse(M.at)) : Date.now(); }
+function whoClass(a) { return a === 'operator' ? 'w-operator' : a === 'agent' ? 'w-agent' : a === 'runner' ? 'w-runner' : 'w-made'; }
+var PROFILE = { discover: 'ideator', ideate: 'ideator', challenge: 'ideation peer', plan: 'planner', 'test-plan': 'test architect', implement: 'implementer', verify: 'made well', arbitrate: 'arbiter', ship: 'made well' };
+var JOBNAME = { discover: 'Discover', ideate: 'Ideate', challenge: 'Challenge', plan: 'Plan', 'test-plan': 'Checks', implement: 'Implement', verify: 'Verify', arbitrate: 'Arbiter', ship: 'Ship' };
+var STATE_WORD = { done: 'done', active: 'running', held: 'held', failed: 'failed', waiting: 'waiting', todo: 'to do', skipped: 'skipped' };
+function itemOf(id) { return M && M.items.find(function (i) { return i.id === id; }); }
 
-// The state of every item after step n, read from the events alone (the live end uses the record itself).
-function stateAt(n) {
-  var st = {};
-  if (!S) return st;
-  if (n >= last()) { S.items.forEach(function (i) { st[i.id] = { status: i.status, job: i.job, hold: i.hold && i.hold.code }; }); return st; }
-  for (var k = 0; k <= n; k++) {
-    var e = S.events[k], d = e.data; if (!e.item) continue;
-    var it = st[e.item] || (st[e.item] = { status: 'queued', job: 'ideate' });
-    if (e.kind === 'created') { it.status = d.status || 'queued'; it.job = d.job; }
-    else if (e.kind === 'handed-off') { it.job = Array.isArray(d.to) ? 'implement' : d.to; }
-    else if (e.kind === 'call-started' || e.kind === 'running' || e.kind === 'retried') { if (d.job) it.job = d.job; it.status = 'running'; }
-    else if (e.kind === 'failure') { it.job = 'arbitrate'; }
-    else if (e.kind === 'rebased') { it.job = 'plan'; }
-    else if (e.kind === 'ruling') { if (d.to) it.job = d.to; it.status = d.prerequisite ? 'waiting-prerequisite' : 'running'; }
-    else if (e.kind === 'verify-started' || e.kind === 'prerequisite-shipped' || e.kind === 'prerequisite-dropped') { it.job = 'verify'; it.status = 'running'; }
-    else if (e.kind === 'held') { it.status = 'held'; it.hold = d.code; }
-    else if (e.kind === 'shipped' || e.kind === 'discovered' || e.kind === 'dropped' || e.kind === 'waiting-quota') { it.status = e.kind; }
-    else if (e.kind === 'promoted' || e.kind === 'nq-corrected' || (e.kind === 'nq-answer' && d.originator === 'operator')) { it.status = 'queued'; it.hold = null; }
-  }
-  return st;
-}
-// What was in flight at step n: started and not finished by then.
-function flightsAt(n) {
-  if (n >= last()) return S.flights;
-  var open = {}, ends = { 'call-finished': 'call-started', prepared: 'prepare-started', verified: 'verify-started', shipped: 'ship-started' };
-  for (var k = 0; k <= n; k++) {
-    var e = S.events[k], d = e.data, key;
-    if (/-started$/.test(e.kind) && !/^runner-/.test(e.kind)) { key = e.item + ':' + e.kind + ':' + (d.job || '') + ':' + (d.kind || '') + ':' + (d.name || ''); open[key] = { item: e.item, what: e.kind === 'call-started' ? (d.kind === 'execute' ? 'job' : d.kind) + ' · ' + d.job : e.kind.replace('-started', ''), who: d.profile || 'made well', since: e.at, card: d.card ? [d.card.harness, d.card.model, d.card.effort].join(' · ') : '', live: d.live }; }
-    var start = ends[e.kind] || ((e.kind === 'failure' || e.kind === 'held') ? 'verify-started' : null);
-    if (start) Object.keys(open).forEach(function (x) { if (x.indexOf(e.item + ':' + start + ':') === 0 && (start !== 'call-started' || x.indexOf(':' + d.job + ':' + d.kind + ':') > 0) && (start !== 'prepare-started' || x.slice(-(':' + d.name).length) === ':' + d.name)) delete open[x]; });
-    if (e.kind === 'runner-started' || e.kind === 'runner-stopped' || e.kind === 'runner-lost') open = {};
-  }
-  return Object.keys(open).map(function (x) { return open[x]; });
-}
-
+// ── The page ──
 function render() {
-  if (!S) return;
-  if (follow || pos > last()) pos = last();
-  var n = S.events.length, cur = S.events[pos];
-  $('pos').textContent = n ? clock(cur && cur.at) + ' · step ' + (pos + 1) + ' of ' + n : 'no steps yet';
-  $('fill').style.width = n ? ((pos + 1) / n * 100) + '%' : '0';
-  $('live').className = follow ? 'on' : '';
-  renderNow(cur); renderLanes(); renderTerm(); renderList(); renderTiles(); renderRules(); renderLog();
-  if (open && open.type === 'item') drawItem(open.id, true);
+  if (!M) return;
+  var s = M.summary;
+  $('proj').textContent = M.projects.map(function (p) { return p.split('/').pop(); }).join(', ') || 'no project yet';
+  $('path').textContent = M.projects.length === 1 ? M.projects[0] : M.store;
+  $('runner').innerHTML = !LIVE ? '<span class="pill mute">replay written ' + esc(clock(M.at)) + '</span>' : M.runner ? '<span class="pill ok"><span class="dot pulse"></span>runner ' + M.runner.pid + '</span>' : '<span class="pill warn"><span class="dot"></span>no runner</span>';
+  renderHero(); renderNeeds(); renderWork(); renderRunning(); renderTimeline(); renderCost(); renderFacts(); renderLog();
+  if (open && open.type === 'item' && LIVE) loadItem(open.id, true);
 }
 
-function renderNow(cur) {
-  var at = pos >= last();
-  $('nowsub').textContent = at ? 'live' : 'at step ' + (pos + 1) + ', ' + clock(cur && cur.at);
-  var fl = flightsAt(pos);
-  if (!cur) { $('now').innerHTML = '<div class="empty">Nothing recorded yet. Start with <code>mw discover --source-file notes.md</code> or <code>mw start --objective "…"</code> in a registered project.</div>'; }
-  else {
-    var it = item(cur.item), html = '';
-    // At the live end with nothing running, what matters is what stands still and why.
-    if (at && !fl.filter(function (f) { return !f.cutOff; }).length) {
-      var held = S.items.filter(function (i) { return i.status === 'held'; }), moving = S.items.filter(function (i) { return ['queued', 'running', 'waiting-quota', 'waiting-prerequisite'].indexOf(i.status) >= 0; });
-      if (held.length) html += '<span class="badge a-operator">you</span><span class="head">' + held.length + ' item' + (held.length === 1 ? ' waits' : 's wait') + ' on you</span><span></span><span class="why">' +
-        held.map(function (i) { var v = (S.board.items || []).find(function (x) { return x.id === i.id; }) || {}; return '<a href="#" data-item="' + i.id + '">#' + i.id + '</a> ' + esc(i.hold.code) + ': ' + esc(i.hold.message) + ((v.next || [])[0] ? ' <code>' + esc(v.next[0].run) + '</code>' : ''); }).join('<br>') + '</span>';
-      else if (moving.length && !S.runner) html += '<span class="badge a-runner">stopped</span><span class="head">' + moving.length + ' item' + (moving.length === 1 ? '' : 's') + ' can move, but no runner is driving</span><span></span><span class="why">Run <code>mw run</code>; every item resumes where it stopped.</span>';
-      else if (!moving.length) html += '<span class="badge a-made">idle</span><span class="head">Nothing is moving and nothing waits on you</span><span></span><span class="why">' + esc((S.board.summary || '')) + '</span>';
-    }
-    html += '<span class="badge ' + actorClass(cur.actor) + '">' + esc(cur.actor) + '</span><span class="' + (html ? 'last' : 'head') + '">' + (html ? 'Last: ' : '') + esc(cur.say) + '</span><span></span><span class="why">' +
-      (it ? '<a href="#" data-item="' + it.id + '">#' + it.id + '</a> ' + esc(it.title) + ' · ' : '') + esc(cur.kind) + ' · ' + clock(cur.at) + ' · <a href="#" data-ev="' + cur.seq + '">every variable</a></span>';
-    $('now').innerHTML = html;
+function renderHero() {
+  var s = M.summary, total = s.items, open_ = s.moving + s.queued + s.held + s.candidates;
+  var verdict = !total && !M.items.length ? 'Nothing recorded yet. In a registered project: <code>mw discover --source-file notes.md</code> or <code>mw start --objective "…"</code>.'
+    : s.held ? '<b style="color:var(--red)">' + plural(s.held, 'item waits', 'items wait') + ' on you.</b> Everything else keeps moving.'
+    : s.candidates && !s.moving && !s.queued ? '<b style="color:var(--red)">' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.</b> Nothing else is moving.'
+    : !open_ ? 'All work is done: every item has shipped, been dropped, or waits for promotion.'
+    : !M.runner && LIVE ? '<b style="color:var(--amber)">No runner is driving the store.</b> Run <code>mw run --watch</code>; every item resumes where it stopped.'
+    : plural(s.moving, 'item') + ' moving, ' + s.queued + ' queued.' + (s.candidates ? ' ' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.' : ' Nothing needs you.');
+  var span = s.first ? (Date.parse(s.last) > Date.parse(s.first) ? (LIVE && open_ ? now() : Date.parse(s.last)) - Date.parse(s.first) : 0) : 0;
+  var nq = s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0;
+  $('hero').innerHTML = '<div><div class="big">' + s.shipped + ' <small>of ' + total + ' shipped</small></div><div class="verdict">' + verdict + '</div></div>' +
+    '<div class="stats">' + [[dur(span), 'wall time'], [mins(s.agentMs), 'agent time'], [tk(s.tokens), 'tokens'], [s.calls, 'agent calls'], [nq + '%', 'of agent time in NQ', nq > 45 ? 'bad' : ''], [s.questions, 'NQ questions'], [s.held, 'need you', s.held ? 'bad' : '']].map(function (x) {
+      return '<div class="stat ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('') + '</div>';
+}
+
+function cmd(n) { return '<div class="cmd"><code>' + esc(n.run) + '</code>' + (LIVE && navigator.clipboard ? '<button data-copy="' + esc(n.run) + '">Copy</button>' : '') + '<span>' + esc(n.why) + '</span></div>'; }
+function renderNeeds() {
+  var el = $('needs');
+  el.hidden = !M.needs.length;
+  if (!M.needs.length) return;
+  el.innerHTML = '<h2>Needs you <span class="sub">' + plural(M.needs.length, 'thing') + ' only you can move</span></h2>' + M.needs.map(function (n) {
+    return '<div class="need">' + (n.item ? '<div class="mono" style="color:var(--mute)"><a href="#" data-item="' + n.item + '">#' + n.item + ' ' + esc(n.title) + '</a> · ' + esc(n.code) + ' · since ' + esc(clock(n.since)) + '</div>' : '') +
+      '<div class="msg">' + esc(n.message) + '</div>' + (n.questions.length ? '<ol>' + n.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' : '') + n.next.map(cmd).join('') + '</div>';
+  }).join('');
+}
+
+function seg(st) {
+  return '<span class="seg ' + st.state + '" title="' + esc(JOBNAME[st.job] + ': ' + STATE_WORD[st.state] + (st.calls ? ' · ' + plural(st.calls, 'call') + ' · ' + mins(st.agentMs) + ' agent time · ' + tk(st.tokens) + ' tokens' : '') + (st.questions ? ' · ' + plural(st.questions, 'NQ question') : '')) + '">' + esc(JOBNAME[st.job] || st.label) + (st.questions ? '<span class="q">' + st.questions + '?</span>' : '') + '</span>';
+}
+function pipe(steps) {
+  var out = [], i = 0;
+  while (i < steps.length) {
+    var st = steps[i];
+    if (st.job === 'implement' && steps[i + 1] && steps[i + 1].job === 'test-plan') { out.push('<span class="col">' + seg(st) + seg(steps[i + 1]) + '</span>'); i += 2; }
+    else { out.push(seg(st)); i++; }
   }
-  $('flights').innerHTML = fl.map(function (f, i) {
-    var it = item(f.item), cut = at && f.cutOff;
-    return '<div class="flight' + (cut ? ' cut' : '') + '" data-fl="' + i + '"><div class="l1"><b>#' + f.item + ' ' + esc(f.what) + '</b><span class="meta">' + esc(f.who) + (f.card ? ' · ' + esc(f.card) : '') + '</span><span class="meta">' + esc(it ? it.title : '') + '</span>' +
-      '<span class="t" data-since="' + esc(f.since) + '" data-cut="' + (cut ? 1 : 0) + '">' + (cut ? 'cut off · no runner' : at ? dur(Date.now() - Date.parse(f.since)) : 'running') + '</span></div>' +
-      (f.live && at ? '<div class="l2" data-tail="' + esc(f.live.split('/').pop()) + '">waiting for output…</div>' : '') + '</div>';
+  return '<div class="pipe">' + out.join('<span class="arrow">›</span>') + '</div>';
+}
+function rowMeta(i) {
+  var end = i.ended ? Date.parse(i.ended) : now();
+  var bits = [];
+  if (i.owes) bits.push('<span class="owes">next: <b>' + esc(i.owes) + '</b></span>');
+  bits.push(i.status === 'candidate' || i.status === 'queued' ? 'waiting ' + dur(end - Date.parse(i.started)) : dur(end - Date.parse(i.started)) + (i.ended ? '' : ' so far'));
+  bits.push(mins(i.agentMs) + ' agent · ' + tk(i.tokens) + ' tok');
+  if (i.checks) bits.push('checks ' + i.checks.passed + '/' + i.checks.total);
+  return bits.join('<br>');
+}
+function renderWork() {
+  var items = M.items.filter(function (i) { return i.status !== 'dropped'; });
+  var dropped = M.items.length - items.length;
+  $('worksub').textContent = items.length ? plural(items.length, 'item') + (dropped ? ' · ' + dropped + ' dropped' : '') : '';
+  // What needs a person first, then what moves, then what waits, then what is done.
+  var rank = { held: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
+  items.sort(function (a, b) { return (rank[a.status] - rank[b.status]) || a.id - b.id; });
+  $('work').innerHTML = items.length ? items.map(function (i) {
+    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
+    return '<div class="row" data-item="' + i.id + '"><div><div class="t"><span class="id">#' + i.id + '</span>' + esc(i.title) + tags + '</div><div class="d">' + esc(i.doing) + '</div></div>' + pipe(i.steps) + '<div class="m">' + rowMeta(i) + '</div></div>';
+  }).join('') : '<div class="empty">No work items yet.</div>';
+}
+
+function renderRunning() {
+  var r = M.running;
+  $('nowcard').hidden = !r.length && !M.cutOff.length;
+  $('nowsub').textContent = r.length ? plural(r.length, 'step') + ' in flight' : '';
+  $('running').innerHTML = r.map(function (f, k) {
+    var cls = f.kind === 'intake' || f.kind === 'originator' ? 'nq' : f.who === 'made well' ? 'mw' : '';
+    var what = f.kind === 'execute' ? JOBNAME[f.job] : f.kind === 'intake' ? 'NQ intake for ' + f.job : f.kind === 'originator' ? 'answers questions on ' + f.job : f.kind;
+    return '<div class="run ' + cls + '" data-run="' + k + '"><div class="h"><b>#' + f.item + ' · ' + esc(what) + '</b><span class="rw">' + esc(f.who) + (f.card ? ' · ' + esc(f.card) : '') + '</span><span class="tm" data-since="' + esc(f.since) + '">' + dur(now() - Date.parse(f.since)) + '</span></div>' +
+      '<div class="it">' + esc(f.title) + '</div><div class="act">' + (f.activity.length ? f.activity.slice(-4).map(function (a) { return '<div class="' + a.kind + '">' + esc(a.text) + '</div>'; }).join('') : '<div class="say" style="color:var(--faint)">' + (f.who === 'made well' ? 'running…' : 'thinking… no output yet') + '</div>') + '</div></div>';
+  }).join('') + (M.cutOff.length ? '<div class="empty">' + plural(M.cutOff.length, 'step was', 'steps were') + ' cut off when the runner stopped; they run again when it starts.</div>' : '');
+}
+
+function renderTimeline() {
+  var bars = M.bars;
+  if (!bars.length) { $('tl').innerHTML = '<div class="empty">No calls yet.</div>'; return; }
+  var t0 = Math.min.apply(null, bars.map(function (b) { return Date.parse(b.start); }));
+  var t1 = Math.max.apply(null, bars.map(function (b) { return b.end ? Date.parse(b.end) : now(); }).concat([LIVE && M.running.length ? now() : 0]));
+  var span = Math.max(t1 - t0, 1000);
+  var pct = function (t) { return ((t - t0) / span * 100).toFixed(3) + '%'; };
+  var step = [15e3, 30e3, 60e3, 120e3, 300e3, 600e3, 900e3, 1800e3, 3600e3].find(function (s) { return span / s <= 12; }) || 7200e3;
+  var ticks = [], grid = '';
+  for (var t = 0; t <= span; t += step) { ticks.push('<span style="left:' + (t / span * 100) + '%">' + (step < 60e3 ? Math.round(t / 1000) + 's' : Math.round(t / 60000) + 'm') + '</span>'); grid += '<div class="tl-grid" style="left:' + (t / span * 100) + '%"></div>'; }
+  var ids = []; bars.forEach(function (b) { if (ids.indexOf(b.item) < 0) ids.push(b.item); });
+  ids.sort(function (a, b) { return a - b; });
+  var rows = ids.map(function (id) {
+    var it = itemOf(id), mine = bars.filter(function (b) { return b.item === id; });
+    var lanes = mine.some(function (b) { return b.lane === 1; }) ? 2 : 1;
+    var h = lanes === 2 ? 40 : 28;
+    return '<div class="tl-row" data-item="' + id + '" style="height:' + h + 'px"><div class="tl-name"><b>#' + id + '</b>' + esc(it ? it.title : '') + '</div><div class="tl-track">' + grid + mine.map(function (b) {
+      var s = Date.parse(b.start), e = b.end ? Date.parse(b.end) : now();
+      var cls = b.kind === 'execute' && b.job === 'arbitrate' ? 'arbitrate' : b.kind;
+      var bad = b.outcome && b.outcome !== 'ok' ? ' bad' : '';
+      var top = lanes === 2 ? (b.lane === 1 ? 23 : 8) : 10;
+      var tip = '#' + id + ' ' + (b.kind === 'execute' ? JOBNAME[b.job] + ' (' + PROFILE[b.job] + ')' : b.kind + ' · ' + b.job) + ' · ' + dur(e - s) + (b.outcome ? ' · ' + b.outcome : ' · running');
+      return '<div class="bar ' + cls + bad + (b.end ? '' : ' live') + '" style="left:' + pct(s) + ';width:calc(' + ((e - s) / span * 100).toFixed(3) + '% );top:' + top + 'px" title="' + esc(tip) + '"' + (b.call ? ' data-call="' + b.call + '"' : '') + '></div>';
+    }).join('') + (LIVE && M.running.length ? '<div class="tl-now" style="left:' + pct(now()) + '"></div>' : '') + '</div></div>';
   }).join('');
-  if (at) fl.forEach(function (f) { if (f.live) peek(f.live.split('/').pop()); });
+  $('tl').innerHTML = '<div class="tl-in"><div class="tl-axis">' + ticks.join('') + '</div>' + rows + '</div>';
 }
 
-var peeks = {};
-function peek(name) {
-  if (peeks[name] && Date.now() - peeks[name].t < 1500) return show();
-  fetch('api/live/' + encodeURIComponent(name) + '?from=0').then(function (r) { return r.json(); }).then(function (d) { peeks[name] = { t: Date.now(), line: lastLine(d.text) }; show(); }).catch(function () {});
-  function show() { document.querySelectorAll('[data-tail="' + name + '"]').forEach(function (el) { el.textContent = peeks[name] ? (peeks[name].line || 'no output yet') : ''; }); }
-}
-function lastLine(text) {
-  var lines = (text || '').split('\n').filter(function (l) { return l.trim(); });
-  for (var i = lines.length - 1; i >= 0; i--) { var s = streamText(lines[i]); if (s) return s; }
-  return '';
-}
-// One line of an agent's stream, as what the agent is doing: its words, the tool it calls, or the command it runs.
-// Echoes of the prompt and tool results ('user', 'system') say nothing about that.
-function streamText(line) {
-  var t = line.trim();
-  if (t[0] !== '{') return t;
-  try {
-    var v = JSON.parse(t);
-    if (v.type === 'user' || v.type === 'system') return '';
-    var parts = (v.message && Array.isArray(v.message.content)) ? v.message.content : [];
-    for (var i = parts.length - 1; i >= 0; i--) {
-      if (parts[i].type === 'tool_use') return '→ ' + parts[i].name + ' ' + JSON.stringify(parts[i].input || {}).slice(0, 300);
-      if (parts[i].type === 'text' && parts[i].text) return parts[i].text.replace(/\s+/g, ' ').slice(0, 400);
-    }
-    if (v.item && v.item.command) return '$ ' + v.item.command;
-    var m = JSON.stringify(v).match(/"(?:text|result|command|delta)":"((?:[^"\\]|\\.){2,})"/);
-    return m ? m[1].replace(/\\n/g, ' ').replace(/\\"/g, '"').slice(0, 400) : '';
-  } catch (e) { return t; }
+function renderCost() {
+  var jobs = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'].filter(function (j) { return M.cost[j]; });
+  var KINDS = ['intake', 'originator', 'execute', 'repair'];
+  var tot = function (j) { var c = M.cost[j]; return KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].ms : 0); }, 0); };
+  var max = Math.max.apply(null, jobs.map(tot).concat([1]));
+  $('cost').innerHTML = jobs.length ? jobs.map(function (j) {
+    var c = M.cost[j], t = tot(j), toks = KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].tokens : 0); }, 0);
+    return '<div>' + esc(JOBNAME[j]) + '</div><div class="track" title="' + esc(KINDS.filter(function (k) { return c[k]; }).map(function (k) { return k + ' ' + mins(c[k].ms) + ' in ' + plural(c[k].calls, 'call'); }).join(' · ')) + '">' +
+      KINDS.map(function (k) { return c[k] ? '<div class="k-' + k + '" style="width:' + (c[k].ms / max * 100) + '%"></div>' : ''; }).join('') + '</div><div class="n">' + mins(t) + ' · ' + tk(toks) + '</div>';
+  }).join('') + '<div></div><div class="legend" style="margin-top:4px"><span><i class="k-intake"></i>NQ intake</span><span><i class="k-originator"></i>originator answers</span><span><i class="k-execute"></i>the job</span></div><div></div>' : '<div class="empty">No agent calls yet.</div>';
 }
 
-function chip(i, st, live) {
-  var s = st[i.id]; if (!s) return '';
-  var label = '#' + i.id + (s.status === 'held' ? ' held ' + (s.hold || '') : s.status === 'candidate' ? ' ' + i.title : s.status === 'shipped' || s.status === 'discovered' ? '' : ' ' + s.job);
-  return '<span class="chip s-' + s.status + (live ? ' live' : '') + '" data-item="' + i.id + '" title="' + esc(i.title + ' · ' + s.status + ' · ' + s.job) + '">' + esc(label) + '</span>';
-}
-function renderLanes() {
-  var st = stateAt(pos), fl = flightsAt(pos), flying = {};
-  fl.forEach(function (f) { flying[f.item] = true; });
-  $('lanesub').textContent = pos >= last() ? 'live' : 'as it was at step ' + (pos + 1);
-  var its = S.items.filter(function (i) { return st[i.id]; });
-  var gone = function (s) { return ['held', 'candidate', 'shipped', 'dropped', 'discovered'].indexOf(s.status) >= 0; };
-  var disc = its.filter(function (i) { return i.job === 'discover'; });
-  var op = its.filter(function (i) { return st[i.id].status === 'held' || st[i.id].status === 'candidate'; });
-  var done = its.filter(function (i) { return st[i.id].status === 'shipped'; });
-  var dropped = its.filter(function (i) { return st[i.id].status === 'dropped'; });
-  var html = '<div class="lane"><h3>DISCOVERY</h3><div class="steps"><span class="step">raw input</span><span class="step">discover</span><span class="step">candidates</span></div><div class="chips">' +
-    (disc.length ? disc.map(function (i) { return chip(i, st, flying[i.id]) + (st[i.id].status === 'discovered' ? ' <span class="meta">→ ' + S.items.filter(function (c) { return c.discovery === i.id; }).length + ' candidates</span>' : ''); }).join('') : '<span class="empty">no discovery runs</span>') + '</div></div>';
-  html += '<div class="lane op"><h3>OPERATOR</h3><div class="steps"><span class="step">promote</span><span class="step">answer</span><span class="step">retry · drop</span></div><div class="chips">' + (op.length ? op.map(function (i) { return chip(i, st); }).join('') : '<span class="empty">nothing needs you</span>') + '</div></div>';
-  html += '<div class="lane"><h3>DELIVERY</h3><div class="stages">' + STAGES.map(function (sg) {
-    var here = its.filter(function (i) { return i.job !== 'discover' && !gone(st[i.id]) && STAGE_OF[st[i.id].job] === sg[0]; });
-    var hot = here.some(function (i) { return flying[i.id]; });
-    return '<div class="stage' + (hot ? ' hot' : '') + '"><b>' + sg[1] + '</b><div class="jobs">' + sg[2] + '</div><div class="chips">' + here.map(function (i) { return chip(i, st, flying[i.id]); }).join('') + '</div></div>';
-  }).join('') + '</div></div>';
-  html += '<div class="lane"><h3>DONE</h3><div class="done-n">' + done.length + '</div><div class="chips">' + done.map(function (i) { return chip(i, st); }).join('') + '</div>' + (dropped.length ? '<div class="meta" style="margin-top:8px">dropped</div><div class="chips">' + dropped.map(function (i) { return chip(i, st); }).join('') + '</div>' : '') + '</div>';
-  $('lanes').innerHTML = html;
+function renderFacts() {
+  var s = M.summary, breaks = M.rules.length;
+  var ruleNames = {}; M.rules.forEach(function (r) { ruleNames[r.rule] = (ruleNames[r.rule] || 0) + 1; });
+  var f = [[s.intakes ? (s.questions / s.intakes).toFixed(1) : '0', 'NQ questions per intake', s.intakes && s.questions / s.intakes > 1 ? 'bad' : 'ok'],
+    [s.refused, 'calls failed or refused', s.refused ? 'bad' : 'ok'],
+    [breaks, breaks ? 'rule breaks: ' + Object.keys(ruleNames).map(function (k) { return k + ' ×' + ruleNames[k]; }).join(', ') : 'rule breaks in ' + plural(s.calls, 'checked call'), breaks ? 'bad' : 'ok'],
+    [s.calls ? tk(s.tokens / s.calls) : '0', 'tokens per call'],
+    [s.calls ? dur(s.agentMs / s.calls) : '0s', 'mean call time'],
+    [s.shipped ? mins(s.agentMs / s.shipped) : '—', 'agent time per shipped item']];
+  $('facts').innerHTML = f.map(function (x) { return '<div class="fact ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('') +
+    (breaks ? '<div style="grid-column:1/-1">' + M.rules.slice(0, 10).map(function (r) { return '<a href="#" data-call="' + r.call + '" class="chip" style="margin:2px">#' + r.item + ' ' + esc(r.kind + ' ' + r.job + ': ' + r.rule) + '</a>'; }).join('') + '</div>' : '');
 }
 
-function renderTerm() {
-  var b = S.board || {}, items = b.items || [];
-  var g = function (f) { return items.filter(f); };
-  var now = g(function (i) { return ['running', 'waiting-quota', 'waiting-prerequisite'].indexOf(i.status) >= 0; });
-  var held = g(function (i) { return i.status === 'held'; }), todo = g(function (i) { return i.status === 'queued' || i.status === 'candidate'; }), done = g(function (i) { return i.status === 'shipped'; });
-  var line = function (i, extra) { return '  <span class="m">#' + i.id + '</span> ' + esc(i.title) + (extra ? ' <span class="m">' + esc(extra) + '</span>' : ''); };
-  var ws = S.items.length ? S.items[S.items.length - 1].workspace.split('/').filter(Boolean).pop() : 'madewell';
-  var out = '<b>' + esc(ws) + '</b>  ' + (held.length ? '<span class="r">' + held.length + ' need' + (held.length === 1 ? 's' : '') + ' you</span>' : '<span class="g">nothing needs you</span>') + '\n<span class="m">' + esc(b.summary || '') + '</span>\n\n';
-  out += 'NOW ' + now.length + '\n' + (now.map(function (i) { return line(i, '▸ ' + i.stage + ' · ' + i.job + ' · ' + i.profile + (S.runner ? '' : ' · no runner')); }).join('\n') || '  <span class="m">—</span>') + '\n\n';
-  if (held.length) out += '<span class="r">NEEDS YOU ' + held.length + '</span>\n' + held.map(function (i) { return line(i, (i.hold ? i.hold.code : '') + ' · ' + i.job) + (i.next || []).slice(0, 1).map(function (n) { return '\n    <span class="b">' + esc(n.run) + '</span>'; }).join(''); }).join('\n') + '\n\n';
-  out += 'TO-DO ' + todo.length + '\n' + (todo.map(function (i) { return line(i, i.status === 'candidate' ? 'candidate' : 'queued'); }).join('\n') || '  <span class="m">—</span>') + '\n\n';
-  out += '<span class="g">DONE ' + done.length + '</span>' + (done.length ? ' ' + done.map(function (i) { return '#' + i.id; }).join(' ') : '') + '\n';
-  if ((b.next || []).length) out += '\nNEXT\n' + b.next.slice(0, 4).map(function (n) { return '  <span class="b">' + esc(n.run) + '</span>\n  <span class="m">' + esc(n.why) + '</span>'; }).join('\n');
-  $('term').innerHTML = out;
-}
-
-function renderList() {
-  var rows = S.items.slice().reverse();
-  $('listsub').textContent = rows.length + ' items';
-  $('list').innerHTML = rows.length ? '<table><tr><th>#</th><th>Item</th><th>State</th></tr>' + rows.map(function (i) {
-    var where = i.job === 'discover' ? 'discovery' : 'delivery · ' + (STAGE_OF[i.job] || '') + ' · ' + i.job + ' · ' + (PROFILE[i.job] || '');
-    var from = i.discovery ? ' · from #' + i.discovery : i.parent ? ' · fix for #' + i.parent : '';
-    return '<tr class="click" data-item="' + i.id + '"><td class="id">#' + i.id + '</td><td>' + esc(i.title) + '<div class="meta">' + esc(where + from) + (i.hold ? ' · <span style="color:var(--red)">' + esc(i.hold.code) + '</span>' : '') + '</div></td><td><span class="state s-' + i.status + '">' + esc(i.status) + '</span></td></tr>';
-  }).join('') + '</table>' : '<div class="empty">No items yet.</div>';
-}
-
-function renderTiles() {
-  var c = function (s) { return S.items.filter(function (i) { return s.indexOf(i.status) >= 0; }).length; };
-  var held = S.events.filter(function (e) { return e.kind === 'held'; }).length;
-  var wait = 0, totals = {};
-  Object.keys(S.minutes).forEach(function (id) { var m = S.minutes[id]; Object.keys(m).forEach(function (k) { totals[k] = (totals[k] || 0) + m[k]; }); });
-  wait = totals['operator wait'] || 0;
-  var pass = 0, fail = 0;
-  S.items.forEach(function (i) { (i.verification ? i.verification.results : []).forEach(function (r) { if (r.exitCode === 0) pass++; else fail++; }); });
-  var tokens = S.calls.reduce(function (n, x) { return n + tok(x.tokens); }, 0), agentMs = S.calls.reduce(function (n, x) { return n + x.ms; }, 0);
-  var breaks = S.calls.reduce(function (n, x) { return n + x.flags.length; }, 0), failed = S.calls.filter(function (x) { return x.outcome !== 'ok'; }).length;
-  var t = [[c(['candidate', 'queued']), 'to-do'], [c(['running', 'waiting-quota', 'waiting-prerequisite']), 'in progress'], [c(['shipped']), 'shipped', 'ok'],
-    [c(['held']), 'need you now', c(['held']) ? 'bad' : ''], [held, 'operator stops'], [mins(wait), 'waited on operator'],
-    [pass + '/' + (pass + fail), 'checks passed', fail ? '' : pass ? 'ok' : ''], [fail, 'checks failed', fail ? 'bad' : ''], [S.calls.length, 'agent calls'],
-    [failed, 'calls failed or refused', failed ? 'bad' : ''], [mins(agentMs / 60000), 'agent time'], [tokens >= 1e6 ? (tokens / 1e6).toFixed(1) + 'M' : tokens >= 1e3 ? Math.round(tokens / 1e3) + 'k' : tokens, 'tokens'],
-    [breaks, 'rule breaks', breaks ? 'bad' : 'ok'], [S.flights.length, 'steps running'], [S.spans ? (S.spans / 1024).toFixed(0) + ' KB' : '0', 'traces recorded']];
-  $('tiles').innerHTML = t.map(function (x) { return '<div class="tile ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('');
-  var rows = ['discovery', 'ideation', 'planning', 'implementation', 'verification', 'operator wait', 'quota wait'];
-  var max = Math.max.apply(null, rows.map(function (r) { return totals[r] || 0; }).concat([0.0001]));
-  $('mins').innerHTML = '<div class="meta" style="grid-column:1/-1">Time per stage, every item</div>' + rows.map(function (r) {
-    var v = totals[r] || 0;
-    return '<div>' + r[0].toUpperCase() + r.slice(1) + '</div><div class="track"><div class="fill' + (r === 'operator wait' ? ' wait' : r === 'quota wait' ? ' quota' : '') + '" style="width:' + (v / max * 100) + '%"></div></div><div class="n">' + mins(v) + '</div>';
-  }).join('');
-}
-
-function renderRules() {
-  var checked = S.calls.length;
-  var html = '<table><tr><th>Rule</th><th class="num">Calls checked</th><th class="num">Breaks</th><th>Where</th></tr>' + Object.keys(RULES).map(function (r) {
-    var bad = S.calls.filter(function (c) { return c.flags.some(function (f) { return f.rule === r; }); });
-    return '<tr><td><span class="' + (bad.length ? 'rule-bad' : 'rule-ok') + '">' + (bad.length ? '✕' : '✓') + '</span> ' + esc(RULES[r]) + ' <span class="meta">' + r + '</span></td><td class="num">' + checked + '</td><td class="num">' + bad.length + '</td><td>' +
-      bad.slice(0, 8).map(function (c) { return '<span class="chip s-held" data-call="' + c.id + '">#' + c.item + ' ' + esc(c.kind + ' ' + c.job) + '</span>'; }).join(' ') + '</td></tr>';
-  }).join('') + '</table>';
-  $('rules').innerHTML = html;
-}
-
+function evRow(e) { return '<div class="ev"><span class="t">' + clock(e.at) + '</span><span class="who ' + whoClass(e.actor) + '">' + esc(e.actor) + '</span><span class="i">' + (e.item ? '<a href="#" data-item="' + e.item + '">#' + e.item + '</a>' : '') + '</span><span>' + esc(e.say) + (e.kind === 'call-finished' && e.data.call ? ' <a href="#" data-call="' + e.data.call + '">open call</a>' : '') + '</span></div>'; }
 function renderLog() {
   var q = $('q').value.trim().toLowerCase();
-  var rows = S.events.map(function (e, k) { return [e, k]; }).filter(function (x) {
-    if (!q) return true; var e = x[0];
-    if (/^#\d+$/.test(q)) return e.item === Number(q.slice(1));
-    return (e.actor + ' ' + e.kind + ' ' + e.say + ' #' + e.item).toLowerCase().indexOf(q) >= 0;
-  });
-  $('logsub').textContent = S.events.length + ' events, newest first';
+  var rows = M.events.filter(function (e) { if (!q) return true; if (/^#\d+$/.test(q)) return e.item === Number(q.slice(1)); return (e.actor + ' ' + e.kind + ' ' + e.say + ' #' + e.item).toLowerCase().indexOf(q) >= 0; });
+  $('logsub').textContent = M.eventCount > M.events.length ? 'the newest ' + M.events.length + ' of ' + M.eventCount + ' events; an item shows all of its own' : M.eventCount + ' events, newest first';
   var el = $('log'), keep = el.scrollTop;
-  el.innerHTML = '<table>' + rows.reverse().slice(0, 1500).map(function (x) {
-    var e = x[0], k = x[1];
-    return '<tr class="click' + (k === pos ? ' cur' : k > pos ? ' future' : '') + '" data-pos="' + k + '"><td class="t">' + clock(e.at) + '</td><td><span class="badge ' + actorClass(e.actor) + '">' + esc(e.actor) + '</span></td><td class="id">' + (e.item ? '#' + e.item : '') + '</td><td>' + esc(e.say) + '</td></tr>';
-  }).join('') + '</table>';
+  el.innerHTML = rows.slice().reverse().map(evRow).join('') || '<div class="empty">No events match.</div>';
   el.scrollTop = keep;
 }
 
-// ── The drawer: everything about one item, call, event or running step ──
-function drawer(title, html, keep) { var y = $('dbody').scrollTop; $('dtitle').innerHTML = title; $('dbody').innerHTML = html; $('dbody').scrollTop = keep ? y : 0; $('drawer').classList.add('open'); }
-function closeDrawer() { $('drawer').classList.remove('open'); open = null; liveTail = null; }
-function json(v) { return '<pre>' + esc(JSON.stringify(v, null, 2)) + '</pre>'; }
-// A hold's facts, shown as they are: questions as a list, text as text, anything else as JSON.
-function factList(ctx) {
-  return '<div class="kv" style="margin-top:10px">' + Object.keys(ctx || {}).map(function (k) {
-    var v = ctx[k];
-    var body = Array.isArray(v) && v.every(function (x) { return typeof x === 'string'; }) ? '<ol style="margin:0;padding-left:18px">' + v.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ol>'
-      : typeof v === 'string' ? (v.length > 160 || v.indexOf('\n') >= 0 ? '<pre>' + esc(v) + '</pre>' : esc(v)) : typeof v === 'number' || typeof v === 'boolean' || v == null ? esc(String(v)) : '<pre>' + esc(JSON.stringify(v, null, 2)) + '</pre>';
-    return '<div>' + esc(k) + '</div><div>' + body + '</div>';
+// ── The drawer: one item, one call, or one running step ──
+function show(head, body, keep) { var y = $('db').scrollTop; $('dh').innerHTML = '<button class="x" id="dclose">Close ✕</button>' + head; $('db').innerHTML = body; $('db').scrollTop = keep ? y : 0; $('drawer').classList.add('open'); $('scrim').classList.add('open'); $('dclose').onclick = closeDrawer; }
+function closeDrawer() { $('drawer').classList.remove('open'); $('scrim').classList.remove('open'); open = null; liveTail = null; }
+function getJson(path) { return fetch(path).then(function (r) { return r.json(); }); }
+
+function loadItem(id, refresh) {
+  if (!refresh) tab = open && open.type === 'item' && open.id === id ? tab : 'story';
+  open = { type: 'item', id: id };
+  var p = LIVE ? getJson('api/item/' + id) : Promise.resolve(STATIC.details[id]);
+  p.then(function (d) { if (d && open && open.type === 'item' && open.id === id) { D = d; drawItem(refresh); } });
+}
+var TABS = [['story', 'Story'], ['nq', 'Hand-offs'], ['checks', 'Checks'], ['change', 'Change'], ['calls', 'Calls'], ['log', 'Log'], ['trace', 'Trace']];
+function drawItem(keep) {
+  var v = D.view, it = D.item;
+  var counts = { nq: D.exchanges.reduce(function (n, x) { return n + x.turns.length; }, 0), checks: D.checks.length, change: (it.change && it.change.files.length) || 0, calls: D.calls.length, log: D.events.length };
+  var head = '<h3>#' + v.id + ' ' + esc(v.title) + ' <span class="tag ' + esc(v.kind) + '">' + esc(v.kind) + '</span><span class="tag st-' + v.status + '">' + esc(v.status) + '</span>' + (v.round > 1 ? '<span class="tag">round ' + v.round + '</span>' : '') + '</h3>' +
+    '<div class="sub">' + esc(v.doing) + (v.owes ? ' · next: <b>' + esc(v.owes) + '</b>' : '') + '</div>' + bigPipe(v.steps) +
+    '<div class="tabs">' + TABS.map(function (t) { return '<button data-tab="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + (counts[t[0]] ? '<span class="n">' + counts[t[0]] + '</span>' : '') + '</button>'; }).join('') + '</div>';
+  var body = ({ story: storyTab, nq: nqTab, checks: checksTab, change: changeTab, calls: callsTab, log: logTab, trace: traceTab })[tab]();
+  show(head, body, keep);
+  if (tab === 'trace') loadTrace(v.id);
+}
+function bigPipe(steps) {
+  return '<div class="bigpipe">' + steps.map(function (st) {
+    return '<div class="bp ' + st.state + '"><b>' + esc(JOBNAME[st.job] || st.label) + '</b><div class="w">' + esc(st.who) + ' · ' + STATE_WORD[st.state] + '</div><div class="w">' + (st.calls ? mins(st.agentMs) + ' · ' + tk(st.tokens) + ' tok' : '&nbsp;') + (st.questions ? ' · <span style="color:var(--amber)">' + st.questions + '?</span>' : '') + '</div></div>';
   }).join('') + '</div>';
 }
-function nextCmds(list) { return (list || []).map(function (n) { return '<div class="cmd"><code>' + esc(n.run) + '</code><span>' + esc(n.why) + '</span></div>'; }).join(''); }
-
-function drawItem(id, refresh) {
-  var i = item(id); if (!i) return;
-  open = { type: 'item', id: id };
-  var view = (S.board.items || []).find(function (v) { return v.id === id; }) || {};
-  var evs = S.events.filter(function (e) { return e.item === id; }), calls = S.calls.filter(function (c) { return c.item === id; });
-  var m = S.minutes[id] || {};
-  var opened = {}; $('dbody').querySelectorAll('details[open]').forEach(function (d) { opened[d.dataset.k] = true; });
-  var det = function (k, label, body) { return '<details data-k="' + k + '"' + (opened[k] ? ' open' : '') + '><summary>' + label + '</summary>' + body + '</details>'; };
-  var html = '<div class="kv"><div>status</div><div><span class="state s-' + i.status + '">' + esc(i.status) + '</span></div><div>where</div><div>' + esc((STAGE_OF[i.job] || '') + ' · ' + i.job + ' · ' + (PROFILE[i.job] || '')) + '</div>' +
-    '<div>round</div><div>' + i.round + ' · corrections ' + i.corrections + ' · failed launches ' + i.launches + '</div><div>workspace</div><div>' + esc(i.workspace) + '</div>' +
-    (i.base ? '<div>base</div><div>' + esc(i.base.ref + ' @ ' + i.base.commit.slice(0, 12)) + '</div>' : '') + (i.merged ? '<div>merged</div><div>' + esc(i.merged.ref + ' @ ' + i.merged.commit.slice(0, 12)) + '</div>' : '') +
-    '<div>created</div><div>' + esc(i.created) + '</div><div>updated</div><div>' + esc(i.updated) + '</div></div>';
-  if (i.hold) html += '<h4>Needs you</h4><div class="hold"><b>' + esc(i.hold.code) + '</b> ' + esc(i.hold.message) + factList(i.hold.context) + nextCmds(view.next) + '</div>';
-  else if ((view.next || []).length) html += '<h4>Next</h4>' + nextCmds(view.next);
-  if (i.exchange) html += '<h4>NQ exchange</h4>' + json(i.exchange);
-  html += '<h4>Objective</h4><pre>' + esc(i.objective) + '</pre>' + det('src', 'operator\'s source', '<pre>' + esc(i.source) + '</pre>');
-  html += '<h4>Time per stage</h4><div class="mins">' + Object.keys(m).map(function (k) { return '<div>' + esc(k) + '</div><div class="track"><div class="fill' + (k === 'operator wait' ? ' wait' : '') + '" style="width:' + (m[k] / Math.max.apply(null, Object.values(m).concat([0.0001])) * 100) + '%"></div></div><div class="n">' + mins(m[k]) + '</div>'; }).join('') + '</div>';
-  html += '<h4>Agent calls (' + calls.length + ')</h4>' + (calls.length ? '<table><tr><th>#</th><th>Call</th><th>Card</th><th class="num">Time</th><th class="num">Tokens</th><th>Outcome</th></tr>' + calls.map(function (c) {
-    return '<tr class="click" data-call="' + c.id + '"><td class="id">' + c.id + '</td><td>' + esc(c.profile) + '<div class="meta">' + esc(c.kind + ' · ' + c.job) + '</div></td><td class="meta">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + num(tok(c.tokens)) + '</td><td>' + esc(c.outcome) + (c.flags.length ? ' <span class="state s-held">' + c.flags.length + ' break</span>' : '') + '</td></tr>';
-  }).join('') + '</table>' : '<div class="empty">none yet</div>');
-  html += '<h4>Every event (' + evs.length + ')</h4><table class="log">' + evs.map(function (e) { return '<tr class="click" data-ev="' + e.seq + '"><td class="t">' + clock(e.at) + '</td><td><span class="badge ' + actorClass(e.actor) + '">' + esc(e.actor) + '</span></td><td>' + esc(e.say) + '</td></tr>'; }).join('') + '</table>';
-  html += '<h4>Deliverables</h4>' + (Object.keys(i.outputs || {}).map(function (j) { return det('out-' + j, esc(j), '<pre>' + esc(i.outputs[j]) + '</pre>'); }).join('') || '<div class="empty">none accepted yet</div>');
-  if (i.verification) html += '<h4>Verification</h4>' + i.verification.results.map(function (r) { return det('chk-' + r.id, (r.exitCode === 0 ? '✓ ' : '✕ ') + esc(r.id + ' · ' + r.run) + ' <span class="meta">exit ' + r.exitCode + ' · ' + dur(r.ms) + '</span>', '<pre>' + esc(r.output) + '</pre>'); }).join('');
-  html += '<h4>Trace</h4><div id="spans"><span class="empty">loading spans…</span></div>';
-  html += det('rec', 'full record', json(i));
-  drawer('#' + i.id + ' ' + esc(i.title), html, refresh);
-  fetch('api/spans?item=' + id).then(function (r) { return r.json(); }).then(function (spans) { var el = $('spans'); if (el) el.innerHTML = spanTree(spans); });
+function list(a) { return a && a.length ? '<ul style="margin:4px 0;padding-left:20px">' + a.map(function (x) { return '<li>' + esc(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>'; }).join('') + '</ul>' : '<span class="empty">none</span>'; }
+function decisions(ds) { return (ds || []).map(function (d) { return '<div class="dec"><div class="q">' + esc(d.question) + '</div><div class="a">→ ' + esc(d.decision) + '</div>' + (d.why ? '<div class="y">' + esc(d.why) + '</div>' : '') + '</div>'; }).join(''); }
+function storyTab() {
+  var v = D.view, it = D.item, o = D.deliverables, h = '';
+  if (v.hold) h += '<div class="hold"><div class="c">' + esc(v.hold.code) + '</div><div style="font-size:15px;margin:4px 0">' + esc(v.hold.message) + '</div>' + (Array.isArray(v.hold.context.questions) ? '<ol>' + v.hold.context.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' : '') + v.next.map(cmd).join('') + '<details><summary>every fact of the hold</summary><pre>' + esc(JSON.stringify(v.hold.context, null, 2)) + '</pre></details></div>';
+  h += '<h4>Objective</h4><div class="prose lead">' + esc(it.objective) + '</div>';
+  if (o.discover && o.discover.text) h += '<h4>From discovery #' + (v.discovery || '') + '</h4><div class="prose">' + esc(o.discover.text) + '</div>';
+  if (o.discover && o.discover.items) h += '<h4>Candidates found</h4>' + D.related.map(function (r) { return '<div><a href="#" data-item="' + r.id + '">#' + r.id + ' ' + esc(r.title) + '</a> <span class="tag st-' + r.status + '">' + esc(r.status) + '</span></div>'; }).join('');
+  h += '<details><summary>the operator\'s own words</summary><pre>' + esc(it.source) + '</pre></details>';
+  if (o.ideate) h += '<h4>Idea · ideator</h4><div class="prose lead">' + esc(o.ideate.outcome) + '</div><div class="prose" style="margin-top:8px">' + esc(o.ideate.approach) + '</div>' + (o.ideate.decisions && o.ideate.decisions.length ? '<details><summary>' + plural(o.ideate.decisions.length, 'decision') + '</summary>' + decisions(o.ideate.decisions) + '</details>' : '');
+  if (o.challenge) h += '<h4>Challenge · ideation peer</h4>' + (o.challenge.findings || []).map(function (f) { return '<div class="dec"><div class="q">' + esc(f.finding) + '</div><div class="a">→ ' + esc(f.resolution) + '</div></div>'; }).join('') + (o.challenge.decisions && o.challenge.decisions.length ? '<details><summary>' + plural(o.challenge.decisions.length, 'decision') + '</summary>' + decisions(o.challenge.decisions) + '</details>' : '');
+  if (o.plan) {
+    var p = o.plan;
+    h += '<h4>Plan · planner</h4><div class="prose lead">' + esc(p.making) + '</div>';
+    if (p.notMaking && p.notMaking.length) h += '<div style="margin-top:6px"><b style="font-size:13px">Not making</b>' + list(p.notMaking) + '</div>';
+    h += '<div style="margin-top:8px"><b style="font-size:13px">Scope</b> <div class="chips">' + (p.scope || []).map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') + '</div></div>';
+    if (p.follows && p.follows.length) h += '<div style="margin-top:6px;font-size:13px">' + p.follows.map(function (f) { return '<code>' + esc(f.path) + '</code> follows <code>' + esc(f.follows) + '</code>'; }).join('<br>') + '</div>';
+    h += '<div style="margin-top:8px"><b style="font-size:13px">Steps</b><ol class="steps">' + (p.steps || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol></div>';
+    h += '<div style="margin-top:8px"><b style="font-size:13px">Done when</b><div class="dw">' + (p.doneWhen || []).map(function (d) { return '<span class="id">' + esc(d.id) + '</span><span>' + esc(d.text) + '</span>'; }).join('') + '</div></div>';
+    if (p.decisions && p.decisions.length) h += '<details><summary>' + plural(p.decisions.length, 'decision') + '</summary>' + decisions(p.decisions) + '</details>';
+  }
+  if (o.implement) h += '<h4>Implementer</h4><div class="prose">' + esc(o.implement.summary || o.implement.blocked || '') + '</div>';
+  if (o['test-plan'] && o['test-plan'].blocked) h += '<h4>Test architect</h4><div class="prose">' + esc(o['test-plan'].blocked) + '</div>';
+  if (it.failure) h += '<h4>Open failure</h4><pre>' + esc(it.failure) + '</pre>';
+  if (o.arbitrate) h += '<h4>Arbiter\'s ruling</h4><div class="dec"><div class="q">Cause: ' + esc(o.arbitrate.cause) + '</div><div class="a">' + esc(o.arbitrate.answer) + '</div><div class="y">' + esc(o.arbitrate.evidence) + '</div></div>';
+  if (it.rework) h += '<h4>Round ' + it.round + ' works from this ruling</h4><div class="dec"><div class="q">' + esc(it.rework.cause) + '</div><div class="a">' + esc(it.rework.answer) + '</div></div>';
+  if (v.commit) h += '<h4>Shipped</h4><div class="prose">' + esc(v.doing) + ' · <code>' + esc(v.commit) + '</code></div>';
+  if (D.related.length && !(o.discover && o.discover.items)) h += '<h4>Related</h4>' + D.related.map(function (r) { return '<div><a href="#" data-item="' + r.id + '">#' + r.id + ' ' + esc(r.title) + '</a> <span class="tag st-' + r.status + '">' + esc(r.status) + '</span></div>'; }).join('');
+  return h;
 }
-function spanTree(spans) {
-  if (!spans.length) return '<div class="empty">No spans for this item yet. Spans are written beside the store while Made Well runs (MW_DEBUG=0 turns them off).</div>';
-  var by = {}, roots = [], max = Math.max.apply(null, spans.map(function (s) { return s.ms; }).concat([1]));
-  spans.forEach(function (s) { by[s.span] = s; s.kids = []; });
-  spans.forEach(function (s) { if (s.parent && by[s.parent]) by[s.parent].kids.push(s); else roots.push(s); });
-  var out = '', walk = function (s, d) {
-    out += '<div class="span' + (s.outcome === 'error' ? ' err' : '') + '" title="' + esc(JSON.stringify(s.attributes)) + '"><div style="padding-left:' + (d * 14) + 'px">' + esc(s.name) + ' <span class="meta">' + clock(s.start) + (s.attributes.job ? ' · ' + esc(s.attributes.job) : '') + '</span><div class="bar2" style="width:' + Math.max(1, s.ms / max * 100) + '%"></div></div><div class="meta" style="text-align:right">' + dur(s.ms) + '</div></div>';
-    s.kids.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (k) { walk(k, d + 1); });
-  };
-  roots.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).slice(-40).forEach(function (r) { walk(r, 0); });
-  return out;
+function nqTab() {
+  if (!D.exchanges.length) return '<div class="empty">No hand-offs yet.</div>';
+  return '<div class="prose" style="margin-bottom:6px;font-size:13px;color:var(--mute)">Every hand-off between agents is an NQ exchange: the receiver states what it understood and asks what is unclear; the one who handed over answers. Three answered turns with questions still open hold the item for you.</div>' + D.exchanges.map(function (x) {
+    return '<div class="xch"><div class="xh">' + esc(x.from) + ' → ' + esc(x.to) + ' <span>· ' + esc(x.job) + ' · ' + (x.turns.length ? plural(x.turns.length, 'turn') : 'no questions') + '</span></div>' +
+      x.turns.map(function (t, k) {
+        return '<div class="turn"><div class="qh">Turn ' + (k + 1) + ' · ' + (t.error ? 'an error, asked as a question' : plural(t.questions.length, 'question')) + ' · ' + clock(t.at) + '</div>' + (t.understanding ? '<details><summary>what the ' + esc(x.to) + ' understood</summary><div class="prose" style="font-size:13px">' + esc(t.understanding) + '</div></details>' : '') +
+          '<ol>' + t.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' + (t.answer ? '<div class="ans"><b>' + esc(t.by === 'operator' ? 'you answered' : 'the ' + x.from + ' answered') + '</b>' + esc(t.answer) + '</div>' : t.by ? '<div class="ans"><b>answered by the ' + esc(t.by) + '</b></div>' : '<div class="ans"><b>waiting for an answer</b></div>') + '</div>';
+      }).join('') + (x.clear ? '<div class="turn clear"><div class="qh">Clear · ' + clock(x.clear.at) + '</div>' + (x.clear.understanding ? '<div class="prose" style="font-size:13px">' + esc(x.clear.understanding) + '</div>' : '') + (x.clear.notes.length ? '<details><summary>' + plural(x.clear.notes.length, 'note') + ' that travel with the work</summary>' + list(x.clear.notes) + '</details>' : '') + '</div>' : '') + '</div>';
+  }).join('');
 }
-function drawCall(id) {
-  open = { type: 'call', id: id };
-  fetch('api/call/' + id).then(function (r) { return r.json(); }).then(function (c) {
-    if (!c) return;
-    var html = '<div class="kv"><div>item</div><div><a href="#" data-item="' + c.item + '">#' + c.item + '</a></div><div>card</div><div>' + esc([c.card.harness, c.card.provider, c.card.model, c.card.effort, c.card.account].filter(Boolean).join(' · ')) + '</div>' +
-      '<div>outcome</div><div>' + esc(c.outcome) + '</div><div>started</div><div>' + esc(c.started) + ' · ' + dur(c.ms) + '</div>' +
-      '<div>tokens</div><div>' + (c.tokens ? num(tok(c.tokens)) + ' <span class="meta">' + num(c.tokens.input) + ' in · ' + num(c.tokens.output) + ' out · ' + num(c.tokens.cacheRead) + ' cache read · ' + num(c.tokens.cacheWrite) + ' cache write</span>' : '<span class="meta">not reported by the harness</span>') + '</div></div>';
-    if (c.error) html += '<h4>Error</h4><pre>' + esc(c.error) + '</pre>';
-    html += '<h4>Rules</h4>' + (c.flags.length ? c.flags.map(function (f) { return '<div class="hold" style="margin-bottom:6px"><b>' + esc(f.rule) + '</b> ' + esc(RULES[f.rule] || '') + json(f.evidence) + '</div>'; }).join('') : '<div class="rule-ok">✓ no rule broken' + (c.facts ? '' : ' (no facts recorded)') + '</div>');
-    html += '<h4>Tool calls (' + c.tools.length + ')</h4>' + (c.tools.length ? '<table><tr><th>#</th><th>Tool</th><th>Input</th><th class="num">In</th><th class="num">Out</th><th class="num">ms</th></tr>' + c.tools.map(function (t) { return '<tr' + (t.error ? ' style="color:var(--red)"' : '') + '><td class="id">' + t.seq + '</td><td>' + esc(t.tool) + '</td><td class="meta" style="font-family:var(--mono)">' + esc(t.digest) + '</td><td class="num">' + num(t.inputBytes) + '</td><td class="num">' + num(t.outputBytes) + '</td><td class="num">' + (t.ms == null ? '' : num(t.ms)) + '</td></tr>'; }).join('') + '</table>' : '<div class="empty">none</div>');
-    html += '<h4>Answer</h4><pre>' + esc(c.output || '(none)') + '</pre>';
-    html += '<details><summary>Packet the agent was given (' + num((c.prompt || '').length) + ' chars)</summary><pre>' + esc(c.prompt) + '</pre></details>';
-    html += '<details><summary>Brief (system prompt)</summary><pre>' + esc(c.system) + '</pre></details>';
-    html += '<details><summary>Facts the rules were checked against</summary>' + json(c.facts) + '</details>';
-    html += '<details><summary>Raw stream (' + num((c.raw || '').length) + ' bytes)</summary><div class="stream">' + streamHtml(c.raw || '') + '</div></details>';
-    drawer(esc(c.profile) + ' · ' + esc(c.kind) + ' · ' + esc(c.job) + ' <span class="meta">call ' + c.id + '</span>', html);
+function checksTab() {
+  var plan = D.deliverables.plan, res = {}, h = '';
+  (D.verification ? D.verification.results : []).forEach(function (r) { res[r.id] = r; });
+  if (!D.checks.length && !D.verification) return '<div class="empty">No checks yet: the test architect writes them from the plan, blind to the change.</div>';
+  if (D.verification) h += '<div class="prose" style="margin-bottom:10px">' + (D.verification.passed ? '<span class="ok-t">✓ Every check passed</span>' : '<span class="bad-t">✕ ' + D.verification.results.filter(function (r) { return r.exitCode !== 0; }).length + ' failed</span>') + ' when Made Well ran them on <code>' + esc(D.verification.on.slice(0, 12)) + '</code> with the implementer\'s change.</div>';
+  var gates = (D.verification ? D.verification.results : []).filter(function (r) { return r.doneWhen === '(gate)'; });
+  var groups = (plan && plan.doneWhen ? plan.doneWhen : []).map(function (d) { return { d: d, checks: D.checks.filter(function (c) { return c.doneWhen === d.id; }) }; });
+  if (!groups.length) groups = [{ d: { id: '', text: '' }, checks: D.checks }];
+  h += '<table><tr><th>Done when</th><th>Check</th><th class="num">Result</th></tr>' + groups.map(function (g) {
+    return g.checks.map(function (c, k) {
+      var r = res[c.id];
+      return '<tr>' + (k === 0 ? '<td rowspan="' + g.checks.length + '" style="width:38%"><span class="mono" style="color:var(--mute)">' + esc(g.d.id) + '</span> ' + esc(g.d.text) + '</td>' : '') + '<td><span class="mono">' + esc(c.id) + '</span> <code>' + esc(c.run) + '</code>' + (r && r.exitCode !== 0 ? '<pre>' + esc(r.output) + '</pre>' : '') + '</td><td class="num">' + (r ? (r.exitCode === 0 ? '<span class="ok-t">✓</span> ' : '<span class="bad-t">✕ exit ' + r.exitCode + '</span> ') + dur(r.ms) : '<span class="empty">not run</span>') + '</td></tr>';
+    }).join('') || '<tr><td>' + esc(g.d.id + ' ' + g.d.text) + '</td><td class="empty">no check</td><td></td></tr>';
+  }).join('') + gates.map(function (r) { return '<tr><td><span class="mono" style="color:var(--mute)">gate</span> the project\'s own</td><td><code>' + esc(r.run) + '</code>' + (r.exitCode !== 0 ? '<pre>' + esc(r.output) + '</pre>' : '') + '</td><td class="num">' + (r.exitCode === 0 ? '<span class="ok-t">✓</span> ' : '<span class="bad-t">✕</span> ') + dur(r.ms) + '</td></tr>'; }).join('') + '</table>';
+  if (D.diff.checks) h += '<h4>The check files</h4>' + diffHtml(D.diff.checks);
+  return h;
+}
+function diffHtml(text) {
+  return '<div class="diff">' + text.split('\n').map(function (l) { var c = /^(\+\+\+|---|diff |index )/.test(l) ? 'f' : l[0] === '+' ? 'a' : l[0] === '-' ? 'r' : l.slice(0, 2) === '@@' ? 'h' : ''; return '<div class="' + c + '">' + (esc(l) || ' ') + '</div>'; }).join('') + '</div>';
+}
+function changeTab() {
+  var files = (D.item.change && D.item.change.files) || [];
+  if (!files.length && !D.diff.change) return '<div class="empty">No change yet: the implementer makes it from the plan.</div>';
+  return (files.length ? '<h4>' + plural(files.length, 'file') + '</h4><div class="chips">' + files.map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') + '</div>' : '') + (D.diff.change ? '<h4>' + (D.view.commit ? 'As shipped' : 'The patch waiting to ship') + '</h4>' + diffHtml(D.diff.change) : '');
+}
+function callsTab() {
+  if (!D.calls.length) return '<div class="empty">No calls yet.</div>';
+  var sum = D.calls.reduce(function (a, c) { a.ms += c.ms; a.t += tok(c.tokens); return a; }, { ms: 0, t: 0 });
+  return '<div class="prose" style="font-size:13px;margin-bottom:8px">' + plural(D.calls.length, 'call') + ' · ' + mins(sum.ms) + ' of agent time · ' + tk(sum.t) + ' tokens</div><table><tr><th>#</th><th>Call</th><th>Card</th><th class="num">Time</th><th class="num">Tokens</th><th class="num">Tools</th><th>Outcome</th></tr>' + D.calls.map(function (c) {
+    return '<tr class="click" data-call="' + c.id + '"><td class="num">' + c.id + '</td><td><b>' + esc(c.kind === 'execute' ? JOBNAME[c.job] : c.kind) + '</b> <span style="color:var(--mute)">' + esc((c.kind === 'execute' ? '' : c.job + ' · ') + c.profile) + '</span></td><td class="mono" style="color:var(--mute)">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + tk(tok(c.tokens)) + '</td><td class="num">' + c.toolCount + '</td><td>' + (c.outcome === 'ok' ? '<span class="ok-t">ok</span>' : '<span class="bad-t">' + esc(c.outcome) + '</span>') + (c.flags.length ? ' <span class="bad-t">' + plural(c.flags.length, 'rule break') + '</span>' : '') + '</td></tr>';
+  }).join('') + '</table>';
+}
+function logTab() { return '<div class="log" style="max-height:none">' + D.events.map(evRow).join('') + '</div>'; }
+function traceTab() { return LIVE ? '<div id="spans" class="empty">Loading the trace…</div>' : '<div class="empty">The trace is read from spans.jsonl by the live console (<code>mw ui</code>).</div>'; }
+function loadTrace(id) {
+  getJson('api/spans/' + id).then(function (spans) {
+    var el = $('spans'); if (!el) return;
+    if (!spans.length) { el.innerHTML = 'No spans for this item. Spans are written to spans.jsonl beside the store while Made Well runs (MW_DEBUG=0 turns them off).'; return; }
+    var by = {}, roots = [], max = Math.max.apply(null, spans.map(function (s) { return s.ms; }).concat([1]));
+    spans.forEach(function (s) { by[s.span] = s; s.kids = []; });
+    spans.forEach(function (s) { if (s.parent && by[s.parent]) by[s.parent].kids.push(s); else roots.push(s); });
+    var out = '', walk = function (s, d) {
+      out += '<div class="span' + (s.outcome === 'error' ? ' err' : '') + '" title="' + esc(JSON.stringify(s.attributes)) + '"><div style="padding-left:' + (d * 14) + 'px">' + esc(s.name) + ' <span style="color:var(--faint)">' + clock(s.start) + (s.attributes.job ? ' · ' + esc(s.attributes.job) : '') + '</span><div class="b2" style="width:' + Math.max(0.5, s.ms / max * 100) + '%"></div></div><div style="text-align:right;color:var(--mute)">' + dur(s.ms) + '</div></div>';
+      s.kids.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (k) { walk(k, d + 1); });
+    };
+    roots.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (r) { walk(r, 0); });
+    el.className = ''; el.innerHTML = out;
   });
 }
-function streamHtml(text) {
-  return text.split('\n').filter(function (l) { return l.trim(); }).map(function (l) {
-    var t = l.trim(); if (t[0] !== '{') return esc(t);
-    try { var v = JSON.parse(t), said = streamText(t); return '<span class="k">' + esc(v.type || v.event || v.kind || '·') + '</span> ' + (said ? esc(said) : '<span class="x">' + esc(t.length > 600 ? t.slice(0, 600) + '…' : t) + '</span>'); } catch (e) { return esc(t); }
-  }).join('\n');
+
+function loadCall(id) {
+  var back = open && open.type === 'item' ? open.id : null;
+  open = { type: 'call', id: id, back: back };
+  var p = LIVE ? getJson('api/call/' + id) : Promise.resolve(STATIC.calls[id]);
+  p.then(function (c) { if (c && open && open.type === 'call' && open.id === id) drawCall(c, back); });
 }
-function drawFlight(f) {
+function pretty(text) { var j = null; try { var s = (text || '').replace(/^\s*\x60{3}(json)?/, '').replace(/\x60{3}\s*$/, ''); j = JSON.parse(s); } catch (e) {} return '<pre>' + esc(j ? JSON.stringify(j, null, 2) : text || '(none)') + '</pre>'; }
+function drawCall(c, back) {
+  var head = (back ? '<a href="#" class="back" data-item="' + back + '">← #' + back + '</a>' : '<a href="#" class="back" data-item="' + c.item + '">← #' + c.item + '</a>') +
+    '<h3>' + esc(c.kind === 'execute' ? JOBNAME[c.job] + ' · ' + c.profile : c.kind + ' · ' + c.job + ' · ' + c.profile) + ' <span class="tag">call ' + c.id + '</span>' + (c.outcome === 'ok' ? '' : '<span class="tag st-held">' + esc(c.outcome) + '</span>') + '</h3>' +
+    '<div class="sub">' + esc([c.card.harness, c.card.model, c.card.effort].filter(function (x, k, a) { return x && a.indexOf(x) === k; }).join(' · ')) + ' · ' + esc(clock(c.started)) + ' · ' + dur(c.ms) + ' · ' + (c.tokens ? tk(tok(c.tokens)) + ' tokens (' + num(c.tokens.output) + ' out, ' + num(c.tokens.cacheRead) + ' cache read)' : 'tokens not reported') + (c.facts && c.facts.access ? ' · ' + esc(c.facts.access) + ' access' : '') + '</div>';
+  var h = '';
+  if (c.error) h += '<h4>' + (c.outcome === 'rejected' ? 'Refused by Made Well' : 'Error') + '</h4><pre>' + esc(c.error) + '</pre>';
+  h += c.flags.length ? '<h4>Rule breaks</h4>' + c.flags.map(function (f) { return '<div class="hold"><div class="c">' + esc(f.rule) + '</div><pre>' + esc(JSON.stringify(f.evidence, null, 2)) + '</pre></div>'; }).join('') : '';
+  h += '<h4>Answer</h4>' + pretty(c.output);
+  h += '<h4>What the agent did · ' + plural(c.tools.length, 'tool call') + '</h4><div class="tx">' + transcript(c.raw || '', Date.parse(c.started), c.output) + '</div>';
+  h += '<h4>Given</h4><details><summary>the packet (' + num((c.prompt || '').length) + ' characters)</summary>' + pretty(c.prompt) + '</details><details><summary>the brief every call shares</summary><pre>' + esc(c.system) + '</pre></details>';
+  if (c.facts) h += '<details><summary>facts the rules were checked against</summary><pre>' + esc(JSON.stringify(c.facts, null, 2)) + '</pre></details>';
+  show(head, h);
+}
+// The agent's stream as a person reads it: what it said, each tool it called with its input, and how big each result was.
+function transcript(raw, t0, answer) {
+  var out = [], results = {}, final = (answer || '').trim();
+  var lines = raw.split('\n').filter(function (l) { return l.trim(); }).map(function (l) { try { return JSON.parse(l); } catch (e) { return { type: 'text', text: l }; } });
+  lines.forEach(function (v) { var p = v.message && Array.isArray(v.message.content) ? v.message.content : []; p.forEach(function (b) { if (b.type === 'tool_result') results[b.tool_use_id] = b; }); });
+  t0 = t0 || (lines.length && lines[0].mw_at);
+  lines.forEach(function (v) {
+    var at = v.mw_at && t0 ? '<span style="color:var(--faint)">+' + ((v.mw_at - t0) / 1000).toFixed(0) + 's</span> ' : '';
+    if (v.type === 'assistant' && v.message) (v.message.content || []).forEach(function (b) {
+      if (b.type === 'text' && b.text && b.text.trim()) out.push('<div>' + at + '<span class="k">says</span>' + (final && b.text.trim() === final ? ' <span style="color:var(--faint)">its answer, shown above (' + num(final.length) + ' characters)</span>' : '<div class="say">' + esc(b.text.length > 3000 ? b.text.slice(0, 3000) + '…' : b.text) + '</div>') + '</div>');
+      if (b.type === 'tool_use') { var r = results[b.id], size = r ? JSON.stringify(r.content || '').length : 0; out.push('<div>' + at + '<span class="k">' + esc(b.name) + '</span> <span class="tool">' + esc(toolLine(b.input)) + '</span>' + (r ? ' <span style="color:var(--faint)">→ ' + num(size) + ' chars' + (r.is_error ? ', error' : '') + '</span>' : '') + '</div>'); }
+    });
+    else if (v.type === 'item.started' && v.item && v.item.command) out.push('<div>' + at + '<span class="k">shell</span> <span class="tool">$ ' + esc(v.item.command) + '</span></div>');
+    else if (v.type === 'item.completed' && v.item && v.item.type === 'agent_message') out.push('<div>' + at + '<span class="k">says</span><div class="say">' + esc(v.item.text) + '</div></div>');
+    else if (v.type === 'tool_execution_start') out.push('<div>' + at + '<span class="k">' + esc(v.toolName) + '</span> <span class="tool">' + esc(toolLine(v.args)) + '</span></div>');
+    else if (v.type === 'text') out.push('<div>' + esc(v.text) + '</div>');
+  });
+  return out.join('') || '<span class="empty">No stream recorded.</span>';
+}
+function toolLine(input) {
+  input = input || {};
+  var path = input.path || input.file_path || input.filePath;
+  if (input.command || input.cmd) return '$ ' + (input.command || input.cmd);
+  if (path) return String(path).replace(/^.*\/worktrees\/[^/]+\//, '') + (input.read_range ? ' ' + JSON.stringify(input.read_range) : '');
+  var s = JSON.stringify(input); return s.length > 400 ? s.slice(0, 400) + '…' : s;
+}
+function drawRun(f) {
+  open = { type: 'run' };
   var name = f.live ? f.live.split('/').pop() : null;
-  open = { type: 'flight' };
-  var html = '<div class="kv"><div>item</div><div><a href="#" data-item="' + f.item + '">#' + f.item + '</a></div><div>who</div><div>' + esc(f.who) + '</div>' + (f.card ? '<div>card</div><div>' + esc(f.card) + '</div>' : '') + '<div>since</div><div>' + esc(f.since) + '</div><div>output</div><div>' + esc(f.live || 'none streamed') + '</div></div>' +
-    '<h4>Live output</h4><div class="stream" id="tail">' + (name ? 'waiting for output…' : 'This step streams no output.') + '</div>';
-  drawer('#' + f.item + ' ' + esc(f.what) + ' <span class="meta">running</span>', html);
+  show('<a href="#" class="back" data-item="' + f.item + '">← #' + f.item + '</a><h3>' + esc(f.kind === 'execute' ? JOBNAME[f.job] : f.kind + ' · ' + f.job) + ' · ' + esc(f.who) + ' <span class="tag st-running">running</span></h3><div class="sub">' + esc(f.title) + (f.card ? ' · ' + esc(f.card) : '') + ' · since ' + esc(clock(f.since)) + '</div>',
+    '<h4>Live</h4><div class="tx" id="tail">' + (name ? 'waiting for output…' : 'This step streams no output.') + '</div>');
   liveTail = name ? { name: name, from: 0, text: '' } : null;
   tail();
 }
 function tail() {
-  if (!liveTail) return;
+  if (!liveTail || !LIVE) return;
   var t = liveTail;
-  fetch('api/live/' + encodeURIComponent(t.name) + '?from=' + t.from).then(function (r) { return r.json(); }).then(function (d) {
+  getJson('api/live/' + encodeURIComponent(t.name) + '?from=' + t.from).then(function (d) {
     if (liveTail !== t) return;
-    if (d.gone) { $('tail').innerHTML += '\n<span class="k">— the step ended; its record is in the item\'s calls —</span>'; liveTail = null; return; }
-    t.from = d.next; t.text = (t.text + d.text).slice(-400000);
-    var el = $('tail'), stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 30;
-    el.innerHTML = streamHtml(t.text) || 'waiting for output…';
+    if (d.gone) { var el0 = $('tail'); if (el0) el0.innerHTML += '<div style="color:var(--green)">— the step ended; its record is in the item\'s calls —</div>'; liveTail = null; return; }
+    t.from = d.next; t.text = (t.text + d.text).slice(-600000);
+    var el = $('db'), stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 40;
+    var tl = $('tail'); if (tl) tl.innerHTML = transcript(t.text) || 'waiting for output…';
     if (stick) el.scrollTop = el.scrollHeight;
   }).catch(function () {});
-}
-function drawEvent(seq) {
-  var e = S.events.find(function (x) { return x.seq === seq; }); if (!e) return;
-  open = { type: 'event' };
-  drawer(esc(e.kind) + ' <span class="meta">event ' + e.seq + '</span>', '<div class="kv"><div>when</div><div>' + esc(e.at) + '</div><div>who</div><div><span class="badge ' + actorClass(e.actor) + '">' + esc(e.actor) + '</span></div><div>item</div><div>' + (e.item ? '<a href="#" data-item="' + e.item + '">#' + e.item + '</a>' : 'the runner') + '</div></div><h4>What happened</h4><p>' + esc(e.say) + '</p><h4>Every variable</h4>' + json(e.data) +
-    (e.kind === 'call-finished' && e.data.call ? '<p><a href="#" data-call="' + e.data.call + '">open the call: packet, answer, tools, raw stream →</a></p>' : ''));
 }
 
 // ── Wiring ──
 document.addEventListener('click', function (ev) {
-  var t = ev.target.closest('[data-item],[data-call],[data-ev],[data-pos],[data-fl]'); if (!t) return;
+  var c = ev.target.closest('[data-copy]');
+  if (c) { navigator.clipboard.writeText(c.dataset.copy); c.textContent = 'Copied'; setTimeout(function () { c.textContent = 'Copy'; }, 1200); return; }
+  var tb = ev.target.closest('[data-tab]');
+  if (tb) { tab = tb.dataset.tab; drawItem(false); return; }
+  var t = ev.target.closest('[data-item],[data-call],[data-run]'); if (!t) return;
   if (t.tagName === 'A') ev.preventDefault();
-  if (t.dataset.call) return drawCall(Number(t.dataset.call));
-  if (t.dataset.item) return drawItem(Number(t.dataset.item));
-  if (t.dataset.ev) return drawEvent(Number(t.dataset.ev));
-  if (t.dataset.fl) return drawFlight(flightsAt(pos)[Number(t.dataset.fl)]);
-  if (t.dataset.pos) { go(Number(t.dataset.pos)); drawEvent(S.events[Number(t.dataset.pos)].seq); }
+  if (t.dataset.call) { ev.stopPropagation(); return loadCall(Number(t.dataset.call)); }
+  if (t.dataset.run) return drawRun(M.running[Number(t.dataset.run)]);
+  if (t.dataset.item) return loadItem(Number(t.dataset.item));
 });
-function go(n) { if (!S) return; pos = Math.max(0, Math.min(last(), n)); follow = pos === last() && follow; render(); }
-$('back').onclick = function () { follow = false; go(pos - 1); };
-$('step').onclick = function () { follow = false; go(pos + 1); };
-$('over').onclick = function () { follow = false; stop(); go(0); };
-$('live').onclick = function () { follow = true; stop(); render(); };
-$('play').onclick = function () { if (timer) return stop(); follow = false; $('play').textContent = 'Pause'; if (pos >= last()) pos = -1; timer = setInterval(function () { if (pos >= last()) { stop(); follow = true; render(); return; } go(pos + 1); }, 700); };
-function stop() { if (timer) clearInterval(timer); timer = null; $('play').textContent = 'Play'; }
-$('bar').onclick = function (ev) { var r = this.getBoundingClientRect(); follow = false; go(Math.round((ev.clientX - r.left) / r.width * (S.events.length - 1))); };
-$('q').oninput = function () { if (S) renderLog(); };
-$('dclose').onclick = closeDrawer;
-document.addEventListener('keydown', function (ev) { if (ev.target.tagName === 'INPUT') return; if (ev.key === 'ArrowLeft') $('back').click(); if (ev.key === 'ArrowRight') $('step').click(); if (ev.key === 'Escape') closeDrawer(); if (ev.key === 'l') $('live').click(); });
+$('scrim').onclick = closeDrawer;
+$('q').oninput = function () { if (M) renderLog(); };
+document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeDrawer(); });
 
-function header() {
-  $('path').textContent = S ? S.store : '';
-  $('runner').innerHTML = !S ? '' : S.runner ? '<span class="pill ok"><span class="dot pulse"></span>runner ' + S.runner.pid + (S.runner.item ? ' on #' + S.runner.item : '') + ' since ' + clock(S.runner.since) + '</span>' : '<span class="pill warn"><span class="dot"></span>no runner · nothing moves until <code>mw run</code></span>';
-}
 function poll() {
-  fetch('api/mark').then(function (r) { return r.json(); }).then(function (m) {
+  getJson('api/mark').then(function (m) {
     lastOk = Date.now();
-    if (m.store === null) { S = null; $('path').textContent = m.path; $('now').innerHTML = '<div class="empty">No store yet at ' + esc(m.path) + '. It appears with the first <code>mw discover</code> or <code>mw start</code>; this page picks it up by itself.</div>'; return; }
+    if (m.store === null) { $('hero').innerHTML = '<div class="empty">No store yet at ' + esc(m.path) + '. It appears with the first <code>mw discover</code> or <code>mw start</code>; this page picks it up by itself.</div>'; return; }
     var key = JSON.stringify(m);
     if (key === MARK) return tick();
     MARK = key;
-    return fetch('api/state').then(function (r) { return r.json(); }).then(function (s) { S = s; header(); render(); });
+    return getJson('api/model').then(function (s) { M = s; render(); });
   }).catch(function () {}).then(function () {
     var ok = Date.now() - lastOk < 4000;
-    $('conn').className = 'pill ' + (ok ? 'ok' : 'bad'); $('conn').innerHTML = '<span class="dot' + (ok ? ' pulse' : '') + '"></span>' + (ok ? 'live' : 'disconnected: is mw ui still running?');
+    $('conn').className = 'pill ' + (ok ? 'mute' : 'bad'); $('conn').innerHTML = ok ? '<span class="dot pulse" style="color:var(--green)"></span>live' : '<span class="dot"></span>disconnected: is mw ui still running?';
     tail();
   });
 }
-function tick() {
-  document.querySelectorAll('[data-since]').forEach(function (el) { if (el.dataset.cut !== '1' && pos >= last()) el.textContent = dur(Date.now() - Date.parse(el.dataset.since)); });
-  if (S && pos >= last()) S.flights.forEach(function (f) { if (f.live) peek(f.live.split('/').pop()); });
-}
-poll(); setInterval(poll, LIVE_MS);
+function tick() { document.querySelectorAll('[data-since]').forEach(function (el) { el.textContent = dur(now() - Date.parse(el.dataset.since)); }); }
+if (LIVE) { poll(); setInterval(poll, 1000); }
+else { M = STATIC.model; $('conn').hidden = true; render(); }
 </script></body></html>`;
 
 // src/ui.ts
@@ -25116,9 +25056,10 @@ var short = (s, n = 160) => {
 };
 var cardOf = (c) => {
   const card = c;
-  return card ? [card.harness, card.model, card.effort].filter(Boolean).join(" \xB7 ") : "";
+  return card ? [...new Set([card.harness, card.model, card.effort].filter(Boolean))].join(" \xB7 ") : "";
 };
 var jobs = (j) => Array.isArray(j) ? j.join(" + ") : String(j ?? "");
+var plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 var sayOf = (e, title) => {
   const d = e.data;
   switch (e.kind) {
@@ -25129,9 +25070,9 @@ var sayOf = (e, title) => {
     case "base":
       return `Starts from ${d.ref} at ${String(d.main).slice(0, 12)}`;
     case "handoff":
-      return `${d.from} hands ${d.job} to the ${d.to}`;
+      return `The ${d.from} hands ${d.job} to the ${d.to}`;
     case "nq-question":
-      return `The ${d.receiver} asks the ${d.originator} ${d.questions?.length ?? 0} question${d.questions?.length === 1 ? "" : "s"}${d.error ? " about an error" : ""}: ${short((d.questions ?? []).join(" \xB7 "), 220)}`;
+      return `The ${d.receiver} asks the ${d.originator} ${plural(d.questions?.length ?? 0, "question")}${d.error ? " about an error" : ""}: ${short((d.questions ?? []).join(" \xB7 "), 220)}`;
     case "nq-answer":
       return `The ${d.originator} answers the ${d.job} hand-off${d.answer ? `: ${short(d.answer, 200)}` : ""}`;
     case "nq-corrected":
@@ -25148,6 +25089,8 @@ var sayOf = (e, title) => {
       return `Made Well accepts the ${e.data.job ?? ""} deliverable`;
     case "launch-failed":
       return `The ${d.job} call failed (${cardOf(d.card)}): ${short(d.error, 220)}`;
+    case "repaired":
+      return `The ${d.job} answer was malformed; its agent corrected the JSON in ${secs(d.ms ?? 0)}${d.ok ? "" : ", and it is still malformed"}`;
     case "quota-swap":
       return `${cardOf(d.from)} hit a usage limit; the ${d.job} call moves to another card`;
     case "waiting-quota":
@@ -25155,7 +25098,7 @@ var sayOf = (e, title) => {
     case "handed-off":
       return `${jobs(d.from)} \u2192 ${jobs(d.to)}`;
     case "failure":
-      return `${d.conflict ? `The ${d.conflict} patch no longer applies` : d.results ? `${d.results.filter((r) => r.exitCode !== 0).length} of ${d.results.length} checks failed` : `${jobs(d.from)} could not finish`}; the arbiter decides whose it is`;
+      return `${d.results ? `${d.results.filter((r) => r.exitCode !== 0).length} of ${d.results.length} checks failed` : `${jobs(d.from)} could not finish`}; the arbiter decides whose it is`;
     case "ruling":
       return d.prerequisite ? `The ${d.by} rules it a pre-existing defect; fix #${d.prerequisite} goes first` : `The ${d.by} rules the cause ${d.cause}; back to ${d.to}${d.answer ? `: ${short(d.answer, 160)}` : ""}`;
     case "prepare-started":
@@ -25163,11 +25106,11 @@ var sayOf = (e, title) => {
     case "prepared":
       return `Prepare for ${d.job} exited ${d.exitCode}${d.provisioned?.length ? `, provisioned ${d.provisioned.map((p) => `${p.kind} ${p.id}`).join(", ")}` : ""}`;
     case "verify-started":
-      return `Made Well runs ${d.gates?.length ?? 0} gate${d.gates?.length === 1 ? "" : "s"} and ${d.checks?.length ?? 0} check${d.checks?.length === 1 ? "" : "s"} on the change`;
+      return `Made Well runs ${plural(d.gates?.length ?? 0, "gate")} and ${plural(d.checks?.length ?? 0, "check")} on the change`;
     case "verified": {
       const gates = (d.results ?? []).filter((r) => r.doneWhen === GATE).length;
       const checks = (d.results ?? []).length - gates;
-      return `All ${checks} check${checks === 1 ? "" : "s"}${gates ? ` and ${gates} gate${gates === 1 ? "" : "s"}` : ""} passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${d.fixed.length} files)` : ""}`;
+      return `All ${plural(checks, "check")}${gates ? ` and ${plural(gates, "gate")}` : ""} passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${plural(d.fixed.length, "file")})` : ""}`;
     }
     case "main-moved":
       return "The branch moved since the checks ran; they run again";
@@ -25186,9 +25129,9 @@ var sayOf = (e, title) => {
     case "retried":
       return `The operator retries ${d.job}`;
     case "promoted":
-      return `The operator promotes it into delivery`;
+      return "The operator promotes it into delivery";
     case "discovered":
-      return `Discovery finished with ${d.candidates?.length ?? 0} candidates`;
+      return `Discovery finished with ${plural(d.candidates?.length ?? 0, "candidate")}`;
     case "dropped":
       return `The operator drops it (was ${d.from})`;
     case "prerequisite-shipped":
@@ -25215,98 +25158,36 @@ var sayOf = (e, title) => {
       return `${e.kind} ${short(JSON.stringify(d), 200)}`;
   }
 };
-var stageOf = (job) => stepOf(job).stage;
 var ENDS = {
   "call-started": ["call-finished"],
   "prepare-started": ["prepared"],
-  "verify-started": ["verified", "failure", "held"],
+  "verify-started": ["verified", "failure", "held", "rebased"],
   "ship-started": ["shipped", "held"]
 };
 var inFlight = (events2) => {
   const open = /* @__PURE__ */ new Map();
-  for (const e of events2) {
+  const key = (e, start) => {
     const d = e.data;
-    const key = (kind) => `${e.item}:${kind}:${kind === "call-started" ? `${d.job}:${d.kind}` : kind === "prepare-started" ? d.name : ""}`;
-    if (ENDS[e.kind]) {
-      const what = e.kind === "call-started" ? `${d.kind === "execute" ? "job" : d.kind} \xB7 ${d.job}` : e.kind.replace("-started", "");
-      const who = e.kind === "call-started" ? d.profile : "made well";
-      open.set(key(e.kind), { item: e.item, what, job: d.job ?? e.kind.replace("-started", ""), who, since: e.at, seq: e.seq, ...d.live ? { live: d.live } : {}, ...d.card ? { card: cardOf(d.card) } : {} });
-    }
-    for (const [start, ends] of Object.entries(ENDS)) if (ends.includes(e.kind)) {
-      if (start === "call-started") open.delete(key(start));
-      else if (start === "prepare-started") open.delete(`${e.item}:${start}:${d.name}`);
-      else open.delete(key(start));
-    }
-    if (e.kind === "runner-started" || e.kind === "runner-reloaded" || e.kind === "runner-lost" || e.kind === "runner-stopped") {
-      if (e.kind !== "runner-reloaded") open.clear();
-    }
-  }
-  return [...open.values()];
-};
-var minutesOf = (events2, items, now2) => {
-  const per = {};
-  const where = /* @__PURE__ */ new Map();
-  const last = /* @__PURE__ */ new Map();
-  const add4 = (id2, until) => {
-    const from = last.get(id2);
-    const at = where.get(id2);
-    if (from === void 0 || at === void 0) return;
-    const m = per[id2] ??= {};
-    m[at] = (m[at] ?? 0) + Math.max(0, until - from) / 6e4;
+    return `${e.item}:${start}:${start === "call-started" ? `${d.job}:${d.kind}` : start === "prepare-started" ? d.name : ""}`;
   };
   for (const e of events2) {
-    if (!e.item) continue;
-    const t = Date.parse(e.at);
-    add4(e.item, t);
-    last.set(e.item, t);
     const d = e.data;
-    const cur = where.get(e.item);
-    if (e.kind === "created") where.set(e.item, d.status === "candidate" ? "operator wait" : stageOf(d.job));
-    else if (e.kind === "held") where.set(e.item, "operator wait");
-    else if (e.kind === "waiting-quota") where.set(e.item, "quota wait");
-    else if (["shipped", "dropped", "discovered"].includes(e.kind)) where.delete(e.item);
-    else if (e.kind === "handed-off") where.set(e.item, stageOf(Array.isArray(d.to) ? d.to[0] : d.to));
-    else if (e.kind === "failure") where.set(e.item, "verification");
-    else if (e.kind === "rebased") where.set(e.item, "planning");
-    else if (e.kind === "ruling" && d.to) where.set(e.item, stageOf(d.to));
-    else if ((e.kind === "call-started" || e.kind === "running" || e.kind === "retried") && d.job) where.set(e.item, stageOf(d.job));
-    else if (e.kind === "promoted") where.set(e.item, "ideation");
-    else if (cur === void 0 && e.kind !== "alerted") where.set(e.item, stageOf(items.find((i) => i.id === e.item)?.job ?? "ideate"));
+    if (ENDS[e.kind]) {
+      const kind = e.kind === "call-started" ? String(d.kind) : e.kind.replace("-started", "");
+      open.set(key(e, e.kind), { item: e.item, kind, job: d.job ?? kind, who: e.kind === "call-started" ? d.profile : "made well", since: e.at, seq: e.seq, ...d.live ? { live: d.live } : {}, ...d.card ? { card: cardOf(d.card) } : {} });
+    }
+    for (const [start, ends] of Object.entries(ENDS)) if (ends.includes(e.kind)) open.delete(key(e, start));
+    if (e.kind === "runner-started" || e.kind === "runner-lost" || e.kind === "runner-stopped") open.clear();
   }
-  for (const i of items) if (!["shipped", "dropped", "discovered"].includes(i.status)) add4(i.id, now2);
-  return per;
+  return [...open.values()];
 };
 var liveDir = (path) => join11(dirname7(path), "live");
 var liveFiles = (path) => {
   try {
-    return readdirSync4(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => {
-      const s = statSync2(join11(liveDir(path), f));
-      return { name: f, bytes: s.size, at: new Date(s.mtimeMs).toISOString() };
-    }).sort((a, b) => b.at.localeCompare(a.at));
+    return readdirSync4(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => ({ name: f, bytes: statSync2(join11(liveDir(path), f)).size }));
   } catch {
     return [];
   }
-};
-var stateOf = (store, boardOf) => {
-  const now2 = Date.now();
-  const items = store.list();
-  const events2 = store.allEvents();
-  const runner2 = store.runner();
-  const titles = new Map(items.map((i) => [i.id, i.title]));
-  return {
-    at: new Date(now2).toISOString(),
-    store: store.path,
-    runner: runner2,
-    board: boardOf(store),
-    items,
-    events: events2.map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
-    calls: store.callHeads(),
-    holds: openHolds(store),
-    flights: inFlight(events2).map((f) => ({ ...f, cutOff: runner2 === null })),
-    minutes: minutesOf(events2, items, now2),
-    live: liveFiles(store.path),
-    spans: existsSync3(spansPath(store.path)) ? statSync2(spansPath(store.path)).size : 0
-  };
 };
 var readFrom = (file, from, max5 = 256 * 1024) => {
   try {
@@ -25324,26 +25205,329 @@ var readFrom = (file, from, max5 = 256 * 1024) => {
     return { text: "", next: 0, skipped: 0, gone: true };
   }
 };
+var rel = (p) => String(p ?? "").replace(/^.*\/worktrees\/[^/]+\//, "");
+var toolSay = (name, input = {}) => {
+  const path = input.path ?? input.file_path ?? input.filePath;
+  if (input.command ?? input.cmd) return `$ ${short(input.command ?? input.cmd, 180)}`;
+  if (path) return `${name} ${rel(path)}`;
+  if (input.pattern ?? input.query) return `${name} ${short(input.pattern ?? input.query, 120)}`;
+  return `${name} ${short(JSON.stringify(input), 140)}`;
+};
+var activityOf = (line) => {
+  const t = line.trim();
+  if (!t) return void 0;
+  if (t[0] !== "{") return { kind: "say", text: short(t, 300) };
+  try {
+    const v = JSON.parse(t);
+    if (v.type === "user" || v.type === "system") return void 0;
+    if (v.type === "result") return v.is_error ? { kind: "error", text: short(v.result ?? v.error, 300) } : void 0;
+    const parts2 = Array.isArray(v.message?.content) ? v.message.content : [];
+    for (const p of parts2.toReversed()) {
+      if (p.type === "tool_use") return { kind: "tool", text: toolSay(p.name ?? "tool", p.input) };
+      if (p.type === "toolCall") return { kind: "tool", text: toolSay(p.name ?? "tool", p.arguments) };
+      if (p.type === "text" && p.text?.trim()) return { kind: "say", text: short(p.text, 300) };
+    }
+    if (v.type === "tool_execution_start") return { kind: "tool", text: toolSay(v.toolName, v.args) };
+    if (v.item?.type === "command_execution" && v.type === "item.started") return { kind: "tool", text: `$ ${short(v.item.command, 180)}` };
+    if (v.item?.type === "agent_message" && v.item.text) return { kind: "say", text: short(v.item.text, 300) };
+    return void 0;
+  } catch {
+    return { kind: "say", text: short(t, 300) };
+  }
+};
+var activityIn = (file, n = 6) => {
+  if (!file) return [];
+  const out = [];
+  for (const l of readFrom(file, 0, 64 * 1024).text.split("\n").reverse()) {
+    const a = activityOf(l);
+    if (a) out.unshift(a);
+    if (out.length >= n) break;
+  }
+  return out;
+};
+var LANE = [
+  { job: "ideate", label: "Ideate" },
+  { job: "challenge", label: "Challenge" },
+  { job: "plan", label: "Plan" },
+  { job: "implement", label: "Implement" },
+  { job: "test-plan", label: "Checks" },
+  { job: "verify", label: "Verify" },
+  { job: "ship", label: "Ship" }
+];
+var ORDER = { discover: 0, ideate: 1, challenge: 2, plan: 3, implement: 4, "test-plan": 4, verify: 5, arbitrate: 5, ship: 6 };
+var DOING = {
+  discover: "turning the notes into work items",
+  ideate: "shaping the idea",
+  challenge: "challenging the idea",
+  plan: "writing the plan",
+  "test-plan": "writing the checks",
+  implement: "making the change",
+  arbitrate: "ruling on the failed check"
+};
+var tally = (calls) => ({ agentMs: calls.reduce((n, c) => n + c.ms, 0), tokens: calls.reduce((n, c) => n + totalTokens(c.tokens), 0), calls: calls.length });
+var stepsOf = (item, calls, events2, flying) => {
+  const questions = (job) => events2.filter((e) => e.kind === "nq-question" && e.data.job === job).reduce((n, e) => n + (e.data.questions?.length ?? 0), 0);
+  const lane = item.job === "discover" ? [{ job: "discover", label: "Discover" }] : LANE.filter((s) => s.job !== "arbitrate");
+  const arbiter = calls.some((c) => c.job === "arbitrate") || item.job === "arbitrate";
+  const steps = arbiter ? [...lane.slice(0, 6), { job: "arbitrate", label: "Arbiter" }, ...lane.slice(6)] : lane;
+  const at = ORDER[item.job] ?? 0;
+  const done3 = item.status === "shipped" || item.status === "discovered";
+  return steps.map(({ job, label: label2 }) => {
+    const mine = calls.filter((c) => c.job === job);
+    const span2 = mine.length ? Date.parse(mine.at(-1).started) + mine.at(-1).ms - Date.parse(mine[0].started) : 0;
+    let state;
+    const track2 = item.split?.[job];
+    if (done3) state = mine.length || job === "verify" || job === "ship" || job === "discover" ? "done" : "skipped";
+    else if (item.status === "dropped") state = mine.length ? "done" : "todo";
+    else if (item.parent !== void 0 && ORDER[job] < ORDER.plan) state = "skipped";
+    else if (job === "arbitrate") state = item.job === "arbitrate" ? item.status === "held" ? "held" : "active" : "done";
+    else if (job === "verify" && item.job === "arbitrate") state = "failed";
+    else if (job === "verify" && item.status === "waiting-prerequisite") state = "waiting";
+    else if (track2) state = track2.done ? "done" : item.status === "held" ? "held" : "active";
+    else if (job === "ship") state = item.merged ? item.status === "held" ? "held" : "active" : "todo";
+    else if (ORDER[job] < at) state = "done";
+    else if (job === item.job || job === "verify" && item.merged) state = item.status === "held" ? "held" : ["candidate", "queued"].includes(item.status) && !flying.length ? "todo" : "active";
+    else state = "todo";
+    if (job === "verify" && state === "done" && item.merged && !done3) state = "done";
+    return { job, label: label2, who: job === "verify" || job === "ship" ? "made well" : stepOf(job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
+  });
+};
+var doingOf = (store, item, flying, driven, nextOf, events2) => {
+  const title = (id2) => `#${id2}`;
+  const unshipped2 = (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
+  switch (item.status) {
+    case "shipped":
+      return { doing: `Shipped${item.shipped?.main ? ` at ${item.shipped.main.slice(0, 10)}` : ""}`, owes: "" };
+    case "discovered": {
+      const waiting = store.list().filter((c) => c.discovery === item.id && c.status === "candidate").length;
+      return { doing: waiting ? `Found candidates; ${plural(waiting, "candidate")} wait for you to promote` : "Found its candidates", owes: waiting ? "operator" : "" };
+    }
+    case "dropped":
+      return { doing: "Dropped by the operator", owes: "" };
+    case "candidate":
+      return { doing: "Candidate: waits for you to promote it into delivery", owes: "operator" };
+    case "held":
+      return { doing: item.hold?.message ?? "Held for the operator", owes: "operator", next: nextOf(item) };
+    case "waiting-quota":
+      return { doing: `Every card is out of quota; resumes by itself at ${item.resetsAt ? new Date(item.resetsAt).toISOString().slice(11, 16) : "the earliest reset"} UTC`, owes: "quota reset" };
+    case "waiting-prerequisite":
+      return { doing: `Its check failed on a pre-existing defect; waits for fix ${title(item.waitsOn)} to ship, then runs its checks again`, owes: title(item.waitsOn) };
+  }
+  if (unshipped2.length) return { doing: `Starts once ${unshipped2.map(title).join(", ")} ${unshipped2.length === 1 ? "ships" : "ship"}`, owes: unshipped2.map(title).join(" ") };
+  if (!driven) return { doing: "Nothing moves it: no runner is driving the store. Run `mw run`.", owes: "runner" };
+  const mine = flying.filter((f) => f.item === item.id);
+  if (mine.length) {
+    const say = (f) => {
+      if (f.kind === "verify") {
+        const v = events2.findLast((e) => e.kind === "verify-started")?.data;
+        return `Made Well is running ${plural(v?.gates?.length ?? 0, "gate")} and ${plural(v?.checks?.length ?? 0, "check")}`;
+      }
+      if (f.kind === "ship") return "Made Well is running the ship command";
+      if (f.kind === "prepare") return `Made Well is preparing a worktree for ${f.job}`;
+      const receiver = stepOf(f.job).profile;
+      if (f.kind === "intake") return `The ${receiver} is reading its hand-off for ${f.job} (NQ intake)`;
+      if (f.kind === "originator") {
+        const q = events2.findLast((e) => e.kind === "nq-question" && e.data.job === f.job)?.data.questions;
+        return `The ${f.who} is answering the ${receiver}'s ${plural(q?.length ?? 0, "question")}`;
+      }
+      return `The ${receiver} is ${DOING[f.job] ?? f.job}`;
+    };
+    return { doing: mine.map(say).join(" \xB7 "), owes: [...new Set(mine.map((f) => f.kind === "originator" ? f.who : f.kind === "intake" || f.kind === "execute" ? stepOf(f.job).profile : "made well"))].join(" + ") };
+  }
+  if (item.status === "queued") return { doing: "Queued: starts when a slot frees", owes: "runner" };
+  return { doing: `Between steps: ${item.job} is next`, owes: "made well" };
+};
+var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.map((item) => {
+  const evs = events2.filter((e) => e.item === item.id);
+  const mine = calls.filter((c) => c.item === item.id);
+  const fl = flying.filter((f) => f.item === item.id);
+  const { doing, owes } = doingOf(store, item, fl, driven, nextOf, evs);
+  const start = evs.findLast((e) => e.kind === "promoted")?.at ?? item.created;
+  const end2 = evs.findLast((e) => ["shipped", "dropped", "discovered"].includes(e.kind))?.at;
+  const results2 = item.verification?.results.filter((r) => r.doneWhen !== GATE) ?? [];
+  return {
+    id: item.id,
+    title: item.title,
+    kind: item.job === "discover" ? "discovery" : item.parent !== void 0 ? "prerequisite" : item.kind ?? "feature",
+    status: item.status,
+    ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
+    ...item.parent !== void 0 ? { parent: item.parent } : {},
+    after: (item.after ?? []).map((id2) => ({ id: id2, status: store.get(id2)?.status ?? "missing" })),
+    ...item.waitsOn !== void 0 ? { waitsOn: item.waitsOn } : {},
+    round: item.round,
+    steps: stepsOf(item, mine, evs, fl),
+    doing,
+    owes,
+    since: evs.at(-1)?.at ?? item.updated,
+    started: start,
+    ...end2 ? { ended: end2 } : {},
+    ...tally(mine),
+    questions: evs.filter((e) => e.kind === "nq-question").reduce((n, e) => n + (e.data.questions?.length ?? 0), 0),
+    ...item.hold ? { hold: item.hold } : {},
+    next: item.status === "held" ? nextOf(item) : [],
+    ...item.shipped?.main ?? item.merged?.commit ? { commit: item.shipped?.main ?? item.merged?.commit } : {},
+    ...results2.length ? { checks: { passed: results2.filter((r) => r.exitCode === 0).length, total: results2.length } } : {},
+    ...item.change ? { files: item.change.files.length } : {}
+  };
+});
+var barsOf = (events2, calls, flying) => {
+  const laneOf = (job) => job === "test-plan" ? 1 : 0;
+  const bars = calls.map((c) => ({ item: c.item, kind: c.kind, job: c.job, start: c.started, end: new Date(Date.parse(c.started) + c.ms).toISOString(), outcome: c.outcome, call: c.id, lane: laneOf(c.job) }));
+  const open = /* @__PURE__ */ new Map();
+  for (const e of events2) {
+    if (e.kind === "verify-started" || e.kind === "ship-started") open.set(`${e.item}:${e.kind}`, e);
+    const end2 = (start, outcome) => {
+      const s = open.get(`${e.item}:${start}`);
+      if (!s) return;
+      bars.push({ item: e.item, kind: start.replace("-started", ""), job: start.replace("-started", ""), start: s.at, end: e.at, outcome, lane: 0 });
+      open.delete(`${e.item}:${start}`);
+    };
+    if (e.kind === "verified") end2("verify-started", "ok");
+    if (e.kind === "failure" || e.kind === "rebased") end2("verify-started", "failed");
+    if (e.kind === "shipped") end2("ship-started", "ok");
+    if (e.kind === "held") end2("verify-started", "held"), end2("ship-started", "held");
+  }
+  for (const f of flying) if (f.kind !== "prepare") bars.push({ item: f.item, kind: f.kind, job: f.job, start: f.since, end: null, lane: laneOf(f.job) });
+  return bars;
+};
+var modelOf = (store, nextOf) => {
+  const now2 = Date.now();
+  const items = store.list();
+  const events2 = store.allEvents();
+  const calls = store.callHeads();
+  const runner2 = store.runner();
+  const titles = new Map(items.map((i) => [i.id, i.title]));
+  const flying = runner2 ? inFlight(events2) : [];
+  const cutOff = runner2 ? [] : inFlight(events2);
+  const views = itemViews(store, items, events2, calls, flying, runner2 !== null, nextOf);
+  const count = (...s) => items.filter((i) => s.includes(i.status)).length;
+  const delivery = items.filter((i) => i.job !== "discover" || i.status !== "discovered");
+  const nq = calls.filter((c) => c.kind !== "execute");
+  const byJob = {};
+  for (const c of calls) {
+    const k = (byJob[c.job] ??= {})[c.kind] ??= { ms: 0, tokens: 0, calls: 0 };
+    k.ms += c.ms;
+    k.tokens += totalTokens(c.tokens);
+    k.calls++;
+  }
+  const holds = openHolds(store);
+  const promote2 = items.filter((i) => i.status === "discovered" && items.some((c) => c.discovery === i.id && c.status === "candidate"));
+  const movable = items.filter((i) => ["queued", "running", "waiting-quota", "waiting-prerequisite"].includes(i.status));
+  return {
+    at: new Date(now2).toISOString(),
+    store: store.path,
+    projects: [...new Set(items.map((i) => i.workspace))],
+    runner: runner2,
+    summary: {
+      shipped: count("shipped"),
+      moving: count("running", "waiting-quota", "waiting-prerequisite"),
+      queued: count("queued"),
+      held: count("held"),
+      candidates: count("candidate"),
+      dropped: count("dropped"),
+      items: delivery.filter((i) => i.job !== "discover").length,
+      ...tally(calls),
+      nqMs: nq.reduce((n, c) => n + c.ms, 0),
+      intakes: calls.filter((c) => c.kind === "intake").length,
+      questions: events2.filter((e) => e.kind === "nq-question").reduce((n, e) => n + (e.data.questions?.length ?? 0), 0),
+      refused: calls.filter((c) => c.outcome !== "ok").length,
+      breaks: calls.reduce((n, c) => n + c.flags.length, 0),
+      first: events2.find((e) => e.item)?.at ?? null,
+      last: events2.at(-1)?.at ?? null
+    },
+    needs: [
+      ...holds.map((h) => ({ item: h.item, title: h.title, what: "hold", code: h.code, message: h.message, questions: Array.isArray(h.context.questions) ? h.context.questions : [], since: h.since, next: nextOf(store.get(h.item)) })),
+      ...promote2.map((d) => ({ item: d.id, title: d.title, what: "promote", code: "candidates", message: `Discovery #${d.id} found ${plural(items.filter((c) => c.discovery === d.id && c.status === "candidate").length, "candidate")}. Promote the ones to deliver.`, questions: items.filter((c) => c.discovery === d.id && c.status === "candidate").map((c) => `#${c.id} ${c.title}`), since: d.updated, next: [{ run: `mw promote ${d.id}`, why: "deliver every candidate" }, { run: `mw promote ${d.id} <ids>`, why: "deliver only the ones named" }] })),
+      ...!runner2 && movable.length ? [{ item: 0, title: "No runner", what: "runner", code: "no_runner", message: `${plural(movable.length, "item")} can move, but no runner is driving the store.`, questions: [], since: events2.at(-1)?.at ?? "", next: [{ run: "mw run --watch", why: "drive every item; each resumes where it stopped" }] }] : []
+    ],
+    items: views,
+    bars: barsOf(events2, calls, flying),
+    running: flying.map((f) => ({ ...f, title: titles.get(f.item) ?? "", activity: activityIn(f.live) })),
+    cutOff,
+    cost: byJob,
+    rules: calls.flatMap((c) => c.flags.map((f) => ({ call: c.id, item: c.item, job: c.job, kind: c.kind, rule: f.rule }))),
+    events: events2.slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
+    eventCount: events2.length
+  };
+};
+var deliverable = (out) => out === void 0 ? void 0 : lastJson(out) ?? { text: out };
+var exchangesOf = (store, events2) => {
+  const out = [];
+  const outputOf = (seq) => {
+    const finished = events2.findLast((e) => e.seq < seq && e.kind === "call-finished");
+    const call = finished && store.call(finished.data.call);
+    return call?.output ? lastJson(call.output) : void 0;
+  };
+  const current = (job) => out.findLast((x) => x.job === job && !x.clear);
+  for (const e of events2) {
+    const d = e.data;
+    if (e.kind === "handoff") out.push({ job: d.job, from: d.from, to: d.to, turns: [] });
+    const x = current(d.job);
+    if (!x) continue;
+    if (e.kind === "nq-question") {
+      const intake2 = d.error ? void 0 : outputOf(e.seq);
+      x.turns.push({ at: e.at, questions: d.questions ?? [], ...d.error ? { error: true } : {}, ...intake2?.understanding ? { understanding: String(intake2.understanding) } : {} });
+    } else if (e.kind === "nq-answer" || e.kind === "nq-corrected") {
+      const t = x.turns.at(-1);
+      const answer2 = d.answer ?? (d.originator === "operator" ? void 0 : outputOf(e.seq)?.answer);
+      if (t) x.turns[x.turns.length - 1] = { ...t, ...answer2 ? { answer: String(answer2) } : {}, by: d.originator };
+    } else if (e.kind === "nq-clear") {
+      const intake2 = outputOf(e.seq);
+      Object.assign(x, { clear: { at: e.at, ...intake2?.understanding ? { understanding: String(intake2.understanding) } : {}, notes: Array.isArray(intake2?.notes) ? intake2.notes : [] } });
+    }
+  }
+  return out;
+};
+var diffOf = (storePath2, item) => {
+  const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
+\u2026 (cut at 200 KB)` : s;
+  const home = itemHome(storePath2, item.id);
+  const read = (name) => existsSync3(patchPath(home, name)) ? readFileSync7(patchPath(home, name), "utf8") : "";
+  const shipped = item.merged?.commit ?? item.shipped?.main;
+  let change = read("change");
+  if (!change && shipped) {
+    try {
+      change = execFileSync2("git", ["-C", item.workspace, "show", "--format=%H %s%n", "--no-color", shipped], { encoding: "utf8", maxBuffer: 16 << 20, stdio: ["ignore", "pipe", "ignore"] });
+    } catch {
+    }
+  }
+  return { change: cap(change), checks: cap(read("checks")) };
+};
+var itemDetail = (store, nextOf, id2) => {
+  const item = store.get(id2);
+  if (!item) return void 0;
+  const m = modelOf(store, nextOf);
+  const events2 = store.events(id2);
+  const titles = new Map(store.list().map((i) => [i.id, i.title]));
+  return {
+    view: m.items.find((i) => i.id === id2),
+    item: { id: item.id, title: item.title, objective: item.objective, source: item.source, workspace: item.workspace, base: item.base, merged: item.merged, round: item.round, corrections: item.corrections, failure: item.failure, rework: item.rework, change: item.change, provisioned: item.provisioned ?? [] },
+    deliverables: Object.fromEntries(Object.entries(item.outputs).map(([job, out]) => [job, deliverable(out)])),
+    checks: item.checks?.checks ?? [],
+    verification: item.verification ?? null,
+    exchanges: exchangesOf(store, events2),
+    calls: store.callHeads().filter((c) => c.item === id2),
+    related: store.list().filter((i) => i.discovery === id2 || i.parent === id2 || (item.after ?? []).includes(i.id) || i.id === item.waitsOn || i.id === item.parent || i.id === item.discovery).map((i) => ({ id: i.id, title: i.title, status: i.status })),
+    diff: diffOf(store.path, item),
+    events: events2.map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) }))
+  };
+};
 var spansOf = (path, item) => {
   const file = spansPath(path);
   if (!existsSync3(file)) return [];
-  const lines4 = readFileSync7(file, "utf8").split("\n").filter(Boolean);
-  const all4 = lines4.flatMap((l) => {
+  const all4 = readFileSync7(file, "utf8").split("\n").flatMap((l) => {
     try {
-      return [JSON.parse(l)];
+      return l ? [JSON.parse(l)] : [];
     } catch {
       return [];
     }
   });
-  if (item === void 0) return all4.slice(-500);
-  const mine = all4.filter((s) => s.attributes.item === item);
-  const traces = new Set(mine.map((s) => s.trace));
-  const keep = new Set(mine.map((s) => s.span));
+  const keep = new Set(all4.filter((s) => s.attributes.item === item).map((s) => s.span));
   for (let grew = true; grew; ) {
     grew = false;
-    for (const s of all4) if (traces.has(s.trace) && !keep.has(s.span) && all4.some((c) => keep.has(c.span) && c.parent === s.span)) keep.add(s.span), grew = true;
+    for (const s of all4) if (!keep.has(s.span) && s.parent && keep.has(s.parent)) keep.add(s.span), grew = true;
   }
-  return all4.filter((s) => keep.has(s.span)).slice(-2e3);
+  return all4.filter((s) => keep.has(s.span)).slice(-3e3);
 };
 var storeWatcher = (path) => {
   let store;
@@ -25356,7 +25540,14 @@ var json = (res, body, code = 200) => {
   res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   res.end(JSON.stringify(body));
 };
-var serve = (path, boardOf, host, port) => Effect_exports.callback((resume) => {
+var staticPage = (store, nextOf) => {
+  const model = modelOf(store, nextOf);
+  const details = Object.fromEntries(store.list().map((i) => [i.id, itemDetail(store, nextOf, i.id)]));
+  const calls = Object.fromEntries(store.calls().map(({ raw, ...c }) => [c.id, { ...c, raw: raw && raw.length > 4e5 ? raw.slice(-4e5) : raw }]));
+  const data = JSON.stringify({ model, details, calls }).replaceAll("</", "<\\/");
+  return CONSOLE.replace("<script>", `<script>var STATIC = ${data};</script><script>`);
+};
+var serve = (path, nextOf, host, port) => Effect_exports.callback((resume) => {
   const open = storeWatcher(path);
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://console");
@@ -25367,16 +25558,16 @@ var serve = (path, boardOf, host, port) => Effect_exports.callback((resume) => {
         return res.end(CONSOLE);
       }
       if (!store) return json(res, { store: null, path, at: (/* @__PURE__ */ new Date()).toISOString() });
-      if (url.pathname === "/api/mark") {
-        const r = store.runner();
-        return json(res, { ...store.mark(), runner: r?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(","), spans: existsSync3(spansPath(path)) ? statSync2(spansPath(path)).size : 0 });
-      }
-      if (url.pathname === "/api/state") return json(res, stateOf(store, boardOf));
+      if (url.pathname === "/api/mark") return json(res, { ...store.mark(), runner: store.runner()?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(",") });
+      if (url.pathname === "/api/model") return json(res, modelOf(store, nextOf));
+      const item = /^\/api\/item\/(\d+)$/.exec(url.pathname);
+      if (item) return ((d) => json(res, d ?? null, d ? 200 : 404))(itemDetail(store, nextOf, Number(item[1])));
       const call = /^\/api\/call\/(\d+)$/.exec(url.pathname);
-      if (call) return json(res, store.call(Number(call[1])) ?? null, store.call(Number(call[1])) ? 200 : 404);
+      if (call) return ((c) => json(res, c ?? null, c ? 200 : 404))(store.call(Number(call[1])));
       const live = /^\/api\/live\/([\w.-]+\.log)$/.exec(url.pathname);
       if (live) return json(res, readFrom(join11(liveDir(path), basename2(live[1])), Number(url.searchParams.get("from") ?? 0)));
-      if (url.pathname === "/api/spans") return json(res, spansOf(path, url.searchParams.has("item") ? Number(url.searchParams.get("item")) : void 0));
+      const spans = /^\/api\/spans\/(\d+)$/.exec(url.pathname);
+      if (spans) return json(res, spansOf(path, Number(spans[1])));
       json(res, { error: "not_found", path: url.pathname }, 404);
     } catch (e) {
       json(res, { error: "console_failed", message: String(e) }, 500);
@@ -25395,7 +25586,7 @@ var serve = (path, boardOf, host, port) => Effect_exports.callback((resume) => {
       ui: url,
       store: path,
       next: [
-        { run: `open ${url}`, why: "watch every lane, step, call and hold live; it updates as the run moves" },
+        { run: `open ${url}`, why: "watch the work live: what needs you, every item's pipeline, what each agent is doing, and where the time and tokens go" },
         { run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: "from another computer, then open the same address there" },
         { run: "mw watch", why: "the same view in a terminal" }
       ]
@@ -25407,8 +25598,8 @@ var ESC = "\x1B[";
 var paint = (code, s) => `${ESC}${code}m${s}${ESC}0m`;
 var dim = (s) => paint("2", s);
 var bold = (s) => paint("1", s);
-var COLOR = { held: "31", shipped: "32", running: "34", queued: "36", candidate: "33", discovered: "32", "waiting-quota": "33", "waiting-prerequisite": "33", dropped: "2" };
 var ACTOR = { operator: "35", agent: "34", "made well": "32", runner: "2" };
+var GLYPH = { done: paint("32", "\u25CF"), active: paint("34", "\u25C9"), held: paint("31", "\u25C9"), failed: paint("31", "\u2715"), waiting: paint("33", "\u25CC"), todo: dim("\u25CB"), skipped: dim("\xB7") };
 var visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, "");
 var fit = (s, w) => {
   if (visible(s).length <= w) return s;
@@ -25425,85 +25616,47 @@ var fit = (s, w) => {
   return out;
 };
 var clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
-var doing = (line) => {
-  if (!line.startsWith("{")) return short(line, 200);
-  try {
-    const v = JSON.parse(line);
-    if (v.type === "user" || v.type === "system") return "";
-    const parts2 = Array.isArray(v.message?.content) ? v.message.content : [];
-    for (const p of parts2.toReversed()) {
-      if (p.type === "tool_use") return short(`\u2192 ${p.name} ${JSON.stringify(p.input ?? {})}`, 200);
-      if (p.type === "text" && p.text) return short(p.text, 200);
-    }
-    if (v.item?.command) return short(`$ ${v.item.command}`, 200);
-    const s = JSON.stringify(v).match(/"(?:text|result|command|delta)":"((?:[^"\\]|\\.){2,})"/)?.[1];
-    return s ? short(s.replace(/\\n/g, " ").replace(/\\"/g, '"'), 200) : "";
-  } catch {
-    return short(line, 200);
-  }
-};
-var lastLine = (file) => {
-  if (!file) return "";
-  const lines4 = readFrom(file, 0, 16 * 1024).text.split("\n").map((l) => l.trim()).filter(Boolean);
-  for (const l of lines4.reverse()) {
-    const said = doing(l);
-    if (said) return said;
-  }
-  return "";
-};
-var STAGE_ROWS = [
-  ["DISCOVERY", (i) => i.job === "discover" && i.status !== "discovered"],
-  ["OPERATOR", (i) => i.status === "held" || i.status === "candidate"],
-  ["IDEATION", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "ideation"],
-  ["PLANNING", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "planning"],
-  ["IMPLEMENTATION", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "implementation"],
-  ["VERIFICATION", (i) => !["held", "candidate", "shipped", "dropped", "discovered"].includes(i.status) && stageOf(i.job) === "verification"],
-  ["DONE", (i) => i.status === "shipped" || i.status === "discovered"]
-];
-var frame = (s, cols, rows) => {
+var tokensText = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
+var STATUS = { held: "31", shipped: "32", candidate: "33", "waiting-quota": "33", "waiting-prerequisite": "33", dropped: "2", discovered: "32" };
+var frame = (m, cols, rows) => {
   const out = [];
-  const now2 = Date.parse(s.at);
-  const board2 = s.board;
-  out.push(`${bold("MADE WELL")}  ${dim(s.store)}  ${s.runner ? paint("32", `\u25CF runner ${s.runner.pid}${s.runner.item ? ` on #${s.runner.item}` : ""} since ${clock(s.runner.since)}`) : paint("33", "\u25CB no runner: nothing moves until `mw run`")}  ${dim(clock(s.at))}`);
-  out.push(board2.summary ?? "");
-  out.push("");
-  out.push(bold("NOW"));
-  if (!s.flights.length) out.push(dim("  nothing running"));
-  for (const f of s.flights) {
-    const item = s.items.find((i) => i.id === f.item);
-    out.push(`  ${bold(`#${f.item}`)} ${f.what} \xB7 ${f.who}${f.card ? dim(` \xB7 ${f.card}`) : ""}  ${f.cutOff ? paint("33", `cut off ${secs(now2 - Date.parse(f.since))} ago`) : paint("34", secs(now2 - Date.parse(f.since)))}  ${dim(short(item?.title ?? "", 60))}`);
-    const line = lastLine(f.live);
-    if (line) out.push(dim(`     \u2502 ${line}`));
-  }
-  out.push("");
-  out.push(bold("WHERE THE WORK IS"));
-  for (const [name, test] of STAGE_ROWS) {
-    const here = s.items.filter(test);
-    const chips = here.map((i) => {
-      const extra = i.status === "held" ? ` ${i.hold?.code ?? ""}` : i.status === "candidate" ? " candidate" : name === "DONE" ? "" : ` ${i.job}`;
-      return paint(COLOR[i.status] ?? "0", `#${i.id}${extra}`);
-    });
-    out.push(`  ${name.padEnd(15)}${chips.length ? chips.join("  ") : dim("\u2014")}`);
-  }
-  if (s.holds.length) {
+  const s = m.summary;
+  const now2 = Date.parse(m.at);
+  const project = m.projects.length === 1 ? basename2(m.projects[0]) : `${m.projects.length} projects`;
+  out.push(`${bold("MADE WELL")}  ${project}  ${m.runner ? paint("32", `\u25CF runner ${m.runner.pid}`) : paint("33", "\u25CB no runner")}  ${dim(clock(m.at))}`);
+  out.push(`${paint("32", `${s.shipped} shipped`)} \xB7 ${s.moving} moving \xB7 ${s.queued} queued \xB7 ${s.held ? paint("31", `${s.held} need you`) : "0 need you"} \xB7 ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time \xB7 ${tokensText(s.tokens)} tokens \xB7 ${s.calls} calls \xB7 NQ ${s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0}%`)}`);
+  if (m.needs.length) {
     out.push("");
-    out.push(bold("NEEDS YOU"));
-    for (const h of s.holds) {
-      out.push(`  ${paint("31", `#${h.item} ${h.code}`)} ${short(h.message, 300)}`);
-      const item = s.items.find((i) => i.id === h.item);
-      const next = (board2.next ?? []).filter((n) => n.run.includes(` ${h.item}`) || n.run.includes(`${h.item} `)).slice(0, 2);
-      for (const n of next) out.push(`    ${paint("36", n.run)}  ${dim(n.why)}`);
-      if (!next.length && item) out.push(dim(`    mw show ${item.id}`));
+    out.push(paint("31", bold("NEEDS YOU")));
+    for (const n of m.needs) {
+      out.push(`  ${paint("31", n.item ? `#${n.item}` : "\u2022")} ${n.message}`);
+      for (const q of n.questions.slice(0, 4)) out.push(dim(`     \u2013 ${q}`));
+      for (const c of n.next.slice(0, 3)) out.push(`    ${paint("36", c.run)}  ${dim(c.why)}`);
+    }
+  }
+  out.push("");
+  out.push(bold("WORK"));
+  for (const i of m.items.filter((i2) => i2.status !== "dropped")) {
+    const steps = i.steps.map((st) => GLYPH[st.state]).join("") + " ".repeat(Math.max(0, 8 - i.steps.length));
+    const word = { discovered: "found", "waiting-quota": "quota", "waiting-prerequisite": "waits" }[i.status] ?? i.status;
+    out.push(`  ${bold(`#${String(i.id).padEnd(3)}`)} ${steps} ${paint(STATUS[i.status] ?? "0", word.padEnd(9))} ${short(i.title, 48).padEnd(48)} ${dim(short(i.doing, 120))}`);
+  }
+  if (m.running.length) {
+    out.push("");
+    out.push(bold("NOW"));
+    for (const r of m.running) {
+      out.push(`  ${bold(`#${r.item}`)} ${r.kind === "execute" ? r.job : `${r.kind} \xB7 ${r.job}`} \xB7 ${r.who}${r.card ? dim(` \xB7 ${r.card}`) : ""}  ${paint("34", secs(now2 - Date.parse(r.since)))}`);
+      for (const a of r.activity.slice(-2)) out.push(dim(`     \u2502 ${a.text}`));
     }
   }
   out.push("");
   out.push(bold("LOG"));
-  const room = Math.max(4, rows - out.length - 2);
-  for (const e of s.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : "     "}${e.say}`);
+  const room = Math.max(3, rows - out.length - 2);
+  for (const e of m.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : "     "}${e.say}`);
   out.push(dim("Ctrl-C quits \xB7 mw ui opens the full console \xB7 mw show <id> for one item's record"));
   return out.map((l) => fit(l, cols)).join("\n");
 };
-var watch = (path, boardOf, opts) => Effect_exports.callback((resume) => {
+var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
   const open = storeWatcher(path);
   let seq = opts.since;
   let calls = opts.since > 0 ? open()?.mark().calls ?? 0 : 0;
@@ -25511,7 +25664,7 @@ var watch = (path, boardOf, opts) => Effect_exports.callback((resume) => {
   const tick = () => {
     const store = open();
     if (opts.tty) {
-      const text2 = store ? frame(stateOf(store, boardOf), process.stdout.columns || 120, process.stdout.rows || 40) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.`;
+      const text2 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.`;
       if (text2 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text2}
 `);
       lastFrame = text2;
@@ -25958,13 +26111,13 @@ var COMMANDS = [
   }),
   command({
     name: "ui",
-    summary: "The live console: a web page on this machine showing every lane, stage, step and agent call as it happens, every hold with its cause and next command, the event log, telemetry, rule checks and traces, and a scrubber to step back through the whole run. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.",
+    summary: "The live console: a web page on this machine that answers, at a glance, what is done, what needs the operator (with the exact command), and who owes the next move on every item. Each item shows its pipeline with time, tokens and NQ questions per step; a timeline shows every agent call; a running call shows what its agent is doing now; an item opens to its idea, plan, checks and results, diff, every NQ question and answer, and every call with its packet, answer and stream. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.",
     input: Schema_exports.Struct({
       port: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: "defaults to 4747; 0 picks a free one" })),
       host: optional3("the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network")
     }),
     output: Schema_exports.Struct({ ui: Schema_exports.String, store: Schema_exports.String, next: Schema_exports.Array(Next) }),
-    run: (input) => serve(storePath, board, input.host ?? "127.0.0.1", input.port ?? 4747)
+    run: (input) => serve(storePath, nextFor, input.host ?? "127.0.0.1", input.port ?? 4747)
   }),
   command({
     name: "watch",
@@ -25975,17 +26128,17 @@ var COMMANDS = [
     }),
     output: Schema_exports.Struct({ watched: Schema_exports.String, next: Schema_exports.Array(Next) }),
     idempotent: true,
-    run: (input) => watch(storePath, board, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false })
+    run: (input) => watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false })
   }),
   command({
     name: "replay",
-    summary: "Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.",
+    summary: "Write the console as one self-contained page with the whole record inside it (every item, call, NQ exchange and event), readable with no server; beside the store unless --out names a file.",
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
       const out = resolve6(input.out ?? resolve6(dirname8(storePath), "replay.html"));
-      writeFileSync8(out, replayHtml(snapshot3(yield* Store)));
-      return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
+      writeFileSync7(out, staticPage(yield* Store, nextFor));
+      return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
     })
   }),
   command({
@@ -26033,7 +26186,7 @@ var COMMANDS = [
   }),
   command({
     name: "prune",
-    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
+    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store. Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
     input: Schema_exports.Struct({
       before: Schema_exports.String.annotate({ description: "an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z" }),
       "dry-run": Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "report what would go and change nothing" }))

@@ -22,9 +22,9 @@ import { stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
 import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
-import { exportItem, replayHtml, snapshot } from './replay.ts'
+import { exportItem } from './export.ts'
 import { stats } from './telemetry.ts'
-import { serve, watch } from './ui.ts'
+import { serve, staticPage, watch } from './ui.ts'
 import { Worker, commandWorker } from './worker.ts'
 
 const storePath = defaultStorePath()
@@ -478,13 +478,13 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'ui',
-		summary: 'The live console: a web page on this machine showing every lane, stage, step and agent call as it happens, every hold with its cause and next command, the event log, telemetry, rule checks and traces, and a scrubber to step back through the whole run. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.',
+		summary: 'The live console: a web page on this machine that answers, at a glance, what is done, what needs the operator (with the exact command), and who owes the next move on every item. Each item shows its pipeline with time, tokens and NQ questions per step; a timeline shows every agent call; a running call shows what its agent is doing now; an item opens to its idea, plan, checks and results, diff, every NQ question and answer, and every call with its packet, answer and stream. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.',
 		input: Schema.Struct({
 			port: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: 'defaults to 4747; 0 picks a free one' })),
 			host: optional('the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network'),
 		}),
 		output: Schema.Struct({ ui: Schema.String, store: Schema.String, next: Schema.Array(Next) }),
-		run: (input) => serve(storePath, board, input.host ?? '127.0.0.1', input.port ?? 4747),
+		run: (input) => serve(storePath, nextFor, input.host ?? '127.0.0.1', input.port ?? 4747),
 	}),
 	command({
 		name: 'watch',
@@ -495,17 +495,17 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		output: Schema.Struct({ watched: Schema.String, next: Schema.Array(Next) }),
 		idempotent: true,
-		run: (input) => watch(storePath, board, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false }),
+		run: (input) => watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false }),
 	}),
 	command({
 		name: 'replay',
-		summary: 'Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.',
+		summary: 'Write the console as one self-contained page with the whole record inside it (every item, call, NQ exchange and event), readable with no server; beside the store unless --out names a file.',
 		input: Schema.Struct({ out: optional('defaults to replay.html beside the store') }),
 		output: Schema.Struct({ replay: Schema.String, next: Schema.Array(Next) }),
 		run: (input) => Effect.gen(function* () {
 			const out = resolve(input.out ?? resolve(dirname(storePath), 'replay.html'))
-			writeFileSync(out, replayHtml(snapshot(yield* Store)))
-			return { replay: out, next: [{ run: `open ${quote(out)}`, why: 'step through the whole flow' }] }
+			writeFileSync(out, staticPage(yield* Store, nextFor))
+			return { replay: out, next: [{ run: `open ${quote(out)}`, why: 'read the whole run: every item, its pipeline, calls and NQ exchanges' }] }
 		}),
 	}),
 	command({
@@ -553,7 +553,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'prune',
-		summary: 'Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator\'s and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.',
+		summary: 'Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store. Telemetry files are the operator\'s and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.',
 		input: Schema.Struct({
 			before: Schema.String.annotate({ description: 'an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z' }),
 			'dry-run': Schema.optionalKey(Schema.Boolean.annotate({ description: 'report what would go and change nothing' })),

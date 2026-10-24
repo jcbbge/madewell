@@ -22,6 +22,7 @@
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { execFile } from 'node:child_process'
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
@@ -38,6 +39,8 @@ import { capture, changes, headGuard, leftovers, readOnly, scopeCheck, snapshot,
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
 
 const MAX_LAUNCHES = 3
+/** A repair writes one JSON object it already has. */
+const REPAIR_BUDGET = { minutes: 5 }
 const MAX_TURNS = 3
 const UNKNOWN_RESET_MS = 60 * 60_000
 const MIN_OUT_MS = 5 * 60_000
@@ -233,7 +236,7 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 		packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, 'intake')),
 	})
 	if (!call) return
-	const reply = decode(INTAKE, call.output)
+	const reply = yield* decodeOrRepair(id, job, call, INTAKE)
 	if (!reply.ok) return yield* refuse(id, job, call, reply.reason)
 	const { understanding, unclear, ambiguous, missing, notes } = reply.value
 	const questions = [...unclear, ...ambiguous, ...missing].filter((q) => q.trim() !== '')
@@ -269,7 +272,7 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 		packet: (dir) => packet(item, by, dir, originatorParts(item, job, x), x.from.kind === 'job'),
 	})
 	if (!call) return
-	const reply = decode(ORIGINATOR, call.output)
+	const reply = yield* decodeOrRepair(id, job, call, ORIGINATOR)
 	if (!reply.ok) return yield* refuse(id, job, call, reply.reason)
 	let answer = reply.value.answer
 	if (reply.value.needsOperator) {
@@ -284,7 +287,7 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 		answer = ruled.answer
 	}
 	const turns = x.turns.map((t, i) => (i === x.turns.length - 1 ? { ...t, answer, by: 'originator' as const } : t))
-	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from, ...(reply.value.needsOperator ? { dispatcher: true } : {}) })
+	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from, answer, ...(reply.value.needsOperator ? { dispatcher: true } : {}) })
 })
 
 /**
@@ -312,7 +315,7 @@ const dispatch = (id: number, job: Job, config: EngineConfig, originator: string
 			}, false),
 		})
 		if (!call) return null
-		const reply = decode(ORIGINATOR, call.output)
+		const reply = yield* decodeOrRepair(id, job, call, ORIGINATOR)
 		if (!reply.ok) return (yield* refuse(id, job, call, reply.reason), null)
 		return reply.value
 	})
@@ -373,6 +376,7 @@ interface CallSpec {
 
 interface Called {
 	readonly kind: WorkerRequest['kind']
+	readonly profile: string
 	readonly output: string
 	readonly callId: number
 	readonly card: Card
@@ -472,9 +476,54 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			holdFor(store, id, left.failure, job)
 			return undefined
 		}
-		const called: Called = { kind: spec.kind, output: res.output, callId, card: spec.card, ...(before ? { before } : {}) }
+		const called: Called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...(before ? { before } : {}) }
 		return after ? yield* after(wt.path, called) : (called as A)
 	}))
+
+/** Why an answer fails its JSON or schema, as opposed to a rule about its content; only that is repaired. Undefined when it parses. */
+const malformed = (job: Job, output: string): string | undefined => {
+	if (job === 'discover') return Array.isArray(lastJson(output)?.items) ? undefined : 'The answer did not end with {"items": [...]}.'
+	if (!(job in DELIVERABLES)) return undefined
+	const r = decode(DELIVERABLES[job as keyof typeof DELIVERABLES], output)
+	return r.ok ? undefined : r.reason
+}
+
+const REPAIR_TASK = 'Your last answer could not be read: its JSON is malformed or does not match your reply format. Under yourAnswer is what you sent and under problem what is wrong with it. Reply with only that answer as one JSON object matching you.replyFormat: the same content, corrected, nothing added or dropped. Your work is done; this call only corrects the reply.'
+
+/** An NQ reply decoded against its schema, after one repair if it does not parse. */
+const decodeOrRepair = <S extends typeof INTAKE | typeof ORIGINATOR>(id: number, job: Job, call: Called, schema: S) =>
+	Effect.gen(function* () {
+		const first = decode(schema, call.output)
+		if (first.ok) return first
+		const fixed = yield* repair(id, job, call, shapeOf(schema), first.reason)
+		return fixed ? decode(schema, fixed.output) : first
+	})
+
+/**
+ * Made Well's own re-ask of a worker whose answer does not parse: not an agent hand-off, so no NQ turn. The same card, no
+ * tools, its answer and the parse error; one try. Returns the call with the corrected answer, or undefined. The malformed
+ * call stays on the record, refused, and the repair is a call of its own.
+ */
+const repair = (id: number, job: Job, call: Called, shape: unknown, problem: string) =>
+	Effect.gen(function* () {
+		const store = yield* Store
+		const worker = yield* Worker
+		const profile = call.profile
+		const prompt = JSON.stringify({ you: { profile, job, call: 'repair', task: REPAIR_TASK, replyFormat: shape }, yourAnswer: call.output, problem: problem.slice(0, 4000) }, null, 2)
+		const started = new Date()
+		const res = yield* worker.run({ kind: 'repair', job, profile, card: call.card, access: 'none', system: BRIEF, prompt, item: id, cwd: store.path === ':memory:' ? tmpdir() : dirname(store.path), budget: REPAIR_BUDGET }).pipe(
+			Effect.withSpan(`mw.repair.${job}`, { attributes: { item: id, job, harness: call.card.harness, model: call.card.model } }),
+		)
+		const ms = Date.now() - started.getTime()
+		const repairId = store.recordCall({
+			item: id, kind: 'repair', job, profile, card: call.card, system: BRIEF, prompt, outcome: res.ok ? 'ok' : 'limit' in res ? 'limit' : 'error',
+			output: res.ok ? res.output : null, error: res.ok ? null : 'limit' in res ? res.limit.message : res.error, raw: res.raw ?? null, started: started.toISOString(), ms, harnessVersion: res.version ?? null,
+		}, { access: 'none' })
+		store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`)
+		const ok = res.ok && (call.kind === 'execute' ? !malformed(job, res.output) : lastJson(res.output) !== undefined)
+		store.note(id, 'repaired', { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok })
+		return ok && res.ok ? { ...call, output: res.output } : undefined
+	})
 
 /** The answer broke its contract: the call is on the record as rejected, and the next call is told why. */
 const refuse = Effect.fn('mw.refuse')(function* (id: number, job: Job, call: Called, reason: string) {
@@ -487,11 +536,14 @@ const refuse = Effect.fn('mw.refuse')(function* (id: number, job: Job, call: Cal
  * Accepts a job's deliverable once it holds to its contract: its schema, its done-when ids, its scope, and the
  * branch untouched. A maker's work leaves its worktree as a patch kept in Made Well's home.
  */
-const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: string, call: Called) {
+const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: string, answered: Called) {
 	const store = yield* Store
 	const item = store.get(id)!
 	const plan = planOf(item)
 	const home = itemHome(store.path, id)
+	// A malformed answer is re-asked as it is, by Made Well's own code: the work in the checkout stands.
+	const problem = malformed(job, answered.output)
+	const call = problem ? ((yield* repair(id, job, answered, deliverableShape(job), problem)) ?? answered) : answered
 	// A plan is held to what its base already holds: the files tracked in its own checkout.
 	const v = validate(job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined)
 	const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect.void
@@ -555,7 +607,8 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 			return
 		}
 		case 'next':
-			store.save({ ...current, job: r.job, from: by, rework: undefined }, 'handed-off', { from: job, to: r.job })
+			// The plan is the first job that reads the code to change it: it starts from the branch as it is now, not as it was at ideation.
+			store.save({ ...current, job: r.job, from: by, rework: undefined, ...(r.job === 'plan' ? { base: undefined } : {}) }, 'handed-off', { from: job, to: r.job })
 			return
 		case 'split':
 			// Ruling 12: the plan goes to both makers at once, each on its own track; the planner answers both.
@@ -1107,6 +1160,7 @@ export const BRIEF = [
 	].join('\n'),
 	'Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo\'s own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.',
 	'Honor the product repo\'s coding conventions.',
+	'Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.',
 	SUBAGENT_RULE,
 	'Your final message is ONLY one JSON object that matches you.replyFormat, with that schema\'s properties as its own top-level keys.',
 ].join('\n\n')
@@ -1146,10 +1200,10 @@ const whereYouAre = (job: Job) => {
 }
 
 const TASKS: Partial<Record<Job, string>> = {
-	plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
-	'test-plan': 'Write each check\'s files in your checkout, at paths outside the plan\'s scope. Made Well keeps them outside the product repo and runs each check\'s command itself, from the repo root, against the implementer\'s change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer\'s change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree.',
+	plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item\'s own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item\'s own checks gate it.',
+	'test-plan': 'Write each check\'s files in your checkout, at paths outside the plan\'s scope. Made Well keeps them outside the product repo and runs each check\'s command itself, from the repo root, against the implementer\'s change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer\'s change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree. A check proves its done-when item from this item\'s change alone: never run or count the whole test suite, and never pin anything outside the plan\'s scope; other items ship onto the same branch while this one is in flight.',
 	implement: 'Change only the files in the plan\'s scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item\'s checks itself.',
-	arbitrate: 'Your checkout holds the implementer\'s change as its last commit, with the test architect\'s check files applied on top, uncommitted. Reproduce the failure if you need to.',
+	arbitrate: 'Your checkout holds the implementer\'s change as its last commit, with the test architect\'s check files applied on top, uncommitted. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause. test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change. implementation: the planner plans again from your answer, both makers redo their work, and verification follows. pre-existing: a fix item for the defect ships first, then this item\'s checks run again. undetermined: the operator decides.',
 }
 
 const you = (job: Job, kind: WorkerRequest['kind']) => {
@@ -1158,7 +1212,7 @@ const you = (job: Job, kind: WorkerRequest['kind']) => {
 }
 
 const INTAKE_TASK = (job: Job, originator: string) =>
-	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job\'s own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`
+	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`
 
 const handoffView = (item: Item, job: Job, x: Exchange) =>
 	x.from.kind === 'job' && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job]

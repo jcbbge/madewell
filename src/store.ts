@@ -1,9 +1,9 @@
 // The one record. Every work item, for every project, lives in one SQLite file; every change to an
 // item is saved together with an event describing it. Nothing else holds state. The record is also the
-// trace: each call keeps its tool events, tokens and rule-break flags, and the glass beside the store is
-// rewritten after every saved transition. With MW_TELEMETRY set, every event and call also goes to this
-// machine's telemetry file, written only once its transaction commits.
-import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
+// trace: each call keeps its tool events, tokens and rule-break flags, and the console reads it live.
+// With MW_TELEMETRY set, every event and call also goes to this machine's telemetry file, written only
+// once its transaction commits.
+import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -12,7 +12,6 @@ import type { Card } from './cards.ts'
 import { MadeWellError, type Next } from './errors.ts'
 import type { Check, Cause, Job, Maker } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
-import { replayHtml, snapshot } from './replay.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
 type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered' | 'dropped'
@@ -136,7 +135,7 @@ export interface Event {
 	readonly data: Record<string, unknown>
 }
 
-/** One agent call, recorded in full: the glass the whole flow is replayed through. */
+/** One agent call, recorded in full: brief, packet, answer and raw stream, for replay, export and evals. */
 export interface Call {
 	readonly id: number
 	readonly item: number
@@ -211,7 +210,6 @@ export function openStore(path: string) {
 			throw e
 		}
 	}
-	const glass = join(dirname(path), 'glass.html')
 	const insertTools = (call: number, tools: ToolEvent[]) => {
 		const insert = db.prepare('INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 		for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0)
@@ -233,14 +231,6 @@ export function openStore(path: string) {
 		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
 		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
 	}
-	/** The glass is a view: rewritten after each transition, never read back. A failed write never stops the work. An in-memory store has none: its glass would land in the working directory, often a product repo. */
-	const view = () => {
-		if (path === ':memory:') return
-		try {
-			writeFileSync(`${glass}.tmp`, replayHtml(snapshot(store)))
-			renameSync(`${glass}.tmp`, glass)
-		} catch {}
-	}
 	const read = (id: number): Item | undefined => {
 		const row = db.prepare('SELECT doc FROM items WHERE id = ?').get(id) as { doc: string } | undefined
 		return row && JSON.parse(row.doc)
@@ -248,7 +238,6 @@ export function openStore(path: string) {
 
 	const store = {
 		path,
-		glass,
 		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
@@ -258,7 +247,6 @@ export function openStore(path: string) {
 				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item
 			})
-			view()
 			return created
 		},
 		get(id: number) {
@@ -267,7 +255,6 @@ export function openStore(path: string) {
 		/** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
 		note(id: number, kind: string, data: Record<string, unknown> = {}) {
 			tx(() => event(id, kind, data))
-			view()
 		},
 		/** Saves the new state of an item together with the event that explains it. */
 		save(item: Item, kind: string, data: Record<string, unknown> = {}): Item {
@@ -276,7 +263,6 @@ export function openStore(path: string) {
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(next), item.id)
 				event(item.id, kind, data)
 			})
-			view()
 			return next
 		},
 		list(): Item[] {
@@ -352,7 +338,7 @@ export function openStore(path: string) {
 					event(0, row?.pid === process.pid ? 'runner-reloaded' : 'runner-started', { pid: process.pid, ...(process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}), ...(row && row.pid !== process.pid ? { replaced: row.pid } : {}) })
 					return undefined
 				})
-				if (!owner) return Effect.sync(view)
+				if (!owner) return Effect.void
 				const busy = owner.item === null ? undefined : read(owner.item)
 				return Effect.fail(new MadeWellError({
 					code: 'store_locked',
@@ -391,7 +377,6 @@ export function openStore(path: string) {
 				if (Object.values(r).some(Boolean)) event(0, 'pruned', { before, ...r, ids })
 				return r
 			})
-			view()
 			// Deleted rows leave free pages; VACUUM gives them back, and the checkpoint empties the WAL it went through.
 			if ((db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count) db.exec('VACUUM')
 			db.exec('PRAGMA wal_checkpoint(TRUNCATE)')
@@ -409,7 +394,6 @@ export function openStore(path: string) {
 			tx(() => {
 				if (db.prepare('DELETE FROM runner WHERE id = 1 AND pid = ?').run(process.pid).changes) event(0, 'runner-stopped', { pid: process.pid })
 			})
-			view()
 		},
 		close() {
 			db.close()
@@ -420,7 +404,7 @@ export function openStore(path: string) {
 
 export class Store extends Context.Service<Store, ReturnType<typeof openStore>>()('madewell/Store') {}
 
-/** The store, and its spans: to the telemetry file with MW_TELEMETRY, else to spans.jsonl beside the store (MW_DEBUG=0 turns them off). */
+/** The store, and its spans: to spans.jsonl beside the store, and to the telemetry file with MW_TELEMETRY (MW_DEBUG=0 turns them off). */
 export const spansPath = (path: string) => join(dirname(path), 'spans.jsonl')
 export const storeLayer = (path = defaultStorePath()) =>
 	Layer.mergeAll(

@@ -162,7 +162,7 @@ test('an item passes through six profiles, splits after planning, and ships when
 		assert.ok(BRIEF.includes(NEUTRAL_HOST) && BRIEF.includes('Honor the product repo\'s coding conventions.'))
 		for (const q of ['What moves us toward a 10× better experience of developing, understanding, inspecting, and recovering the work?', 'What moves us toward a 10× better experience for the person the resulting system serves?', 'What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?']) assert.ok(BRIEF.includes(q))
 		assert.match(t.packet('intake', 'plan').you.task, /What is unclear\? What is ambiguous\? Do I have everything I need to proceed\?/)
-		assert.match(t.packet('intake', 'plan').you.task, /no tools and no checkout in this call, by design[\s\S]*Never ask for file access/)
+		assert.match(t.packet('intake', 'plan').you.task, /no tools and no checkout in this call, by design[\s\S]*Never a question: a decision your own job settles/)
 		assert.equal(t.packet('intake', 'plan').you.where, 'Made Well\'s delivery lane (planning)')
 		// Every call names its reply's schema under you.replyFormat, and no packet key is called "answer": an
 		// agent told to reply with the shape under "answer" wrapped its reply in that key.
@@ -279,28 +279,32 @@ test('a failing check goes to the arbiter with its logs; a bad test is rewritten
 	}
 })
 
-test('a read call that writes is refused and an answer off its schema is refused: each is the receiver\'s question to its originator, who answers before it runs again', async () => {
+test('a read call that writes and an answer that breaks its contract are refused: each is the receiver\'s question to its originator; malformed JSON is only re-asked', async () => {
+	// The first ideate answer is JSON that does not parse and starts with "{": reading it must neither hang nor cost an NQ turn.
+	const broken = '{"outcome": "CSV export", "approach": "a script" "decisions": []}'
 	const t = setup((req, n) => {
 		if (req.kind === 'execute' && req.job === 'plan' && n === 1) return (write(req, 'notes.md', 'my plan'), PLAN)
-		if (req.kind === 'execute' && req.job === 'ideate' && n === 1) return 'I think we should export CSV.'
+		if (req.kind === 'execute' && req.job === 'ideate' && n === 1) return broken
 		if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return (write(req, 'checks/x.sh', 'true'), { checks: [{ id: 'C1', doneWhen: 'D9', run: 'true' }] })
 		return undefined
 	})
 	try {
 		const done = await t.run(drive(t.item.id, config))
 		assert.equal(done.status, 'shipped')
-		const outcomes = (job: Job) => t.store.calls(t.item.id).filter((c) => c.kind === 'execute' && c.job === job).map((c) => c.outcome)
-		assert.deepEqual(outcomes('ideate'), ['rejected', 'ok'])
+		const outcomes = (job: Job, kind = 'execute') => t.store.calls(t.item.id).filter((c) => c.kind === kind && c.job === job).map((c) => c.outcome)
+		assert.deepEqual([outcomes('ideate'), outcomes('ideate', 'repair')], [['rejected'], ['ok']], 'the malformed answer was repaired by one call, and the job did not run again')
+		const repair = t.of('repair', 'ideate')[0]!
+		assert.deepEqual([repair.access, repair.card.model, JSON.parse(repair.prompt).yourAnswer], ['none', t.of('execute', 'ideate')[0]!.card.model, broken], 'same card, no tools, its own answer')
+		assert.match(t.store.get(t.item.id)!.outputs.ideate!, /"approach":"a shell script"/, 'the repaired answer is the deliverable')
 		assert.deepEqual(outcomes('plan'), ['rejected', 'ok'])
 		assert.deepEqual(outcomes('test-plan'), ['rejected', 'ok'])
 		const plan = t.store.calls(t.item.id).find((c) => c.job === 'plan' && c.outcome === 'rejected')!
 		assert.match(plan.error!, /changed its read-only checkout: notes\.md/)
 		assert.deepEqual(plan.flags.map((f) => f.rule), ['write-under-read'])
-		assert.match(t.packet('execute', 'ideate', 1).yourLastAnswerWasRefused, /did not end with a JSON object/)
 		assert.match(t.packet('execute', 'test-plan', 1).yourLastAnswerWasRefused, /D9[\s\S]*without a check: D1/)
 		const asked = t.store.events(t.item.id).filter((e) => e.kind === 'nq-question' && e.data.error)
-		assert.deepEqual(asked.map((e) => e.data.job), ['ideate', 'plan', 'test-plan'], 'each refusal went to the originator as a question')
-		assert.match(String((asked[2]!.data.questions as string[])[0]), /D1/)
+		assert.deepEqual(asked.map((e) => e.data.job), ['plan', 'test-plan'], 'each refusal of content went to the originator as a question')
+		assert.match(String((asked[1]!.data.questions as string[])[0]), /D1/)
 		assert.deepEqual(t.of('originator', 'plan').map((c) => c.profile), ['ideation peer'], 'the one who handed over the work answers')
 		assertNoTrace(t)
 	} finally {
@@ -504,6 +508,36 @@ test('items in parallel on the same file: when another item\'s ship leaves a cha
 		assert.equal(b.base?.commit, a.shipped?.main, 'the item started again from the branch the first ship left')
 		assertNoTrace(t, 1)
 		assertNoTrace(t, 2)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('an item ideated before a sibling ships is planned on the branch the ship left, so its change applies with no replan', async () => {
+	const plan = (id: string) => ({ ...PLAN, scope: ['src/app.sh'], follows: [], doneWhen: [{ id: 'D1', text: `app prints ${id}` }] })
+	const check = (req: WorkerRequest, word: string) => (write(req, `checks/${word}.check.sh`, `sh src/app.sh | grep -qx ${word}\n`), { checks: [{ id: 'C1', doneWhen: 'D1', run: `sh checks/${word}.check.sh` }] })
+	const t = setup((req) => {
+		const word = req.item === 1 ? 'one' : 'two'
+		if (req.kind === 'execute' && req.job === 'plan') return plan(word)
+		if (req.kind === 'execute' && req.job === 'test-plan') return check(req, word)
+		if (req.kind === 'execute' && req.job === 'implement') return (write(req, 'src/app.sh', `${readFileSync(join(req.cwd, 'src/app.sh'), 'utf8')}echo ${word}\n`), { summary: word })
+		// The second item's idea is challenged while the first ships.
+		if (req.item === 2 && req.kind === 'execute' && req.job === 'challenge') {
+			return (async () => {
+				while (!t.store.get(1)?.shipped) await new Promise((r) => setTimeout(r, 10))
+				return undefined
+			})()
+		}
+		return undefined
+	})
+	try {
+		const second = t.create('Second')
+		const [a, b] = await t.run(Effect.all([drive(t.item.id, config), drive(second.id, config)], { concurrency: 2 }))
+		assert.deepEqual([a.status, b.status], ['shipped', 'shipped'])
+		assert.equal(git(t.repo, 'show', 'main:src/app.sh'), 'echo app\necho one\necho two', 'both changes are on main')
+		assert.equal(t.store.events(2).filter((e) => e.kind === 'rebased').length, 0, 'no stale plan to throw away')
+		assert.equal(t.of('execute', 'plan', 2).length, 1)
+		assert.equal(b.base?.commit, a.shipped?.main, 'planned on the branch the first ship left')
 	} finally {
 		t.cleanup()
 	}
