@@ -25582,6 +25582,20 @@ details summary { cursor:pointer; color:var(--blue); margin:6px 0; font-size:13p
 .bp b { display:block; font-size:13px; color:var(--ink) } .bp .w { font-size:11.5px } .bp.done { background:var(--green-bg); border-color:var(--green-ln) } .bp.active { background:var(--blue-bg); border-color:var(--blue) } .bp.held, .bp.failed { background:var(--red-bg); border-color:var(--red) } .bp.waiting { background:var(--amber-bg); border-color:var(--amber-ln) } .bp.skipped { border-style:dashed; opacity:.6 }
 .tx { font:12.5px/1.55 var(--mono) } .tx > div { padding:5px 0; border-bottom:1px dashed var(--line2) } .tx .k { display:inline-block; min-width:62px; font-size:11px; font-weight:600; text-transform:uppercase; color:var(--faint) } .tx .tool { color:#1e40af } .tx .say { white-space:pre-wrap; font-family:ui-sans-serif, system-ui, sans-serif; font-size:13.5px; color:var(--ink) }
 .span { display:grid; grid-template-columns: 1fr 74px; gap:8px; font:12px var(--mono); padding:2px 0 } .span .b2 { height:5px; background:var(--blue); border-radius:3px; margin-top:4px; min-width:2px } .span.err { color:var(--red) } .span.err .b2 { background:var(--red) }
+.trace-switch { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px }
+.trace-switch button { font:600 12px var(--mono); letter-spacing:.05em; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--mute); cursor:pointer }
+.trace-switch button.on { color:var(--ink); border-color:var(--ink); box-shadow:0 1px 0 rgba(15,23,42,.06) }
+.trace-ux { border:1px solid var(--blue-ln); background:linear-gradient(180deg,#fff,var(--blue-bg)); border-radius:14px; padding:16px; margin-bottom:14px }
+.trace-ux.done { border-color:var(--green-ln); background:linear-gradient(180deg,#fff,var(--green-bg)) } .trace-ux.needs { border-color:var(--amber-ln); background:linear-gradient(180deg,#fff,var(--amber-bg)) }
+.trace-ux .state { font-size:28px; font-weight:750; letter-spacing:-.03em; line-height:1.05 } .trace-ux .obj { color:var(--ink2); font-size:15px; margin-top:8px; max-width:760px }
+.trace-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin:10px 0 14px }
+.trace-card { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#fff } .trace-card .k { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:650 } .trace-card .v { margin-top:3px; font-weight:650 }
+.trace-layout { display:grid; grid-template-columns:minmax(260px,.9fr) minmax(360px,1.1fr); gap:14px; align-items:start }
+.trace-tree { border:1px solid var(--line); border-radius:10px; background:#fff; padding:8px; max-height:620px; overflow:auto }
+.trace-node { display:block; width:100%; border:0; background:transparent; text-align:left; padding:5px 8px; border-radius:7px; font:12.5px var(--mono); color:var(--ink2); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.trace-node:hover { background:var(--line2) } .trace-node.on { background:var(--blue-bg); color:var(--blue); font-weight:650 }
+.trace-detail { border:1px solid var(--line); border-radius:10px; background:#fff; padding:12px; min-width:0 } .trace-detail h4 { margin-top:0 }
+.trace-table { width:100%; border-collapse:collapse; margin-top:8px } .trace-table td, .trace-table th { font-size:12.5px } .trace-table tr[data-trace-node] { cursor:pointer }
 .back { font-size:13px; margin-bottom:10px; display:inline-block }
 @media (max-width: 1100px) { .row { grid-template-columns: 1fr } .row .m { text-align:left } .two { grid-template-columns: 1fr } .stats { margin-left:0 } }
 </style></head><body>
@@ -25601,7 +25615,7 @@ details summary { cursor:pointer; color:var(--blue); margin:6px 0; font-size:13p
 <div class="scrim" id="scrim"></div>
 <aside class="drawer" id="drawer"><div class="dh" id="dh"></div><div class="db" id="db"></div></aside>
 <script>
-var M = null, MARK = '', lastOk = 0, open = null, tab = 'story', liveTail = null, D = null;
+var M = null, MARK = '', lastOk = 0, open = null, tab = 'story', liveTail = null, D = null, traceLens = 'ux', traceView = null, traceSelected = null;
 var LIVE = typeof STATIC === 'undefined';
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -25773,7 +25787,7 @@ function closeDrawer() { $('drawer').classList.remove('open'); $('scrim').classL
 function getJson(path) { return fetch(path).then(function (r) { return r.json(); }); }
 
 function loadItem(id, refresh) {
-  if (!refresh) tab = open && open.type === 'item' && open.id === id ? tab : 'story';
+  if (!refresh) { var same = open && open.type === 'item' && open.id === id; tab = same ? tab : 'story'; if (!same) { traceLens = 'ux'; traceView = null; traceSelected = null; } }
   open = { type: 'item', id: id };
   var p = LIVE ? getJson('api/item/' + id) : Promise.resolve(STATIC.details[id]);
   p.then(function (d) { if (d && open && open.type === 'item' && open.id === id) { D = d; drawItem(refresh); } });
@@ -25877,21 +25891,59 @@ function callsTab() {
   }).join('') + '</table>';
 }
 function logTab() { return '<div class="log" style="max-height:none">' + D.events.map(evRow).join('') + '</div>'; }
-function traceTab() { return LIVE ? '<div id="spans" class="empty">Loading the trace…</div>' : '<div class="empty">The trace is read from spans.jsonl by the live console (<code>mw ui</code>).</div>'; }
+function traceTab() { return '<div id="trace"><div class="trace-switch">' + ['ux', 'dx', 'ax'].map(function (l) { return '<button data-trace-lens="' + l + '" class="' + (traceLens === l ? 'on' : '') + '">' + l.toUpperCase() + '</button>'; }).join('') + '</div><div id="traceBody" class="empty">Loading the ' + traceLens.toUpperCase() + ' trace lens…</div></div>'; }
 function loadTrace(id) {
-  getJson('api/spans/' + id).then(function (spans) {
-    var el = $('spans'); if (!el) return;
-    if (!spans.length) { el.innerHTML = 'No spans for this item. Spans are written to spans.jsonl beside the store while Made Well runs (MW_DEBUG=0 turns them off).'; return; }
-    var by = {}, roots = [], max = Math.max.apply(null, spans.map(function (s) { return s.ms; }).concat([1]));
-    spans.forEach(function (s) { by[s.span] = s; s.kids = []; });
-    spans.forEach(function (s) { if (s.parent && by[s.parent]) by[s.parent].kids.push(s); else roots.push(s); });
-    var out = '', walk = function (s, d) {
-      out += '<div class="span' + (s.outcome === 'error' ? ' err' : '') + '" title="' + esc(JSON.stringify(s.attributes)) + '"><div style="padding-left:' + (d * 14) + 'px">' + esc(s.name) + ' <span style="color:var(--faint)">' + clock(s.start) + (s.attributes.job ? ' · ' + esc(s.attributes.job) : '') + '</span><div class="b2" style="width:' + Math.max(0.5, s.ms / max * 100) + '%"></div></div><div style="text-align:right;color:var(--mute)">' + dur(s.ms) + '</div></div>';
-      s.kids.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (k) { walk(k, d + 1); });
-    };
-    roots.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (r) { walk(r, 0); });
-    el.className = ''; el.innerHTML = out;
-  });
+  if (!LIVE) { traceView = D.traces ? D.traces[traceLens] : D.trace; return renderTraceView(); }
+  getJson('api/trace/' + id + '?lens=' + traceLens).then(function (view) { traceView = view; if (view && view.lens !== 'ax') traceSelected = null; renderTraceView(); });
+}
+function renderTraceView() {
+  var el = $('traceBody'); if (!el) return;
+  if (!traceView) { el.innerHTML = 'No trace returned for this item.'; return; }
+  if (traceView.error) { el.innerHTML = '<pre>' + esc(JSON.stringify(traceView, null, 2)) + '</pre>'; return; }
+  el.innerHTML = traceView.lens === 'ux' ? renderUxTrace(traceView) : traceView.lens === 'dx' ? renderDxTrace(traceView) : renderAxTrace(traceView);
+}
+function renderUxTrace(v) {
+  var proof = v.proof || {}, cls = v.done ? 'done' : v.needsYou ? 'needs' : '', next = (v.next || []).map(cmd).join('') || '<span class="empty">No operator action right now.</span>';
+  var proofBits = [];
+  if (proof.shipped) proofBits.push(['Shipped', (proof.shipped.command || 'merged') + (proof.shipped.output ? ' · ' + proof.shipped.output : '')]);
+  if (proof.verification) proofBits.push(['Acceptance proof', (proof.verification.passed ? 'passed' : 'failed') + ' · ' + proof.verification.results.length + ' check result(s)']);
+  if (proof.candidates && proof.candidates.length) proofBits.push(['Candidates', proof.candidates.map(function (c) { return '#' + c.id + ' ' + c.title; }).join(' · ')]);
+  if (proof.hold) proofBits.push(['Hold', proof.hold.code + ': ' + proof.hold.message]);
+  if (!proofBits.length) proofBits.push(['Proof', 'No acceptance proof recorded yet.']);
+  return '<div class="trace-ux ' + cls + '"><div class="state">' + (v.done ? 'Done' : v.needsYou ? 'Needs you' : v.state) + '</div><div class="obj"><b>#' + v.item + ' ' + esc(v.title) + '</b><br>' + esc(v.objective || '') + '</div></div>' +
+    '<div class="trace-grid"><div class="trace-card"><div class="k">Light switch</div><div class="v">' + (v.done ? '<span class="ok-t">ON — done</span>' : '<span class="bad-t">NOT-ON — not done</span>') + '</div></div><div class="trace-card"><div class="k">Next action</div><div class="v">' + (v.needsYou ? 'operator' : (v.next || []).length ? 'available' : 'none') + '</div></div><div class="trace-card"><div class="k">State</div><div class="v">' + esc(v.state) + '</div></div></div>' +
+    '<h4>What to do next</h4>' + next + '<h4>Acceptance proof</h4><div class="trace-grid">' + proofBits.map(function (p) { return '<div class="trace-card"><div class="k">' + esc(p[0]) + '</div><div class="v">' + esc(p[1]) + '</div></div>'; }).join('') + '</div>';
+}
+function renderDxTrace(v) {
+  var inv = v.invocations || [], calls = v.calls || [], diagnostics = v.diagnostics || [];
+  return '<div class="trace-grid">' + [['Phase', v.phase], ['Lane', v.lane], ['Stage', v.stage], ['Job', v.job], ['Profile', v.profile], ['Round', v.round], ['State', v.state], ['Corrections', v.corrections]].map(function (p) { return '<div class="trace-card"><div class="k">' + esc(p[0]) + '</div><div class="v">' + esc(p[1]) + '</div></div>'; }).join('') + '</div>' +
+    (v.hold ? '<div class="hold"><div class="c">' + esc(v.hold.code) + '</div>' + esc(v.hold.message) + '<pre>' + esc(JSON.stringify(v.hold.context, null, 2)) + '</pre></div>' : '') +
+    '<h4>Invocations</h4>' + (inv.length ? '<table class="trace-table"><tr><th>Invocation</th><th>Kind</th><th>Status</th><th>Time</th><th>Signals</th><th>Tools</th></tr>' + inv.map(function (i) { return '<tr><td class="mono">' + esc(String(i.id).slice(0, 8)) + '</td><td>' + esc(i.kind + ' · ' + i.job) + '</td><td>' + esc(i.status) + '</td><td>' + dur(i.ms) + '</td><td>' + esc((i.signals || []).map(function (s) { return s.data ? s.data.code : s.code; }).join(', ') || 'none') + '</td><td class="num">' + ((i.tools || []).length) + '</td></tr>'; }).join('') + '</table>' : '<div class="empty">No trace invocations yet.</div>') +
+    '<h4>Calls and diagnostics</h4><div class="trace-grid"><div class="trace-card"><div class="k">Calls</div><div class="v">' + calls.length + '</div></div><div class="trace-card"><div class="k">Diagnostics</div><div class="v">' + diagnostics.length + '</div></div><div class="trace-card"><div class="k">Quota exhausted</div><div class="v">' + esc(JSON.stringify(v.quota)) + '</div></div><div class="trace-card"><div class="k">Runner</div><div class="v">' + esc(v.runner ? JSON.stringify(v.runner) : 'none') + '</div></div></div>' +
+    (diagnostics.length ? '<pre>' + esc(JSON.stringify(diagnostics.slice(-20), null, 2)) + '</pre>' : '') + '<h4>Entry points</h4><div class="chips">' + Object.keys(v.entryPoints || {}).map(function (k) { return '<span class="chip">' + esc(k + ': ' + v.entryPoints[k]) + '</span>'; }).join('') + '</div>';
+}
+function traceNodeLabel(n) {
+  var bits = [n.function || n.kind || n.state || 'node'];
+  if (n.job) bits.push(n.job); if (n.kind && bits.indexOf(n.kind) < 0) bits.push(n.kind); if (n.tool) bits.push(n.tool); if (n.status) bits.push(n.status); if (n.state && bits.indexOf(n.state) < 0) bits.push(n.state);
+  return bits.join(' · ');
+}
+function traceFind(n, id) { if (!n) return null; if (String(n.id) === String(id)) return n; var kids = n.children || []; for (var i = 0; i < kids.length; i++) { var found = traceFind(kids[i], id); if (found) return found; } return null; }
+function traceTreeHtml(n, d) {
+  if (!traceSelected) traceSelected = n.id;
+  var id = String(n.id), kids = n.children || [];
+  return '<button class="trace-node ' + (String(traceSelected) === id ? 'on' : '') + '" data-trace-node="' + esc(id) + '" style="padding-left:' + (8 + d * 16) + 'px">' + esc(traceNodeLabel(n)) + ' <span style="color:var(--faint)">' + esc(id.length > 38 ? id.slice(0, 38) + '…' : id) + '</span></button>' + kids.map(function (k) { return traceTreeHtml(k, d + 1); }).join('');
+}
+function traceDetail(n) {
+  if (!n) return '<div class="empty">Pick a node in the function tree.</div>';
+  var input = n.input || n.args || null, output = n.output || n.result || null;
+  return '<h4>' + esc(traceNodeLabel(n)) + '</h4><div class="trace-grid"><div class="trace-card"><div class="k">ID</div><div class="v mono">' + esc(n.id) + '</div></div><div class="trace-card"><div class="k">Parent</div><div class="v mono">' + esc(n.parent || 'none') + '</div></div><div class="trace-card"><div class="k">Elapsed</div><div class="v">' + (n.ms ? dur(n.ms) : '—') + '</div></div><div class="trace-card"><div class="k">Status</div><div class="v">' + esc(n.status || n.state || '—') + '</div></div></div>' +
+    '<h4>arg / input</h4><pre>' + esc(JSON.stringify(input, null, 2)) + '</pre><h4>return / output</h4><pre>' + esc(JSON.stringify(output, null, 2)) + '</pre><h4>complete node</h4><pre>' + esc(JSON.stringify(n, null, 2)) + '</pre>';
+}
+function renderAxTrace(v) {
+  var tree = v.tree, selected = traceFind(tree, traceSelected) || tree;
+  if (selected) traceSelected = selected.id;
+  return '<div class="trace-grid"><div class="trace-card"><div class="k">Function tree</div><div class="v">item → round/job → invocation → tool</div></div><div class="trace-card"><div class="k">Invocations</div><div class="v">' + ((v.invocations || []).length) + '</div></div><div class="trace-card"><div class="k">Calls</div><div class="v">' + ((v.calls || []).length) + '</div></div><div class="trace-card"><div class="k">Events</div><div class="v">' + ((v.events || []).length) + '</div></div></div>' +
+    '<div class="trace-layout"><div class="trace-tree">' + (tree ? traceTreeHtml(tree, 0) : '<div class="empty">No function tree yet.</div>') + '</div><div class="trace-detail">' + traceDetail(selected) + '</div></div>';
 }
 
 function loadCall(id) {
@@ -25965,6 +26017,10 @@ function tail() {
 document.addEventListener('click', function (ev) {
   var c = ev.target.closest('[data-copy]');
   if (c) { navigator.clipboard.writeText(c.dataset.copy); c.textContent = 'Copied'; setTimeout(function () { c.textContent = 'Copy'; }, 1200); return; }
+  var tl = ev.target.closest('[data-trace-lens]');
+  if (tl) { traceLens = tl.dataset.traceLens; traceSelected = null; document.querySelectorAll('[data-trace-lens]').forEach(function (b) { b.classList.toggle('on', b.dataset.traceLens === traceLens); }); if (D) loadTrace(D.view.id); return; }
+  var tn = ev.target.closest('[data-trace-node]');
+  if (tn) { traceSelected = tn.dataset.traceNode; renderTraceView(); return; }
   var tb = ev.target.closest('[data-tab]');
   if (tb) { tab = tb.dataset.tab; drawItem(false); return; }
   var t = ev.target.closest('[data-item],[data-call],[data-run]'); if (!t) return;
@@ -26487,7 +26543,8 @@ var itemDetail = (store, nextOf, id2) => {
     related: store.list().filter((i) => i.discovery === id2 || i.parent === id2 || (item.after ?? []).includes(i.id) || i.id === item.waitsOn || i.id === item.parent || i.id === item.discovery).map((i) => ({ id: i.id, title: i.title, status: i.status })),
     diff: diffOf(store.path, item),
     events: events2.filter(timelineEvent).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
-    trace: lensOf(store, id2, "ax", nextOf(item))
+    trace: lensOf(store, id2, "ax", nextOf(item)),
+    traces: { ux: lensOf(store, id2, "ux", nextOf(item)), dx: lensOf(store, id2, "dx", nextOf(item)), ax: lensOf(store, id2, "ax", nextOf(item)) }
   };
 };
 var spansOf = (path, item) => {

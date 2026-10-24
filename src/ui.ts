@@ -530,6 +530,7 @@ export const itemDetail = (store: StoreService, nextOf: NextOf, id: number) => {
 		diff: diffOf(store.path, item),
 		events: events.filter(timelineEvent).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
 		trace: lensOf(store, id, 'ax', nextOf(item)),
+		traces: { ux: lensOf(store, id, 'ux', nextOf(item)), dx: lensOf(store, id, 'dx', nextOf(item)), ax: lensOf(store, id, 'ax', nextOf(item)) },
 	}
 }
 
