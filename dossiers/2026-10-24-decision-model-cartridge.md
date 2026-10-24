@@ -103,9 +103,11 @@ Invalid output, timeout, provider error, missing provider, or disabled provider 
 
 ## Toggle and fallback
 
-The toggle should be configuration, not code changes.
+The toggle lives in **prescriptions**. This is settled.
 
-The minimal future shape should be a single optional config entry, likely beside prescriptions because prescriptions already define runtime execution choices:
+A decision-model cartridge is configured in prescriptions exactly like Made Well's existing cards, tiers, harnesses, access levels, and budgets: runtime execution choices are data, not source edits. The prescription entry enables or disables the cartridge and names the registered decision provider.
+
+The minimal future shape should be a single optional prescriptions entry:
 
 ```json
 {
@@ -117,11 +119,11 @@ The minimal future shape should be a single optional config entry, likely beside
 }
 ```
 
-Absence is the default and means off. `enabled: false` means off. Unknown provider, failed load, invalid provider contract, timeout, or invalid result also means off for that decision call, with a diagnostic recorded if useful.
+Absence from prescriptions is the default and means off. `enabled: false` means off. Unknown provider, failed load, invalid provider contract, timeout, or invalid result also means off for that decision call, with a diagnostic recorded if useful.
 
-Fallback is not an error path. It is the normal console behavior when no cartridge is inserted: the agent applies the rubric itself.
+Fallback is not an error path. It is the normal console behavior when no cartridge is inserted or enabled in prescriptions: the agent applies the rubric itself.
 
-The provider registry should be provider-agnostic. The same seam must be able to accept a future local inference model, third-party API, or basic cloud account. Those are adapters behind the same `DecisionRequest -> DecisionResult` contract; none is wired by this dossier.
+The provider registry should be provider-agnostic. The same prescriptions seam must be able to accept a future local inference model, third-party API, or basic cloud account. Those are adapters behind the same `DecisionRequest -> DecisionResult` contract; none is wired by this dossier.
 
 ## Non-goals
 
@@ -155,8 +157,8 @@ The core invariant is:
 
 This keeps Made Well open to future decision models without painting the architecture into a provider corner.
 
-## Risk and open design question
+## Risk
 
 The main risk is accidentally turning the cartridge into another agent stage. That would violate the console/cartridge model and the vending-machine principle. The decision model must be a narrow resolver at an existing decision boundary, not a planner, reviewer, worker, or parallel authority.
 
-The open design question for the cloud agent is where the operator wants the config to live when this is implemented: globally in Made Well's home, per-project in project config, or in prescriptions with the existing runtime choices. The dossier recommends starting with prescriptions because that matches the current minimal harness/card pattern, but the extension contract should not depend on that storage choice.
+The toggle location is not open: it lives in prescriptions, matching the existing card/harness/prescriptions configuration pattern.
