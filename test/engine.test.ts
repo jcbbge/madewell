@@ -233,6 +233,18 @@ test('the implementer and the test architect run at the same time, and neither e
 	}
 })
 
+test('a check that fails once and passes on its second run ships without reaching the arbiter, and is recorded as flaky', async () => {
+	const t = setup((req) => (req.kind === 'execute' && req.job === 'test-plan' ? checks(req, `[ -f .tried ] || { touch .tried; exit 1; }; ${CHECK}`) : undefined))
+	try {
+		await t.run(drive(t.item.id, config))
+		assert.equal(t.store.get(t.item.id)!.status, 'shipped')
+		assert.equal(t.of('execute', 'arbitrate').length, 0)
+		assert.deepEqual(t.store.events(t.item.id).find((e) => e.kind === 'verified')!.data.flaky, ['C1'])
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('a failing check goes to the arbiter with its logs; a bad test is rewritten and run again, a bad implementation is replanned', async () => {
 	let seen = ''
 	const t = setup((req, n) => {
@@ -251,7 +263,8 @@ test('a failing check goes to the arbiter with its logs; a bad test is rewritten
 		assert.equal(t.of('execute', 'implement').length, 1, 'a bad test is corrected; the valid implementation is not rebuilt')
 		assert.equal(t.of('execute', 'test-plan').length, 2)
 		const arbiter = t.packet('execute', 'arbitrate')
-		assert.match(arbiter.exchange.handoff, /1 of 1 checks failed[\s\S]*Check C1 \(done-when D1\) exited 1[\s\S]*expected a;b/)
+		assert.match(arbiter.exchange.handoff, /1 of 1 checks failed[\s\S]*Check C1 \(done-when D1\) exited 1[\s\S]*expected a;b[\s\S]*ran it again on the same candidate: exited 1/)
+		assert.match(arbiter.exchange.handoff, /Environment: [\s\S]*no prepare command[\s\S]*main has not moved since/, 'the arbiter gets the environment\'s evidence')
 		assert.equal(arbiter.verification.results[0].doneWhen, 'D1')
 		assert.equal(seen, 'echo a,b\nAdd CSV exportecho "expected a;b"; exit 1\n', 'the arbiter works on the candidate: the change committed, the checks applied')
 		// Its intake judges the same packet: the same run of the checks, and the snapshot of the candidate, not of main.
@@ -337,6 +350,30 @@ test('a plan that creates a kind of file the repo already has must name the exis
 		assert.equal(item.hold?.context.job, 'plan')
 		assert.ok(String((item.hold?.context.questions as string[])[0]).endsWith(refused[3]![1]!), 'the hold names the last refusal as the open question')
 		assert.deepEqual(t.calls.filter((c) => c.job === 'implement' || c.job === 'test-plan'), [], 'nothing is made from an ungrounded plan')
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('the project\'s conventions travel with the item; a plan that does not hold the change to each one is refused, and the checks then prove it', async () => {
+	const TOKENS = 'Colours come from the design tokens in src/tokens.css'
+	const t = setup((req, n) => {
+		if (req.kind !== 'execute') return undefined
+		if (req.job === 'plan') {
+			const D2 = { id: 'D2', text: 'src/export.sh uses no raw colour values' }
+			return n === 1 ? PLAN : n === 2 ? { ...PLAN, conventions: [{ convention: TOKENS, doneWhen: 'D9' }] } : { ...PLAN, doneWhen: [...PLAN.doneWhen, D2], conventions: [{ convention: ` ${TOKENS}`, doneWhen: 'D2' }, { convention: 'Every script is POSIX sh', doesNotApply: 'nothing new to check beyond D1' }] }
+		}
+		if (req.job === 'test-plan') return (write(req, 'checks/export.check.sh', `${CHECK}\n`), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/export.check.sh' }, { id: 'C2', doneWhen: 'D2', run: '! grep -q "#[0-9a-f]\\{6\\}" src/export.sh' }] })
+		return undefined
+	}, 'full')
+	writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo, conventions: [TOKENS, 'Every script is POSIX sh'] }]))
+	try {
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		assert.deepEqual(t.packet('execute', 'ideate').item.conventions, [TOKENS, 'Every script is POSIX sh'], 'every job sees the rules the work follows')
+		assert.match(t.packet('execute', 'plan', 1).yourLastAnswerWasRefused, /conventions[\s\S]*"Colours come from the design tokens in src\/tokens\.css", "Every script is POSIX sh"/)
+		assert.match(t.packet('execute', 'plan', 2).yourLastAnswerWasRefused, /"Colours come from[^,]*", "Every script is POSIX sh"\.$/, 'a done-when id the plan does not have holds nothing')
+		assert.deepEqual(done.verification?.results.map((r) => [r.id, r.exitCode]), [['C1', 0], ['C2', 0]])
 	} finally {
 		t.cleanup()
 	}
@@ -629,6 +666,20 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 	}
 })
 
+test('the same question carried across hand-offs counts once: raised a fourth time in any wording of case or punctuation, it holds', async () => {
+	const wordings: Partial<Record<Job, string>> = { ideate: 'Is an empty export an error?', challenge: 'is an empty export an error', plan: 'Is an empty export an ERROR?!', implement: 'Is an empty export, an error?' }
+	const t = setup((req, n) => (req.kind === 'intake' && n === 1 && wordings[req.job] ? ask(wordings[req.job]!) : undefined), 'checkpoints')
+	try {
+		const item = await t.run(drive(t.item.id, config))
+		assert.equal(item.hold?.code, 'nq_turns')
+		assert.equal(item.hold?.context.job, 'implement')
+		assert.deepEqual(item.hold?.context.repeated, ['Is an empty export, an error?'])
+		assert.match(item.hold!.message, /asks again what was already asked 3 times across hand-offs/)
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('an originator that says only the operator can decide goes to the dispatcher, who answers from the operator\'s source; only what the source leaves open holds', async () => {
 	const asks = (dispatcher: ReturnType<typeof reply>) => setup((req, n) => {
 		if (req.kind === 'intake' && req.job === 'challenge' && n === 1) return ask('May we drop PDF export?')
@@ -703,6 +754,23 @@ test('a pre-existing defect becomes its own item from planning; the original wai
 		assert.equal(t.store.events(t.item.id).filter((e) => e.kind === 'verified').length, 1)
 		assert.equal(done.verification?.on, pre.shipped?.main, 'the original\'s checks ran again on the main that holds the fix')
 		assert.deepEqual(t.shipped().map((l) => l.split(' ')[0]), [String(pre.id), String(t.item.id)])
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('a pre-existing defect found inside a fix that is already two prerequisites deep holds for the operator', async () => {
+	const t = setup((req) => {
+		if (req.kind === 'execute' && req.job === 'test-plan') return checks(req, 'exit 1')
+		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling('pre-existing')
+		return undefined
+	})
+	try {
+		await t.run(drive(t.item.id, config))
+		const [, first, second] = t.store.list()
+		assert.deepEqual([first!.parent, second!.parent, t.store.list().length], [t.item.id, first!.id, 3], 'two fixes deep, and no third')
+		assert.equal(second!.hold?.code, 'prerequisite_too_deep')
+		assert.deepEqual(nextFor(second!).map((n) => n.run.split(' ').slice(0, 5).join(' ')), [`mw answer ${second!.id} --cause implementation`, `mw answer ${second!.id} --cause test`, `mw answer ${second!.id} --cause pre-existing`])
 	} finally {
 		t.cleanup()
 	}

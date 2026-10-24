@@ -20,6 +20,7 @@ export const Project = Schema.Struct({
 	prepare: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
 	autonomy: Schema.optionalKey(Schema.Literals(['full', 'checkpoints', 'steps']).annotate({ description: 'how involved the operator is with new work: full (the default), checkpoints or steps; FOUNDATION ruling 17' })),
 	cartridges: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'the cartridge pack file this project\'s new work runs; without it, the default software pack' })),
+	conventions: Schema.optionalKey(Schema.Array(Schema.NonEmptyString).annotate({ description: 'the rules this repo\'s work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.' })),
 	gates: Schema.optionalKey(Schema.Array(Gate).annotate({ description: 'the repo\'s own gates (linters, formatters), run by Made Well on each item\'s changed files before its checks; they replace a git hook manager such as lefthook' })),
 }).annotate({ identifier: 'Project' })
 export type Project = typeof Project.Type
@@ -35,7 +36,7 @@ export const readProjects = Effect.fn('mw.readProjects')(function* (path: string
 	return yield* Schema.decodeUnknownEffect(Registry)(readFileSync(path, 'utf8')).pipe(
 		Effect.mapError((e) => new MadeWellError({
 			code: 'projects_invalid', message: `The project registry ${path} is not valid.`, context: { path, problems: String(e) },
-			cause: 'It must be a JSON array of {path, ship?, alert?, prepare?, autonomy?, cartridges?, gates?: [{run, glob?}]}.',
+			cause: 'It must be a JSON array of {path, ship?, alert?, prepare?, autonomy?, cartridges?, conventions?: [string], gates?: [{run, glob?}]}.',
 			next: [{ run: `cat ${path}`, why: 'fix the entries named in context.problems' }],
 		})),
 	)

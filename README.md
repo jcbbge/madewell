@@ -30,6 +30,12 @@ How involved you are is yours to choose, per project (`mw init --autonomy <level
 
 At a stop, `mw go <id>` carries on and `mw answer <id> "<what should change>"` steers. Something the machine cannot do itself (a credential, a failing ship command) holds the item at any level, with the exact command that unblocks it.
 
+Tell it the rules your repo's work follows that no linter catches, and every plan is held to them with a check that proves it:
+
+```sh
+mw init --conventions '["Colours and spacing come from the design tokens in src/tokens.css"]'
+```
+
 Let your own agent watch: `mw next` says what needs you now, `mw status` and `mw show <id>` say where everything is, and `mw ui` shows it all live. Every command prints JSON, and every answer and error lists the `next` commands.
 
 ## Cartridges

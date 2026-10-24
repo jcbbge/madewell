@@ -343,6 +343,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			alert: optional('shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set'),
 			prepare: optional('shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output'),
 			cartridges: optional('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
+			conventions: optional('the rules this repo\'s work follows that no gate catches, as a JSON array of strings, such as ["Colours come from the design tokens in src/tokens.css"]. Every plan turns each into a done-when item its checks prove, or says why it does not apply. Replaces the set given before; [] removes them.'),
 			gates: optional('the repo\'s own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item\'s changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.'),
 		}),
 		output: Schema.Struct({ project: Project, next: Schema.Array(Next) }),
@@ -353,10 +354,13 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const gates = input.gates === undefined ? undefined : yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Array(Gate)))(input.gates).pipe(
 				Effect.mapError((e) => usageError('init', `--gates must be a JSON array of {run, glob?}: ${e.message}`)),
 			)
+			const conventions = input.conventions === undefined ? undefined : yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Array(Schema.NonEmptyString)))(input.conventions).pipe(
+				Effect.mapError((e) => usageError('init', `--conventions must be a JSON array of non-empty strings: ${e.message}`)),
+			)
 			// A pack is checked against the console's contract before it is registered, so no work ever starts on one that does not plug in.
 			const cartridges = input.cartridges === undefined || input.cartridges === 'default' ? input.cartridges : resolve(input.cartridges)
 			if (cartridges && cartridges !== 'default') yield* loadPack(cartridges)
-			const saved = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(gates ? { gates } : {}), ...(cartridges ? { cartridges } : {}), ...(input.autonomy ? { autonomy: input.autonomy } : {}) })
+			const saved = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(gates ? { gates } : {}), ...(conventions ? { conventions } : {}), ...(cartridges ? { cartridges } : {}), ...(input.autonomy ? { autonomy: input.autonomy } : {}) })
 			const project = cartridges === 'default' ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved
 			return { project, next: [{ run: `mw discover --workspace ${quote(path)} --source-file <notes>`, why: 'put the raw notes in: Made Well discovers the work and delivers it' }, { run: `mw start --workspace ${quote(path)} --objective "<one line>" --source "<the operator's own words>"`, why: 'deliver one piece of work straight away' }] }
 		}),

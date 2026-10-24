@@ -22661,7 +22661,12 @@ var PLAN = Schema_exports.Struct({
   follows: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
     path: Text.annotate({ description: "a scope entry that does not exist yet" }),
     follows: Text.annotate({ description: "the existing file (same extension) or directory it is modelled on" })
-  })).annotate({ description: "for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind." }))
+  })).annotate({ description: "for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind." })),
+  conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
+    convention: Text.annotate({ description: "one of item.conventions, word for word" }),
+    doneWhen: Schema_exports.optionalKey(Text.annotate({ description: "the id of the done-when item that proves the change keeps it" })),
+    doesNotApply: Schema_exports.optionalKey(Text.annotate({ description: "instead of doneWhen: why this change cannot touch it" }))
+  })).annotate({ description: "every one of item.conventions, held to a done-when item or said not to apply. Required whenever the item has conventions." }))
 });
 var SLOT_DELIVERABLES = {
   discover: Schema_exports.Struct({ items: Schema_exports.Array(Candidate) }),
@@ -22754,7 +22759,7 @@ function unfollowed(p, tracked) {
   }
   return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(" ")}` : void 0;
 }
-function validate3(lane, job, output, plan, tracked, autonomous = false) {
+function validate3(lane, job, output, plan, tracked, autonomous = false, conventions = []) {
   if (job === "discover") {
     const report = lastJson(output);
     if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
@@ -22786,6 +22791,12 @@ function validate3(lane, job, output, plan, tracked, autonomous = false) {
     if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(", ")}.` };
     const missed = tracked && unfollowed(p, tracked);
     if (missed) return { ok: false, reason: missed };
+    const ids = p.doneWhen.map((d) => d.id);
+    const loose = conventions.filter((c) => {
+      const held2 = p.conventions?.find((e) => e.convention.trim() === c.trim());
+      return !held2 || (held2.doneWhen === void 0 ? !held2.doesNotApply?.trim() : !ids.includes(held2.doneWhen));
+    });
+    if (loose.length) return { ok: false, reason: `The plan does not hold the change to the project's conventions. Under "conventions", copy each one word for word with the id of a done-when item in this plan that proves the change keeps it, or say why it does not apply: ${loose.map((c) => JSON.stringify(c)).join(", ")}.` };
   }
   if (job === "test-plan" && "checks" in value3 && plan) {
     const checks = value3.checks;
@@ -23384,6 +23395,7 @@ var Project = Schema_exports.Struct({
   prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
   autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: full (the default), checkpoints or steps; FOUNDATION ruling 17" })),
   cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the cartridge pack file this project's new work runs; without it, the default software pack" })),
+  conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.NonEmptyString).annotate({ description: `the rules this repo's work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.` })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
@@ -23395,7 +23407,7 @@ var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, autonomy?, cartridges?, gates?: [{run, glob?}]}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, autonomy?, cartridges?, conventions?: [string], gates?: [{run, glob?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
@@ -23449,7 +23461,8 @@ var MAX_TURNS = 3;
 var UNKNOWN_RESET_MS = 60 * 6e4;
 var MIN_OUT_MS = 5 * 6e4;
 var NQ_HOLDS = ["nq_turns", "question_for_operator", "authority"];
-var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections"];
+var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections", "prerequisite_too_deep"];
+var MAX_DEPTH = 2;
 var DONE = ["held", "paused", "shipped", "discovered", "candidate", "dropped"];
 var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var INTAKE_TIER = "intake";
@@ -23526,7 +23539,8 @@ var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
   const store = yield* Store;
   if (!item.base) {
     const base = yield* branchOf(item.workspace);
-    store.save({ ...item, base }, "base", { ref: base.ref, main: base.commit });
+    const conventions = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.conventions ?? [];
+    store.save({ ...item, base, conventions: conventions.length ? conventions : void 0 }, "base", { ref: base.ref, main: base.commit, ...conventions.length ? { conventions } : {} });
     return;
   }
   if (pending(item).length) return yield* aftercare(item.id);
@@ -23617,14 +23631,17 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   }
   const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }] };
   const answered = x.turns.filter((t) => t.answer !== void 0).length;
-  const context3 = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns };
+  const raised = store.events(id2).filter((e) => e.kind === "nq-question").flatMap((e) => (e.data.questions ?? []).map(sameQuestion));
+  const repeated = questions.filter((q) => raised.filter((r) => r === sameQuestion(q)).length >= MAX_TURNS);
+  const context3 = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns, ...repeated.length ? { repeated } : {} };
   const now2 = withTrack(store.get(id2), job, { ...trackOf(store.get(id2), job), exchange: asked });
-  if (answered >= MAX_TURNS) return holdTurns(store, now2, job, context3);
+  if (answered >= MAX_TURNS || repeated.length) return holdTurns(store, now2, job, context3);
   if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
     return hold(store, now2, "question_for_operator", `The ${receiver} has questions about your answer before it can ${job}.`, context3);
   }
   saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions });
 });
+var sameQuestion = (q) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
   const item0 = store.get(id2);
@@ -23874,7 +23891,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const home = itemHome(store.path, id2);
   const problem = malformed(L(item), job, answered.output, auto(item));
   const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered : answered;
-  const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item));
+  const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item), item.conventions);
   const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
@@ -23971,9 +23988,15 @@ function applyRoute(store, id2, job, value3, fields) {
         ...r.job === "plan" ? { base: void 0 } : {}
       }, "ruling", { cause: r.cause, to: r.job, by: "arbiter" });
       return;
-    case "prerequisite":
+    case "prerequisite": {
+      let depth = 0;
+      for (let p = current.parent; p !== void 0; p = store.get(p)?.parent) depth++;
+      if (depth >= MAX_DEPTH) {
+        return hold(store, current, "prerequisite_too_deep", `The arbiter ruled a pre-existing defect inside a fix that is already ${depth} prerequisites deep. A chain this long means the ground under the work is not what the plans assumed: you decide what happens. ${r.answer}`, { job, depth, failure: current.failure ?? null, ruling: value3 });
+      }
       openPrerequisite(store, { ...current, from: by }, r.answer, by);
       return;
+    }
     case "environment":
       if (current.rework?.cause === "environment") {
         return hold(store, current, "environment", `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, failure: current.failure ?? null, ruling: value3 });
@@ -24086,7 +24109,8 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     store.save({ ...item, job: "plan", from: { kind: "dispatcher" }, base: void 0, exchange: void 0, launches: 0 }, "replan", { reason: "no checks or change on record to verify" });
     return;
   }
-  const gates = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.gates ?? [];
+  const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+  const gates = project?.gates ?? [];
   const budget = budgetFor(config.prescriptions, "verify");
   const env = { ...process.env, MW_ITEM: String(id2) };
   const live = liveFile(store, `item-${id2}-verify`);
@@ -24101,7 +24125,16 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     const built = yield* commit(wt.path, commitMessage(item));
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
-    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env, live)] };
+    const first = yield* runChecks2(wt.path, checks, budget, env, live);
+    const again = yield* runChecks2(wt.path, checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)), budget, env, live);
+    const results2 = first.map((r) => {
+      const r2 = again.find((x) => x.id === r.id);
+      return !r2 ? r : r2.exitCode === 0 ? r2 : { ...r, output: `${r.output}
+[made well] ran it again on the same candidate: exited ${r2.exitCode}
+${r2.output}` };
+    });
+    const flaky = again.filter((r) => r.exitCode === 0).map((r) => r.id);
+    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, flaky, results: [...gated.results, ...results2] };
   })).pipe(Effect_exports.ensuring(Effect_exports.sync(() => endLive(live))));
   if (run2.kind === "unprepared") return hold(store, store.get(id2), "prepare_failed", run2.message, run2.context);
   yield* aftercare(id2, "verify");
@@ -24133,17 +24166,28 @@ Plan again from the branch as it is now.`
   const passed = run2.results.every((r) => r.exitCode === 0);
   const verification = { on: run2.on, commit: run2.commit, results: run2.results, passed };
   const summary = run2.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }));
-  const fixed = run2.fixed.length ? { fixed: run2.fixed } : {};
+  const fixed = { ...run2.fixed.length ? { fixed: run2.fixed } : {}, ...run2.flaky.length ? { flaky: run2.flaky } : {} };
   if (passed) {
     store.save({ ...now2, verification }, "verified", { on: run2.on, results: summary, ...fixed });
     return;
   }
+  const prepared = store.events(id2).findLast((e) => e.kind === "prepared" && e.data.job === "verify");
+  const torn = store.events(id2).findLast((e) => e.kind === "torn-down" && e.data.job === "verify");
+  const listed = (xs) => (xs ?? []).map((x) => `${x.kind} ${x.id}${x.exitCode === void 0 ? "" : ` (exit ${x.exitCode})`}`).join(", ");
+  const head3 = yield* Effect_exports.result(revParse(item.workspace, now2.base.ref));
+  const environment = [
+    `Environment: the checks ran in a fresh worktree of ${now2.base.ref} at ${run2.on.slice(0, 12)}; each failing check was run a second time on the same candidate.`,
+    !project?.prepare ? "The project has no prepare command." : `The prepare command \`${project.prepare}\` exited ${prepared?.data.exitCode ?? "unknown"}${listed(prepared?.data.provisioned) ? ` and provisioned ${listed(prepared?.data.provisioned)}` : ""}.`,
+    torn ? `Torn down after the run: ${listed(torn.data.records)}.` : "Nothing was provisioned, so nothing was torn down.",
+    Result_exports.isFailure(head3) ? `${now2.base.ref} could not be read now: ${head3.failure.message}` : head3.success === run2.on ? `${now2.base.ref} has not moved since.` : `${now2.base.ref} has moved since, to ${head3.success.slice(0, 12)}.`
+  ].join(" ");
   const failed = run2.results.filter((r) => r.exitCode !== 0);
   const failure = [
     `${failed.length} of ${run2.results.length} ${run2.results.some((r) => r.doneWhen === GATE) ? "gates and checks" : "checks"} failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
     ...failed.map((r) => r.doneWhen === GATE ? `The project's gate ${r.id} exited ${r.exitCode}: ${r.run}
 ${r.output}` : `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}
-${r.output}`)
+${r.output}`),
+    environment
   ].join("\n\n");
   const from = failed.some((r) => r.doneWhen !== GATE) ? { kind: "job", job: "test-plan" } : { kind: "dispatcher" };
   store.save({ ...now2, verification, job: "arbitrate", from, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary, ...fixed });
@@ -24252,7 +24296,8 @@ var holdTurns = (store, item, job, context3) => {
   if (auto(item) && x && !x.decided) {
     return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: "awaiting-originator", deciding: true } }), "nq-deciding", { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] });
   }
-  return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
+  const why = context3.repeated ? `asks again what was already asked ${MAX_TURNS} times across hand-offs` : `still has questions after ${MAX_TURNS} answered turns`;
+  return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} ${why}: the hand-off, its scope or its provisioning is wrong.`, context3);
 };
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
@@ -24492,7 +24537,7 @@ var briefOf = (lane) => [
   "Your final message is ONLY one JSON object that matches you.replyFormat, with that schema's properties as its own top-level keys."
 ].join("\n\n");
 var BRIEF = briefOf(laneOf());
-var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source });
+var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source, ...item.conventions?.length ? { conventions: item.conventions } : {} });
 var receivedBy = (item, job) => Object.fromEntries(stepOf(L(item), job).receives.flatMap((j) => {
   const d = deliverableOf(item, j);
   return d === void 0 ? [] : [[j, d]];
@@ -24511,7 +24556,7 @@ var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.map
 }, null, 2));
 var whereYouAre = (step2) => step2.loop === "discovery" ? `Made Well's discovery (${step2.cartridge})` : `Made Well's delivery lane (${step2.cartridge})`;
 var TASKS = {
-  plan: `Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item's own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item's own checks gate it.`,
+  plan: `Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. The rules this repo's work follows are under item.conventions: hold the change to each one with a done-when item its checks prove, and list it under "conventions" with that id, or say why this change cannot touch it. Made Well refuses a plan that leaves one out. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item's own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item's own checks gate it.`,
   "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer's change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree. A check proves its done-when item from this item's change alone: never run or count the whole test suite, and never pin anything outside the plan's scope; other items ship onto the same branch while this one is in flight.",
   implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself."
 };
@@ -26297,6 +26342,7 @@ var COMMANDS = [
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
       prepare: optional3("shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output"),
       cartridges: optional3('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
+      conventions: optional3(`the rules this repo's work follows that no gate catches, as a JSON array of strings, such as ["Colours come from the design tokens in src/tokens.css"]. Every plan turns each into a done-when item its checks prove, or says why it does not apply. Replaces the set given before; [] removes them.`),
       gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
     output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
@@ -26307,9 +26353,12 @@ var COMMANDS = [
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
+      const conventions = input.conventions === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Schema_exports.NonEmptyString)))(input.conventions).pipe(
+        Effect_exports.mapError((e) => usageError("init", `--conventions must be a JSON array of non-empty strings: ${e.message}`))
+      );
       const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve6(input.cartridges);
       if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
-      const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
+      const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...conventions ? { conventions } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
       const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
       return { project, next: [{ run: `mw discover --workspace ${quote2(path)} --source-file <notes>`, why: "put the raw notes in: Made Well discovers the work and delivers it" }, { run: `mw start --workspace ${quote2(path)} --objective "<one line>" --source "<the operator's own words>"`, why: "deliver one piece of work straight away" }] };
     })

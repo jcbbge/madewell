@@ -112,6 +112,8 @@ export interface Item {
 	readonly rejected?: string
 	/** The product repo's branch and its commit when the item (or its current round) started. */
 	readonly base?: { readonly ref: string; readonly commit: string }
+	/** The project's conventions when the base was recorded: the plan must hold the change to each one. */
+	readonly conventions?: ReadonlyArray<string>
 	/** After planning: the implementer's and the test architect's tracks, run in parallel. */
 	readonly split?: Partial<Record<Maker, Track>>
 	/** The implementer's change: its files; the patch lives in Made Well's home. */

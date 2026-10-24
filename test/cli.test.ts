@@ -209,6 +209,8 @@ test('errors are JSON on stderr with a listed code, the context of its shape, an
 	t.mw('init', '--ship', 'true')
 	assert.deepEqual(t.mw('init', '--gates', '[{"run": "npx eslint {files}", "glob": "*.ts"}]').out.project, { path: t.repo, ship: 'true', gates: [{ run: 'npx eslint {files}', glob: '*.ts' }] }, 'gates join the project\'s config, which keeps its ship command')
 	assert.equal(t.mw('init', '--gates', '[{"glob": "*.ts"}]').err.error, 'usage', 'a gate needs a command')
+	assert.deepEqual(t.mw('init', '--conventions', '["Colours come from src/tokens.css"]').out.project.conventions, ['Colours come from src/tokens.css'])
+	assert.equal(t.mw('init', '--conventions', '"one rule"').err.error, 'usage', 'conventions are a list')
 	const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
 	assert.deepEqual(t.mw('status', '99').err.context, { id: 99 })
 	assert.equal(t.mw('status', 'x').err.error, 'usage')

@@ -236,6 +236,11 @@ export const PLAN = Schema.Struct({
 		path: Text.annotate({ description: 'a scope entry that does not exist yet' }),
 		follows: Text.annotate({ description: 'the existing file (same extension) or directory it is modelled on' }),
 	})).annotate({ description: 'for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind.' })),
+	conventions: Schema.optionalKey(Schema.Array(Schema.Struct({
+		convention: Text.annotate({ description: 'one of item.conventions, word for word' }),
+		doneWhen: Schema.optionalKey(Text.annotate({ description: 'the id of the done-when item that proves the change keeps it' })),
+		doesNotApply: Schema.optionalKey(Text.annotate({ description: 'instead of doneWhen: why this change cannot touch it' })),
+	})).annotate({ description: 'every one of item.conventions, held to a done-when item or said not to apply. Required whenever the item has conventions.' })),
 })
 export type Plan = typeof PLAN.Type
 
@@ -368,7 +373,7 @@ function unfollowed(p: Plan, tracked: ReadonlyArray<string>): string | undefined
  * Checks a job's deliverable beyond its schema. Pure: the plan carries the done-when ids the checks must thread.
  * `tracked`, the files at the plan's base, enables the follows rule; without it (re-reading a stored plan) the rule is not applied.
  */
-export function validate(lane: Lane, job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>, autonomous = false): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
+export function validate(lane: Lane, job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>, autonomous = false, conventions: ReadonlyArray<string> = []): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
 	if (job === 'discover') {
 		// Discovery keeps what it can: an item without a title or objective is dropped, not the whole run.
 		const report = lastJson(output)
@@ -402,6 +407,12 @@ export function validate(lane: Lane, job: Job, output: string, plan?: Plan, trac
 		if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(', ')}.` }
 		const missed = tracked && unfollowed(p, tracked)
 		if (missed) return { ok: false, reason: missed }
+		const ids = p.doneWhen.map((d) => d.id)
+		const loose = conventions.filter((c) => {
+			const held = p.conventions?.find((e) => e.convention.trim() === c.trim())
+			return !held || (held.doneWhen === undefined ? !held.doesNotApply?.trim() : !ids.includes(held.doneWhen))
+		})
+		if (loose.length) return { ok: false, reason: `The plan does not hold the change to the project's conventions. Under "conventions", copy each one word for word with the id of a done-when item in this plan that proves the change keeps it, or say why it does not apply: ${loose.map((c) => JSON.stringify(c)).join(', ')}.` }
 	}
 	if (job === 'test-plan' && 'checks' in value && plan) {
 		const checks = value.checks as Check[]
