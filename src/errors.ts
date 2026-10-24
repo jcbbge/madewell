@@ -28,6 +28,7 @@ export const ERRORS = {
 	},
 	projects_invalid: { means: 'The project registry in Made Well\'s home is not valid.', context: Schema.Struct({ path: Schema.String, problems: Schema.String }) },
 	item_not_found: { means: 'No work item has this number.', context: Schema.Struct({ id: Id }) },
+	capture_failed: { means: 'Live process output could not be captured; its process group was stopped rather than continuing without evidence.', context: Schema.Struct({ command: Schema.String, channel: Schema.String, reason: Schema.String }) },
 	not_held: { means: 'The item is not waiting on the operator, so there is nothing to answer or retry.', context: Schema.Struct({ id: Id, status: Schema.String, job: Schema.String }) },
 	not_answerable: { means: 'The item holds on something an answer does not resolve; `next` names what does.', context: Schema.Struct({ id: Id, hold: Hold }) },
 	cause_required: { means: 'The item holds on a failed check; the answer must name its cause with --cause.', context: Schema.Struct({ id: Id, hold: Hold }) },

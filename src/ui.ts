@@ -19,6 +19,7 @@ import { isMaker, laneOf, lastJson, stepOf, type Lane } from './lane.ts'
 import { openHolds } from './project.ts'
 import { openStore, spansPath, type CallHead, type Event, type Item } from './store.ts'
 import { totalTokens } from './telemetry.ts'
+import { lensOf, renderTrace, type Lens, type TraceRenderer } from './trace.ts'
 
 type StoreService = ReturnType<typeof openStore>
 /** What moves a held item, from the engine, so the console offers exactly the commands the CLI prints. */
@@ -87,7 +88,9 @@ export const sayOf = (e: Event, title?: string): string => {
 		case 'ship-started': return `The ship command runs: ${short(d.command, 120)}`
 		case 'shipped': return `Shipped${String(d.output ?? '').trim() ? `: ${short(String(d.output).trim().split('\n').pop(), 160)}` : ''}`
 		case 'held': return `Held for the operator: ${d.code}: ${short(d.message, 240)}`
-		case 'alerted': return `Alert sent for ${d.code} (exit ${d.exitCode})`
+		case 'alerted': return d.exitCode === 0 ? `Alert sent for ${d.code} (exit 0)` : `Alert delivery failed for ${d.code} (exit ${d.exitCode}); the hold still needs attention`
+		case 'trace-signal': return `${d.active ? 'Observed' : 'Cleared'} ${d.code}${d.job ? ` in ${d.job}` : ''}; diagnostic only, no automatic action`
+		case 'discovery-dropped': return `Discovery skipped ${plural(d.candidates?.length ?? 0, 'candidate')} missing required fields`
 		case 'retried': return `The operator retries ${d.job}`
 		case 'promoted': return 'The operator promotes it into delivery'
 		case 'discovered': return `Discovery finished with ${plural(d.candidates?.length ?? 0, 'candidate')}`
@@ -396,6 +399,9 @@ const barsOf = (events: ReadonlyArray<Event>, calls: ReadonlyArray<CallHead>, fl
 	return bars
 }
 
+// Machine-granularity fragments remain on the AX read surface and in replay, not in the ordinary timeline.
+const timelineEvent = (e: Event) => !e.kind.startsWith('trace-') || e.kind === 'trace-signal'
+
 /** Everything the console shows, at one moment. Long texts stay out; `itemDetail` and `callOf` return them one at a time. */
 export const modelOf = (store: StoreService, nextOf: NextOf) => {
 	const now = Date.now()
@@ -449,7 +455,7 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 			return [...lane.discovery, ...lane.delivery, lane.arbiter].map((s) => [s.job, { label: labelOf(s.job), profile: s.job === 'verify' ? 'made well' : s.profile, cartridge: s.cartridge }] as const)
 		})).entries(), ['ship', { label: 'Ship', profile: 'made well', cartridge: 'verification' }]]),
 		rules: calls.flatMap((c) => c.flags.map((f) => ({ call: c.id, item: c.item, job: c.job, kind: c.kind, rule: f.rule }))),
-		events: events.slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
+		events: events.filter(timelineEvent).slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
 		eventCount: events.length,
 	}
 }
@@ -522,7 +528,8 @@ export const itemDetail = (store: StoreService, nextOf: NextOf, id: number) => {
 		calls: store.callHeads().filter((c) => c.item === id),
 		related: store.list().filter((i) => i.discovery === id || i.parent === id || (item.after ?? []).includes(i.id) || i.id === item.waitsOn || i.id === item.parent || i.id === item.discovery).map((i) => ({ id: i.id, title: i.title, status: i.status })),
 		diff: diffOf(store.path, item),
-		events: events.map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
+		events: events.filter(timelineEvent).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
+		trace: lensOf(store, id, 'ax', nextOf(item)),
 	}
 }
 
@@ -571,7 +578,7 @@ export const staticPage = (store: StoreService, nextOf: NextOf) => {
 }
 
 /** Serves the console until interrupted. Prints one JSON line with its address first, so an agent can hand it on. */
-export const serve = (path: string, nextOf: NextOf, host: string, port: number) =>
+export const serve = (path: string, nextOf: NextOf, host: string, port: number, renderer?: TraceRenderer) =>
 	Effect.callback<never, MadeWellError>((resume) => {
 		const open = storeWatcher(path)
 		const server = createServer((req, res) => {
@@ -586,6 +593,16 @@ export const serve = (path: string, nextOf: NextOf, host: string, port: number) 
 				// The page asks again only when the record or a running step's output moved.
 				if (url.pathname === '/api/mark') return json(res, { ...store.mark(), runner: store.runner()?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(',') })
 				if (url.pathname === '/api/model') return json(res, modelOf(store, nextOf))
+				const trace = /^\/api\/trace\/(\d+)$/.exec(url.pathname)
+				if (trace) {
+					const lens = url.searchParams.get('lens') ?? 'ux'
+					if (!['ux', 'dx', 'ax'].includes(lens)) return json(res, { error: 'usage', message: 'lens must be ux, dx or ax', context: { command: 'trace' }, next: [{ run: 'mw', why: 'read the command schemas' }] }, 400)
+					const target = store.get(Number(trace[1]))
+					if (!target) return json(res, null, 404)
+					const view = lensOf(store, target.id, lens as Lens, nextOf(target))
+					void Effect.runPromise(renderTrace(view, renderer)).then((rendered) => json(res, rendered))
+					return
+				}
 				const item = /^\/api\/item\/(\d+)$/.exec(url.pathname)
 				if (item) return ((d) => json(res, d ?? null, d ? 200 : 404))(itemDetail(store, nextOf, Number(item[1])))
 				const call = /^\/api\/call\/(\d+)$/.exec(url.pathname)

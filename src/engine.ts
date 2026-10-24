@@ -20,13 +20,14 @@
 //
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
-import { execFile } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, forLane, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
+import { resolveDecision, RUBRIC, type DecisionProviders } from './decision.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
 import { NEUTRAL_HOST } from './harness.ts'
 import { projectFor, projectsPath, readProjects } from './project.ts'
@@ -35,8 +36,9 @@ import {
 	type Cause, type Check, type Job, type Lane, type Maker, type Plan, type Step,
 } from './lane.ts'
 import { DEFAULT_AUTONOMY, Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
+import { observe } from './trace.ts'
 import { capture, changes, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
-import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
+import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
 
 const MAX_LAUNCHES = 3
 /** A repair writes one JSON object it already has. */
@@ -55,6 +57,8 @@ const INTAKE_TIER = 'intake'
 
 interface EngineConfig {
 	readonly prescriptions: Prescriptions
+	/** Registered decision renderers. Empty by default; no inference provider is built in. */
+	readonly decisionProviders?: DecisionProviders
 	/** How long an idle `mw run --watch` waits before looking at the queue again. */
 	readonly pollMs?: number
 	/** True once the runner should hand over to a new build: it starts no new work and returns when in-flight work settles. */
@@ -115,7 +119,15 @@ const withTrack = (item: Item, job: Job, t: Track): Item =>
 /** Saves one track's change onto the item as it is now, so the two makers' tracks never overwrite each other. */
 const saveTrack = (store: StoreService, id: number, job: Job, patch: Partial<Track>, kind: string, data: Record<string, unknown>, fields: Partial<Item> = {}) => {
 	const now = store.get(id)!
-	return store.save(withTrack({ ...now, ...fields }, job, { ...trackOf(now, job), ...patch }), kind, data)
+	const saved = store.save(withTrack({ ...now, ...fields }, job, { ...trackOf(now, job), ...patch }), kind, data)
+	if (kind === 'nq-question') {
+		const turns = patch.exchange?.turns ?? []
+		const key = (questions: ReadonlyArray<string>) => questions.map(sameQuestion).sort().join('\n')
+		const pattern = key(turns.at(-1)?.questions ?? [])
+		const repeated = turns.slice(-3).filter((t) => key(t.questions) === pattern).length === 3
+		if (repeated) store.note(id, 'trace-signal', { code: 'repeated-turn', active: true, job, round: saved.round, turns: turns.length, questions: turns.at(-1)!.questions })
+	}
+	return saved
 }
 
 const hold = (store: StoreService, item: Item, code: string, message: string, context: Record<string, unknown>, next?: ReadonlyArray<Next>) =>
@@ -130,10 +142,8 @@ const deliverableOf = (item: Item, job: Job) => {
 	return out === undefined ? undefined : (lastJson(out) ?? out)
 }
 
-const planOf = (item: Item): Plan | undefined => {
-	const v = item.outputs.plan === undefined ? undefined : validate(L(item), 'plan', item.outputs.plan)
-	return v?.ok ? (v.value as Plan) : undefined
-}
+/** Accepted outputs are already validated. Do not retroactively reject a durable plan on a schema upgrade. */
+const planOf = (item: Item) => deliverableOf(item, 'plan') as Plan | undefined
 
 /** What the originator hands over to a job. A job's deliverable already in the receiver's packet is pointed at, not repeated. */
 function handoffOf(item: Item, job: Job, t: Track): string {
@@ -204,9 +214,12 @@ const step = Effect.fn('mw.step')(function* (id: number, job: Job, config: Engin
 	} else if (x.status === 'awaiting-receiver') {
 		yield* intake(id, job, config)
 	} else if (x.status === 'awaiting-originator') {
+		// Also covers an older runner's saved full-autonomy attempt to reset an exhausted exchange.
+		if (x.turns.filter((turn) => turn.answer !== undefined).length >= MAX_TURNS) return holdTurns(store, item, job, { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [], turns: x.turns })
 		yield* originate(id, job, config)
 	} else {
-		yield* execute(id, job, config)
+		const guidance = ['ideate', 'challenge', 'plan'].includes(job) ? yield* decisionGuidance(item, job, 'forward', config) : undefined
+		yield* execute(id, job, config, guidance)
 	}
 })
 
@@ -310,6 +323,27 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 /** A question's identity across hand-offs: its words, ignoring case, spacing and punctuation. */
 const sameQuestion = (q: string) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 
+/** Decision boundaries only. Save the selected path before the next agent call; redrive reuses it. */
+const decisionGuidance = Effect.fn('mw.decisionGuidance')(function* (item: Item, job: Job, mode: 'forward' | 'nq', config: EngineConfig) {
+	const store = yield* Store
+	const x = trackOf(item, job).exchange!
+	const context = mode === 'nq' ? originatorParts(item, job, x, ledger(store, item.id, job)) : { received: receivedBy(item, job), handoff: x.handoff, turns: x.turns, notes: x.notes, answeredBefore: ledger(store, item.id, job) }
+	const key = createHash('sha256').update(JSON.stringify({ job, mode, round: item.round, context })).digest('hex')
+	const saved = store.events(item.id).findLast((e) => e.kind === 'decision-resolution' && e.data.key === key)
+	if (saved) return saved.data.resolution
+	const resolution = yield* resolveDecision({
+		item: itemFacts(item), mode, job, stage: stepOf(L(item), job).cartridge,
+		profile: mode === 'nq' ? profileOf(item, x.from) : stepOf(L(item), job).profile,
+		question: mode === 'nq' ? x.turns.at(-1)!.questions.join('\n') : stepOf(L(item), job).duty,
+		context,
+		repoIntent: { objective: item.objective, conventions: item.conventions ?? [], received: mode === 'nq' && x.from.kind === 'job' ? receivedBy(item, x.from.job) : receivedBy(item, job) },
+		rubric: RUBRIC,
+		constraints: { scope: planOf(item)?.scope ?? [], authority: 'Advisory only. Never authorize actions, change the objective, add NQ turns, bypass a hold, or move work. The originator retains responsibility and existing authority limits.', nonGoals: ['implementation', 'test-writing', 'verification', 'operator hold UX'], operatorEscalationPermitted: false },
+	}, config.prescriptions.decisionModel, config.decisionProviders)
+	store.note(item.id, 'decision-resolution', { job, mode, key, resolution })
+	return resolution
+})
+
 /** Answers and aliases come from durable events, including the discovery or prerequisite that handed over the work.
  * Older answer events omitted questions; their preceding question event supplies them. Maker exchanges stay blind. */
 const ledger = (store: StoreService, id: number, job: Job) => {
@@ -350,9 +384,10 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	const item = store.get(id)!
 	const x = trackOf(item, job).exchange!
 	const from = profileOf(item, x.from)
+	const decisionResolution = yield* decisionGuidance(item, job, 'nq', config)
 	const call = yield* callAgent(id, job, config, {
 		kind: 'originator', profile: from, access: 'read', card, required: requiredOf(ORIGINATOR),
-		packet: (dir) => packet(item, by, dir, originatorParts(item, job, x, ledger(store, id, job)), x.from.kind === 'job'),
+		packet: (dir) => packet(item, by, dir, { ...originatorParts(item, job, x, ledger(store, id, job)), decisionResolution }, x.from.kind === 'job'),
 	})
 	if (!call) return
 	const reply = yield* decodeOrRepair(id, job, call, ORIGINATOR)
@@ -367,13 +402,6 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	let answer = allReused ? '' : reply.value.answer
 	if (reuse.length) answer = [answer, ...reuse.map((r) => `${r.question}\n${previous.find((a) => a.id === r.answerId)!.answer}`)].filter(Boolean).join('\n\n')
 	const reused = reuse.length ? { reuse } : {}
-	if (x.deciding) {
-		// Full autonomy, out of turns: the delegating agent's decision corrects the hand-off, and a new exchange judges it from turn one.
-		const open = x.turns.at(-1)?.questions ?? []
-		const handoff = `${x.handoff}\n\nThe ${from} decided these by the rubric, under full autonomy, after the exchange on this hand-off ran out of turns with them open:\n${open.map((q) => `- ${q}`).join('\n')}\n\n${answer}`
-		saveTrack(store, id, job, { launches: 0, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [], decided: true } }, 'nq-decided', { job, originator: from, questions: open, answer, ...reused })
-		return
-	}
 	if (reply.value.needsOperator && !allReused) {
 		const pendingQ = x.turns.at(-1)!
 		// Authority: the dispatcher reads the operator's own source first. It holds only when the source leaves the question open
@@ -430,7 +458,7 @@ const dispatch = (id: number, job: Job, config: EngineConfig, originator: string
 // ── The job itself ─────────────────────────────────────────────────────────────────────────────────────
 
 /** The receiver, clear on its hand-off, does the job on the card it confirmed with, in its own worktree. */
-const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config: EngineConfig) {
+const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config: EngineConfig, decisionResolution?: unknown) {
 	const store = yield* Store
 	const item = store.get(id)!
 	const t = trackOf(item, job)
@@ -448,7 +476,7 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
 		...jobTree(item, job),
 		...(maker ? { onFail: (dir: string) => keepPartial(dir, item, job as Maker) } : {}),
-		packet: (dir) => packet(item, job, dir, executeParts(item, job, t, x)),
+		packet: (dir) => packet(item, job, dir, { ...executeParts(item, job, t, x), ...(decisionResolution ? { decisionResolution } : {}) }),
 	}, (dir, call) => accept(id, job, dir, call))
 })
 
@@ -523,16 +551,13 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const live = liveFile(store, `item-${id}-${job}-${spec.kind}`)
 		store.note(id, 'call-started', { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...(live ? { live } : {}) })
 		const started = new Date()
-		let result: WorkerResult | undefined
-		const run = worker
-			.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: briefOf(L(item)), prompt, item: id, cwd: wt.path, budget, ...(harness ? { harness } : {}), ...(live ? { live } : {}) })
+		const request: WorkerRequest = { kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: briefOf(L(item)), prompt, item: id, cwd: wt.path, budget, ...(harness ? { harness } : {}), ...(live ? { live } : {}) }
+		const { invocation, result: res } = yield* observe(store, id, { job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, args: { ...request } }, (onOutput) => worker
+			.run({ ...request, onOutput })
 			.pipe(
-				Effect.tap((r) => Effect.sync(() => (result = r))),
 				Effect.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } }),
-			)
-		yield* run
+			))
 		const changed = before ? changes(before, yield* capture(wt.path, !read)) : undefined
-		const res = result!
 		const call = {
 			item: id, kind: spec.kind, job, profile: spec.profile, card: spec.card, system: briefOf(L(item)), prompt,
 			outcome: res.ok ? 'ok' : 'limit' in res ? 'limit' : 'error', output: res.ok ? res.output : null,
@@ -550,6 +575,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			...(harness && !harness.command.includes('{...tools}') ? { allowlist: harness.tools[spec.access] } : {}),
 			required: spec.required,
 		})
+		store.note(id, 'trace-call', { invocation, call: callId })
 		store.note(id, 'call-finished', { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...(call.error ? { error: call.error.slice(0, 2000) } : {}) })
 		endLive(live)
 		if (!res.ok) {
@@ -574,7 +600,9 @@ const REPAIR_TASK = 'Your last answer could not be read: its JSON is malformed o
 /** An NQ reply decoded against its schema, after one repair if it does not parse. */
 const decodeOrRepair = <S extends typeof INTAKE | typeof ORIGINATOR>(id: number, job: Job, call: Called, schema: S) =>
 	Effect.gen(function* () {
+		const store = yield* Store
 		const first = decode(schema, call.output)
+		store.note(id, 'trace-decode', { call: call.callId, job, ok: first.ok, schema: shapeOf(schema), ...(!first.ok ? { reason: first.reason } : {}) })
 		if (first.ok) return first
 		const fixed = yield* repair(id, job, call, shapeOf(schema), first.reason)
 		return fixed ? decode(schema, fixed.output) : first
@@ -593,14 +621,17 @@ const repair = (id: number, job: Job, call: Called, shape: unknown, problem: str
 		const prompt = JSON.stringify({ you: { profile, job, call: 'repair', task: REPAIR_TASK, replyFormat: shape }, yourAnswer: call.output, problem: problem.slice(0, 4000) }, null, 2)
 		const started = new Date()
 		const brief = briefOf(L(store.get(id)!))
-		const res = yield* worker.run({ kind: 'repair', job, profile, card: call.card, access: 'none', system: brief, prompt, item: id, cwd: store.path === ':memory:' ? tmpdir() : dirname(store.path), budget: REPAIR_BUDGET }).pipe(
+		store.note(id, 'trace-decode', { call: call.callId, job, ok: false, schema: shape, reason: problem })
+		const request: WorkerRequest = { kind: 'repair', job, profile, card: call.card, access: 'none', system: brief, prompt, item: id, cwd: store.path === ':memory:' ? tmpdir() : dirname(store.path), budget: REPAIR_BUDGET }
+		const { invocation, result: res } = yield* observe(store, id, { job, kind: 'repair', profile, harness: call.card.harness, args: { ...request } }, (onOutput) => worker.run({ ...request, onOutput }).pipe(
 			Effect.withSpan(`mw.repair.${job}`, { attributes: { item: id, job, harness: call.card.harness, model: call.card.model } }),
-		)
+		))
 		const ms = Date.now() - started.getTime()
 		const repairId = store.recordCall({
 			item: id, kind: 'repair', job, profile, card: call.card, system: brief, prompt, outcome: res.ok ? 'ok' : 'limit' in res ? 'limit' : 'error',
 			output: res.ok ? res.output : null, error: res.ok ? null : 'limit' in res ? res.limit.message : res.error, raw: res.raw ?? null, started: started.toISOString(), ms, harnessVersion: res.version ?? null,
 		}, { access: 'none' })
+		store.note(id, 'trace-call', { invocation, call: repairId })
 		store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`)
 		const ok = res.ok && (call.kind === 'execute' ? !malformed(L(store.get(id)!), job, res.output, auto(store.get(id)!)) : lastJson(res.output) !== undefined)
 		store.note(id, 'repaired', { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok })
@@ -628,6 +659,8 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	const call = problem ? ((yield* repair(id, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered) : answered
 	// A plan is held to what its base already holds: the files tracked in its own checkout.
 	const v = validate(L(item), job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined, auto(item), item.conventions)
+	store.note(id, 'trace-decode', { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...(!v.ok ? { reason: v.reason } : {}) })
+	if (v.ok && v.dropped?.length) store.note(id, 'discovery-dropped', { call: call.callId, candidates: v.dropped })
 	const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect.void
 	const refused = (reason: string) => Effect.andThen(keep, refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
@@ -774,7 +807,7 @@ const prepareWorktree = Effect.fn('mw.prepare')(function* (id: number, job: Job,
 	const env = { ...process.env, MW_ITEM: String(id), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base }
 	const live = liveFile(store, `${name}-prepare`)
 	store.note(id, 'prepare-started', { job, name, command: project.prepare, ...(live ? { live } : {}) })
-	const r = yield* runGroup({ command: 'sh', args: ['-c', project.prepare], cwd: dir, env, input: '', budget: PREPARE_BUDGET, ...(live ? { live } : {}) })
+	const { result: r } = yield* observe(store, id, { job, kind: 'prepare', args: { command: project.prepare, cwd: dir, budget: PREPARE_BUDGET } }, (onOutput) => runGroup({ command: 'sh', args: ['-c', project.prepare!], cwd: dir, env, input: '', budget: PREPARE_BUDGET, onOutput, ...(live ? { live } : {}) }))
 	endLive(live)
 	const reported = Schema.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {})
 	const resources = Result.isSuccess(reported) ? reported.success.provisioned : []
@@ -890,13 +923,13 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		const change = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'change')))
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
 		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
-		const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, 'change'), budget, env, live)
+		const gated = yield* runGates(id, wt.path, wt.base, gates, patchPath(home, 'change'), budget, env, live)
 		const built = yield* commit(wt.path, commitMessage(item))
 		const applied = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'checks')))
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
 		// A failing check runs once more on the same candidate, so a flaky check never reaches the arbiter.
-		const first = yield* runChecks(wt.path, checks, budget, env, live)
-		const again = yield* runChecks(wt.path, checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)), budget, env, live)
+		const first = yield* runChecks(id, wt.path, checks, budget, env, live)
+		const again = yield* runChecks(id, wt.path, checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)), budget, env, live)
 		const results = first.map((r) => {
 			const r2 = again.find((x) => x.id === r.id)
 			return !r2 ? r : r2.exitCode === 0 ? r2 : { ...r, output: `${r.output}\n[made well] ran it again on the same candidate: exited ${r2.exitCode}\n${r2.output}` }
@@ -1001,9 +1034,7 @@ const shipCommand = Effect.fn('mw.ship')(function* (id: number) {
 	}
 	const env = { ...process.env, MW_ITEM: String(id), MW_TITLE: item.title, MW_KIND: item.kind ?? 'feature', MW_COMMIT: item.merged!.commit }
 	store.note(id, 'ship-started', { command, main: item.merged!.commit })
-	const { code, stdout, stderr } = yield* Effect.promise(
-		() => new Promise<{ code: number; stdout: string; stderr: string }>((done) => execFile('sh', ['-c', command], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout, stderr) => done({ code: error ? (typeof error.code === 'number' ? error.code : 1) : 0, stdout, stderr }))),
-	)
+	const { result: { code, stdout, stderr } } = yield* observe(store, id, { job: 'verify', kind: 'ship', args: { command, cwd: item.workspace } }, (onOutput) => runGroup({ command: 'sh', args: ['-c', command], cwd: item.workspace, env, input: '', onOutput }))
 	const tail = (s: string) => s.slice(-4000)
 	if (code !== 0) return hold(store, item, 'ship_failed', `Item #${id} is on ${item.merged!.ref}, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) })
 	removeHome(itemHome(store.path, id))
@@ -1090,14 +1121,9 @@ const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Jo
 })
 
 /**
- * Three answered turns and the receiver still asks: the hand-off, its scope or its provisioning is wrong. The operator decides;
- * in full autonomy the delegating agent decides once by the rubric instead, and running out of turns again holds.
+ * Three answered turns and the receiver still asks: a defective spec, plan or dossier, at every autonomy level.
  */
 const holdTurns = (store: StoreService, item: Item, job: Job, context: Record<string, unknown>) => {
-	const x = trackOf(item, job).exchange
-	if (auto(item) && x && !x.decided) {
-		return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: 'awaiting-originator', deciding: true } }), 'nq-deciding', { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] })
-	}
 	return hold(store, item, 'nq_turns', `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context)
 }
 
@@ -1363,13 +1389,8 @@ const SUBAGENT_RULE = 'If your tools can start another agent, that is an NQ exch
 const briefOf = (lane: Lane) => [
 	'You are an agent in Made Well, a pipeline that takes one work item from ideation through planning and making to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.',
 	NEUTRAL_HOST,
-	[
-		'Settle every decision by the experience rubric. Its three governing questions have equal standing:',
-		'- Developer experience: What moves us toward a 10× better experience of developing, understanding, inspecting, and recovering the work?',
-		'- User experience: What moves us toward a 10× better experience for the person the resulting system serves?',
-		'- Agentic experience: What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?',
-		'A choice that satisfies two of the three is the answer, and it is what is done. Ideation and planning settle every decision and record it with why; no decision is left for the operator.',
-	].join('\n'),
+	RUBRIC,
+	'Ideation and planning record every settled choice in decisions[] with question, decision, why, verdict and three judged legs. Factual clarifications and saved-answer reuse need no new choice. Optional decisionResolution guidance is advisory, never authority: apply the same gate yourself before adopting it. Below-bar or stop guidance must be reshaped, not executed.',
 	'Leave no trace. Your working directory is a disposable worktree of the project\'s repository, removed when your call ends: write only there, never in the repository\'s own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.',
 	'Honor the conventions the project\'s repository already has.',
 	...(lane.pack.brief ? [lane.pack.brief] : []),
@@ -1470,9 +1491,7 @@ const jobEvidence = (item: Item, job: Job) =>
 const originatorParts = (item: Item, job: Job, x: Exchange, answered: ReturnType<typeof ledger>) => ({
 	you: {
 		profile: profileOf(item, x.from), call: 'originator',
-		task: (x.deciding
-			? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10× developer experience, a 10× user experience and a 10× agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.`
-			: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`)
+		task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`
 			+ ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well inserts the saved answer verbatim and records the new wording. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
 		replyFormat: shapeOf(ORIGINATOR),
 	},

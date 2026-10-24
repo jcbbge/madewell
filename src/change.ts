@@ -7,7 +7,8 @@ import { Effect } from 'effect'
 import { MadeWellError, quote } from './errors.ts'
 import type { Check } from './lane.ts'
 import type { Gate } from './project.ts'
-import type { CheckResult } from './store.ts'
+import { Store, type CheckResult } from './store.ts'
+import { observe } from './trace.ts'
 import { git } from './workspace.ts'
 import { runGroup, type Budget } from './worker.ts'
 
@@ -80,14 +81,14 @@ export const GATE = '(gate)'
  * A gate runs on the files its glob matches, and not at all when none does. Files a gate rewrites among them
  * (a formatter's fixes) are staged and written back to the item's change, so they ship and a redrive keeps them.
  */
-export const runGates = Effect.fn('mw.gates')(function* (dir: string, base: string, gates: ReadonlyArray<Gate>, change: string, budget: Budget, env: NodeJS.ProcessEnv, live?: string) {
+export const runGates = Effect.fn('mw.gates')(function* (item: number, dir: string, base: string, gates: ReadonlyArray<Gate>, change: string, budget: Budget, env: NodeJS.ProcessEnv, live?: string) {
 	const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=d', '-z', base))
 	const runs = gates.flatMap((g, i) => {
 		const matched = g.glob ? files.filter((f) => matchesGlob(g.glob!.includes('/') ? f : basename(f), g.glob!)) : files
 		return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll('{files}', matched.map(quote).join(' ')) }] : []
 	})
 	if (!runs.length) return { results: [], fixed: [] }
-	const results = yield* runChecks(dir, runs, budget, env, live)
+	const results = yield* runChecks(item, dir, runs, budget, env, live)
 	const fixed = lines(yield* git(dir, 'diff', '--name-only', '-z', '--', ...files))
 	if (fixed.length) {
 		yield* git(dir, 'add', '--', ...fixed)
@@ -97,7 +98,8 @@ export const runGates = Effect.fn('mw.gates')(function* (dir: string, base: stri
 })
 
 /** Runs each check from the repo root in its own process group, under the budget, and records what it did. Each command and its output stream to `live` as they run. */
-export const runChecks = Effect.fn('mw.runChecks')(function* (dir: string, checks: ReadonlyArray<Check>, budget: Budget, env: NodeJS.ProcessEnv, live?: string) {
+export const runChecks = Effect.fn('mw.runChecks')(function* (item: number, dir: string, checks: ReadonlyArray<Check>, budget: Budget, env: NodeJS.ProcessEnv, live?: string) {
+	const store = yield* Store
 	const results: CheckResult[] = []
 	for (const check of checks) {
 		const started = Date.now()
@@ -106,7 +108,7 @@ export const runChecks = Effect.fn('mw.runChecks')(function* (dir: string, check
 				appendFileSync(live, `\n$ ${check.run}\n`)
 			} catch {}
 		}
-		const r = yield* runGroup({ command: 'sh', args: ['-c', check.run], cwd: dir, env, input: '', budget, ...(live ? { live } : {}) })
+		const { result: r } = yield* observe(store, item, { job: 'verify', kind: check.doneWhen === GATE ? 'gate' : 'check', args: { ...check, cwd: dir, budget } }, (onOutput) => runGroup({ command: 'sh', args: ['-c', check.run], cwd: dir, env, input: '', budget, onOutput, ...(live ? { live } : {}) }))
 		const over = r.overBudget ? `\n[made well] stopped after ${(r.overBudget.ms / 60_000).toFixed(1)} of ${budget.minutes} minutes` : ''
 		results.push({ ...check, exitCode: r.overBudget ? 124 : (r.code ?? 1), ms: Date.now() - started, output: tail(r.stdout + r.stderr + over) })
 	}

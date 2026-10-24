@@ -1,11 +1,12 @@
 // Projects and hold alerts. A project's config (how it ships, how its operator hears of a hold) lives in
 // Made Well's home, next to the store, so the product repo carries no trace of Made Well.
-import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, sep } from 'node:path'
 import { Effect, Schema } from 'effect'
 import { MadeWellError } from './errors.ts'
 import { Store, type Hold, type Item } from './store.ts'
+import { observe } from './trace.ts'
+import { runGroup } from './worker.ts'
 
 export const Gate = Schema.Struct({
 	run: Schema.NonEmptyString.annotate({ description: 'shell command run from the repo root; {files} becomes the matched changed files, quoted. Exit 0 passes; files it rewrites among them (a formatter\'s fixes) are kept in the change.' }),
@@ -95,12 +96,10 @@ const sendAlerts = Effect.fn('mw.alertHolds')(function* (registry: string, holds
 		if (!command) continue
 		// Sending and recording are one step: an interrupt waits for it, so no alert goes out unrecorded.
 		yield* Effect.uninterruptible(Effect.gen(function* () {
-			const exitCode = yield* Effect.promise(() => new Promise<number>((done) => {
-				const env = { ...process.env, MW_ITEM: String(hold.item), MW_TITLE: hold.title, MW_HOLD: hold.code, MW_MESSAGE: hold.message }
-				const child = execFile('sh', ['-c', command], { cwd: dirname(registry), env }, (error) => done(error ? (typeof error.code === 'number' ? error.code : 1) : 0))
-				child.stdin?.end(JSON.stringify(hold))
-			}))
-			store.save(store.get(hold.item)!, 'alerted', { code: hold.code, command, exitCode })
+			const env = { ...process.env, MW_ITEM: String(hold.item), MW_TITLE: hold.title, MW_HOLD: hold.code, MW_MESSAGE: hold.message }
+			const { result } = yield* observe(store, hold.item, { job: store.get(hold.item)!.job, kind: 'alert', args: { command, hold } }, (onOutput) => runGroup({ command: 'sh', args: ['-c', command], cwd: dirname(registry), env, input: JSON.stringify(hold), onOutput }))
+			const exitCode = result.code ?? 1
+			store.save(store.get(hold.item)!, 'alerted', { code: hold.code, command, exitCode, delivered: exitCode === 0, ...(exitCode !== 0 ? { failure: 'notification-failed', stderr: result.stderr.slice(-2000) } : {}) })
 		}))
 	}
 })

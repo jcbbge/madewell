@@ -25,6 +25,7 @@ import { DEFAULT_AUTONOMY, Store, defaultStorePath, storeLayer, type Autonomy, t
 import { harnessWorker } from './harness.ts'
 import { exportItem } from './export.ts'
 import { stats } from './telemetry.ts'
+import { lensOf } from './trace.ts'
 import { serve, staticPage, watch } from './ui.ts'
 import { Worker, commandWorker } from './worker.ts'
 
@@ -485,6 +486,19 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const store = yield* Store
 			const item = yield* found(store, input.id)
 			return { ...view(item, store.runner() !== null), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) }
+		}),
+	}),
+	command({
+		name: 'trace',
+		summary: 'One durable and live trace at UX (done and proof), DX (pipeline diagnostics) or AX (full function tree) depth. Read-only.',
+		args: ['id'],
+		input: Schema.Struct({ id: Id, lens: Schema.optionalKey(Schema.Literals(['ux', 'dx', 'ax'])) }),
+		output: Fact.annotate({ description: 'lens, depth, item, done, needsYou, state, next and proof; DX adds tracks, calls, live signals and diagnostics; AX adds inputs, outputs, streams and the function tree' }),
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			const store = yield* Store
+			const item = yield* found(store, input.id)
+			return lensOf(store, item.id, input.lens ?? 'ux', nextFor(item))
 		}),
 	}),
 	command({

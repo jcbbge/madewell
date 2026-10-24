@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context, Effect, Layer } from 'effect'
 import type { Access, Card } from './cards.ts'
-import type { MadeWellError } from './errors.ts'
+import { MadeWellError } from './errors.ts'
 import type { Harness } from './harness.ts'
 import type { Job } from './lane.ts'
 
@@ -38,6 +38,8 @@ export interface WorkerRequest {
 	readonly harness?: Harness
 	/** A file the call's output is appended to as it arrives, so it can be watched while the call runs. */
 	readonly live?: string
+	/** Local capture, never serialized to the external worker. */
+	readonly onOutput?: (channel: 'stdout' | 'stderr', text: string) => void
 }
 
 export interface UsageLimit {
@@ -100,8 +102,8 @@ const stamped = (line: string, at: number) => {
  * `stdin`, an open file descriptor, replaces `input` as the process's stdin. `live` is a file stdout and stderr
  * are appended to as they arrive, for watching the process while it runs; a failed write never stops it.
  */
-export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number; live?: string }) =>
-	Effect.clockWith((clock) => Effect.callback<Exited>((resume) => {
+export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd: string; env: NodeJS.ProcessEnv; input: string; budget?: Budget; tokensIn?: (line: string) => number; files?: string; stamp?: boolean; stdin?: number; live?: string; onOutput?: WorkerRequest['onOutput'] }) =>
+	Effect.clockWith((clock) => Effect.callback<Exited, MadeWellError>((resume) => {
 		const started = Date.now()
 		// The marker names the runner that owns the call, so a later runner can tell its strays from a live runner's agents.
 		const call = `${process.pid}-${randomUUID()}`
@@ -120,10 +122,10 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 		let stdinError: string | undefined
 		let overBudget: OverBudget | undefined
 		const over = (exceeded: OverBudget['exceeded']) => {
-			overBudget ??= { exceeded, budget: o.budget, ms: Date.now() - started, tokens }
+			overBudget ??= { exceeded, budget: o.budget!, ms: Date.now() - started, tokens }
 			kill()
 		}
-		const timer = setTimeout(() => over('minutes'), o.budget.minutes * 60_000)
+		const timer = o.budget ? setTimeout(() => over('minutes'), o.budget.minutes * 60_000) : undefined
 		const tee = (chunk: string) => {
 			if (!o.live) return
 			try {
@@ -136,14 +138,21 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			const n = o.tokensIn?.(line)
 			if (n) tokens = (tokens ?? 0) + n
 		}
+		const capture = (channel: 'stdout' | 'stderr', chunk: string) => {
+			try { o.onOutput?.(channel, chunk) } catch (cause) {
+				kill()
+				resume(Effect.fail(new MadeWellError({ code: 'capture_failed', message: 'Could not record live output; the process group was stopped.', context: { command: o.command, channel, reason: String(cause) }, next: [{ run: 'mw status', why: 'inspect the stopped work and restore its writable store before retrying' }] })))
+			}
+		}
 		child.stdout!.setEncoding('utf8').on('data', (chunk: string) => {
+			capture('stdout', chunk)
 			tee(chunk)
 			const lines = (partial + chunk).split('\n')
 			partial = lines.pop()!
 			for (const line of lines) take(line, '\n')
-			if (o.budget.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
+			if (o.budget?.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
 		})
-		child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (tee(chunk), (stderr += chunk)))
+		child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (capture('stderr', chunk), tee(chunk), (stderr += chunk)))
 		child.stdin?.on('error', (e) => (stdinError = e.message))
 		child.on('exit', kill)
 		child.on('close', (code) => {
@@ -216,7 +225,7 @@ export const commandWorker = (command: string) =>
 					return { dir, size: input.length, fd: openSync(join(dir, 'request.json'), 'r') }
 				}),
 				({ dir, size, fd }) =>
-					runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: '', stdin: fd, files: dir, budget: request.budget ?? DEFAULT_BUDGET, ...(request.live ? { live: request.live } : {}) }).pipe(
+					runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: '', stdin: fd, files: dir, budget: request.budget ?? DEFAULT_BUDGET, onOutput: request.onOutput, ...(request.live ? { live: request.live } : {}) }).pipe(
 						Effect.map(({ code, stdout, stderr, overBudget }): WorkerResult => {
 							if (overBudget) return { ok: false, error: overBudgetError('The worker command', overBudget), overBudget, raw: stdout }
 							try {

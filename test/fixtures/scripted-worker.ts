@@ -9,6 +9,7 @@ appendFileSync(process.env.FAKE_LOG!, `${request.kind} ${request.job} ${request.
 // FAKE_HANG=<job>:<marker file>: hang the first time that job runs, so a test can kill the runner mid-job.
 const [hangJob, marker] = (process.env.FAKE_HANG ?? '').split(':')
 if (request.kind === 'execute' && request.job === hangJob && marker && !existsSync(marker)) {
+	process.stderr.write('partial evidence before runner loss\n')
 	writeFileSync(marker, '')
 	setInterval(() => {}, 1000)
 	await new Promise(() => {})
@@ -16,6 +17,7 @@ if (request.kind === 'execute' && request.job === hangJob && marker && !existsSy
 // FAKE_PAUSE=<job>:<file>: that job's call waits until the file is gone, so a test can act while it is in flight.
 const [pauseJob, pauseFile] = (process.env.FAKE_PAUSE ?? '').split(':')
 if (request.kind === 'execute' && request.job === pauseJob && pauseFile) {
+	process.stderr.write('planner is still working\n')
 	writeFileSync(`${pauseFile}.started`, '')
 	while (existsSync(pauseFile)) await new Promise((r) => setTimeout(r, 20))
 }

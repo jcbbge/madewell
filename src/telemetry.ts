@@ -85,12 +85,20 @@ const CODEX_TOOLS: Record<string, (i: Record<string, any>) => { tool: string; in
 	web_search: (i) => ({ tool: 'web_search', input: i.query, output: null }),
 }
 
-/** One call's raw stream → its tool events, in the order they were issued. */
-export function toolEvents(harness: Card['harness'], raw: string | null): ToolEvent[] {
+/** The batch parser and live capture share the same tool identity and matching rules. Feed complete lines. */
+export function toolTracker(harness: Card['harness']) {
 	type Open = { -readonly [K in keyof ToolEvent]: ToolEvent[K] } & { t: number | null }
 	const open = new Map<string, Open>()
+	let changed: { event: ToolEvent; state: 'started' | 'returned' }[] = []
+	const report = (e: Open, state: 'started' | 'returned') => {
+		const { t: _, ...event } = e
+		changed.push({ event, state })
+	}
 	const issue = (id: string, tool: string, input: unknown, t: number | null, tokens: number | null) => {
-		if (!open.has(id)) open.set(id, { seq: open.size + 1, tool, digest: digest(input), inputBytes: bytes(input), outputBytes: 0, tokens, at: t === null ? null : new Date(t).toISOString(), ms: null, error: false, t })
+		if (open.has(id)) return
+		const e: Open = { seq: open.size + 1, tool, digest: digest(input), inputBytes: bytes(input), outputBytes: 0, tokens, at: t === null ? null : new Date(t).toISOString(), ms: null, error: false, t }
+		open.set(id, e)
+		report(e, 'started')
 	}
 	const finish = (id: string, output: unknown, t: number | null, error: boolean) => {
 		const e = open.get(id)
@@ -98,43 +106,55 @@ export function toolEvents(harness: Card['harness'], raw: string | null): ToolEv
 		e.outputBytes = bytes(output)
 		e.error = error
 		if (e.t !== null && t !== null) e.ms = t - e.t
+		report(e, 'returned')
 	}
 	const seen = new Set<string>()
 	const stepTokens = new Map<string, number>()
-	for (const e of lines(raw ?? '')) {
-		const t = timeOf(e)
-		if (harness === 'claude' || harness === 'amp') {
-			const blocks = Array.isArray(e.message?.content) ? (e.message.content as Record<string, any>[]) : []
-			if (e.type === 'assistant') {
-				// Claude Code repeats a message's usage on each of its content blocks; Amp sends one event per message.
-				let fresh = !e.message.id || !seen.has(e.message.id)
-				if (e.message.id) seen.add(e.message.id)
-				for (const b of blocks.filter((b) => b.type === 'tool_use')) {
-					issue(b.id, b.name, b.input, t, fresh ? num(e.message.usage?.output_tokens) : null)
-					fresh = false
+	const append = (raw: string, at?: number) => {
+		changed = []
+		for (const e of lines(raw)) {
+			const t = timeOf(e) ?? at ?? null
+			if (harness === 'claude' || harness === 'amp') {
+				const blocks = Array.isArray(e.message?.content) ? (e.message.content as Record<string, any>[]) : []
+				if (e.type === 'assistant') {
+					// Claude Code repeats a message's usage on each of its content blocks; Amp sends one event per message.
+					let fresh = !e.message?.id || !seen.has(e.message.id)
+					if (e.message?.id) seen.add(e.message.id)
+					for (const b of blocks.filter((b) => b.type === 'tool_use')) {
+						issue(b.id, b.name, b.input, t, fresh ? num(e.message.usage?.output_tokens) : null)
+						fresh = false
+					}
+				} else if (e.type === 'user') {
+					for (const b of blocks.filter((b) => b.type === 'tool_result')) finish(b.tool_use_id, b.content, t, b.is_error === true)
 				}
-			} else if (e.type === 'user') {
-				for (const b of blocks.filter((b) => b.type === 'tool_result')) finish(b.tool_use_id, b.content, t, b.is_error === true)
+			} else if (harness === 'codex') {
+				const item = e.item as Record<string, any> | undefined
+				const shape = item && CODEX_TOOLS[item.type]
+				if (!shape || (e.type !== 'item.started' && e.type !== 'item.completed')) continue
+				const { tool, input, output } = shape(item)
+				// An item reported only on completion (file changes) has no duration.
+				const started = open.has(item.id)
+				issue(item.id, tool, input, t, null)
+				if (e.type === 'item.completed') finish(item.id, output, started ? t : null, item.status === 'failed' || num(item.exit_code) !== 0)
+			} else if (e.type === 'message_end' && e.message?.role === 'assistant') {
+				const first = (e.message.content ?? []).find((c: Record<string, any>) => c.type === 'toolCall')
+				if (first) stepTokens.set(first.id, num(e.message.usage?.output))
+			} else if (e.type === 'tool_execution_start') {
+				issue(e.toolCallId, e.toolName, e.args, t, stepTokens.get(e.toolCallId) ?? null)
+			} else if (e.type === 'tool_execution_end') {
+				finish(e.toolCallId, e.result, t, e.isError === true)
 			}
-		} else if (harness === 'codex') {
-			const item = e.item as Record<string, any> | undefined
-			const shape = item && CODEX_TOOLS[item.type]
-			if (!shape || (e.type !== 'item.started' && e.type !== 'item.completed')) continue
-			const { tool, input, output } = shape(item)
-			// An item reported only on completion (file changes) has no duration.
-			const started = open.has(item.id)
-			issue(item.id, tool, input, t, null)
-			if (e.type === 'item.completed') finish(item.id, output, started ? t : null, item.status === 'failed' || num(item.exit_code) !== 0)
-		} else if (e.type === 'message_end' && e.message?.role === 'assistant') {
-			const first = (e.message.content ?? []).find((c: Record<string, any>) => c.type === 'toolCall')
-			if (first) stepTokens.set(first.id, num(e.message.usage?.output))
-		} else if (e.type === 'tool_execution_start') {
-			issue(e.toolCallId, e.toolName, e.args, t, stepTokens.get(e.toolCallId) ?? null)
-		} else if (e.type === 'tool_execution_end') {
-			finish(e.toolCallId, e.result, t, e.isError === true)
 		}
+		return changed
 	}
-	return [...open.values()].map(({ t: _, ...event }) => event)
+	return { append, events: () => [...open.values()].map(({ t: _, ...event }) => event) }
+}
+
+/** One call's raw stream → its tool events, in the order they were issued. */
+export function toolEvents(harness: Card['harness'], raw: string | null): ToolEvent[] {
+	const tracker = toolTracker(harness)
+	tracker.append(raw ?? '')
+	return tracker.events()
 }
 
 /** One call's raw stream → the tokens it spent, or null when the harness reported none. */
@@ -222,7 +242,7 @@ const buildOf = () => {
 }
 
 /** The strings a metrics-level line keeps as written: names, ids, commits, cards, outcomes and times. */
-const KEEP = new Set(['kind', 'job', 'profile', 'harness', 'provider', 'account', 'model', 'effort', 'outcome', 'status', 'code', 'cause', 'rule', 'flags', 'tool', 'tools', 'allowlist', 'required', 'fields', 'access', 'digest', 'exceeded', 'verdict', 'tier', 'prescribed', 'from', 'to', 'by', 'receiver', 'originator', 'ref', 'main', 'on', 'commit', 'verifiedOn', 'conflict', 'before', 'after', 'id', 'doneWhen', 'name', 'trace', 'span', 'parent', 'at', 'started', 'start', 'since', 'resetsAt', 'workspace', 'harnessVersion'])
+const KEEP = new Set(['kind', 'job', 'profile', 'harness', 'provider', 'account', 'model', 'effort', 'outcome', 'status', 'code', 'cause', 'rule', 'flags', 'tool', 'tools', 'allowlist', 'required', 'fields', 'access', 'digest', 'exceeded', 'verdict', 'tier', 'prescribed', 'from', 'to', 'by', 'receiver', 'originator', 'ref', 'main', 'on', 'commit', 'verifiedOn', 'conflict', 'before', 'after', 'id', 'doneWhen', 'name', 'trace', 'span', 'parent', 'invocation', 'channel', 'state', 'decoder', 'at', 'started', 'start', 'since', 'resetsAt', 'workspace', 'harnessVersion'])
 /** Every other string (prompts, answers, raw streams, errors, reasons, messages, questions, file paths) becomes its length. */
 const metrics = (v: unknown, key = ''): unknown =>
 	typeof v === 'string' ? (KEEP.has(key) ? v : v.length)

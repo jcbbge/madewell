@@ -6,11 +6,13 @@ import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { Effect, Fiber, Layer } from 'effect'
 import { TestClock } from 'effect/testing'
-import type { Card, Prescriptions } from '../src/cards.ts'
+import { loadPrescriptions, type Card, type Prescriptions } from '../src/cards.ts'
+import { resolveDecision, RUBRIC, type DecisionRequest, type DecisionResult } from '../src/decision.ts'
 import { answer, BRIEF, drive, drop, go, nextFor, promote, retry, runQueue } from '../src/engine.ts'
 import { NEUTRAL_HOST } from '../src/harness.ts'
 import { deliverableShape, laneOf, problemsOf, SOFTWARE, type Job, type Pack } from '../src/lane.ts'
 import { openStore, Store, type Autonomy } from '../src/store.ts'
+import { lensOf, renderTrace } from '../src/trace.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
 import { worktreesRoot } from '../src/workspace.ts'
 
@@ -29,10 +31,18 @@ const prescriptions: Prescriptions = {
 }
 const config = { prescriptions }
 
+const judged = {
+	verdict: 'at-least-two' as const,
+	legs: [
+		{ leg: 'DX' as const, pass: true, cell: 4, gets: 'A drop-in script', costs: 'One file', why: 'No setup' },
+		{ leg: 'UX' as const, pass: true, cell: 4, gets: 'Spreadsheet export', costs: 'One action', why: 'Obvious and simple' },
+		{ leg: 'AX' as const, pass: false, cell: 7, gets: 'Clear output', costs: 'No new capability', why: 'Small known task only' },
+	],
+}
 const PLAN = {
 	making: 'A CSV export script', notMaking: ['PDF export'], scope: ['src/export.sh'], follows: [{ path: 'src/export.sh', follows: 'src/app.sh' }],
 	steps: ['Create src/export.sh printing a,b'], doneWhen: [{ id: 'D1', text: 'sh src/export.sh prints a,b' }],
-	decisions: [{ question: 'Which separator?', decision: 'Comma', why: 'every spreadsheet opens it' }],
+	decisions: [{ question: 'Which separator?', decision: 'Comma', why: 'every spreadsheet opens it', ...judged }],
 }
 const CHECK = 'out=$(sh src/export.sh 2>&1); [ "$out" = "a,b" ] || { echo "expected a,b, got $out"; exit 1; }'
 
@@ -56,7 +66,7 @@ function standard(req: WorkerRequest): Reply {
 	if (req.kind === 'intake') return clear
 	if (req.kind === 'originator') return reply('Here is what I meant.')
 	switch (req.job) {
-		case 'ideate': return { outcome: 'CSV export', approach: 'a shell script', decisions: [{ question: 'Format?', decision: 'CSV', why: 'the operator asked for it' }] }
+		case 'ideate': return { outcome: 'CSV export', approach: 'a shell script', decisions: [{ question: 'Format?', decision: 'CSV', why: 'the operator asked for it', ...judged }] }
 		case 'challenge': return { findings: [{ finding: 'No header row needed', resolution: 'none' }], decisions: [] }
 		case 'plan': return PLAN
 		case 'test-plan': return checks(req)
@@ -125,6 +135,99 @@ function assertNoTrace(t: ReturnType<typeof setup>, id = t.item.id) {
 	assert.ok(!existsSync(join(t.home, 'items', String(id))), 'the item\'s checks are gone once it ships')
 }
 
+test('the decision seam validates all legs and degrades optional faults to the in-process rubric', async () => {
+	const request: DecisionRequest = {
+		item: { id: 1, title: 'Export', objective: 'CSV export', source: 'CSV please' }, mode: 'nq', job: 'plan', stage: 'planning', profile: 'ideator',
+		question: 'Which format?', context: { handoff: 'CSV', turns: [] }, repoIntent: { purpose: 'Simple reports' }, rubric: RUBRIC,
+		constraints: { scope: ['export.sh'], authority: 'advisory', nonGoals: ['PDF'], operatorEscalationPermitted: false },
+	}
+	const good: DecisionResult = { recommendation: 'CSV', reasoning: 'Matches the request', ...judged }
+	const on = { enabled: true, provider: 'scripted', options: { format: 'CSV' } }
+	const tmp = mkdtempSync(join(tmpdir(), 'mw-decision-'))
+	try {
+		for (const setting of [undefined, { ...on, enabled: false }, { ...on, provider: 'missing' }, { enabled: true }, null, on]) {
+			const path = join(tmp, 'prescriptions.json')
+			writeFileSync(path, JSON.stringify({ ...prescriptions, decisionModel: setting }))
+			const loaded = await Effect.runPromise(loadPrescriptions(path))
+			assert.deepEqual(loaded.decisionModel, setting, 'the prescription loader retains optional settings without making invalid cartridges fatal')
+			const result = await Effect.runPromise(resolveDecision(request, loaded.decisionModel, { scripted: () => Effect.succeed(good) }))
+			assert.equal(result.path, setting === on ? 'cartridge-assisted' : 'default-rubric')
+		}
+	} finally {
+		rmSync(tmp, { recursive: true, force: true })
+	}
+	const accepted = await Effect.runPromise(resolveDecision(request, on, { scripted: (input, options) => {
+		assert.deepEqual(input, request)
+		assert.deepEqual(options, { format: 'CSV' })
+		return Effect.succeed(good)
+	} }))
+	assert.equal(accepted.path, 'cartridge-assisted')
+	if (accepted.path === 'cartridge-assisted') assert.deepEqual(accepted.guidance, good)
+	for (const invalid of [
+		{}, { ...good, legs: good.legs.slice(1) }, { ...good, legs: [good.legs[0], good.legs[0], good.legs[2]] },
+		{ ...good, verdict: 'all-three' }, { ...good, legs: good.legs.map((l) => ({ ...l, cell: 10 })) },
+		{ ...good, operatorRequest: { question: 'Authorize?', candidates: [], ifUndecided: 'Wait', recommendation: 'CSV', reasoning: 'Clear', mentalModelRequest: 'What context is missing?' } },
+	]) {
+		assert.equal((await Effect.runPromise(resolveDecision(request, on, { scripted: () => Effect.succeed(invalid) }))).path, 'default-rubric')
+	}
+	for (const failure of [Effect.fail('out'), Effect.die('provider crashed')]) {
+		assert.equal((await Effect.runPromise(resolveDecision(request, on, { scripted: () => failure }))).path, 'default-rubric')
+	}
+	const timed = await Effect.runPromise(Effect.gen(function* () {
+		const fiber = yield* Effect.forkChild(resolveDecision(request, on, { scripted: () => Effect.never }))
+		yield* TestClock.adjust('5 seconds')
+		return yield* Fiber.join(fiber)
+	}).pipe(Effect.provide(TestClock.layer())))
+	assert.equal(timed.path, 'default-rubric')
+	// Negative verdicts are valid advice to reshape/stop, never a provider failure.
+	for (const [hits, verdict] of [[0, 'stop'], [1, 'below-bar'], [3, 'all-three']] as const) {
+		const guidance = { ...good, verdict, legs: good.legs.map((l, i) => ({ ...l, pass: i < hits })) }
+		assert.equal((await Effect.runPromise(resolveDecision(request, on, { scripted: () => Effect.succeed(guidance) }))).path, 'cartridge-assisted')
+	}
+})
+
+test('a below-bar settled choice cannot advance; a reshaped two-leg choice can', async () => {
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'ideate' && n === 1) return {
+			outcome: 'CSV', approach: 'a script', decisions: [{ question: 'Format?', decision: 'CSV', why: 'Cheap', ...judged, verdict: 'below-bar', legs: judged.legs.map((l) => ({ ...l, pass: l.leg === 'AX' })) }],
+		}
+		return undefined
+	})
+	try {
+		assert.equal((await t.run(drive(t.item.id, config))).status, 'shipped')
+		assert.equal(t.of('execute', 'ideate').length, 2, 'the first choice was refused, not accepted')
+		assert.ok(t.store.events(t.item.id).some((e) => e.kind === 'nq-question' && JSON.stringify(e.data).includes('reshape')))
+	} finally { t.cleanup() }
+})
+
+test('cartridge guidance is recorded before NQ and forward calls, never sent to maker execution', async () => {
+	const requests: DecisionRequest[] = []
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'ideate' && n === 1) return Promise.reject('simulated interrupted transport')
+		return req.kind === 'intake' && req.job === 'plan' && n === 1 ? ask('Which format?') : undefined
+	})
+	try {
+		const assisted = {
+			prescriptions: { ...prescriptions, decisionModel: { enabled: true, provider: 'scripted' } },
+			decisionProviders: { scripted: (request: DecisionRequest) => {
+				requests.push(request)
+				return Effect.succeed({ recommendation: 'CSV', reasoning: 'Matches source', ...judged })
+			} },
+		}
+		await assert.rejects(t.run(drive(t.item.id, assisted)))
+		assert.equal(t.store.events(t.item.id).filter((e) => e.kind === 'decision-resolution').length, 1, 'the resolution is durable before the interrupted call')
+		const done = await t.run(drive(t.item.id, assisted))
+		assert.equal(done.status, 'shipped')
+		assert.deepEqual(requests.map((r) => [r.mode, r.job]), [['forward', 'ideate'], ['forward', 'challenge'], ['nq', 'plan'], ['forward', 'plan']])
+		assert.deepEqual(t.packet('execute', 'ideate', 0).decisionResolution, t.packet('execute', 'ideate', 1).decisionResolution, 'redrive reuses the recorded guidance, without another provider call')
+		assert.equal(t.packet('originator', 'plan').decisionResolution.path, 'cartridge-assisted')
+		assert.equal(t.packet('execute', 'plan').decisionResolution.guidance.recommendation, 'CSV')
+		assert.equal(t.packet('execute', 'implement').decisionResolution, undefined)
+		assert.equal(t.packet('execute', 'test-plan').decisionResolution, undefined)
+		assert.equal(t.store.events(t.item.id).filter((e) => e.kind === 'decision-resolution').length, 4)
+	} finally { t.cleanup() }
+})
+
 test('an item passes through six profiles, splits after planning, and ships when Made Well\'s own run of its checks passes', async () => {
 	const t = setup()
 	try {
@@ -160,7 +263,7 @@ test('an item passes through six profiles, splits after planning, and ships when
 		// One brief for every call: the rubric's questions, the neutral host, no trace, the product's conventions.
 		assert.ok(t.calls.every((c) => c.system === BRIEF))
 		assert.ok(BRIEF.includes(NEUTRAL_HOST) && BRIEF.includes('Honor the conventions the project\'s repository already has.'))
-		for (const q of ['What moves us toward a 10× better experience of developing, understanding, inspecting, and recovering the work?', 'What moves us toward a 10× better experience for the person the resulting system serves?', 'What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?']) assert.ok(BRIEF.includes(q))
+		for (const q of ['What leads to a world-class developer experience?', 'What makes a memorable and lovable user experience?', 'What gives an efficient, optimized agentic experience?']) assert.ok(BRIEF.includes(q))
 		assert.match(t.packet('intake', 'plan').you.task, /What is unclear\? What is ambiguous\? Do I have everything I need to proceed\?/)
 		assert.match(t.packet('intake', 'plan').you.task, /no tools and no checkout in this call, by design[\s\S]*Never a question: a decision your own job settles/)
 		assert.equal(t.packet('intake', 'plan').you.where, 'Made Well\'s delivery lane (planning)')
@@ -203,6 +306,100 @@ test('an item passes through six profiles, splits after planning, and ships when
 	}
 })
 
+test('live trace signals precede return, survive interruption, and never steer the work; renderers fail open', async () => {
+	let output: NonNullable<WorkerRequest['onOutput']> | undefined
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'plan' && n === 1) {
+			output = req.onOutput!
+			return new Promise(() => {})
+		}
+		return undefined
+	})
+	try {
+		await t.run(Effect.gen(function* () {
+			yield* TestClock.setTime(0)
+			const fiber = yield* Effect.forkChild(drive(t.item.id, config))
+			while (!output) yield* Effect.promise(() => new Promise((r) => setTimeout(r, 5)))
+			const tool = (id: string, command = 'pwd') => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id, name: 'Bash', input: { command } }] } }) + '\n'
+			const first = tool('one')
+			output('stdout', first.slice(0, 17))
+			output('stderr', 'diagnostic from stderr\n')
+			output('stdout', first.slice(17) + tool('two') + tool('three'))
+			const active = (code: string) => t.store.events(t.item.id).findLast((e) => e.kind === 'trace-signal' && e.data.code === code)?.data.active === true
+			assert.ok(active('repeated-operation'), 'three identical tool inputs are evidence even before any result')
+			assert.equal(t.store.calls(t.item.id).some((c) => c.job === 'plan' && c.kind === 'execute'), false)
+			const mirror = lensOf(t.store, t.item.id, 'ax', [], 0)
+			assert.ok('tree' in mirror)
+			const flying = mirror.invocations.find((i) => i.status === 'running')!
+			assert.equal(flying.tools.length, 3, 'split stdout chunks and stderr do not corrupt tool parsing')
+			assert.ok(flying.tools.every((tool) => tool.state === 'started'))
+			assert.match(JSON.stringify(flying.entries), /diagnostic from stderr/)
+			const reader = openStore(t.store.path)
+			try { assert.match(JSON.stringify(reader.events(t.item.id)), /diagnostic from stderr/) } finally { reader.close() }
+			yield* TestClock.adjust(59_999)
+			assert.equal(active('no-output'), false)
+			yield* TestClock.adjust(1)
+			assert.equal(active('no-output'), true)
+			yield* TestClock.adjust(59_999)
+			assert.equal(active('no-tool-result'), false)
+			yield* TestClock.adjust(1)
+			assert.ok(active('no-tool-result') && active('no-progress'))
+			output('stdout', tool('four', 'git status'))
+			assert.equal(active('repeated-operation'), false, 'a different operation clears the live pattern')
+			assert.equal(active('no-output'), false)
+			output('stdout', JSON.stringify({ type: 'user', message: { content: ['one', 'two', 'three', 'four'].map((id) => ({ type: 'tool_result', tool_use_id: id, content: 'result' })) } }) + '\n')
+			assert.equal(active('no-tool-result'), false)
+			yield* TestClock.adjust(59_999)
+			assert.equal(active('unusual-duration'), false)
+			yield* TestClock.adjust(1)
+			assert.equal(active('unusual-duration'), true)
+			output('stdout', '{broken json}\n')
+			assert.ok(active('stream-parse'))
+			assert.equal(t.of('execute', 'plan').length, 1, 'signals did not interrupt, retry or reshape the call')
+			yield* Fiber.interrupt(fiber)
+			assert.equal(t.store.events(t.item.id).findLast((e) => e.kind === 'trace-finished')!.data.status, 'interrupted')
+			const count = t.store.events(t.item.id).length
+			yield* TestClock.adjust('10 seconds')
+			assert.equal(t.store.events(t.item.id).length, count, 'no heartbeat survives its invocation')
+			const view = lensOf(t.store, t.item.id, 'ux', [])
+			for (const renderer of [undefined, () => Effect.fail('offline'), () => Effect.die('broken'), () => Effect.succeed(undefined)]) assert.deepEqual(yield* renderTrace(view, renderer), view)
+			const hung = yield* Effect.forkChild(renderTrace(view, () => Effect.never))
+			yield* TestClock.adjust('5 seconds')
+			assert.deepEqual(yield* Fiber.join(hung), view)
+			assert.deepEqual(yield* renderTrace(view, () => Effect.succeed({ label: 'Not done' })), { label: 'Not done' })
+		}).pipe(Effect.provide(TestClock.layer())))
+		assert.equal((await t.run(drive(t.item.id, config))).status, 'shipped', 'redrive still follows only saved work state')
+		assert.equal(t.of('execute', 'plan').length, 2)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('a hanging ship command streams evidence and signals before return, without changing its deadline or marking delivery done', async () => {
+	const t = setup()
+	const gate = join(t.tmp, 'ship-gate')
+	writeFileSync(gate, '')
+	writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo, ship: `echo shipping; while test -e ${gate}; do sleep 0.02; done; echo delivered` }]))
+	try {
+		await t.run(Effect.gen(function* () {
+			yield* TestClock.setTime(0)
+			const fiber = yield* Effect.forkChild(drive(t.item.id, config))
+			while (!t.store.events(t.item.id).some((e) => e.kind === 'trace-output' && String(e.data.text).includes('shipping'))) yield* Effect.promise(() => new Promise((r) => setTimeout(r, 5)))
+			const start = t.store.events(t.item.id).find((e) => e.kind === 'trace-started' && e.data.kind === 'ship')!
+			yield* TestClock.adjust('3 minutes')
+			const signals = t.store.events(t.item.id).filter((e) => e.kind === 'trace-signal' && e.data.invocation === start.data.invocation && e.data.active)
+			assert.deepEqual(signals.map((e) => e.data.code).sort(), ['no-output', 'unusual-duration'])
+			assert.equal(lensOf(t.store, t.item.id, 'ux', []).done, false)
+			assert.ok(t.store.get(t.item.id)!.merged, 'merged is not the same as delivered')
+			rmSync(gate)
+			assert.equal((yield* Fiber.join(fiber)).status, 'shipped')
+			assert.match(t.store.get(t.item.id)!.shipped!.output, /delivered/)
+		}).pipe(Effect.provide(TestClock.layer())))
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('the implementer and the test architect run at the same time, and neither ever sees the other\'s output', async () => {
 	let release: () => void
 	const both = new Promise<void>((r) => (release = r))
@@ -215,6 +412,9 @@ test('the implementer and the test architect run at the same time, and neither e
 	const verdicts = ['echo wrong', 'echo a,b']
 	const t = setup((req, n) => {
 		if (req.kind !== 'execute') return undefined
+		if (req.job === 'implement' || req.job === 'test-plan') req.onOutput?.('stdout', JSON.stringify(req.card.harness === 'claude'
+			? { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'same-id', name: 'Bash', input: { command: req.job } }] } }
+			: { type: 'item.started', item: { type: 'command_execution', id: 'same-id', command: req.job } }) + '\n')
 		if (req.job === 'implement') return n === 1 ? meet(implement(req, verdicts.shift()!, { note: 'IMPLEMENTER-SECRET' })) : implement(req, verdicts.shift()!)
 		if (req.job === 'test-plan') return n === 1 ? meet({ ...checks(req), note: 'ARCHITECT-SECRET' }) : checks(req)
 		return undefined
@@ -223,6 +423,12 @@ test('the implementer and the test architect run at the same time, and neither e
 		const done = await t.run(drive(t.item.id, config))
 		assert.equal(done.status, 'shipped')
 		// The first round failed (implementation) and was replanned, so round 2's makers had round 1's outputs on record.
+		const mirror = lensOf(t.store, t.item.id, 'ax', [])
+		assert.ok('invocations' in mirror)
+		const makers = mirror.invocations.filter((i) => i.tools.length)
+		assert.equal(makers.length, 4)
+		assert.equal(new Set(makers.map((i) => i.tools[0]!.id)).size, 4, 'harness ids cannot collide across tracks or rounds')
+		assert.equal(new Set(makers.map((i) => i.parent)).size, 4)
 		assert.equal(t.of('execute', 'implement').length, 2)
 		for (const c of t.calls.filter((c) => c.job === 'implement' || (c.kind !== 'originator' && c.job === 'plan'))) assert.ok(!c.prompt.includes('ARCHITECT-SECRET'), `${c.kind} ${c.job} never sees the checks`)
 		for (const c of t.calls.filter((c) => c.job === 'test-plan')) assert.ok(!c.prompt.includes('IMPLEMENTER-SECRET'), `${c.kind} ${c.job} never sees the implementation`)
@@ -311,6 +517,9 @@ test('writes in a disposable read checkout are flagged but not imported; broken 
 		assert.match(t.store.get(t.item.id)!.outputs.ideate!, /"approach":"a shell script"/, 'the repaired answer is the deliverable')
 		assert.deepEqual(outcomes('plan'), ['ok'])
 		assert.deepEqual(outcomes('test-plan'), ['rejected', 'ok'])
+		const decodeFailures = t.store.events(t.item.id).filter((e) => e.kind === 'trace-decode' && e.data.ok === false)
+		assert.ok(decodeFailures.some((e) => e.data.job === 'ideate' && e.data.schema && e.data.reason))
+		assert.ok(decodeFailures.some((e) => e.data.job === 'test-plan' && String(e.data.reason).includes('D9')))
 		const plan = t.store.calls(t.item.id).find((c) => c.job === 'plan' && c.kind === 'execute')!
 		assert.deepEqual(plan.flags.map((f) => f.rule), ['write-under-read'])
 		assert.throws(() => git(t.repo, 'show', 'main:notes.md'), 'the read checkout\'s scratch file never ships')
@@ -1005,6 +1214,7 @@ test('discovery turns raw input into candidates that wait for promotion; each pr
 		assert.equal(found.status, 'discovered')
 		const candidates = t.store.list().filter((i) => i.discovery === run.id)
 		assert.deepEqual(candidates.map((c) => [c.title, c.status]), [['Plant list with photos', 'candidate'], ['Watering schedule', 'candidate']], 'an item without an objective is not a candidate')
+		assert.deepEqual(t.store.events(run.id).find((e) => e.kind === 'discovery-dropped')!.data.candidates, [{ position: 3, missing: ['objective'] }])
 		const intake = JSON.parse(t.of('intake', 'discover', run.id)[0]!.prompt)
 		assert.equal(intake.handoff.from, 'dispatcher')
 		assert.equal(intake.you.where, 'Made Well\'s discovery (discovery)')
@@ -1095,13 +1305,12 @@ test('a pack that breaks the console\'s contract is refused with every problem n
 	assert.deepEqual(problemsOf(SOFTWARE), [], 'the default pack plugs in')
 })
 
-test('full autonomy runs A to Z: discovery sends every candidate into delivery, and a question out of turns is decided by the delegating agent by the rubric', async () => {
-	const decided = 'Use commas; a header row is not part of it.'
+test('full autonomy promotes discoveries but cannot bypass the three-turn NQ bound', async () => {
 	const t = setup((req, n) => {
 		if (req.kind === 'execute' && req.job === 'discover') return { items: [{ title: 'CSV export', kind: 'feature', objective: 'Users can export a report as CSV', text: 'a,b' }] }
 		// New questions exhaust the exchange; already answered questions must not do that.
-		if (req.kind === 'intake' && req.job === 'implement') return req.prompt.includes(decided) ? undefined : ask(`Header row decision ${n}?`)
-		if (req.kind === 'originator' && req.job === 'implement') return req.prompt.includes('nobody else will answer') ? reply(decided) : reply('See the plan.')
+		if (req.kind === 'intake' && req.job === 'implement') return ask(`Header row decision ${n}?`)
+		if (req.kind === 'originator' && req.job === 'implement') return reply('See the plan.')
 		return undefined
 	})
 	try {
@@ -1112,12 +1321,12 @@ test('full autonomy runs A to Z: discovery sends every candidate into delivery, 
 		assert.equal(t.store.events(run.id).find((e) => e.kind === 'discovered')?.data.promoted, true)
 
 		const done = await t.run(drive(candidate!.id, config))
-		assert.equal(done.status, 'shipped', 'nothing waited on the operator')
+		assert.equal(done.status, 'held')
+		assert.equal(done.hold?.code, 'nq_turns')
+		assert.equal(t.of('originator', 'implement', candidate!.id).length, 3)
+		assert.equal(t.of('execute', 'implement', candidate!.id).length, 0)
 		const kinds = t.store.events(candidate!.id).map((e) => e.kind)
-		assert.ok(kinds.includes('nq-deciding') && kinds.includes('nq-decided') && !kinds.includes('held'))
-		const deciding = JSON.parse(t.of('originator', 'implement', candidate!.id).at(-1)!.prompt)
-		assert.match(deciding.you.task, /full autonomy[\s\S]*a choice that satisfies two of the three is the answer/)
-		assert.match(JSON.parse(t.of('execute', 'implement', candidate!.id)[0]!.prompt).exchange.handoff, /decided these by the rubric[\s\S]*- Header row decision 4\?[\s\S]*Use commas; a header row is not part of it\.$/)
+		assert.ok(!kinds.includes('nq-deciding') && !kinds.includes('nq-decided') && kinds.includes('held'))
 		const arbiterShape = deliverableShape(laneOf(), 'arbitrate', true) as { properties: { cause: { enum: string[] } } }
 		assert.deepEqual(arbiterShape.properties.cause.enum, ['pre-existing', 'implementation', 'test', 'environment'], 'in full autonomy the arbiter must name a cause')
 	} finally {

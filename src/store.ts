@@ -54,10 +54,6 @@ export interface Exchange {
 	readonly notes?: ReadonlyArray<string>
 	/** The receiver's card. A different card is a different agent, and goes through NQ again. */
 	readonly card?: Card
-	/** Full autonomy: the exchange ran out of turns, and the originator decides the open questions by the rubric. */
-	readonly deciding?: boolean
-	/** The originator has decided once by the rubric on this hand-off; running out of turns again holds. */
-	readonly decided?: boolean
 }
 
 /** One job's hand-off and attempts. The item carries one at its top level; after planning it carries two, one per maker. */
@@ -249,8 +245,7 @@ export function openStore(path: string) {
 			insertTools(c.id, toolEvents(harness, c.raw))
 		}
 	})
-	const event = (item: number, kind: string, data: Record<string, unknown>) => {
-		const at = new Date().toISOString()
+	const event = (item: number, kind: string, data: Record<string, unknown>, at = new Date().toISOString()) => {
 		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
 		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
 	}
@@ -276,8 +271,8 @@ export function openStore(path: string) {
 			return read(id)
 		},
 		/** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
-		note(id: number, kind: string, data: Record<string, unknown> = {}) {
-			tx(() => event(id, kind, data))
+		note(id: number, kind: string, data: Record<string, unknown> = {}, at?: string) {
+			tx(() => event(id, kind, data, at))
 		},
 		/** Saves the new state of an item together with the event that explains it. */
 		save(item: Item, kind: string, data: Record<string, unknown> = {}): Item {

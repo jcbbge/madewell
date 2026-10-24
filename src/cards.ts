@@ -45,6 +45,8 @@ const Prescriptions = Schema.Struct({
 	env: Schema.optional(Schema.Array(Schema.String)),
 	/** Items `mw run` drives at once, each up to two agents. Default: DEFAULT_PARALLEL. */
 	parallel: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
+	/** Optional capability: malformed settings fall back per decision, never prevent the console from running. */
+	decisionModel: Schema.optionalKey(Schema.Unknown),
 })
 export const DEFAULT_PARALLEL = 3
 export type Prescriptions = typeof Prescriptions.Type

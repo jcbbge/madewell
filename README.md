@@ -26,7 +26,7 @@ How involved you are is yours to choose, per project (`mw init --autonomy <level
 |---|---|
 | `checkpoints` (default) | after discovery, and before each item ships |
 | `steps` | at the checkpoints, and between the phases of delivery |
-| `full` | no routine stops: questions it would ask you are decided by the agent that has the context |
+| `full` | no routine checkpoints; the responsible agent resolves questions within NQ, with a hold for a spec defect after three answered turns |
 
 Start with checkpoints; choose fewer stops as you become comfortable. Explicit project or run settings are preserved. `mw init --autonomy full` opts a project into hands-off delivery.
 
@@ -56,6 +56,24 @@ mw init --cartridges pack.json            # this project's new work runs it
 
 A pack can add steps of its own anywhere before the plan, hold several discovery cartridges, and unplug the checks. The console keeps five slots, because its own machinery acts on what they return: `discover` (ends discovery with the candidates), `plan` (the scope and done-when items the makers are held to), `implement` and `test-plan` (the makers, side by side and blind to each other) and `verify` (Made Well runs the checks, merges and ships). `mw cartridges --check pack.json` says exactly what breaks the contract before anything runs.
 
+### Optional decision cartridge
+
+The [three-legged rubric](dossiers/2026-10-24-three-legged-rubric.md) is the default: agents judge DX, UX and AX through their 3×3 matrices, and settled decisions must pass at least two legs. No external inference is needed.
+
+An optional entry in prescriptions selects a registered advisory renderer:
+
+```json
+{
+  "decisionModel": {
+    "enabled": true,
+    "provider": "<registered decision provider>",
+    "options": {}
+  }
+}
+```
+
+No provider is registered by the CLI today. Hosts can supply named `DecisionProvider` functions through the engine's `decisionProviders` registry, following `src/decision.ts`: bounded request and options in, an Effect returning a schema-checked result out. Guidance is supplied at ideation/planning and NQ originator boundaries, never at maker execution or verification. The console records the chosen path in `decision-resolution` events and reuses it on redrive. Absence, `enabled: false`, malformed settings, unknown providers, failures, invalid results and a five-second timeout all fall back to the normal in-process rubric. Providers cannot grant authority, extend NQ or bypass holds. The structured operator-hold UX remains deferred.
+
 ## Watch a run
 
 **`mw ui`** serves the live console on this machine and prints its address (`http://127.0.0.1:4747/`). It answers, at a glance:
@@ -73,6 +91,20 @@ The console only reads the store, so it is safe beside a running `mw run`. `mw r
 - `mw ui --host 0.0.0.0` serves your network.
 
 **`mw watch`** gives the same view in a terminal (tmux, Ghostty, any SSH session), redrawn every second. When a program reads it, it streams every event as one JSON line instead, so any agent can follow a run with `mw watch --since <seq>`.
+
+### Three lenses, one trace
+
+`mw trace <id>` is the read-only light switch: **done / not done**, needs you or not, the next action, and recorded proof (delivery, checks, candidates or hold). It defaults to **UX / 30,000 ft**, with no raw harness stream.
+
+- `mw trace <id> --lens dx`: **DX / 15,000 ft** — lane and stage, NQ and independent maker tracks, cards and budgets, calls and refusals, quota, runner ownership/loss, verification, flags and live diagnostics.
+- `mw trace <id> --lens ax`: **AX / 0 ft** — the work → round/job → invocation → tool tree, original inputs, outputs, stream fragments, tool starts/results, heartbeat and parse/schema evidence. Invocation ids distinguish interrupted attempts from their redrives.
+- The same JSON is available at `/api/trace/<id>?lens=ux|dx|ax` on `mw ui`. Replay embeds the AX record, and exports retain interrupted fragments in `item.json` alongside the existing completed-call folders. No renderer is required; these are headless projections, not a browser redesign.
+
+Agent calls (including repairs), prepare, gates/checks, ship and alerts append live evidence to the **existing event store**, before returning. The transient `live/` files are still convenient tails; they are no longer the only copy of in-flight output. A killed runner leaves its invocation and captured fragments readable as **lost**, never as a successful returned call. Old calls retain their original record; missing historical live evidence is not invented.
+
+Signals are evidence, not automatic correction. A five-second heartbeat observes **60 seconds without output**, **120 seconds without a reported tool result** (including an outstanding-tool signal), three consecutive identical tool inputs or output lines, repeated NQ question sets, JSON-looking stream parse failures, and unusual duration. Duration uses three times the median of at least three prior returned invocations of the same item/job/kind, with a 30-second floor; before that it uses one minute for intake/repair and three minutes otherwise. These are explicit heuristics, not proof that work is useless. Returning output/results clears the corresponding live signal. Existing budgets, NQ, holds, retries and shipping decisions are unchanged; ship/alert commands gain observation, not a new timeout.
+
+Hosts can pass an optional `TraceRenderer` to `serve`, or call `renderTrace` over `lensOf` (`src/trace.ts`). Missing/invalid renderers, failure, non-JSON output and a five-second timeout fall back to the JSON lens. Renderers do not own state or get an engine control API. Discovery records dropped candidate positions and missing fields; a nonzero alert exit is explicitly a notification failure, never “sent.”
 
 Everything is recorded by default in Made Well's home (`~/.local/share/madewell`):
 

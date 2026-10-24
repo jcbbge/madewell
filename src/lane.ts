@@ -16,6 +16,7 @@
 // Every deliverable is schema-first JSON: what each job is told to answer with and what its answer is checked against.
 import { readFileSync } from 'node:fs'
 import { Effect, Result, Schema } from 'effect'
+import { Decision } from './decision.ts'
 import { MadeWellError } from './errors.ts'
 
 export type Job = string
@@ -198,11 +199,6 @@ export const loadPack = (path: string) =>
 // ── Deliverables ───────────────────────────────────────────────────────────────────────────────────────
 
 const Text = Schema.String
-const Decision = Schema.Struct({
-	question: Text,
-	decision: Text,
-	why: Text.annotate({ description: 'how the three governing questions settle it' }),
-})
 const Decisions = Schema.Array(Decision).annotate({ description: 'every decision this job settled, and why' })
 export const Resource = Schema.Struct({
 	kind: Text.annotate({ description: 'for example database-branch, dev-clone, server' }),
@@ -330,6 +326,7 @@ export const INTAKE = Schema.Struct({
 export const ORIGINATOR = Schema.Struct({
 	answer: Schema.NonEmptyString,
 	needsOperator: Schema.Boolean,
+	decisions: Schema.optionalKey(Decisions.annotate({ description: 'every new choice settled in this answer, with the triple gate; omit only for factual clarification or saved-answer reuse' })),
 	reuse: Reuse,
 })
 
@@ -383,7 +380,7 @@ function unfollowed(p: Plan, tracked: ReadonlyArray<string>): string | undefined
  * Checks a job's deliverable beyond its schema. Pure: the plan carries the done-when ids the checks must thread.
  * `tracked`, the files at the plan's base, enables the follows rule; without it (re-reading a stored plan) the rule is not applied.
  */
-export function validate(lane: Lane, job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>, autonomous = false, conventions: ReadonlyArray<string> = []): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
+export function validate(lane: Lane, job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>, autonomous = false, conventions: ReadonlyArray<string> = []): { ok: true; value: Record<string, unknown>; dropped?: ReadonlyArray<{ position: number; missing: string[] }> } | { ok: false; reason: string } {
 	if (job === 'discover') {
 		// Discovery keeps what it can: an item without a title or objective is dropped, not the whole run.
 		const report = lastJson(output)
@@ -397,9 +394,16 @@ export function validate(lane: Lane, job: Job, output: string, plan?: Plan, trac
 			const after = [...new Set((Array.isArray(i.after) ? i.after : []).map((p) => kept.indexOf(Number(p) - 1)).filter((m) => m >= 0 && m < k))].map((m) => m + 1)
 			return { title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature', ...(after.length ? { after } : {}) }
 		})
-		return { ok: true, value: { items } }
+		const dropped = all.flatMap((i, n) => kept.includes(n) ? [] : [{ position: n + 1, missing: ['title', 'objective'].filter((key) => !text(i?.[key])) }])
+		return { ok: true, value: { items }, ...(dropped.length ? { dropped } : {}) }
 	}
 	if (job === 'verify') return { ok: false, reason: 'verify is Made Well\'s own code, not an agent job.' }
+	// Custom thinking steps use the same gate even when their output schema is supplied by a pack.
+	const decisions = lastJson(output)?.decisions
+	if (decisions !== undefined) {
+		const judged = Schema.decodeUnknownResult(Decisions)(decisions)
+		if (Result.isFailure(judged)) return { ok: false, reason: String(judged.failure) }
+	}
 	const schema = slotSchema(lane, job, autonomous)
 	if (!schema) {
 		const problem = malformed(lane, job, output)

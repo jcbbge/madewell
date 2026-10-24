@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'cartridges', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'go', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
+const COMMANDS = ['next', 'init', 'cartridges', 'discover', 'promote', 'start', 'run', 'status', 'show', 'trace', 'holds', 'answer', 'retry', 'go', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -159,6 +159,19 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 	assert.equal(t.mw('run').out.items[0].status, 'shipped')
 })
 
+test('a failed alert is a recorded notification failure, not a sent alert or a resolved hold', () => {
+	const t = setup({ FAKE_ASK: 'plan' })
+	t.mw('init', '--autonomy', 'full', '--alert', 'echo notification offline >&2; exit 7')
+	t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports')
+	assert.equal(t.mw('run').out.items[0].status, 'held')
+	const dx = t.mw('trace', '1', '--lens', 'dx').out
+	const alert = dx.diagnostics.find((e: { kind: string }) => e.kind === 'alerted')
+	assert.deepEqual([alert.data.exitCode, alert.data.delivered, alert.data.failure], [7, false, 'notification-failed'])
+	assert.match(alert.data.stderr, /notification offline/)
+	assert.equal(dx.needsYou, true)
+	assert.equal(t.mw('holds').out.holds[0].alerted.exitCode, 7, 'the existing holds contract stays intact')
+})
+
 test('an item that will never ship is dropped: it leaves the holds and next, keeps its record, and dropping twice drops once', () => {
 	const t = setup({ FAKE_ASK: 'plan' })
 	t.mw('init', '--autonomy', 'full', '--ship', 'true')
@@ -209,6 +222,9 @@ test('errors are JSON on stderr with a listed code, the context of its shape, an
 	assert.equal(unregistered.out, null)
 	assert.deepEqual([unregistered.err.error, unregistered.err.context], ['project_not_found', { workspace: t.repo, projects: [] }])
 	assert.equal(existsSync(t.home), false, 'a refused start creates nothing')
+	assert.equal(t.mw('trace', '1').err.error, 'item_not_found')
+	assert.equal(t.mw('trace', '1', '--lens', 'unknown').err.error, 'usage')
+	assert.equal(existsSync(t.home), false, 'trace reads do not create a home')
 
 	t.mw('init', '--ship', 'true')
 	assert.deepEqual(t.mw('init', '--gates', '[{"run": "npx eslint {files}", "glob": "*.ts"}]').out.project, { path: t.repo, ship: 'true', gates: [{ run: 'npx eslint {files}', glob: '*.ts' }] }, 'gates join the project\'s config, which keeps its ship command')
@@ -238,11 +254,25 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 
-	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, detached: true, stdio: 'ignore' })
+	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
+	let runnerOutput = ''
+	runner.stdout.setEncoding('utf8').on('data', (chunk: string) => (runnerOutput += chunk))
+	runner.stderr.setEncoding('utf8').on('data', (chunk: string) => (runnerOutput += chunk))
 	const log = () => (existsSync(join(t.dir, 'calls.log')) ? readFileSync(join(t.dir, 'calls.log'), 'utf8') : '')
-	while (!log().includes('execute implement')) await new Promise((r) => setTimeout(r, 20))
+	let before
+	for (let n = 0; ; n++) {
+		before = t.mw('trace', '1', '--lens', 'ax').out
+		if (JSON.stringify(before).includes('partial evidence before runner loss')) break
+		assert.ok(n < 100, `live evidence never reached the store: ${runnerOutput}; calls: ${log()}; proof: ${JSON.stringify(before.proof)}`)
+		await new Promise((r) => setTimeout(r, 20))
+	}
+	const flying = before.invocations.find((i: { status: string; args: { job: string } }) => i.status === 'running' && i.args.job === 'implement')
+	assert.ok(flying && flying.call === null, 'the stream is readable before any returned call exists')
 	process.kill(-runner.pid!, 'SIGKILL') // the runner and its hung worker, as in a crash
 	await new Promise((r) => runner.once('exit', r))
+	const lost = t.mw('trace', '1', '--lens', 'ax').out.invocations.find((i: { id: string }) => i.id === flying.id)
+	assert.equal(lost.status, 'lost')
+	assert.match(JSON.stringify(lost.entries), /partial evidence before runner loss/)
 
 	const stale = t.mw('status').out
 	assert.match(stale.summary, /1 in progress with no runner/, 'status reads the runner as gone, though the item still says running')
@@ -253,6 +283,16 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	const resumed = t.mw('run')
 	assert.equal(resumed.code, 0, JSON.stringify(resumed.err))
 	assert.equal(resumed.out.items[0].status, 'shipped')
+	const ux = t.mw('trace', '1').out
+	assert.deepEqual([ux.lens, ux.depth, ux.done, ux.needsYou, ux.state], ['ux', 30000, true, false, 'shipped'])
+	assert.equal(ux.proof.shipped.main, t.git('rev-parse', 'HEAD'))
+	assert.equal(ux.invocations, undefined, 'UX does not expose harness internals')
+	const dx = t.mw('trace', '1', '--lens', 'dx').out
+	assert.ok(dx.invocations.some((i: { id: string; status: string }) => i.id === flying.id && i.status === 'lost'))
+	assert.ok(dx.invocations.some((i: { id: string; call: unknown }) => i.id !== flying.id && i.call !== null))
+	assert.ok(dx.invocations.every((i: { args?: unknown; entries?: unknown }) => i.args === undefined && i.entries === undefined), 'DX collapses packets and raw fragments')
+	const exported = t.mw('export', '1').out.export
+	assert.match(readFileSync(join(exported, 'item.json'), 'utf8'), /partial evidence before runner loss/, 'export retains interrupted evidence as well as completed calls')
 	const calls = log().trim().split('\n')
 	const executed = calls.filter((l) => l.startsWith('execute'))
 	assert.deepEqual(executed.slice(0, 3), ['execute ideate ideator', 'execute challenge ideation peer', 'execute plan planner'])
@@ -283,6 +323,12 @@ test('the console shows each step while it runs: what the agent is doing, who ow
 		const running = during.running.find((r: { kind: string; job: string }) => r.kind === 'execute' && r.job === 'plan')
 		assert.deepEqual([running?.item, running?.who], [1, 'planner'], 'the planner\'s job shows as running while it runs')
 		assert.match(running.live, /item-1-plan-execute\.log$/, 'its output streams to a live file')
+		const ax = await get('api/trace/1?lens=ax')
+		const invocation = ax.invocations.find((i: { status: string; args: { job: string } }) => i.status === 'running' && i.args.job === 'plan')
+		assert.match(JSON.stringify(invocation.entries), /planner is still working/, 'the API reads durable stdout/stderr while the worker is still alive')
+		assert.equal(invocation.call, null)
+		assert.equal((await fetch(url + 'api/trace/1?lens=unknown')).status, 400)
+		assert.equal((await fetch(url + 'api/trace/999')).status, 404)
 		const item = during.items.find((i: { id: number }) => i.id === 1)
 		assert.deepEqual([item.doing, item.owes], ['The planner is writing the plan', 'planner'], 'the item says what happens now and who owes the next move')
 		assert.deepEqual(item.steps.map((s: { job: string; state: string }) => `${s.job}:${s.state}`), ['ideate:done', 'challenge:done', 'plan:active', 'implement:todo', 'test-plan:todo', 'verify:todo', 'ship:todo'])
@@ -294,6 +340,7 @@ test('the console shows each step while it runs: what the agent is doing, who ow
 		const after = await get('api/model')
 		assert.deepEqual([after.running, (await get('api/mark')).live], [[], ''], 'nothing is in flight once the run ends, and live files go once each step is saved')
 		assert.deepEqual([after.summary.shipped, after.items[0].owes], [1, ''], 'once shipped, nobody owes a move')
+		assert.deepEqual([...(await get('api/trace/1')).proof.verification.results.map((c: { exitCode: number }) => c.exitCode)], [0])
 		assert.match(after.items[0].doing, /^Shipped at [0-9a-f]{10}$/)
 		assert.ok(after.items[0].steps.every((s: { state: string }) => s.state === 'done'))
 		const story = await get('api/item/1')
