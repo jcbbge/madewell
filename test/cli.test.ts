@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
+const COMMANDS = ['next', 'init', 'cartridges', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -532,4 +532,29 @@ test('prune removes finished work before the cutoff with its record and files, a
 
 	const again = t.mw('prune', '--before', pruned.out.before).out
 	assert.deepEqual([again.items, again.kept, again.files, again.records], [[], kept, [], none.records], 'a repeat removes nothing more')
+})
+
+test('mw cartridges prints the pack a project runs; init plugs in only a pack that honors the console\'s contract, and new work runs it', () => {
+	const t = setup()
+	t.mw('init', '--ship', 'true')
+	const before = t.mw('cartridges').out
+	assert.equal(before.source, 'default')
+	assert.deepEqual(before.lane.delivery, ['ideation / ideate (ideator)', 'ideation / challenge (ideation peer)', 'planning / plan (planner)', 'implementation / implement (implementer)', 'implementation / test-plan (test architect)', 'verification / verify (made well)'])
+
+	// The default pack, with the challenge unplugged: saved from `mw cartridges` itself.
+	const pack = { ...before.pack, name: 'lean', delivery: before.pack.delivery.map((c: { cartridge: string; steps: { job: string }[] }) => ({ ...c, steps: c.steps.filter((s) => s.job !== 'challenge') })) }
+	writeFileSync(join(t.dir, 'lean.json'), JSON.stringify(pack))
+	writeFileSync(join(t.dir, 'broken.json'), JSON.stringify({ ...pack, delivery: pack.delivery.slice(0, 2) }))
+	const refused = t.mw('init', '--cartridges', join(t.dir, 'broken.json'))
+	assert.equal(refused.err.error, 'cartridges_invalid')
+	assert.ok(refused.err.context.problems.some((p: string) => p.includes('"verify"')), JSON.stringify(refused.err.context.problems))
+	assert.equal(t.mw('cartridges').out.source, 'default', 'a refused pack is not registered')
+
+	assert.equal(t.mw('init', '--cartridges', join(t.dir, 'lean.json')).out.project.cartridges, join(t.dir, 'lean.json'))
+	assert.deepEqual(t.mw('cartridges').out.lane.delivery.slice(0, 2), ['ideation / ideate (ideator)', 'planning / plan (planner)'])
+	const item = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item
+	assert.equal(t.mw('show', String(item.id)).out.item.pack.name, 'lean', 'new work carries the pack it runs')
+
+	assert.equal(t.mw('init', '--cartridges', 'default').out.project.cartridges, undefined)
+	assert.equal(t.mw('cartridges').out.source, 'default')
 })

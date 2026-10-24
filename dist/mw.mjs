@@ -6,7 +6,7 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { existsSync as existsSync4, readdirSync as readdirSync5, readFileSync as readFileSync8, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync4, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -11120,9 +11120,9 @@ var TemplateLiteral = class extends ASTNodeImpl {
     this.suffixLengths = suffixLengths;
   }
   /** @internal */
-  getParser(compile2) {
+  getParser(compile3) {
     const tuple2 = new Arrays(false, this.parts.map(partFromString), []);
-    const parser = compile2(decodeTo(string2, tuple2, templateLiteralTransformation(this)));
+    const parser = compile3(decodeTo(string2, tuple2, templateLiteralTransformation(this)));
     return (input, options) => {
       if (input === missing) return missingExit;
       const result3 = parser(input, options);
@@ -11368,7 +11368,7 @@ var Arrays = class extends ASTNodeImpl {
     }
   }
   /** @internal */
-  getParser(compile2, compileField2 = compile2) {
+  getParser(compile3, compileField2 = compile3) {
     const ast = this;
     let elements;
     let rest;
@@ -11601,7 +11601,7 @@ var Objects = class extends ASTNodeImpl {
     this.encodingChecks = encodingChecks;
   }
   /** @internal */
-  getParser(compile2, compileField2 = compile2) {
+  getParser(compile3, compileField2 = compile3) {
     const ast = this;
     const hasProperties = ast.propertySignatures.length;
     const indexCount = ast.indexSignatures.length;
@@ -11619,7 +11619,7 @@ var Objects = class extends ASTNodeImpl {
         }));
         indexes = indexCount ? ast.indexSignatures.map((is3) => ({
           is: is3,
-          parserKey: compile2(parameterFromPropertyKey(is3.parameter)),
+          parserKey: compile3(parameterFromPropertyKey(is3.parameter)),
           parserValue: compileField2(is3.type)
         })) : void 0;
       }
@@ -12149,11 +12149,11 @@ var Union = class extends ASTNodeImpl {
     this.encodingChecks = encodingChecks;
   }
   /** @internal */
-  getParser(compile2, compileField2) {
+  getParser(compile3, compileField2) {
     const ast = this;
     const isConstructor = compileField2 !== void 0;
     const parsers = [];
-    const parser = (i) => parsers[i] ??= compile2(ast.types[i]);
+    const parser = (i) => parsers[i] ??= compile3(ast.types[i]);
     let index2;
     return (input, options) => {
       if (input === missing) {
@@ -12302,9 +12302,9 @@ var Suspend = class extends ASTNodeImpl {
     this.thunk = () => ast ??= thunk();
   }
   /** @internal */
-  getParser(compile2) {
+  getParser(compile3) {
     let parser;
-    return (input, options) => (parser ??= compile2(this.thunk()))(input, options);
+    return (input, options) => (parser ??= compile3(this.thunk()))(input, options);
   }
   /** @internal */
   recur(recur2) {
@@ -12987,13 +12987,13 @@ function compileTransformation(transformation) {
 }
 var fromOptionalEffect = (effect2) => flatMapEager2(effect2, fromOptionExit);
 var wrapEncoding = (ast, input, options, effect2) => catchCause3(effect2, (cause) => failCauseSync2(() => map6(cause, (issue) => new Encoding(ast, issue, input, options))));
-function makeConstructorParser(descriptor, compile2) {
+function makeConstructorParser(descriptor, compile3) {
   const transform3 = compileTransformation(descriptor.link.transformation);
   let sourceParser;
   return (input, options) => {
     if (input === missing) return missingExit;
     if (descriptor.isConstructed(input)) return sameExit;
-    const result3 = (sourceParser ??= compile2(descriptor.link.to))(input, options);
+    const result3 = (sourceParser ??= compile3(descriptor.link.to))(input, options);
     return transform3(result3, input, options);
   };
 }
@@ -13012,16 +13012,16 @@ function withDefault2(ast, parser) {
     });
   };
 }
-function compileField(ast, compile2) {
-  const parser = compile2(ast);
+function compileField(ast, compile3) {
+  const parser = compile3(ast);
   return ast.context?.constructorDefault === void 0 ? parser : withDefault2(ast, parser);
 }
-function compile(ast, compile2, compileField2, base, specialize) {
+function compile(ast, compile3, compileField2, base, specialize) {
   if (ast._tag === "Declaration") {
-    for (const parameter of ast.typeParameters) compile2(parameter);
+    for (const parameter of ast.typeParameters) compile3(parameter);
   }
   const descriptor = compileField2 ? getConstructorDescriptor(ast) : void 0;
-  const parser = descriptor ? makeConstructorParser(descriptor, compile2) : base ?? ast.getParser(compile2, compileField2);
+  const parser = descriptor ? makeConstructorParser(descriptor, compile3) : base ?? ast.getParser(compile3, compileField2);
   const checks = ast.checks;
   const links = ast.encoding;
   const transformations = links?.map((link2) => compileTransformation(link2.transformation));
@@ -13084,7 +13084,7 @@ function compile(ast, compile2, compileField2, base, specialize) {
     return parseLocal;
   }
   return (input, options) => {
-    const parsers = encodingParsers ??= links.map((link2) => compile2(link2.to));
+    const parsers = encodingParsers ??= links.map((link2) => compile3(link2.to));
     let current = input;
     let result3 = parsers[parsers.length - 1](input, options);
     for (let i = links.length - 1; i >= 0; i--) {
@@ -15717,12 +15717,12 @@ function toFormatter(ast, options) {
   function recur2(ast2) {
     let formatter = compiled.get(ast2);
     if (formatter === void 0) {
-      formatter = compile2(ast2);
+      formatter = compile3(ast2);
       compiled.set(ast2, formatter);
     }
     return formatter;
   }
-  function compile2(ast2) {
+  function compile3(ast2) {
     const annotation = resolve(ast2)?.["toFormatter"];
     if (typeof annotation === "function") {
       return annotation(isDeclaration(ast2) ? ast2.typeParameters.map(recur2) : []);
@@ -21717,6 +21717,11 @@ var ERRORS = {
       harnesses: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String))
     })
   },
+  cartridges_unreadable: { means: "The cartridge pack file cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String, reason: Schema_exports.String }) },
+  cartridges_invalid: {
+    means: "The cartridge pack does not plug into the console: it is not valid JSON, does not match the pack shape, or breaks the console's contract (`problems` lists each).",
+    context: Schema_exports.Struct({ path: Schema_exports.String, problems: Schema_exports.Array(Schema_exports.String) })
+  },
   eval_card_invalid: {
     means: "The --card of `mw eval` is neither a tier in prescriptions nor a card as JSON {harness, provider, account, model, effort} on a known harness.",
     context: Schema_exports.Struct({ card: Schema_exports.String, tiers: Schema_exports.Array(Schema_exports.String), harnesses: Schema_exports.Array(Schema_exports.String), problems: Schema_exports.optionalKey(Schema_exports.String) })
@@ -22197,9 +22202,26 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   }
   return p;
 });
+var forLane = (p, lane) => Effect_exports.gen(function* () {
+  const jobs2 = { ...p.jobs };
+  for (const step2 of [...lane.discovery, ...lane.delivery]) {
+    if (step2.job === "verify" || jobs2[step2.job]) continue;
+    const tier = step2.tier ?? "deep";
+    if (!p.tiers[tier]) {
+      return yield* new MadeWellError({
+        code: "prescriptions_invalid",
+        message: `The ${step2.job} step of the "${lane.pack.name}" cartridge pack runs on tier "${tier}", which the prescriptions do not define.`,
+        context: { path: "prescriptions", job: step2.job, tier, tiers: Object.keys(p.tiers) },
+        next: [{ run: '$EDITOR "$MW_PRESCRIPTIONS"', why: `define tier "${tier}", or prescribe "${step2.job}" under jobs` }, { run: "mw cartridges", why: "see the pack and the tier each step asks for" }]
+      });
+    }
+    jobs2[step2.job] = { tier, access: "read", ...step2.budget ? { budget: step2.budget } : {} };
+  }
+  return { ...p, jobs: jobs2 };
+});
 var prescriptionOf = (p, job) => p.jobs[job];
 var cardsFor = (p, job) => p.tiers[prescriptionOf(p, job).tier];
-var budgetFor = (p, job) => p.jobs[job].budget ?? DEFAULT_BUDGET;
+var budgetFor = (p, job) => p.jobs[job]?.budget ?? DEFAULT_BUDGET;
 var harnessOf = (p, name) => {
   const harness = p.harnesses?.[name] ?? HARNESSES[name];
   return harness && { ...harness, env: [...harness.env ?? [], ...p.env ?? []] };
@@ -22454,7 +22476,7 @@ import { dirname as dirname6, join as join9 } from "node:path";
 
 // src/project.ts
 import { execFile as execFile3 } from "node:child_process";
-import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync5, writeFileSync as writeFileSync4 } from "node:fs";
+import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "node:fs";
 import { dirname as dirname5, join as join8, sep } from "node:path";
 
 // src/store.ts
@@ -22463,47 +22485,144 @@ import { homedir as homedir2 } from "node:os";
 import { dirname as dirname4, join as join7 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-// src/telemetry.ts
-import { createHash } from "node:crypto";
-import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync2, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
-import { hostname } from "node:os";
-import { dirname as dirname3, join as join6, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
-import { fileURLToPath } from "node:url";
-
 // src/lane.ts
-var MAKERS = ["implement", "test-plan"];
+import { readFileSync as readFileSync4 } from "node:fs";
 var isMaker = (job) => job === "implement" || job === "test-plan";
-var DELIVERY = [
-  { job: "ideate", stage: "ideation", profile: "ideator", duty: "Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement." },
-  { job: "challenge", stage: "ideation", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement." },
-  { job: "plan", stage: "planning", profile: "planner", duty: "Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement." },
-  { job: "test-plan", stage: "planning", profile: "test architect", duty: "From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code." },
-  { job: "implement", stage: "implementation", profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan, and never write or run checks of your own work." },
-  { job: "verify", stage: "verification", profile: "made well", duty: "Made Well runs the item's own check commands against the implementer's change; exit 0 ships." }
-];
-var DISCOVER = {
-  job: "discover",
-  stage: "discovery",
-  profile: "ideator",
-  duty: `Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement.`
+var Positive2 = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
+var StepSpec = Schema_exports.Struct({
+  job: Schema_exports.String.annotate({ description: `the job's name, lowercase letters, digits and "-"; a slot (discover, plan, implement, test-plan, verify) gets the console's behaviour` }),
+  profile: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the agent profile that does it, never a personal name" })),
+  duty: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "what the job is for and what it must not do, in one or two sentences" })),
+  task: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "further instructions for the job itself" })),
+  receives: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String).annotate({ description: 'earlier jobs of the same loop whose deliverables it gets ("discover" in delivery: the candidate); default: every earlier one' })),
+  output: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown).annotate({ description: `a thinking step's deliverable as JSON Schema, {"type": "object", ...}: Made Well checks type, properties, required, items, enum and anyOf` })),
+  tier: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: `a thinking step's prescribed tier when the prescriptions do not name its job; default "deep"` })),
+  budget: Schema_exports.optionalKey(Schema_exports.Struct({ minutes: Positive2, tokens: Schema_exports.optional(Positive2) }).annotate({ description: "a thinking step's budget when the prescriptions do not name its job" }))
+}).annotate({ identifier: "Step" });
+var CartridgeSpec = Schema_exports.Struct({
+  cartridge: Schema_exports.NonEmptyString.annotate({ description: "its name, shown as the stage of its steps" }),
+  steps: Schema_exports.NonEmptyArray(StepSpec)
+}).annotate({ identifier: "Cartridge" });
+var Pack = Schema_exports.Struct({
+  name: Schema_exports.NonEmptyString,
+  brief: Schema_exports.optionalKey(Schema_exports.String.annotate({ description: "what every call of this kind of work should know, added to the shared brief" })),
+  discovery: Schema_exports.NonEmptyArray(CartridgeSpec).annotate({ description: 'raw input in, candidates out; the last step is "discover"' }),
+  delivery: Schema_exports.NonEmptyArray(CartridgeSpec).annotate({ description: 'one item in, delivered out: thinking steps, then "plan", then "implement" (and "test-plan" beside it, or leave it out), then "verify"' })
+}).annotate({ identifier: "Pack" });
+var SLOTS = ["discover", "plan", "implement", "test-plan", "verify"];
+var SLOT_DEFAULTS = {
+  discover: { profile: "ideator", duty: `Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement.` },
+  plan: { profile: "planner", duty: "Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement." },
+  "test-plan": { profile: "test architect", duty: "From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code." },
+  implement: { profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan, and never write or run checks of your own work." },
+  verify: { profile: "made well", duty: "Made Well runs the item's own check commands against the implementer's change; exit 0 ships." }
 };
 var ARBITER = {
   job: "arbitrate",
-  stage: "verification",
   profile: "arbiter",
   duty: "A check failed or a step could not be done as written. Decide from the evidence whose it is: a pre-existing defect, a bad implementation, or a bad test."
 };
-var stepOf = (job) => job === "arbitrate" ? ARBITER : job === "discover" ? DISCOVER : DELIVERY.find((s) => s.job === job);
-var RECEIVES = {
-  discover: [],
-  ideate: ["discover"],
-  challenge: ["discover", "ideate"],
-  plan: ["discover", "ideate", "challenge"],
-  "test-plan": ["plan"],
-  implement: ["plan"],
-  verify: [],
-  arbitrate: ["plan", "test-plan", "implement"]
+function problemsOf(pack) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const loop = (name) => pack[name].flatMap((c) => c.steps.map((s) => ({ ...s, cartridge: c.cartridge })));
+  const disc = loop("discovery");
+  const del = loop("delivery");
+  for (const [name, steps] of [["discovery", disc], ["delivery", del]]) {
+    steps.forEach((s, i) => {
+      const at = `${name} step ${s.job}`;
+      if (!/^[a-z][a-z0-9-]*$/.test(s.job)) out.push(`${name} step "${s.job}": a job name is lowercase letters, digits and "-".`);
+      if (s.job === "arbitrate" || s.job === "ship") out.push(`${at}: "${s.job}" is the console's own; it cannot be placed.`);
+      if (seen.has(s.job)) out.push(`${at}: the job name is used twice.`);
+      seen.add(s.job);
+      const slot = SLOTS.includes(s.job);
+      if (slot && s.output) out.push(`${at}: a slot's deliverable is the console's own contract; remove "output".`);
+      if (slot && (s.tier || s.budget)) out.push(`${at}: a slot runs on its prescription; remove "tier" and "budget".`);
+      if (s.job === "verify" && (s.profile || s.duty || s.task || s.receives)) out.push(`${at}: verify is Made Well's own run of the checks; give it only its job.`);
+      if (isMaker(s.job) && s.receives) out.push(`${at}: the makers receive the plan alone (ruling 12); remove "receives".`);
+      if (!slot) {
+        if (!s.profile || !s.duty) out.push(`${at}: a thinking step needs a "profile" and a "duty".`);
+        if (s.output?.type !== "object") out.push(`${at}: a thinking step needs an "output" JSON Schema of {"type": "object", ...}.`);
+      }
+      const earlier = steps.slice(0, i).map((e) => e.job);
+      for (const r of s.receives ?? []) if (!earlier.includes(r) && !(name === "delivery" && r === "discover")) out.push(`${at}: it receives "${r}", which is not an earlier step of ${name}${name === "delivery" ? ' or "discover"' : ""}.`);
+    });
+  }
+  if (disc.at(-1)?.job !== "discover") out.push('discovery: its last step is "discover", which returns the candidates.');
+  for (const s of disc) if (s.job !== "discover" && SLOTS.includes(s.job)) out.push(`discovery step ${s.job}: a delivery slot cannot run in discovery.`);
+  if (del.some((s) => s.job === "discover")) out.push('delivery: "discover" belongs to discovery.');
+  const jobs2 = del.map((s) => s.job);
+  const plan = jobs2.indexOf("plan");
+  const makers = jobs2.filter(isMaker);
+  if (jobs2.at(-1) !== "verify") out.push(`delivery: its last step is "verify", Made Well's run of the checks, merge and ship.`);
+  if (plan < 0) out.push('delivery: it needs "plan", the contract the makers are held to.');
+  if (!jobs2.includes("implement")) out.push('delivery: it needs "implement", which makes the change.');
+  if (plan >= 0 && jobs2.includes("implement") && jobs2.at(-1) === "verify") {
+    const between3 = jobs2.slice(plan + 1, -1);
+    if (between3.length !== makers.length || between3.some((j) => !isMaker(j))) out.push('delivery: after "plan" come only the makers ("implement", and "test-plan" beside it), then "verify": nothing may change the plan under them.');
+    const homes = new Set(del.filter((s) => isMaker(s.job)).map((s) => s.cartridge));
+    if (homes.size > 1) out.push('delivery: "implement" and "test-plan" run in parallel, so they sit in the same cartridge.');
+  }
+  return out;
+}
+function compile2(pack) {
+  const loop = (name) => {
+    const steps = pack[name].flatMap((c) => c.steps.map((s) => ({ s, cartridge: c.cartridge })));
+    return steps.map(({ s, cartridge }, i) => {
+      const d = SLOT_DEFAULTS[s.job];
+      const earlier = steps.slice(0, i).map((e) => e.s.job).filter((j) => j !== "verify");
+      const receives = isMaker(s.job) ? ["plan"] : s.job === "verify" ? [] : s.receives ?? (name === "delivery" ? ["discover", ...earlier] : earlier);
+      return {
+        job: s.job,
+        cartridge,
+        loop: name,
+        profile: s.profile ?? d?.profile ?? s.job,
+        duty: s.duty ?? d?.duty ?? "",
+        receives,
+        ...s.task ? { task: s.task } : {},
+        ...s.output ? { output: s.output } : {},
+        ...s.tier ? { tier: s.tier } : {},
+        ...s.budget ? { budget: s.budget } : {}
+      };
+    });
+  };
+  const delivery = loop("delivery");
+  const makers = ["implement", "test-plan"].filter((m) => delivery.some((s) => s.job === m));
+  return {
+    pack,
+    discovery: loop("discovery"),
+    delivery,
+    makers,
+    arbiter: { ...ARBITER, cartridge: delivery.at(-1).cartridge, loop: "delivery", receives: ["plan", ...makers] }
+  };
+}
+var lanes = /* @__PURE__ */ new Map();
+var laneOf = (pack) => {
+  const key = pack ? JSON.stringify(pack) : "";
+  let lane = lanes.get(key);
+  if (!lane) lanes.set(key, lane = compile2(pack ?? SOFTWARE));
+  return lane;
 };
+var stepOf = (lane, job) => job === "arbitrate" ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: "delivery", profile: job, duty: "", receives: [] };
+var hasJob = (lane, job) => job === "arbitrate" || [...lane.discovery, ...lane.delivery].some((s) => s.job === job);
+var loadPack = (path) => Effect_exports.gen(function* () {
+  const text2 = yield* Effect_exports.try({
+    try: () => readFileSync4(path, "utf8"),
+    catch: (e) => new MadeWellError({ code: "cartridges_unreadable", message: `Cannot read the cartridge pack ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: "mw cartridges", why: "print the default pack to start one from" }] })
+  });
+  const invalid4 = (problems2) => new MadeWellError({
+    code: "cartridges_invalid",
+    message: `The cartridge pack ${path} does not plug into the console.`,
+    context: { path, problems: problems2 },
+    cause: 'A pack is {name, brief?, discovery: [cartridge], delivery: [cartridge]}, each cartridge {cartridge, steps: [step]}. Discovery ends with "discover"; delivery is thinking steps, then "plan", "implement" (and "test-plan" beside it), then "verify". A thinking step needs a profile, a duty and an output JSON Schema.',
+    next: [{ run: `$EDITOR ${path}`, why: "fix each problem in context.problems" }, { run: "mw cartridges", why: "compare with the default software pack" }]
+  });
+  const json2 = yield* Effect_exports.try({ try: () => JSON.parse(text2), catch: (e) => invalid4([`It is not valid JSON: ${String(e)}`]) });
+  const pack = yield* Schema_exports.decodeUnknownEffect(Pack)(json2).pipe(Effect_exports.mapError((e) => invalid4([String(e)])));
+  const problems = problemsOf(pack);
+  if (problems.length) return yield* invalid4(problems);
+  return pack;
+});
 var Text = Schema_exports.String;
 var Decision = Schema_exports.Struct({
   question: Text,
@@ -22543,15 +22662,55 @@ var PLAN = Schema_exports.Struct({
     follows: Text.annotate({ description: "the existing file (same extension) or directory it is modelled on" })
   })).annotate({ description: "for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind." }))
 });
-var DELIVERABLES = {
+var SLOT_DELIVERABLES = {
   discover: Schema_exports.Struct({ items: Schema_exports.Array(Candidate) }),
-  ideate: Schema_exports.Struct({ outcome: Text, approach: Text, decisions: Decisions }),
-  challenge: Schema_exports.Struct({ findings: Schema_exports.Array(Schema_exports.Struct({ finding: Text, resolution: Text })), decisions: Decisions }),
   plan: PLAN,
   "test-plan": Schema_exports.Union([Schema_exports.Struct({ checks: Schema_exports.Array(Check), provisioned: Provisioned }), Blocked]),
-  implement: Schema_exports.Union([Schema_exports.Struct({ summary: Text, provisioned: Provisioned }), Blocked]),
-  arbitrate: Schema_exports.Struct({ cause: Schema_exports.Literals(["pre-existing", "implementation", "test", "undetermined"]), answer: Text, evidence: Text, provisioned: Provisioned })
+  implement: Schema_exports.Union([Schema_exports.Struct({ summary: Text, provisioned: Provisioned }), Blocked])
 };
+var arbiterSchema = (lane, autonomous) => Schema_exports.Struct({
+  cause: Schema_exports.Literals(["pre-existing", "implementation", ...lane.makers.includes("test-plan") ? ["test"] : [], "environment", ...autonomous ? [] : ["undetermined"]]),
+  answer: Text,
+  evidence: Text,
+  provisioned: Provisioned
+});
+var slotSchema = (lane, job, autonomous) => job === "arbitrate" ? arbiterSchema(lane, autonomous) : SLOT_DELIVERABLES[job];
+var deliverableShape = (lane, job, autonomous = false) => {
+  const schema = slotSchema(lane, job, autonomous);
+  return schema ? shapeOf(schema) : stepOf(lane, job).output;
+};
+function conforms(schema, value3, at = "answer") {
+  if (Array.isArray(schema.anyOf)) {
+    const tries = schema.anyOf.map((s) => conforms(s, value3, at));
+    return tries.some((t) => !t.length) ? [] : [`${at} matches none of its allowed shapes: ${tries.map((t) => t[0]).join("; ")}`];
+  }
+  const is3 = (t) => t === "object" ? typeof value3 === "object" && value3 !== null && !Array.isArray(value3) : t === "array" ? Array.isArray(value3) : t === "integer" ? Number.isInteger(value3) : t === "null" ? value3 === null : typeof value3 === t;
+  const types = schema.type === void 0 ? [] : [schema.type].flat();
+  if (types.length && !types.some(is3)) return [`${at} must be ${types.join(" or ")}`];
+  const out = [];
+  if (Array.isArray(schema.enum) && !schema.enum.some((e) => e === value3)) out.push(`${at} must be one of ${schema.enum.map((e) => JSON.stringify(e)).join(", ")}`);
+  if (typeof value3 === "object" && value3 !== null && !Array.isArray(value3)) {
+    const v = value3;
+    for (const k of schema.required ?? []) if (v[k] === void 0) out.push(`${at}.${k} is missing`);
+    for (const [k, s] of Object.entries(schema.properties ?? {})) if (v[k] !== void 0) out.push(...conforms(s, v[k], `${at}.${k}`));
+  }
+  if (Array.isArray(value3) && schema.items && typeof schema.items === "object") value3.forEach((x, i) => out.push(...conforms(schema.items, x, `${at}[${i}]`)));
+  return out;
+}
+function malformed(lane, job, output, autonomous = false) {
+  if (job === "discover") return Array.isArray(lastJson(output)?.items) ? void 0 : 'The answer did not end with {"items": [...]}.';
+  const schema = slotSchema(lane, job, autonomous);
+  if (schema) {
+    const r = decode5(schema, output);
+    return r.ok ? void 0 : r.reason;
+  }
+  const shape = stepOf(lane, job).output;
+  if (!shape) return void 0;
+  const json2 = lastJson(output);
+  if (!json2) return "The answer did not end with a JSON object.";
+  const problems = conforms(shape, json2);
+  return problems.length ? `The answer's JSON does not match its schema: ${problems.join("; ")}.` : void 0;
+}
 var INTAKE = Schema_exports.Struct({
   understanding: Text,
   unclear: Schema_exports.Array(Text).annotate({ description: "What is unclear?" }),
@@ -22594,7 +22753,7 @@ function unfollowed(p, tracked) {
   }
   return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(" ")}` : void 0;
 }
-function validate3(job, output, plan, tracked) {
+function validate3(lane, job, output, plan, tracked, autonomous = false) {
   if (job === "discover") {
     const report = lastJson(output);
     if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
@@ -22609,7 +22768,12 @@ function validate3(job, output, plan, tracked) {
     return { ok: true, value: { items } };
   }
   if (job === "verify") return { ok: false, reason: "verify is Made Well's own code, not an agent job." };
-  const decoded = decode5(DELIVERABLES[job], output);
+  const schema = slotSchema(lane, job, autonomous);
+  if (!schema) {
+    const problem = malformed(lane, job, output);
+    return problem ? { ok: false, reason: problem } : { ok: true, value: lastJson(output) ?? {} };
+  }
+  const decoded = decode5(schema, output);
   if (!decoded.ok) return decoded;
   const value3 = decoded.value;
   if (job === "plan") {
@@ -22635,23 +22799,25 @@ function validate3(job, output, plan, tracked) {
   return { ok: true, value: value3 };
 }
 var MAX_CORRECTIONS = 3;
-var blockedOf = (job, value3) => typeof value3.blocked === "string" ? `The ${stepOf(job).profile} (${job}) could not do the step as written: ${value3.blocked}` : void 0;
-function route(job, value3, corrections) {
+var blockedOf = (lane, job, value3) => typeof value3.blocked === "string" ? `The ${stepOf(lane, job).profile} (${job}) could not do the step as written: ${value3.blocked}` : void 0;
+function route(lane, job, value3, corrections) {
   if (job === "discover") return { to: "discovered", items: value3.items };
-  const blocked = blockedOf(job, value3);
+  const blocked = blockedOf(lane, job, value3);
   if (blocked) return { to: "arbitrate", failure: blocked };
   if (job === "plan") return { to: "split" };
   if (job === "test-plan" || job === "implement") return { to: "next", job: "verify" };
   if (job === "arbitrate") {
     const cause = value3.cause;
     const answer2 = value3.answer;
+    if (cause === "environment") return { to: "environment", answer: answer2 };
     if (cause === "undetermined") return { to: "hold", code: "arbiter_undetermined", message: `The arbiter could not decide whose failure this is: ${answer2}` };
     if (corrections >= MAX_CORRECTIONS) return { to: "hold", code: "too_many_corrections", message: `${corrections} corrections have not made the checks pass. Last ruling: ${cause}: ${answer2}` };
     if (cause === "pre-existing") return { to: "prerequisite", answer: answer2 };
     return { to: "rework", job: cause === "test" ? "test-plan" : "plan", cause, answer: answer2 };
   }
-  const i = DELIVERY.findIndex((s) => s.job === job);
-  return { to: "next", job: DELIVERY[i + 1].job };
+  const steps = stepOf(lane, job).loop === "discovery" ? lane.discovery : lane.delivery;
+  const i = steps.findIndex((s) => s.job === job);
+  return { to: "next", job: steps[i + 1].job };
 }
 function lastJson(text2) {
   text2 = text2.replace(/\s*```\s*$/, "");
@@ -22664,8 +22830,29 @@ function lastJson(text2) {
   }
   return void 0;
 }
+var SOFTWARE = {
+  name: "software",
+  discovery: [{ cartridge: "discovery", steps: [{ job: "discover" }] }],
+  delivery: [
+    {
+      cartridge: "ideation",
+      steps: [
+        { job: "ideate", profile: "ideator", duty: "Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement.", output: shapeOf(Schema_exports.Struct({ outcome: Text, approach: Text, decisions: Decisions })) },
+        { job: "challenge", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement.", output: shapeOf(Schema_exports.Struct({ findings: Schema_exports.Array(Schema_exports.Struct({ finding: Text, resolution: Text })), decisions: Decisions })) }
+      ]
+    },
+    { cartridge: "planning", steps: [{ job: "plan" }] },
+    { cartridge: "implementation", steps: [{ job: "implement" }, { job: "test-plan" }] },
+    { cartridge: "verification", steps: [{ job: "verify" }] }
+  ]
+};
 
 // src/telemetry.ts
+import { createHash } from "node:crypto";
+import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync2, readdirSync as readdirSync2, readFileSync as readFileSync5 } from "node:fs";
+import { hostname } from "node:os";
+import { dirname as dirname3, join as join6, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
+import { fileURLToPath } from "node:url";
 var WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "create_file", "undo_edit", "file_change", "edit", "write"];
 var lines3 = (raw) => raw.split("\n").flatMap((l) => {
   try {
@@ -22801,7 +22988,7 @@ var buildOf = () => {
   try {
     const here = dirname3(fileURLToPath(import.meta.url));
     const hash2 = createHash("sha256");
-    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join6(here, f)));
+    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync5(join6(here, f)));
     build2 = hash2.digest("hex").slice(0, 12);
   } catch {
     build2 = null;
@@ -23022,7 +23209,7 @@ function openStore(path) {
       const created = tx2(() => {
         const now2 = (/* @__PURE__ */ new Date()).toISOString();
         const { lastInsertRowid } = db.prepare("INSERT INTO items (doc) VALUES (?)").run("{}");
-        const item = { job: "ideate", from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
+        const item = { job: laneOf(fields.pack).delivery[0].job, from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(item), item.id);
         event(item.id, "created", { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null });
         return item;
@@ -23194,26 +23381,27 @@ var Project = Schema_exports.Struct({
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" })),
   prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
+  cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the cartridge pack file this project's new work runs; without it, the default software pack" })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
 var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
-  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync5(path, "utf8")).pipe(
+  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync6(path, "utf8")).pipe(
     Effect_exports.mapError((e) => new MadeWellError({
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, gates?: [{run, glob?}]}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, cartridges?, gates?: [{run, glob?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
 });
 var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep)).sort((a, b) => b.path.length - a.path.length)[0];
-var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project) {
+var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project, replace = false) {
   const projects = yield* readProjects(path);
-  const merged = { ...projects.find((p) => p.path === project.path), ...project };
+  const merged = replace ? project : { ...projects.find((p) => p.path === project.path), ...project };
   mkdirSync4(dirname5(path), { recursive: true });
   writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
   return merged;
@@ -23285,7 +23473,8 @@ var endLiveOf = (store, id2) => {
   }
 };
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
-var profileOf = (o) => o.kind === "job" ? stepOf(o.job).profile : o.kind;
+var L = (item) => laneOf(item.pack);
+var profileOf = (item, o) => o.kind === "job" ? stepOf(L(item), o.job).profile : o.kind;
 var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
 var withTrack = (item, job, t) => isMaker(job) && item.split?.[job] ? { ...item, split: { ...item.split, [job]: t } } : { ...item, from: t.from, exchange: t.exchange, launches: t.launches, pickingUp: t.pickingUp, rejected: t.rejected };
 var saveTrack = (store, id2, job, patch, kind, data, fields = {}) => {
@@ -23299,7 +23488,7 @@ var deliverableOf = (item, job) => {
   return out === void 0 ? void 0 : lastJson(out) ?? out;
 };
 var planOf = (item) => {
-  const v = item.outputs.plan === void 0 ? void 0 : validate3("plan", item.outputs.plan);
+  const v = item.outputs.plan === void 0 ? void 0 : validate3(L(item), "plan", item.outputs.plan);
   return v?.ok ? v.value : void 0;
 };
 function handoffOf(item, job, t) {
@@ -23308,9 +23497,14 @@ function handoffOf(item, job, t) {
   if (item.rework) return `Ruling (${item.rework.cause}): ${item.rework.answer}`;
   return t.from.kind === "job" ? item.outputs[t.from.job] ?? "" : "";
 }
-var drive = Effect_exports.fn("mw.drive")(function* (id2, config) {
+var drive = Effect_exports.fn("mw.drive")(function* (id2, given) {
   const store = yield* Store;
   yield* Effect_exports.annotateCurrentSpan({ item: id2 });
+  const first = store.get(id2);
+  if (!first) return yield* notFound2(id2);
+  const prescribed = yield* Effect_exports.result(forLane(given.prescriptions, L(first)));
+  if (Result_exports.isFailure(prescribed)) return holdFor(store, id2, prescribed.failure), store.get(id2);
+  const config = { ...given, prescriptions: prescribed.success };
   for (; ; ) {
     const item = store.get(id2);
     if (!item) return yield* notFound2(id2);
@@ -23333,6 +23527,9 @@ var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
     return;
   }
   if (pending(item).length) return yield* aftercare(item.id);
+  if (!hasJob(L(item), item.job)) {
+    return hold(store, item, "cartridge_missing", `Item #${item.id} is at the ${item.job} job, which its cartridge pack no longer has.`, { job: item.job, pack: L(item).pack.name, jobs: [...L(item).discovery, ...L(item).delivery].map((s) => s.job) });
+  }
   if (item.job === "verify") return yield* verifyAndShip(item.id, config);
   if (item.split) return yield* runSplit(item.id, config);
   return yield* step(item.id, item.job, config);
@@ -23343,7 +23540,7 @@ var step = Effect_exports.fn("mw.step")(function* (id2, job, config) {
   const t = trackOf(item, job);
   const x = t.exchange;
   if (!x) {
-    saveTrack(store, id2, job, { exchange: { from: t.from, handoff: handoffOf(item, job, t), status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(t.from), to: stepOf(job).profile, job });
+    saveTrack(store, id2, job, { exchange: { from: t.from, handoff: handoffOf(item, job, t), status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job });
   } else if (x.status === "awaiting-receiver") {
     yield* intake(id2, job, config);
   } else if (x.status === "awaiting-originator") {
@@ -23354,6 +23551,7 @@ var step = Effect_exports.fn("mw.step")(function* (id2, job, config) {
 });
 var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
   const store = yield* Store;
+  const makers = Object.keys(store.get(id2).split ?? {});
   const track2 = (job) => Effect_exports.gen(function* () {
     for (; ; ) {
       const item2 = store.get(id2);
@@ -23361,11 +23559,11 @@ var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
       yield* step(id2, job, config).pipe(Effect_exports.catchTag("MadeWellError", (e) => Effect_exports.sync(() => holdFor(store, id2, e, job))));
     }
   });
-  yield* Effect_exports.all(MAKERS.map(track2), { concurrency: "unbounded" });
+  yield* Effect_exports.all(makers.map(track2), { concurrency: "unbounded" });
   const item = store.get(id2);
-  if (item.status === "held" || !MAKERS.every((m) => item.split?.[m]?.done)) return;
-  const blocked = MAKERS.flatMap((m) => {
-    const failure = blockedOf(m, deliverableOf(item, m) ?? {});
+  if (item.status === "held" || !makers.every((m) => item.split?.[m]?.done)) return;
+  const blocked = makers.flatMap((m) => {
+    const failure = blockedOf(L(item), m, deliverableOf(item, m) ?? {});
     return failure ? [{ job: m, failure }] : [];
   });
   const joined = { ...item, split: void 0, exchange: void 0, launches: 0, pickingUp: void 0, rejected: void 0 };
@@ -23373,7 +23571,7 @@ var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
     store.save({ ...joined, job: "arbitrate", from: { kind: "job", job: blocked[0].job }, failure: blocked.map((b) => b.failure).join("\n\n") }, "failure", { from: blocked.map((b) => b.job) });
     return;
   }
-  store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: MAKERS, to: "verify" });
+  store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: makers, to: "verify" });
 });
 var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   const store = yield* Store;
@@ -23385,7 +23583,7 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   const x = trackOf(item, job).exchange;
   const call = yield* callAgent(id2, job, config, {
     kind: "intake",
-    profile: stepOf(job).profile,
+    profile: stepOf(L(item), job).profile,
     access: INTAKE_ACCESS,
     card: cheap,
     required: requiredOf(INTAKE),
@@ -23397,31 +23595,31 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
   const { understanding, unclear, ambiguous, missing: missing2, notes } = reply.value;
   const questions = [...unclear, ...ambiguous, ...missing2].filter((q) => q.trim() !== "");
-  const receiver = stepOf(job).profile;
+  const receiver = stepOf(L(item), job).profile;
   if (!questions.length) {
     saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "clear", understanding, notes: [...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap });
     return;
   }
   const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }] };
   const answered = x.turns.filter((t) => t.answer !== void 0).length;
-  const context3 = { job, receiver, originator: profileOf(x.from), questions, turns: x.turns };
+  const context3 = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns };
   const now2 = withTrack(store.get(id2), job, { ...trackOf(store.get(id2), job), exchange: asked });
   if (answered >= MAX_TURNS) return holdTurns(store, now2, job, context3);
   if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
     return hold(store, now2, "question_for_operator", `The ${receiver} has questions about your answer before it can ${job}.`, context3);
   }
-  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions });
+  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions });
 });
 var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
   const item0 = store.get(id2);
   const x0 = trackOf(item0, job).exchange;
-  const by = x0.from.kind === "job" ? x0.from.job : "ideate";
+  const by = x0.from.kind === "job" ? x0.from.job : L(item0).delivery[0].job;
   const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, by));
   if (!card) return;
   const item = store.get(id2);
   const x = trackOf(item, job).exchange;
-  const from = profileOf(x.from);
+  const from = profileOf(item, x.from);
   const call = yield* callAgent(id2, job, config, {
     kind: "originator",
     profile: from,
@@ -23439,7 +23637,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
     const ruled = x.from.kind === "dispatcher" ? void 0 : yield* dispatch(id2, job, config, from, pendingQ.questions, reply.value.answer);
     if (ruled === null) return;
     if (!ruled || ruled.needsOperator) {
-      return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(job).profile} asked; the operator's source leaves it open.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...ruled ? { dispatcherSays: ruled.answer } : {} });
+      return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(L(item), job).profile} asked; the operator's source leaves it open.`, { job, receiver: stepOf(L(item), job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...ruled ? { dispatcherSays: ruled.answer } : {} });
     }
     answer2 = ruled.answer;
   }
@@ -23447,7 +23645,8 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from, answer: answer2, ...reply.value.needsOperator ? { dispatcher: true } : {} });
 });
 var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
-  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, "ideate"));
+  const item0 = (yield* Store).get(id2);
+  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, L(item0).delivery[0].job));
   if (!card) return null;
   const item = (yield* Store).get(id2);
   const call = yield* callAgent(id2, job, config, {
@@ -23460,10 +23659,10 @@ var dispatch = (id2, job, config, originator, questions, originatorSays) => Effe
       you: {
         profile: "dispatcher",
         call: "authority",
-        task: `The ${originator} says only the operator can settle what the ${stepOf(job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+        task: `The ${originator} says only the operator can settle what the ${stepOf(L(item), job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
         replyFormat: shapeOf(ORIGINATOR)
       },
-      receiver: stepOf(job).profile,
+      receiver: stepOf(L(item), job).profile,
       questions,
       originator: { profile: originator, says: originatorSays }
     }, false)
@@ -23487,10 +23686,10 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   const maker = isMaker(job);
   yield* callAgent(id2, job, config, {
     kind: "execute",
-    profile: stepOf(job).profile,
+    profile: stepOf(L(item), job).profile,
     access: prescriptionOf(config.prescriptions, job).access,
     card: x.card,
-    required: requiredOf(DELIVERABLES[job]),
+    required: deliverableShape(L(item), job)?.required ?? [],
     ...job === "implement" && plan ? { scope: plan.scope } : {},
     ...jobTree(item, job),
     ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
@@ -23529,7 +23728,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   store.note(id2, "call-started", { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...live ? { live } : {} });
   const started = /* @__PURE__ */ new Date();
   let result3;
-  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {}, ...live ? { live } : {} }).pipe(
+  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: briefOf(L(item)), prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {}, ...live ? { live } : {} }).pipe(
     Effect_exports.tap((r) => Effect_exports.sync(() => result3 = r)),
     Effect_exports.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id2, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } })
   );
@@ -23553,7 +23752,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     job,
     profile: spec.profile,
     card: spec.card,
-    system: BRIEF,
+    system: briefOf(L(item)),
     prompt,
     outcome: res.ok ? "ok" : "limit" in res ? "limit" : "error",
     output: res.ok ? res.output : null,
@@ -23597,12 +23796,6 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
   return after ? yield* after(wt.path, called) : called;
 }));
-var malformed = (job, output) => {
-  if (job === "discover") return Array.isArray(lastJson(output)?.items) ? void 0 : 'The answer did not end with {"items": [...]}.';
-  if (!(job in DELIVERABLES)) return void 0;
-  const r = decode5(DELIVERABLES[job], output);
-  return r.ok ? void 0 : r.reason;
-};
 var REPAIR_TASK = "Your last answer could not be read: its JSON is malformed or does not match your reply format. Under yourAnswer is what you sent and under problem what is wrong with it. Reply with only that answer as one JSON object matching you.replyFormat: the same content, corrected, nothing added or dropped. Your work is done; this call only corrects the reply.";
 var decodeOrRepair = (id2, job, call, schema) => Effect_exports.gen(function* () {
   const first = decode5(schema, call.output);
@@ -23616,7 +23809,8 @@ var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* ()
   const profile = call.profile;
   const prompt = JSON.stringify({ you: { profile, job, call: "repair", task: REPAIR_TASK, replyFormat: shape }, yourAnswer: call.output, problem: problem.slice(0, 4e3) }, null, 2);
   const started = /* @__PURE__ */ new Date();
-  const res = yield* worker.run({ kind: "repair", job, profile, card: call.card, access: "none", system: BRIEF, prompt, item: id2, cwd: store.path === ":memory:" ? tmpdir3() : dirname6(store.path), budget: REPAIR_BUDGET }).pipe(
+  const brief = briefOf(L(store.get(id2)));
+  const res = yield* worker.run({ kind: "repair", job, profile, card: call.card, access: "none", system: brief, prompt, item: id2, cwd: store.path === ":memory:" ? tmpdir3() : dirname6(store.path), budget: REPAIR_BUDGET }).pipe(
     Effect_exports.withSpan(`mw.repair.${job}`, { attributes: { item: id2, job, harness: call.card.harness, model: call.card.model } })
   );
   const ms = Date.now() - started.getTime();
@@ -23626,7 +23820,7 @@ var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* ()
     job,
     profile,
     card: call.card,
-    system: BRIEF,
+    system: brief,
     prompt,
     outcome: res.ok ? "ok" : "limit" in res ? "limit" : "error",
     output: res.ok ? res.output : null,
@@ -23637,7 +23831,7 @@ var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* ()
     harnessVersion: res.version ?? null
   }, { access: "none" });
   store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`);
-  const ok = res.ok && (call.kind === "execute" ? !malformed(job, res.output) : lastJson(res.output) !== void 0);
+  const ok = res.ok && (call.kind === "execute" ? !malformed(L(store.get(id2)), job, res.output) : lastJson(res.output) !== void 0);
   store.note(id2, "repaired", { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok });
   return ok && res.ok ? { ...call, output: res.output } : void 0;
 });
@@ -23651,9 +23845,9 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const item = store.get(id2);
   const plan = planOf(item);
   const home = itemHome(store.path, id2);
-  const problem = malformed(job, answered.output);
-  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(job), problem)) ?? answered : answered;
-  const v = validate3(job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0);
+  const problem = malformed(L(item), job, answered.output);
+  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job), problem)) ?? answered : answered;
+  const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0);
   const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
@@ -23662,7 +23856,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep, Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
   }
   let artifacts = {};
-  if (isMaker(job) && !blockedOf(job, value3)) {
+  if (isMaker(job) && !blockedOf(L(item), job, value3)) {
     const base = item.base.commit;
     if (job === "implement") {
       const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
@@ -23695,7 +23889,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
 });
 function applyRoute(store, id2, job, value3, fields) {
   const current = { ...store.get(id2), ...fields };
-  const r = route(job, value3, current.corrections);
+  const r = route(L(current), job, value3, current.corrections);
   const by = { kind: "job", job };
   switch (r.to) {
     case "discovered": {
@@ -23711,7 +23905,8 @@ function applyRoute(store, id2, job, value3, fields) {
           source: current.source,
           from: by,
           outputs: { discover: JSON.stringify(c) },
-          ...after ? { after: after.map((p) => ids[p - 1]) } : {}
+          ...after ? { after: after.map((p) => ids[p - 1]) } : {},
+          ...current.pack ? { pack: current.pack } : {}
         }).id);
       }
       store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids });
@@ -23730,8 +23925,8 @@ function applyRoute(store, id2, job, value3, fields) {
         checks: void 0,
         verification: void 0,
         merged: void 0,
-        split: { implement: { from: by, launches: 0 }, "test-plan": { from: by, launches: 0 } }
-      }, "handed-off", { from: job, to: MAKERS });
+        split: Object.fromEntries(L(current).makers.map((m) => [m, { from: by, launches: 0 }]))
+      }, "handed-off", { from: job, to: L(current).makers });
       return;
     case "arbitrate":
       store.save({ ...current, job: "arbitrate", from: by, failure: r.failure }, "failure", { from: job });
@@ -23750,6 +23945,12 @@ function applyRoute(store, id2, job, value3, fields) {
       return;
     case "prerequisite":
       openPrerequisite(store, { ...current, from: by }, r.answer, by);
+      return;
+    case "environment":
+      if (current.rework?.cause === "environment") {
+        return hold(store, current, "environment", `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, failure: current.failure ?? null, ruling: value3 });
+      }
+      store.save({ ...current, job: "verify", from: by, rework: { cause: "environment", answer: r.answer }, failure: void 0, verification: void 0, exchange: void 0, launches: 0 }, "ruling", { cause: "environment", to: "verify", by: "arbiter" });
       return;
     case "hold":
       return hold(store, current, r.code, r.message, { job, failure: current.failure ?? null, ruling: value3 });
@@ -23853,7 +24054,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const item = store.get(id2);
   const home = itemHome(store.path, id2);
   const checks = item.checks?.checks ?? [];
-  if (!checks.length || !item.change) {
+  if (!item.change || L(item).makers.includes("test-plan") && !checks.length) {
     store.save({ ...item, job: "plan", from: { kind: "dispatcher" }, base: void 0, exchange: void 0, launches: 0 }, "replan", { reason: "no checks or change on record to verify" });
     return;
   }
@@ -23880,11 +24081,13 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const now2 = store.get(id2);
   if (run2.kind === "conflict") {
     const why = run2.error.context.stderr?.trim() || run2.error.message;
-    for (const m of MAKERS) rmSync5(patchPath(home, `${m}.partial`), { force: true });
+    for (const m of L(now2).makers) rmSync5(patchPath(home, `${m}.partial`), { force: true });
+    const steps = L(now2).delivery;
+    const beforePlan = steps[steps.findIndex((s) => s.job === "plan") - 1];
     store.save({
       ...now2,
       job: "plan",
-      from: { kind: "job", job: "challenge" },
+      from: beforePlan ? { kind: "job", job: beforePlan.job } : { kind: "dispatcher" },
       base: void 0,
       split: void 0,
       change: void 0,
@@ -23962,7 +24165,7 @@ var recordLimit = Effect_exports.fn("mw.recordLimit")(function* (id2, job, card,
   const resetsAt = Math.max(limit.resetsAt ?? at + UNKNOWN_RESET_MS, at + MIN_OUT_MS);
   for (const account of /* @__PURE__ */ new Set([limit.account, card.account])) store.markExhausted(account, resetsAt);
   const t = trackOf(store.get(id2), job);
-  const profile = stepOf(job).profile;
+  const profile = stepOf(L(store.get(id2)), job).profile;
   const pickingUp = kind === "execute" ? `The ${profile}'s previous run of this job, on ${card.harness} \xB7 ${card.model}, stopped at a usage limit (${limit.message}). You are picking up the same job${isMaker(job) ? ": your checkout holds the work it had done. Continue from there; do not repeat it." : "."}` : t.pickingUp;
   saveTrack(store, id2, job, { pickingUp }, "quota-swap", { kind, job, from: card, account: limit.account, resetsAt: new Date(resetsAt).toISOString(), message: limit.message });
 });
@@ -23972,13 +24175,13 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
   const t = trackOf(item, job);
   const x = t.exchange;
   if (kind !== "originator" && x) {
-    const receiver = stepOf(job).profile;
+    const receiver = stepOf(L(item), job).profile;
     const question = `My ${kind === "intake" ? "intake" : job} call failed, so I could not ${kind === "intake" ? "confirm the hand-off" : `do the ${job} job`}: ${error}`;
     const answered = x.turns.filter((turn) => turn.answer !== void 0).length;
     const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding: x.understanding ?? "", questions: [question] }] };
-    const context3 = { job, receiver, originator: profileOf(x.from), questions: [question], turns: x.turns, card, ...evidence };
+    const context3 = { job, receiver, originator: profileOf(item, x.from), questions: [question], turns: x.turns, card, ...evidence };
     if (answered >= MAX_TURNS) return holdTurns(store, withTrack(item, job, { ...t, ...patch, exchange: asked }), job, context3);
-    saveTrack(store, id2, job, { ...patch, launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions: [question], error: true, card, ...evidence });
+    saveTrack(store, id2, job, { ...patch, launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions: [question], error: true, card, ...evidence });
     return;
   }
   const launches = t.launches + 1;
@@ -23988,7 +24191,7 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
   }
   hold(store, withTrack(item, job, { ...t, ...patch, launches }), "worker_failing", `A call for the ${job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job, card, lastError: error, ...evidence });
 });
-var holdTurns = (store, item, job, context3) => hold(store, item, "nq_turns", `The ${stepOf(job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
+var holdTurns = (store, item, job, context3) => hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
   const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
@@ -24003,13 +24206,13 @@ var openPrerequisite = (store, item, answer2, by) => {
     job: "plan",
     parent: item.id,
     from: by,
-    source: `Found while verifying #${item.id} (${item.title}). The ${profileOf(by)}'s ruling: ${answer2}
+    source: `Found while verifying #${item.id} (${item.title}). The ${profileOf(item, by)}'s ruling: ${answer2}
 
 Failure:
 ${item.failure ?? ""}`,
     rework: { cause: "pre-existing", answer: answer2 }
   });
-  store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(by) });
+  store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(item, by) });
 };
 function nextFor(item) {
   if (item.status !== "held") return [];
@@ -24182,8 +24385,8 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   }
 }).pipe(Effect_exports.scoped);
 var SUBAGENT_RULE = "If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.";
-var BRIEF = [
-  "You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
+var briefOf = (lane) => [
+  "You are an agent in Made Well, a pipeline that takes one work item from ideation through planning and making to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
   NEUTRAL_HOST,
   [
     "Settle every decision by the experience rubric. Its three governing questions have equal standing:",
@@ -24192,20 +24395,22 @@ var BRIEF = [
     "- Agentic experience: What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?",
     "The answer they give is the decision. Ideation and planning settle every decision and record it with why; no decision is left for the operator."
   ].join("\n"),
-  `Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
-  "Honor the product repo's coding conventions.",
+  `Leave no trace. Your working directory is a disposable worktree of the project's repository, removed when your call ends: write only there, never in the repository's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
+  "Honor the conventions the project's repository already has.",
+  ...lane.pack.brief ? [lane.pack.brief] : [],
   "Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.",
   SUBAGENT_RULE,
   "Your final message is ONLY one JSON object that matches you.replyFormat, with that schema's properties as its own top-level keys."
 ].join("\n\n");
+var BRIEF = briefOf(laneOf());
 var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source });
-var receivedBy = (item, job) => Object.fromEntries(RECEIVES[job].flatMap((j) => {
+var receivedBy = (item, job) => Object.fromEntries(stepOf(L(item), job).receives.flatMap((j) => {
   const d = deliverableOf(item, j);
   return d === void 0 ? [] : [[j, d]];
 }));
 var snapshotFor = (item, job, dir) => {
   const plan = planOf(item);
-  if (!plan || !RECEIVES[job].includes("plan")) return Effect_exports.succeed(void 0);
+  if (!plan || !stepOf(L(item), job).receives.includes("plan")) return Effect_exports.succeed(void 0);
   const files = [.../* @__PURE__ */ new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])];
   return snapshot2(dir, files.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f) && !f.startsWith("/") && !f.split("/").includes("..")));
 };
@@ -24215,49 +24420,57 @@ var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.map
   ...snap ? { snapshot: snap } : {},
   ...parts2
 }, null, 2));
-var whereYouAre = (job) => {
-  const step2 = stepOf(job);
-  return step2.stage === "discovery" ? "Made Well's discovery" : `Made Well's delivery lane (${step2.stage})`;
-};
+var whereYouAre = (step2) => step2.loop === "discovery" ? `Made Well's discovery (${step2.cartridge})` : `Made Well's delivery lane (${step2.cartridge})`;
 var TASKS = {
   plan: `Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item's own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item's own checks gate it.`,
   "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer's change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree. A check proves its done-when item from this item's change alone: never run or count the whole test suite, and never pin anything outside the plan's scope; other items ship onto the same branch while this one is in flight.",
-  implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself.",
-  arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause. test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change. implementation: the planner plans again from your answer, both makers redo their work, and verification follows. pre-existing: a fix item for the defect ships first, then this item's checks run again. undetermined: the operator decides."
+  implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself."
 };
-var you = (job, kind) => {
-  const step2 = stepOf(job);
-  return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
+var arbiterTask = (lane, autonomous) => [
+  `Your checkout holds the implementer's change as its last commit${lane.makers.includes("test-plan") ? ", with the test architect's check files applied on top, uncommitted" : ""}. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause.`,
+  ...lane.makers.includes("test-plan") ? ["test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change."] : [],
+  `implementation: the planner plans again from your answer, ${lane.makers.length > 1 ? "both makers redo their work" : "the implementer redoes the change"}, and verification follows.`,
+  "pre-existing: a fix item for the defect ships first, then this item's checks run again.",
+  "environment: the work is not at fault; the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree and runs the checks again.",
+  autonomous ? "Nobody is there to decide for you: name the cause the evidence best supports." : "undetermined: the operator decides."
+].join(" ");
+var taskOf = (item, job) => {
+  const own = job === "arbitrate" ? arbiterTask(L(item), false) : TASKS[job];
+  const extra = stepOf(L(item), job).task;
+  return own && extra ? `${own} ${extra}` : own ?? extra;
+};
+var you = (item, job, kind) => {
+  const step2 = stepOf(L(item), job);
+  return { profile: step2.profile, job, call: kind, where: whereYouAre(step2), duty: step2.duty };
 };
 var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
-var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
+var handoffView = (item, job, x) => x.from.kind === "job" && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind) => ({
-  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
+  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job), replyFormat: shapeOf(INTAKE) },
   ...jobEvidence(item, job),
-  handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
+  handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
   round: item.round,
   ...trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}
 });
 var jobEvidence = (item, job) => job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {};
-var deliverableShape = (job) => job in DELIVERABLES ? shapeOf(DELIVERABLES[job]) : void 0;
 var originatorParts = (item, job, x) => ({
   you: {
-    profile: profileOf(x.from),
+    profile: profileOf(item, x.from),
     call: "originator",
-    task: `You handed this work over as the ${profileOf(x.from)}. The ${stepOf(job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
+    task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
     replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
-  receiver: stepOf(job).profile,
+  receiver: stepOf(L(item), job).profile,
   receiverUnderstanding: x.turns.at(-1).understanding,
   questions: x.turns.at(-1).questions,
   earlierTurns: x.turns.slice(0, -1)
 });
 var executeParts = (item, job, t, x) => ({
-  you: { ...you(job, "execute"), ...TASKS[job] ? { task: TASKS[job] } : {}, replyFormat: deliverableShape(job) },
+  you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: deliverableShape(L(item), job) },
   ...jobEvidence(item, job),
-  exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
+  exchange: { from: profileOf(item, x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
   ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
   round: item.round,
   ...t.rejected ? { yourLastAnswerWasRefused: t.rejected } : {},
@@ -24265,7 +24478,7 @@ var executeParts = (item, job, t, x) => ({
 });
 
 // src/eval.ts
-import { readFileSync as readFileSync6 } from "node:fs";
+import { readFileSync as readFileSync7 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
@@ -24306,8 +24519,8 @@ var EvalReport = Schema_exports.Struct({
   recommendation: Schema_exports.NullOr(Schema_exports.Struct({ card: EvalCard, tier: Schema_exports.NullOr(Schema_exports.String), prescribed: Schema_exports.String, why: Schema_exports.String })),
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "EvalReport" });
-var score = (kind, job, r) => {
-  const accepted = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(job, r.output);
+var score = (kind, lane, job, r) => {
+  const accepted = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(lane, job, r.output);
   return {
     outcome: r.outcome,
     valid: accepted.ok,
@@ -24366,7 +24579,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
   const briefPath = o.brief === void 0 ? void 0 : resolve5(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync6(briefPath, "utf8"),
+    try: () => readFileSync7(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
@@ -24392,7 +24605,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const at = new Date(yield* Clock_exports.currentTimeMillis).toISOString();
   const run2 = Number(db.prepare("INSERT INTO evals (at, job, card, brief, items, calls) VALUES (?, ?, ?, ?, ?, ?)").run(at, o.job, o.card ?? null, briefPath ?? null, JSON.stringify(ids), JSON.stringify(calls.map((c) => c.id))).lastInsertRowid);
   const insert = db.prepare("INSERT INTO eval_calls (eval, call, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-  const accessOf = (c) => c.kind === "execute" ? prescriptionOf(p, o.job).access : "read";
+  const accessOf = (c) => c.kind === "execute" ? prescriptionOf(p, o.job)?.access ?? "read" : "read";
   const budget = budgetFor(p, o.job);
   const rulesOf = (c) => {
     const { head: _, changed: __, ...recorded } = c.facts ?? {};
@@ -24400,7 +24613,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   };
   const recordedScore = (c) => {
     const facts = { ...rulesOf(c), ...c.facts?.head ? { head: c.facts.head } : {}, ...c.facts?.changed ? { changed: c.facts.changed } : {} };
-    return score(c.kind, o.job, { ...c, flags: flagsFor(facts, c) });
+    return score(c.kind, laneOf(store.get(c.item)?.pack), o.job, { ...c, flags: flagsFor(facts, c) });
   };
   const replay = (c, card, n) => {
     const workspace = store.get(c.item).workspace;
@@ -24441,7 +24654,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
       const facts = { ...rulesOf(c), head: r.head, changed: r.changed };
       const flags = flagsFor(facts, { tools: toolEvents(g.card.harness, raw), tokens: tokens2, ms: r.ms, output });
       const outcome = r.result.ok ? "ok" : "limit" in r.result ? "limit" : "error";
-      const s = score(c.kind, o.job, { outcome, output, ms: r.ms, tokens: tokens2, flags });
+      const s = score(c.kind, laneOf(store.get(c.item)?.pack), o.job, { outcome, output, ms: r.ms, tokens: tokens2, flags });
       const error = r.result.ok ? null : "limit" in r.result ? r.result.limit.message : r.result.error;
       insert.run(run2, c.id, JSON.stringify(g.card), r.system, r.prompt, outcome, output, error, raw, new Date(r.started).toISOString(), r.ms, tokens2 && JSON.stringify(tokens2), JSON.stringify(facts), JSON.stringify(flags), JSON.stringify(s));
       if (!r.result.ok && "limit" in r.result) {
@@ -24522,7 +24735,7 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
 
 // src/ui.ts
 import { execFileSync as execFileSync2 } from "node:child_process";
-import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync7, readSync as readSync2, statSync as statSync2 } from "node:fs";
+import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, statSync as statSync2 } from "node:fs";
 import { createServer } from "node:http";
 import { basename as basename2, dirname as dirname7, join as join11 } from "node:path";
 
@@ -24670,6 +24883,8 @@ function now() { return M ? (LIVE ? Date.now() : Date.parse(M.at)) : Date.now();
 function whoClass(a) { return a === 'operator' ? 'w-operator' : a === 'agent' ? 'w-agent' : a === 'runner' ? 'w-runner' : 'w-made'; }
 var PROFILE = { discover: 'ideator', ideate: 'ideator', challenge: 'ideation peer', plan: 'planner', 'test-plan': 'test architect', implement: 'implementer', verify: 'made well', arbitrate: 'arbiter', ship: 'made well' };
 var JOBNAME = { discover: 'Discover', ideate: 'Ideate', challenge: 'Challenge', plan: 'Plan', 'test-plan': 'Checks', implement: 'Implement', verify: 'Verify', arbitrate: 'Arbiter', ship: 'Ship' };
+function jobName(j) { return (M && M.jobs && M.jobs[j] && M.jobs[j].label) || JOBNAME[j] || j; }
+function profileName(j) { return (M && M.jobs && M.jobs[j] && M.jobs[j].profile) || PROFILE[j] || j; }
 var STATE_WORD = { done: 'done', active: 'running', held: 'held', failed: 'failed', waiting: 'waiting', todo: 'to do', skipped: 'skipped' };
 function itemOf(id) { return M && M.items.find(function (i) { return i.id === id; }); }
 
@@ -24711,7 +24926,7 @@ function renderNeeds() {
 }
 
 function seg(st) {
-  return '<span class="seg ' + st.state + '" title="' + esc(JOBNAME[st.job] + ': ' + STATE_WORD[st.state] + (st.calls ? ' · ' + plural(st.calls, 'call') + ' · ' + mins(st.agentMs) + ' agent time · ' + tk(st.tokens) + ' tokens' : '') + (st.questions ? ' · ' + plural(st.questions, 'NQ question') : '')) + '">' + esc(JOBNAME[st.job] || st.label) + (st.questions ? '<span class="q">' + st.questions + '?</span>' : '') + '</span>';
+  return '<span class="seg ' + st.state + '" title="' + esc(jobName(st.job) + ': ' + STATE_WORD[st.state] + (st.calls ? ' · ' + plural(st.calls, 'call') + ' · ' + mins(st.agentMs) + ' agent time · ' + tk(st.tokens) + ' tokens' : '') + (st.questions ? ' · ' + plural(st.questions, 'NQ question') : '')) + '">' + esc(jobName(st.job) || st.label) + (st.questions ? '<span class="q">' + st.questions + '?</span>' : '') + '</span>';
 }
 function pipe(steps) {
   var out = [], i = 0;
@@ -24750,7 +24965,7 @@ function renderRunning() {
   $('nowsub').textContent = r.length ? plural(r.length, 'step') + ' in flight' : '';
   $('running').innerHTML = r.map(function (f, k) {
     var cls = f.kind === 'intake' || f.kind === 'originator' ? 'nq' : f.who === 'made well' ? 'mw' : '';
-    var what = f.kind === 'execute' ? JOBNAME[f.job] : f.kind === 'intake' ? 'NQ intake for ' + f.job : f.kind === 'originator' ? 'answers questions on ' + f.job : f.kind;
+    var what = f.kind === 'execute' ? jobName(f.job) : f.kind === 'intake' ? 'NQ intake for ' + f.job : f.kind === 'originator' ? 'answers questions on ' + f.job : f.kind;
     return '<div class="run ' + cls + '" data-run="' + k + '"><div class="h"><b>#' + f.item + ' · ' + esc(what) + '</b><span class="rw">' + esc(f.who) + (f.card ? ' · ' + esc(f.card) : '') + '</span><span class="tm" data-since="' + esc(f.since) + '">' + dur(now() - Date.parse(f.since)) + '</span></div>' +
       '<div class="it">' + esc(f.title) + '</div><div class="act">' + (f.activity.length ? f.activity.slice(-4).map(function (a) { return '<div class="' + a.kind + '">' + esc(a.text) + '</div>'; }).join('') : '<div class="say" style="color:var(--faint)">' + (f.who === 'made well' ? 'running…' : 'thinking… no output yet') + '</div>') + '</div></div>';
   }).join('') + (M.cutOff.length ? '<div class="empty">' + plural(M.cutOff.length, 'step was', 'steps were') + ' cut off when the runner stopped; they run again when it starts.</div>' : '');
@@ -24777,7 +24992,7 @@ function renderTimeline() {
       var cls = b.kind === 'execute' && b.job === 'arbitrate' ? 'arbitrate' : b.kind;
       var bad = b.outcome && b.outcome !== 'ok' ? ' bad' : '';
       var top = lanes === 2 ? (b.lane === 1 ? 23 : 8) : 10;
-      var tip = '#' + id + ' ' + (b.kind === 'execute' ? JOBNAME[b.job] + ' (' + PROFILE[b.job] + ')' : b.kind + ' · ' + b.job) + ' · ' + dur(e - s) + (b.outcome ? ' · ' + b.outcome : ' · running');
+      var tip = '#' + id + ' ' + (b.kind === 'execute' ? jobName(b.job) + ' (' + profileName(b.job) + ')' : b.kind + ' · ' + b.job) + ' · ' + dur(e - s) + (b.outcome ? ' · ' + b.outcome : ' · running');
       return '<div class="bar ' + cls + bad + (b.end ? '' : ' live') + '" style="left:' + pct(s) + ';width:calc(' + ((e - s) / span * 100).toFixed(3) + '% );top:' + top + 'px" title="' + esc(tip) + '"' + (b.call ? ' data-call="' + b.call + '"' : '') + '></div>';
     }).join('') + (LIVE && M.running.length ? '<div class="tl-now" style="left:' + pct(now()) + '"></div>' : '') + '</div></div>';
   }).join('');
@@ -24785,13 +25000,13 @@ function renderTimeline() {
 }
 
 function renderCost() {
-  var jobs = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'].filter(function (j) { return M.cost[j]; });
+  var jobs = Object.keys(M.jobs || {}).filter(function (j) { return M.cost[j]; }).concat(Object.keys(M.cost).filter(function (j) { return !(M.jobs || {})[j]; }));
   var KINDS = ['intake', 'originator', 'execute', 'repair'];
   var tot = function (j) { var c = M.cost[j]; return KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].ms : 0); }, 0); };
   var max = Math.max.apply(null, jobs.map(tot).concat([1]));
   $('cost').innerHTML = jobs.length ? jobs.map(function (j) {
     var c = M.cost[j], t = tot(j), toks = KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].tokens : 0); }, 0);
-    return '<div>' + esc(JOBNAME[j]) + '</div><div class="track" title="' + esc(KINDS.filter(function (k) { return c[k]; }).map(function (k) { return k + ' ' + mins(c[k].ms) + ' in ' + plural(c[k].calls, 'call'); }).join(' · ')) + '">' +
+    return '<div>' + esc(jobName(j)) + '</div><div class="track" title="' + esc(KINDS.filter(function (k) { return c[k]; }).map(function (k) { return k + ' ' + mins(c[k].ms) + ' in ' + plural(c[k].calls, 'call'); }).join(' · ')) + '">' +
       KINDS.map(function (k) { return c[k] ? '<div class="k-' + k + '" style="width:' + (c[k].ms / max * 100) + '%"></div>' : ''; }).join('') + '</div><div class="n">' + mins(t) + ' · ' + tk(toks) + '</div>';
   }).join('') + '<div></div><div class="legend" style="margin-top:4px"><span><i class="k-intake"></i>NQ intake</span><span><i class="k-originator"></i>originator answers</span><span><i class="k-execute"></i>the job</span></div><div></div>' : '<div class="empty">No agent calls yet.</div>';
 }
@@ -24843,11 +25058,19 @@ function drawItem(keep) {
 }
 function bigPipe(steps) {
   return '<div class="bigpipe">' + steps.map(function (st) {
-    return '<div class="bp ' + st.state + '"><b>' + esc(JOBNAME[st.job] || st.label) + '</b><div class="w">' + esc(st.who) + ' · ' + STATE_WORD[st.state] + '</div><div class="w">' + (st.calls ? mins(st.agentMs) + ' · ' + tk(st.tokens) + ' tok' : '&nbsp;') + (st.questions ? ' · <span style="color:var(--amber)">' + st.questions + '?</span>' : '') + '</div></div>';
+    return '<div class="bp ' + st.state + '"><b>' + esc(jobName(st.job) || st.label) + '</b><div class="w">' + esc(st.who) + ' · ' + STATE_WORD[st.state] + '</div><div class="w">' + (st.calls ? mins(st.agentMs) + ' · ' + tk(st.tokens) + ' tok' : '&nbsp;') + (st.questions ? ' · <span style="color:var(--amber)">' + st.questions + '?</span>' : '') + '</div></div>';
   }).join('') + '</div>';
 }
 function list(a) { return a && a.length ? '<ul style="margin:4px 0;padding-left:20px">' + a.map(function (x) { return '<li>' + esc(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>'; }).join('') + '</ul>' : '<span class="empty">none</span>'; }
 function decisions(ds) { return (ds || []).map(function (d) { return '<div class="dec"><div class="q">' + esc(d.question) + '</div><div class="a">→ ' + esc(d.decision) + '</div>' + (d.why ? '<div class="y">' + esc(d.why) + '</div>' : '') + '</div>'; }).join(''); }
+var KNOWN_OUT = ['discover', 'ideate', 'challenge', 'plan', 'implement', 'test-plan', 'arbitrate'];
+function jobOrder(j) { var k = Object.keys(M.jobs || {}); return k.indexOf(j) < 0 ? 99 : k.indexOf(j); }
+function fieldsOf(v) {
+  if (v == null) return '';
+  if (typeof v !== 'object') return '<div class="prose">' + esc(String(v)) + '</div>';
+  if (Array.isArray(v)) return v.length ? '<ul>' + v.map(function (x) { return '<li>' + (typeof x === 'object' ? fieldsOf(x) : esc(String(x))) + '</li>'; }).join('') + '</ul>' : '<div class="prose" style="color:var(--mute)">none</div>';
+  return Object.keys(v).map(function (k) { return '<div style="margin-top:6px"><b style="font-size:13px">' + esc(k) + '</b>' + fieldsOf(v[k]) + '</div>'; }).join('');
+}
 function storyTab() {
   var v = D.view, it = D.item, o = D.deliverables, h = '';
   if (v.hold) h += '<div class="hold"><div class="c">' + esc(v.hold.code) + '</div><div style="font-size:15px;margin:4px 0">' + esc(v.hold.message) + '</div>' + (Array.isArray(v.hold.context.questions) ? '<ol>' + v.hold.context.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' : '') + v.next.map(cmd).join('') + '<details><summary>every fact of the hold</summary><pre>' + esc(JSON.stringify(v.hold.context, null, 2)) + '</pre></details></div>';
@@ -24869,6 +25092,8 @@ function storyTab() {
   }
   if (o.implement) h += '<h4>Implementer</h4><div class="prose">' + esc(o.implement.summary || o.implement.blocked || '') + '</div>';
   if (o['test-plan'] && o['test-plan'].blocked) h += '<h4>Test architect</h4><div class="prose">' + esc(o['test-plan'].blocked) + '</div>';
+  // A cartridge's own steps: each deliverable drawn from its fields, in lane order.
+  Object.keys(o).filter(function (j) { return KNOWN_OUT.indexOf(j) < 0; }).sort(function (a, b) { return jobOrder(a) - jobOrder(b); }).forEach(function (j) { h += '<h4>' + esc(jobName(j)) + ' · ' + esc(profileName(j)) + '</h4>' + fieldsOf(o[j]); });
   if (it.failure) h += '<h4>Open failure</h4><pre>' + esc(it.failure) + '</pre>';
   if (o.arbitrate) h += '<h4>Arbiter\'s ruling</h4><div class="dec"><div class="q">Cause: ' + esc(o.arbitrate.cause) + '</div><div class="a">' + esc(o.arbitrate.answer) + '</div><div class="y">' + esc(o.arbitrate.evidence) + '</div></div>';
   if (it.rework) h += '<h4>Round ' + it.round + ' works from this ruling</h4><div class="dec"><div class="q">' + esc(it.rework.cause) + '</div><div class="a">' + esc(it.rework.answer) + '</div></div>';
@@ -24915,7 +25140,7 @@ function callsTab() {
   if (!D.calls.length) return '<div class="empty">No calls yet.</div>';
   var sum = D.calls.reduce(function (a, c) { a.ms += c.ms; a.t += tok(c.tokens); return a; }, { ms: 0, t: 0 });
   return '<div class="prose" style="font-size:13px;margin-bottom:8px">' + plural(D.calls.length, 'call') + ' · ' + mins(sum.ms) + ' of agent time · ' + tk(sum.t) + ' tokens</div><table><tr><th>#</th><th>Call</th><th>Card</th><th class="num">Time</th><th class="num">Tokens</th><th class="num">Tools</th><th>Outcome</th></tr>' + D.calls.map(function (c) {
-    return '<tr class="click" data-call="' + c.id + '"><td class="num">' + c.id + '</td><td><b>' + esc(c.kind === 'execute' ? JOBNAME[c.job] : c.kind) + '</b> <span style="color:var(--mute)">' + esc((c.kind === 'execute' ? '' : c.job + ' · ') + c.profile) + '</span></td><td class="mono" style="color:var(--mute)">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + tk(tok(c.tokens)) + '</td><td class="num">' + c.toolCount + '</td><td>' + (c.outcome === 'ok' ? '<span class="ok-t">ok</span>' : '<span class="bad-t">' + esc(c.outcome) + '</span>') + (c.flags.length ? ' <span class="bad-t">' + plural(c.flags.length, 'rule break') + '</span>' : '') + '</td></tr>';
+    return '<tr class="click" data-call="' + c.id + '"><td class="num">' + c.id + '</td><td><b>' + esc(c.kind === 'execute' ? jobName(c.job) : c.kind) + '</b> <span style="color:var(--mute)">' + esc((c.kind === 'execute' ? '' : c.job + ' · ') + c.profile) + '</span></td><td class="mono" style="color:var(--mute)">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + tk(tok(c.tokens)) + '</td><td class="num">' + c.toolCount + '</td><td>' + (c.outcome === 'ok' ? '<span class="ok-t">ok</span>' : '<span class="bad-t">' + esc(c.outcome) + '</span>') + (c.flags.length ? ' <span class="bad-t">' + plural(c.flags.length, 'rule break') + '</span>' : '') + '</td></tr>';
   }).join('') + '</table>';
 }
 function logTab() { return '<div class="log" style="max-height:none">' + D.events.map(evRow).join('') + '</div>'; }
@@ -24945,7 +25170,7 @@ function loadCall(id) {
 function pretty(text) { var j = null; try { var s = (text || '').replace(/^\s*\x60{3}(json)?/, '').replace(/\x60{3}\s*$/, ''); j = JSON.parse(s); } catch (e) {} return '<pre>' + esc(j ? JSON.stringify(j, null, 2) : text || '(none)') + '</pre>'; }
 function drawCall(c, back) {
   var head = (back ? '<a href="#" class="back" data-item="' + back + '">← #' + back + '</a>' : '<a href="#" class="back" data-item="' + c.item + '">← #' + c.item + '</a>') +
-    '<h3>' + esc(c.kind === 'execute' ? JOBNAME[c.job] + ' · ' + c.profile : c.kind + ' · ' + c.job + ' · ' + c.profile) + ' <span class="tag">call ' + c.id + '</span>' + (c.outcome === 'ok' ? '' : '<span class="tag st-held">' + esc(c.outcome) + '</span>') + '</h3>' +
+    '<h3>' + esc(c.kind === 'execute' ? jobName(c.job) + ' · ' + c.profile : c.kind + ' · ' + c.job + ' · ' + c.profile) + ' <span class="tag">call ' + c.id + '</span>' + (c.outcome === 'ok' ? '' : '<span class="tag st-held">' + esc(c.outcome) + '</span>') + '</h3>' +
     '<div class="sub">' + esc([c.card.harness, c.card.model, c.card.effort].filter(function (x, k, a) { return x && a.indexOf(x) === k; }).join(' · ')) + ' · ' + esc(clock(c.started)) + ' · ' + dur(c.ms) + ' · ' + (c.tokens ? tk(tok(c.tokens)) + ' tokens (' + num(c.tokens.output) + ' out, ' + num(c.tokens.cacheRead) + ' cache read)' : 'tokens not reported') + (c.facts && c.facts.access ? ' · ' + esc(c.facts.access) + ' access' : '') + '</div>';
   var h = '';
   if (c.error) h += '<h4>' + (c.outcome === 'rejected' ? 'Refused by Made Well' : 'Error') + '</h4><pre>' + esc(c.error) + '</pre>';
@@ -24985,7 +25210,7 @@ function toolLine(input) {
 function drawRun(f) {
   open = { type: 'run' };
   var name = f.live ? f.live.split('/').pop() : null;
-  show('<a href="#" class="back" data-item="' + f.item + '">← #' + f.item + '</a><h3>' + esc(f.kind === 'execute' ? JOBNAME[f.job] : f.kind + ' · ' + f.job) + ' · ' + esc(f.who) + ' <span class="tag st-running">running</span></h3><div class="sub">' + esc(f.title) + (f.card ? ' · ' + esc(f.card) : '') + ' · since ' + esc(clock(f.since)) + '</div>',
+  show('<a href="#" class="back" data-item="' + f.item + '">← #' + f.item + '</a><h3>' + esc(f.kind === 'execute' ? jobName(f.job) : f.kind + ' · ' + f.job) + ' · ' + esc(f.who) + ' <span class="tag st-running">running</span></h3><div class="sub">' + esc(f.title) + (f.card ? ' · ' + esc(f.card) : '') + ' · since ' + esc(clock(f.since)) + '</div>',
     '<h4>Live</h4><div class="tx" id="tail">' + (name ? 'waiting for output…' : 'This step streams no output.') + '</div>');
   liveTail = name ? { name: name, from: 0, text: '' } : null;
   tail();
@@ -25245,16 +25470,18 @@ var activityIn = (file, n = 6) => {
   }
   return out;
 };
-var LANE = [
-  { job: "ideate", label: "Ideate" },
-  { job: "challenge", label: "Challenge" },
-  { job: "plan", label: "Plan" },
-  { job: "implement", label: "Implement" },
-  { job: "test-plan", label: "Checks" },
-  { job: "verify", label: "Verify" },
-  { job: "ship", label: "Ship" }
-];
-var ORDER = { discover: 0, ideate: 1, challenge: 2, plan: 3, implement: 4, "test-plan": 4, verify: 5, arbitrate: 5, ship: 6 };
+var labelOf = (job) => job === "test-plan" ? "Checks" : job === "arbitrate" ? "Arbiter" : job.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+var isDiscovery = (item) => laneOf(item.pack).discovery.some((s) => s.job === item.job);
+var orderOf = (lane) => {
+  const order = {};
+  lane.discovery.forEach((s, i) => order[s.job] = i);
+  let n = 0;
+  let maker;
+  for (const s of lane.delivery) order[s.job] = isMaker(s.job) ? maker ??= ++n : ++n;
+  order.arbitrate = order.verify;
+  order.ship = n + 1;
+  return order;
+};
 var DOING = {
   discover: "turning the notes into work items",
   ideate: "shaping the idea",
@@ -25267,17 +25494,20 @@ var DOING = {
 var tally = (calls) => ({ agentMs: calls.reduce((n, c) => n + c.ms, 0), tokens: calls.reduce((n, c) => n + totalTokens(c.tokens), 0), calls: calls.length });
 var stepsOf = (item, calls, events2, flying) => {
   const questions = (job) => events2.filter((e) => e.kind === "nq-question" && e.data.job === job).reduce((n, e) => n + (e.data.questions?.length ?? 0), 0);
-  const lane = item.job === "discover" ? [{ job: "discover", label: "Discover" }] : LANE.filter((s) => s.job !== "arbitrate");
+  const lane = laneOf(item.pack);
+  const ORDER = orderOf(lane);
+  const discovery = isDiscovery(item);
+  const jobs2 = discovery ? lane.discovery.map((s) => s.job) : [...lane.delivery.map((s) => s.job), "ship"];
   const arbiter = calls.some((c) => c.job === "arbitrate") || item.job === "arbitrate";
-  const steps = arbiter ? [...lane.slice(0, 6), { job: "arbitrate", label: "Arbiter" }, ...lane.slice(6)] : lane;
+  const steps = (arbiter ? [...jobs2.slice(0, -1), "arbitrate", "ship"] : jobs2).map((job) => ({ job, label: labelOf(job), cartridge: job === "ship" ? stepOf(lane, "verify").cartridge : stepOf(lane, job).cartridge }));
   const at = ORDER[item.job] ?? 0;
   const done3 = item.status === "shipped" || item.status === "discovered";
-  return steps.map(({ job, label: label2 }) => {
+  return steps.map(({ job, label: label2, cartridge }) => {
     const mine = calls.filter((c) => c.job === job);
     const span2 = mine.length ? Date.parse(mine.at(-1).started) + mine.at(-1).ms - Date.parse(mine[0].started) : 0;
     let state;
     const track2 = item.split?.[job];
-    if (done3) state = mine.length || job === "verify" || job === "ship" || job === "discover" ? "done" : "skipped";
+    if (done3) state = mine.length || job === "verify" || job === "ship" || discovery ? "done" : "skipped";
     else if (item.status === "dropped") state = mine.length ? "done" : "todo";
     else if (item.parent !== void 0 && ORDER[job] < ORDER.plan) state = "skipped";
     else if (job === "arbitrate") state = item.job === "arbitrate" ? item.status === "held" ? "held" : "active" : "done";
@@ -25289,7 +25519,7 @@ var stepsOf = (item, calls, events2, flying) => {
     else if (job === item.job || job === "verify" && item.merged) state = item.status === "held" ? "held" : ["candidate", "queued"].includes(item.status) && !flying.length ? "todo" : "active";
     else state = "todo";
     if (job === "verify" && state === "done" && item.merged && !done3) state = "done";
-    return { job, label: label2, who: job === "verify" || job === "ship" ? "made well" : stepOf(job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
+    return { job, label: label2, cartridge, who: job === "verify" || job === "ship" ? "made well" : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
   });
 };
 var doingOf = (store, item, flying, driven, nextOf, events2) => {
@@ -25324,15 +25554,15 @@ var doingOf = (store, item, flying, driven, nextOf, events2) => {
       }
       if (f.kind === "ship") return "Made Well is running the ship command";
       if (f.kind === "prepare") return `Made Well is preparing a worktree for ${f.job}`;
-      const receiver = stepOf(f.job).profile;
+      const receiver = stepOf(laneOf(item.pack), f.job).profile;
       if (f.kind === "intake") return `The ${receiver} is reading its hand-off for ${f.job} (NQ intake)`;
       if (f.kind === "originator") {
         const q = events2.findLast((e) => e.kind === "nq-question" && e.data.job === f.job)?.data.questions;
         return `The ${f.who} is answering the ${receiver}'s ${plural(q?.length ?? 0, "question")}`;
       }
-      return `The ${receiver} is ${DOING[f.job] ?? f.job}`;
+      return `The ${receiver} is ${DOING[f.job] ?? `doing ${labelOf(f.job).toLowerCase()}`}`;
     };
-    return { doing: mine.map(say).join(" \xB7 "), owes: [...new Set(mine.map((f) => f.kind === "originator" ? f.who : f.kind === "intake" || f.kind === "execute" ? stepOf(f.job).profile : "made well"))].join(" + ") };
+    return { doing: mine.map(say).join(" \xB7 "), owes: [...new Set(mine.map((f) => f.kind === "originator" ? f.who : f.kind === "intake" || f.kind === "execute" ? stepOf(laneOf(item.pack), f.job).profile : "made well"))].join(" + ") };
   }
   if (item.status === "queued") return { doing: "Queued: starts when a slot frees", owes: "runner" };
   return { doing: `Between steps: ${item.job} is next`, owes: "made well" };
@@ -25348,7 +25578,7 @@ var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.
   return {
     id: item.id,
     title: item.title,
-    kind: item.job === "discover" ? "discovery" : item.parent !== void 0 ? "prerequisite" : item.kind ?? "feature",
+    kind: isDiscovery(item) ? "discovery" : item.parent !== void 0 ? "prerequisite" : item.kind ?? "feature",
     status: item.status,
     ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
     ...item.parent !== void 0 ? { parent: item.parent } : {},
@@ -25371,8 +25601,8 @@ var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.
   };
 });
 var barsOf = (events2, calls, flying) => {
-  const laneOf = (job) => job === "test-plan" ? 1 : 0;
-  const bars = calls.map((c) => ({ item: c.item, kind: c.kind, job: c.job, start: c.started, end: new Date(Date.parse(c.started) + c.ms).toISOString(), outcome: c.outcome, call: c.id, lane: laneOf(c.job) }));
+  const laneOf2 = (job) => job === "test-plan" ? 1 : 0;
+  const bars = calls.map((c) => ({ item: c.item, kind: c.kind, job: c.job, start: c.started, end: new Date(Date.parse(c.started) + c.ms).toISOString(), outcome: c.outcome, call: c.id, lane: laneOf2(c.job) }));
   const open = /* @__PURE__ */ new Map();
   for (const e of events2) {
     if (e.kind === "verify-started" || e.kind === "ship-started") open.set(`${e.item}:${e.kind}`, e);
@@ -25387,7 +25617,7 @@ var barsOf = (events2, calls, flying) => {
     if (e.kind === "shipped") end2("ship-started", "ok");
     if (e.kind === "held") end2("verify-started", "held"), end2("ship-started", "held");
   }
-  for (const f of flying) if (f.kind !== "prepare") bars.push({ item: f.item, kind: f.kind, job: f.job, start: f.since, end: null, lane: laneOf(f.job) });
+  for (const f of flying) if (f.kind !== "prepare") bars.push({ item: f.item, kind: f.kind, job: f.job, start: f.since, end: null, lane: laneOf2(f.job) });
   return bars;
 };
 var modelOf = (store, nextOf) => {
@@ -25401,7 +25631,7 @@ var modelOf = (store, nextOf) => {
   const cutOff = runner2 ? [] : inFlight(events2);
   const views = itemViews(store, items, events2, calls, flying, runner2 !== null, nextOf);
   const count = (...s) => items.filter((i) => s.includes(i.status)).length;
-  const delivery = items.filter((i) => i.job !== "discover" || i.status !== "discovered");
+  const delivery = items.filter((i) => !isDiscovery(i));
   const nq = calls.filter((c) => c.kind !== "execute");
   const byJob = {};
   for (const c of calls) {
@@ -25425,7 +25655,7 @@ var modelOf = (store, nextOf) => {
       held: count("held"),
       candidates: count("candidate"),
       dropped: count("dropped"),
-      items: delivery.filter((i) => i.job !== "discover").length,
+      items: delivery.length,
       ...tally(calls),
       nqMs: nq.reduce((n, c) => n + c.ms, 0),
       intakes: calls.filter((c) => c.kind === "intake").length,
@@ -25445,6 +25675,11 @@ var modelOf = (store, nextOf) => {
     running: flying.map((f) => ({ ...f, title: titles.get(f.item) ?? "", activity: activityIn(f.live) })),
     cutOff,
     cost: byJob,
+    /** Every job the items' lanes have, with the label and profile the page shows for it. */
+    jobs: Object.fromEntries([...new Map(items.flatMap((i) => {
+      const lane = laneOf(i.pack);
+      return [...lane.discovery, ...lane.delivery, lane.arbiter].map((s) => [s.job, { label: labelOf(s.job), profile: s.job === "verify" ? "made well" : s.profile, cartridge: s.cartridge }]);
+    })).entries(), ["ship", { label: "Ship", profile: "made well", cartridge: "verification" }]]),
     rules: calls.flatMap((c) => c.flags.map((f) => ({ call: c.id, item: c.item, job: c.job, kind: c.kind, rule: f.rule }))),
     events: events2.slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
     eventCount: events2.length
@@ -25482,7 +25717,7 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read = (name) => existsSync3(patchPath(home, name)) ? readFileSync7(patchPath(home, name), "utf8") : "";
+  const read = (name) => existsSync3(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
   let change = read("change");
   if (!change && shipped) {
@@ -25515,7 +25750,7 @@ var itemDetail = (store, nextOf, id2) => {
 var spansOf = (path, item) => {
   const file = spansPath(path);
   if (!existsSync3(file)) return [];
-  const all4 = readFileSync7(file, "utf8").split("\n").flatMap((l) => {
+  const all4 = readFileSync8(file, "utf8").split("\n").flatMap((l) => {
     try {
       return l ? [JSON.parse(l)] : [];
     } catch {
@@ -25791,18 +26026,18 @@ var Stats = Schema_exports.Struct({
   })),
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Stats" });
-var nqOf = (x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
+var nqOf = (item, x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(laneOf(item.pack), x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
 var view = (item, driven = true) => ({
   id: item.id,
   title: item.title,
   status: item.status,
-  stage: stepOf(item.job).stage,
+  stage: stepOf(laneOf(item.pack), item.job).cartridge,
   job: item.job,
-  profile: stepOf(item.job).profile,
+  profile: stepOf(laneOf(item.pack), item.job).profile,
   ...item.kind ? { kind: item.kind } : {},
   ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
-  ...nqOf(item.exchange),
-  ...item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {},
+  ...nqOf(item, item.exchange),
+  ...item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(item, t?.exchange) }])) } : {},
   round: item.round,
   ...item.waitsOn !== void 0 ? { waitsOn: item.waitsOn } : {},
   ...item.after?.length ? { after: item.after } : {},
@@ -25839,11 +26074,15 @@ var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
     next: [{ run: `mw init --workspace ${quote2(path)} --ship ${SHIP_SLOT}`, why: "register it with how it ships, then run this command again" }]
   });
 });
+var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
+  const path = projectFor(yield* readProjects(registry), workspace)?.cartridges;
+  return path ? yield* loadPack(path) : void 0;
+});
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve6(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync8(path, "utf8"),
+    try: () => readFileSync9(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
@@ -25951,6 +26190,7 @@ var COMMANDS = [
       ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time."),
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
       prepare: optional3("shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output"),
+      cartridges: optional3('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
       gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
     output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
@@ -25964,11 +26204,44 @@ var COMMANDS = [
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
-      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {} });
+      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve6(input.cartridges);
+      if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
+      const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...cartridges ? { cartridges } : {} });
+      const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
       const updated = yield* readProjects(registry);
       const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
       for (const h of waiting) yield* retry3(h.item);
       return { project, released: waiting.map((h) => view(store.get(h.item))), next: [{ run: "mw next", why: "see what to do now" }] };
+    })
+  }),
+  command({
+    name: "cartridges",
+    summary: "The cartridge pack a project's work runs: discovery's and delivery's cartridges, each step's profile, duty, what it receives and the shape it returns. Without a pack of its own, the project runs the default software pack; save `.pack` to a file, change it, and plug it in with `mw init --cartridges <file>`. --check validates a pack file against the console's contract without registering it.",
+    input: Schema_exports.Struct({
+      workspace: Workspace,
+      check: optional3("a cartridge pack file to validate instead")
+    }),
+    output: Schema_exports.Struct({
+      source: Schema_exports.String.annotate({ description: '"default", or the pack file' }),
+      pack: Pack,
+      lane: Schema_exports.Struct({
+        discovery: Schema_exports.Array(Schema_exports.String).annotate({ description: 'each step as "cartridge / job (profile)", in order' }),
+        delivery: Schema_exports.Array(Schema_exports.String)
+      }),
+      next: Schema_exports.Array(Next)
+    }),
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const path = input.check ? resolve6(input.check) : projectFor(yield* readProjects(registry), resolve6(input.workspace ?? "."))?.cartridges;
+      const pack = path ? yield* loadPack(path) : SOFTWARE;
+      const lane = laneOf(path ? pack : void 0);
+      const line = (s) => `${s.cartridge} / ${s.job} (${s.job === "verify" ? "made well" : s.profile})`;
+      return {
+        source: path ?? "default",
+        pack,
+        lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
+        next: input.check ? [{ run: `mw init --cartridges ${quote2(path)}`, why: "plug it into this project; new work runs it" }] : [{ run: "mw cartridges | jq .pack > pack.json", why: "start a pack of your own from this one" }]
+      };
     })
   }),
   command({
@@ -25984,7 +26257,8 @@ var COMMANDS = [
     }),
     run: (input, { source, workspace }) => Effect_exports.gen(function* () {
       const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
-      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: "discover" });
+      const pack = yield* packFor(workspace);
+      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, ...pack ? { pack } : {} });
       return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
     })
   }),
@@ -26009,7 +26283,8 @@ var COMMANDS = [
       return { source, workspace: yield* registered(input.workspace) };
     }),
     run: (input, { source, workspace }) => Effect_exports.gen(function* () {
-      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace });
+      const pack = yield* packFor(workspace);
+      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, ...pack ? { pack } : {} });
       return { item: view(item), next: [{ run: "mw run", why: "deliver it; it moves through all four stages and ships on a passing check" }] };
     })
   }),
@@ -26163,7 +26438,7 @@ var COMMANDS = [
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync4(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync8(join12(dir, f), "utf8").split("\n").filter(Boolean));
+      const lines4 = files.flatMap((f) => readFileSync9(join12(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
@@ -26172,7 +26447,7 @@ var COMMANDS = [
     summary: "Replay a job's recorded calls on another card or brief through the worker, score record and replay deterministically (required JSON fields, rule-break flags, seconds, tokens), and recommend the cheapest card that matches or beats the record. Replays run in throwaway worktrees; results go only to the store; no file changes.",
     args: ["job"],
     input: Schema_exports.Struct({
-      job: Schema_exports.Literals(JOBS).annotate({ description: "the job whose recorded calls to replay: its intake, originator and execute calls" }),
+      job: Schema_exports.NonEmptyString.annotate({ description: `the job whose recorded calls to replay: its intake, originator and execute calls (${JOBS.join(", ")}, or a cartridge's own job)` }),
       card: optional3("a tier name (every card in it) or one card as JSON {harness, provider, account, model, effort}; defaults to each call's recorded card"),
       brief: optional3("a file whose text replaces the job's brief; only execute calls are replayed"),
       item: optional3("only calls of these work items, comma-separated: 3,5"),

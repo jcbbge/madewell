@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { Context, Effect, Layer } from 'effect'
 import type { Card } from './cards.ts'
 import { MadeWellError, type Next } from './errors.ts'
-import type { Check, Cause, Job, Maker } from './lane.ts'
+import { laneOf, type Check, type Cause, type Job, type Maker, type Pack } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
@@ -91,7 +91,7 @@ export interface Item {
 	/** The NQ exchange of the current hand-off; absent until the hand-off starts. */
 	readonly exchange?: Exchange
 	/** Accepted outputs of the current round, by job: each job's packet. */
-	readonly outputs: Partial<Record<Job, string>>
+	readonly outputs: Readonly<Partial<Record<Job, string>>>
 	/** An open failure waiting for the arbiter. */
 	readonly failure?: string
 	/** The arbiter's (or operator's) ruling, assigned to the job it routed the work back to. */
@@ -116,6 +116,8 @@ export interface Item {
 	/** For a candidate: the discovery run that found it. */
 	readonly discovery?: number
 	readonly kind?: 'feature' | 'fix' | 'chore'
+	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
+	readonly pack?: Pack
 	readonly waitsOn?: number
 	/** For a candidate: the items it builds on. It starts once they have shipped. */
 	readonly after?: ReadonlyArray<number>
@@ -238,11 +240,11 @@ export function openStore(path: string) {
 
 	const store = {
 		path,
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after'>>): Item {
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')
-				const item: Item = { job: 'ideate', from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
+				const item: Item = { job: laneOf(fields.pack).delivery[0]!.job, from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(item), item.id)
 				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item

@@ -18,6 +18,7 @@ export const Project = Schema.Struct({
 	ship: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run in the workspace once Made Well has brought a passing item onto main: deploy it' })),
 	alert: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set' })),
 	prepare: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
+	cartridges: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'the cartridge pack file this project\'s new work runs; without it, the default software pack' })),
 	gates: Schema.optionalKey(Schema.Array(Gate).annotate({ description: 'the repo\'s own gates (linters, formatters), run by Made Well on each item\'s changed files before its checks; they replace a git hook manager such as lefthook' })),
 }).annotate({ identifier: 'Project' })
 export type Project = typeof Project.Type
@@ -33,7 +34,7 @@ export const readProjects = Effect.fn('mw.readProjects')(function* (path: string
 	return yield* Schema.decodeUnknownEffect(Registry)(readFileSync(path, 'utf8')).pipe(
 		Effect.mapError((e) => new MadeWellError({
 			code: 'projects_invalid', message: `The project registry ${path} is not valid.`, context: { path, problems: String(e) },
-			cause: 'It must be a JSON array of {path, ship?, alert?, prepare?, gates?: [{run, glob?}]}.',
+			cause: 'It must be a JSON array of {path, ship?, alert?, prepare?, cartridges?, gates?: [{run, glob?}]}.',
 			next: [{ run: `cat ${path}`, why: 'fix the entries named in context.problems' }],
 		})),
 	)
@@ -43,10 +44,10 @@ export const readProjects = Effect.fn('mw.readProjects')(function* (path: string
 export const projectFor = (projects: ReadonlyArray<Project>, workspace: string) =>
 	projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep)).sort((a, b) => b.path.length - a.path.length)[0]
 
-/** Registers a project, or updates the fields given. */
-export const saveProject = Effect.fn('mw.saveProject')(function* (path: string, project: Project) {
+/** Registers a project, or updates the fields given; `replace` writes the entry exactly as given. */
+export const saveProject = Effect.fn('mw.saveProject')(function* (path: string, project: Project, replace = false) {
 	const projects = yield* readProjects(path)
-	const merged = { ...projects.find((p) => p.path === project.path), ...project }
+	const merged = replace ? project : { ...projects.find((p) => p.path === project.path), ...project }
 	mkdirSync(dirname(path), { recursive: true })
 	writeFileSync(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + '\n')
 	return merged

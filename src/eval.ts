@@ -14,7 +14,7 @@ import { Clock, Effect, Schema } from 'effect'
 import { budgetFor, cardsFor, harnessOf, prescriptionOf, type Access, type Card, type Prescriptions } from './cards.ts'
 import { MadeWellError, Next, quote } from './errors.ts'
 import { HARNESSES } from './harness.ts'
-import { decode, INTAKE, lastJson, ORIGINATOR, validate, type Job } from './lane.ts'
+import { decode, INTAKE, laneOf, lastJson, ORIGINATOR, validate, type Job, type Lane } from './lane.ts'
 import { Store, type Call } from './store.ts'
 import { flagsFor, telemetry, tokensOf, toolEvents, totalTokens, type Facts, type Flag } from './telemetry.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from './worker.ts'
@@ -72,9 +72,9 @@ export const EvalReport = Schema.Struct({
 type EvalReport = typeof EvalReport.Type
 
 type Kind = WorkerRequest['kind']
-const score = (kind: Kind, job: Job, r: { outcome: string; output: string | null; ms: number; tokens: Call['tokens']; flags: ReadonlyArray<Flag> }): Score => {
+const score = (kind: Kind, lane: Lane, job: Job, r: { outcome: string; output: string | null; ms: number; tokens: Call['tokens']; flags: ReadonlyArray<Flag> }): Score => {
 	// Held to exactly what the engine accepts. A plan's done-when threading needs the item's plan, so it is not checked here.
-	const accepted = r.output === null ? { ok: false as const, reason: `The call ended ${r.outcome} with no answer.` } : kind === 'intake' ? decode(INTAKE, r.output) : kind === 'originator' ? decode(ORIGINATOR, r.output) : validate(job, r.output)
+	const accepted = r.output === null ? { ok: false as const, reason: `The call ended ${r.outcome} with no answer.` } : kind === 'intake' ? decode(INTAKE, r.output) : kind === 'originator' ? decode(ORIGINATOR, r.output) : validate(lane, job, r.output)
 	return {
 		outcome: r.outcome,
 		valid: accepted.ok,
@@ -169,7 +169,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	const run = Number(db.prepare('INSERT INTO evals (at, job, card, brief, items, calls) VALUES (?, ?, ?, ?, ?, ?)').run(at, o.job, o.card ?? null, briefPath ?? null, JSON.stringify(ids), JSON.stringify(calls.map((c) => c.id))).lastInsertRowid)
 	const insert = db.prepare('INSERT INTO eval_calls (eval, call, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 
-	const accessOf = (c: Call): Access => (c.kind === 'execute' ? prescriptionOf(p, o.job).access : 'read')
+	const accessOf = (c: Call): Access => (c.kind === 'execute' ? (prescriptionOf(p, o.job)?.access ?? 'read') : 'read')
 	const budget = budgetFor(p, o.job)
 	/** The rules both sides are held to: the recorded facts, else the job's access and budget. Head and changed files are per run. */
 	const rulesOf = (c: Call): Facts => {
@@ -178,7 +178,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	}
 	const recordedScore = (c: Call) => {
 		const facts = { ...rulesOf(c), ...(c.facts?.head ? { head: c.facts.head } : {}), ...(c.facts?.changed ? { changed: c.facts.changed } : {}) }
-		return score(c.kind as Kind, o.job, { ...c, flags: flagsFor(facts, c) })
+		return score(c.kind as Kind, laneOf(store.get(c.item)?.pack), o.job, { ...c, flags: flagsFor(facts, c) })
 	}
 
 	/** One replay in a fresh worktree at the call's recorded HEAD (else the workspace's), proved to leave the product repo untouched. */
@@ -225,7 +225,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 			const facts: Facts = { ...rulesOf(c), head: r.head, changed: r.changed }
 			const flags = flagsFor(facts, { tools: toolEvents(g.card.harness, raw), tokens, ms: r.ms, output })
 			const outcome = r.result.ok ? 'ok' : 'limit' in r.result ? 'limit' : 'error'
-			const s = score(c.kind as Kind, o.job, { outcome, output, ms: r.ms, tokens, flags })
+			const s = score(c.kind as Kind, laneOf(store.get(c.item)?.pack), o.job, { outcome, output, ms: r.ms, tokens, flags })
 			const error = r.result.ok ? null : 'limit' in r.result ? r.result.limit.message : r.result.error
 			insert.run(run, c.id, JSON.stringify(g.card), r.system, r.prompt, outcome, output, error, raw, new Date(r.started).toISOString(), r.ms, tokens && JSON.stringify(tokens), JSON.stringify(facts), JSON.stringify(flags), JSON.stringify(s))
 			if (!r.result.ok && 'limit' in r.result) {

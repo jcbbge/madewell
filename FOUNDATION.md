@@ -23,6 +23,9 @@ The operator's law for Made Well. It binds every implementation, every agent and
 
 15. **Made Well is a console that takes cartridges.** `madewell()` is two while loops: discovery takes raw input (notes, transcripts, meetings) and returns what it discovered; delivery takes each discovered item and returns it delivered. The console is the fixed part: the loops, the durable item, NQ, holds, card swaps, recording and visibility. Cartridges plug into it, each a function with a contract: the shape it accepts and the shape it returns, the same shape every time for the same shape of input. Cartridges can be swapped, added and removed: delivery can run three phases or ten, and testing can be unplugged. The four stages and six profiles of this document are the default, minimal cartridge set, for software. Made Well is about work, not software: it is agnostic to provider, runtime, model, harness, platform, environment, machine, user and the kind of work (software, design, product, finance, marketing). It is built for largely non-technical people, and nothing specific to one host, orb or product goes into it. It is the next iteration of what exists, not a rewrite. See "Console and cartridges".
 16. **The operator talks to one agent, and it stays outside the glass.** Nobody wants a thousand agents. The operator has one agent, the operator's agent, the one they talk to. It looks into the machine from outside and never enters it. It sees every record, log, trace and metric; it narrates, explains and reports the state of every item, step and call, so the operator never searches, digs or opens the hood. It never moves the work. See "The operator's agent".
+17. **The operator chooses how involved to be: three levels of autonomy.** Made Well is a vending machine: put in the input, turn the knob, get the shipped result. **Full** autonomy is the default: raw input in, discovery, every candidate delivered, shipped, with no stop. **Checkpoints** pauses after discovery, for the operator to steer and promote, and again at the end of each item's delivery, before it ships. **Every step** also pauses between the phases of delivery. The level is a convenience to the operator, never a change to the work: the same steps run, with or without stops. The operator's own commands start the machine; a project can turn that off and start the runner itself. See "Levels of autonomy".
+18. **The three questions are the standing rubric for every decision.** Does it get us closer to a 10× developer experience, a world-class DX? Does it get us closer to a 10× user experience, memorable and lovable to the end user? Does it get us closer to a 10× agentic experience, efficient, optimized and catered to the agents involved? A choice that satisfies two of the three is the answer, and it is what is done. Under NQ the delegating agent is the sole responsible decision maker, because it holds the context, so it answers directly by the rubric. When a question would go to the operator: in full autonomy the delegating agent decides it by the rubric; at the other levels the operator is flagged and decides it, by the same rubric.
+19. **Shipped means the whole thing.** The item's change is added and committed, its gates and checks are green, it is merged onto main, pushed, and deployed by the project's ship command. The commit carries the item's purpose and the decisions that shaped it, so the wall records why each brick was laid; that is the work's own history, not a trace of the agent (ruling 13). A project without a ship command ships once main is pushed to its upstream, or once the change is on main when there is no upstream.
 
 ## Governing rubric: purpose, intent, and volition
 
@@ -90,7 +93,7 @@ madewell() {
 - **Swappable.** Discovery can hold one cartridge or eight; delivery can run three phases or ten, and a cartridge can be unplugged, testing included. What the console's own machinery acts on stays the console's contract: the plan's scope and done-when items that hold the makers, the blind split of the makers, and Made Well's own run of the checks, merge and ship. Unplugging testing leaves verification to the project's gates.
 - **The default cartridge set** is software development: the four stages and six profiles of this document. Other kinds of work bring their own set; the console does not change for them.
 
-**Required; not yet implemented.** Today the default software set is welded into the engine (the stages, profiles, schemas and hand-off table live in the console's code). Making the set a declared, swappable pack is the open gap.
+**Implemented, 2026-10-24.** A cartridge pack is a JSON file: discovery's and delivery's cartridges in order, each a list of steps with a profile, a duty, what it receives and, for a thinking step, the JSON Schema its deliverable must match. The console keeps five slots whose deliverables its machinery acts on: `discover` (the last discovery step, returning the candidates), `plan` (scope and done-when), `implement` and `test-plan` (the makers, run blind in parallel; `test-plan` may be unplugged) and `verify` (Made Well's own run, merge and ship); the arbiter is the console's too. The contract is checked before a pack is registered (`mw init --cartridges`), every item carries the pack it started with, and `mw cartridges` prints the pack a project runs. The software pack is the default. Demonstrated with a scripted worker; no live run of a non-default pack yet.
 
 ## Six agents, one per job
 
@@ -182,7 +185,7 @@ The recipient establishes its understanding of purpose and raises questions or a
 - the sender states what it is handing over;
 - the receiver states its understanding and answers three questions: What is unclear? What is ambiguous? Do I have everything I need to proceed? With nothing unclear, nothing ambiguous and everything it needs, it proceeds; otherwise it asks;
 - the sender answers; that completes one turn;
-- after three turns, if the receiver still has questions, the spec or the receiver's scope is wrong: that one work item holds and the human is alerted. Other work items are untouched.
+- after three turns, if the receiver still has questions, the spec or the receiver's scope is wrong: that one work item holds and the human is alerted. Other work items are untouched. In full autonomy (ruling 17) the delegating agent decides the open questions by the rubric (ruling 18) instead, and the work goes on.
 
 No interaction is exempt. The covered interactions:
 
@@ -196,7 +199,7 @@ No interaction is exempt. The covered interactions:
 
 The pipeline's own code re-asking a worker that returned a malformed result is not an agent hand-off.
 
-**Authority.** When the originator says only the operator can authorize something, the dispatcher first reads the operator's own source. If the source authorizes it (explicitly, or as a necessary part of what it asks for) or forbids it, the dispatcher answers and the work goes on. It holds for the operator only when the source leaves it open, or it is destructive, irreversible, or touches production, money, credentials or anything outside the workspace. Shipping a promoted item, including its deploy, is already authorized (ruling 8).
+**Authority.** When the originator says only the operator can authorize something, the dispatcher first reads the operator's own source. If the source authorizes it (explicitly, or as a necessary part of what it asks for) or forbids it, the dispatcher answers and the work goes on. It holds for the operator only when the source leaves it open, or it is destructive, irreversible, or touches production, money, credentials or anything outside the workspace. Shipping a promoted item, including its deploy, is already authorized (ruling 8). In full autonomy the dispatcher decides even what the source leaves open, by the rubric (ruling 18); only what the machine cannot supply, such as a credential it does not have, still holds.
 
 **The count.**
 
@@ -216,16 +219,33 @@ The exchange itself:
 - Human clarification and release do not themselves authorize execution: recipient confirmation is still required.
 - Preserve questions, answers, confirmation, escalation, and release as inspectable evidence. The exchange is durable state: it survives a crash, and a transport retry or a card swap mid-exchange must not consume a new turn or duplicate an effect.
 
+## Levels of autonomy
+
+*Operator ruling, 2026-10-24 (ruling 17).* The operator's involvement is theirs to choose, from every step to none. The level is set per project (`mw init --autonomy`) and can be set for one discovery or item when it starts; candidates inherit their discovery's level.
+
+| Level | Stops | Questions that would go to the operator |
+|---|---|---|
+| **full** (default) | none: discovery promotes every candidate it finds, and each ships when its checks pass | decided by the delegating agent, by the rubric |
+| **checkpoints** | after discovery (the operator promotes); at the end of each item's delivery, before it merges and ships | flagged to the operator |
+| **every step** | the checkpoints, and between the phases (cartridges) of delivery | flagged to the operator |
+
+A stop is a checkpoint, not a hold: nothing is wrong. The operator goes on (`mw go`), steers (`mw answer` with what should change, which the next step receives as the operator's word), or drops the item. Holds for things the machine cannot do itself (a failing ship or prepare command, three failed corrections, a credential it does not have) stop the item at every level.
+
+**The machine starts itself.** Every command that gives Made Well work (`discover`, `start`, `promote`, `answer`, `go`, `retry`) starts a runner when none is alive, so turning the knob is the whole act. `MW_AUTORUN=0` turns that off for operators who run `mw run` themselves. Nobody else is ever told to run the machine.
+
 ## A failed test is a question; the Arbiter decides whose
 
-Every failed test is a question, and every question needs an answer from its responsible party. A failed test is the one exception that needs a determination first: **whose question is it?** The **Arbiter** decides, from the evidence. A failed check has exactly three sources; this is definitive:
+Every failed test is a question, and every question needs an answer from its responsible party. A failed test is the one exception that needs a determination first: **whose question is it?** The **Arbiter** decides, from the evidence. A failed check has exactly four sources; this is definitive:
 
 | Cause | Who answers | Re-entry |
 |---|---|---|
 | **Bad test** | Test architect | Correct the test, then re-run verification. Valid implementation is not rebuilt. |
 | **Bad implementation** | Planner | Replan the correction; then the checks and the implementation are redone in parallel, and verification follows again. |
 | **Pre-existing defect** | A linked prerequisite work item | The defect is fixed through its own plan → checks and implementation → verify. The original work waits, then re-runs its checks. |
-| **Undetermined** | **The human** | The Arbiter cannot decide from the evidence: flag the human, who names the cause and answers. |
+| **Environment** | Made Well | The work is not at fault: the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree and runs the checks again; nothing is rebuilt. A second environment ruling in a row holds the item with the evidence, because the project's environment is the operator's configuration. |
+| **Undetermined** | **The human** | The Arbiter cannot decide from the evidence: flag the human, who names the cause and answers. In full autonomy the Arbiter must name the cause the evidence best supports instead. |
+
+Before the Arbiter is called, Made Well runs each failing check once more on the same candidate, so a flaky check never reaches it, and hands it the environment's evidence with the failure: the prepare output, what was torn down, and whether main moved.
 
 The answer goes to the responsible party as its assignment for the new round; prior attempts stay on the record. Three corrections that still fail hold for the human, and so does a pre-existing defect found more than two prerequisites deep.
 

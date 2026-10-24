@@ -16,6 +16,20 @@ Tell your agent, from any project: **run `mw` and follow `next`.**
 
 Every command prints JSON, and every answer and error lists the `next` commands to run. `mw next` always says what to do now.
 
+## Cartridges
+
+Made Well is a console with cartridges plugged in. The console runs the two loops (discovery, then delivery), keeps every step on the record, runs NQ at every hand-off and swaps cards when an account runs out. The cartridges are the work: each one is a named group of steps, and each step has a profile, a duty, what it receives and the shape of what it returns.
+
+The default pack is software development: ideation (ideate, challenge), planning (plan), implementation (implement and the checks, side by side), verification. Change it by plugging in your own:
+
+```sh
+mw cartridges | jq .pack > pack.json      # start from the default
+$EDITOR pack.json                         # add, remove or reword steps
+mw init --cartridges pack.json            # this project's new work runs it
+```
+
+A pack can add steps of its own anywhere before the plan, hold several discovery cartridges, and unplug the checks. The console keeps five slots, because its own machinery acts on what they return: `discover` (ends discovery with the candidates), `plan` (the scope and done-when items the makers are held to), `implement` and `test-plan` (the makers, side by side and blind to each other) and `verify` (Made Well runs the checks, merges and ships). `mw cartridges --check pack.json` says exactly what breaks the contract before anything runs.
+
 ## Watch a run
 
 **`mw ui`** serves the live console on this machine and prints its address (`http://127.0.0.1:4747/`). It answers, at a glance:

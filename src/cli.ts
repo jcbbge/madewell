@@ -18,7 +18,7 @@ import { itemHome } from './change.ts'
 import { answer, drop, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
-import { stepOf } from './lane.ts'
+import { laneOf, loadPack, Pack, SOFTWARE, stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
 import { Store, defaultStorePath, storeLayer, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
@@ -114,21 +114,21 @@ const Stats = Schema.Struct({
 
 // ── Views ──────────────────────────────────────────────────────────────────────────────────────────────
 
-const nqOf = (x: Item['exchange']) =>
-	x && x.status !== 'clear' ? { nq: { from: x.from.kind === 'job' ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== undefined).length } } : {}
+const nqOf = (item: Item, x: Item['exchange']) =>
+	x && x.status !== 'clear' ? { nq: { from: x.from.kind === 'job' ? stepOf(laneOf(item.pack), x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== undefined).length } } : {}
 
 /** `driven`: a live runner holds the store. Without one, an item marked running is not moving until `mw run`. */
 const view = (item: Item, driven = true): typeof ItemView.Type => ({
 	id: item.id,
 	title: item.title,
 	status: item.status,
-	stage: stepOf(item.job).stage,
+	stage: stepOf(laneOf(item.pack), item.job).cartridge,
 	job: item.job,
-	profile: stepOf(item.job).profile,
+	profile: stepOf(laneOf(item.pack), item.job).profile,
 	...(item.kind ? { kind: item.kind } : {}),
 	...(item.discovery !== undefined ? { discovery: item.discovery } : {}),
-	...nqOf(item.exchange),
-	...(item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {}),
+	...nqOf(item, item.exchange),
+	...(item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(item, t?.exchange) }])) } : {}),
 	round: item.round,
 	...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 	...(item.after?.length ? { after: item.after } : {}),
@@ -167,6 +167,12 @@ const registered = Effect.fn('mw.registered')(function* (workspace: string | und
 		code: 'project_not_found', message: `${path} is not a registered project with a ship command.`, context: { workspace: path, projects: projects.map((p) => p.path) },
 		next: [{ run: `mw init --workspace ${quote(path)} --ship ${SHIP_SLOT}`, why: 'register it with how it ships, then run this command again' }],
 	})
+})
+
+/** The cartridge pack a workspace's project plugs in, or undefined for the default software pack. */
+const packFor = Effect.fn('mw.packFor')(function* (workspace: string) {
+	const path = projectFor(yield* readProjects(registry), workspace)?.cartridges
+	return path ? yield* loadPack(path) : undefined
 })
 
 const readSource = (input: { source?: string; 'source-file'?: string }) => {
@@ -315,6 +321,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			ship: optional('shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time.'),
 			alert: optional('shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set'),
 			prepare: optional('shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output'),
+			cartridges: optional('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
 			gates: optional('the repo\'s own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item\'s changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.'),
 		}),
 		output: Schema.Struct({ project: Project, released: Schema.Array(ItemView), next: Schema.Array(Next) }),
@@ -328,11 +335,43 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const gates = input.gates === undefined ? undefined : yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Array(Gate)))(input.gates).pipe(
 				Effect.mapError((e) => usageError('init', `--gates must be a JSON array of {run, glob?}: ${e.message}`)),
 			)
-			const project = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(gates ? { gates } : {}) })
+			// A pack is checked against the console's contract before it is registered, so no work ever starts on one that does not plug in.
+			const cartridges = input.cartridges === undefined || input.cartridges === 'default' ? input.cartridges : resolve(input.cartridges)
+			if (cartridges && cartridges !== 'default') yield* loadPack(cartridges)
+			const saved = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(gates ? { gates } : {}), ...(cartridges ? { cartridges } : {}) })
+			const project = cartridges === 'default' ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved
 			const updated = yield* readProjects(registry)
 			const waiting = openHolds(store).filter((h) => h.code === 'no_ship_command' && projectFor(updated, h.workspace)?.path === path)
 			for (const h of waiting) yield* retry(h.item)
 			return { project, released: waiting.map((h) => view(store.get(h.item)!)), next: [{ run: 'mw next', why: 'see what to do now' }] }
+		}),
+	}),
+	command({
+		name: 'cartridges',
+		summary: 'The cartridge pack a project\'s work runs: discovery\'s and delivery\'s cartridges, each step\'s profile, duty, what it receives and the shape it returns. Without a pack of its own, the project runs the default software pack; save `.pack` to a file, change it, and plug it in with `mw init --cartridges <file>`. --check validates a pack file against the console\'s contract without registering it.',
+		input: Schema.Struct({
+			workspace: Workspace,
+			check: optional('a cartridge pack file to validate instead'),
+		}),
+		output: Schema.Struct({
+			source: Schema.String.annotate({ description: '"default", or the pack file' }),
+			pack: Pack,
+			lane: Schema.Struct({
+				discovery: Schema.Array(Schema.String).annotate({ description: 'each step as "cartridge / job (profile)", in order' }),
+				delivery: Schema.Array(Schema.String),
+			}),
+			next: Schema.Array(Next),
+		}),
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			const path = input.check ? resolve(input.check) : projectFor(yield* readProjects(registry), resolve(input.workspace ?? '.'))?.cartridges
+			const pack = path ? yield* loadPack(path) : SOFTWARE
+			const lane = laneOf(path ? pack : undefined)
+			const line = (s: { cartridge: string; job: string; profile: string }) => `${s.cartridge} / ${s.job} (${s.job === 'verify' ? 'made well' : s.profile})`
+			return {
+				source: path ?? 'default', pack, lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
+				next: input.check ? [{ run: `mw init --cartridges ${quote(path!)}`, why: 'plug it into this project; new work runs it' }] : [{ run: 'mw cartridges | jq .pack > pack.json', why: 'start a pack of your own from this one' }],
+			}
 		}),
 	}),
 	command({
@@ -348,7 +387,8 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		run: (input, { source, workspace }) => Effect.gen(function* () {
 			const title = input.title ?? `Discovery of ${input['source-file'] ? basename(input['source-file']) : 'raw input'}`
-			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: 'discover' })
+			const pack = yield* packFor(workspace)
+			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]!.job, ...(pack ? { pack } : {}) })
 			return { item: view(item), next: [{ run: 'mw run', why: 'run discovery; its candidates wait for promotion' }] }
 		}),
 	}),
@@ -373,7 +413,8 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			return { source, workspace: yield* registered(input.workspace) }
 		}),
 		run: (input, { source, workspace }) => Effect.gen(function* () {
-			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace })
+			const pack = yield* packFor(workspace)
+			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, ...(pack ? { pack } : {}) })
 			return { item: view(item), next: [{ run: 'mw run', why: 'deliver it; it moves through all four stages and ships on a passing check' }] }
 		}),
 	}),
@@ -539,7 +580,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		summary: 'Replay a job\'s recorded calls on another card or brief through the worker, score record and replay deterministically (required JSON fields, rule-break flags, seconds, tokens), and recommend the cheapest card that matches or beats the record. Replays run in throwaway worktrees; results go only to the store; no file changes.',
 		args: ['job'],
 		input: Schema.Struct({
-			job: Schema.Literals(JOBS).annotate({ description: 'the job whose recorded calls to replay: its intake, originator and execute calls' }),
+			job: Schema.NonEmptyString.annotate({ description: `the job whose recorded calls to replay: its intake, originator and execute calls (${JOBS.join(', ')}, or a cartridge's own job)` }),
 			card: optional('a tier name (every card in it) or one card as JSON {harness, provider, account, model, effort}; defaults to each call\'s recorded card'),
 			brief: optional('a file whose text replaces the job\'s brief; only execute calls are replayed'),
 			item: optional('only calls of these work items, comma-separated: 3,5'),

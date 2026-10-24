@@ -9,7 +9,7 @@ import { TestClock } from 'effect/testing'
 import type { Card, Prescriptions } from '../src/cards.ts'
 import { answer, BRIEF, drive, drop, nextFor, promote, retry, runQueue } from '../src/engine.ts'
 import { NEUTRAL_HOST } from '../src/harness.ts'
-import type { Job } from '../src/lane.ts'
+import { problemsOf, SOFTWARE, type Job, type Pack } from '../src/lane.ts'
 import { openStore, Store } from '../src/store.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from '../src/worker.ts'
 import { worktreesRoot } from '../src/workspace.ts'
@@ -159,7 +159,7 @@ test('an item passes through six profiles, splits after planning, and ships when
 
 		// One brief for every call: the rubric's questions, the neutral host, no trace, the product's conventions.
 		assert.ok(t.calls.every((c) => c.system === BRIEF))
-		assert.ok(BRIEF.includes(NEUTRAL_HOST) && BRIEF.includes('Honor the product repo\'s coding conventions.'))
+		assert.ok(BRIEF.includes(NEUTRAL_HOST) && BRIEF.includes('Honor the conventions the project\'s repository already has.'))
 		for (const q of ['What moves us toward a 10× better experience of developing, understanding, inspecting, and recovering the work?', 'What moves us toward a 10× better experience for the person the resulting system serves?', 'What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?']) assert.ok(BRIEF.includes(q))
 		assert.match(t.packet('intake', 'plan').you.task, /What is unclear\? What is ambiguous\? Do I have everything I need to proceed\?/)
 		assert.match(t.packet('intake', 'plan').you.task, /no tools and no checkout in this call, by design[\s\S]*Never a question: a decision your own job settles/)
@@ -862,7 +862,7 @@ test('discovery turns raw input into candidates that wait for promotion; each pr
 		assert.deepEqual(candidates.map((c) => [c.title, c.status]), [['Plant list with photos', 'candidate'], ['Watering schedule', 'candidate']], 'an item without an objective is not a candidate')
 		const intake = JSON.parse(t.of('intake', 'discover', run.id)[0]!.prompt)
 		assert.equal(intake.handoff.from, 'dispatcher')
-		assert.equal(intake.you.where, 'Made Well\'s discovery')
+		assert.equal(intake.you.where, 'Made Well\'s discovery (discovery)')
 
 		assert.equal((await t.run(Effect.flip(promote(run.id, [999])))).code, 'not_a_candidate')
 		await t.run(promote(run.id, [candidates[1]!.id]))
@@ -877,4 +877,73 @@ test('discovery turns raw input into candidates that wait for promotion; each pr
 	} finally {
 		t.cleanup()
 	}
+})
+
+test('a cartridge pack replaces the software lane: discovery runs two cartridges, delivery runs its own thinking step, testing unplugged, and the item ships', async () => {
+	const pack: Pack = {
+		name: 'writing',
+		brief: 'The work is writing in a repository of plain files.',
+		discovery: [
+			{ cartridge: 'sorting', steps: [{ job: 'sort', profile: 'editor', duty: 'Group the raw notes into themes. Do not write.', output: { type: 'object', properties: { themes: { type: 'array', items: { type: 'string' } } }, required: ['themes'] } }] },
+			{ cartridge: 'discovery', steps: [{ job: 'discover' }] },
+		],
+		delivery: [
+			{ cartridge: 'research', steps: [{ job: 'research', profile: 'researcher', duty: 'Find what the piece must say. Do not write it.', output: { type: 'object', properties: { findings: { type: 'array', items: { type: 'string' } } }, required: ['findings'] } }] },
+			{ cartridge: 'planning', steps: [{ job: 'plan' }] },
+			{ cartridge: 'making', steps: [{ job: 'implement' }] },
+			{ cartridge: 'verification', steps: [{ job: 'verify' }] },
+		],
+	}
+	assert.deepEqual(problemsOf(pack), [], 'the pack plugs in')
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'sort') return { themes: ['export'] }
+		if (req.kind === 'execute' && req.job === 'discover') return { items: [{ title: 'CSV export', kind: 'feature', objective: 'Users can export a report as CSV', text: 'a,b' }] }
+		// The first answer misses its required field: Made Well re-asks for the corrected JSON, no NQ turn.
+		if (req.kind === 'execute' && req.job === 'research') return n === 1 ? { notes: 'forgot the shape' } : undefined
+		if (req.kind === 'repair' && req.job === 'research') return { findings: ['a,b is the whole format'] }
+		return undefined
+	})
+	try {
+		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'notes: export as csv', workspace: t.repo, job: 'sort', pack })
+		assert.equal((await t.run(drive(run.id, config))).status, 'discovered')
+		assert.deepEqual(t.calls.filter((c) => c.item === run.id).map((c) => `${c.kind} ${c.job}`), ['intake sort', 'execute sort', 'intake discover', 'execute discover'])
+		assert.deepEqual(JSON.parse(t.of('execute', 'discover', run.id)[0]!.prompt).received, { sort: { themes: ['export'] } }, 'discover receives the earlier cartridge\'s deliverable')
+		const [candidate] = t.store.list().filter((i) => i.discovery === run.id)
+		assert.equal(candidate!.job, 'research', 'a candidate starts at its pack\'s first delivery step')
+
+		await t.run(promote(run.id))
+		const done = await t.run(drive(candidate!.id, config))
+		assert.equal(done.status, 'shipped')
+		const mine = t.calls.filter((c) => c.item === candidate!.id)
+		assert.deepEqual([...new Set(mine.map((c) => c.job))], ['research', 'plan', 'implement'], 'no ideate, challenge or test-plan: the pack has none')
+		const research = JSON.parse(t.of('execute', 'research', candidate!.id)[0]!.prompt)
+		assert.deepEqual(research.you.replyFormat, pack.delivery[0]!.steps[0]!.output, 'a thinking step answers in its cartridge\'s own shape')
+		assert.equal(research.you.where, 'Made Well\'s delivery lane (research)')
+		assert.ok(mine.every((c) => c.system.includes('The work is writing in a repository of plain files.')), 'the pack\'s brief reaches every call')
+		assert.deepEqual(Object.keys(JSON.parse(t.of('execute', 'plan', candidate!.id)[0]!.prompt).received), ['discover', 'research'])
+		assert.equal(t.store.events(candidate!.id).filter((e) => e.kind === 'repaired').length, 1, 'the malformed research answer was re-asked once')
+		assert.deepEqual(done.verification?.results, [], 'with testing unplugged, verification runs only the project\'s gates, and there are none')
+		assert.equal(t.shipped().length, 1)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('a pack that breaks the console\'s contract is refused with every problem named', () => {
+	const bad: Pack = {
+		name: 'broken',
+		discovery: [{ cartridge: 'discovery', steps: [{ job: 'sort', profile: 'editor', duty: 'Sort.' }] }],
+		delivery: [
+			{ cartridge: 'making', steps: [{ job: 'implement' }] },
+			{ cartridge: 'planning', steps: [{ job: 'plan', output: { type: 'object' } }, { job: 'review', profile: 'reviewer', duty: 'Review.', output: { type: 'object' }, receives: ['later'] }] },
+		],
+	}
+	assert.deepEqual(problemsOf(bad), [
+		'discovery step sort: a thinking step needs an "output" JSON Schema of {"type": "object", ...}.',
+		'delivery step plan: a slot\'s deliverable is the console\'s own contract; remove "output".',
+		'delivery step review: it receives "later", which is not an earlier step of delivery or "discover".',
+		'discovery: its last step is "discover", which returns the candidates.',
+		'delivery: its last step is "verify", Made Well\'s run of the checks, merge and ship.',
+	])
+	assert.deepEqual(problemsOf(SOFTWARE), [], 'the default pack plugs in')
 })

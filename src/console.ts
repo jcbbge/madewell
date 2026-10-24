@@ -145,6 +145,8 @@ function now() { return M ? (LIVE ? Date.now() : Date.parse(M.at)) : Date.now();
 function whoClass(a) { return a === 'operator' ? 'w-operator' : a === 'agent' ? 'w-agent' : a === 'runner' ? 'w-runner' : 'w-made'; }
 var PROFILE = { discover: 'ideator', ideate: 'ideator', challenge: 'ideation peer', plan: 'planner', 'test-plan': 'test architect', implement: 'implementer', verify: 'made well', arbitrate: 'arbiter', ship: 'made well' };
 var JOBNAME = { discover: 'Discover', ideate: 'Ideate', challenge: 'Challenge', plan: 'Plan', 'test-plan': 'Checks', implement: 'Implement', verify: 'Verify', arbitrate: 'Arbiter', ship: 'Ship' };
+function jobName(j) { return (M && M.jobs && M.jobs[j] && M.jobs[j].label) || JOBNAME[j] || j; }
+function profileName(j) { return (M && M.jobs && M.jobs[j] && M.jobs[j].profile) || PROFILE[j] || j; }
 var STATE_WORD = { done: 'done', active: 'running', held: 'held', failed: 'failed', waiting: 'waiting', todo: 'to do', skipped: 'skipped' };
 function itemOf(id) { return M && M.items.find(function (i) { return i.id === id; }); }
 
@@ -186,7 +188,7 @@ function renderNeeds() {
 }
 
 function seg(st) {
-  return '<span class="seg ' + st.state + '" title="' + esc(JOBNAME[st.job] + ': ' + STATE_WORD[st.state] + (st.calls ? ' · ' + plural(st.calls, 'call') + ' · ' + mins(st.agentMs) + ' agent time · ' + tk(st.tokens) + ' tokens' : '') + (st.questions ? ' · ' + plural(st.questions, 'NQ question') : '')) + '">' + esc(JOBNAME[st.job] || st.label) + (st.questions ? '<span class="q">' + st.questions + '?</span>' : '') + '</span>';
+  return '<span class="seg ' + st.state + '" title="' + esc(jobName(st.job) + ': ' + STATE_WORD[st.state] + (st.calls ? ' · ' + plural(st.calls, 'call') + ' · ' + mins(st.agentMs) + ' agent time · ' + tk(st.tokens) + ' tokens' : '') + (st.questions ? ' · ' + plural(st.questions, 'NQ question') : '')) + '">' + esc(jobName(st.job) || st.label) + (st.questions ? '<span class="q">' + st.questions + '?</span>' : '') + '</span>';
 }
 function pipe(steps) {
   var out = [], i = 0;
@@ -225,7 +227,7 @@ function renderRunning() {
   $('nowsub').textContent = r.length ? plural(r.length, 'step') + ' in flight' : '';
   $('running').innerHTML = r.map(function (f, k) {
     var cls = f.kind === 'intake' || f.kind === 'originator' ? 'nq' : f.who === 'made well' ? 'mw' : '';
-    var what = f.kind === 'execute' ? JOBNAME[f.job] : f.kind === 'intake' ? 'NQ intake for ' + f.job : f.kind === 'originator' ? 'answers questions on ' + f.job : f.kind;
+    var what = f.kind === 'execute' ? jobName(f.job) : f.kind === 'intake' ? 'NQ intake for ' + f.job : f.kind === 'originator' ? 'answers questions on ' + f.job : f.kind;
     return '<div class="run ' + cls + '" data-run="' + k + '"><div class="h"><b>#' + f.item + ' · ' + esc(what) + '</b><span class="rw">' + esc(f.who) + (f.card ? ' · ' + esc(f.card) : '') + '</span><span class="tm" data-since="' + esc(f.since) + '">' + dur(now() - Date.parse(f.since)) + '</span></div>' +
       '<div class="it">' + esc(f.title) + '</div><div class="act">' + (f.activity.length ? f.activity.slice(-4).map(function (a) { return '<div class="' + a.kind + '">' + esc(a.text) + '</div>'; }).join('') : '<div class="say" style="color:var(--faint)">' + (f.who === 'made well' ? 'running…' : 'thinking… no output yet') + '</div>') + '</div></div>';
   }).join('') + (M.cutOff.length ? '<div class="empty">' + plural(M.cutOff.length, 'step was', 'steps were') + ' cut off when the runner stopped; they run again when it starts.</div>' : '');
@@ -252,7 +254,7 @@ function renderTimeline() {
       var cls = b.kind === 'execute' && b.job === 'arbitrate' ? 'arbitrate' : b.kind;
       var bad = b.outcome && b.outcome !== 'ok' ? ' bad' : '';
       var top = lanes === 2 ? (b.lane === 1 ? 23 : 8) : 10;
-      var tip = '#' + id + ' ' + (b.kind === 'execute' ? JOBNAME[b.job] + ' (' + PROFILE[b.job] + ')' : b.kind + ' · ' + b.job) + ' · ' + dur(e - s) + (b.outcome ? ' · ' + b.outcome : ' · running');
+      var tip = '#' + id + ' ' + (b.kind === 'execute' ? jobName(b.job) + ' (' + profileName(b.job) + ')' : b.kind + ' · ' + b.job) + ' · ' + dur(e - s) + (b.outcome ? ' · ' + b.outcome : ' · running');
       return '<div class="bar ' + cls + bad + (b.end ? '' : ' live') + '" style="left:' + pct(s) + ';width:calc(' + ((e - s) / span * 100).toFixed(3) + '% );top:' + top + 'px" title="' + esc(tip) + '"' + (b.call ? ' data-call="' + b.call + '"' : '') + '></div>';
     }).join('') + (LIVE && M.running.length ? '<div class="tl-now" style="left:' + pct(now()) + '"></div>' : '') + '</div></div>';
   }).join('');
@@ -260,13 +262,13 @@ function renderTimeline() {
 }
 
 function renderCost() {
-  var jobs = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'].filter(function (j) { return M.cost[j]; });
+  var jobs = Object.keys(M.jobs || {}).filter(function (j) { return M.cost[j]; }).concat(Object.keys(M.cost).filter(function (j) { return !(M.jobs || {})[j]; }));
   var KINDS = ['intake', 'originator', 'execute', 'repair'];
   var tot = function (j) { var c = M.cost[j]; return KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].ms : 0); }, 0); };
   var max = Math.max.apply(null, jobs.map(tot).concat([1]));
   $('cost').innerHTML = jobs.length ? jobs.map(function (j) {
     var c = M.cost[j], t = tot(j), toks = KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].tokens : 0); }, 0);
-    return '<div>' + esc(JOBNAME[j]) + '</div><div class="track" title="' + esc(KINDS.filter(function (k) { return c[k]; }).map(function (k) { return k + ' ' + mins(c[k].ms) + ' in ' + plural(c[k].calls, 'call'); }).join(' · ')) + '">' +
+    return '<div>' + esc(jobName(j)) + '</div><div class="track" title="' + esc(KINDS.filter(function (k) { return c[k]; }).map(function (k) { return k + ' ' + mins(c[k].ms) + ' in ' + plural(c[k].calls, 'call'); }).join(' · ')) + '">' +
       KINDS.map(function (k) { return c[k] ? '<div class="k-' + k + '" style="width:' + (c[k].ms / max * 100) + '%"></div>' : ''; }).join('') + '</div><div class="n">' + mins(t) + ' · ' + tk(toks) + '</div>';
   }).join('') + '<div></div><div class="legend" style="margin-top:4px"><span><i class="k-intake"></i>NQ intake</span><span><i class="k-originator"></i>originator answers</span><span><i class="k-execute"></i>the job</span></div><div></div>' : '<div class="empty">No agent calls yet.</div>';
 }
@@ -318,11 +320,19 @@ function drawItem(keep) {
 }
 function bigPipe(steps) {
   return '<div class="bigpipe">' + steps.map(function (st) {
-    return '<div class="bp ' + st.state + '"><b>' + esc(JOBNAME[st.job] || st.label) + '</b><div class="w">' + esc(st.who) + ' · ' + STATE_WORD[st.state] + '</div><div class="w">' + (st.calls ? mins(st.agentMs) + ' · ' + tk(st.tokens) + ' tok' : '&nbsp;') + (st.questions ? ' · <span style="color:var(--amber)">' + st.questions + '?</span>' : '') + '</div></div>';
+    return '<div class="bp ' + st.state + '"><b>' + esc(jobName(st.job) || st.label) + '</b><div class="w">' + esc(st.who) + ' · ' + STATE_WORD[st.state] + '</div><div class="w">' + (st.calls ? mins(st.agentMs) + ' · ' + tk(st.tokens) + ' tok' : '&nbsp;') + (st.questions ? ' · <span style="color:var(--amber)">' + st.questions + '?</span>' : '') + '</div></div>';
   }).join('') + '</div>';
 }
 function list(a) { return a && a.length ? '<ul style="margin:4px 0;padding-left:20px">' + a.map(function (x) { return '<li>' + esc(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>'; }).join('') + '</ul>' : '<span class="empty">none</span>'; }
 function decisions(ds) { return (ds || []).map(function (d) { return '<div class="dec"><div class="q">' + esc(d.question) + '</div><div class="a">→ ' + esc(d.decision) + '</div>' + (d.why ? '<div class="y">' + esc(d.why) + '</div>' : '') + '</div>'; }).join(''); }
+var KNOWN_OUT = ['discover', 'ideate', 'challenge', 'plan', 'implement', 'test-plan', 'arbitrate'];
+function jobOrder(j) { var k = Object.keys(M.jobs || {}); return k.indexOf(j) < 0 ? 99 : k.indexOf(j); }
+function fieldsOf(v) {
+  if (v == null) return '';
+  if (typeof v !== 'object') return '<div class="prose">' + esc(String(v)) + '</div>';
+  if (Array.isArray(v)) return v.length ? '<ul>' + v.map(function (x) { return '<li>' + (typeof x === 'object' ? fieldsOf(x) : esc(String(x))) + '</li>'; }).join('') + '</ul>' : '<div class="prose" style="color:var(--mute)">none</div>';
+  return Object.keys(v).map(function (k) { return '<div style="margin-top:6px"><b style="font-size:13px">' + esc(k) + '</b>' + fieldsOf(v[k]) + '</div>'; }).join('');
+}
 function storyTab() {
   var v = D.view, it = D.item, o = D.deliverables, h = '';
   if (v.hold) h += '<div class="hold"><div class="c">' + esc(v.hold.code) + '</div><div style="font-size:15px;margin:4px 0">' + esc(v.hold.message) + '</div>' + (Array.isArray(v.hold.context.questions) ? '<ol>' + v.hold.context.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' : '') + v.next.map(cmd).join('') + '<details><summary>every fact of the hold</summary><pre>' + esc(JSON.stringify(v.hold.context, null, 2)) + '</pre></details></div>';
@@ -344,6 +354,8 @@ function storyTab() {
   }
   if (o.implement) h += '<h4>Implementer</h4><div class="prose">' + esc(o.implement.summary || o.implement.blocked || '') + '</div>';
   if (o['test-plan'] && o['test-plan'].blocked) h += '<h4>Test architect</h4><div class="prose">' + esc(o['test-plan'].blocked) + '</div>';
+  // A cartridge's own steps: each deliverable drawn from its fields, in lane order.
+  Object.keys(o).filter(function (j) { return KNOWN_OUT.indexOf(j) < 0; }).sort(function (a, b) { return jobOrder(a) - jobOrder(b); }).forEach(function (j) { h += '<h4>' + esc(jobName(j)) + ' · ' + esc(profileName(j)) + '</h4>' + fieldsOf(o[j]); });
   if (it.failure) h += '<h4>Open failure</h4><pre>' + esc(it.failure) + '</pre>';
   if (o.arbitrate) h += '<h4>Arbiter\'s ruling</h4><div class="dec"><div class="q">Cause: ' + esc(o.arbitrate.cause) + '</div><div class="a">' + esc(o.arbitrate.answer) + '</div><div class="y">' + esc(o.arbitrate.evidence) + '</div></div>';
   if (it.rework) h += '<h4>Round ' + it.round + ' works from this ruling</h4><div class="dec"><div class="q">' + esc(it.rework.cause) + '</div><div class="a">' + esc(it.rework.answer) + '</div></div>';
@@ -390,7 +402,7 @@ function callsTab() {
   if (!D.calls.length) return '<div class="empty">No calls yet.</div>';
   var sum = D.calls.reduce(function (a, c) { a.ms += c.ms; a.t += tok(c.tokens); return a; }, { ms: 0, t: 0 });
   return '<div class="prose" style="font-size:13px;margin-bottom:8px">' + plural(D.calls.length, 'call') + ' · ' + mins(sum.ms) + ' of agent time · ' + tk(sum.t) + ' tokens</div><table><tr><th>#</th><th>Call</th><th>Card</th><th class="num">Time</th><th class="num">Tokens</th><th class="num">Tools</th><th>Outcome</th></tr>' + D.calls.map(function (c) {
-    return '<tr class="click" data-call="' + c.id + '"><td class="num">' + c.id + '</td><td><b>' + esc(c.kind === 'execute' ? JOBNAME[c.job] : c.kind) + '</b> <span style="color:var(--mute)">' + esc((c.kind === 'execute' ? '' : c.job + ' · ') + c.profile) + '</span></td><td class="mono" style="color:var(--mute)">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + tk(tok(c.tokens)) + '</td><td class="num">' + c.toolCount + '</td><td>' + (c.outcome === 'ok' ? '<span class="ok-t">ok</span>' : '<span class="bad-t">' + esc(c.outcome) + '</span>') + (c.flags.length ? ' <span class="bad-t">' + plural(c.flags.length, 'rule break') + '</span>' : '') + '</td></tr>';
+    return '<tr class="click" data-call="' + c.id + '"><td class="num">' + c.id + '</td><td><b>' + esc(c.kind === 'execute' ? jobName(c.job) : c.kind) + '</b> <span style="color:var(--mute)">' + esc((c.kind === 'execute' ? '' : c.job + ' · ') + c.profile) + '</span></td><td class="mono" style="color:var(--mute)">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + tk(tok(c.tokens)) + '</td><td class="num">' + c.toolCount + '</td><td>' + (c.outcome === 'ok' ? '<span class="ok-t">ok</span>' : '<span class="bad-t">' + esc(c.outcome) + '</span>') + (c.flags.length ? ' <span class="bad-t">' + plural(c.flags.length, 'rule break') + '</span>' : '') + '</td></tr>';
   }).join('') + '</table>';
 }
 function logTab() { return '<div class="log" style="max-height:none">' + D.events.map(evRow).join('') + '</div>'; }
@@ -420,7 +432,7 @@ function loadCall(id) {
 function pretty(text) { var j = null; try { var s = (text || '').replace(/^\s*\x60{3}(json)?/, '').replace(/\x60{3}\s*$/, ''); j = JSON.parse(s); } catch (e) {} return '<pre>' + esc(j ? JSON.stringify(j, null, 2) : text || '(none)') + '</pre>'; }
 function drawCall(c, back) {
   var head = (back ? '<a href="#" class="back" data-item="' + back + '">← #' + back + '</a>' : '<a href="#" class="back" data-item="' + c.item + '">← #' + c.item + '</a>') +
-    '<h3>' + esc(c.kind === 'execute' ? JOBNAME[c.job] + ' · ' + c.profile : c.kind + ' · ' + c.job + ' · ' + c.profile) + ' <span class="tag">call ' + c.id + '</span>' + (c.outcome === 'ok' ? '' : '<span class="tag st-held">' + esc(c.outcome) + '</span>') + '</h3>' +
+    '<h3>' + esc(c.kind === 'execute' ? jobName(c.job) + ' · ' + c.profile : c.kind + ' · ' + c.job + ' · ' + c.profile) + ' <span class="tag">call ' + c.id + '</span>' + (c.outcome === 'ok' ? '' : '<span class="tag st-held">' + esc(c.outcome) + '</span>') + '</h3>' +
     '<div class="sub">' + esc([c.card.harness, c.card.model, c.card.effort].filter(function (x, k, a) { return x && a.indexOf(x) === k; }).join(' · ')) + ' · ' + esc(clock(c.started)) + ' · ' + dur(c.ms) + ' · ' + (c.tokens ? tk(tok(c.tokens)) + ' tokens (' + num(c.tokens.output) + ' out, ' + num(c.tokens.cacheRead) + ' cache read)' : 'tokens not reported') + (c.facts && c.facts.access ? ' · ' + esc(c.facts.access) + ' access' : '') + '</div>';
   var h = '';
   if (c.error) h += '<h4>' + (c.outcome === 'rejected' ? 'Refused by Made Well' : 'Error') + '</h4><pre>' + esc(c.error) + '</pre>';
@@ -460,7 +472,7 @@ function toolLine(input) {
 function drawRun(f) {
   open = { type: 'run' };
   var name = f.live ? f.live.split('/').pop() : null;
-  show('<a href="#" class="back" data-item="' + f.item + '">← #' + f.item + '</a><h3>' + esc(f.kind === 'execute' ? JOBNAME[f.job] : f.kind + ' · ' + f.job) + ' · ' + esc(f.who) + ' <span class="tag st-running">running</span></h3><div class="sub">' + esc(f.title) + (f.card ? ' · ' + esc(f.card) : '') + ' · since ' + esc(clock(f.since)) + '</div>',
+  show('<a href="#" class="back" data-item="' + f.item + '">← #' + f.item + '</a><h3>' + esc(f.kind === 'execute' ? jobName(f.job) : f.kind + ' · ' + f.job) + ' · ' + esc(f.who) + ' <span class="tag st-running">running</span></h3><div class="sub">' + esc(f.title) + (f.card ? ' · ' + esc(f.card) : '') + ' · since ' + esc(clock(f.since)) + '</div>',
     '<h4>Live</h4><div class="tx" id="tail">' + (name ? 'waiting for output…' : 'This step streams no output.') + '</div>');
   liveTail = name ? { name: name, from: 0, text: '' } : null;
   tail();

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs'
 import { Effect, Schema } from 'effect'
 import { MadeWellError } from './errors.ts'
 import { Harness, HARNESSES } from './harness.ts'
-import type { Job } from './lane.ts'
+import type { Job, Lane } from './lane.ts'
 import { DEFAULT_BUDGET, type Budget } from './worker.ts'
 
 const Card = Schema.Struct({
@@ -78,12 +78,34 @@ export const loadPrescriptions = (path: string) =>
 		return p
 	})
 
+/**
+ * The prescriptions with every thinking step of a lane that they do not name: read access, on the step's tier ("deep" by
+ * default) and budget. A job whose tier is not defined cannot run, so it is an error before any work starts.
+ */
+export const forLane = (p: Prescriptions, lane: Lane) =>
+	Effect.gen(function* () {
+		const jobs: Record<string, unknown> = { ...p.jobs }
+		for (const step of [...lane.discovery, ...lane.delivery]) {
+			if (step.job === 'verify' || jobs[step.job]) continue
+			const tier = step.tier ?? 'deep'
+			if (!p.tiers[tier]) {
+				return yield* new MadeWellError({
+					code: 'prescriptions_invalid', message: `The ${step.job} step of the "${lane.pack.name}" cartridge pack runs on tier "${tier}", which the prescriptions do not define.`,
+					context: { path: 'prescriptions', job: step.job, tier, tiers: Object.keys(p.tiers) },
+					next: [{ run: '$EDITOR "$MW_PRESCRIPTIONS"', why: `define tier "${tier}", or prescribe "${step.job}" under jobs` }, { run: 'mw cartridges', why: 'see the pack and the tier each step asks for' }],
+				})
+			}
+			jobs[step.job] = { tier, access: 'read', ...(step.budget ? { budget: step.budget } : {}) }
+		}
+		return { ...p, jobs: jobs as Prescriptions['jobs'] }
+	})
+
 /** An agent job's prescription. The engine runs verify itself before any agent path, so verify never comes here. */
 export const prescriptionOf = (p: Prescriptions, job: Job) => p.jobs[job as AgentJob]
 
 export const cardsFor = (p: Prescriptions, job: Job): ReadonlyArray<Card> => p.tiers[prescriptionOf(p, job).tier]!
 
-export const budgetFor = (p: Prescriptions, job: Job): Budget => p.jobs[job].budget ?? DEFAULT_BUDGET
+export const budgetFor = (p: Prescriptions, job: Job): Budget => (p.jobs as Readonly<Record<string, { budget?: Budget } | undefined>>)[job]?.budget ?? DEFAULT_BUDGET
 
 /** A card's harness entry: prescribed or built in, with the prescriptions' extra environment allowlisted. */
 export const harnessOf = (p: Prescriptions, name: string): Harness | undefined => {

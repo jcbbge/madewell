@@ -59,6 +59,11 @@ export const ERRORS = {
 			harnesses: Schema.optionalKey(Schema.Array(Schema.String)),
 		}),
 	},
+	cartridges_unreadable: { means: 'The cartridge pack file cannot be read.', context: Schema.Struct({ path: Schema.String, reason: Schema.String }) },
+	cartridges_invalid: {
+		means: 'The cartridge pack does not plug into the console: it is not valid JSON, does not match the pack shape, or breaks the console\'s contract (`problems` lists each).',
+		context: Schema.Struct({ path: Schema.String, problems: Schema.Array(Schema.String) }),
+	},
 	eval_card_invalid: {
 		means: 'The --card of `mw eval` is neither a tier in prescriptions nor a card as JSON {harness, provider, account, model, effort} on a known harness.',
 		context: Schema.Struct({ card: Schema.String, tiers: Schema.Array(Schema.String), harnesses: Schema.Array(Schema.String), problems: Schema.optionalKey(Schema.String) }),

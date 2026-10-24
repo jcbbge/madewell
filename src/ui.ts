@@ -15,7 +15,7 @@ import { Effect } from 'effect'
 import { GATE, itemHome, patchPath } from './change.ts'
 import { CONSOLE } from './console.ts'
 import { MadeWellError, type Next } from './errors.ts'
-import { lastJson, stepOf, type Job } from './lane.ts'
+import { isMaker, laneOf, lastJson, stepOf, type Lane } from './lane.ts'
 import { openHolds } from './project.ts'
 import { openStore, spansPath, type CallHead, type Event, type Item } from './store.ts'
 import { totalTokens } from './telemetry.ts'
@@ -217,19 +217,28 @@ const activityIn = (file: string | undefined, n = 6): Activity[] => {
 
 // ── The model ──────────────────────────────────────────────────────────────────────────────────────────
 
-/** The delivery lane as the console draws it. The two makers run side by side; ship is Made Well's last step. */
-const LANE: ReadonlyArray<{ job: Job | 'ship'; label: string }> = [
-	{ job: 'ideate', label: 'Ideate' }, { job: 'challenge', label: 'Challenge' }, { job: 'plan', label: 'Plan' },
-	{ job: 'implement', label: 'Implement' }, { job: 'test-plan', label: 'Checks' }, { job: 'verify', label: 'Verify' }, { job: 'ship', label: 'Ship' },
-]
-const ORDER: Record<string, number> = { discover: 0, ideate: 1, challenge: 2, plan: 3, implement: 4, 'test-plan': 4, verify: 5, arbitrate: 5, ship: 6 }
+/** A job's name as the console shows it. */
+const labelOf = (job: string) => (job === 'test-plan' ? 'Checks' : job === 'arbitrate' ? 'Arbiter' : job.split('-').map((w) => w[0]!.toUpperCase() + w.slice(1)).join(' '))
+/** Whether an item is a discovery run: it is at a step of its lane's discovery. */
+export const isDiscovery = (item: Item) => laneOf(item.pack).discovery.some((s) => s.job === item.job)
+/** Each job's place in its lane: the two makers share one, the arbiter shares verify's, and ship is Made Well's last step. */
+const orderOf = (lane: Lane) => {
+	const order: Record<string, number> = {}
+	lane.discovery.forEach((s, i) => (order[s.job] = i))
+	let n = 0
+	let maker: number | undefined
+	for (const s of lane.delivery) order[s.job] = isMaker(s.job) ? (maker ??= ++n) : ++n
+	order.arbitrate = order.verify!
+	order.ship = n + 1
+	return order
+}
 const DOING: Record<string, string> = {
 	discover: 'turning the notes into work items', ideate: 'shaping the idea', challenge: 'challenging the idea', plan: 'writing the plan',
 	'test-plan': 'writing the checks', implement: 'making the change', arbitrate: 'ruling on the failed check',
 }
 
 type StepState = 'done' | 'active' | 'held' | 'failed' | 'waiting' | 'todo' | 'skipped'
-export interface StepView { readonly job: string; readonly label: string; readonly who: string; readonly state: StepState; readonly agentMs: number; readonly calls: number; readonly tokens: number; readonly questions: number; readonly ms: number }
+export interface StepView { readonly job: string; readonly label: string; readonly cartridge: string; readonly who: string; readonly state: StepState; readonly agentMs: number; readonly calls: number; readonly tokens: number; readonly questions: number; readonly ms: number }
 
 export interface ItemView {
 	readonly id: number
@@ -266,17 +275,20 @@ const tally = (calls: ReadonlyArray<CallHead>) => ({ agentMs: calls.reduce((n, c
 /** Each job's steps for one item, in lane order, from the item as saved and its calls and events. */
 const stepsOf = (item: Item, calls: ReadonlyArray<CallHead>, events: ReadonlyArray<Event>, flying: ReadonlyArray<Flight>): StepView[] => {
 	const questions = (job: string) => events.filter((e) => e.kind === 'nq-question' && e.data.job === job).reduce((n, e) => n + ((e.data.questions as unknown[])?.length ?? 0), 0)
-	const lane = item.job === 'discover' ? [{ job: 'discover' as const, label: 'Discover' }] : LANE.filter((s) => s.job !== 'arbitrate')
+	const lane = laneOf(item.pack)
+	const ORDER = orderOf(lane)
+	const discovery = isDiscovery(item)
+	const jobs = discovery ? lane.discovery.map((s) => s.job) : [...lane.delivery.map((s) => s.job), 'ship']
 	const arbiter = calls.some((c) => c.job === 'arbitrate') || item.job === 'arbitrate'
-	const steps = arbiter ? [...lane.slice(0, 6), { job: 'arbitrate' as const, label: 'Arbiter' }, ...lane.slice(6)] : lane
+	const steps = (arbiter ? [...jobs.slice(0, -1), 'arbitrate', 'ship'] : jobs).map((job) => ({ job, label: labelOf(job), cartridge: job === 'ship' ? stepOf(lane, 'verify').cartridge : stepOf(lane, job).cartridge }))
 	const at = ORDER[item.job] ?? 0
 	const done = item.status === 'shipped' || item.status === 'discovered'
-	return steps.map(({ job, label }) => {
+	return steps.map(({ job, label, cartridge }) => {
 		const mine = calls.filter((c) => c.job === job)
 		const span = mine.length ? Date.parse(mine.at(-1)!.started) + mine.at(-1)!.ms - Date.parse(mine[0]!.started) : 0
 		let state: StepState
 		const track = item.split?.[job as 'implement' | 'test-plan']
-		if (done) state = mine.length || job === 'verify' || job === 'ship' || job === 'discover' ? 'done' : 'skipped'
+		if (done) state = mine.length || job === 'verify' || job === 'ship' || discovery ? 'done' : 'skipped'
 		else if (item.status === 'dropped') state = mine.length ? 'done' : 'todo'
 		else if (item.parent !== undefined && ORDER[job]! < ORDER.plan!) state = 'skipped'
 		else if (job === 'arbitrate') state = item.job === 'arbitrate' ? (item.status === 'held' ? 'held' : 'active') : 'done'
@@ -288,7 +300,7 @@ const stepsOf = (item: Item, calls: ReadonlyArray<CallHead>, events: ReadonlyArr
 		else if (job === item.job || (job === 'verify' && item.merged)) state = item.status === 'held' ? 'held' : ['candidate', 'queued'].includes(item.status) && !flying.length ? 'todo' : 'active'
 		else state = 'todo'
 		if (job === 'verify' && state === 'done' && item.merged && !done) state = 'done'
-		return { job, label, who: job === 'verify' || job === 'ship' ? 'made well' : stepOf(job as Job).profile, state, ...tally(mine), questions: questions(job), ms: span }
+		return { job, label, cartridge, who: job === 'verify' || job === 'ship' ? 'made well' : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span }
 	})
 }
 
@@ -319,15 +331,15 @@ const doingOf = (store: StoreService, item: Item, flying: ReadonlyArray<Flight>,
 			}
 			if (f.kind === 'ship') return 'Made Well is running the ship command'
 			if (f.kind === 'prepare') return `Made Well is preparing a worktree for ${f.job}`
-			const receiver = stepOf(f.job as Job).profile
+			const receiver = stepOf(laneOf(item.pack), f.job).profile
 			if (f.kind === 'intake') return `The ${receiver} is reading its hand-off for ${f.job} (NQ intake)`
 			if (f.kind === 'originator') {
 				const q = events.findLast((e) => e.kind === 'nq-question' && e.data.job === f.job)?.data.questions as unknown[] | undefined
 				return `The ${f.who} is answering the ${receiver}'s ${plural(q?.length ?? 0, 'question')}`
 			}
-			return `The ${receiver} is ${DOING[f.job] ?? f.job}`
+			return `The ${receiver} is ${DOING[f.job] ?? `doing ${labelOf(f.job).toLowerCase()}`}`
 		}
-		return { doing: mine.map(say).join(' · '), owes: [...new Set(mine.map((f) => (f.kind === 'originator' ? f.who : f.kind === 'intake' || f.kind === 'execute' ? stepOf(f.job as Job).profile : 'made well')))].join(' + ') }
+		return { doing: mine.map(say).join(' · '), owes: [...new Set(mine.map((f) => (f.kind === 'originator' ? f.who : f.kind === 'intake' || f.kind === 'execute' ? stepOf(laneOf(item.pack), f.job).profile : 'made well')))].join(' + ') }
 	}
 	if (item.status === 'queued') return { doing: 'Queued: starts when a slot frees', owes: 'runner' }
 	return { doing: `Between steps: ${item.job} is next`, owes: 'made well' }
@@ -344,7 +356,7 @@ const itemViews = (store: StoreService, items: ReadonlyArray<Item>, events: Read
 		const end = evs.findLast((e) => ['shipped', 'dropped', 'discovered'].includes(e.kind))?.at
 		const results = item.verification?.results.filter((r) => r.doneWhen !== GATE) ?? []
 		return {
-			id: item.id, title: item.title, kind: item.job === 'discover' ? 'discovery' : item.parent !== undefined ? 'prerequisite' : item.kind ?? 'feature', status: item.status,
+			id: item.id, title: item.title, kind: isDiscovery(item) ? 'discovery' : item.parent !== undefined ? 'prerequisite' : item.kind ?? 'feature', status: item.status,
 			...(item.discovery !== undefined ? { discovery: item.discovery } : {}), ...(item.parent !== undefined ? { parent: item.parent } : {}),
 			after: (item.after ?? []).map((id) => ({ id, status: store.get(id)?.status ?? 'missing' })), ...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 			round: item.round, steps: stepsOf(item, mine, evs, fl), doing, owes, since: evs.at(-1)?.at ?? item.updated, started: start, ...(end ? { ended: end } : {}),
@@ -393,7 +405,7 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 	const cutOff = runner ? [] : inFlight(events)
 	const views = itemViews(store, items, events, calls, flying, runner !== null, nextOf)
 	const count = (...s: Item['status'][]) => items.filter((i) => s.includes(i.status)).length
-	const delivery = items.filter((i) => i.job !== 'discover' || i.status !== 'discovered')
+	const delivery = items.filter((i) => !isDiscovery(i))
 	const nq = calls.filter((c) => c.kind !== 'execute')
 	const byJob: Record<string, Record<string, { ms: number; tokens: number; calls: number }>> = {}
 	for (const c of calls) {
@@ -412,7 +424,7 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 		runner,
 		summary: {
 			shipped: count('shipped'), moving: count('running', 'waiting-quota', 'waiting-prerequisite'), queued: count('queued'), held: count('held'), candidates: count('candidate'), dropped: count('dropped'),
-			items: delivery.filter((i) => i.job !== 'discover').length,
+			items: delivery.length,
 			...tally(calls), nqMs: nq.reduce((n, c) => n + c.ms, 0), intakes: calls.filter((c) => c.kind === 'intake').length,
 			questions: events.filter((e) => e.kind === 'nq-question').reduce((n, e) => n + ((e.data.questions as unknown[])?.length ?? 0), 0),
 			refused: calls.filter((c) => c.outcome !== 'ok').length, breaks: calls.reduce((n, c) => n + c.flags.length, 0),
@@ -428,6 +440,11 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 		running: flying.map((f) => ({ ...f, title: titles.get(f.item) ?? '', activity: activityIn(f.live) })),
 		cutOff,
 		cost: byJob,
+		/** Every job the items' lanes have, with the label and profile the page shows for it. */
+		jobs: Object.fromEntries([...new Map(items.flatMap((i) => {
+			const lane = laneOf(i.pack)
+			return [...lane.discovery, ...lane.delivery, lane.arbiter].map((s) => [s.job, { label: labelOf(s.job), profile: s.job === 'verify' ? 'made well' : s.profile, cartridge: s.cartridge }] as const)
+		})).entries(), ['ship', { label: 'Ship', profile: 'made well', cartridge: 'verification' }]]),
 		rules: calls.flatMap((c) => c.flags.map((f) => ({ call: c.id, item: c.item, job: c.job, kind: c.kind, rule: f.rule }))),
 		events: events.slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
 		eventCount: events.length,
