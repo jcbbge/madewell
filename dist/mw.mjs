@@ -22717,14 +22717,23 @@ function malformed(lane, job, output, autonomous = false) {
   const problems = conforms(shape, json2);
   return problems.length ? `The answer's JSON does not match its schema: ${problems.join("; ")}.` : void 0;
 }
+var Reuse = Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
+  question: Text.annotate({ description: "the current question, word for word, that an earlier answer already settles, even if phrased differently" }),
+  answerId: Text.annotate({ description: "the id in answeredBefore of the saved answer to reuse; never invent one" })
+})));
 var INTAKE = Schema_exports.Struct({
   understanding: Text,
   unclear: Schema_exports.Array(Text).annotate({ description: "What is unclear?" }),
   ambiguous: Schema_exports.Array(Text).annotate({ description: "What is ambiguous?" }),
   missing: Schema_exports.Array(Text).annotate({ description: "Do I have everything I need to proceed? What is missing." }),
-  notes: Schema_exports.Array(Text).annotate({ description: "points the packet already settles; never an assumption or a choice" })
+  notes: Schema_exports.Array(Text).annotate({ description: "points the packet already settles; never an assumption or a choice" }),
+  reuse: Reuse
 });
-var ORIGINATOR = Schema_exports.Struct({ answer: Schema_exports.NonEmptyString, needsOperator: Schema_exports.Boolean });
+var ORIGINATOR = Schema_exports.Struct({
+  answer: Schema_exports.NonEmptyString,
+  needsOperator: Schema_exports.Boolean,
+  reuse: Reuse
+});
 var shapeOf = (schema) => JSON.parse(JSON.stringify(Schema_exports.toJsonSchemaDocument(schema).schema, (k, v) => k === "additionalProperties" ? void 0 : v));
 var requiredOf = (schema) => {
   const s = shapeOf(schema);
@@ -23153,6 +23162,7 @@ function stats(lines4) {
 }
 
 // src/store.ts
+var DEFAULT_AUTONOMY = "checkpoints";
 var defaultStorePath = () => process.env.MW_STORE ?? join7(process.env.MW_HOME ?? join7(homedir2(), ".local", "share", "madewell"), "madewell.db");
 var alive2 = (pid) => {
   try {
@@ -23393,7 +23403,7 @@ var Project = Schema_exports.Struct({
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" })),
   prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
-  autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: full (the default), checkpoints or steps; FOUNDATION ruling 17" })),
+  autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: checkpoints (the default), steps or full; FOUNDATION ruling 17" })),
   cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the cartridge pack file this project's new work runs; without it, the default software pack" })),
   conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.NonEmptyString).annotate({ description: `the rules this repo's work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.` })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
@@ -23489,7 +23499,7 @@ var endLiveOf = (store, id2) => {
 };
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
 var L = (item) => laneOf(item.pack);
-var auto = (item) => (item.autonomy ?? "full") === "full";
+var auto = (item) => (item.autonomy ?? DEFAULT_AUTONOMY) === "full";
 var profileOf = (item, o) => o.kind === "job" ? stepOf(L(item), o.job).profile : o.kind;
 var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
 var withTrack = (item, job, t) => isMaker(job) && item.split?.[job] ? { ...item, split: { ...item.split, [job]: t } } : { ...item, from: t.from, exchange: t.exchange, launches: t.launches, pickingUp: t.pickingUp, rejected: t.rejected };
@@ -23617,31 +23627,65 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
     card: cheap,
     required: requiredOf(INTAKE),
     ...jobTree(item, job),
-    packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake"))
+    packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake", ledger(store, id2, job)))
   });
   if (!call) return;
   const reply = yield* decodeOrRepair(id2, job, call, INTAKE);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
   const { understanding, unclear, ambiguous, missing: missing2, notes } = reply.value;
-  const questions = [...unclear, ...ambiguous, ...missing2].filter((q) => q.trim() !== "");
+  const reuse = reply.value.reuse ?? [];
+  const previous = ledger(store, id2, job);
+  if (reuse.some((r) => !previous.some((a) => a.id === r.answerId)) || new Set(reuse.map((r) => r.question)).size !== reuse.length) {
+    return yield* refuse(id2, job, call, "A reused answer must name an existing answeredBefore id, once per question.");
+  }
+  const asking = [...new Set([...unclear, ...ambiguous, ...missing2, ...reuse.map((r) => r.question)].filter((q) => q.trim() !== ""))];
+  const known = new Map(previous.map((e) => [sameQuestion(e.question), e]));
+  for (const r of reuse) known.set(sameQuestion(r.question), previous.find((a) => a.id === r.answerId));
+  const recalled = asking.flatMap((q) => ((e) => e ? [{ question: q, answerId: e.id, answer: e.answer, by: e.by }] : [])(known.get(sameQuestion(q))));
+  const questions = asking.filter((q) => !known.has(sameQuestion(q)));
+  const carried = [...x.notes ?? [], ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${r.answer}`)];
   const receiver = stepOf(L(item), job).profile;
+  if (recalled.length) store.note(id2, "nq-reused", { job, questions: recalled.map((r) => r.question), answer: "Saved answers", reuse: recalled.map(({ question, answerId }) => ({ question, answerId })) });
   if (!questions.length) {
-    saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "clear", understanding, notes: [...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap });
+    saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "clear", understanding, notes: [...carried, ...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap, ...recalled.length ? { recalled } : {} });
     return;
   }
-  const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }] };
+  const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }], ...carried.length ? { notes: carried } : {} };
   const answered = x.turns.filter((t) => t.answer !== void 0).length;
-  const raised = store.events(id2).filter((e) => e.kind === "nq-question").flatMap((e) => (e.data.questions ?? []).map(sameQuestion));
-  const repeated = questions.filter((q) => raised.filter((r) => r === sameQuestion(q)).length >= MAX_TURNS);
-  const context3 = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns, ...repeated.length ? { repeated } : {} };
+  const context3 = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns };
   const now2 = withTrack(store.get(id2), job, { ...trackOf(store.get(id2), job), exchange: asked });
-  if (answered >= MAX_TURNS || repeated.length) return holdTurns(store, now2, job, context3);
+  if (answered >= MAX_TURNS) return holdTurns(store, now2, job, context3);
   if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
     return hold(store, now2, "question_for_operator", `The ${receiver} has questions about your answer before it can ${job}.`, context3);
   }
-  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions });
+  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions, ...recalled.length ? { recalled } : {} });
 });
 var sameQuestion = (q) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+var ledger = (store, id2, job) => {
+  const events2 = store.events(id2);
+  for (let item = store.get(id2); item?.discovery !== void 0 || item?.parent !== void 0; ) {
+    item = store.get(item.discovery ?? item.parent);
+    if (item) events2.push(...store.events(item.id));
+  }
+  const answers = [];
+  const pending2 = /* @__PURE__ */ new Map();
+  for (const e of events2.sort((a, b) => a.seq - b.seq)) {
+    const source = String(e.data.job ?? "");
+    if (job === "implement" && source === "test-plan" || job === "test-plan" && source === "implement") continue;
+    const key = `${e.item}:${source}`;
+    if (e.kind === "nq-question") pending2.set(key, e.data.questions);
+    if (!["nq-answer", "nq-decided", "nq-corrected", "nq-reused"].includes(e.kind) || typeof e.data.answer !== "string") continue;
+    const questions = e.data.questions ?? pending2.get(key) ?? [];
+    const reused = e.data.reuse ?? [];
+    questions.forEach((question, i) => {
+      const ref = reused.find((r) => r.question === question);
+      const prior = ref && answers.find((a) => a.id === ref.answerId);
+      if (ref && !prior) return;
+      answers.push({ id: `${e.seq}:${i}`, question, answer: prior ? prior.answer : e.data.answer, by: prior ? prior.by : String(e.data.originator), job: source });
+    });
+  }
+  return answers;
+};
 var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
   const item0 = store.get(id2);
@@ -23658,12 +23702,22 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
     access: "read",
     card,
     required: requiredOf(ORIGINATOR),
-    packet: (dir) => packet(item, by, dir, originatorParts(item, job, x), x.from.kind === "job")
+    packet: (dir) => packet(item, by, dir, originatorParts(item, job, x, ledger(store, id2, job)), x.from.kind === "job")
   });
   if (!call) return;
   const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
-  let answer2 = reply.value.answer;
+  const reuse = reply.value.reuse ?? [];
+  const previous = ledger(store, id2, job);
+  const openQuestions = x.turns.at(-1)?.questions ?? [];
+  if (reuse.some((r) => !openQuestions.includes(r.question) || !previous.some((a) => a.id === r.answerId)) || new Set(reuse.map((r) => r.question)).size !== reuse.length) {
+    return yield* refuse(id2, job, call, "A reused answer must name a current question and an existing answeredBefore id, once per question.");
+  }
+  const allReused = openQuestions.length > 0 && reuse.length === openQuestions.length;
+  let answer2 = allReused ? "" : reply.value.answer;
+  if (reuse.length) answer2 = [answer2, ...reuse.map((r) => `${r.question}
+${previous.find((a) => a.id === r.answerId).answer}`)].filter(Boolean).join("\n\n");
+  const reused = reuse.length ? { reuse } : {};
   if (x.deciding) {
     const open = x.turns.at(-1)?.questions ?? [];
     const handoff = `${x.handoff}
@@ -23672,10 +23726,10 @@ The ${from} decided these by the rubric, under full autonomy, after the exchange
 ${open.map((q) => `- ${q}`).join("\n")}
 
 ${answer2}`;
-    saveTrack(store, id2, job, { launches: 0, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [], decided: true } }, "nq-decided", { job, originator: from, questions: open, answer: answer2 });
+    saveTrack(store, id2, job, { launches: 0, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [], decided: true } }, "nq-decided", { job, originator: from, questions: open, answer: answer2, ...reused });
     return;
   }
-  if (reply.value.needsOperator) {
+  if (reply.value.needsOperator && !allReused) {
     const pendingQ = x.turns.at(-1);
     const ruled = x.from.kind === "dispatcher" ? void 0 : yield* dispatch(id2, job, config, from, pendingQ.questions, reply.value.answer);
     if (ruled === null) return;
@@ -23685,8 +23739,14 @@ ${answer2}`;
     }
     answer2 = ruled.answer;
   }
-  const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: answer2, by: "originator" } : t);
-  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from, answer: answer2, ...reply.value.needsOperator ? { dispatcher: true } : {} });
+  const turns = x.turns.flatMap((t, i) => {
+    if (i !== x.turns.length - 1) return [t];
+    const questions = t.questions.filter((q) => !reuse.some((r) => r.question === q));
+    return questions.length ? [{ ...t, questions, answer: answer2, by: "originator" }] : [];
+  });
+  const notes = [...x.notes ?? [], ...reuse.map((r) => `${r.question}
+${previous.find((a) => a.id === r.answerId).answer}`)];
+  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns, notes } }, "nq-answer", { job, originator: from, questions: openQuestions, answer: answer2, ...reused, ...reply.value.needsOperator && !allReused ? { dispatcher: true } : {} });
 });
 var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
   const item0 = (yield* Store).get(id2);
@@ -23766,7 +23826,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const none3 = spec.access === "none";
   const read = spec.access === "read";
   const product = none3 ? void 0 : yield* capture(item.workspace);
-  const before = read || none3 ? void 0 : yield* capture(wt.path);
+  const before = none3 ? void 0 : yield* capture(wt.path, !read);
   const head3 = before?.head ?? (yield* revParse(wt.path, "HEAD"));
   const live = liveFile(store, `item-${id2}-${job}-${spec.kind}`);
   store.note(id2, "call-started", { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...live ? { live } : {} });
@@ -23776,19 +23836,8 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     Effect_exports.tap((r) => Effect_exports.sync(() => result3 = r)),
     Effect_exports.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id2, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } })
   );
-  let changed;
-  if (read) {
-    const r = yield* Effect_exports.result(readOnly(wt.path, run2));
-    if (Result_exports.isFailure(r)) {
-      if (r.failure.code !== "workspace_written" || !result3) return yield* r.failure;
-      changed = r.failure.context.changes;
-    }
-  } else if (none3) {
-    yield* run2;
-  } else {
-    yield* run2;
-    changed = changes(before, yield* capture(wt.path));
-  }
+  yield* run2;
+  const changed = before ? changes(before, yield* capture(wt.path, !read)) : void 0;
   const res = result3;
   const call = {
     item: id2,
@@ -23823,12 +23872,6 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     if (spec.onFail) yield* spec.onFail(wt.path);
     if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
     else yield* launchFailed(id2, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
-    return void 0;
-  }
-  if (read && changed) {
-    const reason = `The ${spec.kind} call changed its read-only checkout: ${[...changed.added, ...changed.removed, ...changed.modified].join(", ") || "refs or HEAD"}.`;
-    store.rejectCall(callId, reason);
-    yield* launchFailed(id2, job, spec.kind, spec.card, reason, { changes: changed });
     return void 0;
   }
   const left = product ? yield* Effect_exports.result(withLock(item.workspace, leftovers(item.workspace, product))) : void 0;
@@ -24086,7 +24129,7 @@ var verifyAndShip = Effect_exports.fn("mw.verifyAndShip")(function* (id2, config
     }
     const verified = item.verification;
     const key = `ship:${verified.commit}`;
-    if ((item.autonomy ?? "full") !== "full" && item.passed !== key) {
+    if (!auto(item) && item.passed !== key) {
       return pause(store, item, key, `Checkpoint: #${id2} passed its ${item.verification.results.length ? "checks" : "verification"} and waits for you before it merges and ships.`, { after: "verification", next: "ship", commit: verified.commit, files: item.change?.files ?? [] });
     }
     const merged = yield* withLock(item.workspace, Effect_exports.gen(function* () {
@@ -24277,6 +24320,14 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
   if (kind !== "originator" && x) {
     const receiver = stepOf(L(item), job).profile;
     const question = `My ${kind === "intake" ? "intake" : job} call failed, so I could not ${kind === "intake" ? "confirm the hand-off" : `do the ${job} job`}: ${error}`;
+    const saved = ledger(store, id2, job).findLast((a) => sameQuestion(a.question) === sameQuestion(question));
+    if (saved) {
+      const attempts = store.events(id2).filter((e) => e.kind === "nq-reused" && e.data.error === true && e.data.job === job && e.data.round === item.round && e.data.question === question).length + 1;
+      const next = withTrack(item, job, { ...t, ...patch, exchange: { ...x, status: "awaiting-receiver", notes: [...x.notes ?? [], saved.answer] } });
+      if (attempts >= MAX_LAUNCHES) return hold(store, next, "worker_failing", `The ${job} call still fails after its recorded correction was reapplied ${attempts} times.`, { job, card, lastError: error, answerId: saved.id, ...evidence });
+      store.save(next, "nq-reused", { job, round: item.round, error: true, question, answerId: saved.id });
+      return;
+    }
     const answered = x.turns.filter((turn) => turn.answer !== void 0).length;
     const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding: x.understanding ?? "", questions: [question] }] };
     const context3 = { job, receiver, originator: profileOf(item, x.from), questions: [question], turns: x.turns, card, ...evidence };
@@ -24296,8 +24347,7 @@ var holdTurns = (store, item, job, context3) => {
   if (auto(item) && x && !x.decided) {
     return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: "awaiting-originator", deciding: true } }), "nq-deciding", { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] });
   }
-  const why = context3.repeated ? `asks again what was already asked ${MAX_TURNS} times across hand-offs` : `still has questions after ${MAX_TURNS} answered turns`;
-  return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} ${why}: the hand-off, its scope or its provisioning is wrong.`, context3);
+  return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
 };
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
@@ -24394,11 +24444,11 @@ The operator's correction, after the exchange on this hand-off ran out of turns 
 ${open.map((q) => `- ${q}`).join("\n")}
 
 ${text2}`;
-      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", answer: text2 });
+      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", questions: open, answer: text2 });
       return;
     }
     const turns = x.turns.map((turn, i) => i === x.turns.length - 1 ? { ...turn, answer: text2, by: "operator" } : turn);
-    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", answer: text2 });
+    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", questions: x.turns.at(-1)?.questions ?? [], answer: text2 });
     return;
   }
   if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -24548,12 +24598,17 @@ var snapshotFor = (item, job, dir) => {
   const files = [.../* @__PURE__ */ new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])];
   return snapshot2(dir, files.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f) && !f.startsWith("/") && !f.split("/").includes("..")));
 };
-var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.map(snapshotFor(item, job, dir), (snap) => JSON.stringify({
-  item: itemFacts(item),
-  ...withReceived ? { received: receivedBy(item, job) } : {},
-  ...snap ? { snapshot: snap } : {},
-  ...parts2
-}, null, 2));
+var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.gen(function* () {
+  const answeredBefore = ledger(yield* Store, item.id, job);
+  const snap = yield* snapshotFor(item, job, dir);
+  return JSON.stringify({
+    item: itemFacts(item),
+    ...withReceived ? { received: receivedBy(item, job) } : {},
+    ...snap ? { snapshot: snap } : {},
+    ...answeredBefore.length ? { answeredBefore } : {},
+    ...parts2
+  }, null, 2);
+});
 var whereYouAre = (step2) => step2.loop === "discovery" ? `Made Well's discovery (${step2.cartridge})` : `Made Well's delivery lane (${step2.cartridge})`;
 var TASKS = {
   plan: `Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. The rules this repo's work follows are under item.conventions: hold the change to each one with a done-when item its checks prove, and list it under "conventions" with that id, or say why this change cannot touch it. Made Well refuses a plan that leaves one out. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item's own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item's own checks gate it.`,
@@ -24577,29 +24632,31 @@ var you = (item, job, kind) => {
   const step2 = stepOf(L(item), job);
   return { profile: step2.profile, job, call: kind, where: whereYouAre(step2), duty: step2.duty };
 };
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never ask a question answered in earlierTurns or answeredBefore: every answer on this item is on the record and binds you, and Made Well answers a repeat from it. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
-var receiverParts = (item, job, x, kind) => ({
-  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+var receiverParts = (item, job, x, kind, answered) => ({
+  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + " If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies that answer verbatim and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.", laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
   ...jobEvidence(item, job),
   handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
+  ...answered.length ? { answeredBefore: answered.filter((e) => !x.turns.some((t) => t.questions.includes(e.question) && t.answer === e.answer)) } : {},
   round: item.round,
   ...trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}
 });
 var jobEvidence = (item, job) => job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {};
-var originatorParts = (item, job, x) => ({
+var originatorParts = (item, job, x, answered) => ({
   you: {
     profile: profileOf(item, x.from),
     call: "originator",
-    task: x.deciding ? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10\xD7 developer experience, a 10\xD7 user experience and a 10\xD7 agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.` : `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`,
+    task: (x.deciding ? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10\xD7 developer experience, a 10\xD7 user experience and a 10\xD7 agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.` : `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`) + ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well inserts the saved answer verbatim and records the new wording. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
     replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
   receiver: stepOf(L(item), job).profile,
   receiverUnderstanding: x.turns.at(-1).understanding,
   questions: x.turns.at(-1).questions,
-  earlierTurns: x.turns.slice(0, -1)
+  earlierTurns: x.turns.slice(0, -1),
+  answeredBefore: answered
 });
 var executeParts = (item, job, t, x) => ({
   you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: deliverableShape(L(item), job, auto(item)) },
@@ -26211,7 +26268,7 @@ var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
     next: [{ run: `mw init --workspace ${quote2(path)}`, why: 'register it, then run this command again; add --ship "<command>" if shipping means more than pushing main' }]
   });
 });
-var AutonomyInput = Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is: full (default; no stops, questions decided by the rubric), checkpoints (stop after discovery and before each ship), steps (also between cartridges)" }));
+var AutonomyInput = Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is: checkpoints (the default: stop after discovery and before each ship), steps (also between cartridges), or full (no stops; questions decided by the rubric)" }));
 var wake = Effect_exports.fn("mw.wake")(function* (id2) {
   const store = yield* Store;
   const watch2 = [{ run: id2 === void 0 ? "mw status" : `mw status ${id2}`, why: "the machine is working on it by itself; this shows where it is" }, { run: "mw ui", why: "watch every step live" }];
@@ -26407,7 +26464,7 @@ var COMMANDS = [
     run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
       const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
       const pack = yield* packFor(workspace);
-      const autonomy = input.autonomy ?? project.autonomy ?? "full";
+      const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
       const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, autonomy, ...pack ? { pack } : {} });
       return { item: view(item), next: yield* wake(item.id) };
     })
@@ -26437,7 +26494,7 @@ var COMMANDS = [
     }),
     run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
       const pack = yield* packFor(workspace);
-      const autonomy = input.autonomy ?? project.autonomy ?? "full";
+      const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
       const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...pack ? { pack } : {} });
       return { item: view(item), next: yield* wake(item.id) };
     })

@@ -18,15 +18,17 @@ Put your notes in, from any project. That is the whole act:
 mw discover --source-file notes.md        # or: mw start --objective "<one line>" --source "<your words>"
 ```
 
-Made Well discovers the work in the notes, delivers each piece through ideation, planning, implementation and verification, and ships it: merged on main, pushed to its upstream, and deployed by your ship command if the project has one (`mw init --ship "<command>"`). The machine starts itself; nobody runs it.
+Made Well discovers the work in the notes and pauses for you to choose what to deliver. Each promoted piece goes through ideation, planning, implementation and verification, then pauses before shipping: merged on main, pushed to its upstream, and deployed by your ship command if the project has one (`mw init --ship "<command>"`). The machine starts itself; no separate runner command is needed.
 
 How involved you are is yours to choose, per project (`mw init --autonomy <level>`) or per run (`--autonomy` on `discover` and `start`):
 
 | Level | Made Well stops |
 |---|---|
-| `full` (default) | never: questions it would ask you are decided by the agent that has the context |
-| `checkpoints` | after discovery, and before each item ships |
+| `checkpoints` (default) | after discovery, and before each item ships |
 | `steps` | at the checkpoints, and between the phases of delivery |
+| `full` | no routine stops: questions it would ask you are decided by the agent that has the context |
+
+Start with checkpoints; choose fewer stops as you become comfortable. Explicit project or run settings are preserved. `mw init --autonomy full` opts a project into hands-off delivery.
 
 At a stop, `mw go <id>` carries on and `mw answer <id> "<what should change>"` steers. Something the machine cannot do itself (a credential, a failing ship command) holds the item at any level, with the exact command that unblocks it.
 
@@ -37,6 +39,8 @@ mw init --conventions '["Colours and spacing come from the design tokens in src/
 ```
 
 Let your own agent watch: `mw next` says what needs you now, `mw status` and `mw show <id>` say where everything is, and `mw ui` shows it all live. Every command prints JSON, and every answer and error lists the `next` commands.
+
+Questions and answers stay on the durable record and travel to later handoffs. Exact repeats reuse their saved answers automatically. For reworded questions, intake or the originator references the saved answer by id; Made Well validates the reference, inserts that answer verbatim, and remembers the new wording. The operator is not asked to settle the same question again. Implementation and test-design exchanges remain separate so neither maker sees the other's work.
 
 ## Cartridges
 

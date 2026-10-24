@@ -313,6 +313,11 @@ export function malformed(lane: Lane, job: Job, output: string, autonomous = fal
 	return problems.length ? `The answer's JSON does not match its schema: ${problems.join('; ')}.` : undefined
 }
 
+const Reuse = Schema.optionalKey(Schema.Array(Schema.Struct({
+	question: Text.annotate({ description: 'the current question, word for word, that an earlier answer already settles, even if phrased differently' }),
+	answerId: Text.annotate({ description: 'the id in answeredBefore of the saved answer to reuse; never invent one' }),
+})))
+
 /** The receiver's reply at intake: the three NQ questions, each a list. */
 export const INTAKE = Schema.Struct({
 	understanding: Text,
@@ -320,8 +325,13 @@ export const INTAKE = Schema.Struct({
 	ambiguous: Schema.Array(Text).annotate({ description: 'What is ambiguous?' }),
 	missing: Schema.Array(Text).annotate({ description: 'Do I have everything I need to proceed? What is missing.' }),
 	notes: Schema.Array(Text).annotate({ description: 'points the packet already settles; never an assumption or a choice' }),
+	reuse: Reuse,
 })
-export const ORIGINATOR = Schema.Struct({ answer: Schema.NonEmptyString, needsOperator: Schema.Boolean })
+export const ORIGINATOR = Schema.Struct({
+	answer: Schema.NonEmptyString,
+	needsOperator: Schema.Boolean,
+	reuse: Reuse,
+})
 
 /** A schema as compact JSON Schema, for a brief. */
 export const shapeOf = (schema: Schema.Top) =>

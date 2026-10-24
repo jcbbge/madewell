@@ -73,7 +73,7 @@ const git = (dir: string, ...args: string[]) => execFileSync('git', ['-C', dir, 
  * worker. The project ships by logging the merged commit. `script` answers calls; n counts calls of the same
  * kind and job of the same item; anything it leaves undefined gets the standard answer.
  */
-function setup(script: Script = () => undefined, autonomy?: Autonomy) {
+function setup(script: Script = () => undefined, autonomy: Autonomy = 'full') {
 	const tmp = realpathSync(mkdtempSync(join(tmpdir(), 'mw-engine-')))
 	const home = join(tmp, 'home')
 	const repo = join(tmp, 'product')
@@ -103,7 +103,7 @@ function setup(script: Script = () => undefined, autonomy?: Autonomy) {
 	}
 	const worker = Layer.succeed(Worker, { run: (req) => Effect.promise(() => answerFor(req)) })
 	const run = <A, E>(effect: Effect.Effect<A, E, Store | Worker>) => Effect.runPromise(effect.pipe(Effect.provide(Layer.mergeAll(Layer.succeed(Store, store), worker))))
-	const create = (title = 'Add CSV export') => store.create({ title, objective: 'Users can export a report as CSV', source: 'operator: please add CSV export', workspace: repo, ...(autonomy ? { autonomy } : {}) })
+	const create = (title = 'Add CSV export') => store.create({ title, objective: 'Users can export a report as CSV', source: 'operator: please add CSV export', workspace: repo, autonomy })
 	const item = create()
 	const of = (kind: string, job: Job, id = item.id) => calls.filter((c) => c.kind === kind && c.job === job && c.item === id)
 	const packet = (kind: string, job: Job, i = 0) => JSON.parse(of(kind, job)[i]!.prompt)
@@ -292,7 +292,7 @@ test('a failing check goes to the arbiter with its logs; a bad test is rewritten
 	}
 })
 
-test('a read call that writes and an answer that breaks its contract are refused: each is the receiver\'s question to its originator; malformed JSON is only re-asked', async () => {
+test('writes in a disposable read checkout are flagged but not imported; broken contracts are refused and malformed JSON is re-asked', async () => {
 	// The first ideate answer is JSON that does not parse and starts with "{": reading it must neither hang nor cost an NQ turn.
 	const broken = '{"outcome": "CSV export", "approach": "a script" "decisions": []}'
 	const t = setup((req, n) => {
@@ -309,16 +309,16 @@ test('a read call that writes and an answer that breaks its contract are refused
 		const repair = t.of('repair', 'ideate')[0]!
 		assert.deepEqual([repair.access, repair.card.model, JSON.parse(repair.prompt).yourAnswer], ['none', t.of('execute', 'ideate')[0]!.card.model, broken], 'same card, no tools, its own answer')
 		assert.match(t.store.get(t.item.id)!.outputs.ideate!, /"approach":"a shell script"/, 'the repaired answer is the deliverable')
-		assert.deepEqual(outcomes('plan'), ['rejected', 'ok'])
+		assert.deepEqual(outcomes('plan'), ['ok'])
 		assert.deepEqual(outcomes('test-plan'), ['rejected', 'ok'])
-		const plan = t.store.calls(t.item.id).find((c) => c.job === 'plan' && c.outcome === 'rejected')!
-		assert.match(plan.error!, /changed its read-only checkout: notes\.md/)
+		const plan = t.store.calls(t.item.id).find((c) => c.job === 'plan' && c.kind === 'execute')!
 		assert.deepEqual(plan.flags.map((f) => f.rule), ['write-under-read'])
+		assert.throws(() => git(t.repo, 'show', 'main:notes.md'), 'the read checkout\'s scratch file never ships')
 		assert.match(t.packet('execute', 'test-plan', 1).yourLastAnswerWasRefused, /D9[\s\S]*without a check: D1/)
 		const asked = t.store.events(t.item.id).filter((e) => e.kind === 'nq-question' && e.data.error)
-		assert.deepEqual(asked.map((e) => e.data.job), ['plan', 'test-plan'], 'each refusal of content went to the originator as a question')
-		assert.match(String((asked[1]!.data.questions as string[])[0]), /D1/)
-		assert.deepEqual(t.of('originator', 'plan').map((c) => c.profile), ['ideation peer'], 'the one who handed over the work answers')
+		assert.deepEqual(asked.map((e) => e.data.job), ['test-plan'], 'only the broken contract went back as a question')
+		assert.match(String((asked[0]!.data.questions as string[])[0]), /D1/)
+		assert.equal(t.of('originator', 'plan').length, 0, 'a harmless scratch file does not waste an exchange')
 		assertNoTrace(t)
 	} finally {
 		t.cleanup()
@@ -330,7 +330,7 @@ test('a plan that creates a kind of file the repo already has must name the exis
 		{ ...PLAN, scope: ['src/export.sh', 'tools/gen.py'], follows: [] },
 		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'src/missing.sh' }] },
 		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
-		{ ...PLAN, follows: [{ path: 'src/export.sh', follows: 'notes.txt' }] },
+		{ ...PLAN, scope: ['../escape.sh'] },
 	]
 	const t = setup((req, n) => (req.kind === 'execute' && req.job === 'plan' ? plans[n - 1] : undefined), 'checkpoints')
 	try {
@@ -649,6 +649,8 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 		assert.deepEqual(t.calls.filter((c) => c.kind === 'originator').map((c) => `${c.job} ${c.profile}`).sort(), ['ideate dispatcher', 'implement planner', 'implement planner', 'implement planner', 'test-plan planner'])
 		assert.deepEqual(JSON.parse(t.of('originator', 'test-plan')[0]!.prompt).questions, ['Is an empty export an error?'])
 		assert.deepEqual(t.packet('execute', 'test-plan').exchange.turns, [{ understanding: 'I see the job', questions: ['Is an empty export an error?'], answer: 'No: it prints an empty line.', by: 'originator' }])
+		assert.ok(t.calls.filter((c) => c.job === 'implement').every((c) => !c.prompt.includes('Is an empty export an error?')), 'answer memory never exposes the test architect\'s private exchange to the implementer')
+		assert.ok(t.calls.filter((c) => c.job === 'test-plan').every((c) => !c.prompt.includes('Question 1?')), 'the test architect never receives the implementer\'s private exchange')
 
 		await t.run(answer(item.id, 'Only CSV; nothing else.'))
 		item = await t.run(drive(item.id, config))
@@ -666,15 +668,75 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 	}
 })
 
-test('the same question carried across hand-offs counts once: raised a fourth time in any wording of case or punctuation, it holds', async () => {
+test('a question is answered once: asked again at any later hand-off, in any case or punctuation, it is answered from the record and no agent is asked again', async () => {
 	const wordings: Partial<Record<Job, string>> = { ideate: 'Is an empty export an error?', challenge: 'is an empty export an error', plan: 'Is an empty export an ERROR?!', implement: 'Is an empty export, an error?' }
-	const t = setup((req, n) => (req.kind === 'intake' && n === 1 && wordings[req.job] ? ask(wordings[req.job]!) : undefined), 'checkpoints')
+	const t = setup((req, n) => {
+		if (req.kind === 'intake' && n === 1 && wordings[req.job]) return ask(wordings[req.job]!)
+		if (req.kind === 'originator') return reply('No: it prints an empty line.')
+		return undefined
+	}, 'full')
 	try {
 		const item = await t.run(drive(t.item.id, config))
-		assert.equal(item.hold?.code, 'nq_turns')
-		assert.equal(item.hold?.context.job, 'implement')
-		assert.deepEqual(item.hold?.context.repeated, ['Is an empty export, an error?'])
-		assert.match(item.hold!.message, /asks again what was already asked 3 times across hand-offs/)
+		assert.equal(item.status, 'shipped')
+		assert.deepEqual(t.calls.filter((c) => c.kind === 'originator').map((c) => c.job), ['ideate'], 'only the first asking reaches an agent')
+		const saved = t.store.events(t.item.id).find((e) => e.kind === 'nq-answer')!
+		assert.deepEqual(t.packet('intake', 'plan').answeredBefore[0], { id: `${saved.seq}:0`, question: 'Is an empty export an error?', answer: 'No: it prints an empty line.', by: 'dispatcher', job: 'ideate' }, 'every receiver sees what was answered')
+		assert.match(t.packet('execute', 'implement').exchange.notes.join('\n'), /Is an empty export, an error\? Answered before by the dispatcher: No: it prints an empty line\./)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('reworded questions reuse durable answers at intake or originator, remember aliases, and leave genuinely new questions open', async () => {
+	const original = 'What happens to an empty export?'
+	const paraphrase = 'Must a zero-row report fail?'
+	const t = setup((req, n) => {
+		if (req.kind === 'intake' && req.job === 'ideate' && n === 1) return ask(original)
+		if (req.kind === 'originator' && req.job === 'ideate') return reply('An empty report succeeds with no rows.')
+		if (req.kind === 'intake' && req.job === 'challenge' && n === 1) {
+			const saved = JSON.parse(req.prompt).answeredBefore.find((a: { question: string }) => a.question === original)
+			return { ...clear, reuse: [{ question: paraphrase, answerId: saved.id }] }
+		}
+		if (req.kind === 'intake' && req.job === 'plan' && n === 1) return ask('Is an empty report a failure?', 'What is the delimiter?')
+		if (req.kind === 'originator' && req.job === 'plan') {
+			const saved = JSON.parse(req.prompt).answeredBefore.find((a: { question: string }) => a.question === original)
+			return { answer: 'Use commas.', needsOperator: false, reuse: [{ question: 'Is an empty report a failure?', answerId: n === 1 ? 'invented-id' : saved.id }] }
+		}
+		if (req.kind === 'intake' && req.job === 'implement' && n === 1) return ask(paraphrase)
+		return undefined
+	})
+	try {
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		assert.equal(t.of('originator', 'challenge').length, 0, 'intake references its saved answer without another call')
+		assert.equal(t.of('originator', 'implement').length, 0, 'the new wording was remembered')
+		const sent = t.packet('execute', 'plan').exchange.turns.at(-1).answer
+		assert.match(sent, /Use commas\.[\s\S]*An empty report succeeds with no rows\./, 'only the new question is answered anew')
+		assert.ok(t.store.calls(t.item.id).some((c) => c.kind === 'originator' && c.error?.includes('existing answeredBefore id')), 'invented answer ids are refused')
+		const reopened = openStore(t.store.path)
+		try {
+			assert.equal(reopened.events(t.item.id).filter((e) => e.kind === 'nq-reused').length, 2, 'reuse and its source ids survive reopening the store')
+			assert.match(reopened.get(t.item.id)!.outputs.plan!, /A CSV export script/)
+		} finally {
+			reopened.close()
+		}
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('delivery inherits discovery answers from an older store whose answer events omitted their questions', async () => {
+	const question = 'Which report format?'
+	const t = setup((req, n) => req.kind === 'intake' && req.job === 'ideate' && n === 1 ? ask(question) : undefined)
+	try {
+		const discovery = t.store.create({ title: 'Earlier discovery', objective: 'Find the work', source: 'notes', workspace: t.repo, job: 'discover', status: 'discovered' })
+		t.store.note(discovery.id, 'nq-question', { job: 'discover', questions: [question] })
+		t.store.note(discovery.id, 'nq-answer', { job: 'discover', originator: 'operator', answer: 'CSV, not PDF.' })
+		t.store.save({ ...t.item, discovery: discovery.id }, 'promoted')
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		assert.equal(t.of('originator', 'ideate').length, 0, 'a historical operator answer is reused, never requested again')
+		assert.match(t.packet('execute', 'ideate').exchange.notes.join('\n'), /Answered before by the operator: CSV, not PDF\./)
 	} finally {
 		t.cleanup()
 	}
@@ -780,7 +842,7 @@ test('dropping a prerequisite fix releases the item waiting on it: its checks ru
 	const t = setup((req, n) => {
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'test-plan') return checks(req, `[ -f ${t.tmp}/settled ] && ${CHECK}`)
 		if (req.item === 1 && req.kind === 'execute' && req.job === 'arbitrate' && n === 1) return ruling('pre-existing')
-		if (req.item === 2 && req.kind === 'intake') return ask('Is this really a defect?')
+		if (req.item === 2 && req.kind === 'intake') return ask(`What evidence supports part ${n} of this defect?`)
 		return undefined
 	})
 	try {
@@ -809,13 +871,13 @@ test('holds stop only that item, name their next commands, and release on an ans
 	}, 'checkpoints')
 	try {
 		let item = await t.run(drive(t.item.id, config))
-		assert.equal(item.hold?.code, 'nq_turns', 'each failed call was a question to the planner; the fourth holds')
+		assert.equal(item.hold?.code, 'worker_failing', 'a repeated execution failure reuses its correction and then holds, not the same question again')
 		assert.equal(item.hold?.context.job, 'implement')
 		assert.deepEqual(item.hold?.context.overBudget, over)
-		assert.equal(t.of('originator', 'implement').length, 3)
-		assert.equal(nextFor(item)[0]!.run, `mw answer ${item.id} "<your answer to context.questions>"`)
+		assert.equal(t.of('originator', 'implement').length, 1)
+		assert.equal(nextFor(item).at(-1)!.run, `mw retry ${item.id}`)
 
-		await t.run(answer(item.id, 'The budget is fine; finish the change.'))
+		await t.run(retry(item.id))
 		item = await t.run(drive(item.id, config))
 		assert.equal(item.hold?.code, 'arbiter_undetermined')
 		assert.equal(nextFor(item).length, 3)
@@ -989,7 +1051,7 @@ test('a cartridge pack replaces the software lane: discovery runs two cartridges
 		return undefined
 	})
 	try {
-		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'notes: export as csv', workspace: t.repo, job: 'sort', pack })
+		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'notes: export as csv', workspace: t.repo, job: 'sort', pack, autonomy: 'full' })
 		assert.equal((await t.run(drive(run.id, config))).status, 'discovered')
 		assert.deepEqual(t.calls.filter((c) => c.item === run.id).map((c) => `${c.kind} ${c.job}`), ['intake sort', 'execute sort', 'intake discover', 'execute discover'])
 		assert.deepEqual(JSON.parse(t.of('execute', 'discover', run.id)[0]!.prompt).received, { sort: { themes: ['export'] } }, 'discover receives the earlier cartridge\'s deliverable')
@@ -1035,15 +1097,15 @@ test('a pack that breaks the console\'s contract is refused with every problem n
 
 test('full autonomy runs A to Z: discovery sends every candidate into delivery, and a question out of turns is decided by the delegating agent by the rubric', async () => {
 	const decided = 'Use commas; a header row is not part of it.'
-	const t = setup((req) => {
+	const t = setup((req, n) => {
 		if (req.kind === 'execute' && req.job === 'discover') return { items: [{ title: 'CSV export', kind: 'feature', objective: 'Users can export a report as CSV', text: 'a,b' }] }
-		// The implementer asks until the planner's rubric decision reaches its hand-off.
-		if (req.kind === 'intake' && req.job === 'implement') return req.prompt.includes(decided) ? undefined : ask('Header row or not?')
+		// New questions exhaust the exchange; already answered questions must not do that.
+		if (req.kind === 'intake' && req.job === 'implement') return req.prompt.includes(decided) ? undefined : ask(`Header row decision ${n}?`)
 		if (req.kind === 'originator' && req.job === 'implement') return req.prompt.includes('nobody else will answer') ? reply(decided) : reply('See the plan.')
 		return undefined
 	})
 	try {
-		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'notes: csv export', workspace: t.repo, job: 'discover' })
+		const run = t.store.create({ title: 'Discovery', objective: 'Turn the raw input into candidate work items.', source: 'notes: csv export', workspace: t.repo, job: 'discover', autonomy: 'full' })
 		await t.run(drive(run.id, config))
 		const [candidate] = t.store.list().filter((i) => i.discovery === run.id)
 		assert.equal(candidate!.status, 'queued', 'no promotion step: the candidate goes straight into delivery')
@@ -1055,7 +1117,7 @@ test('full autonomy runs A to Z: discovery sends every candidate into delivery, 
 		assert.ok(kinds.includes('nq-deciding') && kinds.includes('nq-decided') && !kinds.includes('held'))
 		const deciding = JSON.parse(t.of('originator', 'implement', candidate!.id).at(-1)!.prompt)
 		assert.match(deciding.you.task, /full autonomy[\s\S]*a choice that satisfies two of the three is the answer/)
-		assert.match(JSON.parse(t.of('execute', 'implement', candidate!.id)[0]!.prompt).exchange.handoff, /decided these by the rubric[\s\S]*- Header row or not\?[\s\S]*Use commas; a header row is not part of it\.$/)
+		assert.match(JSON.parse(t.of('execute', 'implement', candidate!.id)[0]!.prompt).exchange.handoff, /decided these by the rubric[\s\S]*- Header row decision 4\?[\s\S]*Use commas; a header row is not part of it\.$/)
 		const arbiterShape = deliverableShape(laneOf(), 'arbitrate', true) as { properties: { cause: { enum: string[] } } }
 		assert.deepEqual(arbiterShape.properties.cause.enum, ['pre-existing', 'implementation', 'test', 'environment'], 'in full autonomy the arbiter must name a cause')
 	} finally {

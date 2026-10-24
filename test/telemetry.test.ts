@@ -171,7 +171,7 @@ const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: str
 test('mw export writes one folder per call: brief, packet, answer, raw stream, tool events and flags', () => {
 	const home = mkdtempSync(join(dir, 'export-'))
 	const mw = mwIn(home)
-	mw('init', '--ship', 'true')
+	mw('init', '--autonomy', 'full', '--ship', 'true')
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	assert.equal(mw('run').code, 0)
 
@@ -198,14 +198,14 @@ test('mw export writes one folder per call: brief, packet, answer, raw stream, t
 
 test('every span goes to a JSONL file beside the store by default, never to the output; MW_DEBUG=0 turns it off', () => {
 	const quiet = mkdtempSync(join(dir, 'quiet-'))
-	mwIn(quiet, { MW_DEBUG: '0' })('init', '--ship', 'true')
+	mwIn(quiet, { MW_DEBUG: '0' })('init', '--autonomy', 'full', '--ship', 'true')
 	mwIn(quiet, { MW_DEBUG: '0' })('start', '--objective', 'x', '--source', 'y')
 	assert.equal(mwIn(quiet, { MW_DEBUG: '0' })('run').code, 0)
 	assert.equal(existsSync(join(quiet, 'spans.jsonl')), false)
 
 	const home = mkdtempSync(join(dir, 'debug-'))
 	const mw = mwIn(home)
-	mw('init', '--ship', 'true')
+	mw('init', '--autonomy', 'full', '--ship', 'true')
 	mw('start', '--objective', 'x', '--source', 'y')
 	const ran = mw('run')
 	assert.equal(ran.code, 0)
@@ -222,7 +222,7 @@ test('every span goes to a JSONL file beside the store by default, never to the 
 	// With telemetry on, spans go to the telemetry file and still beside the store, where the console reads them.
 	const both = mkdtempSync(join(dir, 'both-'))
 	const tele = join(both, 'telemetry')
-	for (const args of [['init', '--ship', 'true'], ['start', '--objective', 'x', '--source', 'y'], ['run']]) mwIn(both, { MW_TELEMETRY: tele })(...args)
+	for (const args of [['init', '--autonomy', 'full', '--ship', 'true'], ['start', '--objective', 'x', '--source', 'y'], ['run']]) mwIn(both, { MW_TELEMETRY: tele })(...args)
 	assert.ok(readFileSync(join(both, 'spans.jsonl'), 'utf8').includes('"mw.drive"'))
 	assert.ok(readdirSync(tele).some((f) => readFileSync(join(tele, f), 'utf8').includes('"t":"span"')))
 })

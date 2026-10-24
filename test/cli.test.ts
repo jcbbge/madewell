@@ -62,8 +62,8 @@ test('mw alone prints the manual from the command table, and reading creates not
 
 test('an agent following next delivers a work item through commands run as written, leaving no trace in the product repo', () => {
 	const t = setup()
-	const init = t.mw('init', '--ship', 'touch ../shipped')
-	assert.deepEqual(init.out.project, { path: t.repo, ship: 'touch ../shipped' })
+	const init = t.mw('init', '--autonomy', 'full', '--ship', 'touch ../shipped')
+	assert.deepEqual(init.out.project, { path: t.repo, ship: 'touch ../shipped', autonomy: 'full' })
 	assert.ok(existsSync(join(t.home, 'projects.json')))
 
 	const started = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export to reports')
@@ -93,8 +93,8 @@ test('an agent following next delivers a work item through commands run as writt
 test('discovery candidates are relayed for promotion, and promoting twice promotes once', () => {
 	const t = setup()
 	t.mw('init', '--ship', 'true')
-	const discovery = t.mw('discover', '--source', 'raw notes: two things', '--autonomy', 'checkpoints').out.item.id
-	assert.deepEqual(t.mw('discover', '--source', 'raw notes: two things', '--autonomy', 'checkpoints').out.item.id, discovery)
+	const discovery = t.mw('discover', '--source', 'raw notes: two things').out.item.id
+	assert.deepEqual(t.mw('discover', '--source', 'raw notes: two things').out.item.id, discovery)
 	t.mw('run')
 
 	const next = t.mw('next').out
@@ -113,7 +113,7 @@ test('discovery candidates are relayed for promotion, and promoting twice promot
 
 test('a candidate that builds on another starts once that one ships, and promoting it promotes what it builds on', () => {
 	const t = setup()
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	const discovery = t.mw('discover', '--source', 'raw notes: two things').out.item.id
 	t.mw('run')
 	const [first, second] = [discovery + 1, discovery + 2]
@@ -129,7 +129,7 @@ test('a candidate that builds on another starts once that one ships, and promoti
 test('a hold is relayed by next and alerted once; answer and retry change nothing when repeated', () => {
 	const t = setup({ FAKE_ASK: 'plan' })
 	const alert = 'cat > ../alert.json; echo "$MW_ITEM $MW_HOLD" >> ../alerts.log'
-	t.mw('init', '--ship', 'exit 3', '--alert', alert)
+	t.mw('init', '--autonomy', 'full', '--ship', 'exit 3', '--alert', alert)
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 	t.mw('run')
@@ -152,7 +152,7 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 
 	assert.equal(t.mw('run').out.items[0].hold.code, 'ship_failed')
 	assert.deepEqual(alerts(), [`${id} authority`, `${id} ship_failed`], 'a new hold alerts again')
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	const retried = t.mw('retry', String(id))
 	assert.deepEqual(t.mw('retry', String(id)).out, retried.out)
 	assert.equal(t.mw('show', String(id)).out.events.filter((e: { kind: string }) => e.kind === 'retried').length, 1)
@@ -161,7 +161,7 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 
 test('an item that will never ship is dropped: it leaves the holds and next, keeps its record, and dropping twice drops once', () => {
 	const t = setup({ FAKE_ASK: 'plan' })
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 	// A call cut off mid-run leaves its live output behind; another item's stays.
@@ -180,7 +180,7 @@ test('an item that will never ship is dropped: it leaves the holds and next, kee
 
 test('status shows each maker\'s track after planning, with its open NQ exchange', () => {
 	const t = setup({ FAKE_ASK: 'implement' })
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 	assert.deepEqual(t.mw('status', String(id)).out.tracks, {
@@ -189,10 +189,14 @@ test('status shows each maker\'s track after planning, with its open NQ exchange
 	})
 })
 
-test('a project registered without a ship command ships once its work is on main', () => {
+test('a project registered with no options stops at the checkpoint before shipping; mw go ships it, with no ship command, once its work is on main', () => {
 	const t = setup()
 	assert.deepEqual(t.mw('init').out.project, { path: t.repo })
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+	const paused = t.mw('run').out.items[0]
+	assert.equal(paused.status, 'paused', 'checkpoints is the default')
+	assert.deepEqual(t.mw('next').out.then.map((n: { run: string }) => n.run)[0], 'mw go 1')
+	t.mw('go', '1')
 	const shipped = t.mw('run').out.items[0]
 	assert.equal(shipped.status, 'shipped')
 	assert.equal(t.git('show', 'main:src/export.sh'), 'echo a,b')
@@ -231,7 +235,7 @@ test('errors are JSON on stderr with a listed code, the context of its shape, an
 test('a runner killed mid-job is replaced: the next run resumes at that job without repeating earlier ones', async () => {
 	const t = setup()
 	t.env.FAKE_HANG = `implement:${join(t.dir, 'hung')}`
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 
 	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, detached: true, stdio: 'ignore' })
@@ -263,7 +267,7 @@ test('the console shows each step while it runs: what the agent is doing, who ow
 	const gate = join(t.dir, 'gate')
 	writeFileSync(gate, '')
 	t.env.FAKE_PAUSE = `plan:${gate}`
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, stdio: 'ignore' })
 	const ran = new Promise((r) => runner.once('exit', r))
@@ -330,7 +334,7 @@ test('a running runner reloads a new build in place: it finishes the step in fli
 	const gate = join(t.dir, 'gate')
 	writeFileSync(gate, '')
 	t.env.FAKE_PAUSE = `plan:${gate}`
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 
 	const runner = spawn(process.execPath, [entry, 'run'], { env: t.env, cwd: t.repo, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -366,7 +370,7 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 	// The second machine writes metrics only. On both, the planner asks once and the operator answers.
 	const machines = [setup({ MW_TELEMETRY: telemetry, FAKE_ASK: 'plan' }), setup({ MW_TELEMETRY: telemetry, MW_TELEMETRY_LEVEL: 'metrics', FAKE_ASK: 'plan' })]
 	for (const t of machines) {
-		t.mw('init', '--ship', 'true')
+		t.mw('init', '--autonomy', 'full', '--ship', 'true')
 		const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
 		assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 		t.mw('answer', String(id), 'CSV only')
@@ -455,7 +459,7 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 
 test('prune removes finished work before the cutoff with its record and files, and keeps what work in flight needs', () => {
 	const t = setup()
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	const discovery = t.mw('discover', '--source', 'raw notes: two things', '--autonomy', 'checkpoints').out.item.id
 	t.mw('run')
 	const [first, second] = [discovery + 1, discovery + 2]
@@ -469,7 +473,7 @@ test('prune removes finished work before the cutoff with its record and files, a
 		mkdirSync(dir)
 		execFileSync('git', ['-C', dir, 'init', '-q', '-b', 'main'])
 		execFileSync('git', ['-C', dir, '-c', 'user.name=Operator', '-c', 'user.email=op@example.com', 'commit', '-q', '--allow-empty', '-m', 'first'])
-		t.mw('init', '--workspace', dir, '--ship', 'true')
+		t.mw('init', '--workspace', dir, '--autonomy', 'full', '--ship', 'true')
 		return dir
 	}
 	const start = (workspace: string, objective: string) => t.mw('start', '--workspace', workspace, '--objective', objective, '--source', `operator: ${objective}`).out.item.id
@@ -536,7 +540,7 @@ test('prune removes finished work before the cutoff with its record and files, a
 
 test('mw cartridges prints the pack a project runs; init plugs in only a pack that honors the console\'s contract, and new work runs it', () => {
 	const t = setup()
-	t.mw('init', '--ship', 'true')
+	t.mw('init', '--autonomy', 'full', '--ship', 'true')
 	const before = t.mw('cartridges').out
 	assert.equal(before.source, 'default')
 	assert.deepEqual(before.lane.delivery, ['ideation / ideate (ideator)', 'ideation / challenge (ideation peer)', 'planning / plan (planner)', 'implementation / implement (implementer)', 'implementation / test-plan (test architect)', 'verification / verify (made well)'])

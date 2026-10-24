@@ -19,9 +19,11 @@ type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-pr
 /**
  * How involved the operator is (FOUNDATION, ruling 17). full: no stops, and what would go to the operator is decided by the
  * delegating agent by the rubric. checkpoints: stops after discovery and before each item ships. steps: also between the
- * cartridges of a loop. Absent means full.
+ * cartridges of a loop. Absent means checkpoints.
  */
 export type Autonomy = 'full' | 'checkpoints' | 'steps'
+/** New operators start watching every checkpoint; they hand over more once they trust the machine (ruling 17). */
+export const DEFAULT_AUTONOMY: Autonomy = 'checkpoints'
 
 export interface Hold {
 	readonly code: string
@@ -131,7 +133,7 @@ export interface Item {
 	readonly kind?: 'feature' | 'fix' | 'chore'
 	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
 	readonly pack?: Pack
-	/** How involved the operator is with it; candidates and fix items inherit it. Absent means full. */
+	/** How involved the operator is with it; candidates and fix items inherit it. Absent means checkpoints. */
 	readonly autonomy?: Autonomy
 	/** The checkpoint the operator last let it pass, so it does not stop there twice. */
 	readonly passed?: string

@@ -13,8 +13,8 @@
 // its own track, in its own worktree, and neither sees the other's output. Made Well then runs the item's own
 // checks against the implementer's change (ruling 14): a pass ships, a failure goes to the arbiter.
 //
-// Every call runs in its own worktree of the product repo, removed when the call ends. Read calls are proved
-// read-only; after a making call the branch must not have moved, and the change must stay in the plan's scope;
+// Every call runs in its own worktree of the product repo, removed when the call ends. Writes during read
+// calls are recorded, not imported; after making the branch must not move and changes stay in the plan's scope;
 // no call may leave files in the product repo; whatever a job provisioned is torn down once (ruling 13). The
 // project's prepare command stocks each worktree before anything runs in it, and what it provisions comes down too.
 //
@@ -34,8 +34,8 @@ import {
 	INTAKE, ORIGINATOR, Resource, blockedOf, decode, deliverableShape, hasJob, isMaker, lastJson, laneOf, malformed, requiredOf, route, shapeOf, stepOf, validate,
 	type Cause, type Check, type Job, type Lane, type Maker, type Plan, type Step,
 } from './lane.ts'
-import { Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
-import { capture, changes, git, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, type Changes, type State, type TeardownRecord } from './workspace.ts'
+import { DEFAULT_AUTONOMY, Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
+import { capture, changes, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest, type WorkerResult } from './worker.ts'
 
 const MAX_LAUNCHES = 3
@@ -98,7 +98,7 @@ const notFound = (id: number) =>
 const L = (item: Item) => laneOf(item.pack)
 
 /** Full autonomy: nobody is there to answer, so what would go to the operator is decided by the delegating agent, by the rubric. */
-const auto = (item: Item) => (item.autonomy ?? 'full') === 'full'
+const auto = (item: Item) => (item.autonomy ?? DEFAULT_AUTONOMY) === 'full'
 
 const profileOf = (item: Item, o: Origin) => (o.kind === 'job' ? stepOf(L(item), o.job).profile : o.kind)
 
@@ -272,34 +272,71 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 	const call = yield* callAgent(id, job, config, {
 		kind: 'intake', profile: stepOf(L(item), job).profile, access: INTAKE_ACCESS, card: cheap, required: requiredOf(INTAKE),
 		...jobTree(item, job),
-		packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, 'intake')),
+		packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, 'intake', ledger(store, id, job))),
 	})
 	if (!call) return
 	const reply = yield* decodeOrRepair(id, job, call, INTAKE)
 	if (!reply.ok) return yield* refuse(id, job, call, reply.reason)
 	const { understanding, unclear, ambiguous, missing, notes } = reply.value
-	const questions = [...unclear, ...ambiguous, ...missing].filter((q) => q.trim() !== '')
+	const reuse = reply.value.reuse ?? []
+	const previous = ledger(store, id, job)
+	if (reuse.some((r) => !previous.some((a) => a.id === r.answerId)) || new Set(reuse.map((r) => r.question)).size !== reuse.length) {
+		return yield* refuse(id, job, call, 'A reused answer must name an existing answeredBefore id, once per question.')
+	}
+	const asking = [...new Set([...unclear, ...ambiguous, ...missing, ...reuse.map((r) => r.question)].filter((q) => q.trim() !== ''))]
+	// A question is answered once. One already answered on this item is answered from the record, never asked again.
+	const known = new Map(previous.map((e) => [sameQuestion(e.question), e]))
+	for (const r of reuse) known.set(sameQuestion(r.question), previous.find((a) => a.id === r.answerId)!)
+	const recalled = asking.flatMap((q) => ((e) => e ? [{ question: q, answerId: e.id, answer: e.answer, by: e.by }] : [])(known.get(sameQuestion(q))))
+	const questions = asking.filter((q) => !known.has(sameQuestion(q)))
+	const carried = [...(x.notes ?? []), ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${r.answer}`)]
 	const receiver = stepOf(L(item), job).profile
+	if (recalled.length) store.note(id, 'nq-reused', { job, questions: recalled.map((r) => r.question), answer: 'Saved answers', reuse: recalled.map(({ question, answerId }) => ({ question, answerId })) })
 	if (!questions.length) {
-		saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'clear', understanding, notes: [...notes], card } }, 'nq-clear', { job, profile: receiver, card, intakeCard: cheap })
+		saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'clear', understanding, notes: [...carried, ...notes], card } }, 'nq-clear', { job, profile: receiver, card, intakeCard: cheap, ...(recalled.length ? { recalled } : {}) })
 		return
 	}
-	const asked: Exchange = { ...x, status: 'awaiting-originator', turns: [...x.turns, { understanding, questions }] }
+	const asked: Exchange = { ...x, status: 'awaiting-originator', turns: [...x.turns, { understanding, questions }], ...(carried.length ? { notes: carried } : {}) }
 	const answered = x.turns.filter((t) => t.answer !== undefined).length
-	// The same question carried across hand-offs counts as one: raised MAX_TURNS times on this item already, the next raise holds.
-	const raised = store.events(id).filter((e) => e.kind === 'nq-question').flatMap((e) => ((e.data.questions as string[] | undefined) ?? []).map(sameQuestion))
-	const repeated = questions.filter((q) => raised.filter((r) => r === sameQuestion(q)).length >= MAX_TURNS)
-	const context = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns, ...(repeated.length ? { repeated } : {}) }
+	const context = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns }
 	const now = withTrack(store.get(id)!, job, { ...trackOf(store.get(id)!, job), exchange: asked })
-	if (answered >= MAX_TURNS || repeated.length) return holdTurns(store, now, job, context)
+	if (answered >= MAX_TURNS) return holdTurns(store, now, job, context)
 	if (x.from.kind === 'operator' || x.turns.at(-1)?.by === 'operator') {
 		return hold(store, now, 'question_for_operator', `The ${receiver} has questions about your answer before it can ${job}.`, context)
 	}
-	saveTrack(store, id, job, { launches: 0, exchange: asked }, 'nq-question', { job, receiver, originator: profileOf(item, x.from), questions })
+	saveTrack(store, id, job, { launches: 0, exchange: asked }, 'nq-question', { job, receiver, originator: profileOf(item, x.from), questions, ...(recalled.length ? { recalled } : {}) })
 })
 
 /** A question's identity across hand-offs: its words, ignoring case, spacing and punctuation. */
 const sameQuestion = (q: string) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+
+/** Answers and aliases come from durable events, including the discovery or prerequisite that handed over the work.
+ * Older answer events omitted questions; their preceding question event supplies them. Maker exchanges stay blind. */
+const ledger = (store: StoreService, id: number, job: Job) => {
+	const events = store.events(id)
+	for (let item = store.get(id); item?.discovery !== undefined || item?.parent !== undefined;) {
+		item = store.get((item.discovery ?? item.parent)!)
+		if (item) events.push(...store.events(item.id))
+	}
+	const answers: { id: string; question: string; answer: string; by: string; job: string }[] = []
+	const pending = new Map<string, string[]>()
+	for (const e of events.sort((a, b) => a.seq - b.seq)) {
+		const source = String(e.data.job ?? '')
+		if ((job === 'implement' && source === 'test-plan') || (job === 'test-plan' && source === 'implement')) continue
+		const key = `${e.item}:${source}`
+		if (e.kind === 'nq-question') pending.set(key, e.data.questions as string[])
+		if (!['nq-answer', 'nq-decided', 'nq-corrected', 'nq-reused'].includes(e.kind) || typeof e.data.answer !== 'string') continue
+		const questions = (e.data.questions as string[] | undefined) ?? pending.get(key) ?? []
+		const reused = (e.data.reuse as { question: string; answerId: string }[] | undefined) ?? []
+		questions.forEach((question, i) => {
+			const ref = reused.find((r) => r.question === question)
+			const prior = ref && answers.find((a) => a.id === ref.answerId)
+			if (ref && !prior) return
+			answers.push({ id: `${e.seq}:${i}`, question, answer: prior ? prior.answer : e.data.answer as string, by: prior ? prior.by : String(e.data.originator), job: source })
+		})
+	}
+	return answers
+}
 
 /** The originator answers the receiver's questions from its own hand-off. Read-only. */
 const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, config: EngineConfig) {
@@ -315,20 +352,29 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	const from = profileOf(item, x.from)
 	const call = yield* callAgent(id, job, config, {
 		kind: 'originator', profile: from, access: 'read', card, required: requiredOf(ORIGINATOR),
-		packet: (dir) => packet(item, by, dir, originatorParts(item, job, x), x.from.kind === 'job'),
+		packet: (dir) => packet(item, by, dir, originatorParts(item, job, x, ledger(store, id, job)), x.from.kind === 'job'),
 	})
 	if (!call) return
 	const reply = yield* decodeOrRepair(id, job, call, ORIGINATOR)
 	if (!reply.ok) return yield* refuse(id, job, call, reply.reason)
-	let answer = reply.value.answer
+	const reuse = reply.value.reuse ?? []
+	const previous = ledger(store, id, job)
+	const openQuestions = x.turns.at(-1)?.questions ?? []
+	if (reuse.some((r) => !openQuestions.includes(r.question) || !previous.some((a) => a.id === r.answerId)) || new Set(reuse.map((r) => r.question)).size !== reuse.length) {
+		return yield* refuse(id, job, call, 'A reused answer must name a current question and an existing answeredBefore id, once per question.')
+	}
+	const allReused = openQuestions.length > 0 && reuse.length === openQuestions.length
+	let answer = allReused ? '' : reply.value.answer
+	if (reuse.length) answer = [answer, ...reuse.map((r) => `${r.question}\n${previous.find((a) => a.id === r.answerId)!.answer}`)].filter(Boolean).join('\n\n')
+	const reused = reuse.length ? { reuse } : {}
 	if (x.deciding) {
 		// Full autonomy, out of turns: the delegating agent's decision corrects the hand-off, and a new exchange judges it from turn one.
 		const open = x.turns.at(-1)?.questions ?? []
 		const handoff = `${x.handoff}\n\nThe ${from} decided these by the rubric, under full autonomy, after the exchange on this hand-off ran out of turns with them open:\n${open.map((q) => `- ${q}`).join('\n')}\n\n${answer}`
-		saveTrack(store, id, job, { launches: 0, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [], decided: true } }, 'nq-decided', { job, originator: from, questions: open, answer })
+		saveTrack(store, id, job, { launches: 0, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [], decided: true } }, 'nq-decided', { job, originator: from, questions: open, answer, ...reused })
 		return
 	}
-	if (reply.value.needsOperator) {
+	if (reply.value.needsOperator && !allReused) {
 		const pendingQ = x.turns.at(-1)!
 		// Authority: the dispatcher reads the operator's own source first. It holds only when the source leaves the question open
 		// and the action is the kind only the operator can authorize. The dispatcher as originator has already read it.
@@ -340,8 +386,13 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 		}
 		answer = ruled.answer
 	}
-	const turns = x.turns.map((t, i) => (i === x.turns.length - 1 ? { ...t, answer, by: 'originator' as const } : t))
-	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns } }, 'nq-answer', { job, originator: from, answer, ...(reply.value.needsOperator ? { dispatcher: true } : {}) })
+	const turns = x.turns.flatMap((t, i) => {
+		if (i !== x.turns.length - 1) return [t]
+		const questions = t.questions.filter((q) => !reuse.some((r) => r.question === q))
+		return questions.length ? [{ ...t, questions, answer, by: 'originator' as const }] : []
+	})
+	const notes = [...(x.notes ?? []), ...reuse.map((r) => `${r.question}\n${previous.find((a) => a.id === r.answerId)!.answer}`)]
+	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns, notes } }, 'nq-answer', { job, originator: from, questions: openQuestions, answer, ...reused, ...(reply.value.needsOperator && !allReused ? { dispatcher: true } : {}) })
 })
 
 /**
@@ -426,7 +477,7 @@ interface CallSpec {
 	readonly at?: string
 	readonly prepare?: (dir: string) => Effect.Effect<void, MadeWellError, Store>
 	readonly onFail?: (dir: string) => Effect.Effect<void, MadeWellError, Store>
-	readonly packet: (dir: string) => Effect.Effect<string, MadeWellError>
+	readonly packet: (dir: string) => Effect.Effect<string, MadeWellError, Store>
 }
 
 interface Called {
@@ -467,7 +518,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const none = spec.access === 'none'
 		const read = spec.access === 'read'
 		const product = none ? undefined : yield* capture(item.workspace)
-		const before = read || none ? undefined : yield* capture(wt.path)
+		const before = none ? undefined : yield* capture(wt.path, !read)
 		const head = before?.head ?? (yield* revParse(wt.path, 'HEAD'))
 		const live = liveFile(store, `item-${id}-${job}-${spec.kind}`)
 		store.note(id, 'call-started', { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...(live ? { live } : {}) })
@@ -479,19 +530,8 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 				Effect.tap((r) => Effect.sync(() => (result = r))),
 				Effect.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } }),
 			)
-		let changed: Changes | undefined
-		if (read) {
-			const r = yield* Effect.result(readOnly(wt.path, run))
-			if (Result.isFailure(r)) {
-				if (r.failure.code !== 'workspace_written' || !result) return yield* r.failure
-				changed = (r.failure.context as { changes: Changes }).changes
-			}
-		} else if (none) {
-			yield* run
-		} else {
-			yield* run
-			changed = changes(before!, yield* capture(wt.path))
-		}
+		yield* run
+		const changed = before ? changes(before, yield* capture(wt.path, !read)) : undefined
 		const res = result!
 		const call = {
 			item: id, kind: spec.kind, job, profile: spec.profile, card: spec.card, system: briefOf(L(item)), prompt,
@@ -516,12 +556,6 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			if (spec.onFail) yield* spec.onFail(wt.path)
 			if ('limit' in res) yield* recordLimit(id, job, spec.card, res.limit, spec.kind)
 			else yield* launchFailed(id, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {})
-			return undefined
-		}
-		if (read && changed) {
-			const reason = `The ${spec.kind} call changed its read-only checkout: ${[...changed.added, ...changed.removed, ...changed.modified].join(', ') || 'refs or HEAD'}.`
-			store.rejectCall(callId, reason)
-			yield* launchFailed(id, job, spec.kind, spec.card, reason, { changes: changed })
 			return undefined
 		}
 		// Under the repo's lock: a parallel item's ship never shows its own files mid-merge as this call's leftovers.
@@ -817,7 +851,7 @@ const verifyAndShip = Effect.fn('mw.verifyAndShip')(function* (id: number, confi
 		const verified = item.verification
 		// Checkpoints and every step: the operator sees the verified change before it merges and ships.
 		const key = `ship:${verified.commit}`
-		if ((item.autonomy ?? 'full') !== 'full' && item.passed !== key) {
+		if (!auto(item) && item.passed !== key) {
 			return pause(store, item, key, `Checkpoint: #${id} passed its ${item.verification.results.length ? 'checks' : 'verification'} and waits for you before it merges and ships.`, { after: 'verification', next: 'ship', commit: verified.commit, files: item.change?.files ?? [] })
 		}
 		const merged = yield* withLock(item.workspace, Effect.gen(function* () {
@@ -1032,6 +1066,14 @@ const launchFailed = Effect.fn('mw.launchFailed')(function* (id: number, job: Jo
 	if (kind !== 'originator' && x) {
 		const receiver = stepOf(L(item), job).profile
 		const question = `My ${kind === 'intake' ? 'intake' : job} call failed, so I could not ${kind === 'intake' ? 'confirm the hand-off' : `do the ${job} job`}: ${error}`
+		const saved = ledger(store, id, job).findLast((a) => sameQuestion(a.question) === sameQuestion(question))
+		if (saved) {
+			const attempts = store.events(id).filter((e) => e.kind === 'nq-reused' && e.data.error === true && e.data.job === job && e.data.round === item.round && e.data.question === question).length + 1
+			const next = withTrack(item, job, { ...t, ...patch, exchange: { ...x, status: 'awaiting-receiver', notes: [...(x.notes ?? []), saved.answer] } })
+			if (attempts >= MAX_LAUNCHES) return hold(store, next, 'worker_failing', `The ${job} call still fails after its recorded correction was reapplied ${attempts} times.`, { job, card, lastError: error, answerId: saved.id, ...evidence })
+			store.save(next, 'nq-reused', { job, round: item.round, error: true, question, answerId: saved.id })
+			return
+		}
 		const answered = x.turns.filter((turn) => turn.answer !== undefined).length
 		const asked: Exchange = { ...x, status: 'awaiting-originator', turns: [...x.turns, { understanding: x.understanding ?? '', questions: [question] }] }
 		const context = { job, receiver, originator: profileOf(item, x.from), questions: [question], turns: x.turns, card, ...evidence }
@@ -1056,8 +1098,7 @@ const holdTurns = (store: StoreService, item: Item, job: Job, context: Record<st
 	if (auto(item) && x && !x.decided) {
 		return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: 'awaiting-originator', deciding: true } }), 'nq-deciding', { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] })
 	}
-	const why = context.repeated ? `asks again what was already asked ${MAX_TURNS} times across hand-offs` : `still has questions after ${MAX_TURNS} answered turns`
-	return hold(store, item, 'nq_turns', `The ${stepOf(L(item), job).profile} ${why}: the hand-off, its scope or its provisioning is wrong.`, context)
+	return hold(store, item, 'nq_turns', `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context)
 }
 
 /** The items this one builds on that have not shipped; it starts once they have. */
@@ -1161,11 +1202,11 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 				// Three turns are spent: the operator's answer corrects the hand-off, and a new exchange judges it from turn one.
 				const open = x.turns.at(-1)?.questions ?? []
 				const handoff = `${x.handoff}\n\nThe operator's correction, after the exchange on this hand-off ran out of turns with these questions open:\n${open.map((q) => `- ${q}`).join('\n')}\n\n${text}`
-				store.save(withTrack(free, job, { ...t, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [] } }), 'nq-corrected', { job, originator: 'operator', answer: text })
+				store.save(withTrack(free, job, { ...t, exchange: { from: x.from, handoff, status: 'awaiting-receiver', turns: [] } }), 'nq-corrected', { job, originator: 'operator', questions: open, answer: text })
 				return
 			}
 			const turns = x.turns.map((turn, i) => (i === x.turns.length - 1 ? { ...turn, answer: text, by: 'operator' as const } : turn))
-			store.save(withTrack(free, job, { ...t, exchange: { ...x, status: 'awaiting-receiver', turns } }), 'nq-answer', { job, originator: 'operator', answer: text })
+			store.save(withTrack(free, job, { ...t, exchange: { ...x, status: 'awaiting-receiver', turns } }), 'nq-answer', { job, originator: 'operator', questions: x.turns.at(-1)?.questions ?? [], answer: text })
 			return
 		}
 		if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -1362,12 +1403,17 @@ const snapshotFor = (item: Item, job: Job, dir: string) => {
  * files, then what is this call's alone. `withReceived` is false for an originator that received nothing.
  */
 const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown>, withReceived = true) =>
-	Effect.map(snapshotFor(item, job, dir), (snap) => JSON.stringify({
-		item: itemFacts(item),
-		...(withReceived ? { received: receivedBy(item, job) } : {}),
-		...(snap ? { snapshot: snap } : {}),
-		...parts,
-	}, null, 2))
+	Effect.gen(function* () {
+		const answeredBefore = ledger(yield* Store, item.id, job)
+		const snap = yield* snapshotFor(item, job, dir)
+		return JSON.stringify({
+			item: itemFacts(item),
+			...(withReceived ? { received: receivedBy(item, job) } : {}),
+			...(snap ? { snapshot: snap } : {}),
+			...(answeredBefore.length ? { answeredBefore } : {}),
+			...parts,
+		}, null, 2)
+	})
 
 const whereYouAre = (step: Step) => (step.loop === 'discovery' ? `Made Well's discovery (${step.cartridge})` : `Made Well's delivery lane (${step.cartridge})`)
 
@@ -1400,18 +1446,19 @@ const you = (item: Item, job: Job, kind: WorkerRequest['kind']) => {
 }
 
 const INTAKE_TASK = (job: Job, originator: string) =>
-	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`
+	`This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never ask a question answered in earlierTurns or answeredBefore: every answer on this item is on the record and binds you, and Made Well answers a repeat from it. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`
 
 const handoffView = (item: Item, job: Job, x: Exchange) =>
 	x.from.kind === 'job' && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job]
 		? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.`
 		: x.handoff
 
-const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake') => ({
-	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)), laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake', answered: ReturnType<typeof ledger>) => ({
+	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + ' If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies that answer verbatim and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.', laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
 	...jobEvidence(item, job),
 	handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
+	...(answered.length ? { answeredBefore: answered.filter((e) => !x.turns.some((t) => t.questions.includes(e.question) && t.answer === e.answer)) } : {}),
 	round: item.round,
 	...(trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}),
 })
@@ -1420,12 +1467,13 @@ const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake') => ({
 const jobEvidence = (item: Item, job: Job) =>
 	job === 'arbitrate' && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {}
 
-const originatorParts = (item: Item, job: Job, x: Exchange) => ({
+const originatorParts = (item: Item, job: Job, x: Exchange, answered: ReturnType<typeof ledger>) => ({
 	you: {
 		profile: profileOf(item, x.from), call: 'originator',
-		task: x.deciding
+		task: (x.deciding
 			? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10× developer experience, a 10× user experience and a 10× agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.`
-			: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`,
+			: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`)
+			+ ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well inserts the saved answer verbatim and records the new wording. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
 		replyFormat: shapeOf(ORIGINATOR),
 	},
 	yourHandoff: x.from.kind === 'job' && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
@@ -1433,6 +1481,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange) => ({
 	receiverUnderstanding: x.turns.at(-1)!.understanding,
 	questions: x.turns.at(-1)!.questions,
 	earlierTurns: x.turns.slice(0, -1),
+	answeredBefore: answered,
 })
 
 const executeParts = (item: Item, job: Job, t: Track, x: Exchange) => ({

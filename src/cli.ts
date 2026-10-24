@@ -21,7 +21,7 @@ import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { laneOf, loadPack, Pack, SOFTWARE, stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
-import { Store, defaultStorePath, storeLayer, type Autonomy, type Item } from './store.ts'
+import { DEFAULT_AUTONOMY, Store, defaultStorePath, storeLayer, type Autonomy, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
 import { exportItem } from './export.ts'
 import { stats } from './telemetry.ts'
@@ -169,7 +169,7 @@ const registered = Effect.fn('mw.registered')(function* (workspace: string | und
 	})
 })
 
-const AutonomyInput = Schema.optionalKey(Schema.Literals(['full', 'checkpoints', 'steps']).annotate({ description: 'how involved the operator is: full (default; no stops, questions decided by the rubric), checkpoints (stop after discovery and before each ship), steps (also between cartridges)' }))
+const AutonomyInput = Schema.optionalKey(Schema.Literals(['full', 'checkpoints', 'steps']).annotate({ description: 'how involved the operator is: checkpoints (the default: stop after discovery and before each ship), steps (also between cartridges), or full (no stops; questions decided by the rubric)' }))
 
 /**
  * Ruling 17: a command that gives Made Well work starts the machine when no runner is alive, so turning the knob is the whole
@@ -407,7 +407,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
 			const title = input.title ?? `Discovery of ${input['source-file'] ? basename(input['source-file']) : 'raw input'}`
 			const pack = yield* packFor(workspace)
-			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? 'full'
+			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY
 			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]!.job, autonomy, ...(pack ? { pack } : {}) })
 			return { item: view(item), next: yield* wake(item.id) }
 		}),
@@ -437,7 +437,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
 			const pack = yield* packFor(workspace)
-			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? 'full'
+			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY
 			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...(pack ? { pack } : {}) })
 			return { item: view(item), next: yield* wake(item.id) }
 		}),

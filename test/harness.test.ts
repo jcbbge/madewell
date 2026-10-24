@@ -221,7 +221,7 @@ test('mw run stops cleanly on SIGTERM: the agent process group dies and the runn
 	const cli = join(import.meta.dirname, '../src/cli.ts')
 	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
 	try {
-		mw('init', '--ship', 'true')
+		mw('init', '--autonomy', 'full', '--ship', 'true')
 		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: ['ignore', 'ignore', 'pipe'] })
 		let stderr = ''
@@ -255,7 +255,7 @@ test('a daemon left by a runner that was SIGKILLed is killed when the next runne
 	const cli = join(import.meta.dirname, '../src/cli.ts')
 	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
 	try {
-		mw('init', '--ship', 'true')
+		mw('init', '--autonomy', 'full', '--ship', 'true')
 		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: 'ignore' })
 		while (!existsSync(daemonFile) || !readFileSync(daemonFile, 'utf8').trim()) await new Promise((r) => setTimeout(r, 20))
