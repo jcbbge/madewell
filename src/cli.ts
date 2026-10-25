@@ -26,7 +26,7 @@ import { harnessWorker } from './harness.ts'
 import { exportItem } from './export.ts'
 import { stats } from './telemetry.ts'
 import { lensOf } from './trace.ts'
-import { serve, staticPage, watch } from './ui.ts'
+import { serve, service, staticPage, thisHost, watch } from './ui.ts'
 import { Worker, commandWorker } from './worker.ts'
 
 const storePath = defaultStorePath()
@@ -66,6 +66,15 @@ const HoldView = Schema.Struct({
 }).annotate({ identifier: 'Hold' })
 
 const Board = Schema.Struct({ summary: Schema.String, items: Schema.Array(ItemView), next: Schema.Array(Next) }).annotate({ identifier: 'Board' })
+
+const ServiceView = Schema.Struct({
+	service: Schema.String.annotate({ description: 'the unit (Linux) or label (macOS)' }), platform: Schema.String,
+	installed: Schema.Boolean, running: Schema.Boolean.annotate({ description: 'as the service manager reports it' }), answering: Schema.Boolean.annotate({ description: 'its address answered /api/mark just now' }),
+	address: Schema.NullOr(Schema.String), unit: Schema.optionalKey(Schema.String.annotate({ description: 'the unit or plist file' })), execStart: Schema.optionalKey(Schema.String.annotate({ description: 'the command line the service runs: the build that installed it' })),
+	pid: Schema.optionalKey(Schema.NullOr(Schema.Int)), changed: Schema.optionalKey(Schema.Boolean), wrote: Schema.optionalKey(Schema.Array(Schema.String)), removed: Schema.optionalKey(Schema.Array(Schema.String)),
+	linger: Schema.optionalKey(Schema.String.annotate({ description: 'Linux: whether the user\'s services may run with no login, and what loginctl said' })),
+	next: Schema.Array(Next),
+}).annotate({ identifier: 'Service' })
 
 const Pruned = Schema.Struct({
 	before: Schema.String.annotate({ description: 'the cutoff applied, ISO; a later time than now counts as now' }),
@@ -569,17 +578,25 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'ui',
-		summary: 'The live console: a web page on this machine that answers, at a glance, what is done, what needs the operator (with the exact command), and who owes the next move on every item. Each item shows its pipeline with time, tokens and NQ questions per step; a timeline shows every agent call; a running call shows what its agent is doing now; an item opens to its idea, plan, checks and results, diff, every NQ question and answer, and every call with its packet, answer and stream. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.',
+		summary: 'The web interface: a read-only page on this machine. At / is the Gazette sheet: what waits on the operator (each with the exact command to copy), every item\'s steps as rings, what runs now with its live output, repainted as the record moves. At /console is the full console: each item\'s pipeline with time, tokens and NQ questions per step, a timeline of every agent call, and each item\'s idea, plan, checks, diff, NQ exchanges and calls. Both read the JSON API under /api. Prints its address as one JSON line, then serves until interrupted; reach it from another computer with an SSH tunnel or a forwarded port. --install provisions it as an always-on background service of this user that starts at boot and restarts on failure (a systemd user unit on Linux, with lingering where allowed; a LaunchAgent on macOS), running this same build with the MW_* variables set now; running it again changes nothing. --status says whether it is installed, running and answering, and its address. --uninstall stops it and removes every file --install wrote.',
 		input: Schema.Struct({
 			port: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: 'defaults to 4747; 0 picks a free one' })),
 			host: optional('the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network'),
+			install: Schema.optionalKey(Schema.Boolean.annotate({ description: 'provision the always-on background service for this user and start it' })),
+			uninstall: Schema.optionalKey(Schema.Boolean.annotate({ description: 'stop the service and remove every file --install wrote' })),
+			status: Schema.optionalKey(Schema.Boolean.annotate({ description: 'whether the service is installed, running and answering, and its address' })),
 		}),
-		output: Schema.Struct({ ui: Schema.String, store: Schema.String, next: Schema.Array(Next) }),
-		run: (input) => serve(storePath, nextFor, input.host ?? '127.0.0.1', input.port ?? 4747),
+		output: Schema.Union([Schema.Struct({ ui: Schema.String, store: Schema.String, next: Schema.Array(Next) }), ServiceView]),
+		run: (input) => {
+			const actions = (['install', 'uninstall', 'status'] as const).filter((a) => input[a])
+			if (actions.length > 1) return usageError('ui', `Give one of --install, --uninstall or --status, not ${actions.map((a) => `--${a}`).join(' and ')}.`)
+			if (actions[0]) return service(thisHost(), actions[0], { ...(input.port !== undefined ? { port: input.port } : {}), ...(input.host !== undefined ? { host: input.host } : {}) })
+			return serve(storePath, nextFor, input.host ?? '127.0.0.1', input.port ?? 4747)
+		},
 	}),
 	command({
 		name: 'watch',
-		summary: 'Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log). Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.',
+		summary: 'Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log); its first line shows the web interface\'s address when it is up, or `mw ui --install` when it is not, and `w` opens it in a browser here or prints the SSH port-forward line for a computer that has one. Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.',
 		input: Schema.Struct({
 			since: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))).annotate({ description: 'stream only events after this seq' })),
 			once: Schema.optionalKey(Schema.Boolean.annotate({ description: 'print what there is now, then stop' })),

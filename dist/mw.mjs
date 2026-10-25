@@ -6,10 +6,10 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { spawn as spawn2 } from "node:child_process";
-import { existsSync as existsSync4, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
+import { spawn as spawn3 } from "node:child_process";
+import { existsSync as existsSync4, mkdirSync as mkdirSync8, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
+import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve7 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -1711,24 +1711,24 @@ var isKey = (u) => hasProperty(u, ServiceTypeId);
 var isReference = (u) => !!u[ReferenceTypeId];
 var empty = () => emptyContext2;
 var emptyContext2 = /* @__PURE__ */ makeUnsafe(/* @__PURE__ */ new Map());
-var make3 = (key, service3) => makeUnsafe(/* @__PURE__ */ new Map([[key.key, service3]]));
-var add = /* @__PURE__ */ dual(3, (self, key, service3) => addUnsafe(self, key.key, service3));
-var addUnsafe = (self, key, service3) => {
+var make3 = (key, service4) => makeUnsafe(/* @__PURE__ */ new Map([[key.key, service4]]));
+var add = /* @__PURE__ */ dual(3, (self, key, service4) => addUnsafe(self, key.key, service4));
+var addUnsafe = (self, key, service4) => {
   const impl = self;
   const cacheRoot = cacheKeys.has(key) ? void 0 : impl.cacheRoot;
   if (impl.depth >= MaxDepth) {
     const map11 = new Map(impl._flat ?? impl.base);
     if (!impl._flat) applyOverlays(map11, impl.overlay);
-    map11.set(key, service3);
+    map11.set(key, service4);
     return makeImpl(cacheRoot, map11, void 0, 0);
   }
   return makeImpl(cacheRoot, impl.base, {
     key,
-    value: service3,
+    value: service4,
     parent: impl.overlay
   }, impl.depth + 1);
 };
-var addOrOmit = /* @__PURE__ */ dual(3, (self, key, service3) => service3._tag === "None" ? omit(key)(self) : add(self, key, service3.value));
+var addOrOmit = /* @__PURE__ */ dual(3, (self, key, service4) => service4._tag === "None" ? omit(key)(self) : add(self, key, service4.value));
 var getOrElse2 = /* @__PURE__ */ dual(3, (self, key, orElse2) => {
   const value3 = lookup(self, key.key);
   if (value3 !== notFound) return value3;
@@ -1739,11 +1739,11 @@ var getOrUndefinedUnsafe = (self, key) => {
   const value3 = lookup(self, key);
   return value3 === notFound ? void 0 : value3;
 };
-var getUnsafe = /* @__PURE__ */ dual(2, (self, service3) => {
-  const value3 = lookup(self, service3.key);
+var getUnsafe = /* @__PURE__ */ dual(2, (self, service4) => {
+  const value3 = lookup(self, service4.key);
   if (value3 === notFound) {
-    if (isReference(service3)) return getDefaultValue(service3);
-    throw serviceNotFoundError(service3);
+    if (isReference(service4)) return getDefaultValue(service4);
+    throw serviceNotFoundError(service4);
   }
   return value3;
 });
@@ -1755,8 +1755,8 @@ var getDefaultValue = (ref) => {
   }
   return ref[defaultValueCacheKey] = ref.defaultValue();
 };
-var serviceNotFoundError = (service3) => {
-  const error = new Error(`Service not found${service3.key ? `: ${String(service3.key)}` : ""}`);
+var serviceNotFoundError = (service4) => {
+  const error = new Error(`Service not found${service4.key ? `: ${String(service4.key)}` : ""}`);
   if (error.stack) {
     const lines4 = error.stack.split("\n");
     lines4.splice(1, 3);
@@ -1764,10 +1764,10 @@ var serviceNotFoundError = (service3) => {
   }
   return error;
 };
-var getOption = /* @__PURE__ */ dual(2, (self, service3) => {
-  const value3 = lookup(self, service3.key);
+var getOption = /* @__PURE__ */ dual(2, (self, service4) => {
+  const value3 = lookup(self, service4.key);
   if (value3 !== notFound) return some2(value3);
-  return isReference(service3) ? some2(getDefaultValue(service3)) : none2();
+  return isReference(service4) ? some2(getDefaultValue(service4)) : none2();
 });
 var merge = /* @__PURE__ */ dual(2, (self, that) => {
   if (self.mapUnsafe.size === 0) return that;
@@ -4071,9 +4071,9 @@ var exitFindErrorOption = (self) => {
   const error = exitFindError(self);
   return isFailure2(error) ? none2() : some2(error.success);
 };
-var service = (service3) => service3;
-var serviceOption = (service3) => withFiber((fiber3) => succeed3(getOption(fiber3.context, service3)));
-var serviceOptional = (service3) => withFiber((fiber3) => fromOption3(getOption(fiber3.context, service3)));
+var service = (service4) => service4;
+var serviceOption = (service4) => withFiber((fiber3) => succeed3(getOption(fiber3.context, service4)));
+var serviceOptional = (service4) => withFiber((fiber3) => fromOption3(getOption(fiber3.context, service4)));
 var updateContext = /* @__PURE__ */ dual(2, (self, f) => withFiber((fiber3) => {
   const prevContext = fiber3.context;
   const nextContext = f(prevContext);
@@ -4085,18 +4085,18 @@ var updateContext = /* @__PURE__ */ dual(2, (self, f) => withFiber((fiber3) => {
   });
   return self;
 }));
-var updateService = /* @__PURE__ */ dual(3, (self, service3, f) => updateContext(self, (s) => {
-  const prev = getUnsafe(s, service3);
+var updateService = /* @__PURE__ */ dual(3, (self, service4, f) => updateContext(self, (s) => {
+  const prev = getUnsafe(s, service4);
   const next = f(prev);
   if (prev === next) return s;
-  return add(s, service3, next);
+  return add(s, service4, next);
 }));
-var updateServiceScoped = (service3, update2, options) => uninterruptible(withFiber((fiber3) => {
-  const original = getUnsafe(fiber3.context, service3);
+var updateServiceScoped = (service4, update2, options) => uninterruptible(withFiber((fiber3) => {
+  const original = getUnsafe(fiber3.context, service4);
   const updated = update2(original);
-  fiber3.setContext(add(fiber3.context, service3, updated));
+  fiber3.setContext(add(fiber3.context, service4, updated));
   return scopeAddFinalizerExit(getUnsafe(fiber3.context, scopeTag), (_) => {
-    const currentOption = getOption(fiber3.context, service3);
+    const currentOption = getOption(fiber3.context, service4);
     if (isNone2(currentOption)) return void_2;
     const current = currentOption.value;
     let next;
@@ -4106,7 +4106,7 @@ var updateServiceScoped = (service3, update2, options) => uninterruptible(withFi
     } else {
       next = options.reset(original, updated, current);
     }
-    fiber3.setContext(add(fiber3.context, service3, next));
+    fiber3.setContext(add(fiber3.context, service4, next));
     return void_2;
   });
 }));
@@ -4122,10 +4122,10 @@ var provideService = function() {
   if (arguments.length === 1) {
     return dual(2, (self, impl) => provideServiceImpl(self, arguments[0], impl));
   }
-  return dual(3, (self, service3, impl) => provideServiceImpl(self, service3, impl)).apply(this, arguments);
+  return dual(3, (self, service4, impl) => provideServiceImpl(self, service4, impl)).apply(this, arguments);
 };
-var provideServiceImpl = (self, service3, implementation) => updateContext(self, add(service3, implementation));
-var provideServiceEffect = /* @__PURE__ */ dual(3, (self, service3, acquire) => flatMap3(acquire, (implementation) => provideService(self, service3, implementation)));
+var provideServiceImpl = (self, service4, implementation) => updateContext(self, add(service4, implementation));
+var provideServiceEffect = /* @__PURE__ */ dual(3, (self, service4, acquire) => flatMap3(acquire, (implementation) => provideService(self, service4, implementation)));
 var zip = /* @__PURE__ */ dual((args2) => isEffect(args2[1]), (self, that, options) => zipWith(self, that, (a, a2) => [a, a2], options));
 var zipWith = /* @__PURE__ */ dual((args2) => isEffect(args2[1]), (self, that, f, options) => options?.concurrent ? map5(all2([self, that], {
   concurrency: 2
@@ -5111,8 +5111,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve7) => {
-      fiber3.addObserver((exit4) => resolve7(exit4));
+    return new Promise((resolve8) => {
+      fiber3.addObserver((exit4) => resolve8(exit4));
     });
   };
 };
@@ -6237,7 +6237,7 @@ var effect = function() {
   }
   return effectImpl(arguments[0], arguments[1]);
 };
-var effectImpl = (service3, effect2) => effectContext(map5(effect2, (value3) => make3(service3, value3)));
+var effectImpl = (service4, effect2) => effectContext(map5(effect2, (value3) => make3(service4, value3)));
 var effectContext = (effect2) => fromBuildMemo((_, scope3) => provide(effect2, scope3));
 var effectDiscard = (effect2) => effectContext(as(effect2, empty()));
 var suspend2 = (evaluate3) => fromBuildMemo((memoMap, scope3) => suspend(() => evaluate3().build(memoMap, scope3)));
@@ -6262,7 +6262,7 @@ var orDie2 = (self) => fromBuildUnsafe((memoMap, scope3) => orDie(self.build(mem
 var catch_2 = /* @__PURE__ */ dual(2, (self, onError3) => fromBuildUnsafe((memoMap, scope3) => catch_(self.build(memoMap, scope3), (e) => onError3(e).build(memoMap, scope3))));
 var catchTag2 = /* @__PURE__ */ dual(3, (self, k, f) => fromBuildUnsafe((memoMap, scope3) => catchTag(self.build(memoMap, scope3), k, (error) => f(error).build(memoMap, scope3))));
 var catchCause2 = /* @__PURE__ */ dual(2, (self, onError3) => fromBuildUnsafe((memoMap, scope3) => catchCause(self.build(memoMap, scope3), (cause) => onError3(cause).build(memoMap, scope3))));
-var updateService2 = /* @__PURE__ */ dual(3, (layer, service3, f) => provide2(layer, effect(service3, map5(service3, f))));
+var updateService2 = /* @__PURE__ */ dual(3, (layer, service4, f) => provide2(layer, effect(service4, map5(service4, f))));
 var fresh = (self) => fromBuildUnsafe((_, scope3) => self.build(makeMemoMapUnsafe(), scope3));
 var launch = (self) => scoped(andThen2(build(self), never));
 var mock = function() {
@@ -6271,7 +6271,7 @@ var mock = function() {
   }
   return mockImpl(arguments[0], arguments[1]);
 };
-var mockImpl = (service3, implementation) => succeed5(service3)(new Proxy({
+var mockImpl = (service4, implementation) => succeed5(service4)(new Proxy({
   ...implementation
 }, {
   get(target, prop, _receiver) {
@@ -6280,7 +6280,7 @@ var mockImpl = (service3, implementation) => succeed5(service3)(new Proxy({
     }
     const prevLimit = getStackTraceLimit();
     setStackTraceLimit(2);
-    const error = new Error(`${service3.key}: Unimplemented method "${prop.toString()}"`);
+    const error = new Error(`${service4.key}: Unimplemented method "${prop.toString()}"`);
     setStackTraceLimit(prevLimit);
     error.name = "UnimplementedError";
     return makeUnimplemented(error);
@@ -13365,10 +13365,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve7) {
+  constructor(ast, compiled, resolve8) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve7;
+    this.resolve = resolve8;
   }
   save(key, value3) {
     Object.defineProperty(this, key, {
@@ -13417,8 +13417,8 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve7, ast, operation) {
-  const entry = resolve7(ast);
+function lazyParser(resolve8, ast, operation) {
+  const entry = resolve8(ast);
   if (entry.compiled === void 0 || Object.hasOwn(entry, operation)) {
     return entry[operation];
   }
@@ -15367,9 +15367,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve7) => {
+    return new Promise((resolve8) => {
       fiber3.addObserver((exit5) => {
-        resolve7(makeStandardResult(exit5));
+        resolve8(makeStandardResult(exit5));
       });
     });
   };
@@ -21958,6 +21958,8 @@ var ERRORS = {
   brief_unreadable: { means: "The file named by --brief cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String }) },
   export_failed: { means: "The export folder cannot be written.", context: Schema_exports.Struct({ id: Id, dir: Schema_exports.String, reason: Schema_exports.String }) },
   ui_unavailable: { means: "The console cannot listen on the address asked for: the port is taken or not allowed.", context: Schema_exports.Struct({ host: Schema_exports.String, port: Schema_exports.Int, reason: Schema_exports.String }) },
+  ui_unsupported: { means: "The web interface cannot be provisioned as a background service on this platform: only Linux (systemd user units) and macOS (LaunchAgents) are supported.", context: Schema_exports.Struct({ platform: Schema_exports.String, supported: Schema_exports.Array(Schema_exports.String) }) },
+  ui_service_failed: { means: "The service manager (systemctl or launchctl) refused a step of installing, removing or inspecting the web interface service.", context: Schema_exports.Struct({ platform: Schema_exports.String, command: Schema_exports.String, exitCode: Schema_exports.Int, stderr: Schema_exports.String }) },
   git_failed: { means: "A git command Made Well ran in a workspace failed.", context: Schema_exports.Struct({ dir: Schema_exports.String, args: Schema_exports.Array(Schema_exports.String), exitCode: Schema_exports.Int, stderr: Schema_exports.String }) },
   bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema_exports.Struct({ name: Schema_exports.String }) },
   worktree_root_unclean: {
@@ -25467,10 +25469,11 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
 });
 
 // src/ui.ts
-import { execFileSync as execFileSync2 } from "node:child_process";
-import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, statSync as statSync2 } from "node:fs";
+import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
+import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, mkdirSync as mkdirSync7, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
-import { basename as basename2, dirname as dirname7, join as join11 } from "node:path";
+import { homedir as homedir3, hostname as hostname2 } from "node:os";
+import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve6 } from "node:path";
 
 // src/console.ts
 var CONSOLE = String.raw`<!doctype html>
@@ -26443,6 +26446,7 @@ var modelOf = (store, nextOf) => {
   const movable = items.filter((i) => ["queued", "running", "waiting-quota", "waiting-prerequisite"].includes(i.status));
   return {
     at: new Date(now2).toISOString(),
+    host: hostname2().split(".")[0],
     store: store.path,
     projects: [...new Set(items.map((i) => i.workspace))],
     runner: runner2,
@@ -26582,16 +26586,31 @@ var staticPage = (store, nextOf) => {
   const data = JSON.stringify({ model, details, calls }).replaceAll("</", "<\\/");
   return CONSOLE.replace("<script>", `<script>var STATIC = ${data};</script><script>`);
 };
+var GAZETTE = new URL("../dist/gazette.html", import.meta.url);
+var gazettePage = () => {
+  try {
+    return readFileSync8(GAZETTE, "utf8");
+  } catch {
+    return void 0;
+  }
+};
 var serve = (path, nextOf, host, port, renderer) => Effect_exports.callback((resume) => {
   const open = storeWatcher(path);
+  const html = (res, page) => {
+    res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
+    res.end(page);
+  };
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://console");
     const store = open();
     try {
       if (url.pathname === "/") {
-        res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-        return res.end(CONSOLE);
+        const page = gazettePage();
+        if (page) return html(res, page);
+        return json(res, { error: "not_found", message: "The Gazette page is not built: dist/gazette.html is missing beside this build.", context: { path: GAZETTE.pathname }, next: [{ run: "npm run bundle", why: "build it, then start mw ui again" }, { run: `open http://${host}:${port}/console`, why: "the console needs no build" }] }, 503);
       }
+      if (url.pathname === "/console") return html(res, CONSOLE);
+      if (url.pathname === "/favicon.ico") return void (res.writeHead(204), res.end());
       if (!store) return json(res, { store: null, path, at: (/* @__PURE__ */ new Date()).toISOString() });
       if (url.pathname === "/api/mark") return json(res, { ...store.mark(), runner: store.runner()?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(",") });
       if (url.pathname === "/api/model") return json(res, modelOf(store, nextOf));
@@ -26631,14 +26650,206 @@ var serve = (path, nextOf, host, port, renderer) => Effect_exports.callback((res
       ui: url,
       store: path,
       next: [
-        { run: `open ${url}`, why: "watch the work live: what needs you, every item's pipeline, what each agent is doing, and where the time and tokens go" },
+        { run: `open ${url}`, why: "the Gazette sheet: what waits on you, each item's steps and what runs now, repainted as the record moves" },
+        { run: `open ${url}console`, why: "the console: every item's pipeline with time, tokens and questions, what each agent is doing, and where the time goes" },
         { run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: "from another computer, then open the same address there" },
+        { run: "mw ui --install", why: "keep it up as a background service of this user, started at boot and restarted on failure" },
         { run: "mw watch", why: "the same view in a terminal" }
       ]
     }) + "\n");
   });
   return Effect_exports.sync(() => void server.close());
 });
+var thisHost = () => ({
+  platform: process.platform,
+  home: homedir3(),
+  uid: process.getuid?.() ?? 0,
+  env: process.env,
+  node: process.execPath,
+  script: resolve6(process.argv[1] ?? ""),
+  run: (file, args2) => {
+    try {
+      return { code: 0, out: execFileSync2(file, args2, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), err: "" };
+    } catch (e) {
+      const err = e;
+      return { code: typeof err.status === "number" ? err.status : 1, out: String(err.stdout ?? ""), err: String(err.stderr || err.message || "") };
+    }
+  }
+});
+var SERVICE = "madewell-ui";
+var LABEL = "com.madewell.ui";
+var SUPPORTED = ["linux", "darwin"];
+var servicePaths = (h) => h.platform === "darwin" ? { unit: join11(h.home, "Library", "LaunchAgents", `${LABEL}.plist`), log: join11(h.home, "Library", "Logs", `${LABEL}.log`) } : { unit: join11(h.home, ".config", "systemd", "user", `${SERVICE}.service`) };
+var argsOf = (h, s) => [h.node, h.script, "ui", ...s.port !== void 0 ? ["--port", String(s.port)] : [], ...s.host !== void 0 ? ["--host", s.host] : []];
+var mwEnv = (h) => Object.entries(h.env).filter((kv) => kv[0].startsWith("MW_") && typeof kv[1] === "string").sort(([a], [b]) => a.localeCompare(b));
+var dq = (v) => `"${v.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+var xml2 = (v) => v.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+var unitText = (h, s) => `[Unit]
+Description=Made Well web interface (mw ui)
+After=network.target
+
+[Service]
+ExecStart=${argsOf(h, s).map(dq).join(" ")}
+Restart=on-failure
+RestartSec=2
+${mwEnv(h).map(([k, v]) => `Environment=${dq(`${k}=${v}`)}`).join("\n")}
+
+[Install]
+WantedBy=default.target
+`;
+var plistText = (h, s) => `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key><string>${LABEL}</string>
+	<key>ProgramArguments</key><array>${argsOf(h, s).map((a) => `<string>${xml2(a)}</string>`).join("")}</array>
+	<key>EnvironmentVariables</key><dict>${mwEnv(h).map(([k, v]) => `<key>${xml2(k)}</key><string>${xml2(v)}</string>`).join("")}</dict>
+	<key>KeepAlive</key><true/>
+	<key>RunAtLoad</key><true/>
+	<key>StandardOutPath</key><string>${xml2(servicePaths(h).log)}</string>
+	<key>StandardErrorPath</key><string>${xml2(servicePaths(h).log)}</string>
+</dict>
+</plist>
+`;
+var unsupported2 = (h) => new MadeWellError({
+  code: "ui_unsupported",
+  message: `Made Well cannot provision the web interface as a background service on ${h.platform}: it knows systemd user units (Linux) and LaunchAgents (macOS).`,
+  context: { platform: h.platform, supported: SUPPORTED },
+  next: [{ run: "mw ui", why: "serve it in this terminal instead; it runs until interrupted" }, { run: "mw ui --port 4747 &", why: "or keep it running in the background by your own means" }]
+});
+var must = (h, file, args2, next) => {
+  const r = h.run(file, args2);
+  if (r.code !== 0) throw new MadeWellError({
+    code: "ui_service_failed",
+    message: `${file} ${args2.join(" ")} exited ${r.code}${r.err.trim() ? `: ${r.err.trim()}` : ""}`,
+    context: { platform: h.platform, command: [file, ...args2].join(" "), exitCode: r.code, stderr: r.err.trim() },
+    next
+  });
+  return r;
+};
+var inspectNext = (h) => h.platform === "darwin" ? [{ run: `launchctl print gui/${h.uid}/${LABEL}`, why: "see the service as launchd sees it" }, { run: `tail -50 ${servicePaths(h).log}`, why: "read its output" }] : [{ run: `systemctl --user status ${SERVICE}`, why: "see the service as systemd sees it" }, { run: `journalctl --user -u ${SERVICE} -n 50`, why: "read its output" }];
+var execStartOf = (h, text2) => {
+  if (h.platform === "darwin") {
+    const array2 = /<key>ProgramArguments<\/key><array>(.*?)<\/array>/s.exec(text2)?.[1] ?? "";
+    return [...array2.matchAll(/<string>(.*?)<\/string>/gs)].map((m) => m[1].replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"));
+  }
+  const line = /^ExecStart=(.*)$/m.exec(text2)?.[1] ?? "";
+  return [...line.matchAll(/"((?:[^"\\]|\\.)*)"|(\S+)/g)].map((m) => m[1] !== void 0 ? m[1].replace(/\\(.)/g, "$1") : m[2]);
+};
+var addressOf = (args2) => {
+  const at = (flag) => {
+    const i = args2.indexOf(flag);
+    return i >= 0 ? args2[i + 1] : void 0;
+  };
+  const host = at("--host") ?? "127.0.0.1";
+  return `http://${host.includes(":") ? `[${host}]` : host}:${at("--port") ?? 4747}/`;
+};
+var answering = (url) => fetch(`${url}api/mark`, { signal: AbortSignal.timeout(1500) }).then((r) => r.ok, () => false);
+var serviceStatus = (h) => {
+  const base = { service: h.platform === "darwin" ? LABEL : `${SERVICE}.service`, platform: h.platform };
+  if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
+  const { unit } = servicePaths(h);
+  if (!existsSync3(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
+  const text2 = readFileSync8(unit, "utf8");
+  const args2 = execStartOf(h, text2);
+  const address = addressOf(args2);
+  let running = false;
+  let pid = null;
+  if (h.platform === "darwin") {
+    const r = h.run("launchctl", ["print", `gui/${h.uid}/${LABEL}`]);
+    running = r.code === 0 && /\bstate = running\b/.test(r.out);
+    pid = Number(/\bpid = (\d+)/.exec(r.out)?.[1] ?? NaN) || null;
+  } else {
+    const r = h.run("systemctl", ["--user", "show", SERVICE, "-p", "ActiveState", "-p", "MainPID"]);
+    running = /^ActiveState=active$/m.test(r.out);
+    pid = Number(/^MainPID=(\d+)$/m.exec(r.out)?.[1] ?? 0) || null;
+  }
+  return {
+    ...base,
+    installed: true,
+    running,
+    address,
+    unit,
+    execStart: args2.join(" "),
+    pid,
+    next: running ? [{ run: `open ${address}`, why: "the Gazette sheet" }, { run: "mw ui --uninstall", why: "stop it and remove every file --install wrote" }] : [...inspectNext(h), { run: "mw ui --install", why: "write the unit again and start it" }]
+  };
+};
+var installService = (h, s) => {
+  if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
+  const { unit } = servicePaths(h);
+  const text2 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
+  const before = existsSync3(unit) ? readFileSync8(unit, "utf8") : void 0;
+  const wrote = [];
+  if (before !== text2) {
+    mkdirSync7(dirname7(unit), { recursive: true });
+    writeFileSync7(unit, text2);
+    wrote.push(unit);
+  }
+  const next = inspectNext(h);
+  let linger;
+  if (h.platform === "darwin") {
+    const loaded = h.run("launchctl", ["print", `gui/${h.uid}/${LABEL}`]).code === 0;
+    if (loaded && before !== text2) must(h, "launchctl", ["bootout", `gui/${h.uid}/${LABEL}`], next);
+    if (!loaded || before !== text2) must(h, "launchctl", ["bootstrap", `gui/${h.uid}`, unit], next);
+  } else {
+    must(h, "systemctl", ["--user", "daemon-reload"], next);
+    const active = h.run("systemctl", ["--user", "is-active", SERVICE]).out.trim() === "active";
+    must(h, "systemctl", ["--user", "enable", ...active ? [] : ["--now"], SERVICE], next);
+    if (active && before !== text2) must(h, "systemctl", ["--user", "restart", SERVICE], next);
+    if (h.run("loginctl", ["show-user", String(h.uid), "-p", "Linger", "--value"]).out.trim() === "yes") linger = "already enabled";
+    else {
+      const r = h.run("loginctl", ["enable-linger"]);
+      linger = r.code === 0 ? "enabled" : `refused: ${r.err.trim() || `exit ${r.code}`}; the service runs while you are logged in`;
+    }
+  }
+  const status = serviceStatus(h);
+  return { ...status, changed: wrote.length > 0, wrote, ...linger ? { linger } : {}, next: [{ run: "mw ui --status", why: "confirm it is running and answering" }, ...status.next] };
+};
+var uninstallService = (h) => {
+  if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
+  const paths = servicePaths(h);
+  const removed = [];
+  const next = inspectNext(h);
+  if (existsSync3(paths.unit)) {
+    if (h.platform === "darwin") h.run("launchctl", ["bootout", `gui/${h.uid}/${LABEL}`]);
+    else h.run("systemctl", ["--user", "disable", "--now", SERVICE]);
+    rmSync6(paths.unit, { force: true });
+    removed.push(paths.unit);
+    if (h.platform !== "darwin") must(h, "systemctl", ["--user", "daemon-reload"], next);
+  }
+  if (paths.log && existsSync3(paths.log)) {
+    rmSync6(paths.log, { force: true });
+    removed.push(paths.log);
+  }
+  return { service: h.platform === "darwin" ? LABEL : `${SERVICE}.service`, platform: h.platform, installed: false, running: false, address: null, removed, next: [{ run: "mw ui --install", why: "provision it again" }, { run: "mw ui", why: "serve it in this terminal instead" }] };
+};
+var service3 = (h, action, s) => Effect_exports.gen(function* () {
+  const view2 = yield* Effect_exports.try({ try: () => action === "install" ? installService(h, s) : action === "uninstall" ? uninstallService(h) : serviceStatus(h), catch: (e) => e });
+  let ok = false;
+  for (let i = 0; view2.address && !ok && i < (action === "install" ? 10 : 1); i++) {
+    if (i) yield* Effect_exports.sleep("300 millis");
+    ok = yield* Effect_exports.promise(() => answering(view2.address));
+  }
+  return { ...view2, answering: ok };
+});
+var webLine = async (h, port = 4747) => {
+  const s = SUPPORTED.includes(h.platform) ? serviceStatus(h) : void 0;
+  const url = s?.address ?? `http://127.0.0.1:${port}/`;
+  if (await answering(url)) return { url, text: `${url}  (w opens it)` };
+  if (s?.installed) return { text: `web: installed but not answering \xB7 ${inspectNext(h)[0].run}` };
+  return { text: "web: mw ui --install" };
+};
+var openWeb = (h, url) => {
+  const opener = h.platform === "darwin" ? "open" : h.env.DISPLAY || h.env.WAYLAND_DISPLAY ? "xdg-open" : void 0;
+  if (opener && (h.platform === "darwin" || h.run("which", [opener]).code === 0)) {
+    spawn2(opener, [url], { detached: true, stdio: "ignore" }).unref();
+    return `Opened ${url}`;
+  }
+  const port = new URL(url).port || "80";
+  const here = hostname2().split(".")[0];
+  return `No browser on ${here}. On your computer: ssh -L ${port}:127.0.0.1:${port} ${here}   then open http://localhost:${port}/`;
+};
 var ESC = "\x1B[";
 var paint = (code, s) => `${ESC}${code}m${s}${ESC}0m`;
 var dim = (s) => paint("2", s);
@@ -26663,12 +26874,13 @@ var fit = (s, w) => {
 var clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
 var tokensText = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
 var STATUS = { held: "31", shipped: "32", candidate: "33", "waiting-quota": "33", "waiting-prerequisite": "33", dropped: "2", discovered: "32" };
-var frame = (m, cols, rows) => {
+var frame = (m, cols, rows, web = { text: "" }) => {
   const out = [];
   const s = m.summary;
   const now2 = Date.parse(m.at);
   const project = m.projects.length === 1 ? basename2(m.projects[0]) : `${m.projects.length} projects`;
-  out.push(`${bold("MADE WELL")}  ${project}  ${m.runner ? paint("32", `\u25CF runner ${m.runner.pid}`) : paint("33", "\u25CB no runner")}  ${dim(clock(m.at))}`);
+  out.push(`${bold("MADE WELL")}  ${project}  ${m.runner ? paint("32", `\u25CF runner ${m.runner.pid}`) : paint("33", "\u25CB no runner")}  ${dim(clock(m.at))}  ${paint("36", web.text)}`);
+  if (web.slip) out.push(paint("36", web.slip));
   out.push(`${paint("32", `${s.shipped} shipped`)} \xB7 ${s.moving} moving \xB7 ${s.queued} queued \xB7 ${s.held ? paint("31", `${s.held} need you`) : "0 need you"} \xB7 ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time \xB7 ${tokensText(s.tokens)} tokens \xB7 ${s.calls} calls \xB7 NQ ${s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0}%`)}`);
   if (m.needs.length) {
     out.push("");
@@ -26698,18 +26910,22 @@ var frame = (m, cols, rows) => {
   out.push(bold("LOG"));
   const room = Math.max(3, rows - out.length - 2);
   for (const e of m.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : "     "}${e.say}`);
-  out.push(dim("Ctrl-C quits \xB7 mw ui opens the full console \xB7 mw show <id> for one item's record"));
+  out.push(dim("Ctrl-C quits \xB7 w opens the web page \xB7 mw show <id> for one item's record"));
   return out.map((l) => fit(l, cols)).join("\n");
 };
 var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
   const open = storeWatcher(path);
+  const h = opts.host ?? thisHost();
   let seq = opts.since;
   let calls = opts.since > 0 ? open()?.mark().calls ?? 0 : 0;
   let lastFrame = "";
+  let web = { text: "" };
+  let slip;
   const tick = () => {
     const store = open();
     if (opts.tty) {
-      const text2 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.`;
+      const line = { text: web.text, ...slip && slip.until > Date.now() ? { slip: slip.text } : {} };
+      const text2 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40, line) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.  ${paint("36", web.text)}`;
       if (text2 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text2}
 `);
       lastFrame = text2;
@@ -26727,17 +26943,55 @@ var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
     }
   };
   const done3 = () => resume(Effect_exports.succeed({ watched: path, next: [{ run: `mw watch --since ${seq}`, why: "carry on from here" }] }));
-  tick();
+  const lookup2 = () => void webLine(h).then((w) => {
+    web = w;
+    if (opts.tty) tick();
+  });
+  const onKey = (b) => {
+    const k = b.toString();
+    if (k === "" || k === "q") return process.kill(process.pid, "SIGINT");
+    if (k === "w") {
+      slip = { text: web.url ? openWeb(h, web.url) : "The web page is not up: run mw ui --install, or mw ui in another terminal.", until: Date.now() + 15e3 };
+      tick();
+    }
+  };
   if (opts.once) {
-    if (opts.tty) process.stdout.write("\n");
+    if (opts.tty) {
+      void webLine(h).then((w) => {
+        web = w;
+        tick();
+        process.stdout.write("\n");
+        done3();
+      });
+      return;
+    }
+    tick();
     done3();
     return;
   }
-  if (opts.tty) process.stdout.write(`${ESC}?25l`);
+  tick();
+  if (opts.tty) {
+    process.stdout.write(`${ESC}?25l`);
+    lookup2();
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      process.stdin.on("data", onKey);
+    }
+  }
   const timer = setInterval(tick, 1e3);
+  const webTimer = opts.tty ? setInterval(lookup2, 5e3) : void 0;
   return Effect_exports.sync(() => {
     clearInterval(timer);
-    if (opts.tty) process.stdout.write(`${ESC}?25h`);
+    if (webTimer) clearInterval(webTimer);
+    if (opts.tty) {
+      process.stdout.write(`${ESC}?25h`);
+      if (process.stdin.isTTY) {
+        process.stdin.off("data", onKey);
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+      }
+    }
   });
 });
 
@@ -26784,6 +27038,22 @@ var HoldView = Schema_exports.Struct({
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Hold" });
 var Board = Schema_exports.Struct({ summary: Schema_exports.String, items: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }).annotate({ identifier: "Board" });
+var ServiceView = Schema_exports.Struct({
+  service: Schema_exports.String.annotate({ description: "the unit (Linux) or label (macOS)" }),
+  platform: Schema_exports.String,
+  installed: Schema_exports.Boolean,
+  running: Schema_exports.Boolean.annotate({ description: "as the service manager reports it" }),
+  answering: Schema_exports.Boolean.annotate({ description: "its address answered /api/mark just now" }),
+  address: Schema_exports.NullOr(Schema_exports.String),
+  unit: Schema_exports.optionalKey(Schema_exports.String.annotate({ description: "the unit or plist file" })),
+  execStart: Schema_exports.optionalKey(Schema_exports.String.annotate({ description: "the command line the service runs: the build that installed it" })),
+  pid: Schema_exports.optionalKey(Schema_exports.NullOr(Schema_exports.Int)),
+  changed: Schema_exports.optionalKey(Schema_exports.Boolean),
+  wrote: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String)),
+  removed: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String)),
+  linger: Schema_exports.optionalKey(Schema_exports.String.annotate({ description: "Linux: whether the user's services may run with no login, and what loginctl said" })),
+  next: Schema_exports.Array(Next)
+}).annotate({ identifier: "Service" });
 var Pruned = Schema_exports.Struct({
   before: Schema_exports.String.annotate({ description: "the cutoff applied, ISO; a later time than now counts as now" }),
   dryRun: Schema_exports.Boolean,
@@ -26872,7 +27142,7 @@ var found = (store, id2) => {
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve6(workspace ?? ".");
+  const path = resolve7(workspace ?? ".");
   const projects = yield* readProjects(registry);
   const project = projectFor(projects, path);
   if (project) return { path, project };
@@ -26891,9 +27161,9 @@ var wake = Effect_exports.fn("mw.wake")(function* (id2) {
   const movable = store.list().some((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
   if (!movable || (yield* runner(store))) return watch2;
   const home = dirname8(store.path);
-  mkdirSync7(home, { recursive: true });
+  mkdirSync8(home, { recursive: true });
   const log2 = openSync3(join12(home, "runner.log"), "a");
-  spawn2(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
+  spawn3(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
   return watch2;
 });
 var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
@@ -26902,7 +27172,7 @@ var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve6(input["source-file"]);
+  const path = resolve7(input["source-file"]);
   return Effect_exports.try({
     try: () => readFileSync9(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
@@ -27020,7 +27290,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = resolve6(input.workspace ?? ".");
+      const path = resolve7(input.workspace ?? ".");
       if (!existsSync4(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
@@ -27028,7 +27298,7 @@ var COMMANDS = [
       const conventions = input.conventions === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Schema_exports.NonEmptyString)))(input.conventions).pipe(
         Effect_exports.mapError((e) => usageError("init", `--conventions must be a JSON array of non-empty strings: ${e.message}`))
       );
-      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve6(input.cartridges);
+      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve7(input.cartridges);
       if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
       const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...conventions ? { conventions } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
       const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
@@ -27053,7 +27323,7 @@ var COMMANDS = [
     }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = input.check ? resolve6(input.check) : projectFor(yield* readProjects(registry), resolve6(input.workspace ?? "."))?.cartridges;
+      const path = input.check ? resolve7(input.check) : projectFor(yield* readProjects(registry), resolve7(input.workspace ?? "."))?.cartridges;
       const pack = path ? yield* loadPack(path) : SOFTWARE;
       const lane = laneOf(path ? pack : void 0);
       const line = (s) => `${s.cartridge} / ${s.job} (${s.job === "verify" ? "made well" : s.profile})`;
@@ -27237,17 +27507,25 @@ var COMMANDS = [
   }),
   command({
     name: "ui",
-    summary: "The live console: a web page on this machine that answers, at a glance, what is done, what needs the operator (with the exact command), and who owes the next move on every item. Each item shows its pipeline with time, tokens and NQ questions per step; a timeline shows every agent call; a running call shows what its agent is doing now; an item opens to its idea, plan, checks and results, diff, every NQ question and answer, and every call with its packet, answer and stream. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.",
+    summary: "The web interface: a read-only page on this machine. At / is the Gazette sheet: what waits on the operator (each with the exact command to copy), every item's steps as rings, what runs now with its live output, repainted as the record moves. At /console is the full console: each item's pipeline with time, tokens and NQ questions per step, a timeline of every agent call, and each item's idea, plan, checks, diff, NQ exchanges and calls. Both read the JSON API under /api. Prints its address as one JSON line, then serves until interrupted; reach it from another computer with an SSH tunnel or a forwarded port. --install provisions it as an always-on background service of this user that starts at boot and restarts on failure (a systemd user unit on Linux, with lingering where allowed; a LaunchAgent on macOS), running this same build with the MW_* variables set now; running it again changes nothing. --status says whether it is installed, running and answering, and its address. --uninstall stops it and removes every file --install wrote.",
     input: Schema_exports.Struct({
       port: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: "defaults to 4747; 0 picks a free one" })),
-      host: optional3("the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network")
+      host: optional3("the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network"),
+      install: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "provision the always-on background service for this user and start it" })),
+      uninstall: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "stop the service and remove every file --install wrote" })),
+      status: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "whether the service is installed, running and answering, and its address" }))
     }),
-    output: Schema_exports.Struct({ ui: Schema_exports.String, store: Schema_exports.String, next: Schema_exports.Array(Next) }),
-    run: (input) => serve(storePath, nextFor, input.host ?? "127.0.0.1", input.port ?? 4747)
+    output: Schema_exports.Union([Schema_exports.Struct({ ui: Schema_exports.String, store: Schema_exports.String, next: Schema_exports.Array(Next) }), ServiceView]),
+    run: (input) => {
+      const actions = ["install", "uninstall", "status"].filter((a) => input[a]);
+      if (actions.length > 1) return usageError("ui", `Give one of --install, --uninstall or --status, not ${actions.map((a) => `--${a}`).join(" and ")}.`);
+      if (actions[0]) return service3(thisHost(), actions[0], { ...input.port !== void 0 ? { port: input.port } : {}, ...input.host !== void 0 ? { host: input.host } : {} });
+      return serve(storePath, nextFor, input.host ?? "127.0.0.1", input.port ?? 4747);
+    }
   }),
   command({
     name: "watch",
-    summary: "Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log). Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.",
+    summary: "Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log); its first line shows the web interface's address when it is up, or `mw ui --install` when it is not, and `w` opens it in a browser here or prints the SSH port-forward line for a computer that has one. Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.",
     input: Schema_exports.Struct({
       since: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThanOrEqualTo(0)))).annotate({ description: "stream only events after this seq" })),
       once: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "print what there is now, then stop" }))
@@ -27262,8 +27540,8 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve6(input.out ?? resolve6(dirname8(storePath), "replay.html"));
-      writeFileSync7(out, staticPage(yield* Store, nextFor));
+      const out = resolve7(input.out ?? resolve7(dirname8(storePath), "replay.html"));
+      writeFileSync8(out, staticPage(yield* Store, nextFor));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
     })
   }),
@@ -27275,7 +27553,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve6(input.out ?? resolve6(dirname8(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve7(input.out ?? resolve7(dirname8(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -27290,7 +27568,7 @@ var COMMANDS = [
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync4(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
       const lines4 = files.flatMap((f) => readFileSync9(join12(dir, f), "utf8").split("\n").filter(Boolean));
-      return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
+      return { dir: resolve7(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve7(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
   command({
@@ -27347,8 +27625,8 @@ var COMMANDS = [
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
-        for (const f of files) rmSync6(f, { recursive: true, force: true });
-        if (existsSync4(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync6(join12(home, "exports"), { recursive: true });
+        for (const f of files) rmSync7(f, { recursive: true, force: true });
+        if (existsSync4(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
