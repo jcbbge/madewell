@@ -1,0 +1,55 @@
+{
+  "about": "Made Well, delivery, as of the record captured on hive 2026-10-24 21:57 UTC. Written from GET /api/model: needs[], items[].steps[].state, summary.",
+  "sheet": {
+    "ground": "paper",
+    "around": "slate",
+    "frame": "double",
+    "masthead": { "name": "Made Well", "number": 1, "date": "24 October 2026", "subtitle": "Delivery: what waits on you" },
+    "sealed": false
+  },
+  "principal": {
+    "charge": "rings",
+    "steps": ["Idea", "Questioned", "Plan", "Build", "Checks", "Verify", "Ship"],
+    "rings": [
+      { "item": 3, "name": "Trace fixture", "fills": ["sage", "sage", "sage", "vermilion", null, null, null] },
+      { "item": 4, "name": "Design direction", "fills": ["vermilion", null, null, null, null, null, null] },
+      { "item": 2, "name": "Stop a container", "fills": ["ochre", "ochre", "ochre", null, null, null, null] },
+      { "item": 1, "name": "Old instructions", "fills": ["ochre", null, null, null, null, null, null] }
+    ],
+    "centre": { "charge": "disc", "ink": "vermilion", "value": "2", "words": "wait on you" }
+  },
+  "notices": [
+    {
+      "item": 3,
+      "name": "Trace fixture",
+      "title": "Three-lens browser verification trace fixture",
+      "says": "It stopped before building, at a checkpoint, for you to look.",
+      "quote": "Browser verification fixture seeded; inspect the Trace tab.",
+      "since": "Waiting since 24 Oct, 21:25",
+      "actions": [
+        { "words": "Let it go on", "run": "mw go 3", "weight": "primary" },
+        { "words": "Say what should change", "run": "mw answer 3 \"<what should change>\"", "weight": "plain" },
+        { "words": "Drop it", "run": "mw drop 3", "weight": "quiet" }
+      ]
+    },
+    {
+      "item": 4,
+      "name": "Design direction",
+      "title": "Create one openable design direction for the two-lane home and item drill-in",
+      "says": "It could not start: the folder it works in has no branch checked out.",
+      "quote": "/home/jrg/madewell-three-lens has no branch checked out.",
+      "since": "Waiting since 24 Oct, 21:57",
+      "actions": [
+        { "words": "Check out main", "run": "git -C /home/jrg/madewell-three-lens switch main", "weight": "plain" },
+        { "words": "Then run it again", "run": "mw retry 4", "weight": "plain" },
+        { "words": "Read what happened", "run": "mw show 4", "weight": "quiet" }
+      ]
+    }
+  ],
+  "legend": [
+    { "ink": "sage", "words": "step done" },
+    { "ink": "vermilion", "words": "waits on you" },
+    { "ink": "ochre", "words": "done, then set aside" }
+  ],
+  "colophon": "From the Made Well record on hive; last entry 24 Oct 2026, 21:57 UTC. Four items, 19 agent calls, 755,579 tokens, six minutes of agent time. Not sealed: nothing has shipped."
+}
