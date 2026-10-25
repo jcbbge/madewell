@@ -24615,12 +24615,15 @@ function applyRoute(store, id2, job, value3, fields) {
       return hold(store, current, r.code, r.message, { job, failure: current.failure ?? null, ruling: value3 });
   }
 }
-var failedStep = (store, id2) => {
-  const from = store.events(id2).findLast((e) => e.kind === "failure")?.data.from;
-  return Array.isArray(from) ? from : from ?? "verify";
+var failedStep = (store, item) => {
+  const lane = L(item);
+  const blocked = lane.makers.filter((m) => blockedOf(lane, m, deliverableOf(item, m) ?? {}));
+  const from = store.events(item.id).findLast((e) => e.kind === "failure")?.data.from;
+  if (Array.isArray(from)) return blocked.length ? blocked : from;
+  return blocked[0] ?? from ?? "verify";
 };
 var afterEnvironment = (store, item, by, answer2) => {
-  const failed = failedStep(store, item.id);
+  const failed = failedStep(store, item);
   const base = { ...item, from: by, rework: { cause: "environment", answer: answer2 }, failure: void 0, exchange: void 0, launches: 0 };
   if (failed === "verify") return { ...base, job: "verify", verification: void 0 };
   if (typeof failed === "string") return { ...base, job: failed };
@@ -25082,7 +25085,7 @@ var retry3 = (id2) => Effect_exports.gen(function* () {
   if (item.status === "paused" || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   }
-  const free = item.hold.code === "environment" && item.job === "arbitrate" ? afterEnvironment(store, released(item), { kind: "job", job: "arbitrate" }, item.rework?.answer ?? item.hold.message) : released(item);
+  const free = item.hold.code === "environment" ? afterEnvironment(store, released(item), { kind: "job", job: "arbitrate" }, item.rework?.answer ?? item.hold.message) : released(item);
   store.save(free, "retried", { job: free.job });
 });
 var drop = (id2) => Effect_exports.gen(function* () {

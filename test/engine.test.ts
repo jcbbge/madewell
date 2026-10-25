@@ -582,8 +582,11 @@ test('a second environment ruling in a row holds the item at the failed step; a 
 		assert.equal(item.hold!.context.step, 'test-plan')
 		assert.equal(t.of('execute', 'arbitrate').length, 3)
 		assert.ok(nextFor(item).some((n) => n.run === `mw retry ${t.item.id}`))
-		// A record an older runner left at the arbiter with the same hold is redriven at the failed step, not at the arbiter.
+		// A record an older runner left at the arbiter, or at a verify of the checks their author never got to correct, is redriven at the blocked step.
 		t.store.save({ ...item, job: 'arbitrate' }, 'held', { code: 'environment', message: 'older runner' })
+		await t.run(retry(t.item.id))
+		assert.equal(t.store.get(t.item.id)!.job, 'test-plan')
+		t.store.save({ ...t.store.get(t.item.id)!, status: 'held', job: 'verify', hold: item.hold }, 'held', { code: 'environment', message: 'older runner' })
 		await t.run(retry(t.item.id))
 		item = t.store.get(t.item.id)!
 		assert.deepEqual([item.status, item.job, item.rework?.cause], ['queued', 'test-plan', 'environment'])

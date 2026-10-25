@@ -785,10 +785,17 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 	}
 }
 
-/** The step whose failure the arbiter is ruling on: Made Well's verify, or the maker(s) that reported themselves blocked. */
-const failedStep = (store: StoreService, id: number): Job | ReadonlyArray<Maker> => {
-	const from = store.events(id).findLast((e) => e.kind === 'failure')?.data.from
-	return Array.isArray(from) ? (from as Maker[]) : ((from as Job | undefined) ?? 'verify')
+/**
+ * The step an environment ruling runs again: a maker whose standing deliverable is a blocked report never delivered, so its
+ * job is the one to re-provision whatever ran after it (makers blocked in the split go again as a split); otherwise the step
+ * whose failure the arbiter ruled on, Made Well's verify by default.
+ */
+const failedStep = (store: StoreService, item: Item): Job | ReadonlyArray<Maker> => {
+	const lane = L(item)
+	const blocked = lane.makers.filter((m) => blockedOf(lane, m, (deliverableOf(item, m) as Record<string, unknown>) ?? {}))
+	const from = store.events(item.id).findLast((e) => e.kind === 'failure')?.data.from
+	if (Array.isArray(from)) return blocked.length ? blocked : (from as Maker[])
+	return blocked[0] ?? (from as Job | undefined) ?? 'verify'
 }
 
 /**
@@ -796,7 +803,7 @@ const failedStep = (store: StoreService, id: number): Job | ReadonlyArray<Maker>
  * the checks again; a blocked maker gets its checkout again (the test architect's, with the kept change and its check files).
  */
 const afterEnvironment = (store: StoreService, item: Item, by: Origin, answer: string): Item => {
-	const failed = failedStep(store, item.id)
+	const failed = failedStep(store, item)
 	const base = { ...item, from: by, rework: { cause: 'environment' as const, answer }, failure: undefined, exchange: undefined, launches: 0 }
 	if (failed === 'verify') return { ...base, job: 'verify', verification: undefined }
 	if (typeof failed === 'string') return { ...base, job: failed }
@@ -1343,8 +1350,9 @@ export const retry = (id: number) =>
 		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
-		// An environment hold runs the failed step again in a fresh worktree, never the arbiter: a record an older runner left at the arbiter is redriven there.
-		const free = item.hold.code === 'environment' && item.job === 'arbitrate' ? afterEnvironment(store, released(item), { kind: 'job', job: 'arbitrate' }, item.rework?.answer ?? item.hold.message) : released(item)
+		// An environment hold runs the failed step again in a fresh worktree, never the arbiter: the step is read from the record
+		// as it stands now, so one an older runner left at the arbiter, or at a verify of checks their author never got to correct, is redriven right.
+		const free = item.hold.code === 'environment' ? afterEnvironment(store, released(item), { kind: 'job', job: 'arbitrate' }, item.rework?.answer ?? item.hold.message) : released(item)
 		store.save(free, 'retried', { job: free.job })
 	})
 
