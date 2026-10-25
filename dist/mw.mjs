@@ -7,7 +7,7 @@ var __export = (target, all4) => {
 
 // src/cli.ts
 import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync4, mkdirSync as mkdirSync8, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve7 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -23920,7 +23920,7 @@ $ ${check2.run}
 
 // src/engine.ts
 import { createHash as createHash2 } from "node:crypto";
-import { mkdirSync as mkdirSync5, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
 import { tmpdir as tmpdir3 } from "node:os";
 import { dirname as dirname6, join as join9 } from "node:path";
 
@@ -24346,7 +24346,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config, decis
     required: deliverableShape(L(item), job, auto(item))?.required ?? [],
     ...job === "implement" && plan ? { scope: plan.scope } : {},
     ...jobTree(item, job),
-    ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
+    ...maker ? { onFail: (dir, head3) => keepPartial(dir, item, job, head3) } : {},
     packet: (dir) => packet(item, job, dir, { ...executeParts(item, job, t, x), ...decisionResolution ? { decisionResolution } : {} })
   }, (dir, call) => accept(id2, job, dir, call));
 });
@@ -24354,10 +24354,17 @@ var jobTree = (item, job) => ({
   ...job === "arbitrate" && item.verification ? { at: item.verification.on } : {},
   prepare: (dir) => Effect_exports.gen(function* () {
     const home = itemHome((yield* Store).path, item.id);
-    if (isMaker(job)) return yield* applyPatch(dir, patchPath(home, `${job}.partial`));
     if (job === "arbitrate") return yield* candidate(item, dir);
+    if (correcting(item, job)) {
+      yield* applyPatch(dir, patchPath(home, "change"));
+      yield* commit(dir, item.title);
+      const partial = patchPath(home, "test-plan.partial");
+      return yield* applyPatch(dir, existsSync3(partial) ? partial : patchPath(home, "checks"));
+    }
+    if (isMaker(job)) return yield* applyPatch(dir, patchPath(home, `${job}.partial`));
   })
 });
+var correcting = (item, job) => job === "test-plan" && !item.split && item.rework !== void 0 && item.change !== void 0;
 var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_exports.gen(function* () {
   const store = yield* Store;
   const worker = yield* Worker;
@@ -24417,7 +24424,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   store.note(id2, "call-finished", { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...call.error ? { error: call.error.slice(0, 2e3) } : {} });
   endLive(live);
   if (!res.ok) {
-    if (spec.onFail) yield* spec.onFail(wt.path);
+    if (spec.onFail) yield* spec.onFail(wt.path, head3);
     if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
     else yield* launchFailed(id2, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
     return void 0;
@@ -24490,7 +24497,8 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item), item.conventions);
   store.note(id2, "trace-decode", { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...!v.ok ? { reason: v.reason } : {} });
   if (v.ok && v.dropped?.length) store.note(id2, "discovery-dropped", { call: call.callId, candidates: v.dropped });
-  const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
+  const from = answered.before?.head ?? item.base.commit;
+  const keep = isMaker(job) ? keepPartial(dir, item, job, from) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
   const value3 = v.value;
@@ -24499,7 +24507,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   }
   let artifacts = {};
   if (isMaker(job) && !blockedOf(L(item), job, value3)) {
-    const base = item.base.commit;
+    const base = from;
     if (job === "implement") {
       const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
       if (Result_exports.isFailure(scoped3)) {
@@ -24595,19 +24603,32 @@ function applyRoute(store, id2, job, value3, fields) {
       openPrerequisite(store, { ...current, from: by }, r.answer, by);
       return;
     }
-    case "environment":
+    case "environment": {
+      const again = afterEnvironment(store, current, by, r.answer);
       if (current.rework?.cause === "environment") {
-        return hold(store, current, "environment", `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, failure: current.failure ?? null, ruling: value3 });
+        return hold(store, again, "environment", `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, step: again.job, failure: current.failure ?? null, ruling: value3 });
       }
-      store.save({ ...current, job: "verify", from: by, rework: { cause: "environment", answer: r.answer }, failure: void 0, verification: void 0, exchange: void 0, launches: 0 }, "ruling", { cause: "environment", to: "verify", by: "arbiter" });
+      store.save(again, "ruling", { cause: "environment", to: again.job, by: "arbiter" });
       return;
+    }
     case "hold":
       return hold(store, current, r.code, r.message, { job, failure: current.failure ?? null, ruling: value3 });
   }
 }
+var failedStep = (store, id2) => {
+  const from = store.events(id2).findLast((e) => e.kind === "failure")?.data.from;
+  return Array.isArray(from) ? from : from ?? "verify";
+};
+var afterEnvironment = (store, item, by, answer2) => {
+  const failed = failedStep(store, item.id);
+  const base = { ...item, from: by, rework: { cause: "environment", answer: answer2 }, failure: void 0, exchange: void 0, launches: 0 };
+  if (failed === "verify") return { ...base, job: "verify", verification: void 0 };
+  if (typeof failed === "string") return { ...base, job: failed };
+  return { ...base, job: failed[0], split: Object.fromEntries(failed.map((m) => [m, { from: by, launches: 0 }])) };
+};
 var covers = (scope3, file) => scope3.some((d) => d.endsWith("/") || d.endsWith("/**") ? file.startsWith(d.replace(/\*\*$/, "")) : file === d);
-var keepPartial = (dir, item, job) => Effect_exports.gen(function* () {
-  const { patch } = yield* takeChange(dir, item.base.commit);
+var keepPartial = (dir, item, job, from) => Effect_exports.gen(function* () {
+  const { patch } = yield* takeChange(dir, from);
   const path = patchPath(itemHome((yield* Store).path, item.id), `${job}.partial`);
   if (patch) writePatch(path, patch);
   else rmSync5(path, { force: true });
@@ -25061,7 +25082,8 @@ var retry3 = (id2) => Effect_exports.gen(function* () {
   if (item.status === "paused" || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   }
-  store.save(released(item), "retried", { job: item.job });
+  const free = item.hold.code === "environment" && item.job === "arbitrate" ? afterEnvironment(store, released(item), { kind: "job", job: "arbitrate" }, item.rework?.answer ?? item.hold.message) : released(item);
+  store.save(free, "retried", { job: free.job });
 });
 var drop = (id2) => Effect_exports.gen(function* () {
   const store = yield* Store;
@@ -25161,14 +25183,15 @@ var TASKS = {
 };
 var arbiterTask = (lane, autonomous) => [
   `Your checkout holds the implementer's change as its last commit${lane.makers.includes("test-plan") ? ", with the test architect's check files applied on top, uncommitted" : ""}. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause.`,
-  ...lane.makers.includes("test-plan") ? ["test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change."] : [],
+  ...lane.makers.includes("test-plan") ? ["test: the test architect corrects the checks from your answer, in a checkout holding this same change and its check files, and Made Well runs every check again on the same change."] : [],
   `implementation: the planner plans again from your answer, ${lane.makers.length > 1 ? "both makers redo their work" : "the implementer redoes the change"}, and verification follows.`,
   "pre-existing: a fix item for the defect ships first, then this item's checks run again.",
-  "environment: the work is not at fault; the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree and runs the checks again.",
+  "environment: the work is not at fault; the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree for the step that failed and runs it again: the checks, or the blocked maker's job.",
   autonomous ? "Nobody is there to decide for you: name the cause the evidence best supports." : "undetermined: the operator decides."
 ].join(" ");
+var CORRECTING_TASK = "Correct your checks from the ruling. Your checkout is the candidate Made Well ran them on: the implementer's change is its last commit (HEAD) on top of the branch the item started from, and your previous check files sit uncommitted in the working tree beside it, at the paths you wrote them. Correct them in place, or write new ones, at paths outside the plan's scope; Made Well takes the check files from your checkout and runs each check's command itself, from the repo root, against that same change. The implementation is not yours to change: Made Well refuses a change inside the plan's scope. Each check proves one done-when item by its id, and every done-when item needs at least one. A check proves its done-when item from this item's change alone: never run or count the whole test suite, and never pin anything outside the plan's scope; other items ship onto the same branch while this one is in flight.";
 var taskOf = (item, job) => {
-  const own = job === "arbitrate" ? arbiterTask(L(item), auto(item)) : TASKS[job];
+  const own = job === "arbitrate" ? arbiterTask(L(item), auto(item)) : correcting(item, job) ? CORRECTING_TASK : TASKS[job];
   const extra = stepOf(L(item), job).task;
   return own && extra ? `${own} ${extra}` : own ?? extra;
 };
@@ -25470,7 +25493,7 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
 
 // src/ui.ts
 import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
-import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, mkdirSync as mkdirSync7, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
+import { closeSync as closeSync2, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
 import { homedir as homedir3, hostname as hostname2 } from "node:os";
 import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve6 } from "node:path";
@@ -26519,7 +26542,7 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read = (name) => existsSync3(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
+  const read = (name) => existsSync4(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
   let change = read("change");
   if (!change && shipped) {
@@ -26553,7 +26576,7 @@ var itemDetail = (store, nextOf, id2) => {
 };
 var spansOf = (path, item) => {
   const file = spansPath(path);
-  if (!existsSync3(file)) return [];
+  if (!existsSync4(file)) return [];
   const all4 = readFileSync8(file, "utf8").split("\n").flatMap((l) => {
     try {
       return l ? [JSON.parse(l)] : [];
@@ -26571,7 +26594,7 @@ var spansOf = (path, item) => {
 var storeWatcher = (path) => {
   let store;
   return () => {
-    if (!store && existsSync3(path)) store = openStore(path);
+    if (!store && existsSync4(path)) store = openStore(path);
     return store;
   };
 };
@@ -26749,7 +26772,7 @@ var serviceStatus = (h) => {
   const base = { service: h.platform === "darwin" ? LABEL : `${SERVICE}.service`, platform: h.platform };
   if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
   const { unit } = servicePaths(h);
-  if (!existsSync3(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
+  if (!existsSync4(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
   const text2 = readFileSync8(unit, "utf8");
   const args2 = execStartOf(h, text2);
   const address = addressOf(args2);
@@ -26779,7 +26802,7 @@ var installService = (h, s) => {
   if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
   const { unit } = servicePaths(h);
   const text2 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
-  const before = existsSync3(unit) ? readFileSync8(unit, "utf8") : void 0;
+  const before = existsSync4(unit) ? readFileSync8(unit, "utf8") : void 0;
   const wrote = [];
   if (before !== text2) {
     mkdirSync7(dirname7(unit), { recursive: true });
@@ -26811,14 +26834,14 @@ var uninstallService = (h) => {
   const paths = servicePaths(h);
   const removed = [];
   const next = inspectNext(h);
-  if (existsSync3(paths.unit)) {
+  if (existsSync4(paths.unit)) {
     if (h.platform === "darwin") h.run("launchctl", ["bootout", `gui/${h.uid}/${LABEL}`]);
     else h.run("systemctl", ["--user", "disable", "--now", SERVICE]);
     rmSync6(paths.unit, { force: true });
     removed.push(paths.unit);
     if (h.platform !== "darwin") must(h, "systemctl", ["--user", "daemon-reload"], next);
   }
-  if (paths.log && existsSync3(paths.log)) {
+  if (paths.log && existsSync4(paths.log)) {
     rmSync6(paths.log, { force: true });
     removed.push(paths.log);
   }
@@ -27209,7 +27232,7 @@ var retention = (store, before) => {
   return { ids, kept };
 };
 var sizeOf = (path) => {
-  if (!existsSync4(path)) return 0;
+  if (!existsSync5(path)) return 0;
   const s = statSync3(path);
   return s.isDirectory() ? readdirSync5(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
 };
@@ -27291,7 +27314,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const path = resolve7(input.workspace ?? ".");
-      if (!existsSync4(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      if (!existsSync5(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
@@ -27566,7 +27589,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync4(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const files = existsSync5(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
       const lines4 = files.flatMap((f) => readFileSync9(join12(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve7(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve7(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
@@ -27621,12 +27644,12 @@ var COMMANDS = [
       }
       const { ids, kept } = retention(store, before);
       const home = dirname8(storePath);
-      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync4);
+      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync5);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
         for (const f of files) rmSync7(f, { recursive: true, force: true });
-        if (existsSync4(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
+        if (existsSync5(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
@@ -27682,7 +27705,7 @@ var manual = Effect_exports.gen(function* () {
     $defs,
     state: {
       home: dirname8(registry),
-      store: existsSync4(storePath) ? storePath : null,
+      store: existsSync5(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
       next: yield* nextAction()
@@ -27723,7 +27746,7 @@ Usage: ${usageOf(c)}`))
   return { store: true, effect: c.run(input, prepared) };
 }).pipe(
   Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync4(storePath) ? storePath : ":memory:"), workerLayer))
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync5(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
 function reloadWatch() {

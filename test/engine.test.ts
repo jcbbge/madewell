@@ -498,6 +498,106 @@ test('a failing check goes to the arbiter with its logs; a bad test is rewritten
 	}
 })
 
+test('after a test ruling the architect corrects its checks in a checkout holding the kept change and its previous check files; the implementation stays', async () => {
+	const seen: Record<string, string> = {}
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return checks(req, 'echo "expected a;b"; exit 1')
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 2) {
+			seen.change = readFileSync(join(req.cwd, 'src/export.sh'), 'utf8')
+			seen.head = git(req.cwd, 'log', '-1', '--format=%s')
+			seen.checks = readFileSync(join(req.cwd, 'checks/export.check.sh'), 'utf8')
+			seen.status = git(req.cwd, 'status', '--porcelain')
+			// Corrected in place: the same file, the right expectation.
+			return checks(req, CHECK)
+		}
+		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling('test')
+		return undefined
+	})
+	try {
+		await t.run(drive(t.item.id, config))
+		assert.equal(t.store.get(t.item.id)!.status, 'shipped')
+		assert.equal(t.of('execute', 'implement').length, 1, 'the valid implementation is not rebuilt')
+		assert.equal(t.of('execute', 'test-plan').length, 2)
+		assert.deepEqual(seen, { change: 'echo a,b\n', head: 'Add CSV export', checks: 'echo "expected a;b"; exit 1\n', status: 'A  checks/export.check.sh' },
+			'the architect\'s correction checkout holds the kept change as its last commit and its previous check files uncommitted beside it')
+		const rework = t.packet('execute', 'test-plan', 1)
+		assert.match(rework.you.task, /implementer's change is its last commit[\s\S]*previous check files sit uncommitted[\s\S]*implementation is not yours to change/)
+		assert.equal(rework.snapshot.contents['src/export.sh'], 'echo a,b\n', 'its snapshot shows the change too')
+		assert.equal(t.packet('intake', 'test-plan', 1).snapshot.contents['src/export.sh'], 'echo a,b\n', 'and so does its intake\'s')
+		const first = t.packet('execute', 'test-plan', 0)
+		assert.match(first.you.task, /Your checkout has no implementation/, 'the blind first round is unchanged')
+		assert.equal(first.snapshot.contents['src/export.sh'], null, 'the first round never sees the implementation')
+		assert.equal(git(t.repo, 'show', 'main:src/export.sh'), 'echo a,b')
+		assert.throws(() => git(t.repo, 'show', 'main:checks/export.check.sh'), 'the checks never ship')
+		assertNoTrace(t)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('a correction the architect reports blocked goes to the arbiter; an environment ruling gives the architect its checkout again, not a run of the old checks', async () => {
+	const seen: string[] = []
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return checks(req, 'echo "expected a;b"; exit 1')
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 2) return { blocked: 'The supplied checkout contains neither the change nor my check files.' }
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 3) {
+			seen.push(...['src/export.sh', 'checks/export.check.sh'].filter((f) => existsSync(join(req.cwd, f))))
+			return checks(req, CHECK)
+		}
+		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling(n === 1 ? 'test' : 'environment')
+		return undefined
+	})
+	try {
+		await t.run(drive(t.item.id, config))
+		assert.equal(t.store.get(t.item.id)!.status, 'shipped')
+		assert.equal(t.of('execute', 'test-plan').length, 3)
+		assert.equal(t.of('execute', 'arbitrate').length, 2)
+		assert.equal(t.of('execute', 'implement').length, 1)
+		assert.deepEqual(seen, ['src/export.sh', 'checks/export.check.sh'], 'the re-provisioned checkout holds both')
+		const events = t.store.events(t.item.id)
+		assert.deepEqual(events.filter((e) => e.kind === 'ruling').map((e) => [e.data.cause, e.data.to]), [['test', 'test-plan'], ['environment', 'test-plan']], 'the environment ruling goes back to the blocked step')
+		assert.equal(events.filter((e) => e.kind === 'verify-started').length, 2, 'the checks ran once before the ruling and once with the correction; never on the uncorrected checks again')
+		assert.match(t.packet('execute', 'arbitrate', 1).exchange.handoff, /could not do the step as written: The supplied checkout contains neither/)
+		assert.match(t.packet('execute', 'test-plan', 2).exchange.handoff, /^Ruling \(environment\): fix it this way/)
+		assertNoTrace(t)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('a second environment ruling in a row holds the item at the failed step; a retry runs that step in a fresh worktree, not the arbiter, even from a record left at the arbiter', async () => {
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return checks(req, 'echo "expected a;b"; exit 1')
+		if (req.kind === 'execute' && req.job === 'test-plan' && (n === 2 || n === 3)) return { blocked: 'The supplied checkout contains neither the change nor my check files.' }
+		if (req.kind === 'execute' && req.job === 'test-plan') return checks(req, CHECK)
+		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling(n === 1 ? 'test' : 'environment')
+		return undefined
+	})
+	try {
+		await t.run(drive(t.item.id, config))
+		let item = t.store.get(t.item.id)!
+		assert.equal(item.status, 'held')
+		assert.equal(item.hold!.code, 'environment')
+		assert.equal(item.job, 'test-plan', 'held at the step the ruling re-provisions')
+		assert.equal(item.hold!.context.step, 'test-plan')
+		assert.equal(t.of('execute', 'arbitrate').length, 3)
+		assert.ok(nextFor(item).some((n) => n.run === `mw retry ${t.item.id}`))
+		// A record an older runner left at the arbiter with the same hold is redriven at the failed step, not at the arbiter.
+		t.store.save({ ...item, job: 'arbitrate' }, 'held', { code: 'environment', message: 'older runner' })
+		await t.run(retry(t.item.id))
+		item = t.store.get(t.item.id)!
+		assert.deepEqual([item.status, item.job, item.rework?.cause], ['queued', 'test-plan', 'environment'])
+		await t.run(drive(t.item.id, config))
+		assert.equal(t.store.get(t.item.id)!.status, 'shipped')
+		assert.equal(t.of('execute', 'arbitrate').length, 3, 'the retry did not replay the arbiter')
+		assert.equal(t.of('execute', 'test-plan').length, 4)
+		assert.equal(t.of('execute', 'implement').length, 1)
+		assertNoTrace(t)
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('writes in a disposable read checkout are flagged but not imported; broken contracts are refused and malformed JSON is re-asked', async () => {
 	// The first ideate answer is JSON that does not parse and starts with "{": reading it must neither hang nor cost an NQ turn.
 	const broken = '{"outcome": "CSV export", "approach": "a script" "decisions": []}'
