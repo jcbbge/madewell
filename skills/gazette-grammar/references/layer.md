@@ -27,4 +27,8 @@ grammar does the same job. Rules not listed here apply unchanged.
 | better-typography: few fonts, sizes and weights | coherence | Two hands: a display hand for mastheads and names (Alegreya in the mockup) and a text hand for everything else (Alegreya Sans). Alegreya is a typeface drawn from calligraphy. |
 | better-typography: tabular numbers on changing values | figures do not jitter | Kept on the whole sheet. |
 | better-writing: everything | readers know what to do | Kept entirely. Mastheads, notices and colophons follow it too. Engine vocabulary stays out of the sheet, and the product's own message is quoted, not paraphrased. |
+| teardown: line roles inked at paper size | linework explains the construction | Every line is Ink: contours at the hairline weight of the ledger rule, heavier only for the outer silhouette. |
+| teardown: part fills tinted from the line colour | parts are told apart | Parts are filled with tinctures and their hatching. The law of tinctures applies between touching parts. |
+| teardown: no frame or gallery around the default drawing | the drawing stays the subject | The exploded drawing is the principal form of a Gazette sheet, so the sheet's frame stays. Build it to teardown's preview-page.md. |
+| teardown: a concept is drawn as an exploded stack of plates | layers with no physical form become visible | Kept. It is how Made Well's depths are taken apart: outcome, mechanism, calls, cause. |
 | better-interface and interface-review | one ranked report | Run them unchanged on the rendered sheet, then apply this table to any finding about a visual value. |
