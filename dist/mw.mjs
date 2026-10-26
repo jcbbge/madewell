@@ -6,10 +6,9 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { spawn as spawn2 } from "node:child_process";
-import { existsSync as existsSync4, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync6, statSync as statSync3, writeFileSync as writeFileSync7 } from "node:fs";
+import { existsSync as existsSync3, readdirSync as readdirSync3, readFileSync as readFileSync7, realpathSync, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve6 } from "node:path";
+import { basename as basename2, dirname as dirname6, join as join10, resolve as resolve6 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
@@ -3062,10 +3061,10 @@ var cleanErrorStack = (stack, error, annotations) => {
   return annotations ? addStackAnnotations(out.join("\n"), annotations) : out.join("\n");
 };
 var addStackAnnotations = (stack, annotations) => {
-  const frame2 = annotations?.get(StackTraceKey.key);
-  if (frame2) {
+  const frame = annotations?.get(StackTraceKey.key);
+  if (frame) {
     stack = `${stack}
-${currentStackTrace(frame2)}`;
+${currentStackTrace(frame)}`;
   }
   return stack;
 };
@@ -3073,15 +3072,15 @@ var interruptCauseStack = (error, interrupts) => {
   const out = [`${error.name}: ${error.message}`];
   for (const current of interrupts) {
     const fiberId3 = current.fiberId !== void 0 ? `#${current.fiberId}` : "unknown";
-    const frame2 = current.annotations.get(InterruptorStackTrace.key);
+    const frame = current.annotations.get(InterruptorStackTrace.key);
     out.push(`    at fiber (${fiberId3})`);
-    if (frame2) out.push(currentStackTrace(frame2));
+    if (frame) out.push(currentStackTrace(frame));
   }
   return out.join("\n");
 };
-var currentStackTrace = (frame2) => {
+var currentStackTrace = (frame) => {
   const out = [];
-  let current = frame2;
+  let current = frame;
   let i = 0;
   while (current && i < 10) {
     const stack = current.stack();
@@ -4267,9 +4266,9 @@ var timeout = /* @__PURE__ */ dual(2, (self, duration) => {
   });
 });
 var timeoutOption = /* @__PURE__ */ dual(2, (self, duration) => raceFirst(asSome(self), as(sleep(duration), none2())));
-var timed = (self) => clockWith((clock2) => {
-  const start = clock2.monotonicTimeNanosUnsafe();
-  return map5(self, (a) => [nanos(clock2.monotonicTimeNanosUnsafe() - start), a]);
+var timed = (self) => clockWith((clock) => {
+  const start = clock.monotonicTimeNanosUnsafe();
+  return map5(self, (a) => [nanos(clock.monotonicTimeNanosUnsafe() - start), a]);
 });
 var ScopeTypeId = "~effect/Scope";
 var ScopeCloseableTypeId = "~effect/Scope/Closeable";
@@ -4485,7 +4484,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   let expiresAt = 0;
   let exit4;
   let current;
-  const join13 = (fiber3, run2) => {
+  const join11 = (fiber3, run2) => {
     run2.awaiters++;
     onExitUnsafe(fiber3, () => {
       if (--run2.awaiters > 0 || current !== run2) return;
@@ -4496,25 +4495,25 @@ var makeCachedUnsafe = (self, ttlMillis) => {
   };
   return [withFiber((fiber3) => {
     if (current !== void 0) {
-      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join13(fiber3, current);
+      return fiber3 === current.fiber ? fiberJoin(current.fiber) : join11(fiber3, current);
     }
     if (exit4 !== void 0 && (expiresAt === Infinity || fiber3.getRef(ClockRef).currentTimeMillisUnsafe() < expiresAt)) {
       return exit4;
     }
     exit4 = void 0;
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const run2 = {
       fiber: new FiberImpl(fiber3.context),
       awaiters: 0
     };
     current = run2;
-    const joined = join13(fiber3, run2);
+    const joined = join11(fiber3, run2);
     run2.fiber.evaluate(onExitPrimitive(self, (exit_) => {
       if (current !== run2) return;
       current = void 0;
       if (exitHasInterrupts(exit_)) return;
       const duration = ttlMillis(exit_);
-      expiresAt = duration === Infinity ? Infinity : clock2.currentTimeMillisUnsafe() + duration;
+      expiresAt = duration === Infinity ? Infinity : clock.currentTimeMillisUnsafe() + duration;
       exit4 = exit_;
     }));
     return run2.fiber._exit ?? joined;
@@ -4739,7 +4738,7 @@ var iterateConcurrentImpl = (options) => {
       done3 = true;
       return fibers && fibers.size > 0 ? flatMap3(uninterruptible(fiberInterruptAll(Array.from(fibers))), () => terminal ?? defect) : defect;
     };
-    const go2 = () => {
+    const go = () => {
       let paused = false;
       for (; !terminal && index2 < end2; index2++) {
         const item = items[index2];
@@ -4755,7 +4754,7 @@ var iterateConcurrentImpl = (options) => {
             resume = cb;
             let result3;
             try {
-              result3 = go2();
+              result3 = go();
             } catch (error) {
               return cb(failDefect(error));
             }
@@ -4790,11 +4789,11 @@ var iterateConcurrentImpl = (options) => {
                 const result3 = step2(state, item, exit4, currentIndex);
                 if (result3) {
                   terminal = result3;
-                  go2();
+                  go();
                 }
               }
               if (paused) {
-                const eff2 = go2();
+                const eff2 = go();
                 if (eff2) resume(eff2);
               } else if (done3 && fibers.size === 0) {
                 resume(terminal ?? void_2);
@@ -4827,7 +4826,7 @@ var iterateConcurrentImpl = (options) => {
         }
       }
     };
-    return go2();
+    return go();
   };
 };
 var iterateConcurrent = () => (options) => iterateConcurrentImpl(options);
@@ -5074,7 +5073,7 @@ var makeSpanUnsafe = (fiber3, name, options) => {
     });
   } else {
     const tracer3 = fiber3.cache.tracer ?? nativeTracer;
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
     const annotationsFromEnv = fiber3.getRef(TracerSpanAnnotations);
     const linksFromEnv = fiber3.getRef(TracerSpanLinks);
@@ -5085,7 +5084,7 @@ var makeSpanUnsafe = (fiber3, name, options) => {
       parent,
       annotations: options?.annotations ?? empty(),
       links,
-      startTime: timingEnabled ? clock2.currentTimeNanosUnsafe() : bigint02,
+      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : bigint02,
       kind: options?.kind ?? "internal",
       root: options?.root ?? false,
       sampled: options?.sampled ?? (isSome2(parent) && parent.value.sampled === false ? false : !isLogLevelGreaterThan(fiber3.getRef(MinimumTraceLevel), level))
@@ -5105,9 +5104,9 @@ var makeSpan = (name, options) => withFiber((fiber3) => succeed3(makeSpanUnsafe(
 var makeSpanScoped = (name, options) => uninterruptible(withFiber((fiber3) => {
   const scope3 = getUnsafe(fiber3.context, scopeTag);
   const span2 = makeSpanUnsafe(fiber3, name, options ?? {});
-  const clock2 = fiber3.getRef(ClockRef);
+  const clock = fiber3.getRef(ClockRef);
   const timingEnabled = fiber3.getRef(TracerTimingEnabled);
-  return as(scopeAddFinalizerExit(scope3, (exit4) => endSpan(span2, exit4, clock2, timingEnabled)), span2);
+  return as(scopeAddFinalizerExit(scope3, (exit4) => endSpan(span2, exit4, clock, timingEnabled)), span2);
 }));
 var withSpanScoped = function() {
   const dataFirst = typeof arguments[0] !== "string";
@@ -5137,18 +5136,18 @@ var linkSpans = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, span2
   }));
   return updateService(self, TracerSpanLinks, (current) => [...current, ...links]);
 });
-var endSpan = (span2, exit4, clock2, timingEnabled) => sync(() => {
+var endSpan = (span2, exit4, clock, timingEnabled) => sync(() => {
   if (span2.status._tag === "Ended") return;
-  span2.end(timingEnabled ? clock2.currentTimeNanosUnsafe() : bigint02, exit4);
+  span2.end(timingEnabled ? clock.currentTimeNanosUnsafe() : bigint02, exit4);
 });
 var useSpan = (name, ...args2) => {
   const options = args2.length === 1 ? void 0 : args2[0];
   const evaluate3 = args2[args2.length - 1];
   return withFiber((fiber3) => {
     const span2 = makeSpanUnsafe(fiber3, name, options);
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
-    onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock2, timingEnabled));
+    onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock, timingEnabled));
     return evaluate3(span2);
   });
 };
@@ -5278,10 +5277,10 @@ var wallTimeNanos = /* @__PURE__ */ (function() {
   };
 })();
 var clockWith = (f) => withFiber((fiber3) => f(fiber3.getRef(ClockRef)));
-var sleep = (duration) => clockWith((clock2) => clock2.sleep(fromInputUnsafe(duration)));
-var currentTimeMillis = /* @__PURE__ */ clockWith((clock2) => clock2.currentTimeMillis);
-var currentTimeNanos = /* @__PURE__ */ clockWith((clock2) => clock2.currentTimeNanos);
-var monotonicTimeNanos = /* @__PURE__ */ clockWith((clock2) => clock2.monotonicTimeNanos);
+var sleep = (duration) => clockWith((clock) => clock.sleep(fromInputUnsafe(duration)));
+var currentTimeMillis = /* @__PURE__ */ clockWith((clock) => clock.currentTimeMillis);
+var currentTimeNanos = /* @__PURE__ */ clockWith((clock) => clock.currentTimeNanos);
+var monotonicTimeNanos = /* @__PURE__ */ clockWith((clock) => clock.monotonicTimeNanos);
 var TimeoutErrorTypeId = "~effect/Cause/TimeoutError";
 var TimeoutError = class extends (/* @__PURE__ */ TaggedError("TimeoutError")) {
   [TimeoutErrorTypeId] = TimeoutErrorTypeId;
@@ -5434,10 +5433,10 @@ var logWithLevel = (level) => (...message) => {
     if (isLogLevelGreaterThan(fiber3.cache.minimumLogLevel, logLevel)) {
       return void_2;
     }
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const loggers = fiber3.getRef(CurrentLoggers);
     if (loggers.size > 0) {
-      const date = new Date(clock2.currentTimeMillisUnsafe());
+      const date = new Date(clock.currentTimeMillisUnsafe());
       for (const logger of loggers) {
         logger.log({
           cause,
@@ -5505,7 +5504,7 @@ var tracerLogger = /* @__PURE__ */ loggerMake(({
   logLevel,
   message
 }) => {
-  const clock2 = fiber3.getRef(ClockRef);
+  const clock = fiber3.getRef(ClockRef);
   const annotations = fiber3.getRef(CurrentLogAnnotations);
   const span2 = fiber3.cache.span;
   if (span2 === void 0 || span2._tag === "ExternalSpan") return;
@@ -5518,7 +5517,7 @@ var tracerLogger = /* @__PURE__ */ loggerMake(({
   if (cause.reasons.length > 0) {
     attributes["effect.cause"] = causePretty(cause);
   }
-  span2.event(toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message), clock2.currentTimeNanosUnsafe(), attributes);
+  span2.event(toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message), clock.currentTimeNanosUnsafe(), attributes);
 });
 function interruptChildrenPatch() {
   fiberMiddleware.interruptChildren ??= fiberInterruptChildren;
@@ -6653,10 +6652,10 @@ var fromStepWithMetadata = (step2) => fromStep(map5(step2, (f) => {
   return (now2, input) => f(meta(now2, input));
 }));
 var toStep = (schedule2) => catchCause(schedule2.step, (cause) => succeed3(() => failCause(cause)));
-var toStepWithMetadata = (schedule2) => clockWith((clock2) => map5(toStep(schedule2), (step2) => {
+var toStepWithMetadata = (schedule2) => clockWith((clock) => map5(toStep(schedule2), (step2) => {
   const metaFn = metadataFn();
   return (input) => suspend(() => {
-    const now2 = clock2.currentTimeMillisUnsafe();
+    const now2 = clock.currentTimeMillisUnsafe();
     return flatMap3(step2(now2, input), ([output, duration]) => {
       const meta = metaFn(now2, input);
       meta.output = output;
@@ -6802,7 +6801,7 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
   let stepAttempt = 0;
   const emit = (event) => ignoreCause(onEvent(event));
   return {
-    begin: clockWith((clock2) => suspend(() => {
+    begin: clockWith((clock) => suspend(() => {
       const meta = currentMetadata();
       if (meta.stepIndex !== lastStepIndex) {
         lastStepIndex = meta.stepIndex;
@@ -6813,7 +6812,7 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
         attempt: meta.attempt,
         stepAttempt,
         stepIndex: meta.stepIndex,
-        startNanos: clock2.monotonicTimeNanosUnsafe()
+        startNanos: clock.monotonicTimeNanosUnsafe()
       };
       return as(emit({
         _tag: "AttemptStart",
@@ -6822,8 +6821,8 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
         stepIndex: state.stepIndex
       }), state);
     })),
-    end: (state, exit4) => clockWith((clock2) => {
-      const duration = nanos(clock2.monotonicTimeNanosUnsafe() - state.startNanos);
+    end: (state, exit4) => clockWith((clock) => {
+      const duration = nanos(clock.monotonicTimeNanosUnsafe() - state.startNanos);
       return emit(exit4._tag === "Success" ? {
         _tag: "AttemptSuccess",
         attempt: state.attempt,
@@ -7467,10 +7466,10 @@ var trackDefects = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, m
   const input = f === void 0 ? defect : f(defect);
   return update(metric, input);
 }));
-var trackDuration = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => clockWith3((clock2) => {
-  const startTime = clock2.monotonicTimeNanosUnsafe();
+var trackDuration = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => clockWith3((clock) => {
+  const startTime = clock.monotonicTimeNanosUnsafe();
   return onExit2(self, () => {
-    const endTime = clock2.monotonicTimeNanosUnsafe();
+    const endTime = clock.monotonicTimeNanosUnsafe();
     const duration = subtract(fromInputUnsafe(endTime), fromInputUnsafe(startTime));
     const input = f === void 0 ? duration : f(duration);
     return update(metric, input);
@@ -7483,8 +7482,8 @@ var tx = (effect2) => withFiber2((fiber3) => {
   if (state && !completedTransactions.has(state)) {
     return effect2;
   }
-  const clock2 = fiber3.getRef(ClockRef);
-  const now2 = clock2.currentTimeMillisUnsafe();
+  const clock = fiber3.getRef(ClockRef);
+  const now2 = clock.currentTimeMillisUnsafe();
   const mutable3 = {
     journal: /* @__PURE__ */ new Map(),
     retry: false,
@@ -7506,7 +7505,7 @@ var tx = (effect2) => withFiber2((fiber3) => {
       while: () => !result3,
       body: () => {
         if (mutable3.attempt > 1) {
-          stampTransaction(mutable3, clock2.currentTimeMillisUnsafe());
+          stampTransaction(mutable3, clock.currentTimeMillisUnsafe());
         }
         return run2;
       },
@@ -9907,14 +9906,14 @@ var snapshot = (graph) => {
     })).sort((a, b) => a.index - b.index)
   };
 };
-var hydrate = (snapshot3) => {
-  const graph = make14(snapshot3.type, false);
-  for (const node of snapshot3.nodes) {
+var hydrate = (snapshot4) => {
+  const graph = make14(snapshot4.type, false);
+  for (const node of snapshot4.nodes) {
     graph.nodes.set(node.index, node.data);
     graph.adjacency.set(node.index, []);
     graph.reverseAdjacency.set(node.index, []);
   }
-  for (const edge of snapshot3.edges) {
+  for (const edge of snapshot4.edges) {
     graph.edges.set(edge.index, {
       source: edge.source,
       target: edge.target,
@@ -9922,13 +9921,13 @@ var hydrate = (snapshot3) => {
     });
     graph.adjacency.get(edge.source).push(edge.index);
     graph.reverseAdjacency.get(edge.target).push(edge.index);
-    if (snapshot3.type === "undirected") {
+    if (snapshot4.type === "undirected") {
       graph.adjacency.get(edge.target).push(edge.index);
       graph.reverseAdjacency.get(edge.source).push(edge.index);
     }
   }
-  graph.nextNodeIndex = snapshot3.nodes.length === 0 ? 0 : snapshot3.nodes[snapshot3.nodes.length - 1].index + 1;
-  graph.nextEdgeIndex = snapshot3.edges.length === 0 ? 0 : snapshot3.edges[snapshot3.edges.length - 1].index + 1;
+  graph.nextNodeIndex = snapshot4.nodes.length === 0 ? 0 : snapshot4.nodes[snapshot4.nodes.length - 1].index + 1;
+  graph.nextEdgeIndex = snapshot4.edges.length === 0 ? 0 : snapshot4.edges[snapshot4.edges.length - 1].index + 1;
   graph.acyclic = none2();
   return graph;
 };
@@ -10744,8 +10743,8 @@ var decodeJsonError = (input) => {
 };
 var encodeUnknownAsJson = (input) => {
   try {
-    const json2 = formatJson(input);
-    return json2 === void 0 ? format(input) : JSON.parse(json2);
+    const json = formatJson(input);
+    return json === void 0 ? format(input) : JSON.parse(json);
   } catch {
     return format(input);
   }
@@ -11121,9 +11120,9 @@ var TemplateLiteral = class extends ASTNodeImpl {
     this.suffixLengths = suffixLengths;
   }
   /** @internal */
-  getParser(compile3) {
+  getParser(compile2) {
     const tuple2 = new Arrays(false, this.parts.map(partFromString), []);
-    const parser = compile3(decodeTo(string2, tuple2, templateLiteralTransformation(this)));
+    const parser = compile2(decodeTo(string2, tuple2, templateLiteralTransformation(this)));
     return (input, options) => {
       if (input === missing) return missingExit;
       const result3 = parser(input, options);
@@ -11369,7 +11368,7 @@ var Arrays = class extends ASTNodeImpl {
     }
   }
   /** @internal */
-  getParser(compile3, compileField2 = compile3) {
+  getParser(compile2, compileField2 = compile2) {
     const ast = this;
     let elements;
     let rest;
@@ -11521,7 +11520,7 @@ var FINITE_PATTERN = "[+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?";
 function getIndexSignatureKeys(input, parameter, options = defaultParseOptions) {
   let stringKeys;
   let symbolKeys;
-  function go2(parameter2) {
+  function go(parameter2) {
     switch (parameter2._tag) {
       case "String":
       case "TemplateLiteral":
@@ -11531,12 +11530,12 @@ function getIndexSignatureKeys(input, parameter, options = defaultParseOptions) 
       case "Symbol":
         return (symbolKeys ??= Object.getOwnPropertySymbols(input)).filter((k) => Object.prototype.propertyIsEnumerable.call(input, k) && parameter2.matchKey(k, options) !== void 0);
       case "Union":
-        return [...new Set(parameter2.types.flatMap(go2))];
+        return [...new Set(parameter2.types.flatMap(go))];
       default:
         return [];
     }
   }
-  return go2(parameterFromPropertyKey(toEncoded(parameter)));
+  return go(parameterFromPropertyKey(toEncoded(parameter)));
 }
 var PropertySignature = class {
   name;
@@ -11602,7 +11601,7 @@ var Objects = class extends ASTNodeImpl {
     this.encodingChecks = encodingChecks;
   }
   /** @internal */
-  getParser(compile3, compileField2 = compile3) {
+  getParser(compile2, compileField2 = compile2) {
     const ast = this;
     const hasProperties = ast.propertySignatures.length;
     const indexCount = ast.indexSignatures.length;
@@ -11620,7 +11619,7 @@ var Objects = class extends ASTNodeImpl {
         }));
         indexes = indexCount ? ast.indexSignatures.map((is3) => ({
           is: is3,
-          parserKey: compile3(parameterFromPropertyKey(is3.parameter)),
+          parserKey: compile2(parameterFromPropertyKey(is3.parameter)),
           parserValue: compileField2(is3.type)
         })) : void 0;
       }
@@ -12150,11 +12149,11 @@ var Union = class extends ASTNodeImpl {
     this.encodingChecks = encodingChecks;
   }
   /** @internal */
-  getParser(compile3, compileField2) {
+  getParser(compile2, compileField2) {
     const ast = this;
     const isConstructor = compileField2 !== void 0;
     const parsers = [];
-    const parser = (i) => parsers[i] ??= compile3(ast.types[i]);
+    const parser = (i) => parsers[i] ??= compile2(ast.types[i]);
     let index2;
     return (input, options) => {
       if (input === missing) {
@@ -12303,9 +12302,9 @@ var Suspend = class extends ASTNodeImpl {
     this.thunk = () => ast ??= thunk();
   }
   /** @internal */
-  getParser(compile3) {
+  getParser(compile2) {
     let parser;
-    return (input, options) => (parser ??= compile3(this.thunk()))(input, options);
+    return (input, options) => (parser ??= compile2(this.thunk()))(input, options);
   }
   /** @internal */
   recur(recur2) {
@@ -12563,7 +12562,7 @@ function decodeTo(from, to, transformation) {
 function parseParameter(ast) {
   const literals = [];
   const parameters = [];
-  function go2(ast2) {
+  function go(ast2) {
     switch (ast2._tag) {
       case "Literal":
         if (isPropertyKey(ast2.literal) && !literals.includes(ast2.literal)) {
@@ -12579,14 +12578,14 @@ function parseParameter(ast) {
         return;
       case "Union":
         for (let i = 0; i < ast2.types.length; i++) {
-          go2(ast2.types[i]);
+          go(ast2.types[i]);
         }
         return;
       default:
         parameters.push(ast2);
     }
   }
-  go2(ast);
+  go(ast);
   return {
     literals,
     parameters
@@ -12707,7 +12706,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
   if (ast.suffixLengths[0] > inputLength) return void 0;
   const out = new Array(parts2.length);
   let failures;
-  function go2(i, pos) {
+  function go(i, pos) {
     if (i === parts2.length) return pos === inputLength;
     if (failures?.has(i * (inputLength + 1) + pos)) return false;
     const part = parts2[i];
@@ -12719,7 +12718,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
       }
     } else if (part._tag === "Literal") {
       const s = literals[i];
-      if (input.startsWith(s, pos) && go2(i + 1, pos + s.length)) {
+      if (input.startsWith(s, pos) && go(i + 1, pos + s.length)) {
         out[i] = s;
         return true;
       }
@@ -12729,7 +12728,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
       let end2 = anchor === void 0 ? maximumEnd : input.lastIndexOf(anchor, maximumEnd);
       while (end2 >= pos) {
         const s = input.slice(pos, end2);
-        if (part.matchPart(s, options) !== void 0 && go2(i + 1, end2)) {
+        if (part.matchPart(s, options) !== void 0 && go(i + 1, end2)) {
           out[i] = s;
           return true;
         }
@@ -12741,7 +12740,7 @@ function segmentTemplateLiteralParts(ast, input, options) {
     failures.add(i * (inputLength + 1) + pos);
     return false;
   }
-  return go2(0, 0) ? out : void 0;
+  return go(0, 0) ? out : void 0;
 }
 var parameterFromPropertyKey = /* @__PURE__ */ applyToSelfOrLastLinkEncodingIdempotent((ast) => {
   switch (ast._tag) {
@@ -12913,18 +12912,18 @@ function isTree(u, isLeaf) {
       }
     }
     while (stack.length > 0) {
-      const frame2 = stack[stack.length - 1];
-      const keys3 = frame2.keys;
+      const frame = stack[stack.length - 1];
+      const keys3 = frame.keys;
       if (typeof keys3 === "number") {
-        if (frame2.index < keys3) {
-          u = frame2.value[frame2.index++];
+        if (frame.index < keys3) {
+          u = frame.value[frame.index++];
           continue outer;
         }
-      } else if (frame2.index < keys3.length) {
-        u = frame2.value[keys3[frame2.index++]];
+      } else if (frame.index < keys3.length) {
+        u = frame.value[keys3[frame.index++]];
         continue outer;
       }
-      cache2.set(frame2.value, true);
+      cache2.set(frame.value, true);
       stack.pop();
     }
     return true;
@@ -12988,13 +12987,13 @@ function compileTransformation(transformation) {
 }
 var fromOptionalEffect = (effect2) => flatMapEager2(effect2, fromOptionExit);
 var wrapEncoding = (ast, input, options, effect2) => catchCause3(effect2, (cause) => failCauseSync2(() => map6(cause, (issue) => new Encoding(ast, issue, input, options))));
-function makeConstructorParser(descriptor, compile3) {
+function makeConstructorParser(descriptor, compile2) {
   const transform3 = compileTransformation(descriptor.link.transformation);
   let sourceParser;
   return (input, options) => {
     if (input === missing) return missingExit;
     if (descriptor.isConstructed(input)) return sameExit;
-    const result3 = (sourceParser ??= compile3(descriptor.link.to))(input, options);
+    const result3 = (sourceParser ??= compile2(descriptor.link.to))(input, options);
     return transform3(result3, input, options);
   };
 }
@@ -13013,16 +13012,16 @@ function withDefault2(ast, parser) {
     });
   };
 }
-function compileField(ast, compile3) {
-  const parser = compile3(ast);
+function compileField(ast, compile2) {
+  const parser = compile2(ast);
   return ast.context?.constructorDefault === void 0 ? parser : withDefault2(ast, parser);
 }
-function compile(ast, compile3, compileField2, base, specialize) {
+function compile(ast, compile2, compileField2, base, specialize) {
   if (ast._tag === "Declaration") {
-    for (const parameter of ast.typeParameters) compile3(parameter);
+    for (const parameter of ast.typeParameters) compile2(parameter);
   }
   const descriptor = compileField2 ? getConstructorDescriptor(ast) : void 0;
-  const parser = descriptor ? makeConstructorParser(descriptor, compile3) : base ?? ast.getParser(compile3, compileField2);
+  const parser = descriptor ? makeConstructorParser(descriptor, compile2) : base ?? ast.getParser(compile2, compileField2);
   const checks = ast.checks;
   const links = ast.encoding;
   const transformations = links?.map((link2) => compileTransformation(link2.transformation));
@@ -13085,7 +13084,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
     return parseLocal;
   }
   return (input, options) => {
-    const parsers = encodingParsers ??= links.map((link2) => compile3(link2.to));
+    const parsers = encodingParsers ??= links.map((link2) => compile2(link2.to));
     let current = input;
     let result3 = parsers[parsers.length - 1](input, options);
     for (let i = links.length - 1; i >= 0; i--) {
@@ -15718,12 +15717,12 @@ function toFormatter(ast, options) {
   function recur2(ast2) {
     let formatter = compiled.get(ast2);
     if (formatter === void 0) {
-      formatter = compile3(ast2);
+      formatter = compile2(ast2);
       compiled.set(ast2, formatter);
     }
     return formatter;
   }
-  function compile3(ast2) {
+  function compile2(ast2) {
     const annotation = resolve(ast2)?.["toFormatter"];
     if (typeof annotation === "function") {
       return annotation(isDeclaration(ast2) ? ast2.typeParameters.map(recur2) : []);
@@ -20117,8 +20116,8 @@ var dnsSeconds = /* @__PURE__ */ dnsUint32.pipe(/* @__PURE__ */ decodeTo2(Durati
 var dnsRecordOfType = (type, fields) => declare((u) => isDnsRecord(u) && u._tag === type, {
   identifier: `Dns${type.charAt(0)}${type.slice(1).toLowerCase()}Record`,
   toCodecJson: () => {
-    const json2 = TaggedStruct(type, fields);
-    return link()(json2, transformEffect2({
+    const json = TaggedStruct(type, fields);
+    return link()(json, transformEffect2({
       decode: (input, options) => {
         const {
           _tag,
@@ -20359,7 +20358,7 @@ function Graph(type, node, edge) {
       if (!isGraph(input) || input.mutable || input.type !== type) {
         return fail5(new InvalidType(ast, input, options));
       }
-      return flatMap5(decodeUnknownEffect(encoded)(snapshot(input), options), (snapshot3) => graphDecode(snapshot3, options));
+      return flatMap5(decodeUnknownEffect(encoded)(snapshot(input), options), (snapshot4) => graphDecode(snapshot4, options));
     };
   }, {
     representation: {
@@ -21718,11 +21717,6 @@ var ERRORS = {
       harnesses: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String))
     })
   },
-  cartridges_unreadable: { means: "The cartridge pack file cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String, reason: Schema_exports.String }) },
-  cartridges_invalid: {
-    means: "The cartridge pack does not plug into the console: it is not valid JSON, does not match the pack shape, or breaks the console's contract (`problems` lists each).",
-    context: Schema_exports.Struct({ path: Schema_exports.String, problems: Schema_exports.Array(Schema_exports.String) })
-  },
   eval_card_invalid: {
     means: "The --card of `mw eval` is neither a tier in prescriptions nor a card as JSON {harness, provider, account, model, effort} on a known harness.",
     context: Schema_exports.Struct({ card: Schema_exports.String, tiers: Schema_exports.Array(Schema_exports.String), harnesses: Schema_exports.Array(Schema_exports.String), problems: Schema_exports.optionalKey(Schema_exports.String) })
@@ -21733,7 +21727,6 @@ var ERRORS = {
   },
   brief_unreadable: { means: "The file named by --brief cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String }) },
   export_failed: { means: "The export folder cannot be written.", context: Schema_exports.Struct({ id: Id, dir: Schema_exports.String, reason: Schema_exports.String }) },
-  ui_unavailable: { means: "The console cannot listen on the address asked for: the port is taken or not allowed.", context: Schema_exports.Struct({ host: Schema_exports.String, port: Schema_exports.Int, reason: Schema_exports.String }) },
   git_failed: { means: "A git command Made Well ran in a workspace failed.", context: Schema_exports.Struct({ dir: Schema_exports.String, args: Schema_exports.Array(Schema_exports.String), exitCode: Schema_exports.Int, stderr: Schema_exports.String }) },
   bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema_exports.Struct({ name: Schema_exports.String }) },
   worktree_root_unclean: {
@@ -21780,7 +21773,7 @@ import { join as join3 } from "node:path";
 // src/worker.ts
 import { execFileSync, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { appendFileSync, closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join as join2 } from "node:path";
 var DEFAULT_BUDGET = { minutes: 30 };
@@ -21796,7 +21789,7 @@ var stamped = (line, at) => {
     return line;
   }
 };
-var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callback((resume) => {
+var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
   const started = Date.now();
   const call = `${process.pid}-${randomUUID()}`;
   const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
@@ -21818,27 +21811,19 @@ var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callba
     kill();
   };
   const timer = setTimeout(() => over("minutes"), o.budget.minutes * 6e4);
-  const tee = (chunk) => {
-    if (!o.live) return;
-    try {
-      appendFileSync(o.live, chunk);
-    } catch {
-    }
-  };
   const take4 = (raw, end2) => {
-    const line = o.stamp ? stamped(raw, clock2.currentTimeMillisUnsafe()) : raw;
+    const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw;
     stdout += line + end2;
     const n = o.tokensIn?.(line);
     if (n) tokens = (tokens ?? 0) + n;
   };
   child.stdout.setEncoding("utf8").on("data", (chunk) => {
-    tee(chunk);
     const lines4 = (partial + chunk).split("\n");
     partial = lines4.pop();
     for (const line of lines4) take4(line, "\n");
     if (o.budget.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
   });
-  child.stderr.setEncoding("utf8").on("data", (chunk) => (tee(chunk), stderr += chunk));
+  child.stderr.setEncoding("utf8").on("data", (chunk) => stderr += chunk);
   child.stdin?.on("error", (e) => stdinError = e.message);
   child.on("exit", kill);
   child.on("close", (code) => {
@@ -21888,7 +21873,7 @@ var commandWorker = (command2) => Layer_exports.succeed(Worker, {
       writeFileSync(join2(dir, "request.json"), input);
       return { dir, size: input.length, fd: openSync(join2(dir, "request.json"), "r") };
     }),
-    ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET, ...request3.live ? { live: request3.live } : {} }).pipe(
+    ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET }).pipe(
       Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
         if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
         try {
@@ -22025,11 +22010,11 @@ var HARNESSES = {
 };
 var get5 = (value3, path) => path.split(".").reduce((v, k) => v && typeof v === "object" ? v[k] : void 0, value3);
 var matches = (event, match7) => Object.entries(match7).every(([path, want]) => want === "*" ? get5(event, path) != null : get5(event, path) === want);
-var fill = (template, vars) => template.replace(/\{([\w.]+)(\|json)?\}/g, (whole, path, json2) => {
+var fill = (template, vars) => template.replace(/\{([\w.]+)(\|json)?\}/g, (whole, path, json) => {
   const v = get5(vars, path);
   if (v === void 0 || v === null) return whole;
   const s = Array.isArray(v) ? v.join(",") : String(v);
-  return json2 ? JSON.stringify(s) : s;
+  return json ? JSON.stringify(s) : s;
 });
 var glob = (names) => (name) => names.some((n) => n.endsWith("*") ? name.startsWith(n.slice(0, -1)) : name === n);
 var agentEnv = (allow, from = process.env) => ({
@@ -22098,8 +22083,8 @@ function parseRun(harness, stdout, account, now2) {
     const signal = harness.limit.signals?.map((s) => ({ s, e: evs.findLast((e) => matches(e, s.when)) })).find((x) => x.e);
     if (said || signal) {
       const machine = signal?.s.resetsAt.map((p) => get5(signal.e, p)).find((v) => typeof v === "number" && Number.isFinite(v));
-      const { clock: clock2, minutes: minutes2 } = said?.groups ?? {};
-      const resetsAt = machine !== void 0 ? machine * 1e3 : clock2 ? clockToEpoch(clock2, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
+      const { clock, minutes: minutes2 } = said?.groups ?? {};
+      const resetsAt = machine !== void 0 ? machine * 1e3 : clock ? clockToEpoch(clock, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
       limit = { account, resetsAt, message: said?.[0] ?? fill(signal.s.message, signal.e) };
     }
   }
@@ -22127,7 +22112,7 @@ var harnessWorker = Layer_exports.succeed(Worker, {
         const cwd = request3.access === "none" ? dir : request3.cwd;
         const env = agentEnv([...BASE_ENV, ...harness.env ?? []]);
         return Effect_exports.zip(
-          runGroup({ command: launch2.command, args: launch2.args, cwd, env, input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl", ...request3.live ? { live: request3.live } : {} }),
+          runGroup({ command: launch2.command, args: launch2.args, cwd, env, input: launch2.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === "jsonl" }),
           versionOf(launch2.command, harness.version ?? ["--version"], env),
           { concurrent: true }
         );
@@ -22203,26 +22188,9 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   }
   return p;
 });
-var forLane = (p, lane) => Effect_exports.gen(function* () {
-  const jobs2 = { ...p.jobs };
-  for (const step2 of [...lane.discovery, ...lane.delivery]) {
-    if (step2.job === "verify" || jobs2[step2.job]) continue;
-    const tier = step2.tier ?? "deep";
-    if (!p.tiers[tier]) {
-      return yield* new MadeWellError({
-        code: "prescriptions_invalid",
-        message: `The ${step2.job} step of the "${lane.pack.name}" cartridge pack runs on tier "${tier}", which the prescriptions do not define.`,
-        context: { path: "prescriptions", job: step2.job, tier, tiers: Object.keys(p.tiers) },
-        next: [{ run: '$EDITOR "$MW_PRESCRIPTIONS"', why: `define tier "${tier}", or prescribe "${step2.job}" under jobs` }, { run: "mw cartridges", why: "see the pack and the tier each step asks for" }]
-      });
-    }
-    jobs2[step2.job] = { tier, access: "read", ...step2.budget ? { budget: step2.budget } : {} };
-  }
-  return { ...p, jobs: jobs2 };
-});
 var prescriptionOf = (p, job) => p.jobs[job];
 var cardsFor = (p, job) => p.tiers[prescriptionOf(p, job).tier];
-var budgetFor = (p, job) => p.jobs[job]?.budget ?? DEFAULT_BUDGET;
+var budgetFor = (p, job) => p.jobs[job].budget ?? DEFAULT_BUDGET;
 var harnessOf = (p, name) => {
   const harness = p.harnesses?.[name] ?? HARNESSES[name];
   return harness && { ...harness, env: [...harness.env ?? [], ...p.env ?? []] };
@@ -22235,7 +22203,7 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/change.ts
-import { appendFileSync as appendFileSync2, mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { mkdirSync, readFileSync as readFileSync3, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { basename, dirname as dirname2, join as join5, matchesGlob } from "node:path";
 
 // src/workspace.ts
@@ -22305,8 +22273,8 @@ var capture = Effect_exports.fn("mw.capture")(function* (dir, shared = true) {
   delete files[".git/info/refs"];
   return { dir, head: head3, refs, files };
 });
-function walk(root, rel2, into2, label2 = "") {
-  const p = join4(root, rel2);
+function walk(root, rel, into2, label2 = "") {
+  const p = join4(root, rel);
   let s;
   try {
     s = lstatSync(p, { bigint: true });
@@ -22314,9 +22282,9 @@ function walk(root, rel2, into2, label2 = "") {
     return;
   }
   if (s.isDirectory()) {
-    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel2 ? `${rel2}/${name}` : name, into2, label2);
-  } else if (rel2) {
-    into2[label2 + rel2] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
+    for (const name of readdirSync(p)) if (name !== ".git") walk(root, rel ? `${rel}/${name}` : name, into2, label2);
+  } else if (rel) {
+    into2[label2 + rel] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
   }
 }
 function changes(before, after) {
@@ -22434,14 +22402,14 @@ var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref, from, to
   else yield* git(repo, "update-ref", ref, to, from);
 });
 var GATE = "(gate)";
-var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change, budget, env, live) {
+var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change, budget, env) {
   const files = lines2(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=d", "-z", base));
   const runs = gates.flatMap((g, i) => {
     const matched = g.glob ? files.filter((f) => matchesGlob(g.glob.includes("/") ? f : basename(f), g.glob)) : files;
     return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll("{files}", matched.map(quote2).join(" ")) }] : [];
   });
   if (!runs.length) return { results: [], fixed: [] };
-  const results2 = yield* runChecks2(dir, runs, budget, env, live);
+  const results2 = yield* runChecks2(dir, runs, budget, env);
   const fixed = lines2(yield* git(dir, "diff", "--name-only", "-z", "--", ...files));
   if (fixed.length) {
     yield* git(dir, "add", "--", ...fixed);
@@ -22449,19 +22417,11 @@ var runGates = Effect_exports.fn("mw.gates")(function* (dir, base, gates, change
   }
   return { results: results2, fixed };
 });
-var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budget, env, live) {
+var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (dir, checks, budget, env) {
   const results2 = [];
   for (const check2 of checks) {
     const started = Date.now();
-    if (live) {
-      try {
-        appendFileSync2(live, `
-$ ${check2.run}
-`);
-      } catch {
-      }
-    }
-    const r = yield* runGroup({ command: "sh", args: ["-c", check2.run], cwd: dir, env, input: "", budget, ...live ? { live } : {} });
+    const r = yield* runGroup({ command: "sh", args: ["-c", check2.run], cwd: dir, env, input: "", budget });
     const over = r.overBudget ? `
 [made well] stopped after ${(r.overBudget.ms / 6e4).toFixed(1)} of ${budget.minutes} minutes` : "";
     results2.push({ ...check2, exitCode: r.overBudget ? 124 : r.code ?? 1, ms: Date.now() - started, output: tail(r.stdout + r.stderr + over) });
@@ -22471,159 +22431,208 @@ $ ${check2.run}
 
 // src/engine.ts
 import { execFile as execFile4 } from "node:child_process";
-import { mkdirSync as mkdirSync5, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
-import { tmpdir as tmpdir3 } from "node:os";
-import { dirname as dirname6, join as join9 } from "node:path";
+import { mkdirSync as mkdirSync6, rmSync as rmSync5 } from "node:fs";
 
 // src/project.ts
 import { execFile as execFile3 } from "node:child_process";
-import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "node:fs";
-import { dirname as dirname5, join as join8, sep } from "node:path";
+import { existsSync as existsSync2, mkdirSync as mkdirSync5, readFileSync as readFileSync5, writeFileSync as writeFileSync6 } from "node:fs";
+import { dirname as dirname5, join as join9, sep } from "node:path";
 
 // src/store.ts
-import { mkdirSync as mkdirSync3 } from "node:fs";
+import { mkdirSync as mkdirSync4, renameSync, writeFileSync as writeFileSync5 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, join as join7 } from "node:path";
+import { dirname as dirname4, join as join8 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+// src/replay.ts
+import { mkdirSync as mkdirSync2, writeFileSync as writeFileSync4 } from "node:fs";
+import { join as join6 } from "node:path";
+var snapshot3 = (store) => ({ items: store.list(), events: store.allEvents(), calls: store.calls().map(({ raw, ...c }) => ({ ...c, rawBytes: raw?.length ?? 0 })), at: (/* @__PURE__ */ new Date()).toISOString() });
+var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
+  const item = store.get(id2);
+  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
+  const calls = store.calls(id2);
+  yield* Effect_exports.try({
+    try: () => {
+      mkdirSync2(dir, { recursive: true });
+      writeFileSync4(join6(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      calls.forEach((c, i) => {
+        const folder = join6(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        mkdirSync2(folder, { recursive: true });
+        const { system, prompt, output, raw, tools, flags, ...meta } = c;
+        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
+        for (const [name, text2] of files) writeFileSync4(join6(folder, name), text2);
+      });
+    },
+    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
+  });
+  return { dir, calls: calls.length };
+});
+var replayHtml = (data) => `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Made Well \xB7 the glass</title>
+<style>
+:root { --ink:#16181d; --mute:#6b7280; --line:#e5e7eb; --bg:#fafaf9; --ok:#15803d; --warn:#b45309; --bad:#b91c1c; --run:#1d4ed8; }
+* { box-sizing:border-box } body { margin:0; font:14px/1.45 ui-sans-serif,system-ui,sans-serif; color:var(--ink); background:var(--bg) }
+header { padding:14px 20px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; flex-wrap:wrap; background:#fff; position:sticky; top:0; z-index:2 }
+h1 { font-size:15px; margin:0 } .mute { color:var(--mute) } button { font:inherit; padding:4px 10px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer } button:hover { border-color:var(--ink) }
+input[type=range] { flex:1; min-width:200px } .pill { font-size:12px; padding:1px 8px; border-radius:999px; border:1px solid currentColor; white-space:nowrap }
+main { display:grid; grid-template-columns: 340px 1fr; height: calc(100vh - 58px) }
+#steps { overflow:auto; border-right:1px solid var(--line); background:#fff } .step { padding:7px 14px; border-bottom:1px solid #f3f4f6; cursor:pointer; display:grid; grid-template-columns:44px 1fr; gap:8px }
+.step.on { background:#eef2ff } .step.future { opacity:.35 } .step .n { color:var(--mute); font-variant-numeric:tabular-nums } .step b { font-weight:600 }
+#right { overflow:auto; padding:18px 22px } .board { display:grid; grid-template-columns: 1.3fr repeat(7, minmax(0, 1fr)); gap:8px; align-items:stretch }
+.col { min-width:0; background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px } .col h3 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.03em; color:var(--mute); overflow-wrap:anywhere }
+.card { border:1px solid var(--line); border-radius:8px; padding:7px 9px; margin-bottom:6px; cursor:pointer; background:#fff } .card.sel { outline:2px solid var(--run) }
+.status-shipped { color:var(--ok) } .status-held { color:var(--bad) } .status-running,.status-queued { color:var(--run) } .status-waiting-quota,.status-waiting-prerequisite,.status-candidate { color:var(--warn) } .status-discovered { color:var(--ok) }
+.card div { overflow-wrap:anywhere } .detail { margin-top:18px; background:#fff; border:1px solid var(--line); border-radius:10px; padding:14px 16px }
+pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px; max-height:420px; overflow:auto; font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace }
+table.tools { border-collapse:collapse; width:100%; font-size:12px; margin:6px 0 12px } .tools th, .tools td { text-align:left; padding:3px 8px; border-bottom:1px solid var(--line); font-variant-numeric:tabular-nums } .tools th { color:var(--mute); font-weight:500 } .tools td.num, .tools th.num { text-align:right } .tools tr.err td { color:var(--bad) }
+.flag { color:var(--bad); background:#fef2f2 } ul.flags { margin:6px 0 12px; padding-left:18px } ul.flags li { margin:3px 0 } code { font:12px ui-monospace,SFMono-Regular,Menlo,monospace }
+details summary { cursor:pointer; color:var(--mute); margin:8px 0 } .kv { display:grid; grid-template-columns:120px 1fr; gap:4px 12px } .kv div:nth-child(odd) { color:var(--mute) }
+</style></head><body>
+<header><h1>Made Well \xB7 the glass</h1><span class="mute" id="meta"></span>
+<button id="first">\u23EE</button><button id="prev">\u25C0</button><button id="play">\u25B6 Play</button><button id="next">\u25B6</button><button id="last">\u23ED Now</button>
+<input type="range" id="slider" min="0" value="0"><span id="pos" class="mute"></span></header>
+<main><div id="steps"></div><div id="right"><div class="board" id="board"></div><div class="detail" id="detail"></div></div></main>
+<script>
+const DATA = ${JSON.stringify(data).replace(/</g, "\\u003c")};
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const LANE = ['discover','ideate','challenge','plan','test-plan','implement','verify','arbitrate'];
+let steps = [], pos = 0, timer = null, selected = null;
+function build() {
+  steps = [...DATA.events.map((e) => ({ t: e.at, type: 'event', e })), ...DATA.calls.map((c) => ({ t: c.started, type: 'call', c }))]
+    .sort((a, b) => a.t.localeCompare(b.t) || (a.type === 'call' ? -1 : 1));
+}
+function stateAt(n) {
+  const s = {};
+  for (const st of steps.slice(0, n + 1)) {
+    if (st.type !== 'event') continue;
+    if (!itemById(st.e.item)) continue;
+    const e = st.e, d = e.data, it = (s[e.item] ??= { status: 'queued', job: 'ideate' });
+    if (e.kind === 'created') { it.status = d.status ?? 'queued'; it.job = d.job; }
+    else if (e.kind === 'handed-off') it.job = d.to;
+    else if (e.kind === 'failure') it.job = 'arbitrate';
+    else if (e.kind === 'ruling') { if (d.to) it.job = d.to; if (d.prerequisite) it.status = 'waiting-prerequisite'; else it.status = 'running'; }
+    else if (e.kind === 'prerequisite-shipped') { it.job = 'verify'; it.status = 'running'; }
+    else if (['held','shipped','discovered','running','waiting-quota'].includes(e.kind)) it.status = e.kind;
+    else if (['retried','promoted'].includes(e.kind) || (e.kind === 'nq-answer' && d.originator === 'operator')) it.status = 'queued';
+  }
+  return s;
+}
+const itemById = (id) => DATA.items.find((i) => i.id === id);
+const total = (t) => (t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0);
+const num = (n) => Number(n).toLocaleString('en-US');
+const flagPills = (c) => c.flags.map((f) => ' <span class="pill flag">' + esc(f.rule) + '</span>').join('');
+function label(st) {
+  if (st.type === 'call') { const c = st.c; return '<b>' + esc(c.profile) + '</b> \xB7 ' + esc(c.kind) + ' ' + esc(c.job) + ' <span class="mute">#' + c.item + ' \xB7 ' + esc(c.card.harness + ' ' + c.card.model) + ' \xB7 ' + (c.ms / 1000).toFixed(1) + 's \xB7 ' + c.tools.length + ' tools' + (c.tokens ? ' \xB7 ' + num(total(c.tokens)) + ' tok' : '') + '</span>' + (c.outcome !== 'ok' ? ' <span class="pill status-held">' + esc(c.outcome) + '</span>' : '') + flagPills(c); }
+  const e = st.e, d = e.data; let extra = '';
+  if (e.kind.startsWith('runner-')) return '<b>' + esc(e.kind) + '</b> <span class="mute">pid ' + esc(d.pid) + (e.item ? ' \xB7 #' + e.item : '') + '</span>';
+  if (e.kind === 'handoff') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
+  else if (e.kind === 'handed-off') extra = esc(d.from) + ' \u2192 ' + esc(d.to);
+  else if (e.kind === 'nq-question') extra = esc(d.receiver) + ' asks ' + esc(d.originator) + ': ' + esc((d.questions || []).join(' \xB7 ')).slice(0, 140);
+  else if (e.kind === 'nq-clear') extra = esc(d.profile) + ' is clear';
+  else if (e.kind === 'shipped') extra = esc((d.output || '').trim().split('\\n').pop());
+  else if (e.kind === 'held' || e.kind === 'ruling') extra = esc(d.code || d.cause || '');
+  else if (e.kind === 'discovered') extra = (d.candidates || []).length + ' candidates';
+  else if (e.kind === 'created') extra = esc(itemById(e.item)?.title || '');
+  return '<b>' + esc(e.kind) + '</b> <span class="mute">#' + e.item + '</span> ' + extra;
+}
+function render() {
+  const n = steps.length; document.getElementById('slider').max = Math.max(0, n - 1); document.getElementById('slider').value = pos;
+  document.getElementById('pos').textContent = n ? (pos + 1) + ' / ' + n + ' \xB7 ' + new Date(steps[pos].t).toLocaleTimeString() : 'no steps yet';
+  const shipped = DATA.items.filter((i) => i.status === 'shipped').length;
+  const flagged = DATA.calls.filter((c) => c.flags.length).length, tokens = DATA.calls.reduce((n, c) => n + total(c.tokens), 0);
+  document.getElementById('meta').textContent = DATA.items.length + ' items \xB7 ' + shipped + ' shipped \xB7 ' + DATA.calls.length + ' agent calls \xB7 ' + num(tokens) + ' tokens \xB7 ' + flagged + ' flagged \xB7 written ' + new Date(DATA.at).toLocaleString();
+  document.getElementById('steps').innerHTML = steps.map((st, i) => '<div class="step' + (i === pos ? ' on' : '') + (i > pos ? ' future' : '') + '" data-i="' + i + '"><span class="n">' + (i + 1) + '</span><span>' + label(st) + '</span></div>').join('');
+  const on = document.querySelector('.step.on'); if (on) on.scrollIntoView({ block: 'nearest' });
+  const s = stateAt(pos), cur = steps[pos], curItem = cur ? (cur.type === 'call' ? cur.c.item : cur.e.item) : null;
+  const disc = DATA.items.filter((i) => i.job === 'discover' && s[i.id]);
+  const cards = (list) => list.map((i) => '<div class="card' + (i.id === curItem ? ' sel' : '') + '" data-item="' + i.id + '"><div><b>#' + i.id + '</b> ' + esc(i.title) + '</div><span class="pill status-' + s[i.id].status + '">' + esc(s[i.id].status) + '</span> <span class="mute">' + esc(s[i.id].job) + '</span></div>').join('') || '<div class="mute">\u2014</div>';
+  const delivery = DATA.items.filter((i) => i.job !== 'discover' && s[i.id] && s[i.id].status !== 'candidate');
+  const raw = disc[0]?.source || '';
+  document.getElementById('board').innerHTML =
+    '<div class="col"><h3>Raw input</h3><pre style="max-height:160px">' + esc(raw.slice(0, 1500)) + '</pre></div>' +
+    '<div class="col"><h3>Discovery</h3>' + cards(disc) + '</div>' +
+    '<div class="col"><h3>Queue</h3>' + cards(DATA.items.filter((i) => i.job !== 'discover' && (s[i.id]?.status === 'candidate' || (s[i.id]?.status === 'queued' && s[i.id].job === 'ideate')))) + '</div>' +
+    ['ideation','planning','implementation','verification'].map((stage) => {
+      const jobs = { ideation: ['ideate','challenge'], planning: ['plan','test-plan'], implementation: ['implement'], verification: ['verify','arbitrate'] }[stage];
+      return '<div class="col"><h3>' + stage + '</h3>' + cards(delivery.filter((i) => jobs.includes(s[i.id].job) && !['shipped','queued'].includes(s[i.id].status))) + '</div>';
+    }).join('') +
+    '<div class="col"><h3>Shipped</h3>' + cards(delivery.filter((i) => s[i.id].status === 'shipped')) + '</div>';
+  document.getElementById('detail').innerHTML = selected ? itemDetail(selected) : cur ? stepDetail(cur) : '<span class="mute">Waiting for the first step\u2026</span>';
+}
+function stepDetail(st) {
+  if (st.type === 'call') {
+    const c = st.c;
+    return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(c.profile) + ' \xB7 ' + esc(c.kind) + ' \xB7 ' + esc(c.job) + ' <span class="mute">item #' + c.item + '</span></h2>' +
+      '<div class="kv"><div>card</div><div>' + esc(c.card.harness + ' \xB7 ' + c.card.provider + ' \xB7 ' + c.card.model + ' \xB7 ' + c.card.effort) + '</div><div>outcome</div><div>' + esc(c.outcome) + '</div><div>started</div><div>' + esc(c.started) + ' (' + (c.ms / 1000).toFixed(1) + 's)</div>' +
+      '<div>tokens</div><div>' + (c.tokens ? num(total(c.tokens)) + ' <span class="mute">= ' + num(c.tokens.input) + ' in \xB7 ' + num(c.tokens.output) + ' out \xB7 ' + num(c.tokens.cacheRead) + ' cache read \xB7 ' + num(c.tokens.cacheWrite) + ' cache write</span>' : '<span class="mute">not reported</span>') + '</div>' +
+      '<div>raw stream</div><div>' + num(c.rawBytes) + ' bytes <span class="mute">\xB7 <code>mw export ' + c.item + '</code></span></div></div>' +
+      '<h3>Rule breaks</h3>' + (c.flags.length ? '<ul class="flags">' + c.flags.map((f) => '<li><span class="pill flag">' + esc(f.rule) + '</span> <code>' + esc(JSON.stringify(f.evidence)) + '</code></li>').join('') + '</ul>' : '<div class="mute">' + (c.facts ? 'none' : 'not checked: no facts recorded') + '</div>') +
+      '<h3>Tool calls (' + c.tools.length + ')</h3>' + (c.tools.length ? '<table class="tools"><tr><th class="num">#</th><th>tool</th><th>input digest</th><th class="num">in bytes</th><th class="num">out bytes</th><th class="num">tokens</th><th>at</th><th class="num">ms</th></tr>' + c.tools.map((t) => '<tr' + (t.error ? ' class="err"' : '') + '><td class="num">' + t.seq + '</td><td>' + esc(t.tool) + (t.error ? ' (error)' : '') + '</td><td><code>' + esc(t.digest) + '</code></td><td class="num">' + num(t.inputBytes) + '</td><td class="num">' + num(t.outputBytes) + '</td><td class="num">' + (t.tokens ?? '\u2014') + '</td><td>' + esc(t.at ? new Date(t.at).toLocaleTimeString() : '\u2014') + '</td><td class="num">' + (t.ms ?? '\u2014') + '</td></tr>').join('') + '</table>' : '<div class="mute">none</div>') +
+      (c.output ? '<h3>Answer</h3><pre>' + esc(c.output) + '</pre>' : '') + (c.error ? '<h3>Error</h3><pre>' + esc(c.error) + '</pre>' : '') +
+      (c.facts ? '<details><summary>Facts</summary><pre>' + esc(JSON.stringify(c.facts, null, 2)) + '</pre></details>' : '') +
+      '<details><summary>Packet (prompt)</summary><pre>' + esc(c.prompt) + '</pre></details><details><summary>System prompt</summary><pre>' + esc(c.system) + '</pre></details>';
+  }
+  return '<h2 style="margin:0 0 8px;font-size:16px">' + esc(st.e.kind) + ' <span class="mute">' + (st.e.item ? 'item #' + st.e.item : 'the runner') + ' \xB7 ' + esc(st.e.at) + '</span></h2><pre>' + esc(JSON.stringify(st.e.data, null, 2)) + '</pre>';
+}
+function itemDetail(id) {
+  const i = itemById(id); if (!i) return '';
+  return '<h2 style="margin:0 0 8px;font-size:16px">#' + i.id + ' ' + esc(i.title) + ' <button onclick="selected=null;render()">close</button></h2><div class="kv"><div>status now</div><div>' + esc(i.status) + '</div><div>objective</div><div>' + esc(i.objective) + '</div>' + (i.shipped ? '<div>shipped</div><div>' + esc(i.shipped.command) + '</div>' : '') + (i.hold ? '<div>hold</div><div>' + esc(i.hold.code + ': ' + i.hold.message) + '</div>' : '') + '</div>' +
+    Object.entries(i.outputs || {}).map(([job, out]) => '<details><summary>' + esc(job) + ' deliverable</summary><pre>' + esc(out) + '</pre></details>').join('') + '<details><summary>Record</summary><pre>' + esc(JSON.stringify(i, null, 2)) + '</pre></details>';
+}
+const go = (i) => { pos = Math.max(0, Math.min(steps.length - 1, i)); selected = null; render(); };
+document.getElementById('steps').onclick = (ev) => { const el = ev.target.closest('.step'); if (el) go(+el.dataset.i); };
+document.getElementById('board').onclick = (ev) => { const el = ev.target.closest('.card'); if (el) { selected = +el.dataset.item; render(); } };
+document.getElementById('slider').oninput = (ev) => go(+ev.target.value);
+document.getElementById('first').onclick = () => go(0); document.getElementById('last').onclick = () => go(steps.length - 1);
+document.getElementById('prev').onclick = () => go(pos - 1); document.getElementById('next').onclick = () => go(pos + 1);
+document.getElementById('play').onclick = () => { if (timer) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; return; } document.getElementById('play').textContent = '\u23F8 Pause'; timer = setInterval(() => { if (pos >= steps.length - 1) { clearInterval(timer); timer = null; document.getElementById('play').textContent = '\u25B6 Play'; } else go(pos + 1); }, 700); };
+document.onkeydown = (ev) => { if (ev.key === 'ArrowRight') go(pos + 1); if (ev.key === 'ArrowLeft') go(pos - 1); };
+build(); pos = Math.max(0, steps.length - 1); render();
+</script></body></html>`;
+
+// src/telemetry.ts
+import { createHash } from "node:crypto";
+import { appendFileSync, mkdirSync as mkdirSync3, readdirSync as readdirSync2, readFileSync as readFileSync4 } from "node:fs";
+import { hostname } from "node:os";
+import { dirname as dirname3, join as join7, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
+import { fileURLToPath } from "node:url";
+
 // src/lane.ts
-import { readFileSync as readFileSync4 } from "node:fs";
+var MAKERS = ["implement", "test-plan"];
 var isMaker = (job) => job === "implement" || job === "test-plan";
-var Positive2 = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
-var StepSpec = Schema_exports.Struct({
-  job: Schema_exports.String.annotate({ description: `the job's name, lowercase letters, digits and "-"; a slot (discover, plan, implement, test-plan, verify) gets the console's behaviour` }),
-  profile: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the agent profile that does it, never a personal name" })),
-  duty: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "what the job is for and what it must not do, in one or two sentences" })),
-  task: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "further instructions for the job itself" })),
-  receives: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String).annotate({ description: 'earlier jobs of the same loop whose deliverables it gets ("discover" in delivery: the candidate); default: every earlier one' })),
-  output: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown).annotate({ description: `a thinking step's deliverable as JSON Schema, {"type": "object", ...}: Made Well checks type, properties, required, items, enum and anyOf` })),
-  tier: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: `a thinking step's prescribed tier when the prescriptions do not name its job; default "deep"` })),
-  budget: Schema_exports.optionalKey(Schema_exports.Struct({ minutes: Positive2, tokens: Schema_exports.optional(Positive2) }).annotate({ description: "a thinking step's budget when the prescriptions do not name its job" }))
-}).annotate({ identifier: "Step" });
-var CartridgeSpec = Schema_exports.Struct({
-  cartridge: Schema_exports.NonEmptyString.annotate({ description: "its name, shown as the stage of its steps" }),
-  steps: Schema_exports.NonEmptyArray(StepSpec)
-}).annotate({ identifier: "Cartridge" });
-var Pack = Schema_exports.Struct({
-  name: Schema_exports.NonEmptyString,
-  brief: Schema_exports.optionalKey(Schema_exports.String.annotate({ description: "what every call of this kind of work should know, added to the shared brief" })),
-  discovery: Schema_exports.NonEmptyArray(CartridgeSpec).annotate({ description: 'raw input in, candidates out; the last step is "discover"' }),
-  delivery: Schema_exports.NonEmptyArray(CartridgeSpec).annotate({ description: 'one item in, delivered out: thinking steps, then "plan", then "implement" (and "test-plan" beside it, or leave it out), then "verify"' })
-}).annotate({ identifier: "Pack" });
-var SLOTS = ["discover", "plan", "implement", "test-plan", "verify"];
-var SLOT_DEFAULTS = {
-  discover: { profile: "ideator", duty: `Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement.` },
-  plan: { profile: "planner", duty: "Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement." },
-  "test-plan": { profile: "test architect", duty: "From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code." },
-  implement: { profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan, and never write or run checks of your own work." },
-  verify: { profile: "made well", duty: "Made Well runs the item's own check commands against the implementer's change; exit 0 ships." }
+var DELIVERY = [
+  { job: "ideate", stage: "ideation", profile: "ideator", duty: "Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement." },
+  { job: "challenge", stage: "ideation", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement." },
+  { job: "plan", stage: "planning", profile: "planner", duty: "Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement." },
+  { job: "test-plan", stage: "planning", profile: "test architect", duty: "From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code." },
+  { job: "implement", stage: "implementation", profile: "implementer", duty: "Execute the plan exactly as written. Do not design, improvise or change the plan, and never write or run checks of your own work." },
+  { job: "verify", stage: "verification", profile: "made well", duty: "Made Well runs the item's own check commands against the implementer's change; exit 0 ships." }
+];
+var DISCOVER = {
+  job: "discover",
+  stage: "discovery",
+  profile: "ideator",
+  duty: `Turn the operator's raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator's terms. Surface uncertainty instead of guessing. Do not plan or implement.`
 };
 var ARBITER = {
   job: "arbitrate",
+  stage: "verification",
   profile: "arbiter",
   duty: "A check failed or a step could not be done as written. Decide from the evidence whose it is: a pre-existing defect, a bad implementation, or a bad test."
 };
-function problemsOf(pack) {
-  const out = [];
-  const seen = /* @__PURE__ */ new Set();
-  const loop = (name) => pack[name].flatMap((c) => c.steps.map((s) => ({ ...s, cartridge: c.cartridge })));
-  const disc = loop("discovery");
-  const del = loop("delivery");
-  for (const [name, steps] of [["discovery", disc], ["delivery", del]]) {
-    steps.forEach((s, i) => {
-      const at = `${name} step ${s.job}`;
-      if (!/^[a-z][a-z0-9-]*$/.test(s.job)) out.push(`${name} step "${s.job}": a job name is lowercase letters, digits and "-".`);
-      if (s.job === "arbitrate" || s.job === "ship") out.push(`${at}: "${s.job}" is the console's own; it cannot be placed.`);
-      if (seen.has(s.job)) out.push(`${at}: the job name is used twice.`);
-      seen.add(s.job);
-      const slot = SLOTS.includes(s.job);
-      if (slot && s.output) out.push(`${at}: a slot's deliverable is the console's own contract; remove "output".`);
-      if (slot && (s.tier || s.budget)) out.push(`${at}: a slot runs on its prescription; remove "tier" and "budget".`);
-      if (s.job === "verify" && (s.profile || s.duty || s.task || s.receives)) out.push(`${at}: verify is Made Well's own run of the checks; give it only its job.`);
-      if (isMaker(s.job) && s.receives) out.push(`${at}: the makers receive the plan alone (ruling 12); remove "receives".`);
-      if (!slot) {
-        if (!s.profile || !s.duty) out.push(`${at}: a thinking step needs a "profile" and a "duty".`);
-        if (s.output?.type !== "object") out.push(`${at}: a thinking step needs an "output" JSON Schema of {"type": "object", ...}.`);
-      }
-      const earlier = steps.slice(0, i).map((e) => e.job);
-      for (const r of s.receives ?? []) if (!earlier.includes(r) && !(name === "delivery" && r === "discover")) out.push(`${at}: it receives "${r}", which is not an earlier step of ${name}${name === "delivery" ? ' or "discover"' : ""}.`);
-    });
-  }
-  if (disc.at(-1)?.job !== "discover") out.push('discovery: its last step is "discover", which returns the candidates.');
-  for (const s of disc) if (s.job !== "discover" && SLOTS.includes(s.job)) out.push(`discovery step ${s.job}: a delivery slot cannot run in discovery.`);
-  if (del.some((s) => s.job === "discover")) out.push('delivery: "discover" belongs to discovery.');
-  const jobs2 = del.map((s) => s.job);
-  const plan = jobs2.indexOf("plan");
-  const makers = jobs2.filter(isMaker);
-  if (jobs2.at(-1) !== "verify") out.push(`delivery: its last step is "verify", Made Well's run of the checks, merge and ship.`);
-  if (plan < 0) out.push('delivery: it needs "plan", the contract the makers are held to.');
-  if (!jobs2.includes("implement")) out.push('delivery: it needs "implement", which makes the change.');
-  if (plan >= 0 && jobs2.includes("implement") && jobs2.at(-1) === "verify") {
-    const between3 = jobs2.slice(plan + 1, -1);
-    if (between3.length !== makers.length || between3.some((j) => !isMaker(j))) out.push('delivery: after "plan" come only the makers ("implement", and "test-plan" beside it), then "verify": nothing may change the plan under them.');
-    const homes = new Set(del.filter((s) => isMaker(s.job)).map((s) => s.cartridge));
-    if (homes.size > 1) out.push('delivery: "implement" and "test-plan" run in parallel, so they sit in the same cartridge.');
-  }
-  return out;
-}
-function compile2(pack) {
-  const loop = (name) => {
-    const steps = pack[name].flatMap((c) => c.steps.map((s) => ({ s, cartridge: c.cartridge })));
-    return steps.map(({ s, cartridge }, i) => {
-      const d = SLOT_DEFAULTS[s.job];
-      const earlier = steps.slice(0, i).map((e) => e.s.job).filter((j) => j !== "verify");
-      const receives = isMaker(s.job) ? ["plan"] : s.job === "verify" ? [] : s.receives ?? (name === "delivery" ? ["discover", ...earlier] : earlier);
-      return {
-        job: s.job,
-        cartridge,
-        loop: name,
-        profile: s.profile ?? d?.profile ?? s.job,
-        duty: s.duty ?? d?.duty ?? "",
-        receives,
-        ...s.task ? { task: s.task } : {},
-        ...s.output ? { output: s.output } : {},
-        ...s.tier ? { tier: s.tier } : {},
-        ...s.budget ? { budget: s.budget } : {}
-      };
-    });
-  };
-  const delivery = loop("delivery");
-  const makers = ["implement", "test-plan"].filter((m) => delivery.some((s) => s.job === m));
-  return {
-    pack,
-    discovery: loop("discovery"),
-    delivery,
-    makers,
-    arbiter: { ...ARBITER, cartridge: delivery.at(-1).cartridge, loop: "delivery", receives: ["plan", ...makers] }
-  };
-}
-var lanes = /* @__PURE__ */ new Map();
-var laneOf = (pack) => {
-  const key = pack ? JSON.stringify(pack) : "";
-  let lane = lanes.get(key);
-  if (!lane) lanes.set(key, lane = compile2(pack ?? SOFTWARE));
-  return lane;
+var stepOf = (job) => job === "arbitrate" ? ARBITER : job === "discover" ? DISCOVER : DELIVERY.find((s) => s.job === job);
+var RECEIVES = {
+  discover: [],
+  ideate: ["discover"],
+  challenge: ["discover", "ideate"],
+  plan: ["discover", "ideate", "challenge"],
+  "test-plan": ["plan"],
+  implement: ["plan"],
+  verify: [],
+  arbitrate: ["plan", "test-plan", "implement"]
 };
-var stepOf = (lane, job) => job === "arbitrate" ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: "delivery", profile: job, duty: "", receives: [] };
-var hasJob = (lane, job) => job === "arbitrate" || [...lane.discovery, ...lane.delivery].some((s) => s.job === job);
-var loadPack = (path) => Effect_exports.gen(function* () {
-  const text2 = yield* Effect_exports.try({
-    try: () => readFileSync4(path, "utf8"),
-    catch: (e) => new MadeWellError({ code: "cartridges_unreadable", message: `Cannot read the cartridge pack ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: "mw cartridges", why: "print the default pack to start one from" }] })
-  });
-  const invalid4 = (problems2) => new MadeWellError({
-    code: "cartridges_invalid",
-    message: `The cartridge pack ${path} does not plug into the console.`,
-    context: { path, problems: problems2 },
-    cause: 'A pack is {name, brief?, discovery: [cartridge], delivery: [cartridge]}, each cartridge {cartridge, steps: [step]}. Discovery ends with "discover"; delivery is thinking steps, then "plan", "implement" (and "test-plan" beside it), then "verify". A thinking step needs a profile, a duty and an output JSON Schema.',
-    next: [{ run: `$EDITOR ${path}`, why: "fix each problem in context.problems" }, { run: "mw cartridges", why: "compare with the default software pack" }]
-  });
-  const json2 = yield* Effect_exports.try({ try: () => JSON.parse(text2), catch: (e) => invalid4([`It is not valid JSON: ${String(e)}`]) });
-  const pack = yield* Schema_exports.decodeUnknownEffect(Pack)(json2).pipe(Effect_exports.mapError((e) => invalid4([String(e)])));
-  const problems = problemsOf(pack);
-  if (problems.length) return yield* invalid4(problems);
-  return pack;
-});
 var Text = Schema_exports.String;
 var Decision = Schema_exports.Struct({
   question: Text,
@@ -22661,88 +22670,34 @@ var PLAN = Schema_exports.Struct({
   follows: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
     path: Text.annotate({ description: "a scope entry that does not exist yet" }),
     follows: Text.annotate({ description: "the existing file (same extension) or directory it is modelled on" })
-  })).annotate({ description: "for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind." })),
-  conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
-    convention: Text.annotate({ description: "one of item.conventions, word for word" }),
-    doneWhen: Schema_exports.optionalKey(Text.annotate({ description: "the id of the done-when item that proves the change keeps it" })),
-    doesNotApply: Schema_exports.optionalKey(Text.annotate({ description: "instead of doneWhen: why this change cannot touch it" }))
-  })).annotate({ description: "every one of item.conventions, held to a done-when item or said not to apply. Required whenever the item has conventions." }))
+  })).annotate({ description: "for every new file or directory in scope, the existing one it follows; its makers receive that file. Required whenever the repo already has one of that kind." }))
 });
-var SLOT_DELIVERABLES = {
+var DELIVERABLES = {
   discover: Schema_exports.Struct({ items: Schema_exports.Array(Candidate) }),
+  ideate: Schema_exports.Struct({ outcome: Text, approach: Text, decisions: Decisions }),
+  challenge: Schema_exports.Struct({ findings: Schema_exports.Array(Schema_exports.Struct({ finding: Text, resolution: Text })), decisions: Decisions }),
   plan: PLAN,
   "test-plan": Schema_exports.Union([Schema_exports.Struct({ checks: Schema_exports.Array(Check), provisioned: Provisioned }), Blocked]),
-  implement: Schema_exports.Union([Schema_exports.Struct({ summary: Text, provisioned: Provisioned }), Blocked])
+  implement: Schema_exports.Union([Schema_exports.Struct({ summary: Text, provisioned: Provisioned }), Blocked]),
+  arbitrate: Schema_exports.Struct({ cause: Schema_exports.Literals(["pre-existing", "implementation", "test", "undetermined"]), answer: Text, evidence: Text, provisioned: Provisioned })
 };
-var arbiterSchema = (lane, autonomous) => Schema_exports.Struct({
-  cause: Schema_exports.Literals(["pre-existing", "implementation", ...lane.makers.includes("test-plan") ? ["test"] : [], "environment", ...autonomous ? [] : ["undetermined"]]),
-  answer: Text,
-  evidence: Text,
-  provisioned: Provisioned
-});
-var slotSchema = (lane, job, autonomous) => job === "arbitrate" ? arbiterSchema(lane, autonomous) : SLOT_DELIVERABLES[job];
-var deliverableShape = (lane, job, autonomous = false) => {
-  const schema = slotSchema(lane, job, autonomous);
-  return schema ? shapeOf(schema) : stepOf(lane, job).output;
-};
-function conforms(schema, value3, at = "answer") {
-  if (Array.isArray(schema.anyOf)) {
-    const tries = schema.anyOf.map((s) => conforms(s, value3, at));
-    return tries.some((t) => !t.length) ? [] : [`${at} matches none of its allowed shapes: ${tries.map((t) => t[0]).join("; ")}`];
-  }
-  const is3 = (t) => t === "object" ? typeof value3 === "object" && value3 !== null && !Array.isArray(value3) : t === "array" ? Array.isArray(value3) : t === "integer" ? Number.isInteger(value3) : t === "null" ? value3 === null : typeof value3 === t;
-  const types = schema.type === void 0 ? [] : [schema.type].flat();
-  if (types.length && !types.some(is3)) return [`${at} must be ${types.join(" or ")}`];
-  const out = [];
-  if (Array.isArray(schema.enum) && !schema.enum.some((e) => e === value3)) out.push(`${at} must be one of ${schema.enum.map((e) => JSON.stringify(e)).join(", ")}`);
-  if (typeof value3 === "object" && value3 !== null && !Array.isArray(value3)) {
-    const v = value3;
-    for (const k of schema.required ?? []) if (v[k] === void 0) out.push(`${at}.${k} is missing`);
-    for (const [k, s] of Object.entries(schema.properties ?? {})) if (v[k] !== void 0) out.push(...conforms(s, v[k], `${at}.${k}`));
-  }
-  if (Array.isArray(value3) && schema.items && typeof schema.items === "object") value3.forEach((x, i) => out.push(...conforms(schema.items, x, `${at}[${i}]`)));
-  return out;
-}
-function malformed(lane, job, output, autonomous = false) {
-  if (job === "discover") return Array.isArray(lastJson(output)?.items) ? void 0 : 'The answer did not end with {"items": [...]}.';
-  const schema = slotSchema(lane, job, autonomous);
-  if (schema) {
-    const r = decode5(schema, output);
-    return r.ok ? void 0 : r.reason;
-  }
-  const shape = stepOf(lane, job).output;
-  if (!shape) return void 0;
-  const json2 = lastJson(output);
-  if (!json2) return "The answer did not end with a JSON object.";
-  const problems = conforms(shape, json2);
-  return problems.length ? `The answer's JSON does not match its schema: ${problems.join("; ")}.` : void 0;
-}
-var Reuse = Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.Struct({
-  question: Text.annotate({ description: "the current question, word for word, that an earlier answer already settles, even if phrased differently" }),
-  answerId: Text.annotate({ description: "the id in answeredBefore of the saved answer to reuse; never invent one" })
-})));
 var INTAKE = Schema_exports.Struct({
   understanding: Text,
   unclear: Schema_exports.Array(Text).annotate({ description: "What is unclear?" }),
   ambiguous: Schema_exports.Array(Text).annotate({ description: "What is ambiguous?" }),
   missing: Schema_exports.Array(Text).annotate({ description: "Do I have everything I need to proceed? What is missing." }),
-  notes: Schema_exports.Array(Text).annotate({ description: "points the packet already settles; never an assumption or a choice" }),
-  reuse: Reuse
+  notes: Schema_exports.Array(Text).annotate({ description: "points the packet already settles; never an assumption or a choice" })
 });
-var ORIGINATOR = Schema_exports.Struct({
-  answer: Schema_exports.NonEmptyString,
-  needsOperator: Schema_exports.Boolean,
-  reuse: Reuse
-});
+var ORIGINATOR = Schema_exports.Struct({ answer: Schema_exports.NonEmptyString, needsOperator: Schema_exports.Boolean });
 var shapeOf = (schema) => JSON.parse(JSON.stringify(Schema_exports.toJsonSchemaDocument(schema).schema, (k, v) => k === "additionalProperties" ? void 0 : v));
 var requiredOf = (schema) => {
   const s = shapeOf(schema);
   return s.required ?? [];
 };
 function decode5(schema, output) {
-  const json2 = lastJson(output);
-  if (!json2) return { ok: false, reason: "The answer did not end with a JSON object." };
-  const r = Schema_exports.decodeUnknownResult(schema)(json2, { errors: "all" });
+  const json = lastJson(output);
+  if (!json) return { ok: false, reason: "The answer did not end with a JSON object." };
+  const r = Schema_exports.decodeUnknownResult(schema)(json, { errors: "all" });
   return Result_exports.isSuccess(r) ? { ok: true, value: r.success } : { ok: false, reason: `The answer's JSON does not match its schema: ${r.failure.message}` };
 }
 var dupes = (ids) => ids.filter((id2, i) => ids.indexOf(id2) !== i);
@@ -22768,7 +22723,7 @@ function unfollowed(p, tracked) {
   }
   return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(" ")}` : void 0;
 }
-function validate3(lane, job, output, plan, tracked, autonomous = false, conventions = []) {
+function validate3(job, output, plan, tracked) {
   if (job === "discover") {
     const report = lastJson(output);
     if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
@@ -22783,12 +22738,7 @@ function validate3(lane, job, output, plan, tracked, autonomous = false, convent
     return { ok: true, value: { items } };
   }
   if (job === "verify") return { ok: false, reason: "verify is Made Well's own code, not an agent job." };
-  const schema = slotSchema(lane, job, autonomous);
-  if (!schema) {
-    const problem = malformed(lane, job, output);
-    return problem ? { ok: false, reason: problem } : { ok: true, value: lastJson(output) ?? {} };
-  }
-  const decoded = decode5(schema, output);
+  const decoded = decode5(DELIVERABLES[job], output);
   if (!decoded.ok) return decoded;
   const value3 = decoded.value;
   if (job === "plan") {
@@ -22800,12 +22750,6 @@ function validate3(lane, job, output, plan, tracked, autonomous = false, convent
     if (dupes(p.doneWhen.map((d) => d.id)).length) return { ok: false, reason: `Done-when ids repeat: ${dupes(p.doneWhen.map((d) => d.id)).join(", ")}.` };
     const missed = tracked && unfollowed(p, tracked);
     if (missed) return { ok: false, reason: missed };
-    const ids = p.doneWhen.map((d) => d.id);
-    const loose = conventions.filter((c) => {
-      const held2 = p.conventions?.find((e) => e.convention.trim() === c.trim());
-      return !held2 || (held2.doneWhen === void 0 ? !held2.doesNotApply?.trim() : !ids.includes(held2.doneWhen));
-    });
-    if (loose.length) return { ok: false, reason: `The plan does not hold the change to the project's conventions. Under "conventions", copy each one word for word with the id of a done-when item in this plan that proves the change keeps it, or say why it does not apply: ${loose.map((c) => JSON.stringify(c)).join(", ")}.` };
   }
   if (job === "test-plan" && "checks" in value3 && plan) {
     const checks = value3.checks;
@@ -22820,29 +22764,27 @@ function validate3(lane, job, output, plan, tracked, autonomous = false, convent
   return { ok: true, value: value3 };
 }
 var MAX_CORRECTIONS = 3;
-var blockedOf = (lane, job, value3) => typeof value3.blocked === "string" ? `The ${stepOf(lane, job).profile} (${job}) could not do the step as written: ${value3.blocked}` : void 0;
-function route(lane, job, value3, corrections) {
+var blockedOf = (job, value3) => typeof value3.blocked === "string" ? `The ${stepOf(job).profile} (${job}) could not do the step as written: ${value3.blocked}` : void 0;
+function route(job, value3, corrections) {
   if (job === "discover") return { to: "discovered", items: value3.items };
-  const blocked = blockedOf(lane, job, value3);
+  const blocked = blockedOf(job, value3);
   if (blocked) return { to: "arbitrate", failure: blocked };
   if (job === "plan") return { to: "split" };
   if (job === "test-plan" || job === "implement") return { to: "next", job: "verify" };
   if (job === "arbitrate") {
     const cause = value3.cause;
     const answer2 = value3.answer;
-    if (cause === "environment") return { to: "environment", answer: answer2 };
     if (cause === "undetermined") return { to: "hold", code: "arbiter_undetermined", message: `The arbiter could not decide whose failure this is: ${answer2}` };
     if (corrections >= MAX_CORRECTIONS) return { to: "hold", code: "too_many_corrections", message: `${corrections} corrections have not made the checks pass. Last ruling: ${cause}: ${answer2}` };
     if (cause === "pre-existing") return { to: "prerequisite", answer: answer2 };
     return { to: "rework", job: cause === "test" ? "test-plan" : "plan", cause, answer: answer2 };
   }
-  const steps = stepOf(lane, job).loop === "discovery" ? lane.discovery : lane.delivery;
-  const i = steps.findIndex((s) => s.job === job);
-  return { to: "next", job: steps[i + 1].job };
+  const i = DELIVERY.findIndex((s) => s.job === job);
+  return { to: "next", job: DELIVERY[i + 1].job };
 }
 function lastJson(text2) {
   text2 = text2.replace(/\s*```\s*$/, "");
-  for (let start = text2.lastIndexOf("{"); start !== -1; start = start === 0 ? -1 : text2.lastIndexOf("{", start - 1)) {
+  for (let start = text2.lastIndexOf("{"); start !== -1; start = text2.lastIndexOf("{", start - 1)) {
     try {
       const value3 = JSON.parse(text2.slice(start).trim());
       if (value3 && typeof value3 === "object" && !Array.isArray(value3)) return value3;
@@ -22851,29 +22793,8 @@ function lastJson(text2) {
   }
   return void 0;
 }
-var SOFTWARE = {
-  name: "software",
-  discovery: [{ cartridge: "discovery", steps: [{ job: "discover" }] }],
-  delivery: [
-    {
-      cartridge: "ideation",
-      steps: [
-        { job: "ideate", profile: "ideator", duty: "Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement.", output: shapeOf(Schema_exports.Struct({ outcome: Text, approach: Text, decisions: Decisions })) },
-        { job: "challenge", profile: "ideation peer", duty: "Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement.", output: shapeOf(Schema_exports.Struct({ findings: Schema_exports.Array(Schema_exports.Struct({ finding: Text, resolution: Text })), decisions: Decisions })) }
-      ]
-    },
-    { cartridge: "planning", steps: [{ job: "plan" }] },
-    { cartridge: "implementation", steps: [{ job: "implement" }, { job: "test-plan" }] },
-    { cartridge: "verification", steps: [{ job: "verify" }] }
-  ]
-};
 
 // src/telemetry.ts
-import { createHash } from "node:crypto";
-import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync2, readdirSync as readdirSync2, readFileSync as readFileSync5 } from "node:fs";
-import { hostname } from "node:os";
-import { dirname as dirname3, join as join6, matchesGlob as matchesGlob2, resolve as resolve4 } from "node:path";
-import { fileURLToPath } from "node:url";
 var WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "create_file", "undo_edit", "file_change", "edit", "write"];
 var lines3 = (raw) => raw.split("\n").flatMap((l) => {
   try {
@@ -23009,7 +22930,7 @@ var buildOf = () => {
   try {
     const here = dirname3(fileURLToPath(import.meta.url));
     const hash2 = createHash("sha256");
-    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync5(join6(here, f)));
+    for (const f of readdirSync2(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync4(join7(here, f)));
     build2 = hash2.digest("hex").slice(0, 12);
   } catch {
     build2 = null;
@@ -23023,14 +22944,14 @@ function telemetry(storePath2) {
   if (!dir || storePath2 === ":memory:") return void 0;
   const host = hostname();
   const store = createHash("sha256").update(resolve4(storePath2)).digest("hex").slice(0, 8);
-  const file = join6(resolve4(dir), `${host}-${store}.jsonl`);
+  const file = join7(resolve4(dir), `${host}-${store}.jsonl`);
   const full = [void 0, "", "full"].includes(process.env.MW_TELEMETRY_LEVEL);
   return {
     file,
     write(t, record2) {
       try {
-        mkdirSync2(dirname3(file), { recursive: true });
-        appendFileSync3(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+        mkdirSync3(dirname3(file), { recursive: true });
+        appendFileSync(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
       } catch {
       }
     }
@@ -23038,16 +22959,10 @@ function telemetry(storePath2) {
 }
 var nanosToMs = (n) => Number(n / 1000000n);
 var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => {
-  const local = !file.startsWith(":memory:");
-  if (process.env.MW_DEBUG === "0" || !sink && !local) return Layer_exports.empty;
-  const write = (span2) => {
-    sink?.write("span", span2);
-    if (!local) return;
-    try {
-      mkdirSync2(dirname3(file), { recursive: true });
-      appendFileSync3(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
-    } catch {
-    }
+  if (!sink && process.env.MW_DEBUG !== "1") return Layer_exports.empty;
+  const write = sink ? (span2) => sink.write("span", span2) : (span2) => {
+    mkdirSync3(dirname3(file), { recursive: true });
+    appendFileSync(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
   };
   return Layer_exports.succeed(Tracer_exports.Tracer, Tracer_exports.make({
     span(options) {
@@ -23072,11 +22987,11 @@ function stats(lines4) {
   const latest = /* @__PURE__ */ new Map();
   let from = null;
   let to = null;
-  const tally2 = () => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 });
+  const tally = () => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 });
   const kinds = () => ({ intake: 0, originator: 0, execute: 0 });
   const project = (host, workspace) => {
     const key = `${host}\0${workspace}`;
-    if (!projects.has(key)) projects.set(key, { host, workspace, ...tally2(), kinds: kinds(), items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, shipped: [], open: [] }, flags: {}, jobs: {}, cards: {} });
+    if (!projects.has(key)) projects.set(key, { host, workspace, ...tally(), kinds: kinds(), items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, shipped: [], open: [] }, flags: {}, jobs: {}, cards: {} });
     return projects.get(key);
   };
   const refused = /* @__PURE__ */ new Set();
@@ -23114,8 +23029,8 @@ function stats(lines4) {
       const card = `${r.card.harness} \xB7 ${r.card.model} \xB7 ${r.card.effort}`;
       const minutes2 = r.ms / 6e4;
       const tokens = totalTokens(r.tokens);
-      const job = p.jobs[r.job] ??= { ...tally2(), kinds: kinds() };
-      for (const t of [p, job, p.cards[card] ??= tally2()]) {
+      const job = p.jobs[r.job] ??= { ...tally(), kinds: kinds() };
+      for (const t of [p, job, p.cards[card] ??= tally()]) {
         t.calls++;
         t.minutes += minutes2;
         t.tokens += tokens;
@@ -23162,8 +23077,7 @@ function stats(lines4) {
 }
 
 // src/store.ts
-var DEFAULT_AUTONOMY = "checkpoints";
-var defaultStorePath = () => process.env.MW_STORE ?? join7(process.env.MW_HOME ?? join7(homedir2(), ".local", "share", "madewell"), "madewell.db");
+var defaultStorePath = () => process.env.MW_STORE ?? join8(process.env.MW_HOME ?? join8(homedir2(), ".local", "share", "madewell"), "madewell.db");
 var alive2 = (pid) => {
   try {
     process.kill(pid, 0);
@@ -23173,7 +23087,7 @@ var alive2 = (pid) => {
   }
 };
 function openStore(path) {
-  mkdirSync3(dirname4(path), { recursive: true });
+  mkdirSync4(dirname4(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
@@ -23201,6 +23115,7 @@ function openStore(path) {
       throw e;
     }
   };
+  const glass = join8(dirname4(path), "glass.html");
   const insertTools = (call, tools) => {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
@@ -23221,29 +23136,35 @@ function openStore(path) {
     const { lastInsertRowid } = db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, at, kind, JSON.stringify(data));
     emit("event", { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data });
   };
+  const view2 = () => {
+    if (path === ":memory:") return;
+    try {
+      writeFileSync5(`${glass}.tmp`, replayHtml(snapshot3(store)));
+      renameSync(`${glass}.tmp`, glass);
+    } catch {
+    }
+  };
   const read = (id2) => {
     const row = db.prepare("SELECT doc FROM items WHERE id = ?").get(id2);
     return row && JSON.parse(row.doc);
   };
   const store = {
     path,
+    glass,
     create(fields) {
       const created = tx2(() => {
         const now2 = (/* @__PURE__ */ new Date()).toISOString();
         const { lastInsertRowid } = db.prepare("INSERT INTO items (doc) VALUES (?)").run("{}");
-        const item = { job: laneOf(fields.pack).delivery[0].job, from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
+        const item = { job: "ideate", from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(item), item.id);
         event(item.id, "created", { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null });
         return item;
       });
+      view2();
       return created;
     },
     get(id2) {
       return read(id2);
-    },
-    /** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
-    note(id2, kind, data = {}) {
-      tx2(() => event(id2, kind, data));
     },
     /** Saves the new state of an item together with the event that explains it. */
     save(item, kind, data = {}) {
@@ -23252,6 +23173,7 @@ function openStore(path) {
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(next), item.id);
         event(item.id, kind, data);
       });
+      view2();
       return next;
     },
     list() {
@@ -23279,9 +23201,8 @@ function openStore(path) {
       emit("rejected", { call: id2, at: (/* @__PURE__ */ new Date()).toISOString(), reason });
     },
     /** Every call, or one item's, oldest first. */
-    calls(item, id2) {
-      const where = id2 !== void 0 ? "WHERE id = ?" : item !== void 0 ? "WHERE item = ?" : "";
-      const rows = db.prepare(`SELECT * FROM calls ${where} ORDER BY id`).all(...id2 !== void 0 ? [id2] : item !== void 0 ? [item] : []);
+    calls(item) {
+      const rows = db.prepare(`SELECT * FROM calls ${item === void 0 ? "" : "WHERE item = ?"} ORDER BY id`).all(...item === void 0 ? [] : [item]);
       const tools = db.prepare("SELECT seq, tool, digest, input_bytes AS inputBytes, output_bytes AS outputBytes, tokens, at, ms, error FROM tool_events WHERE call = ? ORDER BY seq");
       return rows.map((r) => ({
         ...r,
@@ -23291,18 +23212,6 @@ function openStore(path) {
         flags: JSON.parse(r.flags),
         tools: tools.all(r.id).map((t) => ({ ...t, error: t.error === 1 }))
       }));
-    },
-    /** Every call without its texts (brief, packet, answer, raw stream), which `call` returns: what a live view polls. */
-    callHeads() {
-      const rows = db.prepare("SELECT id, item, kind, job, profile, card, outcome, error, started, ms, tokens, flags, length(system) AS systemBytes, length(prompt) AS packetBytes, length(output) AS answerBytes, length(raw) AS rawBytes, (SELECT COUNT(*) FROM tool_events t WHERE t.call = calls.id) AS toolCount FROM calls ORDER BY id").all();
-      return rows.map((r) => ({ ...r, card: JSON.parse(r.card), tokens: r.tokens ? JSON.parse(r.tokens) : null, flags: JSON.parse(r.flags) }));
-    },
-    call(id2) {
-      return store.calls(void 0, id2)[0];
-    },
-    /** The newest event and call: a view looks again only when either moved. */
-    mark() {
-      return db.prepare("SELECT (SELECT COALESCE(MAX(seq), 0) FROM events) AS events, (SELECT COALESCE(MAX(id), 0) FROM calls) AS calls").get();
     },
     allEvents() {
       return db.prepare("SELECT * FROM events ORDER BY seq").all().map((r) => ({ ...r, data: JSON.parse(r.data) }));
@@ -23324,7 +23233,7 @@ function openStore(path) {
           event(0, row?.pid === process.pid ? "runner-reloaded" : "runner-started", { pid: process.pid, ...process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
           return void 0;
         });
-        if (!owner) return Effect_exports.void;
+        if (!owner) return Effect_exports.sync(view2);
         const busy = owner.item === null ? void 0 : read(owner.item);
         return Effect_exports.fail(new MadeWellError({
           code: "store_locked",
@@ -23362,6 +23271,7 @@ function openStore(path) {
         if (Object.values(r).some(Boolean)) event(0, "pruned", { before, ...r, ids });
         return r;
       });
+      view2();
       if (db.prepare("PRAGMA freelist_count").get().freelist_count) db.exec("VACUUM");
       db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
       return removed;
@@ -23378,6 +23288,7 @@ function openStore(path) {
       tx2(() => {
         if (db.prepare("DELETE FROM runner WHERE id = 1 AND pid = ?").run(process.pid).changes) event(0, "runner-stopped", { pid: process.pid });
       });
+      view2();
     },
     close() {
       db.close();
@@ -23387,10 +23298,9 @@ function openStore(path) {
 }
 var Store = class extends Context_exports.Service()("madewell/Store") {
 };
-var spansPath = (path) => join7(dirname4(path), "spans.jsonl");
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
-  debugLayer(path === ":memory:" ? ":memory:" : spansPath(path), telemetry(path))
+  debugLayer(join8(dirname4(path), "debug.jsonl"), telemetry(path))
 );
 
 // src/project.ts
@@ -23403,36 +23313,33 @@ var Project = Schema_exports.Struct({
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
   alert: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set" })),
   prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
-  autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: checkpoints (the default), steps or full; FOUNDATION ruling 17" })),
-  cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the cartridge pack file this project's new work runs; without it, the default software pack" })),
-  conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.NonEmptyString).annotate({ description: `the rules this repo's work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.` })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
-var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
+var projectsPath = (storePath2) => join9(dirname5(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
-  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync6(path, "utf8")).pipe(
+  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync5(path, "utf8")).pipe(
     Effect_exports.mapError((e) => new MadeWellError({
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, autonomy?, cartridges?, conventions?: [string], gates?: [{run, glob?}]}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, gates?: [{run, glob?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
 });
 var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep)).sort((a, b) => b.path.length - a.path.length)[0];
-var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project, replace = false) {
+var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project) {
   const projects = yield* readProjects(path);
-  const merged = replace ? project : { ...projects.find((p) => p.path === project.path), ...project };
-  mkdirSync4(dirname5(path), { recursive: true });
-  writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
+  const merged = { ...projects.find((p) => p.path === project.path), ...project };
+  mkdirSync5(dirname5(path), { recursive: true });
+  writeFileSync6(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
   return merged;
 });
-var openHolds = (store) => store.list().filter((i) => (i.status === "held" || i.status === "paused") && i.hold !== void 0).map((item) => {
+var openHolds = (store) => store.list().filter((i) => i.status === "held" && i.hold !== void 0).map((item) => {
   const events2 = store.events(item.id);
-  const at = events2.findLastIndex((e) => e.kind === "held" || e.kind === "paused");
+  const at = events2.findLastIndex((e) => e.kind === "held");
   const alert = events2.slice(at + 1).find((e) => e.kind === "alerted");
   return {
     item: item.id,
@@ -23443,12 +23350,10 @@ var openHolds = (store) => store.list().filter((i) => (i.status === "held" || i.
     alerted: alert ? { at: alert.at, exitCode: alert.data.exitCode } : null
   };
 }).sort((a, b) => a.since.localeCompare(b.since));
-var alertHolds = (registry2) => Effect_exports.gen(function* () {
-  const holds = openHolds(yield* Store).filter((h) => !h.alerted);
-  if (holds.length) yield* sendAlerts(registry2, holds);
-});
-var sendAlerts = Effect_exports.fn("mw.alertHolds")(function* (registry2, holds) {
+var alertHolds = Effect_exports.fn("mw.alertHolds")(function* (registry2) {
   const store = yield* Store;
+  const holds = openHolds(store).filter((h) => !h.alerted);
+  if (!holds.length) return;
   const projects = yield* readProjects(registry2);
   for (const hold2 of holds) {
     const command2 = projectFor(projects, hold2.workspace)?.alert;
@@ -23466,41 +23371,16 @@ var sendAlerts = Effect_exports.fn("mw.alertHolds")(function* (registry2, holds)
 
 // src/engine.ts
 var MAX_LAUNCHES = 3;
-var REPAIR_BUDGET = { minutes: 5 };
 var MAX_TURNS = 3;
 var UNKNOWN_RESET_MS = 60 * 6e4;
 var MIN_OUT_MS = 5 * 6e4;
 var NQ_HOLDS = ["nq_turns", "question_for_operator", "authority"];
-var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections", "prerequisite_too_deep"];
-var MAX_DEPTH = 2;
-var DONE = ["held", "paused", "shipped", "discovered", "candidate", "dropped"];
+var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections"];
+var DONE = ["held", "shipped", "discovered", "candidate", "dropped"];
 var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var INTAKE_TIER = "intake";
-var liveFile = (store, name) => {
-  if (store.path === ":memory:") return void 0;
-  try {
-    const dir = join9(dirname6(store.path), "live");
-    mkdirSync5(dir, { recursive: true });
-    const file = join9(dir, `${name}.log`);
-    writeFileSync5(file, "");
-    return file;
-  } catch {
-    return void 0;
-  }
-};
-var endLive = (file) => file && rmSync5(file, { force: true });
-var endLiveOf = (store, id2) => {
-  if (store.path === ":memory:") return;
-  const dir = join9(dirname6(store.path), "live");
-  try {
-    for (const f of readdirSync3(dir)) if (f.startsWith(`item-${id2}-`)) rmSync5(join9(dir, f), { force: true });
-  } catch {
-  }
-};
 var notFound2 = (id2) => new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item and its state" }] });
-var L = (item) => laneOf(item.pack);
-var auto = (item) => (item.autonomy ?? DEFAULT_AUTONOMY) === "full";
-var profileOf = (item, o) => o.kind === "job" ? stepOf(L(item), o.job).profile : o.kind;
+var profileOf = (o) => o.kind === "job" ? stepOf(o.job).profile : o.kind;
 var trackOf = (item, job) => isMaker(job) && item.split?.[job] || { from: item.from, exchange: item.exchange, launches: item.launches, pickingUp: item.pickingUp, rejected: item.rejected };
 var withTrack = (item, job, t) => isMaker(job) && item.split?.[job] ? { ...item, split: { ...item.split, [job]: t } } : { ...item, from: t.from, exchange: t.exchange, launches: t.launches, pickingUp: t.pickingUp, rejected: t.rejected };
 var saveTrack = (store, id2, job, patch, kind, data, fields = {}) => {
@@ -23514,7 +23394,7 @@ var deliverableOf = (item, job) => {
   return out === void 0 ? void 0 : lastJson(out) ?? out;
 };
 var planOf = (item) => {
-  const v = item.outputs.plan === void 0 ? void 0 : validate3(L(item), "plan", item.outputs.plan);
+  const v = item.outputs.plan === void 0 ? void 0 : validate3("plan", item.outputs.plan);
   return v?.ok ? v.value : void 0;
 };
 function handoffOf(item, job, t) {
@@ -23523,22 +23403,17 @@ function handoffOf(item, job, t) {
   if (item.rework) return `Ruling (${item.rework.cause}): ${item.rework.answer}`;
   return t.from.kind === "job" ? item.outputs[t.from.job] ?? "" : "";
 }
-var drive = Effect_exports.fn("mw.drive")(function* (id2, given) {
+var drive = Effect_exports.fn("mw.drive")(function* (id2, config) {
   const store = yield* Store;
   yield* Effect_exports.annotateCurrentSpan({ item: id2 });
-  const first = store.get(id2);
-  if (!first) return yield* notFound2(id2);
-  const prescribed = yield* Effect_exports.result(forLane(given.prescriptions, L(first)));
-  if (Result_exports.isFailure(prescribed)) return holdFor(store, id2, prescribed.failure), store.get(id2);
-  const config = { ...given, prescriptions: prescribed.success };
   for (; ; ) {
     const item = store.get(id2);
     if (!item) return yield* notFound2(id2);
     if (DONE.includes(item.status) || unshipped(store, item).length) return item;
     if (item.waitsOn !== void 0) {
       const pre = yield* drive(item.waitsOn, config);
-      if (pre.status !== "shipped" && pre.status !== "dropped") return store.get(id2);
-      store.save({ ...item, waitsOn: void 0, status: "running", job: "verify", exchange: void 0, launches: 0, verification: void 0 }, pre.status === "shipped" ? "prerequisite-shipped" : "prerequisite-dropped", { prerequisite: pre.id });
+      if (pre.status !== "shipped") return store.get(id2);
+      store.save({ ...item, waitsOn: void 0, status: "running", job: "verify", exchange: void 0, launches: 0, verification: void 0 }, "prerequisite-shipped", { prerequisite: pre.id });
       continue;
     }
     store.runnerOn(id2);
@@ -23549,14 +23424,10 @@ var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
   const store = yield* Store;
   if (!item.base) {
     const base = yield* branchOf(item.workspace);
-    const conventions = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.conventions ?? [];
-    store.save({ ...item, base, conventions: conventions.length ? conventions : void 0 }, "base", { ref: base.ref, main: base.commit, ...conventions.length ? { conventions } : {} });
+    store.save({ ...item, base }, "base", { ref: base.ref, main: base.commit });
     return;
   }
   if (pending(item).length) return yield* aftercare(item.id);
-  if (!hasJob(L(item), item.job)) {
-    return hold(store, item, "cartridge_missing", `Item #${item.id} is at the ${item.job} job, which its cartridge pack no longer has.`, { job: item.job, pack: L(item).pack.name, jobs: [...L(item).discovery, ...L(item).delivery].map((s) => s.job) });
-  }
   if (item.job === "verify") return yield* verifyAndShip(item.id, config);
   if (item.split) return yield* runSplit(item.id, config);
   return yield* step(item.id, item.job, config);
@@ -23567,10 +23438,7 @@ var step = Effect_exports.fn("mw.step")(function* (id2, job, config) {
   const t = trackOf(item, job);
   const x = t.exchange;
   if (!x) {
-    const handoff = item.steer ? `${handoffOf(item, job, t)}
-
-The operator's word at the checkpoint before this step: ${item.steer}` : handoffOf(item, job, t);
-    saveTrack(store, id2, job, { exchange: { from: t.from, handoff, status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job });
+    saveTrack(store, id2, job, { exchange: { from: t.from, handoff: handoffOf(item, job, t), status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(t.from), to: stepOf(job).profile, job });
   } else if (x.status === "awaiting-receiver") {
     yield* intake(id2, job, config);
   } else if (x.status === "awaiting-originator") {
@@ -23581,7 +23449,6 @@ The operator's word at the checkpoint before this step: ${item.steer}` : handoff
 });
 var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
   const store = yield* Store;
-  const makers = Object.keys(store.get(id2).split ?? {});
   const track2 = (job) => Effect_exports.gen(function* () {
     for (; ; ) {
       const item2 = store.get(id2);
@@ -23589,11 +23456,11 @@ var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
       yield* step(id2, job, config).pipe(Effect_exports.catchTag("MadeWellError", (e) => Effect_exports.sync(() => holdFor(store, id2, e, job))));
     }
   });
-  yield* Effect_exports.all(makers.map(track2), { concurrency: "unbounded" });
+  yield* Effect_exports.all(MAKERS.map(track2), { concurrency: "unbounded" });
   const item = store.get(id2);
-  if (item.status === "held" || !makers.every((m) => item.split?.[m]?.done)) return;
-  const blocked = makers.flatMap((m) => {
-    const failure = blockedOf(L(item), m, deliverableOf(item, m) ?? {});
+  if (item.status === "held" || !MAKERS.every((m) => item.split?.[m]?.done)) return;
+  const blocked = MAKERS.flatMap((m) => {
+    const failure = blockedOf(m, deliverableOf(item, m) ?? {});
     return failure ? [{ job: m, failure }] : [];
   });
   const joined = { ...item, split: void 0, exchange: void 0, launches: 0, pickingUp: void 0, rejected: void 0 };
@@ -23601,17 +23468,8 @@ var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
     store.save({ ...joined, job: "arbitrate", from: { kind: "job", job: blocked[0].job }, failure: blocked.map((b) => b.failure).join("\n\n") }, "failure", { from: blocked.map((b) => b.job) });
     return;
   }
-  store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: makers, to: "verify" });
-  stopBetween(store, id2, "implement", "verify");
+  store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: MAKERS, to: "verify" });
 });
-var pause = (store, item, key, message, context3) => void store.save({ ...item, status: "paused", hold: { code: "checkpoint", message, context: { ...context3, key } } }, "paused", { key, message });
-var stopBetween = (store, id2, from, to) => {
-  const item = store.get(id2);
-  if (item.autonomy !== "steps" || item.status === "held") return;
-  const [a, b] = [stepOf(L(item), from).cartridge, stepOf(L(item), to).cartridge];
-  if (a === b) return;
-  pause(store, item, `${item.round}:${to}`, `Checkpoint: ${a} is done for #${id2}; ${b} (${to}) is next.`, { after: a, next: to });
-};
 var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   const store = yield* Store;
   const p = config.prescriptions;
@@ -23622,159 +23480,60 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   const x = trackOf(item, job).exchange;
   const call = yield* callAgent(id2, job, config, {
     kind: "intake",
-    profile: stepOf(L(item), job).profile,
+    profile: stepOf(job).profile,
     access: INTAKE_ACCESS,
     card: cheap,
     required: requiredOf(INTAKE),
     ...jobTree(item, job),
-    packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake", ledger(store, id2, job)))
+    packet: (dir) => packet(item, job, dir, receiverParts(item, job, x, "intake"))
   });
   if (!call) return;
-  const reply = yield* decodeOrRepair(id2, job, call, INTAKE);
+  const reply = decode5(INTAKE, call.output);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
   const { understanding, unclear, ambiguous, missing: missing2, notes } = reply.value;
-  const reuse = reply.value.reuse ?? [];
-  const previous = ledger(store, id2, job);
-  if (reuse.some((r) => !previous.some((a) => a.id === r.answerId)) || new Set(reuse.map((r) => r.question)).size !== reuse.length) {
-    return yield* refuse(id2, job, call, "A reused answer must name an existing answeredBefore id, once per question.");
-  }
-  const asking = [...new Set([...unclear, ...ambiguous, ...missing2, ...reuse.map((r) => r.question)].filter((q) => q.trim() !== ""))];
-  const known = new Map(previous.map((e) => [sameQuestion(e.question), e]));
-  for (const r of reuse) known.set(sameQuestion(r.question), previous.find((a) => a.id === r.answerId));
-  const recalled = asking.flatMap((q) => ((e) => e ? [{ question: q, answerId: e.id, answer: e.answer, by: e.by }] : [])(known.get(sameQuestion(q))));
-  const questions = asking.filter((q) => !known.has(sameQuestion(q)));
-  const carried = [...x.notes ?? [], ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${r.answer}`)];
-  const receiver = stepOf(L(item), job).profile;
-  if (recalled.length) store.note(id2, "nq-reused", { job, questions: recalled.map((r) => r.question), answer: "Saved answers", reuse: recalled.map(({ question, answerId }) => ({ question, answerId })) });
+  const questions = [...unclear, ...ambiguous, ...missing2].filter((q) => q.trim() !== "");
+  const receiver = stepOf(job).profile;
   if (!questions.length) {
-    saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "clear", understanding, notes: [...carried, ...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap, ...recalled.length ? { recalled } : {} });
+    saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "clear", understanding, notes: [...notes], card } }, "nq-clear", { job, profile: receiver, card, intakeCard: cheap });
     return;
   }
-  const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }], ...carried.length ? { notes: carried } : {} };
+  const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding, questions }] };
   const answered = x.turns.filter((t) => t.answer !== void 0).length;
-  const context3 = { job, receiver, originator: profileOf(item, x.from), questions, turns: x.turns };
+  const context3 = { job, receiver, originator: profileOf(x.from), questions, turns: x.turns };
   const now2 = withTrack(store.get(id2), job, { ...trackOf(store.get(id2), job), exchange: asked });
   if (answered >= MAX_TURNS) return holdTurns(store, now2, job, context3);
   if (x.from.kind === "operator" || x.turns.at(-1)?.by === "operator") {
     return hold(store, now2, "question_for_operator", `The ${receiver} has questions about your answer before it can ${job}.`, context3);
   }
-  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions, ...recalled.length ? { recalled } : {} });
+  saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions });
 });
-var sameQuestion = (q) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-var ledger = (store, id2, job) => {
-  const events2 = store.events(id2);
-  for (let item = store.get(id2); item?.discovery !== void 0 || item?.parent !== void 0; ) {
-    item = store.get(item.discovery ?? item.parent);
-    if (item) events2.push(...store.events(item.id));
-  }
-  const answers = [];
-  const pending2 = /* @__PURE__ */ new Map();
-  for (const e of events2.sort((a, b) => a.seq - b.seq)) {
-    const source = String(e.data.job ?? "");
-    if (job === "implement" && source === "test-plan" || job === "test-plan" && source === "implement") continue;
-    const key = `${e.item}:${source}`;
-    if (e.kind === "nq-question") pending2.set(key, e.data.questions);
-    if (!["nq-answer", "nq-decided", "nq-corrected", "nq-reused"].includes(e.kind) || typeof e.data.answer !== "string") continue;
-    const questions = e.data.questions ?? pending2.get(key) ?? [];
-    const reused = e.data.reuse ?? [];
-    questions.forEach((question, i) => {
-      const ref = reused.find((r) => r.question === question);
-      const prior = ref && answers.find((a) => a.id === ref.answerId);
-      if (ref && !prior) return;
-      answers.push({ id: `${e.seq}:${i}`, question, answer: prior ? prior.answer : e.data.answer, by: prior ? prior.by : String(e.data.originator), job: source });
-    });
-  }
-  return answers;
-};
 var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
   const item0 = store.get(id2);
   const x0 = trackOf(item0, job).exchange;
-  const by = x0.from.kind === "job" ? x0.from.job : L(item0).delivery[0].job;
+  const by = x0.from.kind === "job" ? x0.from.job : "ideate";
   const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, by));
   if (!card) return;
   const item = store.get(id2);
   const x = trackOf(item, job).exchange;
-  const from = profileOf(item, x.from);
+  const from = profileOf(x.from);
   const call = yield* callAgent(id2, job, config, {
     kind: "originator",
     profile: from,
     access: "read",
     card,
     required: requiredOf(ORIGINATOR),
-    packet: (dir) => packet(item, by, dir, originatorParts(item, job, x, ledger(store, id2, job)), x.from.kind === "job")
+    packet: (dir) => packet(item, by, dir, originatorParts(item, job, x), x.from.kind === "job")
   });
   if (!call) return;
-  const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
+  const reply = decode5(ORIGINATOR, call.output);
   if (!reply.ok) return yield* refuse(id2, job, call, reply.reason);
-  const reuse = reply.value.reuse ?? [];
-  const previous = ledger(store, id2, job);
-  const openQuestions = x.turns.at(-1)?.questions ?? [];
-  if (reuse.some((r) => !openQuestions.includes(r.question) || !previous.some((a) => a.id === r.answerId)) || new Set(reuse.map((r) => r.question)).size !== reuse.length) {
-    return yield* refuse(id2, job, call, "A reused answer must name a current question and an existing answeredBefore id, once per question.");
-  }
-  const allReused = openQuestions.length > 0 && reuse.length === openQuestions.length;
-  let answer2 = allReused ? "" : reply.value.answer;
-  if (reuse.length) answer2 = [answer2, ...reuse.map((r) => `${r.question}
-${previous.find((a) => a.id === r.answerId).answer}`)].filter(Boolean).join("\n\n");
-  const reused = reuse.length ? { reuse } : {};
-  if (x.deciding) {
-    const open = x.turns.at(-1)?.questions ?? [];
-    const handoff = `${x.handoff}
-
-The ${from} decided these by the rubric, under full autonomy, after the exchange on this hand-off ran out of turns with them open:
-${open.map((q) => `- ${q}`).join("\n")}
-
-${answer2}`;
-    saveTrack(store, id2, job, { launches: 0, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [], decided: true } }, "nq-decided", { job, originator: from, questions: open, answer: answer2, ...reused });
-    return;
-  }
-  if (reply.value.needsOperator && !allReused) {
+  const turns = x.turns.map((t, i) => i === x.turns.length - 1 ? { ...t, answer: reply.value.answer, by: "originator" } : t);
+  if (reply.value.needsOperator) {
     const pendingQ = x.turns.at(-1);
-    const ruled = x.from.kind === "dispatcher" ? void 0 : yield* dispatch(id2, job, config, from, pendingQ.questions, reply.value.answer);
-    if (ruled === null) return;
-    if (!ruled || ruled.needsOperator) {
-      const why = auto(item) ? "it needs something only the operator has" : "the operator's source leaves it open";
-      return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(L(item), job).profile} asked: ${why}.`, { job, receiver: stepOf(L(item), job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer, ...ruled ? { dispatcherSays: ruled.answer } : {} });
-    }
-    answer2 = ruled.answer;
+    return hold(store, store.get(id2), "authority", `Only the operator can settle what the ${stepOf(job).profile} asked.`, { job, receiver: stepOf(job).profile, originator: from, questions: pendingQ.questions, originatorSays: reply.value.answer });
   }
-  const turns = x.turns.flatMap((t, i) => {
-    if (i !== x.turns.length - 1) return [t];
-    const questions = t.questions.filter((q) => !reuse.some((r) => r.question === q));
-    return questions.length ? [{ ...t, questions, answer: answer2, by: "originator" }] : [];
-  });
-  const notes = [...x.notes ?? [], ...reuse.map((r) => `${r.question}
-${previous.find((a) => a.id === r.answerId).answer}`)];
-  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns, notes } }, "nq-answer", { job, originator: from, questions: openQuestions, answer: answer2, ...reused, ...reply.value.needsOperator && !allReused ? { dispatcher: true } : {} });
-});
-var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
-  const item0 = (yield* Store).get(id2);
-  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, L(item0).delivery[0].job));
-  if (!card) return null;
-  const item = (yield* Store).get(id2);
-  const call = yield* callAgent(id2, job, config, {
-    kind: "originator",
-    profile: "dispatcher",
-    access: "read",
-    card,
-    required: requiredOf(ORIGINATOR),
-    packet: (dir) => packet(item, job, dir, {
-      you: {
-        profile: "dispatcher",
-        call: "authority",
-        task: `The ${originator} says only the operator can settle what the ${stepOf(L(item), job).profile} asked before the ${job} job. You hold the operator's own source (item.source). Read it first. If it authorizes the thing, explicitly or as a necessary part of what it asks for, or forbids it, answer the questions from it and the work goes on. A question about a design decision is never the operator's: it is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only when the source leaves it open and it is destructive or irreversible, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`,
-        replyFormat: shapeOf(ORIGINATOR)
-      },
-      receiver: stepOf(L(item), job).profile,
-      questions,
-      originator: { profile: originator, says: originatorSays }
-    }, false)
-  });
-  if (!call) return null;
-  const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
-  if (!reply.ok) return yield* refuse(id2, job, call, reply.reason), null;
-  return reply.value;
+  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns } }, "nq-answer", { job, originator: from });
 });
 var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   const store = yield* Store;
@@ -23790,10 +23549,10 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config) {
   const maker = isMaker(job);
   yield* callAgent(id2, job, config, {
     kind: "execute",
-    profile: stepOf(L(item), job).profile,
+    profile: stepOf(job).profile,
     access: prescriptionOf(config.prescriptions, job).access,
     card: x.card,
-    required: deliverableShape(L(item), job, auto(item))?.required ?? [],
+    required: requiredOf(DELIVERABLES[job]),
     ...job === "implement" && plan ? { scope: plan.scope } : {},
     ...jobTree(item, job),
     ...maker ? { onFail: (dir) => keepPartial(dir, item, job) } : {},
@@ -23826,18 +23585,27 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const none3 = spec.access === "none";
   const read = spec.access === "read";
   const product = none3 ? void 0 : yield* capture(item.workspace);
-  const before = none3 ? void 0 : yield* capture(wt.path, !read);
+  const before = read || none3 ? void 0 : yield* capture(wt.path);
   const head3 = before?.head ?? (yield* revParse(wt.path, "HEAD"));
-  const live = liveFile(store, `item-${id2}-${job}-${spec.kind}`);
-  store.note(id2, "call-started", { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...live ? { live } : {} });
   const started = /* @__PURE__ */ new Date();
   let result3;
-  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: briefOf(L(item)), prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {}, ...live ? { live } : {} }).pipe(
+  const run2 = worker.run({ kind: spec.kind, job, profile: spec.profile, card: spec.card, access: spec.access, system: BRIEF, prompt, item: id2, cwd: wt.path, budget, ...harness ? { harness } : {} }).pipe(
     Effect_exports.tap((r) => Effect_exports.sync(() => result3 = r)),
     Effect_exports.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id2, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } })
   );
-  yield* run2;
-  const changed = before ? changes(before, yield* capture(wt.path, !read)) : void 0;
+  let changed;
+  if (read) {
+    const r = yield* Effect_exports.result(readOnly(wt.path, run2));
+    if (Result_exports.isFailure(r)) {
+      if (r.failure.code !== "workspace_written" || !result3) return yield* r.failure;
+      changed = r.failure.context.changes;
+    }
+  } else if (none3) {
+    yield* run2;
+  } else {
+    yield* run2;
+    changed = changes(before, yield* capture(wt.path));
+  }
   const res = result3;
   const call = {
     item: id2,
@@ -23845,7 +23613,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     job,
     profile: spec.profile,
     card: spec.card,
-    system: briefOf(L(item)),
+    system: BRIEF,
     prompt,
     outcome: res.ok ? "ok" : "limit" in res ? "limit" : "error",
     output: res.ok ? res.output : null,
@@ -23866,12 +23634,16 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     ...harness && !harness.command.includes("{...tools}") ? { allowlist: harness.tools[spec.access] } : {},
     required: spec.required
   });
-  store.note(id2, "call-finished", { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...call.error ? { error: call.error.slice(0, 2e3) } : {} });
-  endLive(live);
   if (!res.ok) {
     if (spec.onFail) yield* spec.onFail(wt.path);
     if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
     else yield* launchFailed(id2, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
+    return void 0;
+  }
+  if (read && changed) {
+    const reason = `The ${spec.kind} call changed its read-only checkout: ${[...changed.added, ...changed.removed, ...changed.modified].join(", ") || "refs or HEAD"}.`;
+    store.rejectCall(callId, reason);
+    yield* launchFailed(id2, job, spec.kind, spec.card, reason, { changes: changed });
     return void 0;
   }
   const left = product ? yield* Effect_exports.result(withLock(item.workspace, leftovers(item.workspace, product))) : void 0;
@@ -23880,61 +23652,20 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     holdFor(store, id2, left.failure, job);
     return void 0;
   }
-  const called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
+  const called = { kind: spec.kind, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
   return after ? yield* after(wt.path, called) : called;
 }));
-var REPAIR_TASK = "Your last answer could not be read: its JSON is malformed or does not match your reply format. Under yourAnswer is what you sent and under problem what is wrong with it. Reply with only that answer as one JSON object matching you.replyFormat: the same content, corrected, nothing added or dropped. Your work is done; this call only corrects the reply.";
-var decodeOrRepair = (id2, job, call, schema) => Effect_exports.gen(function* () {
-  const first = decode5(schema, call.output);
-  if (first.ok) return first;
-  const fixed = yield* repair(id2, job, call, shapeOf(schema), first.reason);
-  return fixed ? decode5(schema, fixed.output) : first;
-});
-var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* () {
-  const store = yield* Store;
-  const worker = yield* Worker;
-  const profile = call.profile;
-  const prompt = JSON.stringify({ you: { profile, job, call: "repair", task: REPAIR_TASK, replyFormat: shape }, yourAnswer: call.output, problem: problem.slice(0, 4e3) }, null, 2);
-  const started = /* @__PURE__ */ new Date();
-  const brief = briefOf(L(store.get(id2)));
-  const res = yield* worker.run({ kind: "repair", job, profile, card: call.card, access: "none", system: brief, prompt, item: id2, cwd: store.path === ":memory:" ? tmpdir3() : dirname6(store.path), budget: REPAIR_BUDGET }).pipe(
-    Effect_exports.withSpan(`mw.repair.${job}`, { attributes: { item: id2, job, harness: call.card.harness, model: call.card.model } })
-  );
-  const ms = Date.now() - started.getTime();
-  const repairId = store.recordCall({
-    item: id2,
-    kind: "repair",
-    job,
-    profile,
-    card: call.card,
-    system: brief,
-    prompt,
-    outcome: res.ok ? "ok" : "limit" in res ? "limit" : "error",
-    output: res.ok ? res.output : null,
-    error: res.ok ? null : "limit" in res ? res.limit.message : res.error,
-    raw: res.raw ?? null,
-    started: started.toISOString(),
-    ms,
-    harnessVersion: res.version ?? null
-  }, { access: "none" });
-  store.rejectCall(call.callId, `${problem} Made Well re-asked for the corrected JSON in call ${repairId}.`);
-  const ok = res.ok && (call.kind === "execute" ? !malformed(L(store.get(id2)), job, res.output, auto(store.get(id2))) : lastJson(res.output) !== void 0);
-  store.note(id2, "repaired", { job, kind: call.kind, call: call.callId, repair: repairId, ms, ok });
-  return ok && res.ok ? { ...call, output: res.output } : void 0;
-});
 var refuse = Effect_exports.fn("mw.refuse")(function* (id2, job, call, reason) {
   const store = yield* Store;
   store.rejectCall(call.callId, reason);
   yield* launchFailed(id2, job, call.kind, call.card, reason, {}, { rejected: reason });
 });
-var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) {
+var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, call) {
   const store = yield* Store;
   const item = store.get(id2);
   const plan = planOf(item);
   const home = itemHome(store.path, id2);
-  const problem = malformed(L(item), job, answered.output, auto(item));
-  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered : answered;
-  const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item), item.conventions);
+  const v = validate3(job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0);
   const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect_exports.void;
   const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
@@ -23943,7 +23674,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep, Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
   }
   let artifacts = {};
-  if (isMaker(job) && !blockedOf(L(item), job, value3)) {
+  if (isMaker(job) && !blockedOf(job, value3)) {
     const base = item.base.commit;
     if (job === "implement") {
       const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
@@ -23965,7 +23696,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   if (isMaker(job)) rmSync5(patchPath(home, `${job}.partial`), { force: true });
   const now2 = store.get(id2);
   const provisioned = [...now2.provisioned ?? [], ...(value3.provisioned ?? []).map((r) => ({ kind: r.kind, id: r.id, teardown: r.teardown, job }))];
-  const fields = { outputs: { ...now2.outputs, [job]: call.output }, provisioned, ...artifacts, steer: void 0 };
+  const fields = { outputs: { ...now2.outputs, [job]: call.output }, provisioned, ...artifacts };
   const settled = { launches: 0, pickingUp: void 0, rejected: void 0, exchange: void 0 };
   if (isMaker(job) && now2.split?.[job]) {
     saveTrack(store, id2, job, { ...settled, done: true }, "accepted", { job }, fields);
@@ -23976,7 +23707,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
 });
 function applyRoute(store, id2, job, value3, fields) {
   const current = { ...store.get(id2), ...fields };
-  const r = route(L(current), job, value3, current.corrections);
+  const r = route(job, value3, current.corrections);
   const by = { kind: "job", job };
   switch (r.to) {
     case "discovered": {
@@ -23987,22 +23718,20 @@ function applyRoute(store, id2, job, value3, fields) {
           objective: c.objective,
           kind: c.kind,
           workspace: current.workspace,
-          status: auto(current) ? "queued" : "candidate",
+          status: "candidate",
           discovery: current.id,
           source: current.source,
           from: by,
           outputs: { discover: JSON.stringify(c) },
-          ...after ? { after: after.map((p) => ids[p - 1]) } : {},
-          ...current.pack ? { pack: current.pack } : {},
-          ...current.autonomy ? { autonomy: current.autonomy } : {}
+          ...after ? { after: after.map((p) => ids[p - 1]) } : {}
         }).id);
       }
-      store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids, ...auto(current) ? { promoted: true } : {} });
+      store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids });
       return;
     }
     case "next":
-      store.save({ ...current, job: r.job, from: by, rework: void 0, ...r.job === "plan" ? { base: void 0 } : {} }, "handed-off", { from: job, to: r.job });
-      return stopBetween(store, id2, job, r.job);
+      store.save({ ...current, job: r.job, from: by, rework: void 0 }, "handed-off", { from: job, to: r.job });
+      return;
     case "split":
       store.save({
         ...current,
@@ -24013,9 +23742,9 @@ function applyRoute(store, id2, job, value3, fields) {
         checks: void 0,
         verification: void 0,
         merged: void 0,
-        split: Object.fromEntries(L(current).makers.map((m) => [m, { from: by, launches: 0 }]))
-      }, "handed-off", { from: job, to: L(current).makers });
-      return stopBetween(store, id2, job, "implement");
+        split: { implement: { from: by, launches: 0 }, "test-plan": { from: by, launches: 0 } }
+      }, "handed-off", { from: job, to: MAKERS });
+      return;
     case "arbitrate":
       store.save({ ...current, job: "arbitrate", from: by, failure: r.failure }, "failure", { from: job });
       return;
@@ -24031,20 +23760,8 @@ function applyRoute(store, id2, job, value3, fields) {
         ...r.job === "plan" ? { base: void 0 } : {}
       }, "ruling", { cause: r.cause, to: r.job, by: "arbiter" });
       return;
-    case "prerequisite": {
-      let depth = 0;
-      for (let p = current.parent; p !== void 0; p = store.get(p)?.parent) depth++;
-      if (depth >= MAX_DEPTH) {
-        return hold(store, current, "prerequisite_too_deep", `The arbiter ruled a pre-existing defect inside a fix that is already ${depth} prerequisites deep. A chain this long means the ground under the work is not what the plans assumed: you decide what happens. ${r.answer}`, { job, depth, failure: current.failure ?? null, ruling: value3 });
-      }
+    case "prerequisite":
       openPrerequisite(store, { ...current, from: by }, r.answer, by);
-      return;
-    }
-    case "environment":
-      if (current.rework?.cause === "environment") {
-        return hold(store, current, "environment", `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, failure: current.failure ?? null, ruling: value3 });
-      }
-      store.save({ ...current, job: "verify", from: by, rework: { cause: "environment", answer: r.answer }, failure: void 0, verification: void 0, exchange: void 0, launches: 0 }, "ruling", { cause: "environment", to: "verify", by: "arbiter" });
       return;
     case "hold":
       return hold(store, current, r.code, r.message, { job, failure: current.failure ?? null, ruling: value3 });
@@ -24070,10 +23787,7 @@ var prepareWorktree = Effect_exports.fn("mw.prepare")(function* (id2, job, dir, 
   const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
   if (!project?.prepare) return void 0;
   const env = { ...process.env, MW_ITEM: String(id2), MW_JOB: job, MW_NAME: name, MW_WORKTREE: dir, MW_PROJECT: project.path, MW_BASE: base };
-  const live = liveFile(store, `${name}-prepare`);
-  store.note(id2, "prepare-started", { job, name, command: project.prepare, ...live ? { live } : {} });
-  const r = yield* runGroup({ command: "sh", args: ["-c", project.prepare], cwd: dir, env, input: "", budget: PREPARE_BUDGET, ...live ? { live } : {} });
-  endLive(live);
+  const r = yield* runGroup({ command: "sh", args: ["-c", project.prepare], cwd: dir, env, input: "", budget: PREPARE_BUDGET });
   const reported = Schema_exports.decodeUnknownResult(Prepared)(lastJson(r.stdout) ?? {});
   const resources = Result_exports.isSuccess(reported) ? reported.success.provisioned : [];
   const now2 = store.get(id2);
@@ -24106,7 +23820,7 @@ var aftercare = Effect_exports.fn("mw.aftercare")(function* (id2, job) {
   const todo = pending(store.get(id2), job);
   if (!todo.length) return;
   const home = itemHome(store.path, id2);
-  mkdirSync5(home, { recursive: true });
+  mkdirSync6(home, { recursive: true });
   const r = yield* Effect_exports.result(teardown(todo, home));
   const records = Result_exports.isSuccess(r) ? r.success : r.failure.context.records;
   const now2 = store.get(id2);
@@ -24127,11 +23841,11 @@ var verifyAndShip = Effect_exports.fn("mw.verifyAndShip")(function* (id2, config
       item = store.get(id2);
       if (item.job !== "verify" || !item.verification?.passed) return;
     }
-    const verified = item.verification;
-    const key = `ship:${verified.commit}`;
-    if (!auto(item) && item.passed !== key) {
-      return pause(store, item, key, `Checkpoint: #${id2} passed its ${item.verification.results.length ? "checks" : "verification"} and waits for you before it merges and ships.`, { after: "verification", next: "ship", commit: verified.commit, files: item.change?.files ?? [] });
+    const projects = projectsPath(store.path);
+    if (!projectFor(yield* readProjects(projects), item.workspace)?.ship) {
+      return hold(store, item, "no_ship_command", `Item #${id2} passed its checks, but its project has no ship command.`, { workspace: item.workspace, projects });
     }
+    const verified = item.verification;
     const merged = yield* withLock(item.workspace, Effect_exports.gen(function* () {
       const now2 = yield* revParse(item.workspace, item.base.ref);
       if (now2 !== verified.on) return false;
@@ -24148,129 +23862,61 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const item = store.get(id2);
   const home = itemHome(store.path, id2);
   const checks = item.checks?.checks ?? [];
-  if (!item.change || L(item).makers.includes("test-plan") && !checks.length) {
+  if (!checks.length || !item.change) {
     store.save({ ...item, job: "plan", from: { kind: "dispatcher" }, base: void 0, exchange: void 0, launches: 0 }, "replan", { reason: "no checks or change on record to verify" });
     return;
   }
-  const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
-  const gates = project?.gates ?? [];
+  const gates = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.gates ?? [];
   const budget = budgetFor(config.prescriptions, "verify");
   const env = { ...process.env, MW_ITEM: String(id2) };
-  const live = liveFile(store, `item-${id2}-verify`);
-  store.note(id2, "verify-started", { gates: gates.map((g) => g.run), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...live ? { live } : {} });
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
     const failed2 = yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base);
     if (failed2) return { kind: "unprepared", ...failed2 };
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
-    const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
-    const built = yield* commit(wt.path, commitMessage(item));
+    const gated = yield* runGates(wt.path, wt.base, gates, patchPath(home, "change"), budget, env);
+    const built = yield* commit(wt.path, item.title);
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
-    const first = yield* runChecks2(wt.path, checks, budget, env, live);
-    const again = yield* runChecks2(wt.path, checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)), budget, env, live);
-    const results2 = first.map((r) => {
-      const r2 = again.find((x) => x.id === r.id);
-      return !r2 ? r : r2.exitCode === 0 ? r2 : { ...r, output: `${r.output}
-[made well] ran it again on the same candidate: exited ${r2.exitCode}
-${r2.output}` };
-    });
-    const flaky = again.filter((r) => r.exitCode === 0).map((r) => r.id);
-    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, flaky, results: [...gated.results, ...results2] };
-  })).pipe(Effect_exports.ensuring(Effect_exports.sync(() => endLive(live))));
+    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, results: [...gated.results, ...yield* runChecks2(wt.path, checks, budget, env)] };
+  }));
   if (run2.kind === "unprepared") return hold(store, store.get(id2), "prepare_failed", run2.message, run2.context);
   yield* aftercare(id2, "verify");
   if (store.get(id2).status === "held") return;
   const now2 = store.get(id2);
   if (run2.kind === "conflict") {
-    const why = run2.error.context.stderr?.trim() || run2.error.message;
-    for (const m of L(now2).makers) rmSync5(patchPath(home, `${m}.partial`), { force: true });
-    const steps = L(now2).delivery;
-    const beforePlan = steps[steps.findIndex((s) => s.job === "plan") - 1];
-    store.save({
-      ...now2,
-      job: "plan",
-      from: beforePlan ? { kind: "job", job: beforePlan.job } : { kind: "dispatcher" },
-      base: void 0,
-      split: void 0,
-      change: void 0,
-      checks: void 0,
-      verification: void 0,
-      exchange: void 0,
-      launches: 0,
-      round: now2.round + 1,
-      pickingUp: `Made Well shipped other work onto ${now2.base.ref} after this item was planned, and its ${run2.by === "implement" ? "change" : "check files"} no longer apply there:
-${why}
-Plan again from the branch as it is now.`
-    }, "rebased", { conflict: run2.by, from: now2.base.commit, ref: now2.base.ref, reason: why.slice(0, 2e3) });
+    const what = run2.by === "implement" ? "The implementer's change" : "The test architect's check files";
+    const failure2 = `${what} no longer apply to ${now2.base.ref} at ${run2.on.slice(0, 12)}, which moved since the item started.
+${run2.error.context.stderr ?? run2.error.message}`;
+    store.save({ ...now2, job: "arbitrate", from: { kind: "job", job: run2.by }, failure: failure2, exchange: void 0, launches: 0 }, "failure", { from: "verify", conflict: run2.by });
     return;
   }
   const passed = run2.results.every((r) => r.exitCode === 0);
   const verification = { on: run2.on, commit: run2.commit, results: run2.results, passed };
   const summary = run2.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }));
-  const fixed = { ...run2.fixed.length ? { fixed: run2.fixed } : {}, ...run2.flaky.length ? { flaky: run2.flaky } : {} };
+  const fixed = run2.fixed.length ? { fixed: run2.fixed } : {};
   if (passed) {
     store.save({ ...now2, verification }, "verified", { on: run2.on, results: summary, ...fixed });
     return;
   }
-  const prepared = store.events(id2).findLast((e) => e.kind === "prepared" && e.data.job === "verify");
-  const torn = store.events(id2).findLast((e) => e.kind === "torn-down" && e.data.job === "verify");
-  const listed = (xs) => (xs ?? []).map((x) => `${x.kind} ${x.id}${x.exitCode === void 0 ? "" : ` (exit ${x.exitCode})`}`).join(", ");
-  const head3 = yield* Effect_exports.result(revParse(item.workspace, now2.base.ref));
-  const environment = [
-    `Environment: the checks ran in a fresh worktree of ${now2.base.ref} at ${run2.on.slice(0, 12)}; each failing check was run a second time on the same candidate.`,
-    !project?.prepare ? "The project has no prepare command." : `The prepare command \`${project.prepare}\` exited ${prepared?.data.exitCode ?? "unknown"}${listed(prepared?.data.provisioned) ? ` and provisioned ${listed(prepared?.data.provisioned)}` : ""}.`,
-    torn ? `Torn down after the run: ${listed(torn.data.records)}.` : "Nothing was provisioned, so nothing was torn down.",
-    Result_exports.isFailure(head3) ? `${now2.base.ref} could not be read now: ${head3.failure.message}` : head3.success === run2.on ? `${now2.base.ref} has not moved since.` : `${now2.base.ref} has moved since, to ${head3.success.slice(0, 12)}.`
-  ].join(" ");
   const failed = run2.results.filter((r) => r.exitCode !== 0);
   const failure = [
     `${failed.length} of ${run2.results.length} ${run2.results.some((r) => r.doneWhen === GATE) ? "gates and checks" : "checks"} failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
     ...failed.map((r) => r.doneWhen === GATE ? `The project's gate ${r.id} exited ${r.exitCode}: ${r.run}
 ${r.output}` : `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}
-${r.output}`),
-    environment
+${r.output}`)
   ].join("\n\n");
   const from = failed.some((r) => r.doneWhen !== GATE) ? { kind: "job", job: "test-plan" } : { kind: "dispatcher" };
   store.save({ ...now2, verification, job: "arbitrate", from, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary, ...fixed });
-});
-var commitMessage = (item) => {
-  const plan = planOf(item);
-  const decisions = [...stepsBefore(item), "plan"].flatMap((job) => {
-    const d = deliverableOf(item, job);
-    return Array.isArray(d?.decisions) ? d.decisions : [];
-  }).filter((d) => typeof d.decision === "string");
-  return [
-    item.title,
-    item.objective !== item.title ? item.objective : "",
-    plan?.doneWhen.length ? `Done when:
-${plan.doneWhen.map((d) => `- ${d.text}`).join("\n")}` : "",
-    decisions.length ? `Decisions:
-${decisions.map((d) => `- ${typeof d.question === "string" ? `${d.question} ` : ""}${d.decision}${typeof d.why === "string" ? ` (${d.why})` : ""}`).join("\n")}` : ""
-  ].filter(Boolean).join("\n\n");
-};
-var stepsBefore = (item) => {
-  const steps = L(item).delivery.map((s) => s.job);
-  return steps.slice(0, steps.indexOf("plan"));
-};
-var pushCommand = (repo, ref) => Effect_exports.map(Effect_exports.result(git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", `${ref.replace("refs/heads/", "")}@{upstream}`)), (r) => {
-  const upstream = Result_exports.isSuccess(r) ? r.success.trim() : "";
-  const slash = upstream.indexOf("/");
-  return slash > 0 ? `git push ${quote2(upstream.slice(0, slash))} ${quote2(`${ref}:refs/heads/${upstream.slice(slash + 1)}`)}` : void 0;
 });
 var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   const store = yield* Store;
   const item = store.get(id2);
   const projects = projectsPath(store.path);
-  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship ?? (yield* pushCommand(item.workspace, item.merged.ref));
-  if (!command2) {
-    removeHome(itemHome(store.path, id2));
-    const output = `On ${item.merged.ref.replace("refs/heads/", "")}; the project has no ship command and the branch no upstream to push to.`;
-    return void store.save({ ...item, status: "shipped", shipped: { command: "", output, main: item.merged.commit } }, "shipped", { command: "", output, main: item.merged.commit });
-  }
+  const command2 = projectFor(yield* readProjects(projects), item.workspace)?.ship;
+  if (!command2) return hold(store, item, "no_ship_command", `Item #${id2} is on ${item.merged.ref}, but its project has no ship command.`, { workspace: item.workspace, projects });
   const env = { ...process.env, MW_ITEM: String(id2), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature", MW_COMMIT: item.merged.commit };
-  store.note(id2, "ship-started", { command: command2, main: item.merged.commit });
   const { code, stdout, stderr } = yield* Effect_exports.promise(
     () => new Promise((done3) => execFile4("sh", ["-c", command2], { cwd: item.workspace, maxBuffer: 16 * 1024 * 1024, env }, (error, stdout2, stderr2) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout: stdout2, stderr: stderr2 })))
   );
@@ -24308,7 +23954,7 @@ var recordLimit = Effect_exports.fn("mw.recordLimit")(function* (id2, job, card,
   const resetsAt = Math.max(limit.resetsAt ?? at + UNKNOWN_RESET_MS, at + MIN_OUT_MS);
   for (const account of /* @__PURE__ */ new Set([limit.account, card.account])) store.markExhausted(account, resetsAt);
   const t = trackOf(store.get(id2), job);
-  const profile = stepOf(L(store.get(id2)), job).profile;
+  const profile = stepOf(job).profile;
   const pickingUp = kind === "execute" ? `The ${profile}'s previous run of this job, on ${card.harness} \xB7 ${card.model}, stopped at a usage limit (${limit.message}). You are picking up the same job${isMaker(job) ? ": your checkout holds the work it had done. Continue from there; do not repeat it." : "."}` : t.pickingUp;
   saveTrack(store, id2, job, { pickingUp }, "quota-swap", { kind, job, from: card, account: limit.account, resetsAt: new Date(resetsAt).toISOString(), message: limit.message });
 });
@@ -24318,21 +23964,13 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
   const t = trackOf(item, job);
   const x = t.exchange;
   if (kind !== "originator" && x) {
-    const receiver = stepOf(L(item), job).profile;
+    const receiver = stepOf(job).profile;
     const question = `My ${kind === "intake" ? "intake" : job} call failed, so I could not ${kind === "intake" ? "confirm the hand-off" : `do the ${job} job`}: ${error}`;
-    const saved = ledger(store, id2, job).findLast((a) => sameQuestion(a.question) === sameQuestion(question));
-    if (saved) {
-      const attempts = store.events(id2).filter((e) => e.kind === "nq-reused" && e.data.error === true && e.data.job === job && e.data.round === item.round && e.data.question === question).length + 1;
-      const next = withTrack(item, job, { ...t, ...patch, exchange: { ...x, status: "awaiting-receiver", notes: [...x.notes ?? [], saved.answer] } });
-      if (attempts >= MAX_LAUNCHES) return hold(store, next, "worker_failing", `The ${job} call still fails after its recorded correction was reapplied ${attempts} times.`, { job, card, lastError: error, answerId: saved.id, ...evidence });
-      store.save(next, "nq-reused", { job, round: item.round, error: true, question, answerId: saved.id });
-      return;
-    }
     const answered = x.turns.filter((turn) => turn.answer !== void 0).length;
     const asked = { ...x, status: "awaiting-originator", turns: [...x.turns, { understanding: x.understanding ?? "", questions: [question] }] };
-    const context3 = { job, receiver, originator: profileOf(item, x.from), questions: [question], turns: x.turns, card, ...evidence };
+    const context3 = { job, receiver, originator: profileOf(x.from), questions: [question], turns: x.turns, card, ...evidence };
     if (answered >= MAX_TURNS) return holdTurns(store, withTrack(item, job, { ...t, ...patch, exchange: asked }), job, context3);
-    saveTrack(store, id2, job, { ...patch, launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions: [question], error: true, card, ...evidence });
+    saveTrack(store, id2, job, { ...patch, launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(x.from), questions: [question], error: true, card, ...evidence });
     return;
   }
   const launches = t.launches + 1;
@@ -24342,18 +23980,11 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
   }
   hold(store, withTrack(item, job, { ...t, ...patch, launches }), "worker_failing", `A call for the ${job} job failed ${launches} times in a row on ${card.harness} \xB7 ${card.model}.`, { job, card, lastError: error, ...evidence });
 });
-var holdTurns = (store, item, job, context3) => {
-  const x = trackOf(item, job).exchange;
-  if (auto(item) && x && !x.decided) {
-    return void store.save(withTrack(item, job, { ...trackOf(item, job), launches: 0, exchange: { ...x, status: "awaiting-originator", deciding: true } }), "nq-deciding", { job, originator: profileOf(item, x.from), questions: x.turns.at(-1)?.questions ?? [] });
-  }
-  return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
-};
+var holdTurns = (store, item, job, context3) => hold(store, item, "nq_turns", `The ${stepOf(job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
 var stuck = (store, item) => {
-  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "paused" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
-  const fixBlocked = (id2) => store.get(id2)?.status !== "dropped" && blocked(id2);
-  return item.waitsOn !== void 0 && fixBlocked(item.waitsOn) || unshipped(store, item).some(blocked);
+  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
+  return item.waitsOn !== void 0 && blocked(item.waitsOn) || unshipped(store, item).some(blocked);
 };
 var openPrerequisite = (store, item, answer2, by) => {
   const pre = store.create({
@@ -24363,33 +23994,26 @@ var openPrerequisite = (store, item, answer2, by) => {
     job: "plan",
     parent: item.id,
     from: by,
-    source: `Found while verifying #${item.id} (${item.title}). The ${profileOf(item, by)}'s ruling: ${answer2}
+    source: `Found while verifying #${item.id} (${item.title}). The ${profileOf(by)}'s ruling: ${answer2}
 
 Failure:
 ${item.failure ?? ""}`,
-    rework: { cause: "pre-existing", answer: answer2 },
-    ...item.pack ? { pack: item.pack } : {},
-    ...item.autonomy ? { autonomy: item.autonomy } : {}
+    rework: { cause: "pre-existing", answer: answer2 }
   });
-  store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(item, by) });
+  store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(by) });
 };
 function nextFor(item) {
-  const id2 = item.id;
-  if (item.status === "paused") {
-    const ship = item.hold?.context.next === "ship";
-    return [
-      { run: `mw go ${id2}`, why: ship ? "it merges onto main and ships" : `it goes on to ${String(item.hold?.context.next ?? "the next step")}` },
-      { run: `mw answer ${id2} "<what should change>"`, why: ship ? "the planner plans again from your words, the change is made again and checked, and it stops here again" : "it goes on, and the next step receives your words as the operator's" },
-      { run: `mw drop ${id2}`, why: "abandon it; nothing of it ships" }
-    ];
-  }
   if (item.status !== "held") return [];
+  const id2 = item.id;
   const code = item.hold.code;
   if (NQ_HOLDS.includes(code)) {
     return [{ run: `mw answer ${id2} "<your answer to context.questions>"`, why: "your answer goes to the receiving agent, which confirms it understands or asks again" }];
   }
   if (CHECK_HOLDS.includes(code)) {
     return ["implementation", "test", "pre-existing"].map((cause) => ({ run: `mw answer ${id2} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: "the new code or its plan is wrong: the planner replans", test: "the check is wrong: the test architect rewrites it", "pre-existing": "the defect predates this work: it gets its own fix first" }[cause] }));
+  }
+  if (code === "no_ship_command") {
+    return [{ run: `mw init --workspace ${quote2(item.workspace)} --ship "<the operator's command that deploys what is on main>"`, why: "register how this project ships; the item then ships" }];
   }
   if (code === "leftovers") {
     return [...item.hold.next ?? [], { run: `mw retry ${id2}`, why: "go on: once the files in context.files are dealt with, or at once if the operator made them while the call ran" }];
@@ -24405,7 +24029,7 @@ var held = (id2) => Effect_exports.gen(function* () {
   const store = yield* Store;
   const item = store.get(id2);
   if (!item) return yield* notFound2(id2);
-  if (item.status !== "held" && item.status !== "paused") {
+  if (item.status !== "held") {
     return yield* new MadeWellError({ code: "not_held", message: `Item #${id2} is ${item.status}, not waiting on you.`, context: { id: id2, status: item.status, job: item.job }, next: [{ run: `mw status ${id2}`, why: "see what it is doing now" }] });
   }
   return { store, item };
@@ -24424,14 +24048,6 @@ var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
   if (repeat3) return;
   const { item } = yield* held(id2);
   const free = released(item);
-  if (item.status === "paused") {
-    if (item.hold.context.next === "ship") {
-      store.save({ ...free, job: "plan", from: { kind: "operator" }, exchange: void 0, rework: { cause: "implementation", answer: text2 }, round: item.round + 1, base: void 0, verification: void 0 }, "ruling", { cause: "implementation", to: "plan", by: "operator", answer: text2 });
-    } else {
-      store.save({ ...free, passed: String(item.hold.context.key), steer: text2 }, "steered", { job: item.job, answer: text2, by: "operator" });
-    }
-    return;
-  }
   if (NQ_HOLDS.includes(item.hold.code)) {
     const job2 = item.hold.context.job ?? item.job;
     const t = trackOf(free, job2);
@@ -24444,11 +24060,11 @@ The operator's correction, after the exchange on this hand-off ran out of turns 
 ${open.map((q) => `- ${q}`).join("\n")}
 
 ${text2}`;
-      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", questions: open, answer: text2 });
+      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", answer: text2 });
       return;
     }
     const turns = x.turns.map((turn, i) => i === x.turns.length - 1 ? { ...turn, answer: text2, by: "operator" } : turn);
-    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", questions: x.turns.at(-1)?.questions ?? [], answer: text2 });
+    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", answer: text2 });
     return;
   }
   if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -24494,22 +24110,11 @@ var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
   for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery });
   return chosen.map((c) => store.get(c.id));
 });
-var go = (id2) => Effect_exports.gen(function* () {
-  const store = yield* Store;
-  const item = store.get(id2);
-  if (!item) return yield* notFound2(id2);
-  if (item.status === "discovered") return void (yield* promote(id2));
-  if (item.status !== "paused") {
-    if (store.events(id2).findLast((e) => e.kind === "paused" || e.kind === "go")?.kind === "go") return;
-    return yield* new MadeWellError({ code: "not_held", message: `Item #${id2} is ${item.status}, not stopped at a checkpoint.`, context: { id: id2, status: item.status, job: item.job }, next: [{ run: `mw status ${id2}`, why: "see what it is doing now" }] });
-  }
-  store.save({ ...released(item), passed: String(item.hold.context.key) }, "go", { job: item.job, at: item.hold.context.key });
-});
 var retry3 = (id2) => Effect_exports.gen(function* () {
   const events2 = (yield* Store).events(id2);
   if (events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => e.kind === "retried")) return;
   const { store, item } = yield* held(id2);
-  if (item.status === "paused" || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
+  if (NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   }
   store.save(released(item), "retried", { job: item.job });
@@ -24530,7 +24135,6 @@ var drop = (id2) => Effect_exports.gen(function* () {
     return yield* new MadeWellError({ code: "teardown_failed", message: `Item #${id2} was not dropped: ${h.message}`, context: h.context, next: [...h.next ?? [], { run: `mw drop ${id2}`, why: "drop it once its resources are torn down" }] });
   }
   removeHome(itemHome(store.path, id2));
-  endLiveOf(store, id2);
   store.save({ ...now2, status: "dropped", hold: void 0 }, "dropped", { from: item.status });
 });
 var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
@@ -24567,101 +24171,82 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
     }
   }
 }).pipe(Effect_exports.scoped);
-var FULL_AUTHORITY = "Made Well runs in full autonomy: nobody is there to decide, so decide even what the operator's source leaves open, by the rubric (a choice that satisfies two of the three governing questions is the answer). Set needsOperator only when the work needs something only the operator has and Made Well cannot supply: a credential, an account, or money.";
 var SUBAGENT_RULE = "If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.";
-var briefOf = (lane) => [
-  "You are an agent in Made Well, a pipeline that takes one work item from ideation through planning and making to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
+var BRIEF = [
+  "You are an agent in Made Well, a delivery pipeline that takes one software work item from ideation through planning and implementation to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
   NEUTRAL_HOST,
   [
     "Settle every decision by the experience rubric. Its three governing questions have equal standing:",
     "- Developer experience: What moves us toward a 10\xD7 better experience of developing, understanding, inspecting, and recovering the work?",
     "- User experience: What moves us toward a 10\xD7 better experience for the person the resulting system serves?",
     "- Agentic experience: What makes agent execution clearer, more efficient, better grounded, and more reliably bounded?",
-    "A choice that satisfies two of the three is the answer, and it is what is done. Ideation and planning settle every decision and record it with why; no decision is left for the operator."
+    "The answer they give is the decision. Ideation and planning settle every decision and record it with why; no decision is left for the operator."
   ].join("\n"),
-  `Leave no trace. Your working directory is a disposable worktree of the project's repository, removed when your call ends: write only there, never in the repository's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
-  "Honor the conventions the project's repository already has.",
-  ...lane.pack.brief ? [lane.pack.brief] : [],
-  "Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.",
+  `Leave no trace. Your working directory is a disposable worktree of the product repo, removed when your call ends: write only there, never in the product repo's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
+  "Honor the product repo's coding conventions.",
   SUBAGENT_RULE,
   "Your final message is ONLY one JSON object that matches you.replyFormat, with that schema's properties as its own top-level keys."
 ].join("\n\n");
-var BRIEF = briefOf(laneOf());
-var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source, ...item.conventions?.length ? { conventions: item.conventions } : {} });
-var receivedBy = (item, job) => Object.fromEntries(stepOf(L(item), job).receives.flatMap((j) => {
+var itemFacts = (item) => ({ id: item.id, title: item.title, ...item.kind ? { kind: item.kind } : {}, objective: item.objective, source: item.source });
+var receivedBy = (item, job) => Object.fromEntries(RECEIVES[job].flatMap((j) => {
   const d = deliverableOf(item, j);
   return d === void 0 ? [] : [[j, d]];
 }));
 var snapshotFor = (item, job, dir) => {
   const plan = planOf(item);
-  if (!plan || !stepOf(L(item), job).receives.includes("plan")) return Effect_exports.succeed(void 0);
+  if (!plan || !RECEIVES[job].includes("plan")) return Effect_exports.succeed(void 0);
   const files = [.../* @__PURE__ */ new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])];
   return snapshot2(dir, files.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f) && !f.startsWith("/") && !f.split("/").includes("..")));
 };
-var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.gen(function* () {
-  const answeredBefore = ledger(yield* Store, item.id, job);
-  const snap = yield* snapshotFor(item, job, dir);
-  return JSON.stringify({
-    item: itemFacts(item),
-    ...withReceived ? { received: receivedBy(item, job) } : {},
-    ...snap ? { snapshot: snap } : {},
-    ...answeredBefore.length ? { answeredBefore } : {},
-    ...parts2
-  }, null, 2);
-});
-var whereYouAre = (step2) => step2.loop === "discovery" ? `Made Well's discovery (${step2.cartridge})` : `Made Well's delivery lane (${step2.cartridge})`;
+var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.map(snapshotFor(item, job, dir), (snap) => JSON.stringify({
+  item: itemFacts(item),
+  ...withReceived ? { received: receivedBy(item, job) } : {},
+  ...snap ? { snapshot: snap } : {},
+  ...parts2
+}, null, 2));
+var whereYouAre = (job) => {
+  const step2 = stepOf(job);
+  return step2.stage === "discovery" ? "Made Well's discovery" : `Made Well's delivery lane (${step2.stage})`;
+};
 var TASKS = {
-  plan: `Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. The rules this repo's work follows are under item.conventions: hold the change to each one with a done-when item its checks prove, and list it under "conventions" with that id, or say why this change cannot touch it. Made Well refuses a plan that leaves one out. Give each done-when item a short unique id; the checks prove them by id. Every done-when item is about this item's own change and is provable from it alone: never one that runs or counts the whole test suite, or that pins files outside the scope. Other items ship onto the same branch while this one is in flight, and only this item's own checks gate it.`,
-  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks. When they run, the implementer's change is the last commit (HEAD) on top of the branch the item started from, and your check files sit uncommitted in the working tree beside it: a check that inspects what changed compares HEAD~1 with HEAD, never the working tree. A check proves its done-when item from this item's change alone: never run or count the whole test suite, and never pin anything outside the plan's scope; other items ship onto the same branch while this one is in flight.",
-  implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself."
+  plan: 'Declare the scope: every file the change may touch. Made Well refuses a change outside it, and the test architect may not touch it. For every new file or directory in scope, name under "follows" the existing one in this repo it is modelled on, the same kind of file: the makers receive that file and build in its image, using what it uses. Made Well refuses a plan that creates a kind of file the repo already has without one. Give each done-when item a short unique id; the checks prove them by id.',
+  "test-plan": "Write each check's files in your checkout, at paths outside the plan's scope. Made Well keeps them outside the product repo and runs each check's command itself, from the repo root, against the implementer's change. Each check proves one done-when item by its id, and every done-when item needs at least one. Your checkout has no implementation; never build one, here or anywhere else, to try your checks.",
+  implement: "Change only the files in the plan's scope; Made Well takes your change from your checkout. Never write or run checks of your own work: Made Well runs this item's checks itself.",
+  arbitrate: "Your checkout holds the implementer's change as its last commit, with the test architect's check files applied on top, uncommitted. Reproduce the failure if you need to."
 };
-var arbiterTask = (lane, autonomous) => [
-  `Your checkout holds the implementer's change as its last commit${lane.makers.includes("test-plan") ? ", with the test architect's check files applied on top, uncommitted" : ""}. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause.`,
-  ...lane.makers.includes("test-plan") ? ["test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change."] : [],
-  `implementation: the planner plans again from your answer, ${lane.makers.length > 1 ? "both makers redo their work" : "the implementer redoes the change"}, and verification follows.`,
-  "pre-existing: a fix item for the defect ships first, then this item's checks run again.",
-  "environment: the work is not at fault; the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree and runs the checks again.",
-  autonomous ? "Nobody is there to decide for you: name the cause the evidence best supports." : "undetermined: the operator decides."
-].join(" ");
-var taskOf = (item, job) => {
-  const own = job === "arbitrate" ? arbiterTask(L(item), auto(item)) : TASKS[job];
-  const extra = stepOf(L(item), job).task;
-  return own && extra ? `${own} ${extra}` : own ?? extra;
+var you = (job, kind) => {
+  const step2 = stepOf(job);
+  return { profile: step2.profile, job, call: kind, where: whereYouAre(job), duty: step2.duty };
 };
-var you = (item, job, kind) => {
-  const step2 = stepOf(L(item), job);
-  return { profile: step2.profile, job, call: kind, where: whereYouAre(step2), duty: step2.duty };
-};
-var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never ask a question answered in earlierTurns or answeredBefore: every answer on this item is on the record and binds you, and Made Well answers a repeat from it. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
-var handoffView = (item, job, x) => x.from.kind === "job" && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
-var receiverParts = (item, job, x, kind, answered) => ({
-  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + " If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies that answer verbatim and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.", laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. Never ask for file access, a checkout or the repo's contents, and never ask about what you will read there yourself; ask only what the packet leaves open that no file can settle. State your understanding of what was handed to you and what you must deliver, then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? Put each thing that is unclear, ambiguous or missing in its list: each becomes a question to the ${originator}, who answers from its hand-off. A note records a point the packet already settles; anything you would have to assume, choose or guess is a question, not a note. Never repeat a question already answered in earlier turns. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
+var handoffView = (item, job, x) => x.from.kind === "job" && RECEIVES[job].includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
+var receiverParts = (item, job, x, kind) => ({
+  you: { ...you(job, kind), task: INTAKE_TASK(job, profileOf(x.from)), laterDeliverable: deliverableShape(job), replyFormat: shapeOf(INTAKE) },
   ...jobEvidence(item, job),
-  handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
+  handoff: { from: profileOf(x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
-  ...answered.length ? { answeredBefore: answered.filter((e) => !x.turns.some((t) => t.questions.includes(e.question) && t.answer === e.answer)) } : {},
   round: item.round,
   ...trackOf(item, job).rejected ? { yourLastAnswerWasRefused: trackOf(item, job).rejected } : {}
 });
 var jobEvidence = (item, job) => job === "arbitrate" && item.verification ? { verification: { on: item.verification.on, results: item.verification.results }, change: item.change, checks: item.checks } : {};
-var originatorParts = (item, job, x, answered) => ({
+var deliverableShape = (job) => job in DELIVERABLES ? shapeOf(DELIVERABLES[job]) : void 0;
+var originatorParts = (item, job, x) => ({
   you: {
-    profile: profileOf(item, x.from),
+    profile: profileOf(x.from),
     call: "originator",
-    task: (x.deciding ? `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} still has the questions below after ${MAX_TURNS} answered turns, and Made Well runs in full autonomy: nobody else will answer. You hold the context, so you decide. Settle each question by the standing rubric: what gets us closer to a 10\xD7 developer experience, a 10\xD7 user experience and a 10\xD7 agentic experience; a choice that satisfies two of the three is the answer. Say each decision and why, plainly enough that the ${stepOf(L(item), job).profile} can act on it without asking again. Never change the work's objective. Leave needsOperator false.` : `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`) + ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well inserts the saved answer verbatim and records the new wording. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
+    task: `You handed this work over as the ${profileOf(x.from)}. The ${stepOf(job).profile} asked questions before it does the ${job} job. Answer each from your hand-off and the source: clarify what you handed over; never change your hand-off or the work. A question about a decision is settled by the three governing questions; say what they decide and why. Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace. Shipping this item, its deploy included, is already authorized.`,
     replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
-  receiver: stepOf(L(item), job).profile,
+  receiver: stepOf(job).profile,
   receiverUnderstanding: x.turns.at(-1).understanding,
   questions: x.turns.at(-1).questions,
-  earlierTurns: x.turns.slice(0, -1),
-  answeredBefore: answered
+  earlierTurns: x.turns.slice(0, -1)
 });
 var executeParts = (item, job, t, x) => ({
-  you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: deliverableShape(L(item), job, auto(item)) },
+  you: { ...you(job, "execute"), ...TASKS[job] ? { task: TASKS[job] } : {}, replyFormat: deliverableShape(job) },
   ...jobEvidence(item, job),
-  exchange: { from: profileOf(item, x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
+  exchange: { from: profileOf(x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
   ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
   round: item.round,
   ...t.rejected ? { yourLastAnswerWasRefused: t.rejected } : {},
@@ -24669,7 +24254,7 @@ var executeParts = (item, job, t, x) => ({
 });
 
 // src/eval.ts
-import { readFileSync as readFileSync7 } from "node:fs";
+import { readFileSync as readFileSync6 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
@@ -24710,8 +24295,8 @@ var EvalReport = Schema_exports.Struct({
   recommendation: Schema_exports.NullOr(Schema_exports.Struct({ card: EvalCard, tier: Schema_exports.NullOr(Schema_exports.String), prescribed: Schema_exports.String, why: Schema_exports.String })),
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "EvalReport" });
-var score = (kind, lane, job, r) => {
-  const accepted = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(lane, job, r.output);
+var score = (kind, job, r) => {
+  const accepted = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(job, r.output);
   return {
     outcome: r.outcome,
     valid: accepted.ok,
@@ -24770,11 +24355,11 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
   const briefPath = o.brief === void 0 ? void 0 : resolve5(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync7(briefPath, "utf8"),
+    try: () => readFileSync6(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
-  const calls = all4.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute") && c.kind !== "repair").slice(-(o.limit ?? 0));
+  const calls = all4.filter((c) => c.job === o.job && c.outcome !== "limit" && (!ids.length || ids.includes(c.item)) && (brief === void 0 || c.kind === "execute")).slice(-(o.limit ?? 0));
   if (!calls.length) {
     const recorded = {};
     for (const c of all4) if (c.outcome !== "limit") recorded[c.job] = (recorded[c.job] ?? 0) + 1;
@@ -24796,7 +24381,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const at = new Date(yield* Clock_exports.currentTimeMillis).toISOString();
   const run2 = Number(db.prepare("INSERT INTO evals (at, job, card, brief, items, calls) VALUES (?, ?, ?, ?, ?, ?)").run(at, o.job, o.card ?? null, briefPath ?? null, JSON.stringify(ids), JSON.stringify(calls.map((c) => c.id))).lastInsertRowid);
   const insert = db.prepare("INSERT INTO eval_calls (eval, call, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-  const accessOf = (c) => c.kind === "execute" ? prescriptionOf(p, o.job)?.access ?? "read" : "read";
+  const accessOf = (c) => c.kind === "execute" ? prescriptionOf(p, o.job).access : "read";
   const budget = budgetFor(p, o.job);
   const rulesOf = (c) => {
     const { head: _, changed: __, ...recorded } = c.facts ?? {};
@@ -24804,7 +24389,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   };
   const recordedScore = (c) => {
     const facts = { ...rulesOf(c), ...c.facts?.head ? { head: c.facts.head } : {}, ...c.facts?.changed ? { changed: c.facts.changed } : {} };
-    return score(c.kind, laneOf(store.get(c.item)?.pack), o.job, { ...c, flags: flagsFor(facts, c) });
+    return score(c.kind, o.job, { ...c, flags: flagsFor(facts, c) });
   };
   const replay = (c, card, n) => {
     const workspace = store.get(c.item).workspace;
@@ -24845,7 +24430,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
       const facts = { ...rulesOf(c), head: r.head, changed: r.changed };
       const flags = flagsFor(facts, { tools: toolEvents(g.card.harness, raw), tokens: tokens2, ms: r.ms, output });
       const outcome = r.result.ok ? "ok" : "limit" in r.result ? "limit" : "error";
-      const s = score(c.kind, laneOf(store.get(c.item)?.pack), o.job, { outcome, output, ms: r.ms, tokens: tokens2, flags });
+      const s = score(c.kind, o.job, { outcome, output, ms: r.ms, tokens: tokens2, flags });
       const error = r.result.ok ? null : "limit" in r.result ? r.result.limit.message : r.result.error;
       insert.run(run2, c.id, JSON.stringify(g.card), r.system, r.prompt, outcome, output, error, raw, new Date(r.started).toISOString(), r.ms, tokens2 && JSON.stringify(tokens2), JSON.stringify(facts), JSON.stringify(flags), JSON.stringify(s));
       if (!r.result.ok && "limit" in r.result) {
@@ -24900,1236 +24485,11 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   return report;
 }, Effect_exports.scoped);
 
-// src/export.ts
-import { mkdirSync as mkdirSync6, writeFileSync as writeFileSync6 } from "node:fs";
-import { join as join10 } from "node:path";
-var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
-  const item = store.get(id2);
-  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
-  const calls = store.calls(id2);
-  yield* Effect_exports.try({
-    try: () => {
-      mkdirSync6(dir, { recursive: true });
-      writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
-      calls.forEach((c, i) => {
-        const folder = join10(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
-        mkdirSync6(folder, { recursive: true });
-        const { system, prompt, output, raw, tools, flags, ...meta } = c;
-        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
-        for (const [name, text2] of files) writeFileSync6(join10(folder, name), text2);
-      });
-    },
-    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
-  });
-  return { dir, calls: calls.length };
-});
-
-// src/ui.ts
-import { execFileSync as execFileSync2 } from "node:child_process";
-import { closeSync as closeSync2, existsSync as existsSync3, fstatSync, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, statSync as statSync2 } from "node:fs";
-import { createServer } from "node:http";
-import { basename as basename2, dirname as dirname7, join as join11 } from "node:path";
-
-// src/console.ts
-var CONSOLE = String.raw`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Made Well</title>
-<style>
-:root { --ink:#0f172a; --ink2:#334155; --mute:#64748b; --faint:#94a3b8; --line:#e2e8f0; --line2:#f1f5f9; --bg:#f8fafc; --card:#fff;
-  --blue:#2563eb; --blue-bg:#eff6ff; --blue-ln:#bfdbfe; --green:#15803d; --green-bg:#f0fdf4; --green-ln:#bbf7d0; --red:#dc2626; --red-bg:#fef2f2; --red-ln:#fecaca;
-  --amber:#b45309; --amber-bg:#fffbeb; --amber-ln:#fde68a; --violet:#7c3aed; --violet-bg:#f5f3ff; --teal:#0f766e;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --r:10px; }
-* { box-sizing:border-box }
-body { margin:0; font:14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); background:var(--bg) }
-a { color:var(--blue); text-decoration:none } a:hover { text-decoration:underline }
-code, .mono { font-family:var(--mono); font-size:12.5px }
-.top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 24px; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line) }
-.brand { font-weight:700; letter-spacing:-.01em; font-size:15px; display:flex; gap:8px; align-items:center } .brand i { width:10px; height:10px; border-radius:3px; background:linear-gradient(135deg,#2563eb,#15803d); display:inline-block }
-.top .proj { color:var(--ink2); font-weight:500 } .top .path { color:var(--faint); font:12px var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 } .grow { flex:1 }
-.pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:3px 10px; border-radius:999px; white-space:nowrap; font-weight:500; border:1px solid transparent }
-.pill.ok { color:var(--green); background:var(--green-bg); border-color:var(--green-ln) } .pill.warn { color:var(--amber); background:var(--amber-bg); border-color:var(--amber-ln) } .pill.bad { color:var(--red); background:var(--red-bg); border-color:var(--red-ln) } .pill.mute { color:var(--mute); background:var(--line2) }
-.dot { width:7px; height:7px; border-radius:50%; background:currentColor } .pulse { animation:pulse 1.4s infinite } @keyframes pulse { 50% { opacity:.3 } }
-main { max-width:1480px; margin:0 auto; padding:20px 24px 80px; display:grid; gap:18px }
-.card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:16px 18px; min-width:0 }
-h2 { margin:0 0 12px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--mute); font-weight:650; display:flex; gap:10px; align-items:baseline }
-h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--faint) } h2 .right { margin-left:auto; text-transform:none; letter-spacing:0; font-weight:400 }
-.hero { display:flex; gap:28px; align-items:center; flex-wrap:wrap }
-.hero .big { font-size:30px; font-weight:700; letter-spacing:-.02em; line-height:1.1 } .hero .big small { font-size:15px; font-weight:500; color:var(--mute); letter-spacing:0 }
-.hero .verdict { font-size:15px; color:var(--ink2); margin-top:4px; max-width:620px }
-.stats { display:flex; gap:22px; flex-wrap:wrap; margin-left:auto }
-.stat .v { font:650 19px var(--mono); letter-spacing:-.02em } .stat .k { font-size:12px; color:var(--mute) } .stat.bad .v { color:var(--red) } .stat.ok .v { color:var(--green) }
-.needs { border:1px solid var(--red-ln); background:linear-gradient(0deg,#fff,#fff8f8); }
-.needs h2 { color:var(--red) }
-.need { padding:12px 0; border-top:1px solid var(--red-ln) } .need:first-of-type { border-top:0; padding-top:0 }
-.need .msg { font-size:15px; font-weight:500 } .need ol { margin:6px 0 4px; padding-left:20px; color:var(--ink2) } .need li { margin:2px 0 }
-.cmd { display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap } .cmd code { background:var(--ink); color:#e2e8f0; padding:5px 10px; border-radius:7px; overflow-wrap:anywhere }
-.cmd button { font:inherit; font-size:12px; padding:3px 9px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer; color:var(--ink2) } .cmd button:hover { border-color:var(--faint) } .cmd span { font-size:12.5px; color:var(--mute) }
-.work { display:grid; gap:0 }
-.row { display:grid; grid-template-columns: minmax(260px, 1fr) 590px 200px; gap:18px; align-items:center; padding:12px 6px; border-top:1px solid var(--line2); cursor:pointer; border-radius:8px }
-.row:first-child { border-top:0 } .row:hover { background:#f8fbff }
-.row .t { font-weight:600; font-size:14.5px; line-height:1.35 } .row .t .id { color:var(--faint); font:500 13px var(--mono); margin-right:6px }
-.row .d { font-size:13px; color:var(--ink2); margin-top:3px; line-height:1.4 } .row .d b { font-weight:600 }
-.row .m { font:12px var(--mono); color:var(--mute); text-align:right; line-height:1.6 } .row .m .owes { font-family:inherit; color:var(--ink2) }
-.tag { display:inline-block; font:600 10.5px var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:2px; background:var(--line2); color:var(--mute) }
-.tag.fix { background:#fff1f2; color:#be123c } .tag.feature { background:var(--blue-bg); color:var(--blue) } .tag.chore { background:#f5f5f4; color:#57534e } .tag.discovery { background:var(--violet-bg); color:var(--violet) } .tag.prerequisite { background:var(--amber-bg); color:var(--amber) }
-.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-paused { background:var(--amber-bg, #fff4dc); color:var(--amber) } .tag.st-dropped { text-decoration:line-through }
-.pipe { display:flex; align-items:center; gap:3px; justify-self:start }
-.pipe .col { display:flex; flex-direction:column; gap:3px }
-.seg { font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--line); color:var(--faint); background:#fff; white-space:nowrap; min-width:62px; text-align:center; position:relative; line-height:1.3 }
-.seg.done { background:var(--green-bg); border-color:var(--green-ln); color:var(--green) }
-.seg.active { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.12) } .seg.active::after { content:''; position:absolute; top:-3px; right:-3px; width:7px; height:7px; border-radius:50%; background:var(--blue); animation:pulse 1.2s infinite }
-.seg.held, .seg.failed { background:var(--red-bg); border-color:var(--red); color:var(--red) } .seg.waiting { background:var(--amber-bg); border-color:var(--amber-ln); color:var(--amber) }
-.seg.skipped { border-style:dashed; color:#cbd5e1 } .seg .q { font:600 9.5px var(--mono); margin-left:3px; color:var(--amber) }
-.arrow { color:#cbd5e1; font-size:11px }
-.running { display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:12px }
-.run { border:1px solid var(--blue-ln); background:linear-gradient(180deg,var(--blue-bg),#fff 60%); border-radius:var(--r); padding:12px 14px; cursor:pointer; min-width:0 }
-.run.nq { border-color:var(--amber-ln); background:linear-gradient(180deg,var(--amber-bg),#fff 60%) } .run.mw { border-color:var(--green-ln); background:linear-gradient(180deg,var(--green-bg),#fff 60%) }
-.run .h { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap } .run .h b { font-size:14px } .run .h .tm { margin-left:auto; font:600 13px var(--mono); color:var(--blue) }
-.run .rw { font-size:12.5px; color:var(--mute) } .run .it { font-size:12.5px; color:var(--ink2); margin:2px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.act { font:12px/1.55 var(--mono); color:var(--ink2); border-left:2px solid var(--line); padding-left:9px; min-height:20px }
-.act div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis } .act .tool { color:#1e40af } .act .say { color:var(--ink2) } .act .error { color:var(--red) } .act div:last-child { color:var(--ink); font-weight:500 }
-.tl { position:relative; overflow-x:auto } .tl-in { position:relative; min-width:900px }
-.tl-axis { position:relative; height:22px; margin-left:220px; border-bottom:1px solid var(--line) } .tl-axis span { position:absolute; top:2px; font:11px var(--mono); color:var(--faint); transform:translateX(-50%) }
-.tl-row { display:flex; align-items:stretch; border-bottom:1px solid var(--line2); min-height:30px; cursor:pointer } .tl-row:hover { background:#fafcff }
-.tl-name { width:220px; flex:none; padding:5px 10px 5px 0; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink2) } .tl-name b { font:500 12px var(--mono); color:var(--faint); margin-right:4px }
-.tl-track { position:relative; flex:1 } .tl-grid { position:absolute; top:0; bottom:0; width:1px; background:var(--line2) }
-.bar { position:absolute; height:9px; border-radius:3px; min-width:3px; cursor:pointer }
-.bar:hover { outline:2px solid var(--ink); z-index:2 }
-.bar.intake { background:#93c5fd } .bar.originator { background:#fbbf24 } .bar.execute { background:var(--blue) } .bar.verify { background:#22c55e } .bar.ship { background:var(--teal) }
-.bar.arbitrate { background:var(--violet) } .bar.repair { background:#f472b6 } .bar.bad { background:repeating-linear-gradient(45deg,var(--red),var(--red) 3px,#fca5a5 3px,#fca5a5 6px) } .bar.live { animation:pulse 1.4s infinite }
-.tl-now { position:absolute; top:0; bottom:0; width:2px; background:var(--red); opacity:.5 }
-.legend { display:flex; gap:14px; font-size:12px; color:var(--mute); flex-wrap:wrap } .legend i { display:inline-block; width:14px; height:8px; border-radius:2px; margin-right:5px; vertical-align:0 }
-.two { display:grid; grid-template-columns: 1.3fr 1fr; gap:18px }
-.cost { display:grid; grid-template-columns: 96px 1fr 120px; gap:7px 12px; align-items:center; font-size:13px }
-.cost .track { height:14px; background:var(--line2); border-radius:4px; overflow:hidden; display:flex } .cost .track div { height:100% } .cost .n { font:12px var(--mono); color:var(--mute); text-align:right }
-.k-intake { background:#93c5fd } .k-originator { background:#fbbf24 } .k-execute { background:var(--blue) } .k-repair { background:#f472b6 }
-.facts { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px }
-.fact { border:1px solid var(--line); border-radius:8px; padding:10px 12px } .fact .v { font:650 17px var(--mono) } .fact .k { font-size:12px; color:var(--mute) } .fact.bad .v { color:var(--red) } .fact.ok .v { color:var(--green) }
-.log { max-height:420px; overflow:auto } .ev { display:grid; grid-template-columns: 64px 82px 40px 1fr; gap:10px; padding:5px 4px; border-bottom:1px solid var(--line2); font-size:13px; align-items:baseline }
-.ev .t { font:12px var(--mono); color:var(--faint) } .ev .i { font:12px var(--mono); color:var(--mute) }
-.who { font:600 10.5px var(--mono); letter-spacing:.05em; text-transform:uppercase; padding:1px 6px; border-radius:4px; text-align:center }
-.w-operator { color:var(--violet); background:var(--violet-bg) } .w-agent { color:var(--blue); background:var(--blue-bg) } .w-made { color:var(--green); background:var(--green-bg) } .w-runner { color:var(--mute); background:var(--line2) }
-.filter { display:flex; gap:8px; margin:-4px 0 8px } .filter input { flex:1; font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff }
-.empty { color:var(--faint); font-size:13px }
-.drawer { position:fixed; inset:0 0 0 auto; width:min(1000px, 97vw); background:#fff; border-left:1px solid var(--line); box-shadow:-20px 0 40px rgba(15,23,42,.10); z-index:10; display:none; flex-direction:column }
-.drawer.open { display:flex } .scrim { position:fixed; inset:0; background:rgba(15,23,42,.18); z-index:9; display:none } .scrim.open { display:block }
-.dh { padding:16px 22px 0; border-bottom:1px solid var(--line) } .dh .x { float:right; font:inherit; font-size:13px; padding:4px 10px; border:1px solid var(--line); border-radius:7px; background:#fff; cursor:pointer }
-.dh h3 { margin:0 0 4px; font-size:19px; letter-spacing:-.01em } .dh .sub { color:var(--ink2); font-size:13.5px; margin-bottom:10px }
-.tabs { display:flex; gap:2px; margin-top:12px } .tabs button { font:inherit; font-size:13px; font-weight:500; padding:8px 12px; border:0; background:none; color:var(--mute); border-bottom:2px solid transparent; cursor:pointer } .tabs button.on { color:var(--ink); border-color:var(--ink) }
-.tabs button .n { font:11px var(--mono); color:var(--faint); margin-left:4px }
-.db { overflow:auto; padding:18px 22px 60px; flex:1 }
-.db h4 { margin:20px 0 8px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--mute) } .db h4:first-child { margin-top:0 }
-.prose { font-size:14px; color:var(--ink2); white-space:pre-wrap } .prose.lead { font-size:15px; color:var(--ink) }
-.dec { border:1px solid var(--line); border-radius:8px; padding:9px 12px; margin:6px 0 } .dec .q { font-weight:600; font-size:13.5px } .dec .a { font-size:13.5px; margin-top:2px } .dec .y { font-size:12.5px; color:var(--mute); margin-top:4px }
-.chips { display:flex; gap:6px; flex-wrap:wrap } .chip { font:12px var(--mono); padding:2px 8px; border-radius:6px; background:var(--line2); color:var(--ink2) }
-ol.steps { padding-left:22px; margin:4px 0 } ol.steps li { margin:4px 0; font-size:13.5px }
-.dw { display:grid; grid-template-columns: 54px 1fr; gap:6px 10px; font-size:13.5px } .dw .id { font:600 12px var(--mono); color:var(--mute) }
-.turn { border-left:3px solid var(--amber-ln); padding:4px 0 4px 12px; margin:8px 0 } .turn .qh { font-size:12px; font-weight:600; color:var(--amber); text-transform:uppercase; letter-spacing:.05em }
-.turn ol { margin:4px 0; padding-left:20px; font-size:13.5px } .turn .ans { background:var(--line2); border-radius:8px; padding:8px 11px; font-size:13.5px; white-space:pre-wrap; margin-top:6px } .turn .ans b { font-size:12px; color:var(--mute); display:block; margin-bottom:2px }
-.turn.clear { border-color:var(--green-ln) } .turn.clear .qh { color:var(--green) }
-.xch { border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; margin:10px 0 } .xch .xh { font-weight:600; font-size:14px } .xch .xh span { color:var(--mute); font-weight:400; font-size:13px }
-table { border-collapse:collapse; width:100% } th { text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line) }
-td { padding:7px 8px; border-bottom:1px solid var(--line2); vertical-align:top; font-size:13px } tr.click { cursor:pointer } tr.click:hover td { background:#f8fbff } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:12.5px }
-.ok-t { color:var(--green); font-weight:600 } .bad-t { color:var(--red); font-weight:600 }
-pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:12px/1.5 var(--mono); max-height:520px; overflow:auto; margin:4px 0 }
-.diff { white-space:pre; overflow:auto; font:12px/1.5 var(--mono); border:1px solid var(--line); border-radius:8px; max-height:640px } .diff div { padding:0 10px } .diff .a { background:#ecfdf3; color:#166534 } .diff .r { background:#fef2f2; color:#991b1b } .diff .h { background:#f1f5f9; color:var(--mute) } .diff .f { background:#e2e8f0; font-weight:600 }
-details summary { cursor:pointer; color:var(--blue); margin:6px 0; font-size:13px }
-.hold { border:1px solid var(--red-ln); background:var(--red-bg); border-radius:var(--r); padding:12px 14px; margin-bottom:14px } .hold .c { font:600 12px var(--mono); color:var(--red) }
-.bigpipe { display:flex; gap:4px; align-items:stretch; margin:4px 0 2px; flex-wrap:wrap }
-.bp { flex:1; min-width:96px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12px; color:var(--mute); background:#fff }
-.bp b { display:block; font-size:13px; color:var(--ink) } .bp .w { font-size:11.5px } .bp.done { background:var(--green-bg); border-color:var(--green-ln) } .bp.active { background:var(--blue-bg); border-color:var(--blue) } .bp.held, .bp.failed { background:var(--red-bg); border-color:var(--red) } .bp.waiting { background:var(--amber-bg); border-color:var(--amber-ln) } .bp.skipped { border-style:dashed; opacity:.6 }
-.tx { font:12.5px/1.55 var(--mono) } .tx > div { padding:5px 0; border-bottom:1px dashed var(--line2) } .tx .k { display:inline-block; min-width:62px; font-size:11px; font-weight:600; text-transform:uppercase; color:var(--faint) } .tx .tool { color:#1e40af } .tx .say { white-space:pre-wrap; font-family:ui-sans-serif, system-ui, sans-serif; font-size:13.5px; color:var(--ink) }
-.span { display:grid; grid-template-columns: 1fr 74px; gap:8px; font:12px var(--mono); padding:2px 0 } .span .b2 { height:5px; background:var(--blue); border-radius:3px; margin-top:4px; min-width:2px } .span.err { color:var(--red) } .span.err .b2 { background:var(--red) }
-.back { font-size:13px; margin-bottom:10px; display:inline-block }
-@media (max-width: 1100px) { .row { grid-template-columns: 1fr } .row .m { text-align:left } .two { grid-template-columns: 1fr } .stats { margin-left:0 } }
-</style></head><body>
-<div class="top"><span class="brand"><i></i>Made Well</span><span class="proj" id="proj"></span><span class="path" id="path"></span><span class="grow"></span><span id="runner"></span><span id="conn" class="pill mute"><span class="dot"></span>connecting</span></div>
-<main>
-  <section class="card"><div class="hero" id="hero"><span class="empty">Loading…</span></div></section>
-  <section class="card needs" id="needs" hidden></section>
-  <section class="card"><h2>Work <span class="sub" id="worksub"></span><span class="right legend"><span>● each step: <span style="color:var(--green)">done</span> · <span style="color:var(--blue)">running</span> · <span style="color:var(--red)">held or failed</span> · <span style="color:var(--amber)">?</span> = NQ questions asked</span></span></h2><div class="work" id="work"></div></section>
-  <section class="card" id="nowcard"><h2>Running now <span class="sub" id="nowsub"></span></h2><div class="running" id="running"></div></section>
-  <section class="card"><h2>Timeline <span class="sub">every agent call and Made Well step; click a bar to open its call</span><span class="right legend"><span><i class="k-intake"></i>NQ intake</span><span><i class="k-originator"></i>originator answers</span><span><i class="k-execute"></i>the job</span><span><i style="background:var(--violet)"></i>arbiter</span><span><i class="k-repair"></i>JSON repair</span><span><i style="background:#22c55e"></i>verify</span><span><i style="background:var(--teal)"></i>ship</span><span><i style="background:var(--red)"></i>failed or refused</span></span></h2><div class="tl" id="tl"></div></section>
-  <div class="two">
-    <section class="card"><h2>Where the agent time goes <span class="sub">minutes by job: NQ intake, originator answers, the job itself</span></h2><div class="cost" id="cost"></div></section>
-    <section class="card"><h2>Health</h2><div class="facts" id="facts"></div></section>
-  </div>
-  <section class="card"><h2>Event log <span class="sub" id="logsub"></span></h2><div class="filter"><input id="q" placeholder="Filter: #3, a job, an actor, any word"></div><div class="log" id="log"></div></section>
-</main>
-<div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer"><div class="dh" id="dh"></div><div class="db" id="db"></div></aside>
-<script>
-var M = null, MARK = '', lastOk = 0, open = null, tab = 'story', liveTail = null, D = null;
-var LIVE = typeof STATIC === 'undefined';
-function $(id) { return document.getElementById(id); }
-function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-function num(n) { return Number(n || 0).toLocaleString('en-US'); }
-function clock(iso) { return iso ? new Date(iso).toLocaleTimeString('en-GB', { hour12: false }) : ''; }
-function dur(ms) { ms = Math.max(0, ms || 0); if (ms < 60000) return (ms / 1000).toFixed(ms < 10000 ? 1 : 0) + 's'; var m = Math.floor(ms / 60000); return m < 60 ? m + 'm ' + String(Math.round((ms % 60000) / 1000)).padStart(2, '0') + 's' : Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm'; }
-function mins(ms) { var m = (ms || 0) / 60000; return m < 1 ? Math.round(m * 60) + 's' : m < 100 ? m.toFixed(1) + 'm' : Math.round(m) + 'm'; }
-function tk(n) { n = n || 0; return n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'k' : String(n); }
-function tok(t) { return t ? t.input + t.output + t.cacheRead + t.cacheWrite : 0; }
-function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
-function now() { return M ? (LIVE ? Date.now() : Date.parse(M.at)) : Date.now(); }
-function whoClass(a) { return a === 'operator' ? 'w-operator' : a === 'agent' ? 'w-agent' : a === 'runner' ? 'w-runner' : 'w-made'; }
-var PROFILE = { discover: 'ideator', ideate: 'ideator', challenge: 'ideation peer', plan: 'planner', 'test-plan': 'test architect', implement: 'implementer', verify: 'made well', arbitrate: 'arbiter', ship: 'made well' };
-var JOBNAME = { discover: 'Discover', ideate: 'Ideate', challenge: 'Challenge', plan: 'Plan', 'test-plan': 'Checks', implement: 'Implement', verify: 'Verify', arbitrate: 'Arbiter', ship: 'Ship' };
-function jobName(j) { return (M && M.jobs && M.jobs[j] && M.jobs[j].label) || JOBNAME[j] || j; }
-function profileName(j) { return (M && M.jobs && M.jobs[j] && M.jobs[j].profile) || PROFILE[j] || j; }
-var STATE_WORD = { done: 'done', active: 'running', held: 'held', failed: 'failed', waiting: 'waiting', todo: 'to do', skipped: 'skipped' };
-function itemOf(id) { return M && M.items.find(function (i) { return i.id === id; }); }
-
-// ── The page ──
-function render() {
-  if (!M) return;
-  var s = M.summary;
-  $('proj').textContent = M.projects.map(function (p) { return p.split('/').pop(); }).join(', ') || 'no project yet';
-  $('path').textContent = M.projects.length === 1 ? M.projects[0] : M.store;
-  $('runner').innerHTML = !LIVE ? '<span class="pill mute">replay written ' + esc(clock(M.at)) + '</span>' : M.runner ? '<span class="pill ok"><span class="dot pulse"></span>runner ' + M.runner.pid + '</span>' : '<span class="pill warn"><span class="dot"></span>no runner</span>';
-  renderHero(); renderNeeds(); renderWork(); renderRunning(); renderTimeline(); renderCost(); renderFacts(); renderLog();
-  if (open && open.type === 'item' && LIVE) loadItem(open.id, true);
-}
-
-function renderHero() {
-  var s = M.summary, total = s.items, open_ = s.moving + s.queued + s.held + s.candidates;
-  var verdict = !total && !M.items.length ? 'Nothing recorded yet. In a registered project: <code>mw discover --source-file notes.md</code> or <code>mw start --objective "…"</code>.'
-    : s.held ? '<b style="color:var(--red)">' + plural(s.held, 'item waits', 'items wait') + ' on you.</b> Everything else keeps moving.'
-    : s.candidates && !s.moving && !s.queued ? '<b style="color:var(--red)">' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.</b> Nothing else is moving.'
-    : !open_ ? 'All work is done: every item has shipped, been dropped, or waits for promotion.'
-    : !M.runner && LIVE ? '<b style="color:var(--amber)">The machine is stopped.</b> Any command that gives it work starts it again, or <code>mw run</code>; every item resumes where it stopped.'
-    : plural(s.moving, 'item') + ' moving, ' + s.queued + ' queued.' + (s.candidates ? ' ' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.' : ' Nothing needs you.');
-  var span = s.first ? (Date.parse(s.last) > Date.parse(s.first) ? (LIVE && open_ ? now() : Date.parse(s.last)) - Date.parse(s.first) : 0) : 0;
-  var nq = s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0;
-  $('hero').innerHTML = '<div><div class="big">' + s.shipped + ' <small>of ' + total + ' shipped</small></div><div class="verdict">' + verdict + '</div></div>' +
-    '<div class="stats">' + [[dur(span), 'wall time'], [mins(s.agentMs), 'agent time'], [tk(s.tokens), 'tokens'], [s.calls, 'agent calls'], [nq + '%', 'of agent time in NQ', nq > 45 ? 'bad' : ''], [s.questions, 'NQ questions'], [s.held, 'need you', s.held ? 'bad' : '']].map(function (x) {
-      return '<div class="stat ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('') + '</div>';
-}
-
-function cmd(n) { return '<div class="cmd"><code>' + esc(n.run) + '</code>' + (LIVE && navigator.clipboard ? '<button data-copy="' + esc(n.run) + '">Copy</button>' : '') + '<span>' + esc(n.why) + '</span></div>'; }
-function renderNeeds() {
-  var el = $('needs');
-  el.hidden = !M.needs.length;
-  if (!M.needs.length) return;
-  el.innerHTML = '<h2>Needs you <span class="sub">' + plural(M.needs.length, 'thing') + ' only you can move</span></h2>' + M.needs.map(function (n) {
-    return '<div class="need">' + (n.item ? '<div class="mono" style="color:var(--mute)"><a href="#" data-item="' + n.item + '">#' + n.item + ' ' + esc(n.title) + '</a> · ' + esc(n.code) + ' · since ' + esc(clock(n.since)) + '</div>' : '') +
-      '<div class="msg">' + esc(n.message) + '</div>' + (n.questions.length ? '<ol>' + n.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' : '') + n.next.map(cmd).join('') + '</div>';
-  }).join('');
-}
-
-function seg(st) {
-  return '<span class="seg ' + st.state + '" title="' + esc(jobName(st.job) + ': ' + STATE_WORD[st.state] + (st.calls ? ' · ' + plural(st.calls, 'call') + ' · ' + mins(st.agentMs) + ' agent time · ' + tk(st.tokens) + ' tokens' : '') + (st.questions ? ' · ' + plural(st.questions, 'NQ question') : '')) + '">' + esc(jobName(st.job) || st.label) + (st.questions ? '<span class="q">' + st.questions + '?</span>' : '') + '</span>';
-}
-function pipe(steps) {
-  var out = [], i = 0;
-  while (i < steps.length) {
-    var st = steps[i];
-    if (st.job === 'implement' && steps[i + 1] && steps[i + 1].job === 'test-plan') { out.push('<span class="col">' + seg(st) + seg(steps[i + 1]) + '</span>'); i += 2; }
-    else { out.push(seg(st)); i++; }
-  }
-  return '<div class="pipe">' + out.join('<span class="arrow">›</span>') + '</div>';
-}
-function rowMeta(i) {
-  var end = i.ended ? Date.parse(i.ended) : now();
-  var bits = [];
-  if (i.owes) bits.push('<span class="owes">next: <b>' + esc(i.owes) + '</b></span>');
-  bits.push(i.status === 'candidate' || i.status === 'queued' ? 'waiting ' + dur(end - Date.parse(i.started)) : dur(end - Date.parse(i.started)) + (i.ended ? '' : ' so far'));
-  bits.push(mins(i.agentMs) + ' agent · ' + tk(i.tokens) + ' tok');
-  if (i.checks) bits.push('checks ' + i.checks.passed + '/' + i.checks.total);
-  return bits.join('<br>');
-}
-function renderWork() {
-  var items = M.items.filter(function (i) { return i.status !== 'dropped'; });
-  var dropped = M.items.length - items.length;
-  $('worksub').textContent = items.length ? plural(items.length, 'item') + (dropped ? ' · ' + dropped + ' dropped' : '') : '';
-  // What needs a person first, then what moves, then what waits, then what is done.
-  var rank = { held: 0, paused: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
-  items.sort(function (a, b) { return (rank[a.status] - rank[b.status]) || a.id - b.id; });
-  $('work').innerHTML = items.length ? items.map(function (i) {
-    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'paused' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
-    return '<div class="row" data-item="' + i.id + '"><div><div class="t"><span class="id">#' + i.id + '</span>' + esc(i.title) + tags + '</div><div class="d">' + esc(i.doing) + '</div></div>' + pipe(i.steps) + '<div class="m">' + rowMeta(i) + '</div></div>';
-  }).join('') : '<div class="empty">No work items yet.</div>';
-}
-
-function renderRunning() {
-  var r = M.running;
-  $('nowcard').hidden = !r.length && !M.cutOff.length;
-  $('nowsub').textContent = r.length ? plural(r.length, 'step') + ' in flight' : '';
-  $('running').innerHTML = r.map(function (f, k) {
-    var cls = f.kind === 'intake' || f.kind === 'originator' ? 'nq' : f.who === 'made well' ? 'mw' : '';
-    var what = f.kind === 'execute' ? jobName(f.job) : f.kind === 'intake' ? 'NQ intake for ' + f.job : f.kind === 'originator' ? 'answers questions on ' + f.job : f.kind;
-    return '<div class="run ' + cls + '" data-run="' + k + '"><div class="h"><b>#' + f.item + ' · ' + esc(what) + '</b><span class="rw">' + esc(f.who) + (f.card ? ' · ' + esc(f.card) : '') + '</span><span class="tm" data-since="' + esc(f.since) + '">' + dur(now() - Date.parse(f.since)) + '</span></div>' +
-      '<div class="it">' + esc(f.title) + '</div><div class="act">' + (f.activity.length ? f.activity.slice(-4).map(function (a) { return '<div class="' + a.kind + '">' + esc(a.text) + '</div>'; }).join('') : '<div class="say" style="color:var(--faint)">' + (f.who === 'made well' ? 'running…' : 'thinking… no output yet') + '</div>') + '</div></div>';
-  }).join('') + (M.cutOff.length ? '<div class="empty">' + plural(M.cutOff.length, 'step was', 'steps were') + ' cut off when the runner stopped; they run again when it starts.</div>' : '');
-}
-
-function renderTimeline() {
-  var bars = M.bars;
-  if (!bars.length) { $('tl').innerHTML = '<div class="empty">No calls yet.</div>'; return; }
-  var t0 = Math.min.apply(null, bars.map(function (b) { return Date.parse(b.start); }));
-  var t1 = Math.max.apply(null, bars.map(function (b) { return b.end ? Date.parse(b.end) : now(); }).concat([LIVE && M.running.length ? now() : 0]));
-  var span = Math.max(t1 - t0, 1000);
-  var pct = function (t) { return ((t - t0) / span * 100).toFixed(3) + '%'; };
-  var step = [15e3, 30e3, 60e3, 120e3, 300e3, 600e3, 900e3, 1800e3, 3600e3].find(function (s) { return span / s <= 12; }) || 7200e3;
-  var ticks = [], grid = '';
-  for (var t = 0; t <= span; t += step) { ticks.push('<span style="left:' + (t / span * 100) + '%">' + (step < 60e3 ? Math.round(t / 1000) + 's' : Math.round(t / 60000) + 'm') + '</span>'); grid += '<div class="tl-grid" style="left:' + (t / span * 100) + '%"></div>'; }
-  var ids = []; bars.forEach(function (b) { if (ids.indexOf(b.item) < 0) ids.push(b.item); });
-  ids.sort(function (a, b) { return a - b; });
-  var rows = ids.map(function (id) {
-    var it = itemOf(id), mine = bars.filter(function (b) { return b.item === id; });
-    var lanes = mine.some(function (b) { return b.lane === 1; }) ? 2 : 1;
-    var h = lanes === 2 ? 40 : 28;
-    return '<div class="tl-row" data-item="' + id + '" style="height:' + h + 'px"><div class="tl-name"><b>#' + id + '</b>' + esc(it ? it.title : '') + '</div><div class="tl-track">' + grid + mine.map(function (b) {
-      var s = Date.parse(b.start), e = b.end ? Date.parse(b.end) : now();
-      var cls = b.kind === 'execute' && b.job === 'arbitrate' ? 'arbitrate' : b.kind;
-      var bad = b.outcome && b.outcome !== 'ok' ? ' bad' : '';
-      var top = lanes === 2 ? (b.lane === 1 ? 23 : 8) : 10;
-      var tip = '#' + id + ' ' + (b.kind === 'execute' ? jobName(b.job) + ' (' + profileName(b.job) + ')' : b.kind + ' · ' + b.job) + ' · ' + dur(e - s) + (b.outcome ? ' · ' + b.outcome : ' · running');
-      return '<div class="bar ' + cls + bad + (b.end ? '' : ' live') + '" style="left:' + pct(s) + ';width:calc(' + ((e - s) / span * 100).toFixed(3) + '% );top:' + top + 'px" title="' + esc(tip) + '"' + (b.call ? ' data-call="' + b.call + '"' : '') + '></div>';
-    }).join('') + (LIVE && M.running.length ? '<div class="tl-now" style="left:' + pct(now()) + '"></div>' : '') + '</div></div>';
-  }).join('');
-  $('tl').innerHTML = '<div class="tl-in"><div class="tl-axis">' + ticks.join('') + '</div>' + rows + '</div>';
-}
-
-function renderCost() {
-  var jobs = Object.keys(M.jobs || {}).filter(function (j) { return M.cost[j]; }).concat(Object.keys(M.cost).filter(function (j) { return !(M.jobs || {})[j]; }));
-  var KINDS = ['intake', 'originator', 'execute', 'repair'];
-  var tot = function (j) { var c = M.cost[j]; return KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].ms : 0); }, 0); };
-  var max = Math.max.apply(null, jobs.map(tot).concat([1]));
-  $('cost').innerHTML = jobs.length ? jobs.map(function (j) {
-    var c = M.cost[j], t = tot(j), toks = KINDS.reduce(function (n, k) { return n + (c[k] ? c[k].tokens : 0); }, 0);
-    return '<div>' + esc(jobName(j)) + '</div><div class="track" title="' + esc(KINDS.filter(function (k) { return c[k]; }).map(function (k) { return k + ' ' + mins(c[k].ms) + ' in ' + plural(c[k].calls, 'call'); }).join(' · ')) + '">' +
-      KINDS.map(function (k) { return c[k] ? '<div class="k-' + k + '" style="width:' + (c[k].ms / max * 100) + '%"></div>' : ''; }).join('') + '</div><div class="n">' + mins(t) + ' · ' + tk(toks) + '</div>';
-  }).join('') + '<div></div><div class="legend" style="margin-top:4px"><span><i class="k-intake"></i>NQ intake</span><span><i class="k-originator"></i>originator answers</span><span><i class="k-execute"></i>the job</span></div><div></div>' : '<div class="empty">No agent calls yet.</div>';
-}
-
-function renderFacts() {
-  var s = M.summary, breaks = M.rules.length;
-  var ruleNames = {}; M.rules.forEach(function (r) { ruleNames[r.rule] = (ruleNames[r.rule] || 0) + 1; });
-  var f = [[s.intakes ? (s.questions / s.intakes).toFixed(1) : '0', 'NQ questions per intake', s.intakes && s.questions / s.intakes > 1 ? 'bad' : 'ok'],
-    [s.refused, 'calls failed or refused', s.refused ? 'bad' : 'ok'],
-    [breaks, breaks ? 'rule breaks: ' + Object.keys(ruleNames).map(function (k) { return k + ' ×' + ruleNames[k]; }).join(', ') : 'rule breaks in ' + plural(s.calls, 'checked call'), breaks ? 'bad' : 'ok'],
-    [s.calls ? tk(s.tokens / s.calls) : '0', 'tokens per call'],
-    [s.calls ? dur(s.agentMs / s.calls) : '0s', 'mean call time'],
-    [s.shipped ? mins(s.agentMs / s.shipped) : '—', 'agent time per shipped item']];
-  $('facts').innerHTML = f.map(function (x) { return '<div class="fact ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('') +
-    (breaks ? '<div style="grid-column:1/-1">' + M.rules.slice(0, 10).map(function (r) { return '<a href="#" data-call="' + r.call + '" class="chip" style="margin:2px">#' + r.item + ' ' + esc(r.kind + ' ' + r.job + ': ' + r.rule) + '</a>'; }).join('') + '</div>' : '');
-}
-
-function evRow(e) { return '<div class="ev"><span class="t">' + clock(e.at) + '</span><span class="who ' + whoClass(e.actor) + '">' + esc(e.actor) + '</span><span class="i">' + (e.item ? '<a href="#" data-item="' + e.item + '">#' + e.item + '</a>' : '') + '</span><span>' + esc(e.say) + (e.kind === 'call-finished' && e.data.call ? ' <a href="#" data-call="' + e.data.call + '">open call</a>' : '') + '</span></div>'; }
-function renderLog() {
-  var q = $('q').value.trim().toLowerCase();
-  var rows = M.events.filter(function (e) { if (!q) return true; if (/^#\d+$/.test(q)) return e.item === Number(q.slice(1)); return (e.actor + ' ' + e.kind + ' ' + e.say + ' #' + e.item).toLowerCase().indexOf(q) >= 0; });
-  $('logsub').textContent = M.eventCount > M.events.length ? 'the newest ' + M.events.length + ' of ' + M.eventCount + ' events; an item shows all of its own' : M.eventCount + ' events, newest first';
-  var el = $('log'), keep = el.scrollTop;
-  el.innerHTML = rows.slice().reverse().map(evRow).join('') || '<div class="empty">No events match.</div>';
-  el.scrollTop = keep;
-}
-
-// ── The drawer: one item, one call, or one running step ──
-function show(head, body, keep) { var y = $('db').scrollTop; $('dh').innerHTML = '<button class="x" id="dclose">Close ✕</button>' + head; $('db').innerHTML = body; $('db').scrollTop = keep ? y : 0; $('drawer').classList.add('open'); $('scrim').classList.add('open'); $('dclose').onclick = closeDrawer; }
-function closeDrawer() { $('drawer').classList.remove('open'); $('scrim').classList.remove('open'); open = null; liveTail = null; }
-function getJson(path) { return fetch(path).then(function (r) { return r.json(); }); }
-
-function loadItem(id, refresh) {
-  if (!refresh) tab = open && open.type === 'item' && open.id === id ? tab : 'story';
-  open = { type: 'item', id: id };
-  var p = LIVE ? getJson('api/item/' + id) : Promise.resolve(STATIC.details[id]);
-  p.then(function (d) { if (d && open && open.type === 'item' && open.id === id) { D = d; drawItem(refresh); } });
-}
-var TABS = [['story', 'Story'], ['nq', 'Hand-offs'], ['checks', 'Checks'], ['change', 'Change'], ['calls', 'Calls'], ['log', 'Log'], ['trace', 'Trace']];
-function drawItem(keep) {
-  var v = D.view, it = D.item;
-  var counts = { nq: D.exchanges.reduce(function (n, x) { return n + x.turns.length; }, 0), checks: D.checks.length, change: (it.change && it.change.files.length) || 0, calls: D.calls.length, log: D.events.length };
-  var head = '<h3>#' + v.id + ' ' + esc(v.title) + ' <span class="tag ' + esc(v.kind) + '">' + esc(v.kind) + '</span><span class="tag st-' + v.status + '">' + esc(v.status) + '</span>' + (v.round > 1 ? '<span class="tag">round ' + v.round + '</span>' : '') + '</h3>' +
-    '<div class="sub">' + esc(v.doing) + (v.owes ? ' · next: <b>' + esc(v.owes) + '</b>' : '') + '</div>' + bigPipe(v.steps) +
-    '<div class="tabs">' + TABS.map(function (t) { return '<button data-tab="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + (counts[t[0]] ? '<span class="n">' + counts[t[0]] + '</span>' : '') + '</button>'; }).join('') + '</div>';
-  var body = ({ story: storyTab, nq: nqTab, checks: checksTab, change: changeTab, calls: callsTab, log: logTab, trace: traceTab })[tab]();
-  show(head, body, keep);
-  if (tab === 'trace') loadTrace(v.id);
-}
-function bigPipe(steps) {
-  return '<div class="bigpipe">' + steps.map(function (st) {
-    return '<div class="bp ' + st.state + '"><b>' + esc(jobName(st.job) || st.label) + '</b><div class="w">' + esc(st.who) + ' · ' + STATE_WORD[st.state] + '</div><div class="w">' + (st.calls ? mins(st.agentMs) + ' · ' + tk(st.tokens) + ' tok' : '&nbsp;') + (st.questions ? ' · <span style="color:var(--amber)">' + st.questions + '?</span>' : '') + '</div></div>';
-  }).join('') + '</div>';
-}
-function list(a) { return a && a.length ? '<ul style="margin:4px 0;padding-left:20px">' + a.map(function (x) { return '<li>' + esc(typeof x === 'string' ? x : JSON.stringify(x)) + '</li>'; }).join('') + '</ul>' : '<span class="empty">none</span>'; }
-function decisions(ds) { return (ds || []).map(function (d) { return '<div class="dec"><div class="q">' + esc(d.question) + '</div><div class="a">→ ' + esc(d.decision) + '</div>' + (d.why ? '<div class="y">' + esc(d.why) + '</div>' : '') + '</div>'; }).join(''); }
-var KNOWN_OUT = ['discover', 'ideate', 'challenge', 'plan', 'implement', 'test-plan', 'arbitrate'];
-function jobOrder(j) { var k = Object.keys(M.jobs || {}); return k.indexOf(j) < 0 ? 99 : k.indexOf(j); }
-function fieldsOf(v) {
-  if (v == null) return '';
-  if (typeof v !== 'object') return '<div class="prose">' + esc(String(v)) + '</div>';
-  if (Array.isArray(v)) return v.length ? '<ul>' + v.map(function (x) { return '<li>' + (typeof x === 'object' ? fieldsOf(x) : esc(String(x))) + '</li>'; }).join('') + '</ul>' : '<div class="prose" style="color:var(--mute)">none</div>';
-  return Object.keys(v).map(function (k) { return '<div style="margin-top:6px"><b style="font-size:13px">' + esc(k) + '</b>' + fieldsOf(v[k]) + '</div>'; }).join('');
-}
-function storyTab() {
-  var v = D.view, it = D.item, o = D.deliverables, h = '';
-  if (v.hold) h += '<div class="hold"><div class="c">' + esc(v.hold.code) + '</div><div style="font-size:15px;margin:4px 0">' + esc(v.hold.message) + '</div>' + (Array.isArray(v.hold.context.questions) ? '<ol>' + v.hold.context.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' : '') + v.next.map(cmd).join('') + '<details><summary>every fact of the hold</summary><pre>' + esc(JSON.stringify(v.hold.context, null, 2)) + '</pre></details></div>';
-  h += '<h4>Objective</h4><div class="prose lead">' + esc(it.objective) + '</div>';
-  if (o.discover && o.discover.text) h += '<h4>From discovery #' + (v.discovery || '') + '</h4><div class="prose">' + esc(o.discover.text) + '</div>';
-  if (o.discover && o.discover.items) h += '<h4>Candidates found</h4>' + D.related.map(function (r) { return '<div><a href="#" data-item="' + r.id + '">#' + r.id + ' ' + esc(r.title) + '</a> <span class="tag st-' + r.status + '">' + esc(r.status) + '</span></div>'; }).join('');
-  h += '<details><summary>the operator\'s own words</summary><pre>' + esc(it.source) + '</pre></details>';
-  if (o.ideate) h += '<h4>Idea · ideator</h4><div class="prose lead">' + esc(o.ideate.outcome) + '</div><div class="prose" style="margin-top:8px">' + esc(o.ideate.approach) + '</div>' + (o.ideate.decisions && o.ideate.decisions.length ? '<details><summary>' + plural(o.ideate.decisions.length, 'decision') + '</summary>' + decisions(o.ideate.decisions) + '</details>' : '');
-  if (o.challenge) h += '<h4>Challenge · ideation peer</h4>' + (o.challenge.findings || []).map(function (f) { return '<div class="dec"><div class="q">' + esc(f.finding) + '</div><div class="a">→ ' + esc(f.resolution) + '</div></div>'; }).join('') + (o.challenge.decisions && o.challenge.decisions.length ? '<details><summary>' + plural(o.challenge.decisions.length, 'decision') + '</summary>' + decisions(o.challenge.decisions) + '</details>' : '');
-  if (o.plan) {
-    var p = o.plan;
-    h += '<h4>Plan · planner</h4><div class="prose lead">' + esc(p.making) + '</div>';
-    if (p.notMaking && p.notMaking.length) h += '<div style="margin-top:6px"><b style="font-size:13px">Not making</b>' + list(p.notMaking) + '</div>';
-    h += '<div style="margin-top:8px"><b style="font-size:13px">Scope</b> <div class="chips">' + (p.scope || []).map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') + '</div></div>';
-    if (p.follows && p.follows.length) h += '<div style="margin-top:6px;font-size:13px">' + p.follows.map(function (f) { return '<code>' + esc(f.path) + '</code> follows <code>' + esc(f.follows) + '</code>'; }).join('<br>') + '</div>';
-    h += '<div style="margin-top:8px"><b style="font-size:13px">Steps</b><ol class="steps">' + (p.steps || []).map(function (s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol></div>';
-    h += '<div style="margin-top:8px"><b style="font-size:13px">Done when</b><div class="dw">' + (p.doneWhen || []).map(function (d) { return '<span class="id">' + esc(d.id) + '</span><span>' + esc(d.text) + '</span>'; }).join('') + '</div></div>';
-    if (p.decisions && p.decisions.length) h += '<details><summary>' + plural(p.decisions.length, 'decision') + '</summary>' + decisions(p.decisions) + '</details>';
-  }
-  if (o.implement) h += '<h4>Implementer</h4><div class="prose">' + esc(o.implement.summary || o.implement.blocked || '') + '</div>';
-  if (o['test-plan'] && o['test-plan'].blocked) h += '<h4>Test architect</h4><div class="prose">' + esc(o['test-plan'].blocked) + '</div>';
-  // A cartridge's own steps: each deliverable drawn from its fields, in lane order.
-  Object.keys(o).filter(function (j) { return KNOWN_OUT.indexOf(j) < 0; }).sort(function (a, b) { return jobOrder(a) - jobOrder(b); }).forEach(function (j) { h += '<h4>' + esc(jobName(j)) + ' · ' + esc(profileName(j)) + '</h4>' + fieldsOf(o[j]); });
-  if (it.failure) h += '<h4>Open failure</h4><pre>' + esc(it.failure) + '</pre>';
-  if (o.arbitrate) h += '<h4>Arbiter\'s ruling</h4><div class="dec"><div class="q">Cause: ' + esc(o.arbitrate.cause) + '</div><div class="a">' + esc(o.arbitrate.answer) + '</div><div class="y">' + esc(o.arbitrate.evidence) + '</div></div>';
-  if (it.rework) h += '<h4>Round ' + it.round + ' works from this ruling</h4><div class="dec"><div class="q">' + esc(it.rework.cause) + '</div><div class="a">' + esc(it.rework.answer) + '</div></div>';
-  if (v.commit) h += '<h4>Shipped</h4><div class="prose">' + esc(v.doing) + ' · <code>' + esc(v.commit) + '</code></div>';
-  if (D.related.length && !(o.discover && o.discover.items)) h += '<h4>Related</h4>' + D.related.map(function (r) { return '<div><a href="#" data-item="' + r.id + '">#' + r.id + ' ' + esc(r.title) + '</a> <span class="tag st-' + r.status + '">' + esc(r.status) + '</span></div>'; }).join('');
-  return h;
-}
-function nqTab() {
-  if (!D.exchanges.length) return '<div class="empty">No hand-offs yet.</div>';
-  return '<div class="prose" style="margin-bottom:6px;font-size:13px;color:var(--mute)">Every hand-off between agents is an NQ exchange: the receiver states what it understood and asks what is unclear; the one who handed over answers. Three answered turns with questions still open hold the item for you.</div>' + D.exchanges.map(function (x) {
-    return '<div class="xch"><div class="xh">' + esc(x.from) + ' → ' + esc(x.to) + ' <span>· ' + esc(x.job) + ' · ' + (x.turns.length ? plural(x.turns.length, 'turn') : 'no questions') + '</span></div>' +
-      x.turns.map(function (t, k) {
-        return '<div class="turn"><div class="qh">Turn ' + (k + 1) + ' · ' + (t.error ? 'an error, asked as a question' : plural(t.questions.length, 'question')) + ' · ' + clock(t.at) + '</div>' + (t.understanding ? '<details><summary>what the ' + esc(x.to) + ' understood</summary><div class="prose" style="font-size:13px">' + esc(t.understanding) + '</div></details>' : '') +
-          '<ol>' + t.questions.map(function (q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ol>' + (t.answer ? '<div class="ans"><b>' + esc(t.by === 'operator' ? 'you answered' : 'the ' + x.from + ' answered') + '</b>' + esc(t.answer) + '</div>' : t.by ? '<div class="ans"><b>answered by the ' + esc(t.by) + '</b></div>' : '<div class="ans"><b>waiting for an answer</b></div>') + '</div>';
-      }).join('') + (x.clear ? '<div class="turn clear"><div class="qh">Clear · ' + clock(x.clear.at) + '</div>' + (x.clear.understanding ? '<div class="prose" style="font-size:13px">' + esc(x.clear.understanding) + '</div>' : '') + (x.clear.notes.length ? '<details><summary>' + plural(x.clear.notes.length, 'note') + ' that travel with the work</summary>' + list(x.clear.notes) + '</details>' : '') + '</div>' : '') + '</div>';
-  }).join('');
-}
-function checksTab() {
-  var plan = D.deliverables.plan, res = {}, h = '';
-  (D.verification ? D.verification.results : []).forEach(function (r) { res[r.id] = r; });
-  if (!D.checks.length && !D.verification) return '<div class="empty">No checks yet: the test architect writes them from the plan, blind to the change.</div>';
-  if (D.verification) h += '<div class="prose" style="margin-bottom:10px">' + (D.verification.passed ? '<span class="ok-t">✓ Every check passed</span>' : '<span class="bad-t">✕ ' + D.verification.results.filter(function (r) { return r.exitCode !== 0; }).length + ' failed</span>') + ' when Made Well ran them on <code>' + esc(D.verification.on.slice(0, 12)) + '</code> with the implementer\'s change.</div>';
-  var gates = (D.verification ? D.verification.results : []).filter(function (r) { return r.doneWhen === '(gate)'; });
-  var groups = (plan && plan.doneWhen ? plan.doneWhen : []).map(function (d) { return { d: d, checks: D.checks.filter(function (c) { return c.doneWhen === d.id; }) }; });
-  if (!groups.length) groups = [{ d: { id: '', text: '' }, checks: D.checks }];
-  h += '<table><tr><th>Done when</th><th>Check</th><th class="num">Result</th></tr>' + groups.map(function (g) {
-    return g.checks.map(function (c, k) {
-      var r = res[c.id];
-      return '<tr>' + (k === 0 ? '<td rowspan="' + g.checks.length + '" style="width:38%"><span class="mono" style="color:var(--mute)">' + esc(g.d.id) + '</span> ' + esc(g.d.text) + '</td>' : '') + '<td><span class="mono">' + esc(c.id) + '</span> <code>' + esc(c.run) + '</code>' + (r && r.exitCode !== 0 ? '<pre>' + esc(r.output) + '</pre>' : '') + '</td><td class="num">' + (r ? (r.exitCode === 0 ? '<span class="ok-t">✓</span> ' : '<span class="bad-t">✕ exit ' + r.exitCode + '</span> ') + dur(r.ms) : '<span class="empty">not run</span>') + '</td></tr>';
-    }).join('') || '<tr><td>' + esc(g.d.id + ' ' + g.d.text) + '</td><td class="empty">no check</td><td></td></tr>';
-  }).join('') + gates.map(function (r) { return '<tr><td><span class="mono" style="color:var(--mute)">gate</span> the project\'s own</td><td><code>' + esc(r.run) + '</code>' + (r.exitCode !== 0 ? '<pre>' + esc(r.output) + '</pre>' : '') + '</td><td class="num">' + (r.exitCode === 0 ? '<span class="ok-t">✓</span> ' : '<span class="bad-t">✕</span> ') + dur(r.ms) + '</td></tr>'; }).join('') + '</table>';
-  if (D.diff.checks) h += '<h4>The check files</h4>' + diffHtml(D.diff.checks);
-  return h;
-}
-function diffHtml(text) {
-  return '<div class="diff">' + text.split('\n').map(function (l) { var c = /^(\+\+\+|---|diff |index )/.test(l) ? 'f' : l[0] === '+' ? 'a' : l[0] === '-' ? 'r' : l.slice(0, 2) === '@@' ? 'h' : ''; return '<div class="' + c + '">' + (esc(l) || ' ') + '</div>'; }).join('') + '</div>';
-}
-function changeTab() {
-  var files = (D.item.change && D.item.change.files) || [];
-  if (!files.length && !D.diff.change) return '<div class="empty">No change yet: the implementer makes it from the plan.</div>';
-  return (files.length ? '<h4>' + plural(files.length, 'file') + '</h4><div class="chips">' + files.map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') + '</div>' : '') + (D.diff.change ? '<h4>' + (D.view.commit ? 'As shipped' : 'The patch waiting to ship') + '</h4>' + diffHtml(D.diff.change) : '');
-}
-function callsTab() {
-  if (!D.calls.length) return '<div class="empty">No calls yet.</div>';
-  var sum = D.calls.reduce(function (a, c) { a.ms += c.ms; a.t += tok(c.tokens); return a; }, { ms: 0, t: 0 });
-  return '<div class="prose" style="font-size:13px;margin-bottom:8px">' + plural(D.calls.length, 'call') + ' · ' + mins(sum.ms) + ' of agent time · ' + tk(sum.t) + ' tokens</div><table><tr><th>#</th><th>Call</th><th>Card</th><th class="num">Time</th><th class="num">Tokens</th><th class="num">Tools</th><th>Outcome</th></tr>' + D.calls.map(function (c) {
-    return '<tr class="click" data-call="' + c.id + '"><td class="num">' + c.id + '</td><td><b>' + esc(c.kind === 'execute' ? jobName(c.job) : c.kind) + '</b> <span style="color:var(--mute)">' + esc((c.kind === 'execute' ? '' : c.job + ' · ') + c.profile) + '</span></td><td class="mono" style="color:var(--mute)">' + esc(c.card.harness + ' · ' + c.card.model) + '</td><td class="num">' + dur(c.ms) + '</td><td class="num">' + tk(tok(c.tokens)) + '</td><td class="num">' + c.toolCount + '</td><td>' + (c.outcome === 'ok' ? '<span class="ok-t">ok</span>' : '<span class="bad-t">' + esc(c.outcome) + '</span>') + (c.flags.length ? ' <span class="bad-t">' + plural(c.flags.length, 'rule break') + '</span>' : '') + '</td></tr>';
-  }).join('') + '</table>';
-}
-function logTab() { return '<div class="log" style="max-height:none">' + D.events.map(evRow).join('') + '</div>'; }
-function traceTab() { return LIVE ? '<div id="spans" class="empty">Loading the trace…</div>' : '<div class="empty">The trace is read from spans.jsonl by the live console (<code>mw ui</code>).</div>'; }
-function loadTrace(id) {
-  getJson('api/spans/' + id).then(function (spans) {
-    var el = $('spans'); if (!el) return;
-    if (!spans.length) { el.innerHTML = 'No spans for this item. Spans are written to spans.jsonl beside the store while Made Well runs (MW_DEBUG=0 turns them off).'; return; }
-    var by = {}, roots = [], max = Math.max.apply(null, spans.map(function (s) { return s.ms; }).concat([1]));
-    spans.forEach(function (s) { by[s.span] = s; s.kids = []; });
-    spans.forEach(function (s) { if (s.parent && by[s.parent]) by[s.parent].kids.push(s); else roots.push(s); });
-    var out = '', walk = function (s, d) {
-      out += '<div class="span' + (s.outcome === 'error' ? ' err' : '') + '" title="' + esc(JSON.stringify(s.attributes)) + '"><div style="padding-left:' + (d * 14) + 'px">' + esc(s.name) + ' <span style="color:var(--faint)">' + clock(s.start) + (s.attributes.job ? ' · ' + esc(s.attributes.job) : '') + '</span><div class="b2" style="width:' + Math.max(0.5, s.ms / max * 100) + '%"></div></div><div style="text-align:right;color:var(--mute)">' + dur(s.ms) + '</div></div>';
-      s.kids.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (k) { walk(k, d + 1); });
-    };
-    roots.sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (r) { walk(r, 0); });
-    el.className = ''; el.innerHTML = out;
-  });
-}
-
-function loadCall(id) {
-  var back = open && open.type === 'item' ? open.id : null;
-  open = { type: 'call', id: id, back: back };
-  var p = LIVE ? getJson('api/call/' + id) : Promise.resolve(STATIC.calls[id]);
-  p.then(function (c) { if (c && open && open.type === 'call' && open.id === id) drawCall(c, back); });
-}
-function pretty(text) { var j = null; try { var s = (text || '').replace(/^\s*\x60{3}(json)?/, '').replace(/\x60{3}\s*$/, ''); j = JSON.parse(s); } catch (e) {} return '<pre>' + esc(j ? JSON.stringify(j, null, 2) : text || '(none)') + '</pre>'; }
-function drawCall(c, back) {
-  var head = (back ? '<a href="#" class="back" data-item="' + back + '">← #' + back + '</a>' : '<a href="#" class="back" data-item="' + c.item + '">← #' + c.item + '</a>') +
-    '<h3>' + esc(c.kind === 'execute' ? jobName(c.job) + ' · ' + c.profile : c.kind + ' · ' + c.job + ' · ' + c.profile) + ' <span class="tag">call ' + c.id + '</span>' + (c.outcome === 'ok' ? '' : '<span class="tag st-held">' + esc(c.outcome) + '</span>') + '</h3>' +
-    '<div class="sub">' + esc([c.card.harness, c.card.model, c.card.effort].filter(function (x, k, a) { return x && a.indexOf(x) === k; }).join(' · ')) + ' · ' + esc(clock(c.started)) + ' · ' + dur(c.ms) + ' · ' + (c.tokens ? tk(tok(c.tokens)) + ' tokens (' + num(c.tokens.output) + ' out, ' + num(c.tokens.cacheRead) + ' cache read)' : 'tokens not reported') + (c.facts && c.facts.access ? ' · ' + esc(c.facts.access) + ' access' : '') + '</div>';
-  var h = '';
-  if (c.error) h += '<h4>' + (c.outcome === 'rejected' ? 'Refused by Made Well' : 'Error') + '</h4><pre>' + esc(c.error) + '</pre>';
-  h += c.flags.length ? '<h4>Rule breaks</h4>' + c.flags.map(function (f) { return '<div class="hold"><div class="c">' + esc(f.rule) + '</div><pre>' + esc(JSON.stringify(f.evidence, null, 2)) + '</pre></div>'; }).join('') : '';
-  h += '<h4>Answer</h4>' + pretty(c.output);
-  h += '<h4>What the agent did · ' + plural(c.tools.length, 'tool call') + '</h4><div class="tx">' + transcript(c.raw || '', Date.parse(c.started), c.output) + '</div>';
-  h += '<h4>Given</h4><details><summary>the packet (' + num((c.prompt || '').length) + ' characters)</summary>' + pretty(c.prompt) + '</details><details><summary>the brief every call shares</summary><pre>' + esc(c.system) + '</pre></details>';
-  if (c.facts) h += '<details><summary>facts the rules were checked against</summary><pre>' + esc(JSON.stringify(c.facts, null, 2)) + '</pre></details>';
-  show(head, h);
-}
-// The agent's stream as a person reads it: what it said, each tool it called with its input, and how big each result was.
-function transcript(raw, t0, answer) {
-  var out = [], results = {}, final = (answer || '').trim();
-  var lines = raw.split('\n').filter(function (l) { return l.trim(); }).map(function (l) { try { return JSON.parse(l); } catch (e) { return { type: 'text', text: l }; } });
-  lines.forEach(function (v) { var p = v.message && Array.isArray(v.message.content) ? v.message.content : []; p.forEach(function (b) { if (b.type === 'tool_result') results[b.tool_use_id] = b; }); });
-  t0 = t0 || (lines.length && lines[0].mw_at);
-  lines.forEach(function (v) {
-    var at = v.mw_at && t0 ? '<span style="color:var(--faint)">+' + ((v.mw_at - t0) / 1000).toFixed(0) + 's</span> ' : '';
-    if (v.type === 'assistant' && v.message) (v.message.content || []).forEach(function (b) {
-      if (b.type === 'text' && b.text && b.text.trim()) out.push('<div>' + at + '<span class="k">says</span>' + (final && b.text.trim() === final ? ' <span style="color:var(--faint)">its answer, shown above (' + num(final.length) + ' characters)</span>' : '<div class="say">' + esc(b.text.length > 3000 ? b.text.slice(0, 3000) + '…' : b.text) + '</div>') + '</div>');
-      if (b.type === 'tool_use') { var r = results[b.id], size = r ? JSON.stringify(r.content || '').length : 0; out.push('<div>' + at + '<span class="k">' + esc(b.name) + '</span> <span class="tool">' + esc(toolLine(b.input)) + '</span>' + (r ? ' <span style="color:var(--faint)">→ ' + num(size) + ' chars' + (r.is_error ? ', error' : '') + '</span>' : '') + '</div>'); }
-    });
-    else if (v.type === 'item.started' && v.item && v.item.command) out.push('<div>' + at + '<span class="k">shell</span> <span class="tool">$ ' + esc(v.item.command) + '</span></div>');
-    else if (v.type === 'item.completed' && v.item && v.item.type === 'agent_message') out.push('<div>' + at + '<span class="k">says</span><div class="say">' + esc(v.item.text) + '</div></div>');
-    else if (v.type === 'tool_execution_start') out.push('<div>' + at + '<span class="k">' + esc(v.toolName) + '</span> <span class="tool">' + esc(toolLine(v.args)) + '</span></div>');
-    else if (v.type === 'text') out.push('<div>' + esc(v.text) + '</div>');
-  });
-  return out.join('') || '<span class="empty">No stream recorded.</span>';
-}
-function toolLine(input) {
-  input = input || {};
-  var path = input.path || input.file_path || input.filePath;
-  if (input.command || input.cmd) return '$ ' + (input.command || input.cmd);
-  if (path) return String(path).replace(/^.*\/worktrees\/[^/]+\//, '') + (input.read_range ? ' ' + JSON.stringify(input.read_range) : '');
-  var s = JSON.stringify(input); return s.length > 400 ? s.slice(0, 400) + '…' : s;
-}
-function drawRun(f) {
-  open = { type: 'run' };
-  var name = f.live ? f.live.split('/').pop() : null;
-  show('<a href="#" class="back" data-item="' + f.item + '">← #' + f.item + '</a><h3>' + esc(f.kind === 'execute' ? jobName(f.job) : f.kind + ' · ' + f.job) + ' · ' + esc(f.who) + ' <span class="tag st-running">running</span></h3><div class="sub">' + esc(f.title) + (f.card ? ' · ' + esc(f.card) : '') + ' · since ' + esc(clock(f.since)) + '</div>',
-    '<h4>Live</h4><div class="tx" id="tail">' + (name ? 'waiting for output…' : 'This step streams no output.') + '</div>');
-  liveTail = name ? { name: name, from: 0, text: '' } : null;
-  tail();
-}
-function tail() {
-  if (!liveTail || !LIVE) return;
-  var t = liveTail;
-  getJson('api/live/' + encodeURIComponent(t.name) + '?from=' + t.from).then(function (d) {
-    if (liveTail !== t) return;
-    if (d.gone) { var el0 = $('tail'); if (el0) el0.innerHTML += '<div style="color:var(--green)">— the step ended; its record is in the item\'s calls —</div>'; liveTail = null; return; }
-    t.from = d.next; t.text = (t.text + d.text).slice(-600000);
-    var el = $('db'), stick = el.scrollTop + el.clientHeight >= el.scrollHeight - 40;
-    var tl = $('tail'); if (tl) tl.innerHTML = transcript(t.text) || 'waiting for output…';
-    if (stick) el.scrollTop = el.scrollHeight;
-  }).catch(function () {});
-}
-
-// ── Wiring ──
-document.addEventListener('click', function (ev) {
-  var c = ev.target.closest('[data-copy]');
-  if (c) { navigator.clipboard.writeText(c.dataset.copy); c.textContent = 'Copied'; setTimeout(function () { c.textContent = 'Copy'; }, 1200); return; }
-  var tb = ev.target.closest('[data-tab]');
-  if (tb) { tab = tb.dataset.tab; drawItem(false); return; }
-  var t = ev.target.closest('[data-item],[data-call],[data-run]'); if (!t) return;
-  if (t.tagName === 'A') ev.preventDefault();
-  if (t.dataset.call) { ev.stopPropagation(); return loadCall(Number(t.dataset.call)); }
-  if (t.dataset.run) return drawRun(M.running[Number(t.dataset.run)]);
-  if (t.dataset.item) return loadItem(Number(t.dataset.item));
-});
-$('scrim').onclick = closeDrawer;
-$('q').oninput = function () { if (M) renderLog(); };
-document.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') closeDrawer(); });
-
-function poll() {
-  getJson('api/mark').then(function (m) {
-    lastOk = Date.now();
-    if (m.store === null) { $('hero').innerHTML = '<div class="empty">No store yet at ' + esc(m.path) + '. It appears with the first <code>mw discover</code> or <code>mw start</code>; this page picks it up by itself.</div>'; return; }
-    var key = JSON.stringify(m);
-    if (key === MARK) return tick();
-    MARK = key;
-    return getJson('api/model').then(function (s) { M = s; render(); });
-  }).catch(function () {}).then(function () {
-    var ok = Date.now() - lastOk < 4000;
-    $('conn').className = 'pill ' + (ok ? 'mute' : 'bad'); $('conn').innerHTML = ok ? '<span class="dot pulse" style="color:var(--green)"></span>live' : '<span class="dot"></span>disconnected: is mw ui still running?';
-    tail();
-  });
-}
-function tick() { document.querySelectorAll('[data-since]').forEach(function (el) { el.textContent = dur(now() - Date.parse(el.dataset.since)); }); }
-if (LIVE) { poll(); setInterval(poll, 1000); }
-else { M = STATIC.model; $('conn').hidden = true; render(); }
-</script></body></html>`;
-
-// src/ui.ts
-var actorOf = (e) => {
-  const d = e.data;
-  if (e.kind.startsWith("runner-")) return "runner";
-  if (["promoted", "retried", "dropped", "nq-corrected"].includes(e.kind)) return "operator";
-  if (e.kind === "nq-answer") return d.originator === "operator" ? "operator" : "agent";
-  if (e.kind === "ruling") return d.by === "operator" ? "operator" : "agent";
-  if (e.kind === "created") return d.discovery == null ? "operator" : "agent";
-  if (["call-started", "call-finished", "nq-question", "nq-clear", "accepted"].includes(e.kind)) return "agent";
-  return "made well";
-};
-var secs = (ms) => ms < 6e4 ? `${(ms / 1e3).toFixed(1)}s` : `${Math.floor(ms / 6e4)}m${String(Math.round(ms % 6e4 / 1e3)).padStart(2, "0")}s`;
-var short = (s, n = 160) => {
-  const t = String(s ?? "").replace(/\s+/g, " ").trim();
-  return t.length > n ? `${t.slice(0, n - 1)}\u2026` : t;
-};
-var cardOf = (c) => {
-  const card = c;
-  return card ? [...new Set([card.harness, card.model, card.effort].filter(Boolean))].join(" \xB7 ") : "";
-};
-var jobs = (j) => Array.isArray(j) ? j.join(" + ") : String(j ?? "");
-var plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
-var sayOf = (e, title) => {
-  const d = e.data;
-  switch (e.kind) {
-    case "created":
-      return d.job === "discover" ? `Discovery run started: ${title ?? ""}` : d.discovery != null ? `Candidate found by discovery #${d.discovery}: ${title ?? ""}` : `Work item created: ${title ?? ""}`;
-    case "running":
-      return `Running ${d.job}`;
-    case "base":
-      return `Starts from ${d.ref} at ${String(d.main).slice(0, 12)}`;
-    case "handoff":
-      return `The ${d.from} hands ${d.job} to the ${d.to}`;
-    case "nq-question":
-      return `The ${d.receiver} asks the ${d.originator} ${plural(d.questions?.length ?? 0, "question")}${d.error ? " about an error" : ""}: ${short((d.questions ?? []).join(" \xB7 "), 220)}`;
-    case "nq-answer":
-      return `The ${d.originator} answers the ${d.job} hand-off${d.answer ? `: ${short(d.answer, 200)}` : ""}`;
-    case "nq-corrected":
-      return `The operator corrects the ${d.job} hand-off: ${short(d.answer, 200)}`;
-    case "nq-clear":
-      return `The ${d.profile} is clear on ${d.job} and starts on ${cardOf(d.card)}`;
-    case "nq-replacement":
-      return `A new agent takes ${d.job}; it goes through intake again`;
-    case "call-started":
-      return `The ${d.profile} starts ${d.kind === "execute" ? "the job" : d.kind} for ${d.job} on ${cardOf(d.card)} (${d.access} access, ${d.budget?.minutes ?? "?"} min budget)`;
-    case "call-finished":
-      return `The ${d.profile}'s ${d.kind === "execute" ? d.job : `${d.kind} for ${d.job}`} call ended ${d.outcome} after ${secs(d.ms ?? 0)}${d.error ? `: ${short(d.error, 200)}` : ""}`;
-    case "accepted":
-      return `Made Well accepts the ${e.data.job ?? ""} deliverable`;
-    case "launch-failed":
-      return `The ${d.job} call failed (${cardOf(d.card)}): ${short(d.error, 220)}`;
-    case "repaired":
-      return `The ${d.job} answer was malformed; its agent corrected the JSON in ${secs(d.ms ?? 0)}${d.ok ? "" : ", and it is still malformed"}`;
-    case "quota-swap":
-      return `${cardOf(d.from)} hit a usage limit; the ${d.job} call moves to another card`;
-    case "waiting-quota":
-      return `Every card for ${d.job} is out of quota; waits until ${d.resetsAt}`;
-    case "handed-off":
-      return `${jobs(d.from)} \u2192 ${jobs(d.to)}`;
-    case "failure":
-      return `${d.results ? `${d.results.filter((r) => r.exitCode !== 0).length} of ${d.results.length} checks failed` : `${jobs(d.from)} could not finish`}; the arbiter decides whose it is`;
-    case "ruling":
-      return d.prerequisite ? `The ${d.by} rules it a pre-existing defect; fix #${d.prerequisite} goes first` : `The ${d.by} rules the cause ${d.cause}; back to ${d.to}${d.answer ? `: ${short(d.answer, 160)}` : ""}`;
-    case "prepare-started":
-      return `The project's prepare command runs for ${d.job}: ${short(d.command, 120)}`;
-    case "prepared":
-      return `Prepare for ${d.job} exited ${d.exitCode}${d.provisioned?.length ? `, provisioned ${d.provisioned.map((p) => `${p.kind} ${p.id}`).join(", ")}` : ""}`;
-    case "verify-started":
-      return `Made Well runs ${plural(d.gates?.length ?? 0, "gate")} and ${plural(d.checks?.length ?? 0, "check")} on the change`;
-    case "verified": {
-      const gates = (d.results ?? []).filter((r) => r.doneWhen === GATE).length;
-      const checks = (d.results ?? []).length - gates;
-      return `All ${plural(checks, "check")}${gates ? ` and ${plural(gates, "gate")}` : ""} passed on ${String(d.on).slice(0, 12)}${d.fixed?.length ? ` (gates fixed ${plural(d.fixed.length, "file")})` : ""}`;
-    }
-    case "main-moved":
-      return "The branch moved since the checks ran; they run again";
-    case "rebased":
-      return `Another item shipped since this one started and its ${d.conflict === "implement" ? "change" : "check files"} no longer apply; the planner plans again from ${String(d.ref).replace("refs/heads/", "")} as it is now`;
-    case "merged":
-      return `Merged onto ${d.ref} at ${String(d.main).slice(0, 12)}`;
-    case "ship-started":
-      return `The ship command runs: ${short(d.command, 120)}`;
-    case "shipped":
-      return `Shipped${String(d.output ?? "").trim() ? `: ${short(String(d.output).trim().split("\n").pop(), 160)}` : ""}`;
-    case "held":
-      return `Held for the operator: ${d.code}: ${short(d.message, 240)}`;
-    case "alerted":
-      return `Alert sent for ${d.code} (exit ${d.exitCode})`;
-    case "retried":
-      return `The operator retries ${d.job}`;
-    case "promoted":
-      return "The operator promotes it into delivery";
-    case "discovered":
-      return `Discovery finished with ${plural(d.candidates?.length ?? 0, "candidate")}`;
-    case "dropped":
-      return `The operator drops it (was ${d.from})`;
-    case "prerequisite-shipped":
-      return `Prerequisite #${d.prerequisite} shipped; verification runs again`;
-    case "prerequisite-dropped":
-      return `Prerequisite #${d.prerequisite} was dropped; verification runs again on the branch as it is now`;
-    case "replan":
-      return `Planned again: ${d.reason}`;
-    case "torn-down":
-      return `Torn down: ${(d.records ?? []).map((r) => `${r.kind} ${r.id} (exit ${r.exitCode})`).join(", ")}`;
-    case "worktree-leftovers":
-      return `The ${d.job} call left files behind: ${(d.files ?? []).join(", ")}`;
-    case "runner-started":
-      return `Runner started (pid ${d.pid}${d.replaced ? `, replacing ${d.replaced}` : ""})`;
-    case "runner-reloaded":
-      return `Runner swapped in a new build (pid ${d.pid})`;
-    case "runner-stopped":
-      return `Runner stopped (pid ${d.pid})`;
-    case "runner-lost":
-      return `Runner ${d.pid} died while on ${d.item ? `#${d.item}` : "no item"}`;
-    case "pruned":
-      return `Pruned finished work before ${d.before}`;
-    default:
-      return `${e.kind} ${short(JSON.stringify(d), 200)}`;
-  }
-};
-var ENDS = {
-  "call-started": ["call-finished"],
-  "prepare-started": ["prepared"],
-  "verify-started": ["verified", "failure", "held", "rebased"],
-  "ship-started": ["shipped", "held"]
-};
-var inFlight = (events2) => {
-  const open = /* @__PURE__ */ new Map();
-  const key = (e, start) => {
-    const d = e.data;
-    return `${e.item}:${start}:${start === "call-started" ? `${d.job}:${d.kind}` : start === "prepare-started" ? d.name : ""}`;
-  };
-  for (const e of events2) {
-    const d = e.data;
-    if (ENDS[e.kind]) {
-      const kind = e.kind === "call-started" ? String(d.kind) : e.kind.replace("-started", "");
-      open.set(key(e, e.kind), { item: e.item, kind, job: d.job ?? kind, who: e.kind === "call-started" ? d.profile : "made well", since: e.at, seq: e.seq, ...d.live ? { live: d.live } : {}, ...d.card ? { card: cardOf(d.card) } : {} });
-    }
-    for (const [start, ends] of Object.entries(ENDS)) if (ends.includes(e.kind)) open.delete(key(e, start));
-    if (e.kind === "runner-started" || e.kind === "runner-lost" || e.kind === "runner-stopped") open.clear();
-  }
-  return [...open.values()];
-};
-var liveDir = (path) => join11(dirname7(path), "live");
-var liveFiles = (path) => {
-  try {
-    return readdirSync4(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => ({ name: f, bytes: statSync2(join11(liveDir(path), f)).size }));
-  } catch {
-    return [];
-  }
-};
-var readFrom = (file, from, max5 = 256 * 1024) => {
-  try {
-    const fd = openSync2(file, "r");
-    try {
-      const size7 = fstatSync(fd).size;
-      const start = from > size7 ? 0 : Math.max(from, size7 - max5);
-      const buf = Buffer.alloc(size7 - start);
-      readSync2(fd, buf, 0, buf.length, start);
-      return { text: buf.toString("utf8"), next: size7, skipped: start > from ? start - from : 0 };
-    } finally {
-      closeSync2(fd);
-    }
-  } catch {
-    return { text: "", next: 0, skipped: 0, gone: true };
-  }
-};
-var rel = (p) => String(p ?? "").replace(/^.*\/worktrees\/[^/]+\//, "");
-var toolSay = (name, input = {}) => {
-  const path = input.path ?? input.file_path ?? input.filePath;
-  if (input.command ?? input.cmd) return `$ ${short(input.command ?? input.cmd, 180)}`;
-  if (path) return `${name} ${rel(path)}`;
-  if (input.pattern ?? input.query) return `${name} ${short(input.pattern ?? input.query, 120)}`;
-  return `${name} ${short(JSON.stringify(input), 140)}`;
-};
-var activityOf = (line) => {
-  const t = line.trim();
-  if (!t) return void 0;
-  if (t[0] !== "{") return { kind: "say", text: short(t, 300) };
-  try {
-    const v = JSON.parse(t);
-    if (v.type === "user" || v.type === "system") return void 0;
-    if (v.type === "result") return v.is_error ? { kind: "error", text: short(v.result ?? v.error, 300) } : void 0;
-    const parts2 = Array.isArray(v.message?.content) ? v.message.content : [];
-    for (const p of parts2.toReversed()) {
-      if (p.type === "tool_use") return { kind: "tool", text: toolSay(p.name ?? "tool", p.input) };
-      if (p.type === "toolCall") return { kind: "tool", text: toolSay(p.name ?? "tool", p.arguments) };
-      if (p.type === "text" && p.text?.trim()) return { kind: "say", text: short(p.text, 300) };
-    }
-    if (v.type === "tool_execution_start") return { kind: "tool", text: toolSay(v.toolName, v.args) };
-    if (v.item?.type === "command_execution" && v.type === "item.started") return { kind: "tool", text: `$ ${short(v.item.command, 180)}` };
-    if (v.item?.type === "agent_message" && v.item.text) return { kind: "say", text: short(v.item.text, 300) };
-    return void 0;
-  } catch {
-    return { kind: "say", text: short(t, 300) };
-  }
-};
-var activityIn = (file, n = 6) => {
-  if (!file) return [];
-  const out = [];
-  for (const l of readFrom(file, 0, 64 * 1024).text.split("\n").reverse()) {
-    const a = activityOf(l);
-    if (a) out.unshift(a);
-    if (out.length >= n) break;
-  }
-  return out;
-};
-var labelOf = (job) => job === "test-plan" ? "Checks" : job === "arbitrate" ? "Arbiter" : job.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-var isDiscovery = (item) => laneOf(item.pack).discovery.some((s) => s.job === item.job);
-var orderOf = (lane) => {
-  const order = {};
-  lane.discovery.forEach((s, i) => order[s.job] = i);
-  let n = 0;
-  let maker;
-  for (const s of lane.delivery) order[s.job] = isMaker(s.job) ? maker ??= ++n : ++n;
-  order.arbitrate = order.verify;
-  order.ship = n + 1;
-  return order;
-};
-var DOING = {
-  discover: "turning the notes into work items",
-  ideate: "shaping the idea",
-  challenge: "challenging the idea",
-  plan: "writing the plan",
-  "test-plan": "writing the checks",
-  implement: "making the change",
-  arbitrate: "ruling on the failed check"
-};
-var tally = (calls) => ({ agentMs: calls.reduce((n, c) => n + c.ms, 0), tokens: calls.reduce((n, c) => n + totalTokens(c.tokens), 0), calls: calls.length });
-var stepsOf = (item, calls, events2, flying) => {
-  const questions = (job) => events2.filter((e) => e.kind === "nq-question" && e.data.job === job).reduce((n, e) => n + (e.data.questions?.length ?? 0), 0);
-  const lane = laneOf(item.pack);
-  const ORDER = orderOf(lane);
-  const discovery = isDiscovery(item);
-  const jobs2 = discovery ? lane.discovery.map((s) => s.job) : [...lane.delivery.map((s) => s.job), "ship"];
-  const arbiter = calls.some((c) => c.job === "arbitrate") || item.job === "arbitrate";
-  const steps = (arbiter ? [...jobs2.slice(0, -1), "arbitrate", "ship"] : jobs2).map((job) => ({ job, label: labelOf(job), cartridge: job === "ship" ? stepOf(lane, "verify").cartridge : stepOf(lane, job).cartridge }));
-  const at = ORDER[item.job] ?? 0;
-  const done3 = item.status === "shipped" || item.status === "discovered";
-  return steps.map(({ job, label: label2, cartridge }) => {
-    const mine = calls.filter((c) => c.job === job);
-    const span2 = mine.length ? Date.parse(mine.at(-1).started) + mine.at(-1).ms - Date.parse(mine[0].started) : 0;
-    let state;
-    const track2 = item.split?.[job];
-    if (done3) state = mine.length || job === "verify" || job === "ship" || discovery ? "done" : "skipped";
-    else if (item.status === "dropped") state = mine.length ? "done" : "todo";
-    else if (item.parent !== void 0 && ORDER[job] < ORDER.plan) state = "skipped";
-    else if (job === "arbitrate") state = item.job === "arbitrate" ? item.status === "held" ? "held" : "active" : "done";
-    else if (job === "verify" && item.job === "arbitrate") state = "failed";
-    else if (job === "verify" && item.status === "waiting-prerequisite") state = "waiting";
-    else if (item.status === "paused" && item.hold?.context.next === "ship") state = job === "ship" ? "waiting" : "done";
-    else if (item.status === "paused" && (job === item.job || track2)) state = "waiting";
-    else if (track2) state = track2.done ? "done" : item.status === "held" ? "held" : "active";
-    else if (job === "ship") state = item.merged ? item.status === "held" ? "held" : "active" : "todo";
-    else if (ORDER[job] < at) state = "done";
-    else if (job === item.job || job === "verify" && item.merged) state = item.status === "held" ? "held" : ["candidate", "queued"].includes(item.status) && !flying.length ? "todo" : "active";
-    else state = "todo";
-    if (job === "verify" && state === "done" && item.merged && !done3) state = "done";
-    return { job, label: label2, cartridge, who: job === "verify" || job === "ship" ? "made well" : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
-  });
-};
-var doingOf = (store, item, flying, driven, nextOf, events2) => {
-  const title = (id2) => `#${id2}`;
-  const unshipped2 = (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
-  switch (item.status) {
-    case "shipped":
-      return { doing: `Shipped${item.shipped?.main ? ` at ${item.shipped.main.slice(0, 10)}` : ""}`, owes: "" };
-    case "discovered": {
-      const waiting = store.list().filter((c) => c.discovery === item.id && c.status === "candidate").length;
-      return { doing: waiting ? `Found candidates; ${plural(waiting, "candidate")} wait for you to promote` : "Found its candidates", owes: waiting ? "operator" : "" };
-    }
-    case "dropped":
-      return { doing: "Dropped by the operator", owes: "" };
-    case "candidate":
-      return { doing: "Candidate: waits for you to promote it into delivery", owes: "operator" };
-    case "held":
-      return { doing: item.hold?.message ?? "Held for the operator", owes: "operator", next: nextOf(item) };
-    case "paused":
-      return { doing: item.hold?.message ?? "Stopped at a checkpoint for you", owes: "operator", next: nextOf(item) };
-    case "waiting-quota":
-      return { doing: `Every card is out of quota; resumes by itself at ${item.resetsAt ? new Date(item.resetsAt).toISOString().slice(11, 16) : "the earliest reset"} UTC`, owes: "quota reset" };
-    case "waiting-prerequisite":
-      return { doing: `Its check failed on a pre-existing defect; waits for fix ${title(item.waitsOn)} to ship, then runs its checks again`, owes: title(item.waitsOn) };
-  }
-  if (unshipped2.length) return { doing: `Starts once ${unshipped2.map(title).join(", ")} ${unshipped2.length === 1 ? "ships" : "ship"}`, owes: unshipped2.map(title).join(" ") };
-  if (!driven) return { doing: "Nothing moves it: no runner is driving the store. Run `mw run`.", owes: "runner" };
-  const mine = flying.filter((f) => f.item === item.id);
-  if (mine.length) {
-    const say = (f) => {
-      if (f.kind === "verify") {
-        const v = events2.findLast((e) => e.kind === "verify-started")?.data;
-        return `Made Well is running ${plural(v?.gates?.length ?? 0, "gate")} and ${plural(v?.checks?.length ?? 0, "check")}`;
-      }
-      if (f.kind === "ship") return "Made Well is running the ship command";
-      if (f.kind === "prepare") return `Made Well is preparing a worktree for ${f.job}`;
-      const receiver = stepOf(laneOf(item.pack), f.job).profile;
-      if (f.kind === "intake") return `The ${receiver} is reading its hand-off for ${f.job} (NQ intake)`;
-      if (f.kind === "originator") {
-        const q = events2.findLast((e) => e.kind === "nq-question" && e.data.job === f.job)?.data.questions;
-        return `The ${f.who} is answering the ${receiver}'s ${plural(q?.length ?? 0, "question")}`;
-      }
-      return `The ${receiver} is ${DOING[f.job] ?? `doing ${labelOf(f.job).toLowerCase()}`}`;
-    };
-    return { doing: mine.map(say).join(" \xB7 "), owes: [...new Set(mine.map((f) => f.kind === "originator" ? f.who : f.kind === "intake" || f.kind === "execute" ? stepOf(laneOf(item.pack), f.job).profile : "made well"))].join(" + ") };
-  }
-  if (item.status === "queued") return { doing: "Queued: starts when a slot frees", owes: "runner" };
-  return { doing: `Between steps: ${item.job} is next`, owes: "made well" };
-};
-var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.map((item) => {
-  const evs = events2.filter((e) => e.item === item.id);
-  const mine = calls.filter((c) => c.item === item.id);
-  const fl = flying.filter((f) => f.item === item.id);
-  const { doing, owes } = doingOf(store, item, fl, driven, nextOf, evs);
-  const start = evs.findLast((e) => e.kind === "promoted")?.at ?? item.created;
-  const end2 = evs.findLast((e) => ["shipped", "dropped", "discovered"].includes(e.kind))?.at;
-  const results2 = item.verification?.results.filter((r) => r.doneWhen !== GATE) ?? [];
-  return {
-    id: item.id,
-    title: item.title,
-    kind: isDiscovery(item) ? "discovery" : item.parent !== void 0 ? "prerequisite" : item.kind ?? "feature",
-    status: item.status,
-    ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
-    ...item.parent !== void 0 ? { parent: item.parent } : {},
-    after: (item.after ?? []).map((id2) => ({ id: id2, status: store.get(id2)?.status ?? "missing" })),
-    ...item.waitsOn !== void 0 ? { waitsOn: item.waitsOn } : {},
-    round: item.round,
-    steps: stepsOf(item, mine, evs, fl),
-    doing,
-    owes,
-    since: evs.at(-1)?.at ?? item.updated,
-    started: start,
-    ...end2 ? { ended: end2 } : {},
-    ...tally(mine),
-    questions: evs.filter((e) => e.kind === "nq-question").reduce((n, e) => n + (e.data.questions?.length ?? 0), 0),
-    ...item.hold ? { hold: item.hold } : {},
-    next: item.status === "held" || item.status === "paused" ? nextOf(item) : [],
-    ...item.shipped?.main ?? item.merged?.commit ? { commit: item.shipped?.main ?? item.merged?.commit } : {},
-    ...results2.length ? { checks: { passed: results2.filter((r) => r.exitCode === 0).length, total: results2.length } } : {},
-    ...item.change ? { files: item.change.files.length } : {}
-  };
-});
-var barsOf = (events2, calls, flying) => {
-  const laneOf2 = (job) => job === "test-plan" ? 1 : 0;
-  const bars = calls.map((c) => ({ item: c.item, kind: c.kind, job: c.job, start: c.started, end: new Date(Date.parse(c.started) + c.ms).toISOString(), outcome: c.outcome, call: c.id, lane: laneOf2(c.job) }));
-  const open = /* @__PURE__ */ new Map();
-  for (const e of events2) {
-    if (e.kind === "verify-started" || e.kind === "ship-started") open.set(`${e.item}:${e.kind}`, e);
-    const end2 = (start, outcome) => {
-      const s = open.get(`${e.item}:${start}`);
-      if (!s) return;
-      bars.push({ item: e.item, kind: start.replace("-started", ""), job: start.replace("-started", ""), start: s.at, end: e.at, outcome, lane: 0 });
-      open.delete(`${e.item}:${start}`);
-    };
-    if (e.kind === "verified") end2("verify-started", "ok");
-    if (e.kind === "failure" || e.kind === "rebased") end2("verify-started", "failed");
-    if (e.kind === "shipped") end2("ship-started", "ok");
-    if (e.kind === "held") end2("verify-started", "held"), end2("ship-started", "held");
-  }
-  for (const f of flying) if (f.kind !== "prepare") bars.push({ item: f.item, kind: f.kind, job: f.job, start: f.since, end: null, lane: laneOf2(f.job) });
-  return bars;
-};
-var modelOf = (store, nextOf) => {
-  const now2 = Date.now();
-  const items = store.list();
-  const events2 = store.allEvents();
-  const calls = store.callHeads();
-  const runner2 = store.runner();
-  const titles = new Map(items.map((i) => [i.id, i.title]));
-  const flying = runner2 ? inFlight(events2) : [];
-  const cutOff = runner2 ? [] : inFlight(events2);
-  const views = itemViews(store, items, events2, calls, flying, runner2 !== null, nextOf);
-  const count = (...s) => items.filter((i) => s.includes(i.status)).length;
-  const delivery = items.filter((i) => !isDiscovery(i));
-  const nq = calls.filter((c) => c.kind !== "execute");
-  const byJob = {};
-  for (const c of calls) {
-    const k = (byJob[c.job] ??= {})[c.kind] ??= { ms: 0, tokens: 0, calls: 0 };
-    k.ms += c.ms;
-    k.tokens += totalTokens(c.tokens);
-    k.calls++;
-  }
-  const holds = openHolds(store);
-  const promote2 = items.filter((i) => i.status === "discovered" && items.some((c) => c.discovery === i.id && c.status === "candidate"));
-  const movable = items.filter((i) => ["queued", "running", "waiting-quota", "waiting-prerequisite"].includes(i.status));
-  return {
-    at: new Date(now2).toISOString(),
-    store: store.path,
-    projects: [...new Set(items.map((i) => i.workspace))],
-    runner: runner2,
-    summary: {
-      shipped: count("shipped"),
-      moving: count("running", "waiting-quota", "waiting-prerequisite"),
-      queued: count("queued"),
-      held: count("held", "paused"),
-      candidates: count("candidate"),
-      dropped: count("dropped"),
-      items: delivery.length,
-      ...tally(calls),
-      nqMs: nq.reduce((n, c) => n + c.ms, 0),
-      intakes: calls.filter((c) => c.kind === "intake").length,
-      questions: events2.filter((e) => e.kind === "nq-question").reduce((n, e) => n + (e.data.questions?.length ?? 0), 0),
-      refused: calls.filter((c) => c.outcome !== "ok").length,
-      breaks: calls.reduce((n, c) => n + c.flags.length, 0),
-      first: events2.find((e) => e.item)?.at ?? null,
-      last: events2.at(-1)?.at ?? null
-    },
-    needs: [
-      ...holds.map((h) => ({ item: h.item, title: h.title, what: "hold", code: h.code, message: h.message, questions: Array.isArray(h.context.questions) ? h.context.questions : [], since: h.since, next: nextOf(store.get(h.item)) })),
-      ...promote2.map((d) => ({ item: d.id, title: d.title, what: "promote", code: "candidates", message: `Discovery #${d.id} found ${plural(items.filter((c) => c.discovery === d.id && c.status === "candidate").length, "candidate")}. Promote the ones to deliver.`, questions: items.filter((c) => c.discovery === d.id && c.status === "candidate").map((c) => `#${c.id} ${c.title}`), since: d.updated, next: [{ run: `mw promote ${d.id}`, why: "deliver every candidate" }, { run: `mw promote ${d.id} <ids>`, why: "deliver only the ones named" }] })),
-      ...!runner2 && movable.length ? [{ item: 0, title: "No runner", what: "runner", code: "no_runner", message: `${plural(movable.length, "item")} can move, but no runner is driving the store.`, questions: [], since: events2.at(-1)?.at ?? "", next: [{ run: "mw run --watch", why: "drive every item; each resumes where it stopped" }] }] : []
-    ],
-    items: views,
-    bars: barsOf(events2, calls, flying),
-    running: flying.map((f) => ({ ...f, title: titles.get(f.item) ?? "", activity: activityIn(f.live) })),
-    cutOff,
-    cost: byJob,
-    /** Every job the items' lanes have, with the label and profile the page shows for it. */
-    jobs: Object.fromEntries([...new Map(items.flatMap((i) => {
-      const lane = laneOf(i.pack);
-      return [...lane.discovery, ...lane.delivery, lane.arbiter].map((s) => [s.job, { label: labelOf(s.job), profile: s.job === "verify" ? "made well" : s.profile, cartridge: s.cartridge }]);
-    })).entries(), ["ship", { label: "Ship", profile: "made well", cartridge: "verification" }]]),
-    rules: calls.flatMap((c) => c.flags.map((f) => ({ call: c.id, item: c.item, job: c.job, kind: c.kind, rule: f.rule }))),
-    events: events2.slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
-    eventCount: events2.length
-  };
-};
-var deliverable = (out) => out === void 0 ? void 0 : lastJson(out) ?? { text: out };
-var exchangesOf = (store, events2) => {
-  const out = [];
-  const outputOf = (seq) => {
-    const finished = events2.findLast((e) => e.seq < seq && e.kind === "call-finished");
-    const call = finished && store.call(finished.data.call);
-    return call?.output ? lastJson(call.output) : void 0;
-  };
-  const current = (job) => out.findLast((x) => x.job === job && !x.clear);
-  for (const e of events2) {
-    const d = e.data;
-    if (e.kind === "handoff") out.push({ job: d.job, from: d.from, to: d.to, turns: [] });
-    const x = current(d.job);
-    if (!x) continue;
-    if (e.kind === "nq-question") {
-      const intake2 = d.error ? void 0 : outputOf(e.seq);
-      x.turns.push({ at: e.at, questions: d.questions ?? [], ...d.error ? { error: true } : {}, ...intake2?.understanding ? { understanding: String(intake2.understanding) } : {} });
-    } else if (e.kind === "nq-answer" || e.kind === "nq-corrected") {
-      const t = x.turns.at(-1);
-      const answer2 = d.answer ?? (d.originator === "operator" ? void 0 : outputOf(e.seq)?.answer);
-      if (t) x.turns[x.turns.length - 1] = { ...t, ...answer2 ? { answer: String(answer2) } : {}, by: d.originator };
-    } else if (e.kind === "nq-clear") {
-      const intake2 = outputOf(e.seq);
-      Object.assign(x, { clear: { at: e.at, ...intake2?.understanding ? { understanding: String(intake2.understanding) } : {}, notes: Array.isArray(intake2?.notes) ? intake2.notes : [] } });
-    }
-  }
-  return out;
-};
-var diffOf = (storePath2, item) => {
-  const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
-\u2026 (cut at 200 KB)` : s;
-  const home = itemHome(storePath2, item.id);
-  const read = (name) => existsSync3(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
-  const shipped = item.merged?.commit ?? item.shipped?.main;
-  let change = read("change");
-  if (!change && shipped) {
-    try {
-      change = execFileSync2("git", ["-C", item.workspace, "show", "--format=%H %s%n", "--no-color", shipped], { encoding: "utf8", maxBuffer: 16 << 20, stdio: ["ignore", "pipe", "ignore"] });
-    } catch {
-    }
-  }
-  return { change: cap(change), checks: cap(read("checks")) };
-};
-var itemDetail = (store, nextOf, id2) => {
-  const item = store.get(id2);
-  if (!item) return void 0;
-  const m = modelOf(store, nextOf);
-  const events2 = store.events(id2);
-  const titles = new Map(store.list().map((i) => [i.id, i.title]));
-  return {
-    view: m.items.find((i) => i.id === id2),
-    item: { id: item.id, title: item.title, objective: item.objective, source: item.source, workspace: item.workspace, base: item.base, merged: item.merged, round: item.round, corrections: item.corrections, failure: item.failure, rework: item.rework, change: item.change, provisioned: item.provisioned ?? [] },
-    deliverables: Object.fromEntries(Object.entries(item.outputs).map(([job, out]) => [job, deliverable(out)])),
-    checks: item.checks?.checks ?? [],
-    verification: item.verification ?? null,
-    exchanges: exchangesOf(store, events2),
-    calls: store.callHeads().filter((c) => c.item === id2),
-    related: store.list().filter((i) => i.discovery === id2 || i.parent === id2 || (item.after ?? []).includes(i.id) || i.id === item.waitsOn || i.id === item.parent || i.id === item.discovery).map((i) => ({ id: i.id, title: i.title, status: i.status })),
-    diff: diffOf(store.path, item),
-    events: events2.map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) }))
-  };
-};
-var spansOf = (path, item) => {
-  const file = spansPath(path);
-  if (!existsSync3(file)) return [];
-  const all4 = readFileSync8(file, "utf8").split("\n").flatMap((l) => {
-    try {
-      return l ? [JSON.parse(l)] : [];
-    } catch {
-      return [];
-    }
-  });
-  const keep = new Set(all4.filter((s) => s.attributes.item === item).map((s) => s.span));
-  for (let grew = true; grew; ) {
-    grew = false;
-    for (const s of all4) if (!keep.has(s.span) && s.parent && keep.has(s.parent)) keep.add(s.span), grew = true;
-  }
-  return all4.filter((s) => keep.has(s.span)).slice(-3e3);
-};
-var storeWatcher = (path) => {
-  let store;
-  return () => {
-    if (!store && existsSync3(path)) store = openStore(path);
-    return store;
-  };
-};
-var json = (res, body, code = 200) => {
-  res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-  res.end(JSON.stringify(body));
-};
-var staticPage = (store, nextOf) => {
-  const model = modelOf(store, nextOf);
-  const details = Object.fromEntries(store.list().map((i) => [i.id, itemDetail(store, nextOf, i.id)]));
-  const calls = Object.fromEntries(store.calls().map(({ raw, ...c }) => [c.id, { ...c, raw: raw && raw.length > 4e5 ? raw.slice(-4e5) : raw }]));
-  const data = JSON.stringify({ model, details, calls }).replaceAll("</", "<\\/");
-  return CONSOLE.replace("<script>", `<script>var STATIC = ${data};</script><script>`);
-};
-var serve = (path, nextOf, host, port) => Effect_exports.callback((resume) => {
-  const open = storeWatcher(path);
-  const server = createServer((req, res) => {
-    const url = new URL(req.url ?? "/", "http://console");
-    const store = open();
-    try {
-      if (url.pathname === "/") {
-        res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-        return res.end(CONSOLE);
-      }
-      if (!store) return json(res, { store: null, path, at: (/* @__PURE__ */ new Date()).toISOString() });
-      if (url.pathname === "/api/mark") return json(res, { ...store.mark(), runner: store.runner()?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(",") });
-      if (url.pathname === "/api/model") return json(res, modelOf(store, nextOf));
-      const item = /^\/api\/item\/(\d+)$/.exec(url.pathname);
-      if (item) return ((d) => json(res, d ?? null, d ? 200 : 404))(itemDetail(store, nextOf, Number(item[1])));
-      const call = /^\/api\/call\/(\d+)$/.exec(url.pathname);
-      if (call) return ((c) => json(res, c ?? null, c ? 200 : 404))(store.call(Number(call[1])));
-      const live = /^\/api\/live\/([\w.-]+\.log)$/.exec(url.pathname);
-      if (live) return json(res, readFrom(join11(liveDir(path), basename2(live[1])), Number(url.searchParams.get("from") ?? 0)));
-      const spans = /^\/api\/spans\/(\d+)$/.exec(url.pathname);
-      if (spans) return json(res, spansOf(path, Number(spans[1])));
-      json(res, { error: "not_found", path: url.pathname }, 404);
-    } catch (e) {
-      json(res, { error: "console_failed", message: String(e) }, 500);
-    }
-  });
-  server.on("error", (e) => resume(Effect_exports.fail(new MadeWellError({
-    code: "ui_unavailable",
-    message: `The console cannot listen on ${host}:${port}: ${e.message}`,
-    context: { host, port, reason: e.message },
-    next: [{ run: `mw ui --port ${port + 1}`, why: "serve it on another port" }]
-  }))));
-  server.listen(port, host, () => {
-    const bound = server.address().port;
-    const url = `http://${host.includes(":") ? `[${host}]` : host}:${bound}/`;
-    process.stdout.write(JSON.stringify({
-      ui: url,
-      store: path,
-      next: [
-        { run: `open ${url}`, why: "watch the work live: what needs you, every item's pipeline, what each agent is doing, and where the time and tokens go" },
-        { run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: "from another computer, then open the same address there" },
-        { run: "mw watch", why: "the same view in a terminal" }
-      ]
-    }) + "\n");
-  });
-  return Effect_exports.sync(() => void server.close());
-});
-var ESC = "\x1B[";
-var paint = (code, s) => `${ESC}${code}m${s}${ESC}0m`;
-var dim = (s) => paint("2", s);
-var bold = (s) => paint("1", s);
-var ACTOR = { operator: "35", agent: "34", "made well": "32", runner: "2" };
-var GLYPH = { done: paint("32", "\u25CF"), active: paint("34", "\u25C9"), held: paint("31", "\u25C9"), failed: paint("31", "\u2715"), waiting: paint("33", "\u25CC"), todo: dim("\u25CB"), skipped: dim("\xB7") };
-var visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, "");
-var fit = (s, w) => {
-  if (visible(s).length <= w) return s;
-  let out = "";
-  let n = 0;
-  for (const part of s.split(/(\x1b\[[0-9;]*m)/)) {
-    if (part.startsWith("\x1B[")) out += part;
-    else for (const ch of part) {
-      if (n === w - 1) return `${out}\u2026${ESC}0m`;
-      out += ch;
-      n++;
-    }
-  }
-  return out;
-};
-var clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
-var tokensText = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
-var STATUS = { held: "31", shipped: "32", candidate: "33", "waiting-quota": "33", "waiting-prerequisite": "33", dropped: "2", discovered: "32" };
-var frame = (m, cols, rows) => {
-  const out = [];
-  const s = m.summary;
-  const now2 = Date.parse(m.at);
-  const project = m.projects.length === 1 ? basename2(m.projects[0]) : `${m.projects.length} projects`;
-  out.push(`${bold("MADE WELL")}  ${project}  ${m.runner ? paint("32", `\u25CF runner ${m.runner.pid}`) : paint("33", "\u25CB no runner")}  ${dim(clock(m.at))}`);
-  out.push(`${paint("32", `${s.shipped} shipped`)} \xB7 ${s.moving} moving \xB7 ${s.queued} queued \xB7 ${s.held ? paint("31", `${s.held} need you`) : "0 need you"} \xB7 ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time \xB7 ${tokensText(s.tokens)} tokens \xB7 ${s.calls} calls \xB7 NQ ${s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0}%`)}`);
-  if (m.needs.length) {
-    out.push("");
-    out.push(paint("31", bold("NEEDS YOU")));
-    for (const n of m.needs) {
-      out.push(`  ${paint("31", n.item ? `#${n.item}` : "\u2022")} ${n.message}`);
-      for (const q of n.questions.slice(0, 4)) out.push(dim(`     \u2013 ${q}`));
-      for (const c of n.next.slice(0, 3)) out.push(`    ${paint("36", c.run)}  ${dim(c.why)}`);
-    }
-  }
-  out.push("");
-  out.push(bold("WORK"));
-  for (const i of m.items.filter((i2) => i2.status !== "dropped")) {
-    const steps = i.steps.map((st) => GLYPH[st.state]).join("") + " ".repeat(Math.max(0, 8 - i.steps.length));
-    const word = { discovered: "found", "waiting-quota": "quota", "waiting-prerequisite": "waits" }[i.status] ?? i.status;
-    out.push(`  ${bold(`#${String(i.id).padEnd(3)}`)} ${steps} ${paint(STATUS[i.status] ?? "0", word.padEnd(9))} ${short(i.title, 48).padEnd(48)} ${dim(short(i.doing, 120))}`);
-  }
-  if (m.running.length) {
-    out.push("");
-    out.push(bold("NOW"));
-    for (const r of m.running) {
-      out.push(`  ${bold(`#${r.item}`)} ${r.kind === "execute" ? r.job : `${r.kind} \xB7 ${r.job}`} \xB7 ${r.who}${r.card ? dim(` \xB7 ${r.card}`) : ""}  ${paint("34", secs(now2 - Date.parse(r.since)))}`);
-      for (const a of r.activity.slice(-2)) out.push(dim(`     \u2502 ${a.text}`));
-    }
-  }
-  out.push("");
-  out.push(bold("LOG"));
-  const room = Math.max(3, rows - out.length - 2);
-  for (const e of m.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : "     "}${e.say}`);
-  out.push(dim("Ctrl-C quits \xB7 mw ui opens the full console \xB7 mw show <id> for one item's record"));
-  return out.map((l) => fit(l, cols)).join("\n");
-};
-var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
-  const open = storeWatcher(path);
-  let seq = opts.since;
-  let calls = opts.since > 0 ? open()?.mark().calls ?? 0 : 0;
-  let lastFrame = "";
-  const tick = () => {
-    const store = open();
-    if (opts.tty) {
-      const text2 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.`;
-      if (text2 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text2}
-`);
-      lastFrame = text2;
-      return;
-    }
-    if (!store) return;
-    const titles = new Map(store.list().map((i) => [i.id, i.title]));
-    for (const e of store.allEvents().filter((e2) => e2.seq > seq)) {
-      process.stdout.write(JSON.stringify({ event: { ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) } }) + "\n");
-      seq = e.seq;
-    }
-    for (const c of store.callHeads().filter((c2) => c2.id > calls)) {
-      process.stdout.write(JSON.stringify({ call: c }) + "\n");
-      calls = c.id;
-    }
-  };
-  const done3 = () => resume(Effect_exports.succeed({ watched: path, next: [{ run: `mw watch --since ${seq}`, why: "carry on from here" }] }));
-  tick();
-  if (opts.once) {
-    if (opts.tty) process.stdout.write("\n");
-    done3();
-    return;
-  }
-  if (opts.tty) process.stdout.write(`${ESC}?25l`);
-  const timer = setInterval(tick, 1e3);
-  return Effect_exports.sync(() => {
-    clearInterval(timer);
-    if (opts.tty) process.stdout.write(`${ESC}?25h`);
-  });
-});
-
 // src/cli.ts
 var storePath = defaultStorePath();
 var registry = projectsPath(storePath);
 var prescriptionsPath = () => process.env.MW_PRESCRIPTIONS ?? new URL("../prescriptions.json", import.meta.url).pathname;
+var SHIP_SLOT = `"<the operator's command that deploys what is on main>"`;
 var workerLayer = Layer_exports.unwrap(Effect_exports.sync(() => process.env.MW_WORKER_COMMAND ? commandWorker(process.env.MW_WORKER_COMMAND) : harnessWorker));
 var usageError = (command2, message) => new MadeWellError({ code: "usage", message, context: { command: command2 }, next: [{ run: "mw", why: "read the manual: every command and its input schema" }] });
 var Id2 = Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThan(0)))).annotate({ description: "a work item number" });
@@ -26145,6 +24505,8 @@ var ItemView = Schema_exports.Struct({
   stage: Schema_exports.String,
   job: Schema_exports.String,
   profile: Schema_exports.String,
+  updated: Schema_exports.String,
+  workspace: Schema_exports.String,
   kind: Schema_exports.optionalKey(Schema_exports.String),
   discovery: Schema_exports.optionalKey(Schema_exports.Int),
   nq: Schema_exports.optionalKey(Nq),
@@ -26181,6 +24543,7 @@ var Pruned = Schema_exports.Struct({
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Pruned" });
 var Action = Schema_exports.Union([
+  Schema_exports.Struct({ action: Schema_exports.Literal("run"), run: Schema_exports.String, why: Schema_exports.String }),
   Schema_exports.Struct({
     action: Schema_exports.Literal("relay"),
     say: Schema_exports.String.annotate({ description: "what to tell the operator" }),
@@ -26189,7 +24552,7 @@ var Action = Schema_exports.Union([
     then: Schema_exports.Array(Next).annotate({ description: "run the one that fits the operator's reply, with their words in place of the <...> slot" })
   }),
   Schema_exports.Struct({ action: Schema_exports.Literal("wait"), until: Schema_exports.String.annotate({ description: "ISO time" }), why: Schema_exports.String, then: Schema_exports.Literal("mw next") })
-]).annotate({ identifier: "Action", description: "relay to the operator, or wait until a time; Made Well never asks anyone else to drive it" });
+]).annotate({ identifier: "Action", description: "run a command, relay to the operator, or wait until a time" });
 var Created = Schema_exports.Struct({ item: ItemView, next: Schema_exports.Array(Next) });
 var Tally = Schema_exports.Struct({ calls: Schema_exports.Int, minutes: Schema_exports.Number, tokens: Schema_exports.Number, refused: Schema_exports.Int });
 var Kinds = Schema_exports.Record(Schema_exports.String, Schema_exports.Number).annotate({ description: "agent minutes by call kind: intake, originator (NQ) and execute" });
@@ -26219,37 +24582,39 @@ var Stats = Schema_exports.Struct({
   })),
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "Stats" });
-var nqOf = (item, x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(laneOf(item.pack), x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
+var nqOf = (x) => x && x.status !== "clear" ? { nq: { from: x.from.kind === "job" ? stepOf(x.from.job).profile : x.from.kind, status: x.status, turns: x.turns.filter((t) => t.answer !== void 0).length } } : {};
 var view = (item, driven = true) => ({
   id: item.id,
   title: item.title,
   status: item.status,
-  stage: stepOf(laneOf(item.pack), item.job).cartridge,
+  stage: stepOf(item.job).stage,
   job: item.job,
-  profile: stepOf(laneOf(item.pack), item.job).profile,
+  profile: stepOf(item.job).profile,
+  updated: item.updated,
+  workspace: item.workspace,
   ...item.kind ? { kind: item.kind } : {},
   ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
-  ...nqOf(item, item.exchange),
-  ...item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(item, t?.exchange) }])) } : {},
+  ...nqOf(item.exchange),
+  ...item.split ? { tracks: Object.fromEntries(Object.entries(item.split).map(([job, t]) => [job, { done: t?.done === true, ...nqOf(t?.exchange) }])) } : {},
   round: item.round,
   ...item.waitsOn !== void 0 ? { waitsOn: item.waitsOn } : {},
   ...item.after?.length ? { after: item.after } : {},
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},
   ...item.hold ? { hold: item.hold } : {},
   ...item.shipped ? { shipped: item.shipped } : {},
-  next: item.status === "held" || item.status === "paused" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "dropped"].includes(item.status) ? [] : item.status === "queued" ? driven || process.env.MW_AUTORUN !== "0" ? [{ run: `mw status ${item.id}`, why: "queued: the machine picks it up by itself" }] : [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
+  next: item.status === "held" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "dropped"].includes(item.status) ? [] : item.status === "queued" ? [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
 });
 var holdView = (store, h) => ({ ...h, next: nextFor(store.get(h.item)) });
 var board = (store) => {
   const items = store.list();
   const count = (s) => items.filter((i) => i.status === s).length;
-  const held2 = items.filter((i) => i.status === "held" || i.status === "paused");
+  const held2 = items.filter((i) => i.status === "held");
   const driven = store.runner() !== null;
   const moving = count("running") + count("waiting-quota") + count("waiting-prerequisite");
   return {
-    summary: `${count("held") + count("paused")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped`,
+    summary: `${count("held")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped`,
     items: items.map((i) => view(i, driven)),
-    next: held2.length ? held2.flatMap(nextFor) : (count("queued") || moving) && !driven ? [{ run: "mw run", why: "deliver queued items and resume any whose runner stopped" }] : []
+    next: held2.length ? held2.flatMap(nextFor) : count("queued") || moving && !driven ? [{ run: "mw run", why: "deliver queued items and resume any whose runner stopped" }] : []
   };
 };
 var found = (store, id2) => {
@@ -26259,37 +24624,19 @@ var found = (store, id2) => {
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
   const path = resolve6(workspace ?? ".");
   const projects = yield* readProjects(registry);
-  const project = projectFor(projects, path);
-  if (project) return { path, project };
+  if (projectFor(projects, path)?.ship) return path;
   return yield* new MadeWellError({
     code: "project_not_found",
-    message: `${path} is not a registered project.`,
+    message: `${path} is not a registered project with a ship command.`,
     context: { workspace: path, projects: projects.map((p) => p.path) },
-    next: [{ run: `mw init --workspace ${quote2(path)}`, why: 'register it, then run this command again; add --ship "<command>" if shipping means more than pushing main' }]
+    next: [{ run: `mw init --workspace ${quote2(path)} --ship ${SHIP_SLOT}`, why: "register it with how it ships, then run this command again" }]
   });
-});
-var AutonomyInput = Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is: checkpoints (the default: stop after discovery and before each ship), steps (also between cartridges), or full (no stops; questions decided by the rubric)" }));
-var wake = Effect_exports.fn("mw.wake")(function* (id2) {
-  const store = yield* Store;
-  const watch2 = [{ run: id2 === void 0 ? "mw status" : `mw status ${id2}`, why: "the machine is working on it by itself; this shows where it is" }, { run: "mw ui", why: "watch every step live" }];
-  if (process.env.MW_AUTORUN === "0") return [{ run: "mw run", why: "deliver it: the operator starts the runner (MW_AUTORUN=0)" }];
-  const movable = store.list().some((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
-  if (!movable || (yield* runner(store))) return watch2;
-  const home = dirname8(store.path);
-  mkdirSync7(home, { recursive: true });
-  const log2 = openSync3(join12(home, "runner.log"), "a");
-  spawn2(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
-  return watch2;
-});
-var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
-  const path = projectFor(yield* readProjects(registry), workspace)?.cartridges;
-  return path ? yield* loadPack(path) : void 0;
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve6(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync9(path, "utf8"),
+    try: () => readFileSync7(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
@@ -26324,9 +24671,9 @@ var retention = (store, before) => {
   return { ids, kept };
 };
 var sizeOf = (path) => {
-  if (!existsSync4(path)) return 0;
-  const s = statSync3(path);
-  return s.isDirectory() ? readdirSync5(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
+  if (!existsSync3(path)) return 0;
+  const s = statSync2(path);
+  return s.isDirectory() ? readdirSync3(path).reduce((n, f) => n + sizeOf(join10(path, f)), 0) : s.size;
 };
 var nextAction = Effect_exports.fn("mw.next")(function* () {
   const store = yield* Store;
@@ -26334,7 +24681,7 @@ var nextAction = Effect_exports.fn("mw.next")(function* () {
   const moving = items.filter((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
   const owner = moving.length ? yield* runner(store) : null;
   if (moving.length && !owner) {
-    return { action: "relay", say: `The machine stopped with ${moving.length} item(s) it can move by itself. It starts again with any command that gives it work, or with \`mw run\`.`, then: [{ run: "mw run", why: "the operator restarts the machine; every item resumes where it stopped" }] };
+    return { action: "run", run: "mw run", why: `${moving.length} item(s) can move without the operator. It returns once every item has shipped or holds for the operator, and it is safe to repeat.` };
   }
   const [hold2] = openHolds(store);
   if (hold2) {
@@ -26361,12 +24708,12 @@ var nextAction = Effect_exports.fn("mw.next")(function* () {
   }
   const cwd = process.cwd();
   const project = projectFor(yield* readProjects(registry), cwd);
-  if (!project) {
-    const init = `mw init --workspace ${quote2(cwd)}`;
+  if (!project?.ship) {
+    const init = `mw init --workspace ${quote2(project?.path ?? cwd)} --ship ${SHIP_SLOT}`;
     return {
       action: "relay",
-      say: `${cwd} is not a Made Well project yet. Register it, and shipping pushes main to its upstream; add a ship command if shipping means a deploy too.`,
-      then: [{ run: init, why: "register the project" }, { run: `${init} --ship "<the command that deploys what is on main>"`, why: "register it with how it deploys" }]
+      say: `Made Well delivers work items to production for a registered project. How does ${project?.path ?? cwd} ship: once Made Well brings a passing item onto main, what command deploys it?`,
+      then: [{ run: init, why: "register the project with how it ships" }, { run: `${init} --alert "<a command that notifies the operator>"`, why: "also say how to reach the operator when an item holds" }]
     };
   }
   const at = quote2(project.path);
@@ -26394,79 +24741,44 @@ var COMMANDS = [
     summary: "Register a project, or update its config. The config lives in Made Well's home, never in the project. Items held for a missing ship command go on.",
     input: Schema_exports.Struct({
       workspace: Workspace,
-      ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Without one, shipping pushes main to its upstream."),
-      autonomy: AutonomyInput,
+      ship: optional3("shell command run in the workspace once Made Well has brought a passing item onto main: deploy it. Required the first time."),
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
       prepare: optional3("shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output"),
-      cartridges: optional3('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
-      conventions: optional3(`the rules this repo's work follows that no gate catches, as a JSON array of strings, such as ["Colours come from the design tokens in src/tokens.css"]. Every plan turns each into a done-when item its checks prove, or says why it does not apply. Replaces the set given before; [] removes them.`),
       gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
-    output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
+    output: Schema_exports.Struct({ project: Project, released: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
+      const store = yield* Store;
       const path = resolve6(input.workspace ?? ".");
-      if (!existsSync4(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      if (!existsSync3(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      const projects = yield* readProjects(registry);
+      if (!input.ship && !projects.find((p) => p.path === path)?.ship) return yield* usageError("init", `${path} is not registered yet: init needs --ship, the command that deploys what Made Well brings onto main.`);
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
-      const conventions = input.conventions === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Schema_exports.NonEmptyString)))(input.conventions).pipe(
-        Effect_exports.mapError((e) => usageError("init", `--conventions must be a JSON array of non-empty strings: ${e.message}`))
-      );
-      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve6(input.cartridges);
-      if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
-      const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...conventions ? { conventions } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
-      const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
-      return { project, next: [{ run: `mw discover --workspace ${quote2(path)} --source-file <notes>`, why: "put the raw notes in: Made Well discovers the work and delivers it" }, { run: `mw start --workspace ${quote2(path)} --objective "<one line>" --source "<the operator's own words>"`, why: "deliver one piece of work straight away" }] };
-    })
-  }),
-  command({
-    name: "cartridges",
-    summary: "The cartridge pack a project's work runs: discovery's and delivery's cartridges, each step's profile, duty, what it receives and the shape it returns. Without a pack of its own, the project runs the default software pack; save `.pack` to a file, change it, and plug it in with `mw init --cartridges <file>`. --check validates a pack file against the console's contract without registering it.",
-    input: Schema_exports.Struct({
-      workspace: Workspace,
-      check: optional3("a cartridge pack file to validate instead")
-    }),
-    output: Schema_exports.Struct({
-      source: Schema_exports.String.annotate({ description: '"default", or the pack file' }),
-      pack: Pack,
-      lane: Schema_exports.Struct({
-        discovery: Schema_exports.Array(Schema_exports.String).annotate({ description: 'each step as "cartridge / job (profile)", in order' }),
-        delivery: Schema_exports.Array(Schema_exports.String)
-      }),
-      next: Schema_exports.Array(Next)
-    }),
-    idempotent: true,
-    run: (input) => Effect_exports.gen(function* () {
-      const path = input.check ? resolve6(input.check) : projectFor(yield* readProjects(registry), resolve6(input.workspace ?? "."))?.cartridges;
-      const pack = path ? yield* loadPack(path) : SOFTWARE;
-      const lane = laneOf(path ? pack : void 0);
-      const line = (s) => `${s.cartridge} / ${s.job} (${s.job === "verify" ? "made well" : s.profile})`;
-      return {
-        source: path ?? "default",
-        pack,
-        lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
-        next: input.check ? [{ run: `mw init --cartridges ${quote2(path)}`, why: "plug it into this project; new work runs it" }] : [{ run: "mw cartridges | jq .pack > pack.json", why: "start a pack of your own from this one" }]
-      };
+      const project = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {} });
+      const updated = yield* readProjects(registry);
+      const waiting = openHolds(store).filter((h) => h.code === "no_ship_command" && projectFor(updated, h.workspace)?.path === path);
+      for (const h of waiting) yield* retry3(h.item);
+      return { project, released: waiting.map((h) => view(store.get(h.item))), next: [{ run: "mw next", why: "see what to do now" }] };
     })
   }),
   command({
     name: "discover",
     summary: "Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.",
-    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run"), autonomy: AutonomyInput }),
+    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run") }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
       const source = yield* readSource(input);
       if (!source) return yield* usageError("discover", 'discover needs the raw input: --source "<text>" or --source-file <file>.');
-      return { source, ...yield* registered(input.workspace) };
+      return { source, workspace: yield* registered(input.workspace) };
     }),
-    run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
-      const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
-      const pack = yield* packFor(workspace);
-      const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
-      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, autonomy, ...pack ? { pack } : {} });
-      return { item: view(item), next: yield* wake(item.id) };
+    run: (input, { source, workspace }) => Effect_exports.gen(function* () {
+      const title = input.title ?? `Discovery of ${input["source-file"] ? basename2(input["source-file"]) : "raw input"}`;
+      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: "discover" });
+      return { item: view(item), next: [{ run: "mw run", why: "run discovery; its candidates wait for promotion" }] };
     })
   }),
   command({
@@ -26476,27 +24788,22 @@ var COMMANDS = [
     input: Schema_exports.Struct({ discovery: Id2.annotate({ description: "the discovery run" }), ids: Schema_exports.Array(Id2).annotate({ description: "the candidates to promote; none means all" }) }),
     output: Schema_exports.Struct({ promoted: Schema_exports.Array(ItemView), next: Schema_exports.Array(Next) }),
     idempotent: true,
-    run: (input) => Effect_exports.gen(function* () {
-      const promoted = yield* promote(input.discovery, input.ids);
-      return { promoted: promoted.map((i) => view(i)), next: yield* wake() };
-    })
+    run: (input) => promote(input.discovery, input.ids).pipe(Effect_exports.map((promoted) => ({ promoted: promoted.map((i) => view(i)), next: [{ run: "mw run", why: "deliver them, oldest first" }] })))
   }),
   command({
     name: "start",
     summary: "Add one work item straight to the delivery queue.",
-    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective"), autonomy: AutonomyInput }),
+    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective") }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
       const source = yield* readSource(input);
       if (!source) return yield* usageError("start", `start needs the operator's own words: --source "<text>" or --source-file <file>.`);
-      return { source, ...yield* registered(input.workspace) };
+      return { source, workspace: yield* registered(input.workspace) };
     }),
-    run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
-      const pack = yield* packFor(workspace);
-      const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
-      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...pack ? { pack } : {} });
-      return { item: view(item), next: yield* wake(item.id) };
+    run: (input, { source, workspace }) => Effect_exports.gen(function* () {
+      const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace });
+      return { item: view(item), next: [{ run: "mw run", why: "deliver it; it moves through all four stages and ships on a passing check" }] };
     })
   }),
   command({
@@ -26555,7 +24862,7 @@ var COMMANDS = [
   }),
   command({
     name: "answer",
-    summary: "Answer an item that waits on you: an agent's open questions, a failed check (with --cause), or, at a checkpoint, what should change.",
+    summary: "Answer a held item: an agent's open questions, or, with --cause, a failed check.",
     args: ["id", "text..."],
     input: Schema_exports.Struct({
       id: Id2,
@@ -26566,7 +24873,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       yield* answer(input.id, input.text, input.cause);
-      return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
+      return { item: view((yield* Store).get(input.id)), next: [{ run: "mw run", why: "continue delivering it" }] };
     })
   }),
   command({
@@ -26578,19 +24885,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       yield* retry3(input.id);
-      return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
-    })
-  }),
-  command({
-    name: "go",
-    summary: "Let an item past the checkpoint it stopped at (autonomy checkpoints or steps): it goes on to its next step, or merges and ships. On a finished discovery run, sends every waiting candidate into delivery.",
-    args: ["id"],
-    input: Schema_exports.Struct({ id: Id2 }),
-    output: Created,
-    idempotent: true,
-    run: (input) => Effect_exports.gen(function* () {
-      yield* go(input.id);
-      return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
+      return { item: view((yield* Store).get(input.id)), next: [{ run: "mw run", why: "continue delivering it" }] };
     })
   }),
   command({
@@ -26608,35 +24903,14 @@ var COMMANDS = [
     }).pipe(Effect_exports.scoped)
   }),
   command({
-    name: "ui",
-    summary: "The live console: a web page on this machine that answers, at a glance, what is done, what needs the operator (with the exact command), and who owes the next move on every item. Each item shows its pipeline with time, tokens and NQ questions per step; a timeline shows every agent call; a running call shows what its agent is doing now; an item opens to its idea, plan, checks and results, diff, every NQ question and answer, and every call with its packet, answer and stream. Prints its address as one JSON line, then serves until interrupted. Reach it from another computer with an SSH tunnel or a forwarded port; it only reads the store.",
-    input: Schema_exports.Struct({
-      port: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: "defaults to 4747; 0 picks a free one" })),
-      host: optional3("the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network")
-    }),
-    output: Schema_exports.Struct({ ui: Schema_exports.String, store: Schema_exports.String, next: Schema_exports.Array(Next) }),
-    run: (input) => serve(storePath, nextFor, input.host ?? "127.0.0.1", input.port ?? 4747)
-  }),
-  command({
-    name: "watch",
-    summary: "Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log). Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.",
-    input: Schema_exports.Struct({
-      since: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThanOrEqualTo(0)))).annotate({ description: "stream only events after this seq" })),
-      once: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "print what there is now, then stop" }))
-    }),
-    output: Schema_exports.Struct({ watched: Schema_exports.String, next: Schema_exports.Array(Next) }),
-    idempotent: true,
-    run: (input) => watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false })
-  }),
-  command({
     name: "replay",
-    summary: "Write the console as one self-contained page with the whole record inside it (every item, call, NQ exchange and event), readable with no server; beside the store unless --out names a file.",
+    summary: "Write the replay of the whole flow to one self-contained page, beside the store unless --out names a file.",
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve6(input.out ?? resolve6(dirname8(storePath), "replay.html"));
-      writeFileSync7(out, staticPage(yield* Store, nextFor));
-      return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
+      const out = resolve6(input.out ?? resolve6(dirname6(storePath), "replay.html"));
+      writeFileSync7(out, replayHtml(snapshot3(yield* Store)));
+      return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "step through the whole flow" }] };
     })
   }),
   command({
@@ -26647,7 +24921,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve6(input.out ?? resolve6(dirname8(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve6(input.out ?? resolve6(dirname6(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -26660,8 +24934,8 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync4(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync9(join12(dir, f), "utf8").split("\n").filter(Boolean));
+      const files = existsSync3(dir) ? readdirSync3(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const lines4 = files.flatMap((f) => readFileSync7(join10(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve6(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve6(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
@@ -26670,7 +24944,7 @@ var COMMANDS = [
     summary: "Replay a job's recorded calls on another card or brief through the worker, score record and replay deterministically (required JSON fields, rule-break flags, seconds, tokens), and recommend the cheapest card that matches or beats the record. Replays run in throwaway worktrees; results go only to the store; no file changes.",
     args: ["job"],
     input: Schema_exports.Struct({
-      job: Schema_exports.NonEmptyString.annotate({ description: `the job whose recorded calls to replay: its intake, originator and execute calls (${JOBS.join(", ")}, or a cartridge's own job)` }),
+      job: Schema_exports.Literals(JOBS).annotate({ description: "the job whose recorded calls to replay: its intake, originator and execute calls" }),
       card: optional3("a tier name (every card in it) or one card as JSON {harness, provider, account, model, effort}; defaults to each call's recorded card"),
       brief: optional3("a file whose text replaces the job's brief; only execute calls are replayed"),
       item: optional3("only calls of these work items, comma-separated: 3,5"),
@@ -26684,7 +24958,7 @@ var COMMANDS = [
   }),
   command({
     name: "prune",
-    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store. Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
+    summary: "Retention: remove finished work last changed before --before, with everything recorded about it, and give the space back. Finished means shipped, dropped, or a discovery run none of whose candidates still waits; work still moving or waiting on the operator stays, with each finished item it builds on or waits on. Goes with it: its events, calls, tool events and evals, its exports/<id> and items/<id> folders, and replay.html beside the store (the glass is rewritten). Telemetry files are the operator's and stay. --dry-run shows what would go. Prune holds the runner claim, so it refuses while `mw run` is live.",
     input: Schema_exports.Struct({
       before: Schema_exports.String.annotate({ description: "an ISO date or time: 2026-09-30 (its start, UTC) or 2026-09-30T12:00:00Z" }),
       "dry-run": Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "report what would go and change nothing" }))
@@ -26714,13 +24988,13 @@ var COMMANDS = [
         }));
       }
       const { ids, kept } = retention(store, before);
-      const home = dirname8(storePath);
-      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync4);
+      const home = dirname6(storePath);
+      const files = [...ids.flatMap((id2) => [join10(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join10(home, "replay.html")] : []].filter(existsSync3);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
         for (const f of files) rmSync6(f, { recursive: true, force: true });
-        if (existsSync4(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync6(join12(home, "exports"), { recursive: true });
+        if (existsSync3(join10(home, "exports")) && !readdirSync3(join10(home, "exports")).length) rmSync6(join10(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
@@ -26775,8 +25049,8 @@ var manual = Effect_exports.gen(function* () {
     errors: Object.fromEntries(Object.entries(ERRORS).map(([code, e]) => [code, { means: e.means, context: jsonSchema(e.context) }])),
     $defs,
     state: {
-      home: dirname8(registry),
-      store: existsSync4(storePath) ? storePath : null,
+      home: dirname6(registry),
+      store: existsSync3(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
       next: yield* nextAction()
@@ -26817,14 +25091,14 @@ Usage: ${usageOf(c)}`))
   return { store: true, effect: c.run(input, prepared) };
 }).pipe(
   Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync4(storePath) ? storePath : ":memory:"), workerLayer))
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync3(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
 function reloadWatch() {
   const self = fileURLToPath2(import.meta.url);
   const stamp = () => {
     try {
-      const s = statSync3(self);
+      const s = statSync2(self);
       return `${s.mtimeMs}:${s.size}:${s.ino}`;
     } catch {
       return void 0;

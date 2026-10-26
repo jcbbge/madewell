@@ -155,14 +155,14 @@ test('mw eval replays a delivered item\'s calls through the worker command and p
 	t.store.close()
 	rmSync(t.home, { recursive: true, force: true })
 	const cli = join(import.meta.dirname, '../src/cli.ts')
-	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: t.home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(t.dir, 'calls.log'), MW_AUTORUN: '0' }
+	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: t.home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(t.dir, 'calls.log') }
 	delete env.MW_STORE
 	delete env.MW_PRESCRIPTIONS
 	const mw = (...args: string[]) => {
 		const r = spawnSync(process.execPath, [cli, ...args], { env, cwd: t.repo })
 		return { code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null }
 	}
-	mw('init', '--autonomy', 'full', '--ship', 'true')
+	mw('init', '--ship', 'true')
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	assert.equal(mw('run').out.items[0].status, 'shipped')
 

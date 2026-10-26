@@ -155,6 +155,20 @@ test('runner start, stop, and a lost runner are events; the loss is on the item 
 	assert.deepEqual(store.allEvents().filter((e) => e.item === 0).map((e) => [e.kind, e.data]), [['runner-started', { pid: process.pid, replaced: dead }], ['runner-stopped', { pid: process.pid }]])
 })
 
+test('the glass beside the store is rewritten after each saved transition and shows tools, tokens and flags', () => {
+	const { store, item, record } = freshStore()
+	const glass = () => JSON.parse(/const DATA = (.*);\n/.exec(readFileSync(store.glass, 'utf8'))![1]!)
+	assert.equal(glass().items.length, 1, 'written on create')
+	record('amp', AMP, { facts: { access: 'read', allowlist: ['Read'] } })
+	assert.equal(glass().calls.length, 0, 'a call alone is not a transition')
+	store.save(item, 'handed-off', { from: 'ideate', to: 'challenge' })
+	const [call] = glass().calls
+	assert.deepEqual([call.tools[0].tool, call.tokens.output, call.flags.map((f: { rule: string }) => f.rule)], ['shell_command', 25, ['tool-not-allowed']])
+	assert.equal(call.raw, undefined, 'raw streams stay out of the glass')
+	assert.equal(call.rawBytes, AMP.length)
+	assert.deepEqual(readdirSync(join(store.glass, '..')).filter((f) => f.startsWith('glass')), ['glass.html'], 'no temp file left behind')
+})
+
 const cli = join(import.meta.dirname, '../src/cli.ts')
 /** `mw` with its store in `home`, run from a product repo beside it. */
 const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: string[]) => {
@@ -164,14 +178,14 @@ const mwIn = (home: string, extra: Record<string, string> = {}) => (...args: str
 		mkdirSync(repo)
 		spawnSync('sh', ['-c', 'git init -q -b main && git config user.name Operator && git config user.email op@example.com && git commit -q --allow-empty -m first'], { cwd: repo })
 	}
-	const r = spawnSync(process.execPath, [cli, ...args], { env: { ...env, MW_STORE: join(home, 'mw.db'), MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(home, 'calls.log'), MW_AUTORUN: '0', ...extra }, cwd: repo, encoding: 'utf8' })
+	const r = spawnSync(process.execPath, [cli, ...args], { env: { ...env, MW_STORE: join(home, 'mw.db'), MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(home, 'calls.log'), ...extra }, cwd: repo, encoding: 'utf8' })
 	return { code: r.status, out: r.stdout ? JSON.parse(r.stdout) : null, err: r.stderr ? JSON.parse(r.stderr) : null }
 }
 
 test('mw export writes one folder per call: brief, packet, answer, raw stream, tool events and flags', () => {
 	const home = mkdtempSync(join(dir, 'export-'))
 	const mw = mwIn(home)
-	mw('init', '--autonomy', 'full', '--ship', 'true')
+	mw('init', '--ship', 'true')
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 	assert.equal(mw('run').code, 0)
 
@@ -196,21 +210,21 @@ test('mw export writes one folder per call: brief, packet, answer, raw stream, t
 	assert.equal(missing.err.error, 'item_not_found')
 })
 
-test('every span goes to a JSONL file beside the store by default, never to the output; MW_DEBUG=0 turns it off', () => {
+test('debug mode writes every span to a JSONL file beside the store, only when MW_DEBUG=1, and never to the output', () => {
 	const quiet = mkdtempSync(join(dir, 'quiet-'))
-	mwIn(quiet, { MW_DEBUG: '0' })('init', '--autonomy', 'full', '--ship', 'true')
-	mwIn(quiet, { MW_DEBUG: '0' })('start', '--objective', 'x', '--source', 'y')
-	assert.equal(mwIn(quiet, { MW_DEBUG: '0' })('run').code, 0)
-	assert.equal(existsSync(join(quiet, 'spans.jsonl')), false)
+	mwIn(quiet)('init', '--ship', 'true')
+	mwIn(quiet)('start', '--objective', 'x', '--source', 'y')
+	assert.equal(mwIn(quiet)('run').code, 0)
+	assert.equal(existsSync(join(quiet, 'debug.jsonl')), false)
 
 	const home = mkdtempSync(join(dir, 'debug-'))
-	const mw = mwIn(home)
-	mw('init', '--autonomy', 'full', '--ship', 'true')
+	const mw = mwIn(home, { MW_DEBUG: '1' })
+	mw('init', '--ship', 'true')
 	mw('start', '--objective', 'x', '--source', 'y')
 	const ran = mw('run')
 	assert.equal(ran.code, 0)
 	assert.equal(ran.out.items[0].status, 'shipped', 'stdout is still only the JSON answer')
-	const spans = readFileSync(join(home, 'spans.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+	const spans = readFileSync(join(home, 'debug.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
 	const drive = spans.find((s) => s.name === 'mw.drive')
 	assert.equal(drive.attributes.item, 1)
 	const execute = spans.find((s) => s.name === 'mw.execute.implement')
@@ -218,13 +232,9 @@ test('every span goes to a JSONL file beside the store by default, never to the 
 	assert.equal(execute.trace, drive.trace, 'one trace per run')
 	assert.ok(spans.find((s) => s.span === execute.parent), 'each span names its parent')
 
-
-	// With telemetry on, spans go to the telemetry file and still beside the store, where the console reads them.
-	const both = mkdtempSync(join(dir, 'both-'))
-	const tele = join(both, 'telemetry')
-	for (const args of [['init', '--autonomy', 'full', '--ship', 'true'], ['start', '--objective', 'x', '--source', 'y'], ['run']]) mwIn(both, { MW_TELEMETRY: tele })(...args)
-	assert.ok(readFileSync(join(both, 'spans.jsonl'), 'utf8').includes('"mw.drive"'))
-	assert.ok(readdirSync(tele).some((f) => readFileSync(join(tele, f), 'utf8').includes('"t":"span"')))
+	const glass = readFileSync(join(home, 'glass.html'), 'utf8')
+	assert.match(glass, /"kind":"runner-started"/)
+	assert.match(glass, /"kind":"runner-stopped"/)
 })
 
 test('the same records written at the metrics level give mw stats the same numbers, with no free text', () => {

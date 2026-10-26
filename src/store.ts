@@ -1,29 +1,21 @@
 // The one record. Every work item, for every project, lives in one SQLite file; every change to an
 // item is saved together with an event describing it. Nothing else holds state. The record is also the
-// trace: each call keeps its tool events, tokens and rule-break flags, and the console reads it live.
-// With MW_TELEMETRY set, every event and call also goes to this machine's telemetry file, written only
-// once its transaction commits.
-import { mkdirSync } from 'node:fs'
+// trace: each call keeps its tool events, tokens and rule-break flags, and the glass beside the store is
+// rewritten after every saved transition. With MW_TELEMETRY set, every event and call also goes to this
+// machine's telemetry file, written only once its transaction commits.
+import { mkdirSync, renameSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { Context, Effect, Layer } from 'effect'
 import type { Card } from './cards.ts'
 import { MadeWellError, type Next } from './errors.ts'
-import { laneOf, type Check, type Cause, type Job, type Maker, type Pack } from './lane.ts'
+import type { Check, Cause, Job, Maker } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
+import { replayHtml, snapshot } from './replay.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
-type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'discovered' | 'dropped'
-
-/**
- * How involved the operator is (FOUNDATION, ruling 17). full: no stops, and what would go to the operator is decided by the
- * delegating agent by the rubric. checkpoints: stops after discovery and before each item ships. steps: also between the
- * cartridges of a loop. Absent means checkpoints.
- */
-export type Autonomy = 'full' | 'checkpoints' | 'steps'
-/** New operators start watching every checkpoint; they hand over more once they trust the machine (ruling 17). */
-export const DEFAULT_AUTONOMY: Autonomy = 'checkpoints'
+type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'shipped' | 'discovered' | 'dropped'
 
 export interface Hold {
 	readonly code: string
@@ -54,10 +46,6 @@ export interface Exchange {
 	readonly notes?: ReadonlyArray<string>
 	/** The receiver's card. A different card is a different agent, and goes through NQ again. */
 	readonly card?: Card
-	/** Full autonomy: the exchange ran out of turns, and the originator decides the open questions by the rubric. */
-	readonly deciding?: boolean
-	/** The originator has decided once by the rubric on this hand-off; running out of turns again holds. */
-	readonly decided?: boolean
 }
 
 /** One job's hand-off and attempts. The item carries one at its top level; after planning it carries two, one per maker. */
@@ -104,7 +92,7 @@ export interface Item {
 	/** The NQ exchange of the current hand-off; absent until the hand-off starts. */
 	readonly exchange?: Exchange
 	/** Accepted outputs of the current round, by job: each job's packet. */
-	readonly outputs: Readonly<Partial<Record<Job, string>>>
+	readonly outputs: Partial<Record<Job, string>>
 	/** An open failure waiting for the arbiter. */
 	readonly failure?: string
 	/** The arbiter's (or operator's) ruling, assigned to the job it routed the work back to. */
@@ -114,8 +102,6 @@ export interface Item {
 	readonly rejected?: string
 	/** The product repo's branch and its commit when the item (or its current round) started. */
 	readonly base?: { readonly ref: string; readonly commit: string }
-	/** The project's conventions when the base was recorded: the plan must hold the change to each one. */
-	readonly conventions?: ReadonlyArray<string>
 	/** After planning: the implementer's and the test architect's tracks, run in parallel. */
 	readonly split?: Partial<Record<Maker, Track>>
 	/** The implementer's change: its files; the patch lives in Made Well's home. */
@@ -131,14 +117,6 @@ export interface Item {
 	/** For a candidate: the discovery run that found it. */
 	readonly discovery?: number
 	readonly kind?: 'feature' | 'fix' | 'chore'
-	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
-	readonly pack?: Pack
-	/** How involved the operator is with it; candidates and fix items inherit it. Absent means checkpoints. */
-	readonly autonomy?: Autonomy
-	/** The checkpoint the operator last let it pass, so it does not stop there twice. */
-	readonly passed?: string
-	/** The operator's word at a checkpoint, for the next hand-off. */
-	readonly steer?: string
 	readonly waitsOn?: number
 	/** For a candidate: the items it builds on. It starts once they have shipped. */
 	readonly after?: ReadonlyArray<number>
@@ -158,7 +136,7 @@ export interface Event {
 	readonly data: Record<string, unknown>
 }
 
-/** One agent call, recorded in full: brief, packet, answer and raw stream, for replay, export and evals. */
+/** One agent call, recorded in full: the glass the whole flow is replayed through. */
 export interface Call {
 	readonly id: number
 	readonly item: number
@@ -181,15 +159,6 @@ export interface Call {
 	/** The facts the engine passed in, and the rule breaks they and the stream show. */
 	readonly facts: Facts | null
 	readonly flags: ReadonlyArray<Flag>
-}
-
-/** A call without its texts, with their sizes: what a live view polls. */
-export type CallHead = Pick<Call, 'id' | 'item' | 'kind' | 'job' | 'profile' | 'card' | 'outcome' | 'error' | 'started' | 'ms' | 'tokens' | 'flags'> & {
-	readonly systemBytes: number
-	readonly packetBytes: number
-	readonly answerBytes: number | null
-	readonly rawBytes: number | null
-	readonly toolCount: number
 }
 
 export const defaultStorePath = () => process.env.MW_STORE ?? join(process.env.MW_HOME ?? join(homedir(), '.local', 'share', 'madewell'), 'madewell.db')
@@ -233,6 +202,7 @@ export function openStore(path: string) {
 			throw e
 		}
 	}
+	const glass = join(dirname(path), 'glass.html')
 	const insertTools = (call: number, tools: ToolEvent[]) => {
 		const insert = db.prepare('INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 		for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0)
@@ -254,6 +224,14 @@ export function openStore(path: string) {
 		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
 		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
 	}
+	/** The glass is a view: rewritten after each transition, never read back. A failed write never stops the work. An in-memory store has none: its glass would land in the working directory, often a product repo. */
+	const view = () => {
+		if (path === ':memory:') return
+		try {
+			writeFileSync(`${glass}.tmp`, replayHtml(snapshot(store)))
+			renameSync(`${glass}.tmp`, glass)
+		} catch {}
+	}
 	const read = (id: number): Item | undefined => {
 		const row = db.prepare('SELECT doc FROM items WHERE id = ?').get(id) as { doc: string } | undefined
 		return row && JSON.parse(row.doc)
@@ -261,23 +239,21 @@ export function openStore(path: string) {
 
 	const store = {
 		path,
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy'>>): Item {
+		glass,
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')
-				const item: Item = { job: laneOf(fields.pack).delivery[0]!.job, from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
+				const item: Item = { job: 'ideate', from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(item), item.id)
 				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item
 			})
+			view()
 			return created
 		},
 		get(id: number) {
 			return read(id)
-		},
-		/** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
-		note(id: number, kind: string, data: Record<string, unknown> = {}) {
-			tx(() => event(id, kind, data))
 		},
 		/** Saves the new state of an item together with the event that explains it. */
 		save(item: Item, kind: string, data: Record<string, unknown> = {}): Item {
@@ -286,6 +262,7 @@ export function openStore(path: string) {
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(next), item.id)
 				event(item.id, kind, data)
 			})
+			view()
 			return next
 		},
 		list(): Item[] {
@@ -315,9 +292,8 @@ export function openStore(path: string) {
 			emit('rejected', { call: id, at: new Date().toISOString(), reason })
 		},
 		/** Every call, or one item's, oldest first. */
-		calls(item?: number, id?: number): Call[] {
-			const where = id !== undefined ? 'WHERE id = ?' : item !== undefined ? 'WHERE item = ?' : ''
-			const rows = db.prepare(`SELECT * FROM calls ${where} ORDER BY id`).all(...(id !== undefined ? [id] : item !== undefined ? [item] : [])) as (Omit<Call, 'card' | 'tools' | 'tokens' | 'facts' | 'flags'> & { card: string; tokens: string | null; facts: string | null; flags: string })[]
+		calls(item?: number): Call[] {
+			const rows = db.prepare(`SELECT * FROM calls ${item === undefined ? '' : 'WHERE item = ?'} ORDER BY id`).all(...(item === undefined ? [] : [item])) as (Omit<Call, 'card' | 'tools' | 'tokens' | 'facts' | 'flags'> & { card: string; tokens: string | null; facts: string | null; flags: string })[]
 			const tools = db.prepare('SELECT seq, tool, digest, input_bytes AS inputBytes, output_bytes AS outputBytes, tokens, at, ms, error FROM tool_events WHERE call = ? ORDER BY seq')
 			return rows.map((r): Call => ({
 				...r,
@@ -327,18 +303,6 @@ export function openStore(path: string) {
 				flags: JSON.parse(r.flags),
 				tools: (tools.all(r.id) as (Omit<ToolEvent, 'error'> & { error: number })[]).map((t) => ({ ...t, error: t.error === 1 })),
 			}))
-		},
-		/** Every call without its texts (brief, packet, answer, raw stream), which `call` returns: what a live view polls. */
-		callHeads(): CallHead[] {
-			const rows = db.prepare('SELECT id, item, kind, job, profile, card, outcome, error, started, ms, tokens, flags, length(system) AS systemBytes, length(prompt) AS packetBytes, length(output) AS answerBytes, length(raw) AS rawBytes, (SELECT COUNT(*) FROM tool_events t WHERE t.call = calls.id) AS toolCount FROM calls ORDER BY id').all() as (Omit<CallHead, 'card' | 'tokens' | 'flags'> & { card: string; tokens: string | null; flags: string })[]
-			return rows.map((r) => ({ ...r, card: JSON.parse(r.card), tokens: r.tokens ? JSON.parse(r.tokens) : null, flags: JSON.parse(r.flags) }))
-		},
-		call(id: number): Call | undefined {
-			return store.calls(undefined, id)[0]
-		},
-		/** The newest event and call: a view looks again only when either moved. */
-		mark() {
-			return db.prepare('SELECT (SELECT COALESCE(MAX(seq), 0) FROM events) AS events, (SELECT COALESCE(MAX(id), 0) FROM calls) AS calls').get() as { events: number; calls: number }
 		},
 		allEvents(): Event[] {
 			return (db.prepare('SELECT * FROM events ORDER BY seq').all() as { seq: number; item: number; at: string; kind: string; data: string }[]).map((r) => ({ ...r, data: JSON.parse(r.data) }))
@@ -361,7 +325,7 @@ export function openStore(path: string) {
 					event(0, row?.pid === process.pid ? 'runner-reloaded' : 'runner-started', { pid: process.pid, ...(process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}), ...(row && row.pid !== process.pid ? { replaced: row.pid } : {}) })
 					return undefined
 				})
-				if (!owner) return Effect.void
+				if (!owner) return Effect.sync(view)
 				const busy = owner.item === null ? undefined : read(owner.item)
 				return Effect.fail(new MadeWellError({
 					code: 'store_locked',
@@ -400,6 +364,7 @@ export function openStore(path: string) {
 				if (Object.values(r).some(Boolean)) event(0, 'pruned', { before, ...r, ids })
 				return r
 			})
+			view()
 			// Deleted rows leave free pages; VACUUM gives them back, and the checkpoint empties the WAL it went through.
 			if ((db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count) db.exec('VACUUM')
 			db.exec('PRAGMA wal_checkpoint(TRUNCATE)')
@@ -417,6 +382,7 @@ export function openStore(path: string) {
 			tx(() => {
 				if (db.prepare('DELETE FROM runner WHERE id = 1 AND pid = ?').run(process.pid).changes) event(0, 'runner-stopped', { pid: process.pid })
 			})
+			view()
 		},
 		close() {
 			db.close()
@@ -427,10 +393,9 @@ export function openStore(path: string) {
 
 export class Store extends Context.Service<Store, ReturnType<typeof openStore>>()('madewell/Store') {}
 
-/** The store, and its spans: to spans.jsonl beside the store, and to the telemetry file with MW_TELEMETRY (MW_DEBUG=0 turns them off). */
-export const spansPath = (path: string) => join(dirname(path), 'spans.jsonl')
+/** The store, and its spans: to the telemetry file with MW_TELEMETRY, else with MW_DEBUG=1 to debug.jsonl beside the store. */
 export const storeLayer = (path = defaultStorePath()) =>
 	Layer.mergeAll(
 		Layer.effect(Store, Effect.acquireRelease(Effect.sync(() => openStore(path)), (s) => Effect.sync(() => s.close()))),
-		debugLayer(path === ':memory:' ? ':memory:' : spansPath(path), telemetry(path)),
+		debugLayer(join(dirname(path), 'debug.jsonl'), telemetry(path)),
 	)

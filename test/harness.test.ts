@@ -216,12 +216,12 @@ test('mw run stops cleanly on SIGTERM: the agent process group dies and the runn
 	mkdirSync(repo)
 	spawnSync('sh', ['-c', 'git init -q -b main && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m first'], { cwd: repo })
 	// A worker whose agent hangs, with a child of its own.
-	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `sleep 300 & echo $! > ${pidFile}; wait`, MW_AUTORUN: '0' }
+	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `sleep 300 & echo $! > ${pidFile}; wait` }
 	delete env.MW_STORE
 	const cli = join(import.meta.dirname, '../src/cli.ts')
 	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
 	try {
-		mw('init', '--autonomy', 'full', '--ship', 'true')
+		mw('init', '--ship', 'true')
 		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: ['ignore', 'ignore', 'pipe'] })
 		let stderr = ''
@@ -250,12 +250,12 @@ test('a daemon left by a runner that was SIGKILLed is killed when the next runne
 	mkdirSync(repo)
 	spawnSync('sh', ['-c', 'git init -q -b main && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m first'], { cwd: repo })
 	// The first call leaves a daemon in a session of its own and hangs; later calls fail at once.
-	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `[ -f ${daemonFile} ] && exit 1; setsid sleep 302 </dev/null >/dev/null 2>&1 & echo $! > ${daemonFile}; sleep 300`, MW_AUTORUN: '0' }
+	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `[ -f ${daemonFile} ] && exit 1; setsid sleep 302 </dev/null >/dev/null 2>&1 & echo $! > ${daemonFile}; sleep 300` }
 	delete env.MW_STORE
 	const cli = join(import.meta.dirname, '../src/cli.ts')
 	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
 	try {
-		mw('init', '--autonomy', 'full', '--ship', 'true')
+		mw('init', '--ship', 'true')
 		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: 'ignore' })
 		while (!existsSync(daemonFile) || !readFileSync(daemonFile, 'utf8').trim()) await new Promise((r) => setTimeout(r, 20))

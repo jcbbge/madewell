@@ -25,7 +25,7 @@ function setup(extra: Record<string, string> = {}) {
 	git('-c', 'user.name=Operator', '-c', 'user.email=op@example.com', 'commit', '-q', '--allow-empty', '-m', 'first')
 	git('config', 'user.name', 'Operator')
 	git('config', 'user.email', 'op@example.com')
-	const env: Record<string, string | undefined> = { ...process.env, MW_HOME: home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(dir, 'calls.log'), MW_AUTORUN: '0', PATH: `${bin}:${process.env.PATH}`, ...extra }
+	const env: Record<string, string | undefined> = { ...process.env, MW_HOME: home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(dir, 'calls.log'), PATH: `${bin}:${process.env.PATH}`, ...extra }
 	delete env.MW_STORE
 	const parse = (r: ReturnType<typeof spawnSync>) => ({ code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null })
 	const mw = (...args: string[]) => parse(spawnSync(process.execPath, [cli, ...args], { env, cwd: repo }))
@@ -33,7 +33,7 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'cartridges', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'go', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
+const COMMANDS = ['next', 'init', 'discover', 'promote', 'start', 'run', 'status', 'show', 'holds', 'answer', 'retry', 'drop', 'replay', 'export', 'stats', 'eval', 'prune']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
@@ -49,12 +49,12 @@ test('mw alone prints the manual from the command table, and reading creates not
 
 	const next = manual.out.state.next
 	assert.equal(next.action, 'relay')
-	assert.equal(next.then[0].run, `mw init --workspace ${t.repo}`)
+	assert.equal(next.then[0].run, `mw init --workspace ${t.repo} --ship "<the operator's command that deploys what is on main>"`)
 	assert.deepEqual(t.mw('next').out, next)
 	assert.deepEqual(t.mw('holds').out, { holds: [], next: [] })
 	assert.equal(t.mw('status', '3').err.error, 'item_not_found')
 	// A relay's command run before the operator's words replace its slot is refused.
-	const unfilled = t.sh(`mw answer 1 "<your words>"`)
+	const unfilled = t.sh(next.then[0].run)
 	assert.equal(unfilled.err.error, 'usage')
 	assert.match(unfilled.err.message, /placeholder/)
 	assert.equal(existsSync(t.home), false, 'reading the manual or state creates nothing')
@@ -62,18 +62,17 @@ test('mw alone prints the manual from the command table, and reading creates not
 
 test('an agent following next delivers a work item through commands run as written, leaving no trace in the product repo', () => {
 	const t = setup()
-	const init = t.mw('init', '--autonomy', 'full', '--ship', 'touch ../shipped')
-	assert.deepEqual(init.out.project, { path: t.repo, ship: 'touch ../shipped', autonomy: 'full' })
+	const init = t.mw('init', '--ship', 'touch ../shipped')
+	assert.deepEqual(init.out.project, { path: t.repo, ship: 'touch ../shipped' })
 	assert.ok(existsSync(join(t.home, 'projects.json')))
 
 	const started = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export to reports')
 	assert.equal(started.out.item.status, 'queued')
 	assert.deepEqual(t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export to reports').out, started.out, 'a repeated start returns the same item')
 
-	// MW_AUTORUN=0 here, so nothing started the machine: next relays that to the operator, and never drives it itself.
 	const next = t.mw('next').out
-	assert.deepEqual([next.action, next.then[0].run], ['relay', 'mw run'])
-	const ran = t.sh(next.then[0].run)
+	assert.deepEqual([next.action, next.run], ['run', 'mw run'])
+	const ran = t.sh(next.run)
 	assert.equal(ran.code, 0, JSON.stringify(ran.err))
 	assert.deepEqual(ran.out.items.map((i: { id: number; status: string }) => [i.id, i.status]), [[started.out.item.id, 'shipped']])
 	assert.deepEqual(t.sh('mw run').out, ran.out, 'a repeated run gives the same result')
@@ -113,7 +112,7 @@ test('discovery candidates are relayed for promotion, and promoting twice promot
 
 test('a candidate that builds on another starts once that one ships, and promoting it promotes what it builds on', () => {
 	const t = setup()
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
+	t.mw('init', '--ship', 'true')
 	const discovery = t.mw('discover', '--source', 'raw notes: two things').out.item.id
 	t.mw('run')
 	const [first, second] = [discovery + 1, discovery + 2]
@@ -129,13 +128,13 @@ test('a candidate that builds on another starts once that one ships, and promoti
 test('a hold is relayed by next and alerted once; answer and retry change nothing when repeated', () => {
 	const t = setup({ FAKE_ASK: 'plan' })
 	const alert = 'cat > ../alert.json; echo "$MW_ITEM $MW_HOLD" >> ../alerts.log'
-	t.mw('init', '--autonomy', 'full', '--ship', 'exit 3', '--alert', alert)
+	t.mw('init', '--ship', 'exit 3', '--alert', alert)
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 	t.mw('run')
 	const alerts = () => readFileSync(join(t.dir, 'alerts.log'), 'utf8').trim().split('\n')
 	assert.deepEqual(alerts(), [`${id} authority`], 'one alert, though the runner ran twice')
-	assert.equal(JSON.parse(readFileSync(join(t.dir, 'alert.json'), 'utf8')).message, 'Only the operator can settle what the planner asked: it needs something only the operator has.')
+	assert.equal(JSON.parse(readFileSync(join(t.dir, 'alert.json'), 'utf8')).message, 'Only the operator can settle what the planner asked.')
 
 	const [hold] = t.mw('holds').out.holds
 	assert.deepEqual([hold.item, hold.code, hold.alerted.exitCode], [id, 'authority', 0])
@@ -152,7 +151,7 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 
 	assert.equal(t.mw('run').out.items[0].hold.code, 'ship_failed')
 	assert.deepEqual(alerts(), [`${id} authority`, `${id} ship_failed`], 'a new hold alerts again')
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
+	t.mw('init', '--ship', 'true')
 	const retried = t.mw('retry', String(id))
 	assert.deepEqual(t.mw('retry', String(id)).out, retried.out)
 	assert.equal(t.mw('show', String(id)).out.events.filter((e: { kind: string }) => e.kind === 'retried').length, 1)
@@ -161,15 +160,11 @@ test('a hold is relayed by next and alerted once; answer and retry change nothin
 
 test('an item that will never ship is dropped: it leaves the holds and next, keeps its record, and dropping twice drops once', () => {
 	const t = setup({ FAKE_ASK: 'plan' })
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
+	t.mw('init', '--ship', 'true')
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
-	// A call cut off mid-run leaves its live output behind; another item's stays.
-	mkdirSync(join(t.home, 'live'), { recursive: true })
-	for (const f of [`item-${id}-plan-execute.log`, `item-${id + 1}-plan-execute.log`]) writeFileSync(join(t.home, 'live', f), 'partial output')
 	const dropped = t.mw('drop', String(id))
 	assert.deepEqual([dropped.out.item.status, dropped.out.item.next], ['dropped', []])
-	assert.deepEqual(readdirSync(join(t.home, 'live')), [`item-${id + 1}-plan-execute.log`], 'the dropped item\'s live output goes with it')
 	assert.deepEqual(t.mw('drop', String(id)).out, dropped.out)
 	assert.deepEqual(t.mw('holds').out.holds, [])
 	assert.equal(t.mw('next').out.hold, undefined, 'next no longer relays it')
@@ -180,7 +175,7 @@ test('an item that will never ship is dropped: it leaves the holds and next, kee
 
 test('status shows each maker\'s track after planning, with its open NQ exchange', () => {
 	const t = setup({ FAKE_ASK: 'implement' })
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
+	t.mw('init', '--ship', 'true')
 	const id = t.mw('start', '--objective', 'Export reports', '--source', 'operator: export reports').out.item.id
 	assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 	assert.deepEqual(t.mw('status', String(id)).out.tracks, {
@@ -189,17 +184,17 @@ test('status shows each maker\'s track after planning, with its open NQ exchange
 	})
 })
 
-test('a project registered with no options stops at the checkpoint before shipping; mw go ships it, with no ship command, once its work is on main', () => {
+test('an item held for a missing ship command goes on once mw init, filled in from next, registers one', () => {
 	const t = setup()
-	assert.deepEqual(t.mw('init').out.project, { path: t.repo })
-	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
-	const paused = t.mw('run').out.items[0]
-	assert.equal(paused.status, 'paused', 'checkpoints is the default')
-	assert.deepEqual(t.mw('next').out.then.map((n: { run: string }) => n.run)[0], 'mw go 1')
-	t.mw('go', '1')
-	const shipped = t.mw('run').out.items[0]
-	assert.equal(shipped.status, 'shipped')
-	assert.equal(t.git('show', 'main:src/export.sh'), 'echo a,b')
+	t.mw('init', '--ship', 'true')
+	const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
+	writeFileSync(join(t.home, 'projects.json'), '[]')
+	assert.equal(t.mw('run').out.items[0].hold.code, 'no_ship_command')
+	const next = t.mw('next').out
+	const init = t.sh(next.then[0].run.replace(/"<[^>]+>"/, '"touch ../shipped"'))
+	assert.deepEqual(init.out.released.map((i: { id: number; status: string }) => [i.id, i.status]), [[id, 'queued']])
+	assert.equal(t.mw('run').out.items[0].status, 'shipped')
+	assert.ok(existsSync(join(t.dir, 'shipped')))
 })
 
 test('errors are JSON on stderr with a listed code, the context of its shape, and next commands', () => {
@@ -209,12 +204,11 @@ test('errors are JSON on stderr with a listed code, the context of its shape, an
 	assert.equal(unregistered.out, null)
 	assert.deepEqual([unregistered.err.error, unregistered.err.context], ['project_not_found', { workspace: t.repo, projects: [] }])
 	assert.equal(existsSync(t.home), false, 'a refused start creates nothing')
+	assert.equal(t.mw('init').err.error, 'usage', 'a new project needs its ship command')
 
 	t.mw('init', '--ship', 'true')
 	assert.deepEqual(t.mw('init', '--gates', '[{"run": "npx eslint {files}", "glob": "*.ts"}]').out.project, { path: t.repo, ship: 'true', gates: [{ run: 'npx eslint {files}', glob: '*.ts' }] }, 'gates join the project\'s config, which keeps its ship command')
 	assert.equal(t.mw('init', '--gates', '[{"glob": "*.ts"}]').err.error, 'usage', 'a gate needs a command')
-	assert.deepEqual(t.mw('init', '--conventions', '["Colours come from src/tokens.css"]').out.project.conventions, ['Colours come from src/tokens.css'])
-	assert.equal(t.mw('init', '--conventions', '"one rule"').err.error, 'usage', 'conventions are a list')
 	const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
 	assert.deepEqual(t.mw('status', '99').err.context, { id: 99 })
 	assert.equal(t.mw('status', 'x').err.error, 'usage')
@@ -235,7 +229,7 @@ test('errors are JSON on stderr with a listed code, the context of its shape, an
 test('a runner killed mid-job is replaced: the next run resumes at that job without repeating earlier ones', async () => {
 	const t = setup()
 	t.env.FAKE_HANG = `implement:${join(t.dir, 'hung')}`
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
+	t.mw('init', '--ship', 'true')
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 
 	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, detached: true, stdio: 'ignore' })
@@ -248,7 +242,7 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.match(stale.summary, /1 in progress with no runner/, 'status reads the runner as gone, though the item still says running')
 	assert.deepEqual([stale.items[0].status, stale.items[0].next.map((n: { run: string }) => n.run), stale.next.map((n: { run: string }) => n.run)], ['running', ['mw run'], ['mw run']])
 	assert.ok(!t.mw('show', '1').out.events.some((e: { kind: string }) => e.kind === 'runner-lost'), 'reading records nothing')
-	assert.equal(t.mw('next').out.then[0].run, 'mw run', 'a dead runner\'s work is the operator\'s to restart')
+	assert.equal(t.mw('next').out.run, 'mw run', 'a dead runner\'s work is picked up by a new run')
 	assert.ok(t.mw('show', '1').out.events.some((e: { kind: string }) => e.kind === 'runner-lost'), 'next takes over the dead claim and records the loss against the item')
 	const resumed = t.mw('run')
 	assert.equal(resumed.code, 0, JSON.stringify(resumed.err))
@@ -260,66 +254,6 @@ test('a runner killed mid-job is replaced: the next run resumes at that job with
 	assert.equal(t.git('status', '--porcelain', '--ignored'), '')
 	// The resumed implementer was clear before the crash and keeps the same card: no new intake.
 	assert.equal(calls.filter((l) => l === 'intake implement implementer').length, 1)
-})
-
-test('the console shows each step while it runs: what the agent is doing, who owes the next move, then the item\'s whole story; watch streams every event with who acted and what happened', async () => {
-	const t = setup()
-	const gate = join(t.dir, 'gate')
-	writeFileSync(gate, '')
-	t.env.FAKE_PAUSE = `plan:${gate}`
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
-	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
-	const runner = spawn(process.execPath, [cli, 'run'], { env: t.env, cwd: t.repo, stdio: 'ignore' })
-	const ran = new Promise((r) => runner.once('exit', r))
-	const ui = spawn(process.execPath, [cli, 'ui', '--port', '0'], { env: t.env, cwd: t.repo, stdio: ['ignore', 'pipe', 'ignore'] })
-	try {
-		const url: string = await new Promise((r) => ui.stdout!.once('data', (d) => r(JSON.parse(String(d)).ui)))
-		const get = async (path: string) => (await fetch(url + path)).json()
-		for (let i = 0; !existsSync(`${gate}.started`); i++) {
-			assert.ok(i < 500, 'the planner\'s call never started')
-			await new Promise((r) => setTimeout(r, 20))
-		}
-		const during = await get('api/model')
-		const running = during.running.find((r: { kind: string; job: string }) => r.kind === 'execute' && r.job === 'plan')
-		assert.deepEqual([running?.item, running?.who], [1, 'planner'], 'the planner\'s job shows as running while it runs')
-		assert.match(running.live, /item-1-plan-execute\.log$/, 'its output streams to a live file')
-		const item = during.items.find((i: { id: number }) => i.id === 1)
-		assert.deepEqual([item.doing, item.owes], ['The planner is writing the plan', 'planner'], 'the item says what happens now and who owes the next move')
-		assert.deepEqual(item.steps.map((s: { job: string; state: string }) => `${s.job}:${s.state}`), ['ideate:done', 'challenge:done', 'plan:active', 'implement:todo', 'test-plan:todo', 'verify:todo', 'ship:todo'])
-		const page = await (await fetch(url)).text()
-		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the console page\'s script parses')
-
-		rmSync(gate)
-		await ran
-		const after = await get('api/model')
-		assert.deepEqual([after.running, (await get('api/mark')).live], [[], ''], 'nothing is in flight once the run ends, and live files go once each step is saved')
-		assert.deepEqual([after.summary.shipped, after.items[0].owes], [1, ''], 'once shipped, nobody owes a move')
-		assert.match(after.items[0].doing, /^Shipped at [0-9a-f]{10}$/)
-		assert.ok(after.items[0].steps.every((s: { state: string }) => s.state === 'done'))
-		const story = await get('api/item/1')
-		assert.equal(story.deliverables.plan.scope[0], 'src/export.sh', 'the item opens to each job\'s deliverable')
-		assert.deepEqual(story.exchanges.map((x: { job: string; from: string; to: string }) => `${x.from} → ${x.to}`).slice(0, 3), ['dispatcher → ideator', 'ideator → ideation peer', 'ideation peer → planner'], 'and to every NQ hand-off')
-		assert.deepEqual([story.verification.passed, story.checks[0].id], [true, 'C1'])
-		assert.match(story.diff.change, /src\/export\.sh/, 'the shipped change reads as its diff')
-		const ends = story.events.filter((e: { kind: string; data: { job: string; kind: string } }) => e.kind === 'call-finished' && e.data.job === 'plan' && e.data.kind === 'execute')
-		assert.equal(ends.length, 1)
-		assert.equal(ends[0].say, 'The planner\'s plan call ended ok after ' + (ends[0].data.ms / 1000).toFixed(1) + 's')
-		assert.equal((await get(`api/call/${ends[0].data.call}`)).profile, 'planner', 'the finished call opens with its full record')
-	} finally {
-		ui.kill()
-	}
-	const lines = String(spawnSync(process.execPath, [cli, 'watch', '--once'], { env: t.env, cwd: t.repo }).stdout).trim().split('\n').map((l) => JSON.parse(l))
-	const events = lines.filter((l) => l.event).map((l) => l.event)
-	assert.ok(events.length > 10 && events.every((e) => ['operator', 'agent', 'made well', 'runner'].includes(e.actor) && e.say), 'every event says who acted and what happened')
-	assert.equal(events.find((e) => e.kind === 'shipped').actor, 'made well')
-	assert.equal(lines.filter((l) => l.call).length, events.filter((e) => e.kind === 'call-finished').length, 'every call is streamed once, as each call ends')
-	assert.deepEqual(lines.at(-1).next, [{ run: `mw watch --since ${events.at(-1).seq}`, why: 'carry on from here' }])
-	// The replay is the same console with the record inside it, readable with no server.
-	const replay = t.mw('replay').out.replay
-	const html = readFileSync(replay, 'utf8')
-	const data = JSON.parse(/<script>var STATIC = (.*?);<\/script>/s.exec(html)![1]!.replaceAll('<\\/', '</'))
-	assert.deepEqual([data.model.summary.shipped, data.details['1'].deliverables.plan.scope], [1, ['src/export.sh']])
-	assert.doesNotThrow(() => new Function(html.slice(html.lastIndexOf('<script>') + 8, html.lastIndexOf('</script>'))), 'its script parses')
 })
 
 test('a running runner reloads a new build in place: it finishes the step in flight, keeps its pid and claim, and carries on', async () => {
@@ -334,7 +268,7 @@ test('a running runner reloads a new build in place: it finishes the step in fli
 	const gate = join(t.dir, 'gate')
 	writeFileSync(gate, '')
 	t.env.FAKE_PAUSE = `plan:${gate}`
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
+	t.mw('init', '--ship', 'true')
 	t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
 
 	const runner = spawn(process.execPath, [entry, 'run'], { env: t.env, cwd: t.repo, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -370,7 +304,7 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 	// The second machine writes metrics only. On both, the planner asks once and the operator answers.
 	const machines = [setup({ MW_TELEMETRY: telemetry, FAKE_ASK: 'plan' }), setup({ MW_TELEMETRY: telemetry, MW_TELEMETRY_LEVEL: 'metrics', FAKE_ASK: 'plan' })]
 	for (const t of machines) {
-		t.mw('init', '--autonomy', 'full', '--ship', 'true')
+		t.mw('init', '--ship', 'true')
 		const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
 		assert.equal(t.mw('run').out.items[0].hold.code, 'authority')
 		t.mw('answer', String(id), 'CSV only')
@@ -459,13 +393,11 @@ test('with MW_TELEMETRY, every machine writes its own file there, and stats read
 
 test('prune removes finished work before the cutoff with its record and files, and keeps what work in flight needs', () => {
 	const t = setup()
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
-	const discovery = t.mw('discover', '--source', 'raw notes: two things', '--autonomy', 'checkpoints').out.item.id
+	t.mw('init', '--ship', 'true')
+	const discovery = t.mw('discover', '--source', 'raw notes: two things').out.item.id
 	t.mw('run')
 	const [first, second] = [discovery + 1, discovery + 2]
 	t.mw('promote', String(discovery), String(first))
-	t.mw('run')
-	t.mw('go', String(first))
 	t.mw('run')
 	// The scripted implementer makes one change per repo, so each further delivery gets its own project.
 	const project = (name: string) => {
@@ -473,7 +405,7 @@ test('prune removes finished work before the cutoff with its record and files, a
 		mkdirSync(dir)
 		execFileSync('git', ['-C', dir, 'init', '-q', '-b', 'main'])
 		execFileSync('git', ['-C', dir, '-c', 'user.name=Operator', '-c', 'user.email=op@example.com', 'commit', '-q', '--allow-empty', '-m', 'first'])
-		t.mw('init', '--workspace', dir, '--autonomy', 'full', '--ship', 'true')
+		t.mw('init', '--workspace', dir, '--ship', 'true')
 		return dir
 	}
 	const start = (workspace: string, objective: string) => t.mw('start', '--workspace', workspace, '--objective', objective, '--source', `operator: ${objective}`).out.item.id
@@ -527,6 +459,7 @@ test('prune removes finished work before the cutoff with its record and files, a
 	assert.deepEqual(t.mw('status').out.items, board.items.filter((i: { id: number }) => i.id !== old), 'every other item is as it was')
 	assert.equal(t.mw('show', String(old)).err.error, 'item_not_found')
 	assert.deepEqual([existsSync(exported), existsSync(join(t.home, 'exports', String(last))), existsSync(join(t.home, 'replay.html'))], [false, true, false])
+	assert.doesNotMatch(readFileSync(join(t.home, 'glass.html'), 'utf8'), /Add CSV export/, 'the glass is rewritten without it')
 	const after = db()
 	const count = (sql: string) => (after.prepare(sql).get(old) as { n: number }).n
 	assert.deepEqual([count('SELECT COUNT(*) AS n FROM events WHERE item = ?'), count('SELECT COUNT(*) AS n FROM calls WHERE item = ?'), count('SELECT COUNT(*) AS n FROM tool_events WHERE call NOT IN (SELECT id FROM calls) AND ? > 0')], [0, 0, 0])
@@ -536,29 +469,4 @@ test('prune removes finished work before the cutoff with its record and files, a
 
 	const again = t.mw('prune', '--before', pruned.out.before).out
 	assert.deepEqual([again.items, again.kept, again.files, again.records], [[], kept, [], none.records], 'a repeat removes nothing more')
-})
-
-test('mw cartridges prints the pack a project runs; init plugs in only a pack that honors the console\'s contract, and new work runs it', () => {
-	const t = setup()
-	t.mw('init', '--autonomy', 'full', '--ship', 'true')
-	const before = t.mw('cartridges').out
-	assert.equal(before.source, 'default')
-	assert.deepEqual(before.lane.delivery, ['ideation / ideate (ideator)', 'ideation / challenge (ideation peer)', 'planning / plan (planner)', 'implementation / implement (implementer)', 'implementation / test-plan (test architect)', 'verification / verify (made well)'])
-
-	// The default pack, with the challenge unplugged: saved from `mw cartridges` itself.
-	const pack = { ...before.pack, name: 'lean', delivery: before.pack.delivery.map((c: { cartridge: string; steps: { job: string }[] }) => ({ ...c, steps: c.steps.filter((s) => s.job !== 'challenge') })) }
-	writeFileSync(join(t.dir, 'lean.json'), JSON.stringify(pack))
-	writeFileSync(join(t.dir, 'broken.json'), JSON.stringify({ ...pack, delivery: pack.delivery.slice(0, 2) }))
-	const refused = t.mw('init', '--cartridges', join(t.dir, 'broken.json'))
-	assert.equal(refused.err.error, 'cartridges_invalid')
-	assert.ok(refused.err.context.problems.some((p: string) => p.includes('"verify"')), JSON.stringify(refused.err.context.problems))
-	assert.equal(t.mw('cartridges').out.source, 'default', 'a refused pack is not registered')
-
-	assert.equal(t.mw('init', '--cartridges', join(t.dir, 'lean.json')).out.project.cartridges, join(t.dir, 'lean.json'))
-	assert.deepEqual(t.mw('cartridges').out.lane.delivery.slice(0, 2), ['ideation / ideate (ideator)', 'planning / plan (planner)'])
-	const item = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item
-	assert.equal(t.mw('show', String(item.id)).out.item.pack.name, 'lean', 'new work carries the pack it runs')
-
-	assert.equal(t.mw('init', '--cartridges', 'default').out.project.cartridges, undefined)
-	assert.equal(t.mw('cartridges').out.source, 'default')
 })
