@@ -227,9 +227,11 @@ export const blazonOf = (model, opts = {}) => {
 	const sealed = s.shipped > 0
 	const notDrawn = delivery.length - shown.length
 	const colophon = `From the Made Well record on ${model.host ?? 'this machine'}${ws ? `, items of ${ws} only` : ''}; last entry ${last}. ` +
-		`${plural(delivery.length, 'delivery item')}${discoveries.length ? ` and ${plural(discoveries.length, 'discovery run')}` : ''}; between them ${plural(s.calls, 'agent call')}, ${s.tokens.toLocaleString('en-GB')} tokens and ${agentTime(s.agentMs)} of agent time.` +
-		(sealed ? ` Sealed: ${plural(s.shipped, 'item has', 'items have')} shipped.` : ' Not sealed: nothing has shipped.') +
-		(notDrawn ? ` The rings draw every open item and the newest finished ones; ${notDrawn} older finished ${notDrawn === 1 ? 'item is' : 'items are'} not drawn.` : '')
+		(items.length
+			? `${plural(delivery.length, 'delivery item')}${discoveries.length ? ` and ${plural(discoveries.length, 'discovery run')}` : ''}; between them ${plural(s.calls, 'agent call')}, ${s.tokens.toLocaleString('en-GB')} tokens and ${agentTime(s.agentMs)} of agent time.` +
+				(sealed ? ` Sealed: ${plural(s.shipped, 'item has', 'items have')} shipped.` : ' Not sealed: nothing has shipped.') +
+				(notDrawn ? ` The rings draw every open item and the newest finished ones; ${notDrawn} older finished ${notDrawn === 1 ? 'item is' : 'items are'} not drawn.` : '')
+			: 'No items, so nothing to count.')
 
 	const warning = opts.stale ? `Made Well has not answered since ${when(opts.stale, zone)}. This is the sheet as it was then.`
 		: opts.warning ? opts.warning
@@ -242,7 +244,7 @@ export const blazonOf = (model, opts = {}) => {
 			masthead: { name: 'Made Well', number: model.eventCount, date: longDate(model.at, zone), subtitle: ws ? `Delivery for ${projectName(ws)}: what waits on you` : 'Delivery: what waits on you' },
 			sealed,
 			...(warning ? { warning } : {}),
-			updated: `Sheet updated ${when(model.at, zone)}: ${waits === 1 ? 'one thing waits' : `${waits} things wait`} on you.`,
+			updated: `Sheet updated ${when(model.at, zone)}: ${waits === 0 ? 'nothing waits' : waits === 1 ? 'one thing waits' : `${waits} things wait`} on you.`,
 		},
 		principal: {
 			charge: 'rings',

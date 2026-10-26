@@ -163,6 +163,7 @@ test('5. /?workspace=<dir> paints one project: its items, waits, running steps a
 	const none = blazonOf(m, { workspace: '/nowhere' })
 	assert.deepEqual([none.principal.rings, none.notices, none.sheet.masthead.subtitle], [[], [], 'Delivery for nowhere: what waits on you'])
 	assert.equal(none.sheet.warning, 'No items for /nowhere on this record. Projects on record: /home/jrg/projects/infinity/arc and /home/jrg/madewell-three-lens.')
+	assert.deepEqual([none.colophon, none.sheet.updated], ['From the Made Well record on hive, items of /nowhere only; last entry none yet. No items, so nothing to count.', 'Sheet updated 25 Oct, 18:29 UTC: nothing waits on you.'])
 	assert.equal(blazonOf(m).principal.rings.length, 4, 'no workspace, every project')
 })
 
