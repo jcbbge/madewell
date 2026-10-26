@@ -308,7 +308,6 @@ const stepsOf = (item: Item, calls: ReadonlyArray<CallHead>, events: ReadonlyArr
 		else if (ORDER[job]! < at) state = 'done'
 		else if (job === item.job || (job === 'verify' && item.merged)) state = item.status === 'held' ? 'held' : ['candidate', 'queued'].includes(item.status) && !flying.length ? 'todo' : 'active'
 		else state = 'todo'
-		if (job === 'verify' && state === 'done' && item.merged && !done) state = 'done'
 		return { job, label, cartridge, who: job === 'verify' || job === 'ship' ? 'made well' : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span }
 	})
 }

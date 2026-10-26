@@ -27,9 +27,3 @@ export const pt = (r, a) => {
 	const t = (a * Math.PI) / 180
 	return [VIEW.cx + r * Math.sin(t), VIEW.cy - r * Math.cos(t)]
 }
-
-/** Polar position of a point, for painters that work cell by cell. */
-export const polar = (x, y) => {
-	const dx = x - VIEW.cx, dy = VIEW.cy - y
-	return { r: Math.hypot(dx, dy), a: ((Math.atan2(dx, dy) * 180) / Math.PI + 360) % 360 }
-}
