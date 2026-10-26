@@ -27,13 +27,18 @@ export const clip = (s, n) => {
 }
 const agentTime = (ms) => (ms < 60_000 ? `${Math.round(ms / 1000)} seconds` : ms < 3_600_000 ? plural(Math.round(ms / 60_000), 'minute') : `${(ms / 3_600_000).toFixed(1)} hours`)
 
-/** "24 Oct, 21:25" in the reader's zone. */
-export const when = (iso, zone) => {
+/**
+ * Every time on the sheet names its zone. The sheet keeps the clock the CLI prints, UTC, so a time read here and a time
+ * read in a terminal agree; `zone` is another IANA zone only for a painter that must show local time, and the label
+ * follows it.
+ */
+const zoneLabel = (d, zone) => new Intl.DateTimeFormat('en-GB', { timeZone: zone, timeZoneName: 'short' }).formatToParts(d).find((p) => p.type === 'timeZoneName')?.value ?? zone
+/** "24 Oct, 21:25 UTC". */
+export const when = (iso, zone = 'UTC') => {
 	const d = new Date(iso)
-	const z = zone ? { timeZone: zone } : {}
-	return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', ...z })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, ...z })}`
+	return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: zone })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: zone })} ${zoneLabel(d, zone)}`
 }
-const longDate = (iso, zone) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', ...(zone ? { timeZone: zone } : {}) })
+const longDate = (iso, zone = 'UTC') => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: zone })
 
 // ── Words for Made Well's commands ──────────────────────────────────────────────────────────────────────
 
@@ -133,12 +138,13 @@ const saysOf = (need, item) => {
 const rank = (item, needIds) => (needIds.has(item.id) ? 0 : ['running', 'queued', 'waiting-quota', 'waiting-prerequisite', 'candidate'].includes(item.status) ? 1 : item.status === 'shipped' ? 2 : 3)
 
 /**
- * The Delivery sheet, written from the model. `opts.zone` fixes the reader's time zone (tests); `opts.live` maps a
- * running step's live file name to its text, fetched from /api/live; `opts.stale` is when the record was last reached
- * if it cannot be reached now; `opts.warning` is one sentence to print under the masthead.
+ * The Delivery sheet, written from the model. `opts.zone` is the zone every time is shown in (UTC unless a painter
+ * says otherwise); `opts.live` maps a running step's live file name to its text, fetched from /api/live; `opts.stale`
+ * is when the record was last reached if it cannot be reached now; `opts.warning` is one sentence to print under the
+ * masthead.
  */
 export const blazonOf = (model, opts = {}) => {
-	const zone = opts.zone
+	const zone = opts.zone ?? 'UTC'
 	const driven = model.runner != null
 	const needIds = new Set(model.needs.map((n) => n.item))
 	const delivery = model.items.filter((i) => i.kind !== 'discovery')

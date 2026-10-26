@@ -7,7 +7,7 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 |---|---|---|---|
 | Masthead "Made Well", subtitle | `sheet.masthead.name`, `.subtitle` | fixed words | concept |
 | Sheet number | `sheet.masthead.number` | `model.eventCount`: the record's entry count, so the number rises as the record moves | concept |
-| Date | `sheet.masthead.date` | `model.at` | concept |
+| Date | `sheet.masthead.date` | `model.at`, in UTC | concept |
 | Warning under the masthead | `sheet.warning` | the page's own state: `/api/mark` unreachable since a time, or `/api/model` with `store: null` | concept |
 | Status for screen readers | `sheet.updated` | `model.at`, `model.needs.length` | concept |
 | Rings, one per item | `principal.rings[]` | `model.items[]` with `kind !== 'discovery'`, ordered: waits on you, moving, shipped, dropped; at most 8 | concept |
@@ -24,6 +24,7 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Its output blocks | `notices[].outputs[]` | one per running call of the item: `running[].job` in plain words (`STEP_WORDS`), `running[].since`, and `GET /api/live/<file>` text, each line in plain words (`lineWords`); else `running[].activity[].text` | concept |
 | Legend | `legend[]` | the inks the rings and notices use | concept |
 | Colophon | `colophon` | `model.host`, `summary.last`, `items.length`, `summary.calls`, `summary.tokens`, `summary.agentMs`, `summary.shipped` | concept |
+| Every time | `when()` | the record's ISO times, shown in UTC with the label "UTC", the clock the CLI prints; a painter that passes another zone gets that zone's label | concept |
 | Sealed | `sheet.sealed` | `summary.shipped > 0` (Stage 1 records it; the seal ordinary is not yet painted) | concept |
 
 ## Rebuild and proof

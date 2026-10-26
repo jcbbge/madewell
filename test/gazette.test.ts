@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { after, test } from 'node:test'
 import { installService, serviceStatus, servicePaths, uninstallService, type Host } from '../src/ui.ts'
 // @ts-ignore: the page's own modules are plain JavaScript
-import { blazonOf, lineWords, stampOf, tailWords } from '../ui/gazette/blazon.mjs'
+import { blazonOf, lineWords, stampOf, tailWords, when } from '../ui/gazette/blazon.mjs'
 // @ts-ignore
 import { painter } from '../ui/gazette/paint.mjs'
 
@@ -20,7 +20,7 @@ const model = () => JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/
 const cli = join(import.meta.dirname, '../src/cli.ts')
 
 test('the Delivery sheet is written from the model: one ring per item, inks by state, one notice per wait with its exact commands, and one vermilion stamp', () => {
-	const b = blazonOf(model(), { zone: 'UTC' })
+	const b = blazonOf(model())
 	assert.deepEqual([b.sheet.masthead.name, b.sheet.masthead.number, b.sheet.masthead.date, b.sheet.sealed], ['Made Well', 102, '25 October 2026', false])
 	assert.deepEqual(b.principal.steps, ['Idea', 'Questioned', 'Plan', 'Build', 'Checks', 'Verify', 'Ship'])
 	// what waits on you comes first, then what was set aside
@@ -30,7 +30,7 @@ test('the Delivery sheet is written from the model: one ring per item, inks by s
 	assert.deepEqual(b.principal.centre, { charge: 'disc', ink: 'vermilion', value: '2', words: 'wait on you' })
 	assert.equal(b.notices.length, 2)
 	const [first, second] = b.notices
-	assert.deepEqual([first.item, first.says, first.quote, first.since], [3, 'It stopped at a checkpoint before building, for you to look.', 'Browser verification fixture seeded; inspect the Trace tab.', 'Waiting since 24 Oct, 21:25'])
+	assert.deepEqual([first.item, first.says, first.quote, first.since], [3, 'It stopped at a checkpoint before building, for you to look.', 'Browser verification fixture seeded; inspect the Trace tab.', 'Waiting since 24 Oct, 21:25 UTC'])
 	assert.deepEqual(first.actions, [
 		{ words: 'Let it go on', run: 'mw go 3', weight: 'primary' },
 		{ words: 'Say what should change', run: 'mw answer 3 "<what should change>"', weight: 'plain' },
@@ -39,7 +39,7 @@ test('the Delivery sheet is written from the model: one ring per item, inks by s
 	assert.deepEqual([second.says, second.actions[0]], ['It could not start: the folder it works in has no branch checked out.', { words: 'Check out main', run: 'git -C /home/jrg/madewell-three-lens switch main', weight: 'plain' }])
 	assert.equal(b.notices.flatMap((n: { actions: { weight: string }[] }) => n.actions).filter((a: { weight: string }) => a.weight === 'primary').length, 1)
 	assert.deepEqual(b.legend.map((l: { ink: string }) => l.ink), ['sage', 'vermilion', 'ochre'], 'the legend names only the inks on the sheet')
-	assert.match(b.colophon, /^From the Made Well record on hive; last entry 24 Oct, 21:57\. 4 items, 19 agent calls, 755,579 tokens, 6 minutes of agent time\. Not sealed: nothing has shipped\.$/)
+	assert.match(b.colophon, /^From the Made Well record on hive; last entry 24 Oct, 21:57 UTC\. 4 items, 19 agent calls, 755,579 tokens, 6 minutes of agent time\. Not sealed: nothing has shipped\.$/)
 	// The sheet's own words carry no Made Well jargon; titles and Made Well's messages are quoted as they are.
 	const own = JSON.stringify([b.sheet, b.principal.steps, b.principal.centre, b.notices.map((n: { says: string; since: string; actions: { words: string }[] }) => [n.says, n.since, n.actions.map((a) => a.words)]), b.legend, b.colophon])
 	for (const word of ['UX', 'DX', 'AX', 'lens', 'cartridge', 'profile', 'NQ', 'hold', 'runner']) assert.doesNotMatch(own, new RegExp(`\\b${word}\\b`), `no "${word}" on the sheet`)
@@ -68,25 +68,25 @@ test('a running step is a slate-blue notice with its live output in plain words;
 	assert.deepEqual(tailWords(stream), ['Reading the plan first.', '$ npm test', 'Read src/a.ts'])
 	assert.equal(lineWords('plain text line'), 'plain text line')
 	const m = running()
-	const b = blazonOf(m, { zone: 'UTC', live: { 'item-3-implement-execute.log': stream } })
+	const b = blazonOf(m, { live: { 'item-3-implement-execute.log': stream } })
 	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [4, 3, 1, 2], 'what waits on you comes before what moves')
 	assert.deepEqual(b.principal.rings[1].fills.slice(0, 4), ['sage', 'sage', 'sage', 'slate-blue'])
 	const live = b.notices.find((n: { ink: string }) => n.ink === 'slate-blue')
-	assert.deepEqual([live.item, live.since, live.outputs], [3, 'Running since 25 Oct, 18:00', [{ step: 'Build', since: 'since 25 Oct, 18:00', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] }]])
+	assert.deepEqual([live.item, live.since, live.outputs], [3, 'Running since 25 Oct, 18:00 UTC', [{ step: 'Build', since: 'since 25 Oct, 18:00 UTC', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] }]])
 	assert.deepEqual(b.legend.map((l: { ink: string }) => l.ink), ['sage', 'vermilion', 'slate-blue', 'ochre'])
-	const stale = blazonOf(m, { zone: 'UTC', stale: '2026-10-25T18:30:00.000Z' })
-	assert.equal(stale.sheet.warning, 'Made Well has not answered since 25 Oct, 18:30. This is the sheet as it was then.')
+	const stale = blazonOf(m, { stale: '2026-10-25T18:30:00.000Z' })
+	assert.equal(stale.sheet.warning, 'Made Well has not answered since 25 Oct, 18:30 UTC. This is the sheet as it was then.')
 	assert.deepEqual(stampOf({ run: 'mw something 9', why: 'look at it, then decide' }), { words: 'Look at it', run: 'mw something 9', weight: 'plain' })
 })
 
 test('1. one card per running item: a build and its checks running side by side are one notice with two output blocks', () => {
-	const b = blazonOf(running(true), { zone: 'UTC', live: { 'item-3-implement-execute.log': stream } })
+	const b = blazonOf(running(true), { live: { 'item-3-implement-execute.log': stream } })
 	const live = b.notices.filter((n: { ink: string }) => n.ink === 'slate-blue')
 	assert.equal(live.length, 1, 'one notice for item 3, not one per call')
-	assert.deepEqual([live[0].item, live[0].name, live[0].since], [3, 'Three-lens browser verification trace fixture', 'Running since 25 Oct, 18:00'])
+	assert.deepEqual([live[0].item, live[0].name, live[0].since], [3, 'Three-lens browser verification trace fixture', 'Running since 25 Oct, 18:00 UTC'])
 	assert.deepEqual(live[0].outputs, [
-		{ step: 'Build', since: 'since 25 Oct, 18:00', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] },
-		{ step: 'Checks', since: 'since 25 Oct, 18:00', lines: ['Reading the plan.'] },
+		{ step: 'Build', since: 'since 25 Oct, 18:00 UTC', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] },
+		{ step: 'Checks', since: 'since 25 Oct, 18:00 UTC', lines: ['Reading the plan.'] },
 	])
 	assert.deepEqual(b.principal.rings[1].fills.slice(3, 5), ['slate-blue', 'slate-blue'], 'both steps move on the ring')
 	const html = painter(T).sheet(b)
@@ -96,9 +96,19 @@ test('1. one card per running item: a build and its checks running side by side 
 	assert.match(html, /aria-label="Latest output of Checks"/)
 })
 
+test('4. every time on the sheet carries its zone, and the sheet shows the clock the CLI prints: UTC', () => {
+	const b = blazonOf(running(true), { stale: '2026-10-25T18:30:00.000Z' })
+	const times = [b.sheet.updated, b.sheet.warning, b.colophon, ...b.notices.flatMap((n: { since: string; outputs?: { since: string }[] }) => [n.since, ...(n.outputs ?? []).map((o) => o.since)])]
+	for (const t of times) assert.match(t, /\d\d:\d\d UTC\b/, `carries its zone: ${t}`)
+	assert.equal(b.sheet.updated, 'Sheet updated 25 Oct, 18:29 UTC: one thing waits on you.')
+	assert.equal(when('2026-10-25T23:30:00.000Z'), '25 Oct, 23:30 UTC')
+	assert.equal(when('2026-07-01T12:00:00.000Z', 'Europe/London'), '1 Jul, 13:00 BST', 'another zone is labelled as itself')
+	assert.equal(blazonOf(running(true), { zone: 'Europe/London' }).sheet.masthead.date, '25 October 2026')
+})
+
 test('the painter draws the blazon and nothing else: it refuses an unknown tincture and a second vermilion stamp', () => {
 	const P = painter(T)
-	const b = blazonOf(model(), { zone: 'UTC' })
+	const b = blazonOf(model())
 	const html = P.sheet(b)
 	assert.match(html, /<h1>Made Well<\/h1>/)
 	assert.match(html, /No\. 102/)
@@ -109,7 +119,7 @@ test('the painter draws the blazon and nothing else: it refuses an unknown tinct
 	assert.match(P.style(b.sheet), /--vermilion: #d56252;/)
 	b.notices[1].actions[0].weight = 'primary'
 	assert.throws(() => P.sheet(b), /2 primary actions/)
-	const c = blazonOf(model(), { zone: 'UTC' })
+	const c = blazonOf(model())
 	c.principal.rings[0].fills[0] = 'crimson'
 	assert.throws(() => P.sheet(c), /unknown tincture: crimson/)
 	assert.throws(() => P.style({ ground: 'paper', around: 'neon' }), /unknown tincture: neon/)
