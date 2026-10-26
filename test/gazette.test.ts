@@ -19,14 +19,13 @@ const T = JSON.parse(readFileSync(join(import.meta.dirname, '../skills/gazette-g
 const model = () => JSON.parse(readFileSync(join(import.meta.dirname, 'fixtures/gazette-model.json'), 'utf8'))
 const cli = join(import.meta.dirname, '../src/cli.ts')
 
-test('the Delivery sheet is written from the model: one ring per item, inks by state, one notice per wait with its exact commands, and one vermilion stamp', () => {
+test('the Delivery sheet is written from the model: one ring per item in item order, inks by state, one notice per wait with its exact commands, and one vermilion stamp', () => {
 	const b = blazonOf(model())
 	assert.deepEqual([b.sheet.masthead.name, b.sheet.masthead.number, b.sheet.masthead.date, b.sheet.sealed], ['Made Well', 102, '25 October 2026', false])
 	assert.deepEqual(b.principal.steps, ['Idea', 'Questioned', 'Plan', 'Build', 'Checks', 'Verify', 'Ship'])
-	// what waits on you comes first, then what was set aside
-	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [3, 4, 1, 2])
-	assert.deepEqual(b.principal.rings[0].fills, ['sage', 'sage', 'sage', 'vermilion', null, null, null], 'done steps are sage; the stopped step is vermilion')
-	assert.deepEqual(b.principal.rings[3].fills, ['ochre', 'ochre', 'ochre', null, null, null, null], 'a dropped item\'s done steps are ochre')
+	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [1, 2, 3, 4], 'rings in item order, outermost first')
+	assert.deepEqual(b.principal.rings[2].fills, ['sage', 'sage', 'sage', 'vermilion', null, null, null], 'done steps are sage; the stopped step is vermilion')
+	assert.deepEqual(b.principal.rings[0].fills, ['ochre', null, null, null, null, null, null], 'a dropped item\'s done steps are ochre')
 	assert.deepEqual(b.principal.centre, { charge: 'disc', ink: 'vermilion', value: '2', words: 'wait on you' })
 	assert.equal(b.notices.length, 2)
 	const [first, second] = b.notices
@@ -69,8 +68,8 @@ test('a running step is a slate-blue notice with its live output in plain words;
 	assert.equal(lineWords('plain text line'), 'plain text line')
 	const m = running()
 	const b = blazonOf(m, { live: { 'item-3-implement-execute.log': stream } })
-	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [4, 3, 1, 2], 'what waits on you comes before what moves')
-	assert.deepEqual(b.principal.rings[1].fills.slice(0, 4), ['sage', 'sage', 'sage', 'slate-blue'])
+	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [1, 2, 3, 4], 'a running item keeps its ring')
+	assert.deepEqual(b.principal.rings[2].fills.slice(0, 4), ['sage', 'sage', 'sage', 'slate-blue'])
 	const live = b.notices.find((n: { ink: string }) => n.ink === 'slate-blue')
 	assert.deepEqual([live.item, live.since, live.outputs], [3, 'Running since 25 Oct, 18:00 UTC', [{ step: 'Build', since: 'since 25 Oct, 18:00 UTC', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] }]])
 	assert.deepEqual(b.legend.map((l: { ink: string }) => l.ink), ['sage', 'vermilion', 'slate-blue', 'ochre'])
@@ -88,12 +87,39 @@ test('1. one card per running item: a build and its checks running side by side 
 		{ step: 'Build', since: 'since 25 Oct, 18:00 UTC', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] },
 		{ step: 'Checks', since: 'since 25 Oct, 18:00 UTC', lines: ['Reading the plan.'] },
 	])
-	assert.deepEqual(b.principal.rings[1].fills.slice(3, 5), ['slate-blue', 'slate-blue'], 'both steps move on the ring')
+	assert.deepEqual(b.principal.rings[2].fills.slice(3, 5), ['slate-blue', 'slate-blue'], 'both steps move on the ring')
 	const html = painter(T).sheet(b)
 	assert.equal((html.match(/<section class="notice"/g) ?? []).length, 2, 'one wait and one running item')
 	assert.equal((html.match(/<pre class="output"/g) ?? []).length, 2, 'one block per running call')
 	assert.match(html, /aria-label="Latest output of Build"/)
 	assert.match(html, /aria-label="Latest output of Checks"/)
+})
+
+test('2. ring order is fixed by item number and a repaint never moves a ring; the number always shows, the title as the arc allows, the full title in the name', () => {
+	const m = model()
+	// ten items: 1 to 4 as recorded, then six shipped ones; the open items keep their rings, finished ones fill the rest, newest first
+	for (let id = 5; id <= 10; id++) m.items.push({ ...m.items[0], id, title: `Shipped item ${id} with a title long enough to be cut on an inner ring`, status: 'shipped', discovery: 5, steps: m.items[0].steps.map((s: object) => ({ ...s, state: 'done' })) })
+	const before = blazonOf(m)
+	assert.deepEqual(before.principal.rings.map((r: { item: number }) => r.item), [3, 4, 5, 6, 7, 8, 9, 10], 'open items 3 and 4 stay drawn; dropped 1 and 2 are the oldest finished and give way')
+	assert.match(before.colophon, /2 older finished items are not drawn\.$/)
+	// the record moves: item 4 is retried and runs, item 3 goes on; the rings stay where they were
+	m.runner = { pid: 1 }
+	m.items[3].status = 'running'
+	m.items[3].steps[0].state = 'active'
+	m.needs = []
+	const after = blazonOf(m)
+	assert.deepEqual(after.principal.rings.map((r: { item: number }) => r.item), before.principal.rings.map((r: { item: number }) => r.item))
+	assert.deepEqual(after.principal.rings[1].fills[0], 'slate-blue')
+	// a new item is the innermost ring; nothing else moves
+	m.items.push({ ...m.items[2], id: 11, title: 'New', status: 'queued' })
+	assert.deepEqual(blazonOf(m).principal.rings.map((r: { item: number }) => r.item), [3, 4, 6, 7, 8, 9, 10, 11], 'the oldest finished drawn item gives its ring to the new one; the open ones stay')
+	const html = painter(T).sheet(after)
+	const names = [...html.matchAll(/<text class="ringname"><title>([^<]*)<\/title><textPath[^>]*>([^<]*)<\/textPath>/g)].map((x) => [x[1], x[2]])
+	assert.equal(names.length, 8)
+	for (const [full, shown] of names) assert.match(shown, new RegExp(`^${full.split(' · ')[0]}( · |$)`), `the number leads: ${shown}`)
+	assert.equal(names[7][0], '10 · Shipped item 10 with a title long enough to be cut on an inner ring', 'the whole title is in the name')
+	assert.match(names[7][1], /^10 · Shipped it.*…$/, 'the innermost ring shows the number and as much title as its arc holds')
+	assert.match(html, /aria-label="3, Three-lens browser verification trace fixture: 4 of 7 steps; 4, Create one beautiful/)
 })
 
 test('4. every time on the sheet carries its zone, and the sheet shows the clock the CLI prints: UTC', () => {
@@ -115,7 +141,7 @@ test('the painter draws the blazon and nothing else: it refuses an unknown tinct
 	assert.equal((html.match(/class="stamp primary"/g) ?? []).length, 1)
 	assert.match(html, /data-run="mw go 3"/)
 	assert.match(html, /url\(#h-vermilion\)/, 'inks are painted with their hatching')
-	assert.match(html, /aria-label="3, Three-lens browser verification trace fixture: 4 of 7 steps;/)
+	assert.match(html, /aria-label="1, Remove obsolete Pi Durable instructions[^"]*: 1 of 7 steps; 2, /)
 	assert.match(P.style(b.sheet), /--vermilion: #d56252;/)
 	b.notices[1].actions[0].weight = 'primary'
 	assert.throws(() => P.sheet(b), /2 primary actions/)

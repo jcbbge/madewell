@@ -134,8 +134,19 @@ const saysOf = (need, item) => {
 	}
 }
 
-/** Rings in the order the eye should meet them: what waits on you, then what moves, then shipped, then dropped. */
-const rank = (item, needIds) => (needIds.has(item.id) ? 0 : ['running', 'queued', 'waiting-quota', 'waiting-prerequisite', 'candidate'].includes(item.status) ? 1 : item.status === 'shipped' ? 2 : 3)
+/** An item that is still open: it has a ring whatever its number, because it is where the work is. */
+const open = (item) => !['shipped', 'dropped', 'discovered'].includes(item.status)
+
+/**
+ * The items the rings draw: every open item, then the newest finished ones until MAX_RINGS, all in item order. Order
+ * is fixed by the item number, outermost first, so a repaint never moves a ring: a new item becomes the innermost
+ * ring and the others stay where they were.
+ */
+const ringItems = (delivery) => {
+	const kept = delivery.filter(open)
+	for (const item of [...delivery].filter((i) => !open(i)).sort((a, b) => b.id - a.id)) if (kept.length < MAX_RINGS) kept.push(item)
+	return kept.sort((a, b) => a.id - b.id)
+}
 
 /**
  * The Delivery sheet, written from the model. `opts.zone` is the zone every time is shown in (UTC unless a painter
@@ -146,10 +157,8 @@ const rank = (item, needIds) => (needIds.has(item.id) ? 0 : ['running', 'queued'
 export const blazonOf = (model, opts = {}) => {
 	const zone = opts.zone ?? 'UTC'
 	const driven = model.runner != null
-	const needIds = new Set(model.needs.map((n) => n.item))
 	const delivery = model.items.filter((i) => i.kind !== 'discovery')
-	const ranked = [...delivery].sort((a, b) => rank(a, needIds) - rank(b, needIds) || Date.parse(a.since) - Date.parse(b.since))
-	const shown = ranked.slice(0, MAX_RINGS)
+	const shown = ringItems(delivery)
 	const steps = shown.reduce((longest, i) => (i.steps.length > longest.length ? i.steps.map((s) => s.job) : longest), [])
 	const rings = shown.map((item) => {
 		const fills = steps.map((job) => {
@@ -194,9 +203,10 @@ export const blazonOf = (model, opts = {}) => {
 	const s = model.summary
 	const last = s.last ? when(s.last, zone) : 'none yet'
 	const sealed = s.shipped > 0
+	const notDrawn = delivery.length - shown.length
 	const colophon = `From the Made Well record on ${model.host ?? 'this machine'}; last entry ${last}. ${plural(delivery.length, 'item')}, ${plural(s.calls, 'agent call')}, ${s.tokens.toLocaleString('en-GB')} tokens, ${agentTime(s.agentMs)} of agent time.` +
 		(sealed ? ` Sealed: ${plural(s.shipped, 'item has', 'items have')} shipped.` : ' Not sealed: nothing has shipped.') +
-		(delivery.length > shown.length ? ` ${delivery.length - shown.length} older ${delivery.length - shown.length === 1 ? 'item is' : 'items are'} not drawn.` : '')
+		(notDrawn ? ` The rings draw every open item and the newest finished ones; ${notDrawn} older finished ${notDrawn === 1 ? 'item is' : 'items are'} not drawn.` : '')
 
 	return {
 		about: `Made Well, delivery, from GET /api/model at ${model.at}.`,

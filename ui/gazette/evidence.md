@@ -10,8 +10,8 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Date | `sheet.masthead.date` | `model.at`, in UTC | concept |
 | Warning under the masthead | `sheet.warning` | the page's own state: `/api/mark` unreachable since a time, or `/api/model` with `store: null` | concept |
 | Status for screen readers | `sheet.updated` | `model.at`, `model.needs.length` | concept |
-| Rings, one per item | `principal.rings[]` | `model.items[]` with `kind !== 'discovery'`, ordered: waits on you, moving, shipped, dropped; at most 8 | concept |
-| Ring name | `rings[].name` | `items[].id`, `items[].title` | concept |
+| Rings, one per item | `principal.rings[]` | `model.items[]` with `kind !== 'discovery'`: every open item, then the newest finished ones, at most 8; drawn in item order, outermost first, so a repaint never moves a ring and a new item is the innermost | concept |
+| Ring name | `rings[].item`, `rings[].name` | `items[].id`, `items[].title`; the painter always letters the number, then as much of the title as the arc holds, and the whole title is in the accessible name | concept |
 | Step names around the rim | `principal.steps[]` | `items[].steps[].job`, in plain words (`STEP_WORDS`) | concept |
 | A filled step | `rings[].fills[i]` | `items[].steps[i].state` and `items[].status`: done → sage; held, failed, or waiting while paused/held → vermilion; active with a runner, or waiting on quota or a prerequisite → slate-blue; active with no runner → vermilion; a dropped item's done steps → ochre | concept |
 | Centre disc | `principal.centre` | `model.needs.length`; vermilion when more than none, Paper when none | concept |

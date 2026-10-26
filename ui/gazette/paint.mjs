@@ -40,8 +40,8 @@ export const painter = (T) => {
 			// the name sits in the gap at the top; what the arc cannot hold is cut, and the whole name stays in the title
 			const rm = (r0 + r1) / 2 - 3.5
 			const room = Math.floor((rm * (360 - (SPAN[1] - SPAN[0]) - 4) * Math.PI) / 180 / 5.9)
-			const full = `${ring.item} · ${ring.name}`
-			const shown = full.length > room ? `${full.slice(0, Math.max(room - 1, 4))}…` : full
+			const full = `${ring.item} · ${ring.name}`, no = String(ring.item)
+			const shown = full.length <= room ? full : room - no.length > 6 ? `${no} · ${ring.name.slice(0, room - no.length - 4).trimEnd()}…` : no
 			words.push(`<path id="name${k}" d="M${xy(rm, SPAN[1] + 2)} ${arc(rm, SPAN[1] + 2, 360 + SPAN[0] - 2)}" fill="none"/>` +
 				`<text class="ringname"><title>${esc(full)}</title><textPath href="#name${k}" startOffset="50%" text-anchor="middle">${esc(shown)}</textPath></text>`)
 		})
