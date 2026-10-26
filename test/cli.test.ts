@@ -333,7 +333,11 @@ test('the console shows each step while it runs: what the agent is doing, who ow
 		assert.deepEqual([item.doing, item.owes], ['The planner is writing the plan', 'planner'], 'the item says what happens now and who owes the next move')
 		assert.deepEqual(item.steps.map((s: { job: string; state: string }) => `${s.job}:${s.state}`), ['ideate:done', 'challenge:done', 'plan:active', 'implement:todo', 'test-plan:todo', 'verify:todo', 'ship:todo'])
 		const page = await (await fetch(url)).text()
-		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the console page\'s script parses')
+		assert.match(page, /<main class="sheet"/, 'the Gazette sheet is served at /')
+		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the Gazette page\'s script parses')
+		const console_ = await (await fetch(url + 'console')).text()
+		assert.match(console_, /<title>Made Well<\/title>/, 'the console stays at /console')
+		assert.doesNotThrow(() => new Function(console_.slice(console_.indexOf('<script>') + 8, console_.lastIndexOf('</script>'))), 'the console page\'s script parses')
 
 		rmSync(gate)
 		await ran

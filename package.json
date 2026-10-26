@@ -8,13 +8,14 @@
   },
   "files": [
     "dist/mw.mjs",
+    "dist/gazette.html",
     "prescriptions.json"
   ],
   "engines": {
     "node": ">=24.15"
   },
   "scripts": {
-    "bundle": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --outfile=dist/mw.mjs --log-level=warning",
+    "bundle": "node ui/gazette/build.mjs && esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --outfile=dist/mw.mjs --log-level=warning",
     "pretest": "npm run bundle",
     "test": "env $(env | grep -o '^MW_[A-Z_]*' | sed 's/^/-u /') node --test test/*.test.ts",
     "typecheck": "tsc"

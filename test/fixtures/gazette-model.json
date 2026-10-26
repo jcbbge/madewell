@@ -1,0 +1,622 @@
+{
+	"at": "2026-10-25T18:29:39.540Z",
+	"store": "/home/jrg/.local/share/madewell/madewell.db",
+	"projects": [
+		"/home/jrg/projects/infinity/arc",
+		"/home/jrg/madewell-three-lens"
+	],
+	"runner": null,
+	"summary": {
+		"shipped": 0,
+		"moving": 0,
+		"queued": 0,
+		"held": 2,
+		"candidates": 0,
+		"dropped": 2,
+		"items": 4,
+		"agentMs": 361934,
+		"tokens": 755579,
+		"calls": 19,
+		"nqMs": 110600,
+		"intakes": 12,
+		"questions": 3,
+		"refused": 7,
+		"breaks": 5,
+		"first": "2026-10-23T16:14:30.577Z",
+		"last": "2026-10-24T21:57:02.365Z"
+	},
+	"needs": [
+		{
+			"item": 3,
+			"title": "Three-lens browser verification trace fixture",
+			"what": "hold",
+			"code": "checkpoint",
+			"message": "Browser verification fixture seeded; inspect the Trace tab.",
+			"questions": [],
+			"since": "2026-10-24T21:25:40.464Z",
+			"next": [
+				{
+					"run": "mw go 3",
+					"why": "it goes on to the next step"
+				},
+				{
+					"run": "mw answer 3 \"<what should change>\"",
+					"why": "it goes on, and the next step receives your words as the operator's"
+				},
+				{
+					"run": "mw drop 3",
+					"why": "abandon it; nothing of it ships"
+				}
+			]
+		},
+		{
+			"item": 4,
+			"title": "Create one beautiful openable design direction for the Made Well two-lane home and three-lens item drilldown at http://127.0.0.1:4747/",
+			"what": "hold",
+			"code": "no_branch",
+			"message": "/home/jrg/madewell-three-lens has no branch checked out.",
+			"questions": [],
+			"since": "2026-10-24T21:57:02.359Z",
+			"next": [
+				{
+					"run": "git -C /home/jrg/madewell-three-lens switch main",
+					"why": "check out the branch items ship to, then retry"
+				},
+				{
+					"run": "mw show 4",
+					"why": "read the failing call's last error and the events before it"
+				},
+				{
+					"run": "mw retry 4",
+					"why": "run the held step again from where it stopped"
+				}
+			]
+		}
+	],
+	"items": [
+		{
+			"id": 1,
+			"title": "Remove obsolete Pi Durable instructions from Arc AGENTS.md and CLAUDE.md, including the session-lane worktree where they remain, preserving current Arc instructions",
+			"kind": "feature",
+			"status": "dropped",
+			"after": [],
+			"round": 1,
+			"steps": [
+				{
+					"job": "ideate",
+					"label": "Ideate",
+					"cartridge": "ideation",
+					"who": "ideator",
+					"state": "done",
+					"agentMs": 56908,
+					"tokens": 158421,
+					"calls": 8,
+					"questions": 1,
+					"ms": 99349
+				},
+				{
+					"job": "challenge",
+					"label": "Challenge",
+					"cartridge": "ideation",
+					"who": "ideation peer",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "plan",
+					"label": "Plan",
+					"cartridge": "planning",
+					"who": "planner",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "implement",
+					"label": "Implement",
+					"cartridge": "implementation",
+					"who": "implementer",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "test-plan",
+					"label": "Checks",
+					"cartridge": "implementation",
+					"who": "test architect",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "verify",
+					"label": "Verify",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "ship",
+					"label": "Ship",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				}
+			],
+			"doing": "Dropped by the operator",
+			"owes": "",
+			"since": "2026-10-23T17:23:41.987Z",
+			"started": "2026-10-23T16:14:30.576Z",
+			"ended": "2026-10-23T17:23:41.987Z",
+			"agentMs": 56908,
+			"tokens": 158421,
+			"calls": 8,
+			"questions": 1,
+			"next": []
+		},
+		{
+			"id": 2,
+			"title": "Stop the crash-looping arc-536c89aa-electric-1 container on this VPS and verify it stays stopped; do not remove it or change other services",
+			"kind": "feature",
+			"status": "dropped",
+			"after": [],
+			"round": 1,
+			"steps": [
+				{
+					"job": "ideate",
+					"label": "Ideate",
+					"cartridge": "ideation",
+					"who": "ideator",
+					"state": "done",
+					"agentMs": 50096,
+					"tokens": 64216,
+					"calls": 2,
+					"questions": 0,
+					"ms": 52503
+				},
+				{
+					"job": "challenge",
+					"label": "Challenge",
+					"cartridge": "ideation",
+					"who": "ideation peer",
+					"state": "done",
+					"agentMs": 71077,
+					"tokens": 224649,
+					"calls": 2,
+					"questions": 0,
+					"ms": 179040
+				},
+				{
+					"job": "plan",
+					"label": "Plan",
+					"cartridge": "planning",
+					"who": "planner",
+					"state": "done",
+					"agentMs": 183853,
+					"tokens": 308293,
+					"calls": 7,
+					"questions": 2,
+					"ms": 196940
+				},
+				{
+					"job": "implement",
+					"label": "Implement",
+					"cartridge": "implementation",
+					"who": "implementer",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "test-plan",
+					"label": "Checks",
+					"cartridge": "implementation",
+					"who": "test architect",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "verify",
+					"label": "Verify",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "ship",
+					"label": "Ship",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				}
+			],
+			"doing": "Dropped by the operator",
+			"owes": "",
+			"since": "2026-10-23T21:43:15.244Z",
+			"started": "2026-10-23T21:27:05.250Z",
+			"ended": "2026-10-23T21:43:15.244Z",
+			"agentMs": 305026,
+			"tokens": 597158,
+			"calls": 11,
+			"questions": 2,
+			"next": []
+		},
+		{
+			"id": 3,
+			"title": "Three-lens browser verification trace fixture",
+			"kind": "feature",
+			"status": "paused",
+			"after": [],
+			"round": 1,
+			"steps": [
+				{
+					"job": "ideate",
+					"label": "Ideate",
+					"cartridge": "ideation",
+					"who": "ideator",
+					"state": "done",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "challenge",
+					"label": "Challenge",
+					"cartridge": "ideation",
+					"who": "ideation peer",
+					"state": "done",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "plan",
+					"label": "Plan",
+					"cartridge": "planning",
+					"who": "planner",
+					"state": "done",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "implement",
+					"label": "Implement",
+					"cartridge": "implementation",
+					"who": "implementer",
+					"state": "waiting",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "test-plan",
+					"label": "Checks",
+					"cartridge": "implementation",
+					"who": "test architect",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "verify",
+					"label": "Verify",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "ship",
+					"label": "Ship",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				}
+			],
+			"doing": "Browser verification fixture seeded; inspect the Trace tab.",
+			"owes": "operator",
+			"since": "2026-10-24T21:25:40.464Z",
+			"started": "2026-10-24T21:25:40.439Z",
+			"agentMs": 0,
+			"tokens": 0,
+			"calls": 0,
+			"questions": 0,
+			"hold": {
+				"code": "checkpoint",
+				"message": "Browser verification fixture seeded; inspect the Trace tab."
+			},
+			"next": [
+				{
+					"run": "mw go 3",
+					"why": "it goes on to the next step"
+				},
+				{
+					"run": "mw answer 3 \"<what should change>\"",
+					"why": "it goes on, and the next step receives your words as the operator's"
+				},
+				{
+					"run": "mw drop 3",
+					"why": "abandon it; nothing of it ships"
+				}
+			]
+		},
+		{
+			"id": 4,
+			"title": "Create one beautiful openable design direction for the Made Well two-lane home and three-lens item drilldown at http://127.0.0.1:4747/",
+			"kind": "feature",
+			"status": "held",
+			"after": [],
+			"round": 1,
+			"steps": [
+				{
+					"job": "ideate",
+					"label": "Ideate",
+					"cartridge": "ideation",
+					"who": "ideator",
+					"state": "held",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "challenge",
+					"label": "Challenge",
+					"cartridge": "ideation",
+					"who": "ideation peer",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "plan",
+					"label": "Plan",
+					"cartridge": "planning",
+					"who": "planner",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "implement",
+					"label": "Implement",
+					"cartridge": "implementation",
+					"who": "implementer",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "test-plan",
+					"label": "Checks",
+					"cartridge": "implementation",
+					"who": "test architect",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "verify",
+					"label": "Verify",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				},
+				{
+					"job": "ship",
+					"label": "Ship",
+					"cartridge": "verification",
+					"who": "made well",
+					"state": "todo",
+					"agentMs": 0,
+					"tokens": 0,
+					"calls": 0,
+					"questions": 0,
+					"ms": 0
+				}
+			],
+			"doing": "/home/jrg/madewell-three-lens has no branch checked out.",
+			"owes": "operator",
+			"since": "2026-10-24T21:57:02.359Z",
+			"started": "2026-10-24T21:57:02.094Z",
+			"agentMs": 0,
+			"tokens": 0,
+			"calls": 0,
+			"questions": 0,
+			"hold": {
+				"code": "no_branch",
+				"message": "/home/jrg/madewell-three-lens has no branch checked out.",
+				"next": [
+					{
+						"run": "git -C /home/jrg/madewell-three-lens switch main",
+						"why": "check out the branch items ship to, then retry"
+					}
+				]
+			},
+			"next": [
+				{
+					"run": "git -C /home/jrg/madewell-three-lens switch main",
+					"why": "check out the branch items ship to, then retry"
+				},
+				{
+					"run": "mw show 4",
+					"why": "read the failing call's last error and the events before it"
+				},
+				{
+					"run": "mw retry 4",
+					"why": "run the held step again from where it stopped"
+				}
+			]
+		}
+	],
+	"bars": [],
+	"running": [],
+	"cutOff": [],
+	"cost": {},
+	"jobs": {
+		"discover": {
+			"label": "Discover",
+			"profile": "ideator",
+			"cartridge": "discovery"
+		},
+		"ideate": {
+			"label": "Ideate",
+			"profile": "ideator",
+			"cartridge": "ideation"
+		},
+		"challenge": {
+			"label": "Challenge",
+			"profile": "ideation peer",
+			"cartridge": "ideation"
+		},
+		"plan": {
+			"label": "Plan",
+			"profile": "planner",
+			"cartridge": "planning"
+		},
+		"implement": {
+			"label": "Implement",
+			"profile": "implementer",
+			"cartridge": "implementation"
+		},
+		"test-plan": {
+			"label": "Checks",
+			"profile": "test architect",
+			"cartridge": "implementation"
+		},
+		"verify": {
+			"label": "Verify",
+			"profile": "made well",
+			"cartridge": "verification"
+		},
+		"arbitrate": {
+			"label": "Arbiter",
+			"profile": "arbiter",
+			"cartridge": "verification"
+		},
+		"ship": {
+			"label": "Ship",
+			"profile": "made well",
+			"cartridge": "verification"
+		}
+	},
+	"rules": [],
+	"events": [
+		{
+			"seq": 100,
+			"item": 0,
+			"at": "2026-10-24T21:57:02.299Z",
+			"kind": "runner-started",
+			"data": {
+				"pid": 2156978
+			},
+			"actor": "runner",
+			"say": "Runner started (pid 2156978)"
+		},
+		{
+			"seq": 101,
+			"item": 4,
+			"at": "2026-10-24T21:57:02.359Z",
+			"kind": "held",
+			"data": {
+				"code": "no_branch",
+				"message": "/home/jrg/madewell-three-lens has no branch checked out."
+			},
+			"actor": "made well",
+			"say": "Held for the operator: no_branch: /home/jrg/madewell-three-lens has no branch checked out."
+		},
+		{
+			"seq": 102,
+			"item": 0,
+			"at": "2026-10-24T21:57:02.365Z",
+			"kind": "runner-stopped",
+			"data": {
+				"pid": 2156978
+			},
+			"actor": "runner",
+			"say": "Runner stopped (pid 2156978)"
+		}
+	],
+	"eventCount": 102,
+	"host": "hive"
+}

@@ -243,10 +243,10 @@ Every failed test is a question, and every question needs an answer from its res
 
 | Cause | Who answers | Re-entry |
 |---|---|---|
-| **Bad test** | Test architect | Correct the test, then re-run verification. Valid implementation is not rebuilt. |
+| **Bad test** | Test architect | Correct the test, then re-run verification. Valid implementation is not rebuilt. The correction is written against the candidate the checks ran on: the architect's checkout holds the kept implementation as its last commit and its previous check files beside it, and only the checks are its to change. |
 | **Bad implementation** | Planner | Replan the correction; then the checks and the implementation are redone in parallel, and verification follows again. |
 | **Pre-existing defect** | A linked prerequisite work item | The defect is fixed through its own plan → checks and implementation → verify. The original work waits, then re-runs its checks. |
-| **Environment** | Made Well | The work is not at fault: the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree and runs the checks again; nothing is rebuilt. A second environment ruling in a row holds the item with the evidence, because the project's environment is the operator's configuration. |
+| **Environment** | Made Well | The work is not at fault: the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree for the step that failed, prepared as before, and runs it again (the checks, or a blocked maker's job); nothing is rebuilt. A second environment ruling in a row holds the item at that step with the evidence, because the project's environment is the operator's configuration; a retry runs the step again, never the Arbiter. |
 | **Undetermined** | **The human** | The Arbiter cannot decide from the evidence: flag the human, who names the cause and answers. In full autonomy the Arbiter must name the cause the evidence best supports instead. |
 
 Before the Arbiter is called, Made Well runs each failing check once more on the same candidate, so a flaky check never reaches it, and hands it the environment's evidence with the failure: the prepare output, what was torn down, and whether main moved.

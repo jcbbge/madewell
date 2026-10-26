@@ -76,6 +76,8 @@ export const ERRORS = {
 	brief_unreadable: { means: 'The file named by --brief cannot be read.', context: Schema.Struct({ path: Schema.String }) },
 	export_failed: { means: 'The export folder cannot be written.', context: Schema.Struct({ id: Id, dir: Schema.String, reason: Schema.String }) },
 	ui_unavailable: { means: 'The console cannot listen on the address asked for: the port is taken or not allowed.', context: Schema.Struct({ host: Schema.String, port: Schema.Int, reason: Schema.String }) },
+	ui_unsupported: { means: 'The web interface cannot be provisioned as a background service on this platform: only Linux (systemd user units) and macOS (LaunchAgents) are supported.', context: Schema.Struct({ platform: Schema.String, supported: Schema.Array(Schema.String) }) },
+	ui_service_failed: { means: 'The service manager (systemctl or launchctl) refused a step of installing, removing or inspecting the web interface service.', context: Schema.Struct({ platform: Schema.String, command: Schema.String, exitCode: Schema.Int, stderr: Schema.String }) },
 	git_failed: { means: 'A git command Made Well ran in a workspace failed.', context: Schema.Struct({ dir: Schema.String, args: Schema.Array(Schema.String), exitCode: Schema.Int, stderr: Schema.String }) },
 	bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema.Struct({ name: Schema.String }) },
 	worktree_root_unclean: {

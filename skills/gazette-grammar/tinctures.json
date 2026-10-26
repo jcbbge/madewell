@@ -1,0 +1,30 @@
+{
+  "grounds": {
+    "paper": "#efdbcc",
+    "buff": "#ebd1ac",
+    "wash": "#d9e2e9",
+    "slate": "#bdbfb3"
+  },
+  "inks": {
+    "ink": "#272828",
+    "vermilion": "#d56252",
+    "rose": "#df827a",
+    "ochre": "#e1c466",
+    "sage": "#aab991",
+    "slate-blue": "#6a77a4"
+  },
+  "reserve": {
+    "olive": "#9ba357",
+    "orange": "#e8a866",
+    "teal": "#497287",
+    "maroon": "#7c383e"
+  },
+  "hatch": {
+    "_": "each ink's engraved pattern (after Petra Sancta, 1638): the second cue when colour cannot carry meaning alone",
+    "vermilion": "vertical",
+    "rose": "vertical-sparse",
+    "ochre": "dots",
+    "sage": "diagonal",
+    "slate-blue": "horizontal"
+  }
+}

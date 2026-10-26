@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Made Well: Delivery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;800&family=Alegreya+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style id="style">
+:root { --paper: #efdbcc; --buff: #ebd1ac; --wash: #d9e2e9; --slate: #bdbfb3; --ink: #272828; --vermilion: #d56252; --rose: #df827a; --ochre: #e1c466; --sage: #aab991; --slate-blue: #6a77a4; --olive: #9ba357; --orange: #e8a866; --teal: #497287; --maroon: #7c383e; color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 36px 16px; background: var(--slate); color: var(--ink); font: 17px/1.5 "Alegreya Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+.sheet { max-width: 660px; margin: 0 auto; background: var(--paper); border: 3px solid var(--ink); outline: 1px solid var(--ink); outline-offset: -10px; box-shadow: 5px 5px 0 var(--ink); padding: 30px 38px 24px; }
+header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 12px; }
+header .date { font-size: 14px; }
+header .no { font-size: 14px; text-align: right; }
+h1 { font: 800 40px/1 Alegreya, Georgia, serif; margin: 0; letter-spacing: -.01em; }
+.subtitle { text-align: center; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; margin: 10px 0 0; padding-bottom: 12px; border-bottom: 3px double var(--ink); }
+.warning { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--ink); font-size: 15px; font-style: italic; text-align: center; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg { display: block; width: 100%; height: auto; margin: 14px 0 6px; }
+.ringname { font: 700 11px "Alegreya Sans", sans-serif; letter-spacing: .02em; fill: var(--ink); }
+.stepname { font: 700 10.5px "Alegreya Sans", sans-serif; letter-spacing: .12em; text-transform: uppercase; fill: var(--ink); }
+.centrevalue { font: 800 58px Alegreya, Georgia, serif; fill: var(--ink); }
+.centrewords { font: 700 19px "Alegreya Sans", sans-serif; letter-spacing: .01em; fill: var(--ink); }
+.notice { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-top: 1px solid var(--ink); }
+.disc { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); font: 800 19px/1 Alegreya, serif; }
+h2 { font: 800 25px/1.15 Alegreya, Georgia, serif; margin: 2px 0 8px; overflow-wrap: anywhere; }
+.notice p { margin: 0 0 6px; max-width: 34em; }
+.quote { display: block; font-size: 14.5px; margin-top: 4px; overflow-wrap: anywhere; }
+.questions { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
+.since { font-size: 14px; }
+.output { margin: 6px 0 8px; padding: 2px 0 2px 12px; border-left: 1px solid var(--ink); font: 13.5px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: center; margin-top: 12px; }
+.stamp { font: 700 16px/1 "Alegreya Sans", sans-serif; color: var(--ink); background: var(--paper); border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 3px 3px 0 var(--ink); padding: 10px 15px; min-height: 44px; cursor: pointer; }
+.stamp.primary { background: var(--vermilion); font-size: 19px; }
+.stamp.quiet { background: none; border: 0; box-shadow: none; padding: 10px 2px; text-decoration: underline; text-underline-offset: 3px; }
+.stamp:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.stamp.quiet:active { transform: none; }
+@media (hover: hover) { .stamp:not(.quiet):hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); } }
+:focus-visible { outline: 4px double var(--ink); outline-offset: 4px; }
+.slip { font: 13.5px/1.4 ui-monospace, Menlo, monospace; min-height: 1.4em; margin-top: 10px !important; overflow-wrap: anywhere; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; padding: 14px 0; border-top: 1px solid var(--ink); font-size: 14px; }
+.legend .disc { width: 14px; height: 14px; box-shadow: 1.5px 1.5px 0 var(--ink); margin-right: 7px; vertical-align: -2px; }
+footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; text-align: center; }
+@media (max-width: 560px) { body { padding: 16px 6px; } .sheet { padding: 22px 16px 18px; outline-offset: -8px; } h1 { font-size: 32px; } header { grid-template-columns: 1fr; text-align: center; } header .no { text-align: center; } .notice { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; } }
+</style>
+</head>
+<body>
+<main class="sheet" id="sheet"></main>
+<p id="status" class="visually-hidden" role="status"></p>
+<script>"use strict";
+(() => {
+  // skills/gazette-grammar/tinctures.json
+  var tinctures_default = {
+    grounds: {
+      paper: "#efdbcc",
+      buff: "#ebd1ac",
+      wash: "#d9e2e9",
+      slate: "#bdbfb3"
+    },
+    inks: {
+      ink: "#272828",
+      vermilion: "#d56252",
+      rose: "#df827a",
+      ochre: "#e1c466",
+      sage: "#aab991",
+      "slate-blue": "#6a77a4"
+    },
+    reserve: {
+      olive: "#9ba357",
+      orange: "#e8a866",
+      teal: "#497287",
+      maroon: "#7c383e"
+    },
+    hatch: {
+      _: "each ink's engraved pattern (after Petra Sancta, 1638): the second cue when colour cannot carry meaning alone",
+      vermilion: "vertical",
+      rose: "vertical-sparse",
+      ochre: "dots",
+      sage: "diagonal",
+      "slate-blue": "horizontal"
+    }
+  };
+
+  // ui/gazette/blazon.mjs
+  var STEP_WORDS = { ideate: "Idea", challenge: "Questioned", plan: "Plan", implement: "Build", "test-plan": "Checks", arbitrate: "Ruling", verify: "Verify", ship: "Ship", discover: "Discover" };
+  var DOING = { ideate: "shaping the idea", challenge: "questioning the idea", plan: "planning", implement: "building", "test-plan": "writing the checks", arbitrate: "ruling on a failed check", verify: "verifying", ship: "shipping" };
+  var INK = { done: "sage", waits: "vermilion", moving: "slate-blue", aside: "ochre" };
+  var LEGEND = { sage: "step done", vermilion: "waits on you", "slate-blue": "moving by itself", ochre: "done, then set aside" };
+  var MAX_RINGS = 8;
+  var titleCase = (s) => s ? s[0].toUpperCase() + s.slice(1) : s;
+  var plural = (n, one, many = `${one}s`) => `${n.toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+  var clip = (s, n) => {
+    const t = String(s ?? "").replace(/\s+/g, " ").trim();
+    if (t.length <= n) return t;
+    const cut = t.slice(0, n - 1);
+    return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), n - 12))}\u2026`;
+  };
+  var agentTime = (ms) => ms < 6e4 ? `${Math.round(ms / 1e3)} seconds` : ms < 36e5 ? plural(Math.round(ms / 6e4), "minute") : `${(ms / 36e5).toFixed(1)} hours`;
+  var when = (iso, zone) => {
+    const d = new Date(iso);
+    const z = zone ? { timeZone: zone } : {};
+    return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short", ...z })}, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, ...z })}`;
+  };
+  var longDate = (iso, zone) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", ...zone ? { timeZone: zone } : {} });
+  var WORDS = [
+    [/^mw go \d+$/, () => "Let it go on"],
+    [/^mw answer \d+ /, () => "Say what should change"],
+    [/^mw drop \d+$/, () => "Drop it", "quiet"],
+    [/^mw retry \d+$/, () => "Run it again"],
+    [/^mw show \d+$/, () => "Read what happened", "quiet"],
+    [/^mw promote \d+$/, () => "Deliver every candidate"],
+    [/^mw promote \d+ /, () => "Deliver only some"],
+    [/^mw run/, () => "Start the machine"],
+    [/^git -C \S+ switch (\S+)$/, (m) => `Check out ${m[1]}`],
+    [/^kill /, () => "Stop that process", "quiet"]
+  ];
+  var stampOf = (next) => {
+    for (const [re, words, weight] of WORDS) {
+      const m = re.exec(next.run);
+      if (m) return { words: words(m), run: next.run, weight: weight ?? "plain" };
+    }
+    return { words: clip(titleCase(next.why.split(/[;:,]/)[0]), 36), run: next.run, weight: "plain" };
+  };
+  var rel = (p) => String(p ?? "").replace(/^.*\/worktrees\/[^/]+\//, "");
+  var toolWords = (name, input = {}) => {
+    const path = input.path ?? input.file_path ?? input.filePath;
+    if (input.command ?? input.cmd) return `$ ${clip(input.command ?? input.cmd, 160)}`;
+    if (path) return `${name} ${rel(path)}`;
+    if (input.pattern ?? input.query) return `${name} ${clip(input.pattern ?? input.query, 100)}`;
+    return name;
+  };
+  var lineWords = (line) => {
+    const t = line.trim();
+    if (!t) return void 0;
+    if (t[0] !== "{") return clip(t, 200);
+    try {
+      const v = JSON.parse(t);
+      if (v.type === "user" || v.type === "system") return void 0;
+      if (v.type === "result") return v.is_error ? `Error: ${clip(v.result ?? v.error, 200)}` : void 0;
+      const parts = Array.isArray(v.message?.content) ? v.message.content : [];
+      for (const p of [...parts].reverse()) {
+        if (p.type === "tool_use") return toolWords(p.name ?? "tool", p.input);
+        if (p.type === "toolCall") return toolWords(p.name ?? "tool", p.arguments);
+        if (p.type === "text" && p.text?.trim()) return clip(p.text, 200);
+      }
+      if (v.type === "tool_execution_start") return toolWords(v.toolName, v.args);
+      if (v.item?.type === "command_execution" && v.type === "item.started") return `$ ${clip(v.item.command, 160)}`;
+      if (v.item?.type === "agent_message" && v.item.text) return clip(v.item.text, 200);
+      return void 0;
+    } catch {
+      return clip(t, 200);
+    }
+  };
+  var tailWords = (text, n = 6) => {
+    const out = [];
+    for (const l of String(text ?? "").split("\n").reverse()) {
+      const w = lineWords(l);
+      if (w) out.unshift(w);
+      if (out.length >= n) break;
+    }
+    return out;
+  };
+  var inkOf = (item, step, driven) => {
+    if (item.status === "dropped") return step.state === "done" ? INK.aside : null;
+    switch (step.state) {
+      case "done":
+        return INK.done;
+      case "held":
+      case "failed":
+        return INK.waits;
+      case "waiting":
+        return item.status === "paused" || item.status === "held" ? INK.waits : INK.moving;
+      case "active":
+        return driven ? INK.moving : INK.waits;
+      default:
+        return null;
+    }
+  };
+  var saysOf = (need, item) => {
+    if (need.what === "promote") return "Discovery found candidates. Choose the ones to deliver.";
+    if (need.what === "runner") return "Work can move, but nothing is driving it.";
+    const waiting = item?.steps.find((s) => s.state === "waiting");
+    switch (need.code) {
+      case "checkpoint":
+        return `It stopped at a checkpoint${waiting ? ` before ${DOING[waiting.job] ?? waiting.job}` : ""}, for you to look.`;
+      case "no_branch":
+        return "It could not start: the folder it works in has no branch checked out.";
+      case "questions":
+      case "spec_defect":
+        return "It asked questions that only you can answer.";
+      default:
+        return need.questions?.length ? "It asked questions that only you can answer." : `It stopped and waits for you (${String(need.code).replaceAll("_", " ")}).`;
+    }
+  };
+  var rank = (item, needIds) => needIds.has(item.id) ? 0 : ["running", "queued", "waiting-quota", "waiting-prerequisite", "candidate"].includes(item.status) ? 1 : item.status === "shipped" ? 2 : 3;
+  var blazonOf = (model, opts = {}) => {
+    const zone = opts.zone;
+    const driven = model.runner != null;
+    const needIds = new Set(model.needs.map((n) => n.item));
+    const delivery = model.items.filter((i) => i.kind !== "discovery");
+    const ranked = [...delivery].sort((a, b) => rank(a, needIds) - rank(b, needIds) || Date.parse(a.since) - Date.parse(b.since));
+    const shown = ranked.slice(0, MAX_RINGS);
+    const steps = shown.reduce((longest, i) => i.steps.length > longest.length ? i.steps.map((s2) => s2.job) : longest, []);
+    const rings = shown.map((item) => {
+      const fills = steps.map((job) => {
+        const step = item.steps.find((s2) => s2.job === job);
+        return step ? inkOf(item, step, driven) : null;
+      });
+      return { item: item.id, name: item.title, status: item.status, fills };
+    });
+    const inksUsed = new Set(rings.flatMap((r) => r.fills).filter(Boolean));
+    const waits = model.needs.length;
+    const notices = model.needs.map((need, k) => {
+      const item = model.items.find((i) => i.id === need.item);
+      const actions = need.next.map(stampOf);
+      if (k === 0 && actions[0]) actions[0] = { ...actions[0], weight: "primary" };
+      return {
+        item: need.item,
+        ink: INK.waits,
+        name: need.title,
+        says: saysOf(need, item),
+        quote: need.message,
+        questions: need.questions ?? [],
+        since: `Waiting since ${when(need.since, zone)}`,
+        actions
+      };
+    });
+    if (notices.length) inksUsed.add(INK.waits);
+    for (const r of model.running) {
+      const item = model.items.find((i) => i.id === r.item);
+      const file = r.live ? r.live.slice(r.live.lastIndexOf("/") + 1) : void 0;
+      const output = file && opts.live?.[file] != null ? tailWords(opts.live[file]) : r.activity.map((a) => a.text);
+      notices.push({
+        item: r.item,
+        ink: INK.moving,
+        name: r.title,
+        says: item?.doing ?? `The ${r.who} is working on ${r.job}.`,
+        since: `Running since ${when(r.since, zone)}`,
+        actions: [],
+        output
+      });
+      inksUsed.add(INK.moving);
+    }
+    const s = model.summary;
+    const last = s.last ? when(s.last, zone) : "none yet";
+    const sealed = s.shipped > 0;
+    const colophon = `From the Made Well record on ${model.host ?? "this machine"}; last entry ${last}. ${plural(delivery.length, "item")}, ${plural(s.calls, "agent call")}, ${s.tokens.toLocaleString("en-GB")} tokens, ${agentTime(s.agentMs)} of agent time.` + (sealed ? ` Sealed: ${plural(s.shipped, "item has", "items have")} shipped.` : " Not sealed: nothing has shipped.") + (delivery.length > shown.length ? ` ${delivery.length - shown.length} older ${delivery.length - shown.length === 1 ? "item is" : "items are"} not drawn.` : "");
+    return {
+      about: `Made Well, delivery, from GET /api/model at ${model.at}.`,
+      sheet: {
+        ground: "paper",
+        around: "slate",
+        frame: "double",
+        masthead: { name: "Made Well", number: model.eventCount, date: longDate(model.at, zone), subtitle: "Delivery: what waits on you" },
+        sealed,
+        ...opts.stale ? { warning: `Made Well has not answered since ${when(opts.stale, zone)}. This is the sheet as it was then.` } : opts.warning ? { warning: opts.warning } : {},
+        updated: `Sheet updated ${when(model.at, zone)}: ${waits === 1 ? "one thing waits" : `${waits} things wait`} on you.`
+      },
+      principal: {
+        charge: "rings",
+        steps: steps.map((job) => STEP_WORDS[job] ?? titleCase(job)),
+        rings,
+        centre: waits ? { charge: "disc", ink: INK.waits, value: String(waits), words: waits === 1 ? "waits on you" : "wait on you" } : { charge: "disc", ink: "paper", value: "0", words: "wait on you" }
+      },
+      notices,
+      legend: Object.entries(LEGEND).filter(([ink]) => inksUsed.has(ink)).map(([ink, words]) => ({ ink, words })),
+      colophon
+    };
+  };
+
+  // ui/gazette/geometry.mjs
+  var VIEW = { w: 600, h: 540, cx: 300, cy: 276 };
+  var SPAN = [30, 330];
+  var DISC = 78;
+  var OUTER = 234;
+  var BAND = 24;
+  var GAP = 10;
+  var ringRadii = (n) => {
+    const room = OUTER - DISC - 14;
+    const pitch = Math.min(BAND + GAP, room / Math.max(n, 1));
+    const band = Math.round(pitch * (BAND / (BAND + GAP)) * 10) / 10;
+    return Array.from({ length: n }, (_, k) => {
+      const r1 = OUTER - k * pitch;
+      return { r0: r1 - band, r1 };
+    });
+  };
+  var stepArc = (i, steps) => {
+    const w = (SPAN[1] - SPAN[0]) / steps;
+    return [SPAN[0] + i * w, SPAN[0] + (i + 1) * w];
+  };
+  var pt = (r, a) => {
+    const t = a * Math.PI / 180;
+    return [VIEW.cx + r * Math.sin(t), VIEW.cy - r * Math.cos(t)];
+  };
+
+  // ui/gazette/paint.mjs
+  var HATCH = { vertical: "M2 0V6", "vertical-sparse": "M3 0V12", horizontal: "M0 2H6", diagonal: "M0 0L6 6M-3 3L3 9M3 -3L9 3", dots: "M2 2h.01" };
+  var SIZE = { "vertical-sparse": 12 };
+  var KEY = 1.6;
+  var esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  var xy = (r, a) => pt(r, a).map((v) => v.toFixed(2)).join(" ");
+  var arc = (r, a0, a1, sweep = 1) => `A${r} ${r} 0 ${Math.abs(a1 - a0) > 180 ? 1 : 0} ${sweep} ${xy(r, a1)}`;
+  var sector = (r0, r1, a0, a1) => `M${xy(r1, a0)} ${arc(r1, a0, a1)} L${xy(r0, a1)} ${arc(r0, a1, a0, 0)} Z`;
+  var painter = (T) => {
+    const TINCT = { ...T.grounds, ...T.inks, ...T.reserve };
+    const ink = (n) => {
+      if (!(n in TINCT)) throw new Error(`blazon names an unknown tincture: ${n}`);
+      return TINCT[n];
+    };
+    const paint2 = (n) => T.hatch[n] ? `url(#h-${n})` : ink(n);
+    const hatches = () => Object.entries(T.hatch).filter(([k]) => k !== "_").map(([k, h]) => {
+      const s = SIZE[h] ?? 6;
+      return `<pattern id="h-${k}" width="${s}" height="${s}" patternUnits="userSpaceOnUse"><rect width="${s}" height="${s}" fill="${ink(k)}"/><path d="${HATCH[h]}" stroke="${ink("ink")}" stroke-width="${h === "dots" ? 1.6 : 0.55}" stroke-linecap="round" opacity=".55"/></pattern>`;
+    }).join("");
+    function rings(p) {
+      const radii = ringRadii(p.rings.length), n = p.steps.length;
+      const keys = [], fills = [], rules = [], words = [];
+      p.rings.forEach((ring, k) => {
+        const { r0, r1 } = radii[k];
+        ring.fills.forEach((f, i) => {
+          if (!f) return;
+          const [a0, a1] = stepArc(i, n), d = sector(r0, r1, a0, a1);
+          keys.push(`<path d="${d}" transform="translate(${KEY} ${KEY})"/>`);
+          fills.push(`<path d="${d}" fill="${paint2(f)}"/>`);
+        });
+        rules.push(`<path d="M${xy(r1, SPAN[0])} ${arc(r1, SPAN[0], SPAN[1])} M${xy(r0, SPAN[0])} ${arc(r0, SPAN[0], SPAN[1])}"/>`);
+        for (let i = 0; i <= n; i++) {
+          const a = stepArc(i, n)[0];
+          rules.push(`<path d="M${xy(r0, a)} L${xy(r1, a)}"/>`);
+        }
+        const rm = (r0 + r1) / 2 - 3.5;
+        const room = Math.floor(rm * (360 - (SPAN[1] - SPAN[0]) - 4) * Math.PI / 180 / 5.9);
+        const full = `${ring.item} \xB7 ${ring.name}`;
+        const shown = full.length > room ? `${full.slice(0, Math.max(room - 1, 4))}\u2026` : full;
+        words.push(`<path id="name${k}" d="M${xy(rm, SPAN[1] + 2)} ${arc(rm, SPAN[1] + 2, 360 + SPAN[0] - 2)}" fill="none"/><text class="ringname"><title>${esc(full)}</title><textPath href="#name${k}" startOffset="50%" text-anchor="middle">${esc(shown)}</textPath></text>`);
+      });
+      const outer = radii[0]?.r1 ?? 234;
+      p.steps.forEach((s, i) => {
+        const [a0, a1] = stepArc(i, n), m = (a0 + a1) / 2, low = m > 90 && m < 270;
+        const r = outer + (low ? 21 : 10);
+        const d = low ? `M${xy(r, m + 24)} ${arc(r, m + 24, m - 24, 0)}` : `M${xy(r, m - 24)} ${arc(r, m - 24, m + 24)}`;
+        words.push(`<path id="step${i}" d="${d}" fill="none"/><text class="stepname"><textPath href="#step${i}" startOffset="50%" text-anchor="middle">${esc(s)}</textPath></text>`);
+      });
+      const c = p.centre;
+      const centre = `<circle cx="${VIEW.cx + KEY * 1.4}" cy="${VIEW.cy + KEY * 1.4}" r="${DISC}" fill="${ink("ink")}"/><circle cx="${VIEW.cx}" cy="${VIEW.cy}" r="${DISC}" fill="${ink(c.ink)}" stroke="${ink("ink")}" stroke-width=".8"/><text class="centrevalue" x="${VIEW.cx}" y="${VIEW.cy + 14}" text-anchor="middle">${esc(c.value)}</text><text class="centrewords" x="${VIEW.cx}" y="${VIEW.cy + 40}" text-anchor="middle">${esc(c.words)}</text>`;
+      const label = p.rings.length ? p.rings.map((r) => `${r.item}, ${r.name}: ${r.fills.filter(Boolean).length} of ${n} steps`).join("; ") + `. ${c.value} ${c.words}.` : `No items yet. ${c.value} ${c.words}.`;
+      return `<svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" role="img" aria-label="${esc(label)}"><defs>${hatches()}</defs><g fill="${ink("ink")}">${keys.join("")}</g>${fills.join("")}<g fill="none" stroke="${ink("ink")}" stroke-width=".8">${rules.join("")}</g>${words.join("")}${centre}</svg>`;
+    }
+    const disc = (i, text = "") => `<span class="disc" style="background:${ink(i)}">${esc(text)}</span>`;
+    const notice = (n, k) => `<section class="notice" aria-labelledby="n${k}">
+  ${disc(n.ink, n.item || "")}
+  <div>
+    <h2 id="n${k}">${esc(n.name)}</h2>
+    <p>${esc(n.says)}${n.quote ? ` <span class="quote">Made Well says: \u201C${esc(n.quote)}\u201D</span>` : ""}</p>
+    ${n.questions?.length ? `<ul class="questions">${n.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}
+    <p class="since">${esc(n.since)}.</p>
+    ${n.output ? `<pre class="output" aria-label="Its latest output">${n.output.length ? n.output.map(esc).join("\n") : "No output yet."}</pre>` : ""}
+    ${n.actions.length ? `<div class="actions">${n.actions.map((a) => `<button type="button" class="stamp ${esc(a.weight)}" data-run="${esc(a.run)}" title="${esc(a.run)}">${esc(a.words)}</button>`).join("")}</div>
+    <p class="slip" aria-live="polite"></p>` : ""}
+  </div>
+</section>`;
+    const style = (S) => {
+      ink(S.around), ink(S.ground);
+      return `
+:root { ${Object.entries(TINCT).map(([k, v]) => `--${k}: ${v};`).join(" ")} color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 36px 16px; background: var(--${S.around}); color: var(--ink); font: 17px/1.5 "Alegreya Sans", system-ui, sans-serif; font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+.sheet { max-width: 660px; margin: 0 auto; background: var(--${S.ground}); border: 3px solid var(--ink); outline: 1px solid var(--ink); outline-offset: -10px; box-shadow: 5px 5px 0 var(--ink); padding: 30px 38px 24px; }
+header { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; gap: 12px; }
+header .date { font-size: 14px; }
+header .no { font-size: 14px; text-align: right; }
+h1 { font: 800 40px/1 Alegreya, Georgia, serif; margin: 0; letter-spacing: -.01em; }
+.subtitle { text-align: center; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; margin: 10px 0 0; padding-bottom: 12px; border-bottom: 3px double var(--ink); }
+.warning { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--ink); font-size: 15px; font-style: italic; text-align: center; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg { display: block; width: 100%; height: auto; margin: 14px 0 6px; }
+.ringname { font: 700 11px "Alegreya Sans", sans-serif; letter-spacing: .02em; fill: var(--ink); }
+.stepname { font: 700 10.5px "Alegreya Sans", sans-serif; letter-spacing: .12em; text-transform: uppercase; fill: var(--ink); }
+.centrevalue { font: 800 58px Alegreya, Georgia, serif; fill: var(--ink); }
+.centrewords { font: 700 19px "Alegreya Sans", sans-serif; letter-spacing: .01em; fill: var(--ink); }
+.notice { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; padding: 18px 0; border-top: 1px solid var(--ink); }
+.disc { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); font: 800 19px/1 Alegreya, serif; }
+h2 { font: 800 25px/1.15 Alegreya, Georgia, serif; margin: 2px 0 8px; overflow-wrap: anywhere; }
+.notice p { margin: 0 0 6px; max-width: 34em; }
+.quote { display: block; font-size: 14.5px; margin-top: 4px; overflow-wrap: anywhere; }
+.questions { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
+.since { font-size: 14px; }
+.output { margin: 6px 0 8px; padding: 2px 0 2px 12px; border-left: 1px solid var(--ink); font: 13.5px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: center; margin-top: 12px; }
+.stamp { font: 700 16px/1 "Alegreya Sans", sans-serif; color: var(--ink); background: var(--${S.ground}); border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 3px 3px 0 var(--ink); padding: 10px 15px; min-height: 44px; cursor: pointer; }
+.stamp.primary { background: var(--vermilion); font-size: 19px; }
+.stamp.quiet { background: none; border: 0; box-shadow: none; padding: 10px 2px; text-decoration: underline; text-underline-offset: 3px; }
+.stamp:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+.stamp.quiet:active { transform: none; }
+@media (hover: hover) { .stamp:not(.quiet):hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); } }
+:focus-visible { outline: 4px double var(--ink); outline-offset: 4px; }
+.slip { font: 13.5px/1.4 ui-monospace, Menlo, monospace; min-height: 1.4em; margin-top: 10px !important; overflow-wrap: anywhere; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 22px; justify-content: center; padding: 14px 0; border-top: 1px solid var(--ink); font-size: 14px; }
+.legend .disc { width: 14px; height: 14px; box-shadow: 1.5px 1.5px 0 var(--ink); margin-right: 7px; vertical-align: -2px; }
+footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; text-align: center; }
+@media (max-width: 560px) { body { padding: 16px 6px; } .sheet { padding: 22px 16px 18px; outline-offset: -8px; } h1 { font-size: 32px; } header { grid-template-columns: 1fr; text-align: center; } header .no { text-align: center; } .notice { grid-template-columns: 34px minmax(0, 1fr); gap: 10px; } }
+`;
+    };
+    const sheet = (B) => {
+      const S = B.sheet, M = S.masthead;
+      const primaries = B.notices.flatMap((n) => n.actions).filter((a) => a.weight === "primary").length;
+      if (primaries > 1) throw new Error(`the blazon gives ${primaries} primary actions; a sheet has at most one`);
+      return `<header><span class="date">${esc(M.date)}</span><h1>${esc(M.name)}</h1><span class="no">No. ${esc(M.number)}</span></header>
+<p class="subtitle">${esc(M.subtitle)}</p>
+${S.warning ? `<p class="warning">${esc(S.warning)}</p>` : ""}
+${rings(B.principal)}
+${B.notices.map(notice).join("\n")}
+${B.legend.length ? `<div class="legend">${B.legend.map((l) => `<span>${disc(l.ink)}${esc(l.words)}</span>`).join("")}</div>` : ""}
+<footer>${esc(B.colophon)}</footer>`;
+    };
+    return { style, sheet, ink };
+  };
+
+  // ui/gazette/page.mjs
+  var P = painter(tinctures_default);
+  var main = document.getElementById("sheet");
+  var painted = "";
+  var mark = "";
+  var lastModel;
+  var unreachedSince;
+  var paint = (blazon) => {
+    const html = P.sheet(blazon);
+    if (html === painted) return;
+    const css = P.style(blazon.sheet);
+    if (document.getElementById("style").textContent !== css) document.getElementById("style").textContent = css;
+    painted = html;
+    const focused = document.activeElement?.dataset?.run;
+    main.innerHTML = html;
+    if (focused) main.querySelector(`[data-run="${CSS.escape(focused)}"]`)?.focus();
+    document.getElementById("status").textContent = blazon.sheet.updated ?? "";
+    document.title = `${blazon.sheet.masthead.name}: ${blazon.sheet.masthead.subtitle}`;
+  };
+  var liveOf = async (model) => {
+    const live = {};
+    for (const r of model.running) {
+      if (!r.live) continue;
+      const file = r.live.slice(r.live.lastIndexOf("/") + 1);
+      try {
+        const got = await (await fetch(`/api/live/${encodeURIComponent(file)}`)).json();
+        live[file] = got.text ?? "";
+      } catch {
+      }
+    }
+    return live;
+  };
+  var refetch = async () => {
+    const model = await (await fetch("/api/model")).json();
+    if (!model.items) return paint(blazonOf(EMPTY, { warning: "Made Well has no record on this machine yet. It appears with the first mw start or mw discover." }));
+    lastModel = model;
+    paint(blazonOf(model, { live: await liveOf(model) }));
+  };
+  var tick = async () => {
+    try {
+      const m = await (await fetch("/api/mark", { cache: "no-store" })).json();
+      const now = JSON.stringify(m);
+      unreachedSince = void 0;
+      if (now !== mark) {
+        await refetch();
+        mark = now;
+      }
+    } catch {
+      unreachedSince ??= (/* @__PURE__ */ new Date()).toISOString();
+      paint(blazonOf(lastModel ?? EMPTY, { stale: unreachedSince }));
+      mark = "";
+    }
+  };
+  var EMPTY = { at: (/* @__PURE__ */ new Date()).toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] };
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-run]");
+    if (!b) return;
+    const slip = b.closest(".notice").querySelector(".slip"), run = b.dataset.run;
+    const said = () => {
+      slip.textContent = `Copied: ${run} (paste it into your terminal on ${lastModel?.host ?? "the machine that runs Made Well"})`;
+    };
+    navigator.clipboard.writeText(run).then(said, () => {
+      slip.textContent = run;
+      getSelection().selectAllChildren(slip);
+    });
+  });
+  var poll = async () => {
+    await tick();
+    setTimeout(poll, 1e3);
+  };
+  poll();
+})();
+</script>
+</body>
+</html>

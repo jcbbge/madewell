@@ -1,16 +1,20 @@
-// The console: one live view of the work, read straight from the store. `mw ui` serves it as a web page on this
+// The console: one live view of the work, read straight from the store. `mw ui` serves the Gazette sheet (ui/gazette,
+// built into dist/gazette.html) at / and the console page at /console, with the read-only JSON API both read, on this
 // machine (a browser, an orb portal, or an SSH tunnel reaches it); `mw watch` draws the same model in a terminal, or
-// streams events as JSON lines when an agent reads it; `mw replay` writes the page with the model inside it.
-// Everything here only reads: the store stays the one record, and nothing here is saved.
+// streams events as JSON lines when an agent reads it; `mw replay` writes the console page with the model inside it.
+// `mw ui --install` provisions the server as this user's always-on background service (systemd on Linux, a
+// LaunchAgent on macOS); --status and --uninstall inspect and remove it. Everything here only reads the store: the
+// store stays the one record, and nothing here is saved.
 //
 // The model answers the operator's questions first (FOUNDATION, work-level observability): is the work done, what
 // proves it, what remains, what blocks it and who owes the next move. Each item carries its pipeline as steps with
 // their time, cost and NQ questions; the agent calls are bars on one timeline; a running call shows what its agent
 // is doing now, read from its live output.
-import { execFileSync } from 'node:child_process'
-import { closeSync, existsSync, fstatSync, openSync, readdirSync, readFileSync, readSync, statSync } from 'node:fs'
+import { execFileSync, spawn } from 'node:child_process'
+import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
-import { basename, dirname, join } from 'node:path'
+import { homedir, hostname } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 import { Effect } from 'effect'
 import { GATE, itemHome, patchPath } from './change.ts'
 import { CONSOLE } from './console.ts'
@@ -428,6 +432,7 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 	const movable = items.filter((i) => ['queued', 'running', 'waiting-quota', 'waiting-prerequisite'].includes(i.status))
 	return {
 		at: new Date(now).toISOString(),
+		host: hostname().split('.')[0],
 		store: store.path,
 		projects: [...new Set(items.map((i) => i.workspace))],
 		runner,
@@ -578,18 +583,35 @@ export const staticPage = (store: StoreService, nextOf: NextOf) => {
 	return CONSOLE.replace('<script>', `<script>var STATIC = ${data};</script><script>`)
 }
 
-/** Serves the console until interrupted. Prints one JSON line with its address first, so an agent can hand it on. */
+/** The Gazette page, built by `npm run bundle` into dist/ beside the CLI build, so an installed Made Well serves it as is. */
+const GAZETTE = new URL('../dist/gazette.html', import.meta.url)
+const gazettePage = () => {
+	try {
+		return readFileSync(GAZETTE, 'utf8')
+	} catch {
+		return undefined
+	}
+}
+
+/** Serves the Gazette and the console until interrupted. Prints one JSON line with its address first, so an agent can hand it on. */
 export const serve = (path: string, nextOf: NextOf, host: string, port: number, renderer?: TraceRenderer) =>
 	Effect.callback<never, MadeWellError>((resume) => {
 		const open = storeWatcher(path)
+		const html = (res: import('node:http').ServerResponse, page: string) => {
+			res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
+			res.end(page)
+		}
 		const server = createServer((req, res) => {
 			const url = new URL(req.url ?? '/', 'http://console')
 			const store = open()
 			try {
 				if (url.pathname === '/') {
-					res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' })
-					return res.end(CONSOLE)
+					const page = gazettePage()
+					if (page) return html(res, page)
+					return json(res, { error: 'not_found', message: 'The Gazette page is not built: dist/gazette.html is missing beside this build.', context: { path: GAZETTE.pathname }, next: [{ run: 'npm run bundle', why: 'build it, then start mw ui again' }, { run: `open http://${host}:${port}/console`, why: 'the console needs no build' }] }, 503)
 				}
+				if (url.pathname === '/console') return html(res, CONSOLE)
+				if (url.pathname === '/favicon.ico') return void (res.writeHead(204), res.end())
 				if (!store) return json(res, { store: null, path, at: new Date().toISOString() })
 				// The page asks again only when the record or a running step's output moved.
 				if (url.pathname === '/api/mark') return json(res, { ...store.mark(), runner: store.runner()?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(',') })
@@ -627,14 +649,252 @@ export const serve = (path: string, nextOf: NextOf, host: string, port: number, 
 			process.stdout.write(JSON.stringify({
 				ui: url, store: path,
 				next: [
-					{ run: `open ${url}`, why: 'watch the work live: what needs you, every item\'s pipeline, what each agent is doing, and where the time and tokens go' },
+					{ run: `open ${url}`, why: 'the Gazette sheet: what waits on you, each item\'s steps and what runs now, repainted as the record moves' },
+					{ run: `open ${url}console`, why: 'the console: every item\'s pipeline with time, tokens and questions, what each agent is doing, and where the time goes' },
 					{ run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: 'from another computer, then open the same address there' },
+					{ run: 'mw ui --install', why: 'keep it up as a background service of this user, started at boot and restarted on failure' },
 					{ run: 'mw watch', why: 'the same view in a terminal' },
 				],
 			}) + '\n')
 		})
 		return Effect.sync(() => void server.close())
 	})
+
+// ── The service: `mw ui` as this user's always-on background process ───────────────────────────────────
+
+/** The machine `mw ui --install` provisions on. Tests give a temporary home, a platform and a scripted `run`. */
+export interface Host {
+	readonly platform: NodeJS.Platform
+	readonly home: string
+	readonly uid: number
+	readonly env: NodeJS.ProcessEnv
+	/** The executable and script that provisioned the service, so the service runs exactly that build. */
+	readonly node: string
+	readonly script: string
+	/** Runs a service-manager command (systemctl, loginctl, launchctl) and reports its result; never throws. */
+	readonly run: (file: string, args: ReadonlyArray<string>) => { code: number; out: string; err: string }
+}
+
+export const thisHost = (): Host => ({
+	platform: process.platform, home: homedir(), uid: process.getuid?.() ?? 0, env: process.env, node: process.execPath, script: resolve(process.argv[1] ?? ''),
+	run: (file, args) => {
+		try {
+			return { code: 0, out: execFileSync(file, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }), err: '' }
+		} catch (e) {
+			const err = e as { status?: number; stdout?: string; stderr?: string; message?: string }
+			return { code: typeof err.status === 'number' ? err.status : 1, out: String(err.stdout ?? ''), err: String(err.stderr || err.message || '') }
+		}
+	},
+})
+
+export const SERVICE = 'madewell-ui'
+export const LABEL = 'com.madewell.ui'
+const SUPPORTED = ['linux', 'darwin']
+export interface ServeOpts { readonly port?: number; readonly host?: string }
+export interface ServiceView {
+	readonly service: string
+	readonly platform: string
+	readonly installed: boolean
+	readonly running: boolean
+	readonly answering: boolean
+	readonly address: string | null
+	readonly unit?: string
+	readonly execStart?: string
+	readonly pid?: number | null
+	readonly changed?: boolean
+	readonly wrote?: ReadonlyArray<string>
+	readonly removed?: ReadonlyArray<string>
+	readonly linger?: string
+	readonly next: ReadonlyArray<Next>
+}
+
+/** The files `--install` writes. */
+export const servicePaths = (h: Host) => (h.platform === 'darwin'
+	? { unit: join(h.home, 'Library', 'LaunchAgents', `${LABEL}.plist`), log: join(h.home, 'Library', 'Logs', `${LABEL}.log`) }
+	: { unit: join(h.home, '.config', 'systemd', 'user', `${SERVICE}.service`) })
+
+const argsOf = (h: Host, s: ServeOpts) => [h.node, h.script, 'ui', ...(s.port !== undefined ? ['--port', String(s.port)] : []), ...(s.host !== undefined ? ['--host', s.host] : [])]
+const mwEnv = (h: Host) => Object.entries(h.env).filter((kv): kv is [string, string] => kv[0].startsWith('MW_') && typeof kv[1] === 'string').sort(([a], [b]) => a.localeCompare(b))
+const dq = (v: string) => `"${v.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
+const xml = (v: string) => v.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!)
+
+const unitText = (h: Host, s: ServeOpts) => `[Unit]
+Description=Made Well web interface (mw ui)
+After=network.target
+
+[Service]
+ExecStart=${argsOf(h, s).map(dq).join(' ')}
+Restart=on-failure
+RestartSec=2
+${mwEnv(h).map(([k, v]) => `Environment=${dq(`${k}=${v}`)}`).join('\n')}
+
+[Install]
+WantedBy=default.target
+`
+const plistText = (h: Host, s: ServeOpts) => `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key><string>${LABEL}</string>
+	<key>ProgramArguments</key><array>${argsOf(h, s).map((a) => `<string>${xml(a)}</string>`).join('')}</array>
+	<key>EnvironmentVariables</key><dict>${mwEnv(h).map(([k, v]) => `<key>${xml(k)}</key><string>${xml(v)}</string>`).join('')}</dict>
+	<key>KeepAlive</key><true/>
+	<key>RunAtLoad</key><true/>
+	<key>StandardOutPath</key><string>${xml(servicePaths(h).log!)}</string>
+	<key>StandardErrorPath</key><string>${xml(servicePaths(h).log!)}</string>
+</dict>
+</plist>
+`
+
+const unsupported = (h: Host) => new MadeWellError({
+	code: 'ui_unsupported', message: `Made Well cannot provision the web interface as a background service on ${h.platform}: it knows systemd user units (Linux) and LaunchAgents (macOS).`,
+	context: { platform: h.platform, supported: SUPPORTED },
+	next: [{ run: 'mw ui', why: 'serve it in this terminal instead; it runs until interrupted' }, { run: 'mw ui --port 4747 &', why: 'or keep it running in the background by your own means' }],
+})
+/** Runs a service-manager step that must succeed. */
+const must = (h: Host, file: string, args: ReadonlyArray<string>, next: ReadonlyArray<Next>) => {
+	const r = h.run(file, args)
+	if (r.code !== 0) throw new MadeWellError({
+		code: 'ui_service_failed', message: `${file} ${args.join(' ')} exited ${r.code}${r.err.trim() ? `: ${r.err.trim()}` : ''}`,
+		context: { platform: h.platform, command: [file, ...args].join(' '), exitCode: r.code, stderr: r.err.trim() }, next,
+	})
+	return r
+}
+const inspectNext = (h: Host): Next[] => (h.platform === 'darwin'
+	? [{ run: `launchctl print gui/${h.uid}/${LABEL}`, why: 'see the service as launchd sees it' }, { run: `tail -50 ${servicePaths(h).log}`, why: 'read its output' }]
+	: [{ run: `systemctl --user status ${SERVICE}`, why: 'see the service as systemd sees it' }, { run: `journalctl --user -u ${SERVICE} -n 50`, why: 'read its output' }])
+
+/** The command line a written unit or plist runs. */
+const execStartOf = (h: Host, text: string): string[] => {
+	if (h.platform === 'darwin') {
+		const array = /<key>ProgramArguments<\/key><array>(.*?)<\/array>/s.exec(text)?.[1] ?? ''
+		return [...array.matchAll(/<string>(.*?)<\/string>/gs)].map((m) => m[1]!.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&'))
+	}
+	const line = /^ExecStart=(.*)$/m.exec(text)?.[1] ?? ''
+	return [...line.matchAll(/"((?:[^"\\]|\\.)*)"|(\S+)/g)].map((m) => (m[1] !== undefined ? m[1].replace(/\\(.)/g, '$1') : m[2]!))
+}
+const addressOf = (args: ReadonlyArray<string>) => {
+	const at = (flag: string) => { const i = args.indexOf(flag); return i >= 0 ? args[i + 1] : undefined }
+	const host = at('--host') ?? '127.0.0.1'
+	return `http://${host.includes(':') ? `[${host}]` : host}:${at('--port') ?? 4747}/`
+}
+
+/** Whether the server at `url` answers its marker; a short wait, so a status never hangs. */
+export const answering = (url: string) => fetch(`${url}api/mark`, { signal: AbortSignal.timeout(1500) }).then((r) => r.ok, () => false)
+
+/** Whether the service is installed, running and where, read from its unit and its manager. Needs no manager when nothing is installed. */
+export const serviceStatus = (h: Host): Omit<ServiceView, 'answering'> => {
+	const base = { service: h.platform === 'darwin' ? LABEL : `${SERVICE}.service`, platform: h.platform }
+	if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: 'mw ui', why: `this platform has no service manager Made Well knows; serve it in a terminal` }] }
+	const { unit } = servicePaths(h)
+	if (!existsSync(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: 'mw ui --install', why: 'provision the web interface as an always-on background service of this user' }] }
+	const text = readFileSync(unit, 'utf8')
+	const args = execStartOf(h, text)
+	const address = addressOf(args)
+	let running = false
+	let pid: number | null = null
+	if (h.platform === 'darwin') {
+		const r = h.run('launchctl', ['print', `gui/${h.uid}/${LABEL}`])
+		running = r.code === 0 && /\bstate = running\b/.test(r.out)
+		pid = Number(/\bpid = (\d+)/.exec(r.out)?.[1] ?? NaN) || null
+	} else {
+		const r = h.run('systemctl', ['--user', 'show', SERVICE, '-p', 'ActiveState', '-p', 'MainPID'])
+		running = /^ActiveState=active$/m.test(r.out)
+		pid = Number(/^MainPID=(\d+)$/m.exec(r.out)?.[1] ?? 0) || null
+	}
+	return {
+		...base, installed: true, running, address, unit, execStart: args.join(' '), pid,
+		next: running ? [{ run: `open ${address}`, why: 'the Gazette sheet' }, { run: 'mw ui --uninstall', why: 'stop it and remove every file --install wrote' }] : [...inspectNext(h), { run: 'mw ui --install', why: 'write the unit again and start it' }],
+	}
+}
+
+/** `mw ui --install`: writes the unit for this user, enables it, starts it, and on Linux asks for lingering so it runs without a login. Safe to run again. */
+export const installService = (h: Host, s: ServeOpts): Omit<ServiceView, 'answering'> => {
+	if (!SUPPORTED.includes(h.platform)) throw unsupported(h)
+	const { unit } = servicePaths(h)
+	const text = h.platform === 'darwin' ? plistText(h, s) : unitText(h, s)
+	const before = existsSync(unit) ? readFileSync(unit, 'utf8') : undefined
+	const wrote: string[] = []
+	if (before !== text) {
+		mkdirSync(dirname(unit), { recursive: true })
+		writeFileSync(unit, text)
+		wrote.push(unit)
+	}
+	const next = inspectNext(h)
+	let linger: string | undefined
+	if (h.platform === 'darwin') {
+		const loaded = h.run('launchctl', ['print', `gui/${h.uid}/${LABEL}`]).code === 0
+		if (loaded && before !== text) must(h, 'launchctl', ['bootout', `gui/${h.uid}/${LABEL}`], next)
+		if (!loaded || before !== text) must(h, 'launchctl', ['bootstrap', `gui/${h.uid}`, unit], next)
+	} else {
+		must(h, 'systemctl', ['--user', 'daemon-reload'], next)
+		const active = h.run('systemctl', ['--user', 'is-active', SERVICE]).out.trim() === 'active'
+		must(h, 'systemctl', ['--user', 'enable', ...(active ? [] : ['--now']), SERVICE], next)
+		if (active && before !== text) must(h, 'systemctl', ['--user', 'restart', SERVICE], next)
+		// Lingering keeps the user's services up with no session open. Where it is refused, the service still runs while logged in.
+		if (h.run('loginctl', ['show-user', String(h.uid), '-p', 'Linger', '--value']).out.trim() === 'yes') linger = 'already enabled'
+		else {
+			const r = h.run('loginctl', ['enable-linger'])
+			linger = r.code === 0 ? 'enabled' : `refused: ${r.err.trim() || `exit ${r.code}`}; the service runs while you are logged in`
+		}
+	}
+	const status = serviceStatus(h)
+	return { ...status, changed: wrote.length > 0, wrote, ...(linger ? { linger } : {}), next: [{ run: 'mw ui --status', why: 'confirm it is running and answering' }, ...status.next] }
+}
+
+/** `mw ui --uninstall`: stops the service and removes every file --install wrote. Nothing installed is nothing to do. */
+export const uninstallService = (h: Host): Omit<ServiceView, 'answering'> => {
+	if (!SUPPORTED.includes(h.platform)) throw unsupported(h)
+	const paths = servicePaths(h)
+	const removed: string[] = []
+	const next = inspectNext(h)
+	if (existsSync(paths.unit)) {
+		if (h.platform === 'darwin') h.run('launchctl', ['bootout', `gui/${h.uid}/${LABEL}`])
+		else h.run('systemctl', ['--user', 'disable', '--now', SERVICE])
+		rmSync(paths.unit, { force: true })
+		removed.push(paths.unit)
+		if (h.platform !== 'darwin') must(h, 'systemctl', ['--user', 'daemon-reload'], next)
+	}
+	if (paths.log && existsSync(paths.log)) {
+		rmSync(paths.log, { force: true })
+		removed.push(paths.log)
+	}
+	return { service: h.platform === 'darwin' ? LABEL : `${SERVICE}.service`, platform: h.platform, installed: false, running: false, address: null, removed, next: [{ run: 'mw ui --install', why: 'provision it again' }, { run: 'mw ui', why: 'serve it in this terminal instead' }] }
+}
+
+/** The service command behind `mw ui --install | --uninstall | --status`, with whether the address answers. */
+export const service = (h: Host, action: 'install' | 'uninstall' | 'status', s: ServeOpts) =>
+	Effect.gen(function* () {
+		const view = yield* Effect.try({ try: () => (action === 'install' ? installService(h, s) : action === 'uninstall' ? uninstallService(h) : serviceStatus(h)), catch: (e) => e as MadeWellError })
+		// A freshly started service needs a moment to listen; ask a few times before saying it does not answer.
+		let ok = false
+		for (let i = 0; view.address && !ok && i < (action === 'install' ? 10 : 1); i++) {
+			if (i) yield* Effect.sleep('300 millis')
+			ok = yield* Effect.promise(() => answering(view.address!))
+		}
+		return { ...view, answering: ok } satisfies ServiceView
+	})
+
+/** The first line of `mw watch`: the web interface's address when it answers, else what to run. */
+export const webLine = async (h: Host, port = 4747) => {
+	const s = SUPPORTED.includes(h.platform) ? serviceStatus(h) : undefined
+	const url = s?.address ?? `http://127.0.0.1:${port}/`
+	if (await answering(url)) return { url, text: `${url}  (w opens it)` }
+	if (s?.installed) return { text: `web: installed but not answering · ${inspectNext(h)[0]!.run}` }
+	return { text: 'web: mw ui --install' }
+}
+
+/** Opens the web interface in a browser here, or says how to reach it from a computer that has one. */
+export const openWeb = (h: Host, url: string): string => {
+	const opener = h.platform === 'darwin' ? 'open' : h.env.DISPLAY || h.env.WAYLAND_DISPLAY ? 'xdg-open' : undefined
+	if (opener && (h.platform === 'darwin' || h.run('which', [opener]).code === 0)) {
+		spawn(opener, [url], { detached: true, stdio: 'ignore' }).unref()
+		return `Opened ${url}`
+	}
+	const port = new URL(url).port || '80'
+	const here = hostname().split('.')[0]
+	return `No browser on ${here}. On your computer: ssh -L ${port}:127.0.0.1:${port} ${here}   then open http://localhost:${port}/`
+}
 
 // ── The terminal ───────────────────────────────────────────────────────────────────────────────────────
 
@@ -663,13 +923,14 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour1
 const tokensText = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n))
 const STATUS: Partial<Record<Item['status'], string>> = { held: '31', shipped: '32', candidate: '33', 'waiting-quota': '33', 'waiting-prerequisite': '33', dropped: '2', discovered: '32' }
 
-/** One screen of the console for a terminal `cols` wide and `rows` high. */
-export const frame = (m: Model, cols: number, rows: number) => {
+/** One screen of the console for a terminal `cols` wide and `rows` high. `web`: the web interface's line and a slip to show under it. */
+export const frame = (m: Model, cols: number, rows: number, web: { text: string; slip?: string } = { text: '' }) => {
 	const out: string[] = []
 	const s = m.summary
 	const now = Date.parse(m.at)
 	const project = m.projects.length === 1 ? basename(m.projects[0]!) : `${m.projects.length} projects`
-	out.push(`${bold('MADE WELL')}  ${project}  ${m.runner ? paint('32', `● runner ${m.runner.pid}`) : paint('33', '○ no runner')}  ${dim(clock(m.at))}`)
+	out.push(`${bold('MADE WELL')}  ${project}  ${m.runner ? paint('32', `● runner ${m.runner.pid}`) : paint('33', '○ no runner')}  ${dim(clock(m.at))}  ${paint('36', web.text)}`)
+	if (web.slip) out.push(paint('36', web.slip))
 	out.push(`${paint('32', `${s.shipped} shipped`)} · ${s.moving} moving · ${s.queued} queued · ${s.held ? paint('31', `${s.held} need you`) : '0 need you'} · ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time · ${tokensText(s.tokens)} tokens · ${s.calls} calls · NQ ${s.agentMs ? Math.round((s.nqMs / s.agentMs) * 100) : 0}%`)}`)
 	if (m.needs.length) {
 		out.push('')
@@ -699,7 +960,7 @@ export const frame = (m: Model, cols: number, rows: number) => {
 	out.push(bold('LOG'))
 	const room = Math.max(3, rows - out.length - 2)
 	for (const e of m.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : '     '}${e.say}`)
-	out.push(dim('Ctrl-C quits · mw ui opens the full console · mw show <id> for one item\'s record'))
+	out.push(dim('Ctrl-C quits · w opens the web page · mw show <id> for one item\'s record'))
 	return out.map((l) => fit(l, cols)).join('\n')
 }
 
@@ -707,17 +968,21 @@ export const frame = (m: Model, cols: number, rows: number) => {
  * `mw watch`: in a terminal, the console redrawn every second; read by a program, every event as one JSON line
  * from `since` on, with each call's record once it ends, then every new one as it happens.
  */
-export const watch = (path: string, nextOf: NextOf, opts: { tty: boolean; since: number; once: boolean }) =>
+export const watch = (path: string, nextOf: NextOf, opts: { tty: boolean; since: number; once: boolean; host?: Host }) =>
 	Effect.callback<{ watched: string; next: { run: string; why: string }[] }>((resume) => {
 		const open = storeWatcher(path)
+		const h = opts.host ?? thisHost()
 		let seq = opts.since
 		// Carrying on from an event carries on from the calls recorded by then too.
 		let calls = opts.since > 0 ? (open()?.mark().calls ?? 0) : 0
 		let lastFrame = ''
+		let web: { url?: string; text: string } = { text: '' }
+		let slip: { text: string; until: number } | undefined
 		const tick = () => {
 			const store = open()
 			if (opts.tty) {
-				const text = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40) : `${bold('MADE WELL')}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.`
+				const line = { text: web.text, ...(slip && slip.until > Date.now() ? { slip: slip.text } : {}) }
+				const text = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40, line) : `${bold('MADE WELL')}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.  ${paint('36', web.text)}`
 				if (text !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text}\n`)
 				lastFrame = text
 				return
@@ -734,16 +999,47 @@ export const watch = (path: string, nextOf: NextOf, opts: { tty: boolean; since:
 			}
 		}
 		const done = () => resume(Effect.succeed({ watched: path, next: [{ run: `mw watch --since ${seq}`, why: 'carry on from here' }] }))
-		tick()
+		// The web line asks the service every few seconds, not every tick: it is one HTTP request.
+		const lookup = () => void webLine(h).then((w) => { web = w; if (opts.tty) tick() })
+		const onKey = (b: Buffer) => {
+			const k = b.toString()
+			if (k === '\x03' || k === 'q') return process.kill(process.pid, 'SIGINT')
+			if (k === 'w') {
+				slip = { text: web.url ? openWeb(h, web.url) : 'The web page is not up: run mw ui --install, or mw ui in another terminal.', until: Date.now() + 15_000 }
+				tick()
+			}
+		}
 		if (opts.once) {
-			if (opts.tty) process.stdout.write('\n')
+			if (opts.tty) {
+				void webLine(h).then((w) => { web = w; tick(); process.stdout.write('\n'); done() })
+				return
+			}
+			tick()
 			done()
 			return
 		}
-		if (opts.tty) process.stdout.write(`${ESC}?25l`)
+		tick()
+		if (opts.tty) {
+			process.stdout.write(`${ESC}?25l`)
+			lookup()
+			if (process.stdin.isTTY) {
+				process.stdin.setRawMode(true)
+				process.stdin.resume()
+				process.stdin.on('data', onKey)
+			}
+		}
 		const timer = setInterval(tick, 1000)
+		const webTimer = opts.tty ? setInterval(lookup, 5000) : undefined
 		return Effect.sync(() => {
 			clearInterval(timer)
-			if (opts.tty) process.stdout.write(`${ESC}?25h`)
+			if (webTimer) clearInterval(webTimer)
+			if (opts.tty) {
+				process.stdout.write(`${ESC}?25h`)
+				if (process.stdin.isTTY) {
+					process.stdin.off('data', onKey)
+					process.stdin.setRawMode(false)
+					process.stdin.pause()
+				}
+			}
 		})
 	})

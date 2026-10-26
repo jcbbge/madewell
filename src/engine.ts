@@ -21,7 +21,7 @@
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { createHash } from 'node:crypto'
-import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
@@ -475,24 +475,36 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (deliverableShape(L(item), job, auto(item))?.required as string[] | undefined) ?? [],
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
 		...jobTree(item, job),
-		...(maker ? { onFail: (dir: string) => keepPartial(dir, item, job as Maker) } : {}),
+		...(maker ? { onFail: (dir: string, head: string) => keepPartial(dir, item, job as Maker, head) } : {}),
 		packet: (dir) => packet(item, job, dir, { ...executeParts(item, job, t, x), ...(decisionResolution ? { decisionResolution } : {}) }),
 	}, (dir, call) => accept(id, job, dir, call))
 })
 
 /**
  * The tree a job works on, which its intake's snapshot shows too. A maker resumes its kept partial work; the
- * arbiter works on the candidate Made Well verified: the change committed on main, the checks applied.
+ * arbiter works on the candidate Made Well verified: the change committed on main, the checks applied. The test
+ * architect correcting its checks after a ruling works on that same candidate: the kept change as the last commit,
+ * its previous check files uncommitted beside it, so it corrects them in place against the implementation they run on.
  */
 const jobTree = (item: Item, job: Job): Pick<CallSpec, 'at' | 'prepare'> => ({
 	...(job === 'arbitrate' && item.verification ? { at: item.verification.on } : {}),
 	prepare: (dir) =>
 		Effect.gen(function* () {
 			const home = itemHome((yield* Store).path, item.id)
-			if (isMaker(job)) return yield* applyPatch(dir, patchPath(home, `${job as Maker}.partial`))
 			if (job === 'arbitrate') return yield* candidate(item, dir)
+			if (correcting(item, job)) {
+				yield* applyPatch(dir, patchPath(home, 'change'))
+				yield* commit(dir, item.title)
+				// Its unfinished correction, when it has one, already holds the check files as it left them.
+				const partial = patchPath(home, 'test-plan.partial')
+				return yield* applyPatch(dir, existsSync(partial) ? partial : patchPath(home, 'checks'))
+			}
+			if (isMaker(job)) return yield* applyPatch(dir, patchPath(home, `${job as Maker}.partial`))
 		}),
 })
+
+/** The test architect correcting its checks on its own track after a ruling, with the implementer's change kept: never in the blind split. */
+const correcting = (item: Item, job: Job): boolean => job === 'test-plan' && !item.split && item.rework !== undefined && item.change !== undefined
 
 interface CallSpec {
 	readonly kind: WorkerRequest['kind']
@@ -504,7 +516,8 @@ interface CallSpec {
 	/** The commit the worktree starts at; the item's base by default. */
 	readonly at?: string
 	readonly prepare?: (dir: string) => Effect.Effect<void, MadeWellError, Store>
-	readonly onFail?: (dir: string) => Effect.Effect<void, MadeWellError, Store>
+	/** Runs in the worktree when the call fails, with its HEAD as prepared: what a maker made is measured from there. */
+	readonly onFail?: (dir: string, head: string) => Effect.Effect<void, MadeWellError, Store>
 	readonly packet: (dir: string) => Effect.Effect<string, MadeWellError, Store>
 }
 
@@ -579,7 +592,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		store.note(id, 'call-finished', { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...(call.error ? { error: call.error.slice(0, 2000) } : {}) })
 		endLive(live)
 		if (!res.ok) {
-			if (spec.onFail) yield* spec.onFail(wt.path)
+			if (spec.onFail) yield* spec.onFail(wt.path, head)
 			if ('limit' in res) yield* recordLimit(id, job, spec.card, res.limit, spec.kind)
 			else yield* launchFailed(id, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {})
 			return undefined
@@ -661,7 +674,9 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	const v = validate(L(item), job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined, auto(item), item.conventions)
 	store.note(id, 'trace-decode', { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...(!v.ok ? { reason: v.reason } : {}) })
 	if (v.ok && v.dropped?.length) store.note(id, 'discovery-dropped', { call: call.callId, candidates: v.dropped })
-	const keep = isMaker(job) ? keepPartial(dir, item, job) : Effect.void
+	// What the maker made is measured from its worktree as Made Well prepared it: the item's base, or the kept change committed on it.
+	const from = answered.before?.head ?? item.base!.commit
+	const keep = isMaker(job) ? keepPartial(dir, item, job, from) : Effect.void
 	const refused = (reason: string) => Effect.andThen(keep, refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
 	const value = v.value
@@ -670,7 +685,7 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	}
 	let artifacts: Partial<Item> = {}
 	if (isMaker(job) && !blockedOf(L(item), job, value)) {
-		const base = item.base!.commit
+		const base = from
 		if (job === 'implement') {
 			const scoped = yield* Effect.result(scopeCheck(dir, base, plan!.scope))
 			if (Result.isFailure(scoped)) {
@@ -754,26 +769,56 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 			openPrerequisite(store, { ...current, from: by }, r.answer, by)
 			return
 		}
-		case 'environment':
+		case 'environment': {
+			// The step that failed runs again in a fresh worktree, prepared as before: nothing of the work is rebuilt.
+			const again = afterEnvironment(store, current, by, r.answer)
 			// Twice in a row: the project's environment is the operator's configuration, which no step of the work can fix.
+			// The item holds at that step, so a retry runs it again with a fresh worktree, not the arbiter.
 			if (current.rework?.cause === 'environment') {
-				return hold(store, current, 'environment', `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, failure: current.failure ?? null, ruling: value })
+				return hold(store, again, 'environment', `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, step: again.job, failure: current.failure ?? null, ruling: value })
 			}
-			store.save({ ...current, job: 'verify', from: by, rework: { cause: 'environment', answer: r.answer }, failure: undefined, verification: undefined, exchange: undefined, launches: 0 }, 'ruling', { cause: 'environment', to: 'verify', by: 'arbiter' })
+			store.save(again, 'ruling', { cause: 'environment', to: again.job, by: 'arbiter' })
 			return
+		}
 		case 'hold':
 			return hold(store, current, r.code, r.message, { job, failure: current.failure ?? null, ruling: value })
 	}
+}
+
+/**
+ * The step an environment ruling runs again: a maker whose standing deliverable is a blocked report never delivered, so its
+ * job is the one to re-provision whatever ran after it (makers blocked in the split go again as a split); otherwise the step
+ * whose failure the arbiter ruled on, Made Well's verify by default.
+ */
+const failedStep = (store: StoreService, item: Item): Job | ReadonlyArray<Maker> => {
+	const lane = L(item)
+	const blocked = lane.makers.filter((m) => blockedOf(lane, m, (deliverableOf(item, m) as Record<string, unknown>) ?? {}))
+	const from = store.events(item.id).findLast((e) => e.kind === 'failure')?.data.from
+	if (Array.isArray(from)) return blocked.length ? blocked : (from as Maker[])
+	return blocked[0] ?? (from as Job | undefined) ?? 'verify'
+}
+
+/**
+ * An environment ruling sends the work back to the step that failed, in a fresh worktree prepared the same way: verify runs
+ * the checks again; a blocked maker gets its checkout again (the test architect's, with the kept change and its check files).
+ */
+const afterEnvironment = (store: StoreService, item: Item, by: Origin, answer: string): Item => {
+	const failed = failedStep(store, item)
+	const base = { ...item, from: by, rework: { cause: 'environment' as const, answer }, failure: undefined, exchange: undefined, launches: 0 }
+	if (failed === 'verify') return { ...base, job: 'verify', verification: undefined }
+	if (typeof failed === 'string') return { ...base, job: failed }
+	// Makers blocked in the split go again as a split of exactly those makers; the other's accepted work stays.
+	return { ...base, job: failed[0]!, split: Object.fromEntries(failed.map((m) => [m, { from: by, launches: 0 }])) }
 }
 
 /** A path covered by a declared scope: the path itself, or under a directory entry ("dir/" or "dir/**"). */
 const covers = (scope: ReadonlyArray<string>, file: string) =>
 	scope.some((d) => (d.endsWith('/') || d.endsWith('/**') ? file.startsWith(d.replace(/\*\*$/, '')) : file === d))
 
-/** A maker's unfinished work leaves with it, so the next call picks up where it stopped. */
-const keepPartial = (dir: string, item: Item, job: Maker) =>
+/** A maker's unfinished work leaves with it, so the next call picks up where it stopped. Measured from the worktree's prepared HEAD. */
+const keepPartial = (dir: string, item: Item, job: Maker, from: string) =>
 	Effect.gen(function* () {
-		const { patch } = yield* takeChange(dir, item.base!.commit)
+		const { patch } = yield* takeChange(dir, from)
 		const path = patchPath(itemHome((yield* Store).path, item.id), `${job}.partial`)
 		if (patch) writePatch(path, patch)
 		else rmSync(path, { force: true })
@@ -1305,7 +1350,10 @@ export const retry = (id: number) =>
 		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
-		store.save(released(item), 'retried', { job: item.job })
+		// An environment hold runs the failed step again in a fresh worktree, never the arbiter: the step is read from the record
+		// as it stands now, so one an older runner left at the arbiter, or at a verify of checks their author never got to correct, is redriven right.
+		const free = item.hold.code === 'environment' ? afterEnvironment(store, released(item), { kind: 'job', job: 'arbitrate' }, item.rework?.answer ?? item.hold.message) : released(item)
+		store.save(free, 'retried', { job: free.job })
 	})
 
 /**
@@ -1448,15 +1496,18 @@ const TASKS: Partial<Record<Job, string>> = {
 /** The arbiter's task: what Made Well does with each cause this lane allows. */
 const arbiterTask = (lane: Lane, autonomous: boolean) => [
 	`Your checkout holds the implementer's change as its last commit${lane.makers.includes('test-plan') ? ', with the test architect\'s check files applied on top, uncommitted' : ''}. Reproduce the failure if you need to. You rule and change nothing; Made Well routes the work by your cause.`,
-	...(lane.makers.includes('test-plan') ? ['test: the test architect corrects the checks from your answer and Made Well runs every check again on the same change.'] : []),
+	...(lane.makers.includes('test-plan') ? ['test: the test architect corrects the checks from your answer, in a checkout holding this same change and its check files, and Made Well runs every check again on the same change.'] : []),
 	`implementation: the planner plans again from your answer, ${lane.makers.length > 1 ? 'both makers redo their work' : 'the implementer redoes the change'}, and verification follows.`,
 	'pre-existing: a fix item for the defect ships first, then this item\'s checks run again.',
-	'environment: the work is not at fault; the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree and runs the checks again.',
+	'environment: the work is not at fault; the worktree, its preparation, a service it needs or the machine failed. Made Well prepares a fresh worktree for the step that failed and runs it again: the checks, or the blocked maker\'s job.',
 	autonomous ? 'Nobody is there to decide for you: name the cause the evidence best supports.' : 'undetermined: the operator decides.',
 ].join(' ')
 
+/** The test architect's task in a correction round: its checkout is the candidate the checks ran on, and only the checks are its to change. */
+const CORRECTING_TASK = 'Correct your checks from the ruling. Your checkout is the candidate Made Well ran them on: the implementer\'s change is its last commit (HEAD) on top of the branch the item started from, and your previous check files sit uncommitted in the working tree beside it, at the paths you wrote them. Correct them in place, or write new ones, at paths outside the plan\'s scope; Made Well takes the check files from your checkout and runs each check\'s command itself, from the repo root, against that same change. The implementation is not yours to change: Made Well refuses a change inside the plan\'s scope. Each check proves one done-when item by its id, and every done-when item needs at least one. A check proves its done-when item from this item\'s change alone: never run or count the whole test suite, and never pin anything outside the plan\'s scope; other items ship onto the same branch while this one is in flight.'
+
 const taskOf = (item: Item, job: Job) => {
-	const own = job === 'arbitrate' ? arbiterTask(L(item), auto(item)) : TASKS[job]
+	const own = job === 'arbitrate' ? arbiterTask(L(item), auto(item)) : correcting(item, job) ? CORRECTING_TASK : TASKS[job]
 	const extra = stepOf(L(item), job).task
 	return own && extra ? `${own} ${extra}` : own ?? extra
 }
