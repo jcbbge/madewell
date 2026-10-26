@@ -63,7 +63,8 @@ export const painter = (T) => {
 			: `No items yet. ${c.value} ${c.words}.`
 		return `<svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" role="img" aria-label="${esc(label)}">` +
 			`<defs>${hatches()}</defs><g fill="${ink('ink')}">${keys.join('')}</g>${fills.join('')}` +
-			`<g fill="none" stroke="${ink('ink')}" stroke-width=".8">${rules.join('')}</g>${words.join('')}${centre}</svg>`
+			`<g fill="none" stroke="${ink('ink')}" stroke-width=".8">${rules.join('')}</g>${words.join('')}${centre}</svg>` +
+			(p.under ?? []).map((line) => `<p class="under">${esc(line)}</p>`).join('')
 	}
 
 	const disc = (i, text = '') => `<span class="disc" style="background:${ink(i)}">${esc(text)}</span>`
@@ -108,6 +109,7 @@ h2 { font: 800 25px/1.15 Alegreya, Georgia, serif; margin: 2px 0 8px; overflow-w
 .quote { display: block; font-size: 14.5px; margin-top: 4px; overflow-wrap: anywhere; }
 .questions { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
 .since { font-size: 14px; }
+.under { margin: 0 0 10px; font-size: 14px; text-align: center; }
 .live { font-size: 14px; margin-top: 10px !important; }
 .output { margin: 6px 0 8px; padding: 2px 0 2px 12px; border-left: 1px solid var(--ink); font: 13.5px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: center; margin-top: 12px; }

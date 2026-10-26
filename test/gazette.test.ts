@@ -38,9 +38,9 @@ test('the Delivery sheet is written from the model: one ring per item in item or
 	assert.deepEqual([second.says, second.actions[0]], ['It could not start: the folder it works in has no branch checked out.', { words: 'Check out main', run: 'git -C /home/jrg/madewell-three-lens switch main', weight: 'plain' }])
 	assert.equal(b.notices.flatMap((n: { actions: { weight: string }[] }) => n.actions).filter((a: { weight: string }) => a.weight === 'primary').length, 1)
 	assert.deepEqual(b.legend.map((l: { ink: string }) => l.ink), ['sage', 'vermilion', 'ochre'], 'the legend names only the inks on the sheet')
-	assert.match(b.colophon, /^From the Made Well record on hive; last entry 24 Oct, 21:57 UTC\. 4 items, 19 agent calls, 755,579 tokens, 6 minutes of agent time\. Not sealed: nothing has shipped\.$/)
+	assert.equal(b.colophon, 'From the Made Well record on hive; last entry 24 Oct, 21:57 UTC. 4 delivery items; between them 19 agent calls, 755,579 tokens and 6 minutes of agent time. Not sealed: nothing has shipped.')
 	// The sheet's own words carry no Made Well jargon; titles and Made Well's messages are quoted as they are.
-	const own = JSON.stringify([b.sheet, b.principal.steps, b.principal.centre, b.notices.map((n: { says: string; since: string; actions: { words: string }[] }) => [n.says, n.since, n.actions.map((a) => a.words)]), b.legend, b.colophon])
+	const own = JSON.stringify([b.sheet, b.principal.steps, b.principal.centre, b.principal.under, b.notices.map((n: { says: string; since: string; actions: { words: string }[] }) => [n.says, n.since, n.actions.map((a) => a.words)]), b.legend, b.colophon])
 	for (const word of ['UX', 'DX', 'AX', 'lens', 'cartridge', 'profile', 'NQ', 'hold', 'runner']) assert.doesNotMatch(own, new RegExp(`\\b${word}\\b`), `no "${word}" on the sheet`)
 })
 
@@ -120,6 +120,20 @@ test('2. ring order is fixed by item number and a repaint never moves a ring; th
 	assert.equal(names[7][0], '10 · Shipped item 10 with a title long enough to be cut on an inner ring', 'the whole title is in the name')
 	assert.match(names[7][1], /^10 · Shipped it.*…$/, 'the innermost ring shows the number and as much title as its arc holds')
 	assert.match(html, /aria-label="3, Three-lens browser verification trace fixture: 4 of 7 steps; 4, Create one beautiful/)
+})
+
+test('3. a line under the rings names the discovery that produced the items it produced, and the colophon says what it counts', () => {
+	const m = model()
+	m.items.push({ ...m.items[0], id: 5, title: 'Plant care cards', kind: 'discovery', status: 'discovered', since: '2026-10-25T20:00:48.762Z', ended: '2026-10-25T20:00:48.762Z', steps: [{ job: 'discover', state: 'done' }], calls: 1, tokens: 1000, agentMs: 60000 })
+	for (const id of [6, 7, 8, 9]) m.items.push({ ...m.items[0], id, title: `Candidate ${id}`, status: 'shipped', discovery: 5, steps: m.items[0].steps.map((s: object) => ({ ...s, state: 'done' })) })
+	m.items.push({ ...m.items[0], id: 10, title: 'Started by hand', status: 'shipped', steps: m.items[0].steps.map((s: object) => ({ ...s, state: 'done' })) })
+	m.summary.shipped = 5
+	const b = blazonOf(m)
+	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [2, 3, 4, 6, 7, 8, 9, 10], 'the discovery run is not a ring')
+	assert.deepEqual(b.principal.under, ['From discovery 5 “Plant care cards”, 25 Oct, 20:00 UTC: four items (6, 7, 8 and 9).'])
+	assert.equal(b.colophon, 'From the Made Well record on hive; last entry 24 Oct, 21:57 UTC. 9 delivery items and 1 discovery run; between them 19 agent calls, 755,579 tokens and 6 minutes of agent time. Sealed: 5 items have shipped. The rings draw every open item and the newest finished ones; 1 older finished item is not drawn.')
+	assert.deepEqual(blazonOf(model()).principal.under, [], 'no discovery, no line')
+	assert.match(painter(T).sheet(b), /<\/svg><p class="under">From discovery 5 “Plant care cards”, 25 Oct, 20:00 UTC: four items \(6, 7, 8 and 9\)\.<\/p>/)
 })
 
 test('4. every time on the sheet carries its zone, and the sheet shows the clock the CLI prints: UTC', () => {

@@ -12,6 +12,7 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Status for screen readers | `sheet.updated` | `model.at`, `model.needs.length` | concept |
 | Rings, one per item | `principal.rings[]` | `model.items[]` with `kind !== 'discovery'`: every open item, then the newest finished ones, at most 8; drawn in item order, outermost first, so a repaint never moves a ring and a new item is the innermost | concept |
 | Ring name | `rings[].item`, `rings[].name` | `items[].id`, `items[].title`; the painter always letters the number, then as much of the title as the arc holds, and the whole title is in the accessible name | concept |
+| Line under the rings | `principal.under[]` | one per `items[]` with `kind === 'discovery'` that has items with `discovery === its id`: its id, title, `ended` (else `since`) and the ids it produced | concept |
 | Step names around the rim | `principal.steps[]` | `items[].steps[].job`, in plain words (`STEP_WORDS`) | concept |
 | A filled step | `rings[].fills[i]` | `items[].steps[i].state` and `items[].status`: done → sage; held, failed, or waiting while paused/held → vermilion; active with a runner, or waiting on quota or a prerequisite → slate-blue; active with no runner → vermilion; a dropped item's done steps → ochre | concept |
 | Centre disc | `principal.centre` | `model.needs.length`; vermilion when more than none, Paper when none | concept |
@@ -23,7 +24,7 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Running notice | `notices[]` with `ink: 'slate-blue'` | `model.running[]` grouped by `item`, one notice per running item: `title`, the earliest `since`; `items[].doing` for the sentence | concept |
 | Its output blocks | `notices[].outputs[]` | one per running call of the item: `running[].job` in plain words (`STEP_WORDS`), `running[].since`, and `GET /api/live/<file>` text, each line in plain words (`lineWords`); else `running[].activity[].text` | concept |
 | Legend | `legend[]` | the inks the rings and notices use | concept |
-| Colophon | `colophon` | `model.host`, `summary.last`, `items.length`, `summary.calls`, `summary.tokens`, `summary.agentMs`, `summary.shipped` | concept |
+| Colophon | `colophon` | `model.host`, `summary.last`; the delivery items and discovery runs counted apart, then `summary.calls`, `summary.tokens`, `summary.agentMs` across both, `summary.shipped`, and how many finished items the rings leave out | concept |
 | Every time | `when()` | the record's ISO times, shown in UTC with the label "UTC", the clock the CLI prints; a painter that passes another zone gets that zone's label | concept |
 | Sealed | `sheet.sealed` | `summary.shipped > 0` (Stage 1 records it; the seal ordinary is not yet painted) | concept |
 

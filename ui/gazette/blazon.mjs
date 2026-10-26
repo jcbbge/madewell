@@ -40,6 +40,10 @@ export const when = (iso, zone = 'UTC') => {
 }
 const longDate = (iso, zone = 'UTC') => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: zone })
 
+const SMALL = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']
+/** "four items", "12 items": small counts in words, as a sentence would have them. */
+const count = (n, one, many = `${one}s`) => `${SMALL[n] ?? n.toLocaleString('en-GB')} ${n === 1 ? one : many}`
+const listOf = (xs) => new Intl.ListFormat('en-GB', { type: 'conjunction' }).format(xs.map(String))
 // ── Words for Made Well's commands ──────────────────────────────────────────────────────────────────────
 
 const WORDS = [
@@ -148,6 +152,14 @@ const ringItems = (delivery) => {
 	return kept.sort((a, b) => a.id - b.id)
 }
 
+/** The lines under the rings: one per discovery run that produced items on this sheet. */
+const underOf = (items, delivery, zone) =>
+	items.filter((i) => i.kind === 'discovery').sort((a, b) => a.id - b.id).flatMap((d) => {
+		const made = delivery.filter((i) => i.discovery === d.id).map((i) => i.id)
+		if (!made.length) return []
+		return [`From discovery ${d.id} “${clip(d.title, 48)}”, ${when(d.ended ?? d.since, zone)}: ${count(made.length, 'item')} (${listOf(made)}).`]
+	})
+
 /**
  * The Delivery sheet, written from the model. `opts.zone` is the zone every time is shown in (UTC unless a painter
  * says otherwise); `opts.live` maps a running step's live file name to its text, fetched from /api/live; `opts.stale`
@@ -158,6 +170,7 @@ export const blazonOf = (model, opts = {}) => {
 	const zone = opts.zone ?? 'UTC'
 	const driven = model.runner != null
 	const delivery = model.items.filter((i) => i.kind !== 'discovery')
+	const discoveries = model.items.filter((i) => i.kind === 'discovery')
 	const shown = ringItems(delivery)
 	const steps = shown.reduce((longest, i) => (i.steps.length > longest.length ? i.steps.map((s) => s.job) : longest), [])
 	const rings = shown.map((item) => {
@@ -204,7 +217,9 @@ export const blazonOf = (model, opts = {}) => {
 	const last = s.last ? when(s.last, zone) : 'none yet'
 	const sealed = s.shipped > 0
 	const notDrawn = delivery.length - shown.length
-	const colophon = `From the Made Well record on ${model.host ?? 'this machine'}; last entry ${last}. ${plural(delivery.length, 'item')}, ${plural(s.calls, 'agent call')}, ${s.tokens.toLocaleString('en-GB')} tokens, ${agentTime(s.agentMs)} of agent time.` +
+	// The colophon counts what it names: delivery items and discovery runs apart, then the calls, tokens and time across both.
+	const colophon = `From the Made Well record on ${model.host ?? 'this machine'}; last entry ${last}. ` +
+		`${plural(delivery.length, 'delivery item')}${discoveries.length ? ` and ${plural(discoveries.length, 'discovery run')}` : ''}; between them ${plural(s.calls, 'agent call')}, ${s.tokens.toLocaleString('en-GB')} tokens and ${agentTime(s.agentMs)} of agent time.` +
 		(sealed ? ` Sealed: ${plural(s.shipped, 'item has', 'items have')} shipped.` : ' Not sealed: nothing has shipped.') +
 		(notDrawn ? ` The rings draw every open item and the newest finished ones; ${notDrawn} older finished ${notDrawn === 1 ? 'item is' : 'items are'} not drawn.` : '')
 
@@ -222,6 +237,7 @@ export const blazonOf = (model, opts = {}) => {
 			steps: steps.map((job) => STEP_WORDS[job] ?? titleCase(job)),
 			rings,
 			centre: waits ? { charge: 'disc', ink: INK.waits, value: String(waits), words: waits === 1 ? 'waits on you' : 'wait on you' } : { charge: 'disc', ink: 'paper', value: '0', words: 'wait on you' },
+			under: underOf(model.items, delivery, zone),
 		},
 		notices,
 		legend: Object.entries(LEGEND).filter(([ink]) => inksUsed.has(ink)).map(([ink, words]) => ({ ink, words })),
