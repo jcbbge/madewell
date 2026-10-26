@@ -13,7 +13,7 @@ import { basename as basename3, dirname as dirname8, join as join12, resolve as 
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
-// node_modules/effect/dist/Pipeable.js
+// ../../node_modules/effect/dist/Pipeable.js
 var pipeArguments = (self, args2) => {
   switch (args2.length) {
     case 0:
@@ -57,7 +57,7 @@ var Class = /* @__PURE__ */ (function() {
   return PipeableBase;
 })();
 
-// node_modules/effect/dist/Function.js
+// ../../node_modules/effect/dist/Function.js
 var dual = function(arity, body) {
   if (typeof arity === "function") {
     return function() {
@@ -132,7 +132,7 @@ function memoizeIdempotent(f) {
   };
 }
 
-// node_modules/effect/dist/Cause.js
+// ../../node_modules/effect/dist/Cause.js
 var Cause_exports = {};
 __export(Cause_exports, {
   AsyncFiberError: () => AsyncFiberError2,
@@ -196,7 +196,7 @@ __export(Cause_exports, {
   squash: () => squash
 });
 
-// node_modules/effect/dist/Context.js
+// ../../node_modules/effect/dist/Context.js
 var Context_exports = {};
 __export(Context_exports, {
   Reference: () => Reference,
@@ -224,7 +224,7 @@ __export(Context_exports, {
   pick: () => pick
 });
 
-// node_modules/effect/dist/internal/equal.js
+// ../../node_modules/effect/dist/internal/equal.js
 var getAllObjectKeys = (obj) => {
   const keys3 = new Set(Reflect.ownKeys(obj));
   if (obj.constructor === Object) return keys3;
@@ -248,13 +248,13 @@ var getAllObjectKeys = (obj) => {
 var byReferenceInstances = /* @__PURE__ */ new WeakSet();
 var viewBytes = (view2) => new Uint8Array(view2.buffer, view2.byteOffset, view2.byteLength);
 
-// node_modules/effect/dist/internal/hash.js
+// ../../node_modules/effect/dist/internal/hash.js
 var backEdges = 0;
 var addBackEdge = () => {
   backEdges++;
 };
 
-// node_modules/effect/dist/Predicate.js
+// ../../node_modules/effect/dist/Predicate.js
 function isString(input) {
   return typeof input === "string";
 }
@@ -306,7 +306,7 @@ function isIterable(input) {
   return hasProperty(input, Symbol.iterator) || isString(input);
 }
 
-// node_modules/effect/dist/Hash.js
+// ../../node_modules/effect/dist/Hash.js
 var symbol = "~effect/Hash";
 var hash = (self) => {
   switch (typeof self) {
@@ -430,7 +430,7 @@ var randomHashCache = /* @__PURE__ */ new WeakMap();
 var hashCache = /* @__PURE__ */ new WeakMap();
 var visitedObjects = /* @__PURE__ */ new WeakSet();
 
-// node_modules/effect/dist/Equal.js
+// ../../node_modules/effect/dist/Equal.js
 var symbol2 = "~effect/Equal";
 function equals() {
   if (arguments.length === 1) {
@@ -600,7 +600,7 @@ var byReferenceUnsafe = (obj) => {
   return obj;
 };
 
-// node_modules/effect/dist/Redactable.js
+// ../../node_modules/effect/dist/Redactable.js
 var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
 var isRedactable = (u) => hasProperty(u, symbolRedactable);
 function redact(u) {
@@ -622,7 +622,7 @@ var emptyContext = {
   }
 };
 
-// node_modules/effect/dist/Formatter.js
+// ../../node_modules/effect/dist/Formatter.js
 function format(input, options) {
   const space = options?.space ?? 0;
   const ancestors = /* @__PURE__ */ new WeakSet();
@@ -774,7 +774,7 @@ function isJsonPrimitiveWrapper(object) {
   return false;
 }
 
-// node_modules/effect/dist/Inspectable.js
+// ../../node_modules/effect/dist/Inspectable.js
 var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 var toJson = (input) => {
   try {
@@ -841,7 +841,7 @@ var Class2 = class {
   }
 };
 
-// node_modules/effect/dist/internal/stackTraceLimit.js
+// ../../node_modules/effect/dist/internal/stackTraceLimit.js
 var isStackTraceLimitWritable = () => {
   const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
   if (desc === void 0) {
@@ -858,7 +858,7 @@ var setStackTraceLimit = (value3) => {
   }
 };
 
-// node_modules/effect/dist/Utils.js
+// ../../node_modules/effect/dist/Utils.js
 var SingleShotGen = class {
   constructor(self) {
     this.value = self;
@@ -910,7 +910,7 @@ var pickInternalCall = () => {
 };
 var internalCall = /* @__PURE__ */ pickInternalCall();
 
-// node_modules/effect/dist/internal/record.js
+// ../../node_modules/effect/dist/internal/record.js
 function assignProperty(self, key, value3) {
   if (key === "__proto__") {
     Object.defineProperty(self, key, {
@@ -932,7 +932,7 @@ function assignProperties(self, source) {
   }
 }
 
-// node_modules/effect/dist/internal/core.js
+// ../../node_modules/effect/dist/internal/core.js
 var EffectTypeId = `~effect/Effect`;
 var ExitTypeId = `~effect/Exit`;
 var effectVariance = {
@@ -1346,13 +1346,13 @@ var done = (value3) => {
   return exitFail(Done(value3));
 };
 
-// node_modules/effect/dist/Effectable.js
+// ../../node_modules/effect/dist/Effectable.js
 var Prototype2 = (options) => makePrimitiveProto({
   op: options.label,
   [evaluate]: options.evaluate
 });
 
-// node_modules/effect/dist/Equivalence.js
+// ../../node_modules/effect/dist/Equivalence.js
 var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
 var isStrictEquivalent = (x, y) => x === y;
 var strictEqual = () => isStrictEquivalent;
@@ -1379,7 +1379,7 @@ function Array_(item) {
   });
 }
 
-// node_modules/effect/dist/internal/doNotation.js
+// ../../node_modules/effect/dist/internal/doNotation.js
 var let_ = (map11) => dual(3, (self, name, f) => map11(self, (a) => ({
   ...a,
   [name]: f(a)
@@ -1392,7 +1392,7 @@ var bind = (map11, flatMap7) => dual(3, (self, name, f) => flatMap7(self, (a) =>
   [name]: b
 }))));
 
-// node_modules/effect/dist/internal/option.js
+// ../../node_modules/effect/dist/internal/option.js
 var TypeId = "~effect/Option";
 var CommonProto = {
   [TypeId]: {
@@ -1458,7 +1458,7 @@ var SomeImpl = function(value3) {
 SomeImpl.prototype = SomeProto;
 var some = (value3) => new SomeImpl(value3);
 
-// node_modules/effect/dist/internal/result.js
+// ../../node_modules/effect/dist/internal/result.js
 var TypeId2 = "~effect/Result";
 var CommonProto2 = {
   [TypeId2]: {
@@ -1528,7 +1528,7 @@ var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
 var getSuccess = (self) => isFailure(self) ? none : some(self.success);
 var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
-// node_modules/effect/dist/Order.js
+// ../../node_modules/effect/dist/Order.js
 function make2(compare2) {
   return (self, that) => self === that ? 0 : compare2(self, that);
 }
@@ -1547,7 +1547,7 @@ var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
 var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
 var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
 
-// node_modules/effect/dist/Option.js
+// ../../node_modules/effect/dist/Option.js
 var none2 = () => none;
 var some2 = some;
 var isOption2 = isOption;
@@ -1575,7 +1575,7 @@ var flatMap = /* @__PURE__ */ dual(2, (self, f) => isNone2(self) ? none2() : f(s
 var flatten = /* @__PURE__ */ flatMap(identity);
 var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
 
-// node_modules/effect/dist/Context.js
+// ../../node_modules/effect/dist/Context.js
 var ServiceTypeId = "~effect/Context/Service";
 var Service = function() {
   function KeyClass() {
@@ -1805,13 +1805,13 @@ var omit = (...keys3) => (self) => withFlat(self, (map11) => {
 });
 var Reference = Service;
 
-// node_modules/effect/dist/internal/array.js
+// ../../node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
-// node_modules/effect/dist/internal/count.js
+// ../../node_modules/effect/dist/internal/count.js
 var normalize = (n) => n > 0 ? Math.floor(n) : 0;
 
-// node_modules/effect/dist/Result.js
+// ../../node_modules/effect/dist/Result.js
 var Result_exports = {};
 __export(Result_exports, {
   Do: () => Do,
@@ -1966,10 +1966,10 @@ var tap = /* @__PURE__ */ dual(2, (self, f) => {
   return self;
 });
 
-// node_modules/effect/dist/Tuple.js
+// ../../node_modules/effect/dist/Tuple.js
 var makeEquivalence2 = Tuple;
 
-// node_modules/effect/dist/Iterable.js
+// ../../node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
   let i = 0;
   for (const a of self) {
@@ -2012,7 +2012,7 @@ var filter2 = /* @__PURE__ */ dual(2, (self, predicate) => ({
   }
 }));
 
-// node_modules/effect/dist/Record.js
+// ../../node_modules/effect/dist/Record.js
 var has = /* @__PURE__ */ dual(2, (self, key) => Object.hasOwn(self, key));
 var map3 = /* @__PURE__ */ dual(2, (self, f) => {
   const out = {
@@ -2037,7 +2037,7 @@ var makeEquivalence3 = (equivalence) => {
   return (self, that) => is3(self, that) && is3(that, self);
 };
 
-// node_modules/effect/dist/Array.js
+// ../../node_modules/effect/dist/Array.js
 var Array2 = globalThis.Array;
 var fromIterable = (collection) => Array2.isArray(collection) ? collection : Array2.from(collection);
 var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
@@ -2096,7 +2096,7 @@ var dedupe = (self) => {
   return out;
 };
 
-// node_modules/effect/dist/Duration.js
+// ../../node_modules/effect/dist/Duration.js
 var TypeId4 = "~effect/Duration";
 var bigint0 = /* @__PURE__ */ BigInt(0);
 var bigint1 = /* @__PURE__ */ BigInt(1);
@@ -2486,7 +2486,7 @@ var format2 = (self) => {
   return pieces.join(" ");
 };
 
-// node_modules/effect/dist/Filter.js
+// ../../node_modules/effect/dist/Filter.js
 var composePassthrough = /* @__PURE__ */ dual(2, (left, right) => (input) => {
   const leftOut = left(input);
   if (isFailure2(leftOut)) return fail2(input);
@@ -2499,7 +2499,7 @@ var toOption = (self) => (input) => {
   return isFailure2(result3) ? none2() : some2(result3.success);
 };
 
-// node_modules/effect/dist/Scheduler.js
+// ../../node_modules/effect/dist/Scheduler.js
 var Scheduler = /* @__PURE__ */ Reference("effect/Scheduler", {
   fiberCached: true,
   defaultValue: () => new MixedScheduler()
@@ -2643,7 +2643,7 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
-// node_modules/effect/dist/Tracer.js
+// ../../node_modules/effect/dist/Tracer.js
 var Tracer_exports = {};
 __export(Tracer_exports, {
   CurrentTraceLevel: () => CurrentTraceLevel,
@@ -2659,7 +2659,7 @@ __export(Tracer_exports, {
   nativeTracer: () => nativeTracer
 });
 
-// node_modules/effect/dist/Data.js
+// ../../node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
   Class: () => Class3,
@@ -2706,7 +2706,7 @@ function taggedMatch() {
 var Error3 = Error2;
 var TaggedError2 = TaggedError;
 
-// node_modules/effect/dist/encoding/EncodingError.js
+// ../../node_modules/effect/dist/encoding/EncodingError.js
 var EncodingErrorTypeId = "~effect/encoding/EncodingError";
 var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
   /**
@@ -2721,7 +2721,7 @@ var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")
   [EncodingErrorTypeId] = EncodingErrorTypeId;
 };
 
-// node_modules/effect/dist/encoding/Hex.js
+// ../../node_modules/effect/dist/encoding/Hex.js
 var encode = (input) => typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input);
 var random2 = (length) => {
   switch (length) {
@@ -2810,7 +2810,7 @@ var fromHexChar = (byte) => {
   throw new TypeError("Invalid input");
 };
 
-// node_modules/effect/dist/Tracer.js
+// ../../node_modules/effect/dist/Tracer.js
 var ParentSpanKey = "effect/Tracer/ParentSpan";
 var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
   fiberCached: true
@@ -2899,10 +2899,10 @@ var NativeSpan = class {
   }
 };
 
-// node_modules/effect/dist/internal/metric.js
+// ../../node_modules/effect/dist/internal/metric.js
 var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
 
-// node_modules/effect/dist/internal/references.js
+// ../../node_modules/effect/dist/internal/references.js
 var CurrentErrorReporters = /* @__PURE__ */ Reference("effect/ErrorReporter/CurrentErrorReporters", {
   defaultValue: () => /* @__PURE__ */ new Set()
 });
@@ -2938,7 +2938,7 @@ var CurrentLogSpans = /* @__PURE__ */ Reference("effect/References/CurrentLogSpa
   defaultValue: () => []
 });
 
-// node_modules/effect/dist/internal/tracer.js
+// ../../node_modules/effect/dist/internal/tracer.js
 var addSpanStackTrace = (options) => {
   if (options?.captureStackTrace === false) {
     return options;
@@ -2975,7 +2975,7 @@ var makeStackCleaner = (line) => (stack) => {
 };
 var spanCleaner = /* @__PURE__ */ makeStackCleaner(3);
 
-// node_modules/effect/dist/internal/effect.js
+// ../../node_modules/effect/dist/internal/effect.js
 var Interrupt = class extends ReasonBase {
   constructor(fiberId3, annotations2 = constEmptyAnnotations) {
     super("Interrupt", annotations2, "Interrupted");
@@ -5665,7 +5665,7 @@ var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   reporters.forEach((reporter) => reporter.report(opts));
 };
 
-// node_modules/effect/dist/Cause.js
+// ../../node_modules/effect/dist/Cause.js
 var TypeId5 = CauseTypeId;
 var ReasonTypeId = CauseReasonTypeId;
 var isCause2 = isCause;
@@ -5728,7 +5728,7 @@ var StackTrace = class extends (/* @__PURE__ */ Service()("effect/Cause/StackTra
 var InterruptorStackTrace2 = class extends (/* @__PURE__ */ Service()("effect/Cause/InterruptorStackTrace")) {
 };
 
-// node_modules/effect/dist/Effect.js
+// ../../node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
   Do: () => Do3,
@@ -5962,7 +5962,7 @@ __export(Effect_exports, {
   zipWith: () => zipWith2
 });
 
-// node_modules/effect/dist/Exit.js
+// ../../node_modules/effect/dist/Exit.js
 var Exit_exports = {};
 __export(Exit_exports, {
   asVoid: () => asVoid2,
@@ -6021,7 +6021,7 @@ var getSuccess3 = exitGetSuccess;
 var getCause = exitGetCause;
 var findErrorOption3 = exitFindErrorOption;
 
-// node_modules/effect/dist/Layer.js
+// ../../node_modules/effect/dist/Layer.js
 var Layer_exports = {};
 __export(Layer_exports, {
   CurrentMemoMap: () => CurrentMemoMap,
@@ -6070,7 +6070,7 @@ __export(Layer_exports, {
   withSpan: () => withSpan2
 });
 
-// node_modules/effect/dist/Deferred.js
+// ../../node_modules/effect/dist/Deferred.js
 var TypeId6 = "~effect/Deferred";
 var DeferredProto = {
   [TypeId6]: {
@@ -6111,19 +6111,19 @@ var doneUnsafe = (self, effect2) => {
   return true;
 };
 
-// node_modules/effect/dist/References.js
+// ../../node_modules/effect/dist/References.js
 var CurrentLogAnnotations2 = CurrentLogAnnotations;
 var CurrentLogSpans2 = CurrentLogSpans;
 var CurrentStackFrame2 = CurrentStackFrame;
 
-// node_modules/effect/dist/Scope.js
+// ../../node_modules/effect/dist/Scope.js
 var Scope = scopeTag;
 var makeUnsafe3 = scopeMakeUnsafe;
 var provide = provideScope;
 var forkUnsafe2 = scopeForkUnsafe;
 var close = scopeClose;
 
-// node_modules/effect/dist/Layer.js
+// ../../node_modules/effect/dist/Layer.js
 var TypeId7 = "~effect/Layer";
 var MemoMapTypeId = "~effect/Layer/MemoMap";
 var makeMemoMapEntry = (memoMap, layer) => {
@@ -6351,7 +6351,7 @@ var provideSpanStackFrame2 = (name, stack) => {
   }));
 };
 
-// node_modules/effect/dist/Clock.js
+// ../../node_modules/effect/dist/Clock.js
 var Clock_exports = {};
 __export(Clock_exports, {
   Clock: () => Clock,
@@ -6366,7 +6366,7 @@ var currentTimeMillis2 = currentTimeMillis;
 var currentTimeNanos2 = currentTimeNanos;
 var monotonicTimeNanos2 = monotonicTimeNanos;
 
-// node_modules/effect/dist/internal/dateTime.js
+// ../../node_modules/effect/dist/internal/dateTime.js
 var TypeId8 = "~effect/DateTime";
 var TimeZoneTypeId = "~effect/DateTime/TimeZone";
 var Proto2 = {
@@ -6757,7 +6757,7 @@ var formatIsoOffset = (self) => {
 };
 var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
 
-// node_modules/effect/dist/Number.js
+// ../../node_modules/effect/dist/Number.js
 var Number3 = globalThis.Number;
 var remainder = /* @__PURE__ */ dual(2, (self, divisor) => {
   if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
@@ -6789,11 +6789,11 @@ function toScientificInteger(n) {
   return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1];
 }
 
-// node_modules/effect/dist/String.js
+// ../../node_modules/effect/dist/String.js
 var String3 = globalThis.String;
 var trim = (self) => self.trim();
 
-// node_modules/effect/dist/Pull.js
+// ../../node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
 var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure) => failure._tag === "Fail" && isDone2(failure.error);
@@ -6822,7 +6822,7 @@ var matchEffect2 = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(s
   }
 }));
 
-// node_modules/effect/dist/Schedule.js
+// ../../node_modules/effect/dist/Schedule.js
 var TypeId9 = "~effect/Schedule";
 var CurrentMetadata = /* @__PURE__ */ Reference("effect/Schedule/CurrentMetadata", {
   defaultValue: /* @__PURE__ */ constant({
@@ -6914,7 +6914,7 @@ var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(s
 })));
 var forever2 = /* @__PURE__ */ spaced(zero);
 
-// node_modules/effect/dist/ExecutionPlan.js
+// ../../node_modules/effect/dist/ExecutionPlan.js
 var TypeId10 = "~effect/ExecutionPlan";
 var Proto3 = {
   [TypeId10]: TypeId10,
@@ -6943,11 +6943,11 @@ var CurrentMetadata2 = /* @__PURE__ */ Reference("effect/ExecutionPlan/CurrentMe
   })
 });
 
-// node_modules/effect/dist/internal/layer.js
+// ../../node_modules/effect/dist/internal/layer.js
 var provideLayer = (self, layer, options) => scopedWith((scope3) => flatMap3(options?.local ? buildWithMemoMap(layer, makeMemoMapUnsafe(), scope3) : buildWithScope(layer, scope3), (context3) => provideContext(self, context3)));
 var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source, options) => isContext(source) ? provideContext(self, source) : provideLayer(self, Array.isArray(source) ? mergeAll2(...source) : source, options));
 
-// node_modules/effect/dist/internal/schedule.js
+// ../../node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
 var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
@@ -7019,7 +7019,7 @@ var buildFromOptions = (options) => {
   return schedule2;
 };
 
-// node_modules/effect/dist/internal/executionPlan.js
+// ../../node_modules/effect/dist/internal/executionPlan.js
 var makeEventEmitter = (onEvent, currentMetadata) => {
   let lastStepIndex = -1;
   let stepAttempt = 0;
@@ -7124,7 +7124,7 @@ var scheduleFromStep = (step2, first) => {
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
 
-// node_modules/effect/dist/MutableHashMap.js
+// ../../node_modules/effect/dist/MutableHashMap.js
 var TypeId11 = "~effect/MutableHashMap";
 var MutableHashMapProto = {
   [TypeId11]: TypeId11,
@@ -7228,7 +7228,7 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
   return self;
 });
 
-// node_modules/effect/dist/Request.js
+// ../../node_modules/effect/dist/Request.js
 var TypeId12 = "~effect/Request";
 var requestVariance = /* @__PURE__ */ byReferenceUnsafe({
   /* c8 ignore next */
@@ -7244,7 +7244,7 @@ var RequestPrototype = {
 };
 var makeEntry = (options) => options;
 
-// node_modules/effect/dist/internal/request.js
+// ../../node_modules/effect/dist/internal/request.js
 var request = /* @__PURE__ */ dual(2, (self, resolver) => {
   const withResolver = (resolver2) => callback((resume) => {
     const entry = addEntry(resolver2, self, resume, getCurrentFiber());
@@ -7370,7 +7370,7 @@ function runBatch(batch) {
   return batch.run;
 }
 
-// node_modules/effect/dist/Metric.js
+// ../../node_modules/effect/dist/Metric.js
 var CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes";
 var CurrentMetricAttributes = /* @__PURE__ */ Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({})
@@ -7446,7 +7446,7 @@ function attributesToRecord(attributes) {
   return attributes;
 }
 
-// node_modules/effect/dist/Effect.js
+// ../../node_modules/effect/dist/Effect.js
 var TypeId14 = EffectTypeId;
 var isEffect2 = isEffect;
 var all3 = all2;
@@ -7833,7 +7833,7 @@ var flatMapEager2 = flatMapEager;
 var catchEager2 = catchEager;
 var fnUntracedEager2 = fnUntracedEager;
 
-// node_modules/effect/dist/BigDecimal.js
+// ../../node_modules/effect/dist/BigDecimal.js
 var FINITE_INT_REGEXP = /^[+-]?\d+$/;
 var TypeId15 = "~effect/BigDecimal";
 var BigDecimalProto = {
@@ -7986,7 +7986,7 @@ var toExponential = (n) => {
 };
 var isZero2 = (n) => n.value === bigint03;
 
-// node_modules/effect/dist/Schema.js
+// ../../node_modules/effect/dist/Schema.js
 var Schema_exports = {};
 __export(Schema_exports, {
   Any: () => Any2,
@@ -8359,7 +8359,7 @@ __export(Schema_exports, {
   withDecodingDefaultTypeKey: () => withDecodingDefaultTypeKey
 });
 
-// node_modules/effect/dist/BigInt.js
+// ../../node_modules/effect/dist/BigInt.js
 var BigInt3 = globalThis.BigInt;
 var toNumber = (b) => {
   if (b > BigInt3(Number.MAX_SAFE_INTEGER) || b < BigInt3(Number.MIN_SAFE_INTEGER)) {
@@ -8368,7 +8368,7 @@ var toNumber = (b) => {
   return some2(Number(b));
 };
 
-// node_modules/effect/dist/ByteSize.js
+// ../../node_modules/effect/dist/ByteSize.js
 var bigint04 = /* @__PURE__ */ BigInt(0);
 var bigint13 = /* @__PURE__ */ BigInt(1);
 var decimalBase = /* @__PURE__ */ BigInt(1e3);
@@ -8495,7 +8495,7 @@ var isByteSize = (input) => typeof input === "bigint" && input >= bigint04;
 var toBigInt = (self) => self;
 var toNumber2 = toNumber;
 
-// node_modules/effect/dist/Chunk.js
+// ../../node_modules/effect/dist/Chunk.js
 var TypeId16 = "~effect/Chunk";
 function copy(src, srcPos, dest, destPos, len) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
@@ -8659,7 +8659,7 @@ var fromArrayUnsafe = (self) => self.length === 0 ? empty6() : self.length === 1
 });
 var size = (self) => self.length;
 
-// node_modules/effect/dist/DateTime.js
+// ../../node_modules/effect/dist/DateTime.js
 var isDateTime2 = isDateTime;
 var isTimeZone2 = isTimeZone;
 var isTimeZoneOffset2 = isTimeZoneOffset;
@@ -8682,7 +8682,7 @@ var toEpochMillis2 = toEpochMillis;
 var formatIso2 = formatIso;
 var formatIsoZoned2 = formatIsoZoned;
 
-// node_modules/effect/dist/encoding/Base64.js
+// ../../node_modules/effect/dist/encoding/Base64.js
 var encode2 = (input) => encodeBytes(typeof input === "string" ? encoder2.encode(input) : input);
 var decode2 = (str) => {
   const stripped = stripCrlf(str);
@@ -8761,7 +8761,7 @@ var getCode = (charCode) => {
   return codes[charCode];
 };
 
-// node_modules/effect/dist/internal/hashMap.js
+// ../../node_modules/effect/dist/internal/hashMap.js
 var HashMapTypeId = "~effect/HashMap";
 var SHIFT = 5;
 var BUCKET_SIZE = 1 << SHIFT;
@@ -9396,14 +9396,14 @@ var keys2 = (self) => new HashMapIterator(self._root, identity);
 var entries = (self) => self[Symbol.iterator]();
 var size2 = (self) => self.size;
 
-// node_modules/effect/dist/HashMap.js
+// ../../node_modules/effect/dist/HashMap.js
 var isHashMap2 = isHashMap;
 var fromIterable4 = fromIterable3;
 var entries2 = entries;
 var toEntries = (self) => Array.from(entries2(self));
 var size3 = size2;
 
-// node_modules/effect/dist/internal/hashSet.js
+// ../../node_modules/effect/dist/internal/hashSet.js
 var HashSetTypeId = "~effect/HashSet";
 var hashSetSeed = /* @__PURE__ */ string(HashSetTypeId);
 var HashSetProto = {
@@ -9458,12 +9458,12 @@ var every2 = (self, predicate) => {
   return true;
 };
 
-// node_modules/effect/dist/HashSet.js
+// ../../node_modules/effect/dist/HashSet.js
 var fromIterable6 = fromIterable5;
 var isHashSet2 = isHashSet;
 var size5 = size4;
 
-// node_modules/effect/dist/http/Cookies.js
+// ../../node_modules/effect/dist/http/Cookies.js
 var TypeId17 = "~effect/http/Cookies";
 var isCookies = (u) => hasProperty(u, TypeId17);
 var CookieTypeId = "~effect/http/Cookies/Cookie";
@@ -9787,7 +9787,7 @@ var tryDecodeURIComponent = (str) => {
   }
 };
 
-// node_modules/effect/dist/internal/redacted.js
+// ../../node_modules/effect/dist/internal/redacted.js
 var redactedRegistry = /* @__PURE__ */ new WeakMap();
 var value = (self) => {
   if (redactedRegistry.has(self)) {
@@ -9797,7 +9797,7 @@ var value = (self) => {
   }
 };
 
-// node_modules/effect/dist/Redacted.js
+// ../../node_modules/effect/dist/Redacted.js
 var TypeId18 = "~effect/Redacted";
 var isRedacted = (u) => hasProperty(u, TypeId18);
 var make12 = (value3, options) => {
@@ -9830,7 +9830,7 @@ var Proto5 = {
 var value2 = value;
 var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
-// node_modules/effect/dist/http/Headers.js
+// ../../node_modules/effect/dist/http/Headers.js
 var TypeId19 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
 var isHeaders = (u) => hasProperty(u, TypeId19);
 var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.create(null), {
@@ -9931,10 +9931,10 @@ var CurrentRedactedNames = /* @__PURE__ */ Reference("effect/Headers/CurrentReda
   defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
 });
 
-// node_modules/effect/dist/http/internal/urlParams.js
+// ../../node_modules/effect/dist/http/internal/urlParams.js
 var unwrap2 = (value3) => typeof value3 === "string" ? value3 : value2(value3);
 
-// node_modules/effect/dist/http/UrlParams.js
+// ../../node_modules/effect/dist/http/UrlParams.js
 var TypeId20 = "~effect/http/UrlParams";
 var isUrlParams = (u) => hasProperty(u, TypeId20);
 var Proto7 = {
@@ -10032,7 +10032,7 @@ var CurrentRedactedNames2 = /* @__PURE__ */ Reference("effect/http/UrlParams/Cur
   defaultValue: () => ["AWSAccessKeyId", "Signature", "sig", "X-Goog-Signature"]
 });
 
-// node_modules/effect/dist/internal/graph.js
+// ../../node_modules/effect/dist/internal/graph.js
 var TypeId21 = "~effect/Graph";
 var isGraph = (u) => hasProperty(u, TypeId21);
 var toImpl = (graph) => graph;
@@ -10156,7 +10156,7 @@ var hydrate = (snapshot3) => {
   return graph;
 };
 
-// node_modules/effect/dist/internal/schema/annotations.js
+// ../../node_modules/effect/dist/internal/schema/annotations.js
 function resolve(ast) {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
 }
@@ -10178,7 +10178,7 @@ var getExpected = /* @__PURE__ */ memoize((ast) => {
 });
 var annotationExcludedKeys = /* @__PURE__ */ new Set([SENTINELS_ANNOTATION_KEY, STRUCTURAL_ANNOTATION_KEY, "representation", "arbitraryConstraint", "toJsonSchema", "toCode", "toEquivalence", "toFormatter", "toCodec", "toCodecJson", "toCodecStringTree", "toCodecIso", "toCodecArbitrary"]);
 
-// node_modules/effect/dist/internal/schema/parser.js
+// ../../node_modules/effect/dist/internal/schema/parser.js
 var missing = /* @__PURE__ */ Symbol();
 var succeed7 = succeed4;
 var missingExit = /* @__PURE__ */ succeed7(missing);
@@ -10186,7 +10186,7 @@ var sameExit = /* @__PURE__ */ succeed7(missing);
 var toOption2 = (value3) => value3 === missing ? none2() : some2(value3);
 var fromOptionExit = (option3) => option3._tag === "None" ? missingExit : succeed7(option3.value);
 
-// node_modules/effect/dist/SchemaIssue.js
+// ../../node_modules/effect/dist/SchemaIssue.js
 var TypeId22 = "~effect/SchemaIssue/Issue";
 function isIssue(u) {
   return hasProperty(u, TypeId22) && u[TypeId22] === TypeId22;
@@ -10529,7 +10529,7 @@ function findMessage(issue) {
   if (typeof message === "string") return message;
 }
 
-// node_modules/effect/dist/internal/schema/cause.js
+// ../../node_modules/effect/dist/internal/schema/cause.js
 function getSchemaIssue(cause) {
   let issue;
   for (const reason of cause.reasons) {
@@ -10550,7 +10550,7 @@ function getSchemaIssueOrThrow(cause, message) {
   return issue;
 }
 
-// node_modules/effect/dist/encoding/Base64Url.js
+// ../../node_modules/effect/dist/encoding/Base64Url.js
 var encode3 = (input) => encode2(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 var decode3 = (str) => {
   const stripped = str.replace(/[\n\r]/g, "");
@@ -10578,7 +10578,7 @@ var decode3 = (str) => {
 var decodeString3 = (str) => map2(decode3(str), (_) => decoder3.decode(_));
 var decoder3 = /* @__PURE__ */ new TextDecoder();
 
-// node_modules/effect/dist/SchemaGetter.js
+// ../../node_modules/effect/dist/SchemaGetter.js
 var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
 function fail7(f) {
   return transformOptionalEffect((oe, options) => fail6(f(oe, options)));
@@ -10865,7 +10865,7 @@ function collectBracketPathEntries(isLeaf) {
   };
 }
 
-// node_modules/effect/dist/SchemaTransformation.js
+// ../../node_modules/effect/dist/SchemaTransformation.js
 var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
@@ -11058,7 +11058,7 @@ function fromJsonString(options) {
 var fromFormData = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeFormData(), /* @__PURE__ */ encodeFormData());
 var fromURLSearchParams = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeURLSearchParams(), /* @__PURE__ */ encodeURLSearchParams());
 
-// node_modules/effect/dist/SchemaAST.js
+// ../../node_modules/effect/dist/SchemaAST.js
 function makeGuard(tag2) {
   return (ast) => ast._tag === tag2;
 }
@@ -13182,7 +13182,7 @@ var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options)
 });
 var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough3());
 
-// node_modules/effect/dist/internal/schema/interpreter.js
+// ../../node_modules/effect/dist/internal/schema/interpreter.js
 var flatMapTransformation = (result3, current, f) => result3 === sameExit ? f(current) : flatMapEager2(result3, f);
 function compileTransformation(transformation) {
   if (transformation._tag === "Middleware") {
@@ -13339,7 +13339,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
   };
 }
 
-// node_modules/effect/dist/internal/schema/compilerRegistry.js
+// ../../node_modules/effect/dist/internal/schema/compilerRegistry.js
 var invalid3 = /* @__PURE__ */ Symbol();
 var cache = /* @__PURE__ */ new WeakMap();
 var compiler;
@@ -13433,7 +13433,7 @@ function resolve2(ast) {
   return entry;
 }
 
-// node_modules/effect/dist/SchemaParser.js
+// ../../node_modules/effect/dist/SchemaParser.js
 function makeEffect(schema) {
   const ast = schema.ast;
   let parser;
@@ -13699,7 +13699,7 @@ function makeConstructorSync(ast) {
 var normalCompiler = (ast) => resolve2(ast).parser;
 var constructorCompiler = (ast) => resolve2(ast).makeEffect;
 
-// node_modules/effect/dist/internal/schema/make.js
+// ../../node_modules/effect/dist/internal/schema/make.js
 var TypeId25 = "~effect/Schema/Schema";
 var RebuildOptions = /* @__PURE__ */ Symbol();
 var SchemaProto = {
@@ -13760,7 +13760,7 @@ function make16(ast, options) {
   return self;
 }
 
-// node_modules/effect/dist/JsonPointer.js
+// ../../node_modules/effect/dist/JsonPointer.js
 function escapeToken(token) {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -13790,7 +13790,7 @@ function formatUriFragment(path) {
   return path.reduce((fragment, token) => `${fragment}/${formatUriFragmentToken(token)}`, "#");
 }
 
-// node_modules/effect/dist/JsonSchema.js
+// ../../node_modules/effect/dist/JsonSchema.js
 var META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema#";
 var META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 function isMetaSchemaUri(value3, uri) {
@@ -14150,7 +14150,7 @@ function convertLegacyId(source, out, targetKey, dialect) {
   }
 }
 
-// node_modules/effect/dist/internal/schema/toCodec.js
+// ../../node_modules/effect/dist/internal/schema/toCodec.js
 function toCodecJson(schema) {
   return make16(toCodecJsonAST(schema.ast), {
     schema
@@ -14358,11 +14358,11 @@ function toCodecArrayFromSingleASTStep(ast) {
   return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" || ast._tag === "Suspend" ? ast.recur(toCodecArrayFromSingleAST) : ast;
 }
 
-// node_modules/effect/dist/RegExp.js
+// ../../node_modules/effect/dist/RegExp.js
 var RegExp2 = globalThis.RegExp;
 var escape = (string3) => string3.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-// node_modules/effect/dist/internal/errors.js
+// ../../node_modules/effect/dist/internal/errors.js
 function errorWithPath(message, path) {
   if (path.length > 0) {
     message += `
@@ -14371,7 +14371,7 @@ function errorWithPath(message, path) {
   return new Error(message);
 }
 
-// node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
+// ../../node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
 function formatDefinitionReference(key) {
   return `#/$defs/${formatUriFragmentToken(key)}`;
 }
@@ -15020,7 +15020,7 @@ function toJsonSchemaDocument(document, options) {
   };
 }
 
-// node_modules/effect/dist/internal/schema/toRepresentation.js
+// ../../node_modules/effect/dist/internal/schema/toRepresentation.js
 var defaultReferencePolicy = ({
   identifier: identifier2
 }) => identifier2;
@@ -15337,7 +15337,7 @@ function toRepresentations(asts, options) {
   }
 }
 
-// node_modules/effect/dist/internal/schema/standardSchema.js
+// ../../node_modules/effect/dist/internal/schema/standardSchema.js
 function makeStandardResult(exit4) {
   return isSuccess4(exit4) ? exit4.value : {
     issues: [{
@@ -15437,7 +15437,7 @@ function toStandardJSONSchemaV1(self) {
   });
 }
 
-// node_modules/effect/dist/JsonPatch.js
+// ../../node_modules/effect/dist/JsonPatch.js
 function get4(oldValue, newValue) {
   const patches = [];
   getLoop(oldValue, newValue, "", patches);
@@ -15618,7 +15618,7 @@ function rebuildFromStack(stack, newParent) {
   return acc;
 }
 
-// node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
+// ../../node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
   const get6 = encodeSync(serializer);
@@ -15635,7 +15635,7 @@ function toDifferJsonPatch(schema) {
   };
 }
 
-// node_modules/effect/dist/internal/schema/toEncoderXml.js
+// ../../node_modules/effect/dist/internal/schema/toEncoderXml.js
 function toEncoderXml(codec, options) {
   const rootName = resolveIdentifier(codec.ast) ?? resolveTitle(codec.ast);
   const serialize = encodeEffect(toCodecStringTree(codec));
@@ -15734,7 +15734,7 @@ var xml = {
   }
 };
 
-// node_modules/effect/dist/internal/schema/toEquivalence.js
+// ../../node_modules/effect/dist/internal/schema/toEquivalence.js
 var toEquivalence = /* @__PURE__ */ memoize((ast) => {
   return recur(ast);
 });
@@ -15918,7 +15918,7 @@ function causeEquivalence(error, defect) {
   return (a, b) => reasons(a.reasons, b.reasons);
 }
 
-// node_modules/effect/dist/internal/schema/toFormatter.js
+// ../../node_modules/effect/dist/internal/schema/toFormatter.js
 function causeReasonToFormatter(error, defect) {
   return (reason) => {
     switch (reason._tag) {
@@ -16133,7 +16133,7 @@ function toFormatter(ast, options) {
   }
 }
 
-// node_modules/effect/dist/Struct.js
+// ../../node_modules/effect/dist/Struct.js
 var pick2 = /* @__PURE__ */ dual(2, (self, keys3) => {
   return buildStruct(self, (k, v) => hasPropertyKey(keys3, k) ? [k, v] : void 0);
 });
@@ -16166,7 +16166,7 @@ function buildStruct(source, f) {
   return out;
 }
 
-// node_modules/effect/dist/Optic.js
+// ../../node_modules/effect/dist/Optic.js
 function makeIso(get6, set4) {
   return make17(primitiveNode("Iso", get6, set4));
 }
@@ -16512,7 +16512,7 @@ function id() {
   return identityIso;
 }
 
-// node_modules/effect/dist/internal/schema/toIso.js
+// ../../node_modules/effect/dist/internal/schema/toIso.js
 function toIso(schema) {
   const serializer = toCodecIso(schema);
   return makeIso(encodeSync(serializer), decodeSync(serializer));
@@ -16524,13 +16524,13 @@ function toIsoFocus(_) {
   return id();
 }
 
-// node_modules/effect/dist/internal/schemaError.js
+// ../../node_modules/effect/dist/internal/schemaError.js
 var SchemaErrorTypeId = "~effect/Schema/SchemaError";
 function isSchemaError(u) {
   return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
 }
 
-// node_modules/effect/dist/net/NetAddress.js
+// ../../node_modules/effect/dist/net/NetAddress.js
 var TypeId26 = "~effect/net/NetAddress";
 var ipv4Value = (self) => self.value;
 var ipv6Words = (self) => self;
@@ -16974,7 +16974,7 @@ var unixPathAddress = (path) => {
   return Object.freeze(self);
 };
 
-// node_modules/effect/dist/net/Host.js
+// ../../node_modules/effect/dist/net/Host.js
 var TypeId27 = "~effect/net/Host";
 var hostError = (input, message) => fail2(new NetAddressError({
   input,
@@ -17087,7 +17087,7 @@ var formatHostPort = (self) => {
   return host.includes(":") ? `[${host}]:${self.port}` : `${host}:${self.port}`;
 };
 
-// node_modules/effect/dist/net/Dns.js
+// ../../node_modules/effect/dist/net/Dns.js
 var RecordTypeId = "~effect/net/Dns/DnsRecord";
 var isUint8 = (u) => Number.isInteger(u) && u >= 0 && u <= 255;
 var isUint16 = (u) => Number.isInteger(u) && u >= 0 && u <= 65535;
@@ -17254,7 +17254,7 @@ var formatRecord = (self) => {
   }
 };
 
-// node_modules/effect/dist/net/IpInterface.js
+// ../../node_modules/effect/dist/net/IpInterface.js
 var TypeId28 = "~effect/net/IpInterface";
 var isIpv4Interface = (u) => isIpInterface(u) && isIpv4Address(u.address);
 var isIpv6Interface = (u) => isIpInterface(u) && isIpv6Address(u.address);
@@ -17316,7 +17316,7 @@ var ipv6FromString2 = (input, options) => flatMap2(parseAddressWithPrefix(input,
 var fromString3 = (input, options) => flatMap2(parseAddressWithPrefix(input, options), (parts2) => flatMap2(ipFromString(parts2.address), (address) => make18(address, parts2.prefixLength ?? width(address))));
 var format5 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// node_modules/effect/dist/net/IpNetwork.js
+// ../../node_modules/effect/dist/net/IpNetwork.js
 var TypeId29 = "~effect/net/IpNetwork";
 var isIpv4Network = (u) => isIpNetwork(u) && isIpv4Address(u.address);
 var isIpv6Network = (u) => isIpNetwork(u) && isIpv6Address(u.address);
@@ -17385,7 +17385,7 @@ var fromString4 = (input) => {
 };
 var format6 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// node_modules/effect/dist/Schema.js
+// ../../node_modules/effect/dist/Schema.js
 var TypeId30 = TypeId25;
 function declareConstructor() {
   return (typeParameters, run2, annotations2) => {
@@ -21195,7 +21195,7 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
-// node_modules/effect/dist/Fiber.js
+// ../../node_modules/effect/dist/Fiber.js
 var Fiber_exports = {};
 __export(Fiber_exports, {
   await: () => await_,
@@ -21222,7 +21222,7 @@ var isFiber = (u) => hasProperty(u, FiberTypeId);
 var getCurrent = getCurrentFiber;
 var runIn = fiberRunIn;
 
-// node_modules/effect/dist/MutableList.js
+// ../../node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
   head: void 0,
@@ -21328,7 +21328,7 @@ var take = (self) => {
   return message;
 };
 
-// node_modules/effect/dist/Queue.js
+// ../../node_modules/effect/dist/Queue.js
 var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
@@ -21762,7 +21762,7 @@ var finalize = (self, exit4) => {
   openState.awaiters.clear();
 };
 
-// node_modules/effect/dist/Semaphore.js
+// ../../node_modules/effect/dist/Semaphore.js
 var Semaphore_exports = {};
 __export(Semaphore_exports, {
   make: () => make23,
@@ -23494,8 +23494,8 @@ var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.
   const current = store.get(item);
   const parent = `item:${item}:round:${current.round}:job:${spec.job}`;
   const note = (kind, data) => store.note(item, kind, { invocation, ...data }, new Date(clock2.currentTimeMillisUnsafe()).toISOString());
-  const history = store.events(item).filter((e) => e.kind === "trace-finished" && e.data.job === spec.job && e.data.kind === spec.kind && e.data.status === "returned").map((e) => Number(e.data.ms)).sort((a, b) => a - b);
-  const typical = history.length >= 3 ? history[Math.floor(history.length / 2)] : null;
+  const history2 = store.events(item).filter((e) => e.kind === "trace-finished" && e.data.job === spec.job && e.data.kind === spec.kind && e.data.status === "returned").map((e) => Number(e.data.ms)).sort((a, b) => a - b);
+  const typical = history2.length >= 3 ? history2[Math.floor(history2.length / 2)] : null;
   const durationThreshold = typical === null ? spec.kind === "intake" || spec.kind === "repair" ? 6e4 : 18e4 : Math.max(3e4, typical * 3);
   note("trace-started", { parent, round: current.round, pid: process.pid, ...spec, durationThreshold, typical });
   let lastOutput = started;
@@ -23924,6 +23924,98 @@ import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as read
 import { tmpdir as tmpdir3 } from "node:os";
 import { dirname as dirname6, join as join9 } from "node:path";
 
+// src/handoff-history.ts
+var answerReference = (ids) => `See saved answers: ${[...new Set(ids)].join(", ")}.`;
+function buildAnswerHistory(events2, job) {
+  const answers = [];
+  const raw = /* @__PURE__ */ new Map();
+  const pending2 = /* @__PURE__ */ new Map();
+  const forms = /* @__PURE__ */ new Map();
+  const remember = (text2, ids) => {
+    if (!text2 || !ids.length) return;
+    const refs = forms.get(text2) ?? /* @__PURE__ */ new Set();
+    for (const id2 of ids) refs.add(id2);
+    forms.set(text2, refs);
+  };
+  for (const e of [...events2].sort((a, b) => a.seq - b.seq)) {
+    const source = String(e.data.job ?? "");
+    if (job === "implement" && source === "test-plan" || job === "test-plan" && source === "implement") continue;
+    const key = `${e.item}:${source}`;
+    if (e.kind === "nq-question") pending2.set(key, e.data.questions);
+    if (!["nq-answer", "nq-decided", "nq-corrected", "nq-reused"].includes(e.kind) || typeof e.data.answer !== "string") continue;
+    const questions = e.data.questions ?? pending2.get(key) ?? [];
+    const reuse = e.data.reuse ?? [];
+    const original = e.data.answer;
+    let fresh2 = original;
+    if (e.data.answerFormat !== "references" && reuse.length && reuse.every((r) => raw.has(r.answerId))) {
+      const suffix = reuse.map((r) => `${r.question}
+${raw.get(r.answerId)}`).join("\n\n");
+      if (fresh2 === suffix) fresh2 = "";
+      else if (fresh2.endsWith(`
+
+${suffix}`)) fresh2 = fresh2.slice(0, -suffix.length - 2);
+    }
+    const ids = [];
+    const freshIds = [];
+    questions.forEach((question, index2) => {
+      const ref = reuse.find((r) => r.question === question);
+      const prior = ref && answers.find((a) => a.id === ref.answerId);
+      if (ref && !prior) return;
+      const id2 = `${e.seq}:${index2}`;
+      answers.push({ id: id2, question, answer: prior ? prior.answer : fresh2, by: prior ? prior.by : String(e.data.originator), job: source });
+      raw.set(id2, prior ? raw.get(prior.id) : original);
+      ids.push(id2);
+      if (!prior) freshIds.push(id2);
+    });
+    if (e.kind !== "nq-reused" && original !== fresh2) remember(original, ids);
+    remember(fresh2, freshIds);
+  }
+  const grouped = /* @__PURE__ */ new Map();
+  const canonical = /* @__PURE__ */ new Map();
+  for (const row of answers) {
+    const first = grouped.get(row.answer);
+    if (first) {
+      const { answer: _answer, ...alias } = row;
+      (first.aliases ??= []).push(alias);
+      canonical.set(row.id, first.id);
+    } else {
+      grouped.set(row.answer, { ...row });
+      canonical.set(row.id, row.id);
+    }
+  }
+  const replacements = [...forms].sort(([a], [b]) => b.length - a.length);
+  const compactText = (text2) => {
+    for (const [body, ids] of replacements) {
+      const reference = answerReference([...ids].map((id2) => canonical.get(id2)));
+      if (text2 === body) return reference;
+      for (const separator of ["\n", ": "]) {
+        if (text2.endsWith(`${separator}${body}`)) return text2.slice(0, -body.length) + reference;
+      }
+    }
+    return text2;
+  };
+  const compactTurns = (value3) => Array.isArray(value3) ? value3.map(
+    (turn) => turn && typeof turn === "object" && typeof turn.answer === "string" ? { ...turn, answer: compactText(turn.answer) } : turn
+  ) : value3;
+  return {
+    answers,
+    packetAnswers: () => [...grouped.values()],
+    compact(parts2) {
+      const result3 = { ...parts2 };
+      if (Array.isArray(parts2.earlierTurns)) result3.earlierTurns = compactTurns(parts2.earlierTurns);
+      if (parts2.exchange && typeof parts2.exchange === "object") {
+        const exchange = parts2.exchange;
+        result3.exchange = {
+          ...exchange,
+          ...Array.isArray(exchange.turns) ? { turns: compactTurns(exchange.turns) } : {},
+          ...Array.isArray(exchange.notes) ? { notes: exchange.notes.map((note) => typeof note === "string" ? compactText(note) : note) } : {}
+        };
+      }
+      return result3;
+    }
+  };
+}
+
 // src/project.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync6, writeFileSync as writeFileSync4 } from "node:fs";
 import { dirname as dirname5, join as join8, sep } from "node:path";
@@ -24181,7 +24273,7 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   for (const r of reuse) known.set(sameQuestion(r.question), previous.find((a) => a.id === r.answerId));
   const recalled = asking.flatMap((q) => ((e) => e ? [{ question: q, answerId: e.id, answer: e.answer, by: e.by }] : [])(known.get(sameQuestion(q))));
   const questions = asking.filter((q) => !known.has(sameQuestion(q)));
-  const carried = [...x.notes ?? [], ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${r.answer}`)];
+  const carried = [...x.notes ?? [], ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${answerReference([r.answerId])}`)];
   const receiver = stepOf(L(item), job).profile;
   if (recalled.length) store.note(id2, "nq-reused", { job, questions: recalled.map((r) => r.question), answer: "Saved answers", reuse: recalled.map(({ question, answerId }) => ({ question, answerId })) });
   if (!questions.length) {
@@ -24221,31 +24313,15 @@ var decisionGuidance = Effect_exports.fn("mw.decisionGuidance")(function* (item,
   store.note(item.id, "decision-resolution", { job, mode, key, resolution });
   return resolution;
 });
-var ledger = (store, id2, job) => {
+var history = (store, id2, job) => {
   const events2 = store.events(id2);
   for (let item = store.get(id2); item?.discovery !== void 0 || item?.parent !== void 0; ) {
     item = store.get(item.discovery ?? item.parent);
     if (item) events2.push(...store.events(item.id));
   }
-  const answers = [];
-  const pending2 = /* @__PURE__ */ new Map();
-  for (const e of events2.sort((a, b) => a.seq - b.seq)) {
-    const source = String(e.data.job ?? "");
-    if (job === "implement" && source === "test-plan" || job === "test-plan" && source === "implement") continue;
-    const key = `${e.item}:${source}`;
-    if (e.kind === "nq-question") pending2.set(key, e.data.questions);
-    if (!["nq-answer", "nq-decided", "nq-corrected", "nq-reused"].includes(e.kind) || typeof e.data.answer !== "string") continue;
-    const questions = e.data.questions ?? pending2.get(key) ?? [];
-    const reused = e.data.reuse ?? [];
-    questions.forEach((question, i) => {
-      const ref = reused.find((r) => r.question === question);
-      const prior = ref && answers.find((a) => a.id === ref.answerId);
-      if (ref && !prior) return;
-      answers.push({ id: `${e.seq}:${i}`, question, answer: prior ? prior.answer : e.data.answer, by: prior ? prior.by : String(e.data.originator), job: source });
-    });
-  }
-  return answers;
+  return buildAnswerHistory(events2, job);
 };
+var ledger = (store, id2, job) => history(store, id2, job).answers;
 var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
   const item0 = store.get(id2);
@@ -24263,7 +24339,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
     access: "read",
     card,
     required: requiredOf(ORIGINATOR),
-    packet: (dir) => packet(item, by, dir, { ...originatorParts(item, job, x, ledger(store, id2, job)), decisionResolution }, x.from.kind === "job")
+    packet: (dir) => packet(item, by, dir, { ...originatorParts(item, job, x, ledger(store, id2, job)), decisionResolution }, x.from.kind === "job", job)
   });
   if (!call) return;
   const reply = yield* decodeOrRepair(id2, job, call, ORIGINATOR);
@@ -24276,8 +24352,6 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   }
   const allReused = openQuestions.length > 0 && reuse.length === openQuestions.length;
   let answer2 = allReused ? "" : reply.value.answer;
-  if (reuse.length) answer2 = [answer2, ...reuse.map((r) => `${r.question}
-${previous.find((a) => a.id === r.answerId).answer}`)].filter(Boolean).join("\n\n");
   const reused = reuse.length ? { reuse } : {};
   if (reply.value.needsOperator && !allReused) {
     const pendingQ = x.turns.at(-1);
@@ -24294,9 +24368,8 @@ ${previous.find((a) => a.id === r.answerId).answer}`)].filter(Boolean).join("\n\
     const questions = t.questions.filter((q) => !reuse.some((r) => r.question === q));
     return questions.length ? [{ ...t, questions, answer: answer2, by: "originator" }] : [];
   });
-  const notes = [...x.notes ?? [], ...reuse.map((r) => `${r.question}
-${previous.find((a) => a.id === r.answerId).answer}`)];
-  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns, notes } }, "nq-answer", { job, originator: from, questions: openQuestions, answer: answer2, ...reused, ...reply.value.needsOperator && !allReused ? { dispatcher: true } : {} });
+  const notes = [...x.notes ?? [], ...reuse.map((r) => `${r.question} Answered before by the ${previous.find((a) => a.id === r.answerId).by}: ${answerReference([r.answerId])}`)];
+  saveTrack(store, id2, job, { launches: 0, exchange: { ...x, status: "awaiting-receiver", turns, notes } }, "nq-answer", { job, originator: from, questions: openQuestions, answer: answer2, answerFormat: "references", ...reused, ...reply.value.needsOperator && !allReused ? { dispatcher: true } : {} });
 });
 var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
   const item0 = (yield* Store).get(id2);
@@ -25152,6 +25225,7 @@ var briefOf = (lane) => [
   "Honor the conventions the project's repository already has.",
   ...lane.pack.brief ? [lane.pack.brief] : [],
   "Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.",
+  "Answer memory: each answeredBefore entry contains one verbatim answer. Its optional aliases list the other ids, questions and authorship for that same answer. Saved-answer references in exchange history resolve through either the entry id or an alias id. Both are valid reuse targets.",
   SUBAGENT_RULE,
   "Your final message is ONLY one JSON object that matches you.replyFormat, with that schema's properties as its own top-level keys."
 ].join("\n\n");
@@ -25167,15 +25241,17 @@ var snapshotFor = (item, job, dir) => {
   const files = [.../* @__PURE__ */ new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])];
   return snapshot2(dir, files.filter((f) => !f.endsWith("/") && !/[*?[{]/.test(f) && !f.startsWith("/") && !f.split("/").includes("..")));
 };
-var packet = (item, job, dir, parts2, withReceived = true) => Effect_exports.gen(function* () {
-  const answeredBefore = ledger(yield* Store, item.id, job);
+var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => Effect_exports.gen(function* () {
+  const saved = history(yield* Store, item.id, historyJob);
+  const compact2 = saved.compact(parts2);
+  delete compact2.answeredBefore;
   const snap = yield* snapshotFor(item, job, dir);
   return JSON.stringify({
     item: itemFacts(item),
     ...withReceived ? { received: receivedBy(item, job) } : {},
     ...snap ? { snapshot: snap } : {},
-    ...answeredBefore.length ? { answeredBefore } : {},
-    ...parts2
+    ...saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {},
+    ...compact2
   }, null, 2);
 });
 var whereYouAre = (step2) => step2.loop === "discovery" ? `Made Well's discovery (${step2.cartridge})` : `Made Well's delivery lane (${step2.cartridge})`;
@@ -25205,7 +25281,7 @@ var you = (item, job, kind) => {
 var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never ask a question answered in earlierTurns or answeredBefore: every answer on this item is on the record and binds you, and Made Well answers a repeat from it. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind, answered) => ({
-  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + " If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies that answer verbatim and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.", laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + " If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies the verbatim answer once under answeredBefore, with aliases and saved-answer references in the exchange, and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.", laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
   ...jobEvidence(item, job),
   handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
@@ -25218,7 +25294,7 @@ var originatorParts = (item, job, x, answered) => ({
   you: {
     profile: profileOf(item, x.from),
     call: "originator",
-    task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized. Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well inserts the saved answer verbatim and records the new wording. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.`,
+    task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized. Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well supplies the verbatim answer once under answeredBefore and records the new wording as an alias; exchange notes reference its id. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.`,
     replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,

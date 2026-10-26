@@ -30,6 +30,7 @@ import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, rem
 import { resolveDecision, RUBRIC, type DecisionProviders } from './decision.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
 import { NEUTRAL_HOST } from './harness.ts'
+import { answerReference, buildAnswerHistory } from './handoff-history.ts'
 import { projectFor, projectsPath, readProjects } from './project.ts'
 import {
 	INTAKE, ORIGINATOR, Resource, blockedOf, decode, deliverableShape, hasJob, isMaker, lastJson, laneOf, malformed, requiredOf, route, shapeOf, stepOf, validate,
@@ -302,7 +303,7 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 	for (const r of reuse) known.set(sameQuestion(r.question), previous.find((a) => a.id === r.answerId)!)
 	const recalled = asking.flatMap((q) => ((e) => e ? [{ question: q, answerId: e.id, answer: e.answer, by: e.by }] : [])(known.get(sameQuestion(q))))
 	const questions = asking.filter((q) => !known.has(sameQuestion(q)))
-	const carried = [...(x.notes ?? []), ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${r.answer}`)]
+	const carried = [...(x.notes ?? []), ...recalled.map((r) => `${r.question} Answered before by the ${r.by}: ${answerReference([r.answerId])}`)]
 	const receiver = stepOf(L(item), job).profile
 	if (recalled.length) store.note(id, 'nq-reused', { job, questions: recalled.map((r) => r.question), answer: 'Saved answers', reuse: recalled.map(({ question, answerId }) => ({ question, answerId })) })
 	if (!questions.length) {
@@ -346,31 +347,15 @@ const decisionGuidance = Effect.fn('mw.decisionGuidance')(function* (item: Item,
 
 /** Answers and aliases come from durable events, including the discovery or prerequisite that handed over the work.
  * Older answer events omitted questions; their preceding question event supplies them. Maker exchanges stay blind. */
-const ledger = (store: StoreService, id: number, job: Job) => {
+const history = (store: StoreService, id: number, job: Job) => {
 	const events = store.events(id)
 	for (let item = store.get(id); item?.discovery !== undefined || item?.parent !== undefined;) {
 		item = store.get((item.discovery ?? item.parent)!)
 		if (item) events.push(...store.events(item.id))
 	}
-	const answers: { id: string; question: string; answer: string; by: string; job: string }[] = []
-	const pending = new Map<string, string[]>()
-	for (const e of events.sort((a, b) => a.seq - b.seq)) {
-		const source = String(e.data.job ?? '')
-		if ((job === 'implement' && source === 'test-plan') || (job === 'test-plan' && source === 'implement')) continue
-		const key = `${e.item}:${source}`
-		if (e.kind === 'nq-question') pending.set(key, e.data.questions as string[])
-		if (!['nq-answer', 'nq-decided', 'nq-corrected', 'nq-reused'].includes(e.kind) || typeof e.data.answer !== 'string') continue
-		const questions = (e.data.questions as string[] | undefined) ?? pending.get(key) ?? []
-		const reused = (e.data.reuse as { question: string; answerId: string }[] | undefined) ?? []
-		questions.forEach((question, i) => {
-			const ref = reused.find((r) => r.question === question)
-			const prior = ref && answers.find((a) => a.id === ref.answerId)
-			if (ref && !prior) return
-			answers.push({ id: `${e.seq}:${i}`, question, answer: prior ? prior.answer : e.data.answer as string, by: prior ? prior.by : String(e.data.originator), job: source })
-		})
-	}
-	return answers
+	return buildAnswerHistory(events, job)
 }
+const ledger = (store: StoreService, id: number, job: Job) => history(store, id, job).answers
 
 /** The originator answers the receiver's questions from its own hand-off. Read-only. */
 const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, config: EngineConfig) {
@@ -387,7 +372,7 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	const decisionResolution = yield* decisionGuidance(item, job, 'nq', config)
 	const call = yield* callAgent(id, job, config, {
 		kind: 'originator', profile: from, access: 'read', card, required: requiredOf(ORIGINATOR),
-		packet: (dir) => packet(item, by, dir, { ...originatorParts(item, job, x, ledger(store, id, job)), decisionResolution }, x.from.kind === 'job'),
+		packet: (dir) => packet(item, by, dir, { ...originatorParts(item, job, x, ledger(store, id, job)), decisionResolution }, x.from.kind === 'job', job),
 	})
 	if (!call) return
 	const reply = yield* decodeOrRepair(id, job, call, ORIGINATOR)
@@ -400,7 +385,6 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	}
 	const allReused = openQuestions.length > 0 && reuse.length === openQuestions.length
 	let answer = allReused ? '' : reply.value.answer
-	if (reuse.length) answer = [answer, ...reuse.map((r) => `${r.question}\n${previous.find((a) => a.id === r.answerId)!.answer}`)].filter(Boolean).join('\n\n')
 	const reused = reuse.length ? { reuse } : {}
 	if (reply.value.needsOperator && !allReused) {
 		const pendingQ = x.turns.at(-1)!
@@ -419,8 +403,8 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 		const questions = t.questions.filter((q) => !reuse.some((r) => r.question === q))
 		return questions.length ? [{ ...t, questions, answer, by: 'originator' as const }] : []
 	})
-	const notes = [...(x.notes ?? []), ...reuse.map((r) => `${r.question}\n${previous.find((a) => a.id === r.answerId)!.answer}`)]
-	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns, notes } }, 'nq-answer', { job, originator: from, questions: openQuestions, answer, ...reused, ...(reply.value.needsOperator && !allReused ? { dispatcher: true } : {}) })
+	const notes = [...(x.notes ?? []), ...reuse.map((r) => `${r.question} Answered before by the ${previous.find((a) => a.id === r.answerId)!.by}: ${answerReference([r.answerId])}`)]
+	saveTrack(store, id, job, { launches: 0, exchange: { ...x, status: 'awaiting-receiver', turns, notes } }, 'nq-answer', { job, originator: from, questions: openQuestions, answer, answerFormat: 'references', ...reused, ...(reply.value.needsOperator && !allReused ? { dispatcher: true } : {}) })
 })
 
 /**
@@ -1443,6 +1427,7 @@ const briefOf = (lane: Lane) => [
 	'Honor the conventions the project\'s repository already has.',
 	...(lane.pack.brief ? [lane.pack.brief] : []),
 	'Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.',
+	'Answer memory: each answeredBefore entry contains one verbatim answer. Its optional aliases list the other ids, questions and authorship for that same answer. Saved-answer references in exchange history resolve through either the entry id or an alias id. Both are valid reuse targets.',
 	SUBAGENT_RULE,
 	'Your final message is ONLY one JSON object that matches you.replyFormat, with that schema\'s properties as its own top-level keys.',
 ].join('\n\n')
@@ -1471,16 +1456,19 @@ const snapshotFor = (item: Item, job: Job, dir: string) => {
  * A call's packet, stable to volatile: the item, the deliverables the job receives, the snapshot of the plan's
  * files, then what is this call's alone. `withReceived` is false for an originator that received nothing.
  */
-const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown>, withReceived = true) =>
+const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown>, withReceived = true, historyJob = job) =>
 	Effect.gen(function* () {
-		const answeredBefore = ledger(yield* Store, item.id, job)
+		// Originators receive their own deliverables, but history stays scoped to the receiving maker.
+		const saved = history(yield* Store, item.id, historyJob)
+		const compact = saved.compact(parts)
+		delete compact.answeredBefore
 		const snap = yield* snapshotFor(item, job, dir)
 		return JSON.stringify({
 			item: itemFacts(item),
 			...(withReceived ? { received: receivedBy(item, job) } : {}),
 			...(snap ? { snapshot: snap } : {}),
-			...(answeredBefore.length ? { answeredBefore } : {}),
-			...parts,
+			...(saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {}),
+			...compact,
 		}, null, 2)
 	})
 
@@ -1526,7 +1514,7 @@ const handoffView = (item: Item, job: Job, x: Exchange) =>
 		: x.handoff
 
 const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake', answered: ReturnType<typeof ledger>) => ({
-	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + ' If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies that answer verbatim and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.', laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + ' If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies the verbatim answer once under answeredBefore, with aliases and saved-answer references in the exchange, and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.', laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
 	...jobEvidence(item, job),
 	handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
@@ -1543,7 +1531,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange, answered: ReturnType
 	you: {
 		profile: profileOf(item, x.from), call: 'originator',
 		task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`
-			+ ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well inserts the saved answer verbatim and records the new wording. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
+			+ ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well supplies the verbatim answer once under answeredBefore and records the new wording as an alias; exchange notes reference its id. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
 		replyFormat: shapeOf(ORIGINATOR),
 	},
 	yourHandoff: x.from.kind === 'job' && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,

@@ -127,6 +127,17 @@ function setup(script: Script = () => undefined, autonomy: Autonomy = 'full') {
 	return { tmp, home, repo, store, calls, run, item, create, of, packet, shipped, cleanup }
 }
 
+type HistoryPacket = { answeredBefore?: { id: string; answer: string; aliases?: { id: string; question: string }[] }[] }
+function referencedText(packet: HistoryPacket, value: string): string {
+	const match = value.match(/See saved answers: ([^.]+)\.$/)
+	assert.ok(match, 'history carries an explicit saved-answer reference')
+	return match[1]!.split(', ').map((id) => {
+		const row = packet.answeredBefore?.find((a) => a.id === id || a.aliases?.some((alias) => alias.id === id))
+		assert.ok(row, `reference ${id} resolves in the same packet`)
+		return row.answer
+	}).join('\n\n')
+}
+
 /** Nothing of the item is left: no worktree, no worktree record, no stray file in the product repo, no checks in Made Well's home. */
 function assertNoTrace(t: ReturnType<typeof setup>, id = t.item.id) {
 	assert.deepEqual(existsSync(worktreesRoot()) ? readdirSync(worktreesRoot()) : [], [], 'every worktree is removed')
@@ -960,7 +971,8 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 		assert.equal(item.split?.['test-plan']?.done, true, 'the other maker\'s track finished on its own')
 		assert.deepEqual(t.calls.filter((c) => c.kind === 'originator').map((c) => `${c.job} ${c.profile}`).sort(), ['ideate dispatcher', 'implement planner', 'implement planner', 'implement planner', 'test-plan planner'])
 		assert.deepEqual(JSON.parse(t.of('originator', 'test-plan')[0]!.prompt).questions, ['Is an empty export an error?'])
-		assert.deepEqual(t.packet('execute', 'test-plan').exchange.turns, [{ understanding: 'I see the job', questions: ['Is an empty export an error?'], answer: 'No: it prints an empty line.', by: 'originator' }])
+		const testPacket = t.packet('execute', 'test-plan')
+		assert.deepEqual(testPacket.exchange.turns.map((turn: { answer: string }) => ({ ...turn, answer: referencedText(testPacket, turn.answer) })), [{ understanding: 'I see the job', questions: ['Is an empty export an error?'], answer: 'No: it prints an empty line.', by: 'originator' }])
 		assert.ok(t.calls.filter((c) => c.job === 'implement').every((c) => !c.prompt.includes('Is an empty export an error?')), 'answer memory never exposes the test architect\'s private exchange to the implementer')
 		assert.ok(t.calls.filter((c) => c.job === 'test-plan').every((c) => !c.prompt.includes('Question 1?')), 'the test architect never receives the implementer\'s private exchange')
 
@@ -992,8 +1004,10 @@ test('a question is answered once: asked again at any later hand-off, in any cas
 		assert.equal(item.status, 'shipped')
 		assert.deepEqual(t.calls.filter((c) => c.kind === 'originator').map((c) => c.job), ['ideate'], 'only the first asking reaches an agent')
 		const saved = t.store.events(t.item.id).find((e) => e.kind === 'nq-answer')!
-		assert.deepEqual(t.packet('intake', 'plan').answeredBefore[0], { id: `${saved.seq}:0`, question: 'Is an empty export an error?', answer: 'No: it prints an empty line.', by: 'dispatcher', job: 'ideate' }, 'every receiver sees what was answered')
-		assert.match(t.packet('execute', 'implement').exchange.notes.join('\n'), /Is an empty export, an error\? Answered before by the dispatcher: No: it prints an empty line\./)
+		assert.deepEqual({ ...t.packet('intake', 'plan').answeredBefore[0], aliases: undefined }, { id: `${saved.seq}:0`, question: 'Is an empty export an error?', answer: 'No: it prints an empty line.', by: 'dispatcher', job: 'ideate', aliases: undefined }, 'every receiver sees what was answered')
+		const packet = t.packet('execute', 'implement')
+		const note = packet.exchange.notes.find((note: string) => note.startsWith('Is an empty export, an error? Answered before by the dispatcher: '))
+		assert.equal(referencedText(packet, note), 'No: it prints an empty line.')
 	} finally {
 		t.cleanup()
 	}
@@ -1022,8 +1036,12 @@ test('reworded questions reuse durable answers at intake or originator, remember
 		assert.equal(done.status, 'shipped')
 		assert.equal(t.of('originator', 'challenge').length, 0, 'intake references its saved answer without another call')
 		assert.equal(t.of('originator', 'implement').length, 0, 'the new wording was remembered')
-		const sent = t.packet('execute', 'plan').exchange.turns.at(-1).answer
-		assert.match(sent, /Use commas\.[\s\S]*An empty report succeeds with no rows\./, 'only the new question is answered anew')
+		const packet = t.packet('execute', 'plan')
+		assert.equal(referencedText(packet, packet.exchange.turns.at(-1).answer), 'Use commas.', 'the turn answers only the genuinely new question')
+		assert.equal(referencedText(packet, packet.exchange.notes.at(-1)), 'An empty report succeeds with no rows.')
+		const mixed = t.store.events(t.item.id).find((e) => e.kind === 'nq-answer' && e.data.job === 'plan')!
+		assert.equal(mixed.data.answer, 'Use commas.', 'durable fresh answers never concatenate reused bodies')
+		assert.equal((mixed.data.reuse as unknown[]).length, 1)
 		assert.ok(t.store.calls(t.item.id).some((c) => c.kind === 'originator' && c.error?.includes('existing answeredBefore id')), 'invented answer ids are refused')
 		const reopened = openStore(t.store.path)
 		try {
@@ -1037,6 +1055,58 @@ test('reworded questions reuse durable answers at intake or originator, remember
 	}
 })
 
+test('mixed fresh questions and reused aliases stay lossless and bounded across repeated handoffs', async () => {
+	const stages: Job[] = ['ideate', 'challenge', 'plan', 'implement', 'test-plan']
+	const texts = new Map<string, string>()
+	for (const job of stages) for (let round = 1; round <= 3; round++) texts.set(`${job}/${round}`, `Decision ${job}/${round}: ${'λ preserve this decision; '.repeat(256)}`)
+	const t = setup((req, n) => {
+		if (!stages.includes(req.job)) return undefined
+		if (req.kind === 'intake' && n <= 3) {
+			const questions = [`New facts ${req.job}/${n}?`]
+			if (req.job !== 'ideate') questions.push(`Rephrase ${req.job}/${n}?`)
+			return ask(...questions)
+		}
+		if (req.kind === 'originator') {
+			const packet = JSON.parse(req.prompt)
+			const fresh = packet.questions.find((q: string) => q.startsWith('New facts ')) as string
+			const key = fresh.slice('New facts '.length, -1)
+			const reused = packet.questions.find((q: string) => q.startsWith('Rephrase ')) as string | undefined
+			// Challenge names the canonical id; later jobs deliberately name an alias id.
+			const rows = (packet.answeredBefore ?? []) as { id: string; question: string; aliases?: { id: string; question: string }[] }[]
+			const alias = rows.flatMap((row) => row.aliases ?? []).find((a) => a.question.startsWith('Rephrase challenge/'))
+			const original = rows.find((row) => row.question === 'New facts ideate/1?')
+			return { answer: texts.get(key)!, needsOperator: false, ...(reused ? { reuse: [{ question: reused, answerId: alias?.id ?? original!.id }] } : {}) }
+		}
+		return undefined
+	})
+	try {
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped', 'three fresh answers per handoff still permit confirmation')
+		for (const job of stages) {
+			assert.equal(t.of('originator', job).length, 3, 'reuse creates no extra clarification calls')
+			const packet = t.packet('execute', job)
+			const rows = packet.answeredBefore as { id: string; answer: string; aliases?: { id: string; question: string }[] }[]
+			assert.equal(new Set(rows.map((row) => row.answer)).size, rows.length, 'one canonical body per distinct answer')
+			const history = JSON.stringify({ answers: rows, exchange: packet.exchange })
+			for (let round = 1; round <= 3; round++) {
+				const body = texts.get(`${job}/${round}`)!
+				assert.equal(history.split(JSON.stringify(body).slice(1, -1)).length - 1, 1, 'each fresh answer occurs once in packet history')
+				assert.equal(referencedText(packet, packet.exchange.turns[round - 1].answer), body)
+			}
+			for (const note of packet.exchange.notes ?? []) if (note.includes('See saved answers: ')) assert.equal(referencedText(packet, note), texts.get('ideate/1'))
+			const opposite = job === 'implement' ? 'test-plan' : job === 'test-plan' ? 'implement' : undefined
+			if (opposite) assert.ok(!history.includes(`Decision ${opposite}/`), 'private fresh decisions stay on their own maker track')
+			assert.ok(history.length < 150_000, 'history grows with unique decisions and references')
+		}
+		for (const e of t.store.events(t.item.id).filter((e) => e.kind === 'nq-answer')) {
+			const questions = e.data.questions as string[]
+			const fresh = questions.find((q) => q.startsWith('New facts '))!
+			assert.equal(e.data.answer, texts.get(fresh.slice('New facts '.length, -1)), 'events contain only fresh text, even when alias reuse is mixed in')
+			if ((e.data.reuse as unknown[] | undefined)?.length) assert.equal(e.data.answerFormat, 'references', 'fresh reused-answer events are distinguished from unmarked legacy mixed bodies')
+		}
+	} finally { t.cleanup() }
+})
+
 test('delivery inherits discovery answers from an older store whose answer events omitted their questions', async () => {
 	const question = 'Which report format?'
 	const t = setup((req, n) => req.kind === 'intake' && req.job === 'ideate' && n === 1 ? ask(question) : undefined)
@@ -1048,7 +1118,9 @@ test('delivery inherits discovery answers from an older store whose answer event
 		const done = await t.run(drive(t.item.id, config))
 		assert.equal(done.status, 'shipped')
 		assert.equal(t.of('originator', 'ideate').length, 0, 'a historical operator answer is reused, never requested again')
-		assert.match(t.packet('execute', 'ideate').exchange.notes.join('\n'), /Answered before by the operator: CSV, not PDF\./)
+		const packet = t.packet('execute', 'ideate')
+		const note = packet.exchange.notes.find((note: string) => note.includes('Answered before by the operator: '))
+		assert.equal(referencedText(packet, note), 'CSV, not PDF.')
 	} finally {
 		t.cleanup()
 	}
@@ -1066,7 +1138,8 @@ test('an originator that says only the operator can decide goes to the dispatche
 		assert.equal(item.status, 'shipped', 'the source settled it, so nothing waited on the operator')
 		const sent = JSON.parse(settled.calls.find((c) => c.profile === 'dispatcher')!.prompt)
 		assert.deepEqual([sent.questions, sent.originator.says, sent.item.source], [['May we drop PDF export?'], 'Dropping a format is the operator\'s call.', settled.item.source], 'the dispatcher reads the question, the originator\'s claim and the operator\'s source')
-		assert.deepEqual(settled.packet('execute', 'challenge').exchange.turns.map((t: { answer: string }) => t.answer), ['The source asks for CSV export only, so PDF is not part of it.'])
+		const packet = settled.packet('execute', 'challenge')
+		assert.deepEqual(packet.exchange.turns.map((turn: { answer: string }) => referencedText(packet, turn.answer)), ['The source asks for CSV export only, so PDF is not part of it.'])
 	} finally {
 		settled.cleanup()
 	}
