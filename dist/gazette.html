@@ -30,6 +30,8 @@ h2 { font: 800 25px/1.15 Alegreya, Georgia, serif; margin: 2px 0 8px; overflow-w
 .quote { display: block; font-size: 14.5px; margin-top: 4px; overflow-wrap: anywhere; }
 .questions { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
 .since { font-size: 14px; }
+.under { margin: 0 0 10px; font-size: 14px; text-align: center; }
+.live { font-size: 14px; margin-top: 10px !important; }
 .output { margin: 6px 0 8px; padding: 2px 0 2px 12px; border-left: 1px solid var(--ink); font: 13.5px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: center; margin-top: 12px; }
 .stamp { font: 700 16px/1 "Alegreya Sans", sans-serif; color: var(--ink); background: var(--paper); border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 3px 3px 0 var(--ink); padding: 10px 15px; min-height: 44px; cursor: pointer; }
@@ -98,12 +100,16 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
     return `${cut.slice(0, Math.max(cut.lastIndexOf(" "), n - 12))}\u2026`;
   };
   var agentTime = (ms) => ms < 6e4 ? `${Math.round(ms / 1e3)} seconds` : ms < 36e5 ? plural(Math.round(ms / 6e4), "minute") : `${(ms / 36e5).toFixed(1)} hours`;
-  var when = (iso, zone) => {
+  var zoneLabel = (d, zone) => new Intl.DateTimeFormat("en-GB", { timeZone: zone, timeZoneName: "short" }).formatToParts(d).find((p) => p.type === "timeZoneName")?.value ?? zone;
+  var when = (iso, zone = "UTC") => {
     const d = new Date(iso);
-    const z = zone ? { timeZone: zone } : {};
-    return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short", ...z })}, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, ...z })}`;
+    return `${d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: zone })}, ${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: zone })} ${zoneLabel(d, zone)}`;
   };
-  var longDate = (iso, zone) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", ...zone ? { timeZone: zone } : {} });
+  var longDate = (iso, zone = "UTC") => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: zone });
+  var SMALL = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  var count = (n, one, many = `${one}s`) => `${SMALL[n] ?? n.toLocaleString("en-GB")} ${n === 1 ? one : many}`;
+  var listOf = (xs) => new Intl.ListFormat("en-GB", { type: "conjunction" }).format(xs.map(String));
+  var projectName = (dir) => String(dir ?? "").replace(/\/+$/, "").split("/").pop() || String(dir ?? "");
   var WORDS = [
     [/^mw go \d+$/, () => "Let it go on"],
     [/^mw answer \d+ /, () => "Say what should change"],
@@ -194,14 +200,28 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
         return need.questions?.length ? "It asked questions that only you can answer." : `It stopped and waits for you (${String(need.code).replaceAll("_", " ")}).`;
     }
   };
-  var rank = (item, needIds) => needIds.has(item.id) ? 0 : ["running", "queued", "waiting-quota", "waiting-prerequisite", "candidate"].includes(item.status) ? 1 : item.status === "shipped" ? 2 : 3;
+  var open = (item) => !["shipped", "dropped", "discovered"].includes(item.status);
+  var ringItems = (delivery) => {
+    const kept = delivery.filter(open);
+    for (const item of [...delivery].filter((i) => !open(i)).sort((a, b) => b.id - a.id)) if (kept.length < MAX_RINGS) kept.push(item);
+    return kept.sort((a, b) => a.id - b.id);
+  };
+  var underOf = (items, delivery, zone) => items.filter((i) => i.kind === "discovery").sort((a, b) => a.id - b.id).flatMap((d) => {
+    const made = delivery.filter((i) => i.discovery === d.id).map((i) => i.id);
+    if (!made.length) return [];
+    return [`From discovery ${d.id} \u201C${clip(d.title, 48)}\u201D, ${when(d.ended ?? d.since, zone)}: ${count(made.length, "item")} (${listOf(made)}).`];
+  });
   var blazonOf = (model, opts = {}) => {
-    const zone = opts.zone;
+    const zone = opts.zone ?? "UTC";
     const driven = model.runner != null;
-    const needIds = new Set(model.needs.map((n) => n.item));
-    const delivery = model.items.filter((i) => i.kind !== "discovery");
-    const ranked = [...delivery].sort((a, b) => rank(a, needIds) - rank(b, needIds) || Date.parse(a.since) - Date.parse(b.since));
-    const shown = ranked.slice(0, MAX_RINGS);
+    const ws = opts.workspace;
+    const items = ws ? model.items.filter((i) => i.workspace === ws) : model.items;
+    const ids = new Set(items.map((i) => i.id));
+    const needs = ws ? model.needs.filter((n) => ids.has(n.item) || n.item === 0 && items.some(open)) : model.needs;
+    const runs = ws ? model.running.filter((r) => ids.has(r.item)) : model.running;
+    const delivery = items.filter((i) => i.kind !== "discovery");
+    const discoveries = items.filter((i) => i.kind === "discovery");
+    const shown = ringItems(delivery);
     const steps = shown.reduce((longest, i) => i.steps.length > longest.length ? i.steps.map((s2) => s2.job) : longest, []);
     const rings = shown.map((item) => {
       const fills = steps.map((job) => {
@@ -211,9 +231,9 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
       return { item: item.id, name: item.title, status: item.status, fills };
     });
     const inksUsed = new Set(rings.flatMap((r) => r.fills).filter(Boolean));
-    const waits = model.needs.length;
-    const notices = model.needs.map((need, k) => {
-      const item = model.items.find((i) => i.id === need.item);
+    const waits = needs.length;
+    const notices = needs.map((need, k) => {
+      const item = items.find((i) => i.id === need.item);
       const actions = need.next.map(stampOf);
       if (k === 0 && actions[0]) actions[0] = { ...actions[0], weight: "primary" };
       return {
@@ -228,41 +248,50 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
       };
     });
     if (notices.length) inksUsed.add(INK.waits);
-    for (const r of model.running) {
-      const item = model.items.find((i) => i.id === r.item);
-      const file = r.live ? r.live.slice(r.live.lastIndexOf("/") + 1) : void 0;
-      const output = file && opts.live?.[file] != null ? tailWords(opts.live[file]) : r.activity.map((a) => a.text);
+    const byItem = /* @__PURE__ */ new Map();
+    for (const r of runs) (byItem.get(r.item) ?? byItem.set(r.item, []).get(r.item)).push(r);
+    for (const [id, calls] of byItem) {
+      const item = items.find((i) => i.id === id);
+      const outputs = calls.map((r) => {
+        const file = r.live ? r.live.slice(r.live.lastIndexOf("/") + 1) : void 0;
+        const lines = file && opts.live?.[file] != null ? tailWords(opts.live[file]) : r.activity.map((a) => a.text);
+        return { step: STEP_WORDS[r.job] ?? titleCase(r.job), since: `since ${when(r.since, zone)}`, lines };
+      });
+      const since = calls.map((r) => r.since).sort()[0];
       notices.push({
-        item: r.item,
+        item: id,
         ink: INK.moving,
-        name: r.title,
-        says: item?.doing ?? `The ${r.who} is working on ${r.job}.`,
-        since: `Running since ${when(r.since, zone)}`,
+        name: calls[0].title,
+        says: item?.doing ?? `The ${calls[0].who} is working on ${calls[0].job}.`,
+        since: `Running since ${when(since, zone)}`,
         actions: [],
-        output
+        outputs
       });
       inksUsed.add(INK.moving);
     }
-    const s = model.summary;
+    const s = ws ? { shipped: delivery.filter((i) => i.status === "shipped").length, calls: items.reduce((n, i) => n + i.calls, 0), tokens: items.reduce((n, i) => n + i.tokens, 0), agentMs: items.reduce((n, i) => n + i.agentMs, 0), last: items.map((i) => i.since).sort().at(-1) ?? null } : model.summary;
     const last = s.last ? when(s.last, zone) : "none yet";
     const sealed = s.shipped > 0;
-    const colophon = `From the Made Well record on ${model.host ?? "this machine"}; last entry ${last}. ${plural(delivery.length, "item")}, ${plural(s.calls, "agent call")}, ${s.tokens.toLocaleString("en-GB")} tokens, ${agentTime(s.agentMs)} of agent time.` + (sealed ? ` Sealed: ${plural(s.shipped, "item has", "items have")} shipped.` : " Not sealed: nothing has shipped.") + (delivery.length > shown.length ? ` ${delivery.length - shown.length} older ${delivery.length - shown.length === 1 ? "item is" : "items are"} not drawn.` : "");
+    const notDrawn = delivery.length - shown.length;
+    const colophon = `From the Made Well record on ${model.host ?? "this machine"}${ws ? `, items of ${ws} only` : ""}; last entry ${last}. ${plural(delivery.length, "delivery item")}${discoveries.length ? ` and ${plural(discoveries.length, "discovery run")}` : ""}; between them ${plural(s.calls, "agent call")}, ${s.tokens.toLocaleString("en-GB")} tokens and ${agentTime(s.agentMs)} of agent time.` + (sealed ? ` Sealed: ${plural(s.shipped, "item has", "items have")} shipped.` : " Not sealed: nothing has shipped.") + (notDrawn ? ` The rings draw every open item and the newest finished ones; ${notDrawn} older finished ${notDrawn === 1 ? "item is" : "items are"} not drawn.` : "");
+    const warning = opts.stale ? `Made Well has not answered since ${when(opts.stale, zone)}. This is the sheet as it was then.` : opts.warning ? opts.warning : ws && !items.length ? `No items for ${ws} on this record.${model.projects?.length ? ` Projects on record: ${listOf(model.projects)}.` : ""}` : void 0;
     return {
-      about: `Made Well, delivery, from GET /api/model at ${model.at}.`,
+      about: `Made Well, delivery${ws ? ` for ${ws}` : ""}, from GET /api/model at ${model.at}.`,
       sheet: {
         ground: "paper",
         around: "slate",
         frame: "double",
-        masthead: { name: "Made Well", number: model.eventCount, date: longDate(model.at, zone), subtitle: "Delivery: what waits on you" },
+        masthead: { name: "Made Well", number: model.eventCount, date: longDate(model.at, zone), subtitle: ws ? `Delivery for ${projectName(ws)}: what waits on you` : "Delivery: what waits on you" },
         sealed,
-        ...opts.stale ? { warning: `Made Well has not answered since ${when(opts.stale, zone)}. This is the sheet as it was then.` } : opts.warning ? { warning: opts.warning } : {},
+        ...warning ? { warning } : {},
         updated: `Sheet updated ${when(model.at, zone)}: ${waits === 1 ? "one thing waits" : `${waits} things wait`} on you.`
       },
       principal: {
         charge: "rings",
         steps: steps.map((job) => STEP_WORDS[job] ?? titleCase(job)),
         rings,
-        centre: waits ? { charge: "disc", ink: INK.waits, value: String(waits), words: waits === 1 ? "waits on you" : "wait on you" } : { charge: "disc", ink: "paper", value: "0", words: "wait on you" }
+        centre: waits ? { charge: "disc", ink: INK.waits, value: String(waits), words: waits === 1 ? "waits on you" : "wait on you" } : { charge: "disc", ink: "paper", value: "0", words: "wait on you" },
+        under: underOf(items, delivery, zone)
       },
       notices,
       legend: Object.entries(LEGEND).filter(([ink]) => inksUsed.has(ink)).map(([ink, words]) => ({ ink, words })),
@@ -332,8 +361,8 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
         }
         const rm = (r0 + r1) / 2 - 3.5;
         const room = Math.floor(rm * (360 - (SPAN[1] - SPAN[0]) - 4) * Math.PI / 180 / 5.9);
-        const full = `${ring.item} \xB7 ${ring.name}`;
-        const shown = full.length > room ? `${full.slice(0, Math.max(room - 1, 4))}\u2026` : full;
+        const full = `${ring.item} \xB7 ${ring.name}`, no = String(ring.item);
+        const shown = full.length <= room ? full : room - no.length > 6 ? `${no} \xB7 ${ring.name.slice(0, room - no.length - 4).trimEnd()}\u2026` : no;
         words.push(`<path id="name${k}" d="M${xy(rm, SPAN[1] + 2)} ${arc(rm, SPAN[1] + 2, 360 + SPAN[0] - 2)}" fill="none"/><text class="ringname"><title>${esc(full)}</title><textPath href="#name${k}" startOffset="50%" text-anchor="middle">${esc(shown)}</textPath></text>`);
       });
       const outer = radii[0]?.r1 ?? 234;
@@ -346,7 +375,7 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
       const c = p.centre;
       const centre = `<circle cx="${VIEW.cx + KEY * 1.4}" cy="${VIEW.cy + KEY * 1.4}" r="${DISC}" fill="${ink("ink")}"/><circle cx="${VIEW.cx}" cy="${VIEW.cy}" r="${DISC}" fill="${ink(c.ink)}" stroke="${ink("ink")}" stroke-width=".8"/><text class="centrevalue" x="${VIEW.cx}" y="${VIEW.cy + 14}" text-anchor="middle">${esc(c.value)}</text><text class="centrewords" x="${VIEW.cx}" y="${VIEW.cy + 40}" text-anchor="middle">${esc(c.words)}</text>`;
       const label = p.rings.length ? p.rings.map((r) => `${r.item}, ${r.name}: ${r.fills.filter(Boolean).length} of ${n} steps`).join("; ") + `. ${c.value} ${c.words}.` : `No items yet. ${c.value} ${c.words}.`;
-      return `<svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" role="img" aria-label="${esc(label)}"><defs>${hatches()}</defs><g fill="${ink("ink")}">${keys.join("")}</g>${fills.join("")}<g fill="none" stroke="${ink("ink")}" stroke-width=".8">${rules.join("")}</g>${words.join("")}${centre}</svg>`;
+      return `<svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" role="img" aria-label="${esc(label)}"><defs>${hatches()}</defs><g fill="${ink("ink")}">${keys.join("")}</g>${fills.join("")}<g fill="none" stroke="${ink("ink")}" stroke-width=".8">${rules.join("")}</g>${words.join("")}${centre}</svg>` + (p.under ?? []).map((line) => `<p class="under">${esc(line)}</p>`).join("");
     }
     const disc = (i, text = "") => `<span class="disc" style="background:${ink(i)}">${esc(text)}</span>`;
     const notice = (n, k) => `<section class="notice" aria-labelledby="n${k}">
@@ -356,7 +385,8 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
     <p>${esc(n.says)}${n.quote ? ` <span class="quote">Made Well says: \u201C${esc(n.quote)}\u201D</span>` : ""}</p>
     ${n.questions?.length ? `<ul class="questions">${n.questions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul>` : ""}
     <p class="since">${esc(n.since)}.</p>
-    ${n.output ? `<pre class="output" aria-label="Its latest output">${n.output.length ? n.output.map(esc).join("\n") : "No output yet."}</pre>` : ""}
+    ${(n.outputs ?? []).map((o) => `<p class="live"><b>${esc(o.step)}</b>, ${esc(o.since)}.</p>
+    <pre class="output" aria-label="Latest output of ${esc(o.step)}">${o.lines.length ? o.lines.map(esc).join("\n") : "No output yet."}</pre>`).join("\n    ")}
     ${n.actions.length ? `<div class="actions">${n.actions.map((a) => `<button type="button" class="stamp ${esc(a.weight)}" data-run="${esc(a.run)}" title="${esc(a.run)}">${esc(a.words)}</button>`).join("")}</div>
     <p class="slip" aria-live="polite"></p>` : ""}
   </div>
@@ -387,6 +417,8 @@ h2 { font: 800 25px/1.15 Alegreya, Georgia, serif; margin: 2px 0 8px; overflow-w
 .quote { display: block; font-size: 14.5px; margin-top: 4px; overflow-wrap: anywhere; }
 .questions { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
 .since { font-size: 14px; }
+.under { margin: 0 0 10px; font-size: 14px; text-align: center; }
+.live { font-size: 14px; margin-top: 10px !important; }
 .output { margin: 6px 0 8px; padding: 2px 0 2px 12px; border-left: 1px solid var(--ink); font: 13.5px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: center; margin-top: 12px; }
 .stamp { font: 700 16px/1 "Alegreya Sans", sans-serif; color: var(--ink); background: var(--${S.ground}); border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 3px 3px 0 var(--ink); padding: 10px 15px; min-height: 44px; cursor: pointer; }
@@ -421,6 +453,7 @@ ${B.legend.length ? `<div class="legend">${B.legend.map((l) => `<span>${disc(l.i
   // ui/gazette/page.mjs
   var P = painter(tinctures_default);
   var main = document.getElementById("sheet");
+  var workspace = new URLSearchParams(location.search).get("workspace") || void 0;
   var painted = "";
   var mark = "";
   var lastModel;
@@ -452,9 +485,9 @@ ${B.legend.length ? `<div class="legend">${B.legend.map((l) => `<span>${disc(l.i
   };
   var refetch = async () => {
     const model = await (await fetch("/api/model")).json();
-    if (!model.items) return paint(blazonOf(EMPTY, { warning: "Made Well has no record on this machine yet. It appears with the first mw start or mw discover." }));
+    if (!model.items) return paint(blazonOf(EMPTY, { workspace, warning: "Made Well has no record on this machine yet. It appears with the first mw start or mw discover." }));
     lastModel = model;
-    paint(blazonOf(model, { live: await liveOf(model) }));
+    paint(blazonOf(model, { workspace, live: await liveOf(model) }));
   };
   var tick = async () => {
     try {
@@ -467,11 +500,11 @@ ${B.legend.length ? `<div class="legend">${B.legend.map((l) => `<span>${disc(l.i
       }
     } catch {
       unreachedSince ??= (/* @__PURE__ */ new Date()).toISOString();
-      paint(blazonOf(lastModel ?? EMPTY, { stale: unreachedSince }));
+      paint(blazonOf(lastModel ?? EMPTY, { workspace, stale: unreachedSince }));
       mark = "";
     }
   };
-  var EMPTY = { at: (/* @__PURE__ */ new Date()).toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] };
+  var EMPTY = { at: (/* @__PURE__ */ new Date()).toISOString(), host: location.hostname, runner: null, eventCount: 0, projects: [], summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] };
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-run]");
     if (!b) return;

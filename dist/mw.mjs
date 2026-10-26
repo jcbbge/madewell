@@ -26406,6 +26406,7 @@ var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.
     title: item.title,
     kind: isDiscovery(item) ? "discovery" : item.parent !== void 0 ? "prerequisite" : item.kind ?? "feature",
     status: item.status,
+    workspace: item.workspace,
     ...item.discovery !== void 0 ? { discovery: item.discovery } : {},
     ...item.parent !== void 0 ? { parent: item.parent } : {},
     after: (item.after ?? []).map((id2) => ({ id: id2, status: store.get(id2)?.status ?? "missing" })),
