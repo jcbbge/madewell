@@ -170,11 +170,14 @@ test('scope declarations are exact paths or explicit directory suffixes, never i
 	const t = setup()
 	try {
 		mkdirSync(join(t.repo, 'src', 'nested'))
-		const files = ['src/b.ts', 'src/b.ts.extra', 'src/nested/check.ts', 'src/*.ts']
+		mkdirSync(join(t.repo, 'srcx'))
+		const inSrc = ['src/b.ts', 'src/b.ts.extra', 'src/nested/check.ts', 'src/*.ts']
+		const files = [...inSrc, 'srcx/a.ts']
 		for (const file of files) writeFileSync(join(t.repo, file), 'changed\n')
 		const changed = [...files].sort()
 		for (const [declared, allowed] of [
-			[['src/b.ts'], ['src/b.ts']], [['src/'], files], [['src/**'], files],
+			[['src/b.ts'], ['src/b.ts']], [['src/'], inSrc], [['src/**'], inSrc],
+			[['src/', 'srcx/a.ts'], files],
 			[[], []], [['src'], []], [['src/*.ts'], ['src/*.ts']], [['src/b'], []],
 		] as [string[], string[]][]) {
 			const outside = changed.filter((file) => !allowed.includes(file))
