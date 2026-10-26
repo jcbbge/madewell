@@ -176,11 +176,14 @@ export const headGuard = Effect.fn('mw.headGuard')(function* (repo: string, ref:
 	])
 })
 
+/** A path covered by a declared scope: the path itself, or under a directory entry ("dir/" or "dir/**"). */
+export const covers = (scope: ReadonlyArray<string>, file: string) =>
+	scope.some((d) => (d.endsWith('/') || d.endsWith('/**') ? file.startsWith(d.replace(/\*\*$/, '')) : file === d))
+
 /** Every file the workspace changed since `base` (committed, uncommitted or new); fails on any outside `declared`. A declared entry ending in "/" or "/**" covers its directory. */
 export const scopeCheck = Effect.fn('mw.scopeCheck')(function* (dir: string, base: string, declared: ReadonlyArray<string>) {
 	const changed = [...new Set([...lines(yield* git(dir, 'diff', '--name-only', '--no-renames', '-z', base)), ...lines(yield* git(dir, 'ls-files', '--others', '--exclude-standard', '-z'))])].sort()
-	const covers = (d: string, f: string) => (d.endsWith('/') || d.endsWith('/**') ? f.startsWith(d.replace(/\*\*$/, '')) : f === d)
-	const outside = changed.filter((f) => !declared.some((d) => covers(d, f)))
+	const outside = changed.filter((f) => !covers(declared, f))
 	if (outside.length) {
 		return yield* fail('out_of_scope', `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: 'see the whole change against its base' }])
 	}

@@ -37,7 +37,7 @@ import {
 } from './lane.ts'
 import { DEFAULT_AUTONOMY, Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { observe } from './trace.ts'
-import { capture, changes, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
+import { capture, changes, covers, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
 
 const MAX_LAUNCHES = 3
@@ -810,10 +810,6 @@ const afterEnvironment = (store: StoreService, item: Item, by: Origin, answer: s
 	// Makers blocked in the split go again as a split of exactly those makers; the other's accepted work stays.
 	return { ...base, job: failed[0]!, split: Object.fromEntries(failed.map((m) => [m, { from: by, launches: 0 }])) }
 }
-
-/** A path covered by a declared scope: the path itself, or under a directory entry ("dir/" or "dir/**"). */
-const covers = (scope: ReadonlyArray<string>, file: string) =>
-	scope.some((d) => (d.endsWith('/') || d.endsWith('/**') ? file.startsWith(d.replace(/\*\*$/, '')) : file === d))
 
 /** A maker's unfinished work leaves with it, so the next call picks up where it stopped. Measured from the worktree's prepared HEAD. */
 const keepPartial = (dir: string, item: Item, job: Maker, from: string) =>
