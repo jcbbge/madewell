@@ -27,9 +27,15 @@ function setup(extra: Record<string, string> = {}) {
 	git('config', 'user.email', 'op@example.com')
 	const env: Record<string, string | undefined> = { ...process.env, MW_HOME: home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(dir, 'calls.log'), MW_AUTORUN: '0', PATH: `${bin}:${process.env.PATH}`, ...extra }
 	delete env.MW_STORE
-	const parse = (r: ReturnType<typeof spawnSync>) => ({ code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null })
-	const mw = (...args: string[]) => parse(spawnSync(process.execPath, [cli, ...args], { env, cwd: repo }))
-	const sh = (command: string) => parse(spawnSync('sh', ['-c', command], { env, cwd: repo }))
+	const parse = (r: ReturnType<typeof spawnSync>) => {
+		if (r.error) throw r.error
+		assert.ok(r.status !== null && r.signal === null, `CLI did not exit normally (status ${r.status}, signal ${r.signal})`)
+		return { code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null }
+	}
+	// AX trace captures exceeded 1 MiB; leave bounded headroom for fixture/timing variation.
+	const options = { env, cwd: repo, maxBuffer: 2 << 20 }
+	const mw = (...args: string[]) => parse(spawnSync(process.execPath, [cli, ...args], options))
+	const sh = (command: string) => parse(spawnSync('sh', ['-c', command], options))
 	return { dir, home, repo, env, mw, sh, git }
 }
 
