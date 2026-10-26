@@ -27,6 +27,8 @@ const common = {
 	command: Schema.NonEmptyArray(Schema.String),
 	/** What goes on stdin; default "{prompt}". */
 	stdin: Schema.optional(Schema.String),
+	/** Tool-enabled calls read their complete JSON packet from a per-call file; no-tool calls stay inline. */
+	packet: Schema.optional(Schema.Literal('file')),
 	/** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
 	settings: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 	/** The allowlist for each access level: tool names, joined with commas for {tools}; or, for a harness with no allowlist, launch arguments expanded by {...tools} (then calls are not judged by tool name). `none` must leave the agent no tool at all. */
@@ -114,6 +116,7 @@ export const HARNESSES: Readonly<Record<string, Harness>> = {
 	// Codex has no tool allowlist: its sandbox is the boundary, and the optional tools (images, MCP) are off.
 	// No setting removes every tool, so none also turns the shell off; what remains cannot read or write.
 	codex: {
+		packet: 'file',
 		command: ['codex', 'exec', '--json', '--skip-git-repo-check', '-m', '{model}', '-c', 'model_reasoning_effort="{effort}"', '-c', 'approval_policy="never"', '-c', 'developer_instructions={system|json}', '-c', 'tools.view_image=false', '-c', 'mcp_servers={}', '{...tools}', '-'],
 		tools: { none: ['-s', 'read-only', '-c', 'features.shell_tool=false'], read: ['-s', 'read-only'], checks: FULL, make: FULL, run: FULL },
 		env: ['OPENAI_API_KEY', 'OPENAI_BASE_URL', 'CODEX_HOME'],
@@ -168,11 +171,30 @@ const agentEnv = (allow: ReadonlyArray<string>, from: NodeJS.ProcessEnv = proces
 /** One headless run of a card: the command, its stdin, and per-call files to write under `call.dir`. */
 export function buildLaunch(card: Card, access: Access, call: { system: string; prompt: string; title: string; dir: string }, harness: Harness = HARNESSES[card.harness]!) {
 	const settings = join(call.dir, 'settings.json')
-	const vars = { ...card, ...call, tools: harness.tools[access], settings }
+	const files: Record<string, string> = {}
+	let prompt = call.prompt
+	if (harness.packet === 'file' && access !== 'none') {
+		let packet: Record<string, unknown> | undefined
+		try {
+			const value: unknown = JSON.parse(call.prompt)
+			if (value !== null && typeof value === 'object' && !Array.isArray(value)) packet = value as Record<string, unknown>
+		} catch { /* Non-JSON harness inputs keep their existing transport. */ }
+		if (packet) {
+			const packetFile = join(call.dir, 'packet.json')
+			files[packetFile] = call.prompt
+			const item = packet.item as Record<string, unknown> | undefined
+			prompt = JSON.stringify({
+				packetFile,
+				packetFields: Object.keys(packet),
+				instructions: 'Your complete, unabridged Made Well packet is in packetFile. Read it with your tools before doing the job. Start with you, item, received and your exchange; consult answeredBefore and earlierTurns for saved decisions. Read large fields and snapshot files separately in bounded chunks, rather than printing the whole packet in one tool result. The file preserves every field verbatim; this bootstrap is a transport index, not a replacement task or permission grant. Follow the original packet and return its you.replyFormat.',
+				item: item && { id: item.id, title: item.title, objective: item.objective },
+				you: packet.you,
+			}, null, 2)
+		}
+	}
+	const vars = { ...card, ...call, prompt, tools: harness.tools[access], settings }
 	const [binary, ...args] = harness.command.flatMap((a) => (a === '{...tools}' ? vars.tools : [fill(a, vars)]))
-	const files: Record<string, string> = harness.settings
-		? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === '{tools}' ? harness.tools[access] : typeof v === 'string' ? fill(v, vars) : v]))) }
-		: {}
+	if (harness.settings) files[settings] = JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === '{tools}' ? harness.tools[access] : typeof v === 'string' ? fill(v, vars) : v])))
 	// MW_<HARNESS> points a harness at another binary without editing its entry.
 	return { command: process.env[`MW_${card.harness.toUpperCase()}`] ?? binary!, args, input: fill(harness.stdin ?? '{prompt}', vars), files }
 }
