@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { Clock, Effect, Schema } from 'effect'
-import { budgetFor, cardsFor, harnessOf, prescriptionOf, type Access, type Card, type Prescriptions } from './cards.ts'
+import { AGENT_JOBS, Card, budgetFor, cardsFor, harnessOf, prescriptionOf, type Access, type Prescriptions } from './cards.ts'
 import { MadeWellError, Next, quote } from './errors.ts'
 import { HARNESSES } from './harness.ts'
 import { decode, INTAKE, laneOf, lastJson, ORIGINATOR, validate, type Job, type Lane } from './lane.ts'
@@ -21,19 +21,13 @@ import { Worker, type WorkerRequest, type WorkerResult } from './worker.ts'
 import { capture, readOnly, worktree } from './workspace.ts'
 
 /** Every agent job. verify is Made Well's own code, so there is nothing to replay. */
-export const JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'] as const satisfies ReadonlyArray<Job>
+export const JOBS = AGENT_JOBS satisfies ReadonlyArray<Job>
 
 // The same quota rules as delivery: an account that hits its limit is out until its reset, at least five minutes.
 const UNKNOWN_RESET_MS = 60 * 60_000
 const MIN_OUT_MS = 5 * 60_000
 
-const EvalCard = Schema.Struct({
-	harness: Schema.NonEmptyString,
-	provider: Schema.NonEmptyString,
-	account: Schema.NonEmptyString,
-	model: Schema.NonEmptyString,
-	effort: Schema.Literals(['low', 'medium', 'high', 'xhigh', 'max']),
-}).annotate({ identifier: 'Card' })
+const EvalCard = Card.annotate({ identifier: 'Card' })
 
 const Score = Schema.Struct({
 	outcome: Schema.String.annotate({ description: 'ok, error or rejected, as the call ended' }),

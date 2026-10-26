@@ -7,7 +7,7 @@ import { Harness, HARNESSES } from './harness.ts'
 import type { Job, Lane } from './lane.ts'
 import { DEFAULT_BUDGET, type Budget } from './worker.ts'
 
-const Card = Schema.Struct({
+export const Card = Schema.Struct({
 	/** A built-in harness entry (amp, claude, codex, pi) or one defined under "harnesses". */
 	harness: Schema.NonEmptyString,
 	provider: Schema.NonEmptyString,
@@ -25,7 +25,7 @@ export type Access = typeof Access.Type
 export const INTAKE_ACCESS = 'none' satisfies Access
 
 /** The jobs an agent does. verify is Made Well's own run of the checks: it has a budget (each check's timeout) and no card. */
-const AGENT_JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'] as const
+export const AGENT_JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'] as const
 export type AgentJob = (typeof AGENT_JOBS)[number]
 
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0))
