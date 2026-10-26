@@ -17,7 +17,7 @@ import { Clock, Effect, Fiber, Layer, Schema } from 'effect'
 import { loadPrescriptions } from './cards.ts'
 import { itemHome } from './change.ts'
 import { answer, drop, go, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
-import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
+import { ERRORS, MadeWellError, Next, condense, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
 import { laneOf, loadPack, Pack, SOFTWARE, stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
@@ -837,7 +837,7 @@ const signalled = Effect.callback<{ out: unknown; code: number }>((resume) => {
 	process.once('SIGINT', on).once('SIGTERM', on)
 	return Effect.sync(() => process.off('SIGINT', on).off('SIGTERM', on))
 })
-const exit = await Effect.runPromise(Effect.raceFirst(program.pipe(Effect.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })), signalled))
+const exit = await Effect.runPromise(Effect.raceFirst(program.pipe(Effect.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: condense(errorJson(e)), code: 1 }) })), signalled))
 const text = JSON.stringify(exit.out) + '\n'
 if (exit.code) process.stderr.write(text)
 else process.stdout.write(text)

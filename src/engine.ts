@@ -1210,8 +1210,15 @@ export function nextFor(item: Item): Next[] {
 	if (NQ_HOLDS.includes(code)) {
 		return [{ run: `mw answer ${id} "<your answer to context.questions>"`, why: 'your answer goes to the receiving agent, which confirms it understands or asks again' }]
 	}
-	if (CHECK_HOLDS.includes(code)) {
-		return (['implementation', 'test', 'pre-existing'] as const).map((cause) => ({ run: `mw answer ${id} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: 'the new code or its plan is wrong: the planner replans', test: 'the check is wrong: the test architect rewrites it', 'pre-existing': 'the defect predates this work: it gets its own fix first' }[cause] }))
+	if (CHECK_HOLDS.includes(code)) return causeNext(id)
+	if (code === 'environment') {
+		// Ruling 23: after two environment rulings the operator either fixes the environment and retries, or names the real cause.
+		return [
+			...(item.hold!.next ?? []),
+			{ run: `mw show ${id}`, why: 'read the held step\'s evidence in full: the failing checks, the prepare command\'s exit and what was torn down' },
+			{ run: `mw retry ${id}`, why: `once the environment is fixed: the ${String(item.hold!.context.step ?? item.job)} step runs again in a fresh worktree, never the arbiter` },
+			...causeNext(id),
+		]
 	}
 	if (code === 'leftovers') {
 		// Made Well cannot tell an agent's stray files from ones the operator made while the call ran: the operator says which.
@@ -1224,6 +1231,13 @@ export function nextFor(item: Item): Next[] {
 		{ run: `mw retry ${id}`, why: 'run the held step again from where it stopped' },
 	]
 }
+
+/** The three causes the operator may name for a failed step; each routes the work as the arbiter's ruling of that cause would. */
+const causeNext = (id: number): Next[] =>
+	(['implementation', 'test', 'pre-existing'] as const).map((cause) => ({ run: `mw answer ${id} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: 'the new code or its plan is wrong: the planner replans', test: 'the check is wrong: the test architect rewrites it', 'pre-existing': 'the defect predates this work: it gets its own fix first' }[cause] }))
+
+/** Holds the operator answers by naming a cause: a failed check, or the environment after two rulings (ruling 23). */
+const CAUSE_HOLDS = [...CHECK_HOLDS, 'environment']
 
 const held = (id: number) =>
 	Effect.gen(function* () {
@@ -1280,17 +1294,25 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 			store.save(withTrack(free, job, { ...t, exchange: { ...x, status: 'awaiting-receiver', turns } }), 'nq-answer', { job, originator: 'operator', questions: x.turns.at(-1)?.questions ?? [], answer: text })
 			return
 		}
-		if (!CHECK_HOLDS.includes(item.hold.code)) {
+		if (!CAUSE_HOLDS.includes(item.hold.code)) {
 			return yield* new MadeWellError({ code: 'not_answerable', message: `Item #${id} holds on ${item.hold.code}, which an answer does not resolve.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
-		if (!cause) return yield* new MadeWellError({ code: 'cause_required', message: `Item #${id} holds on a failed check; the answer must name its cause.`, context: { id, hold: item.hold }, next: nextFor(item) })
+		const environment = item.hold.code === 'environment'
+		if (!cause) {
+			const message = environment
+				? `Item #${id} holds on the environment after two rulings; an answer must name the real cause with --cause, or \`mw retry ${id}\` runs the held step again once the environment is fixed.`
+				: `Item #${id} holds on a failed check; the answer must name its cause.`
+			return yield* new MadeWellError({ code: 'cause_required', message, context: { id, hold: item.hold }, next: nextFor(item) })
+		}
+		// Ruling 23: the operator's cause routes the item exactly as the arbiter's ruling of that cause would.
 		const operator: Origin = { kind: 'operator' }
-		if (cause === 'pre-existing') return openPrerequisite(store, { ...free, from: operator }, text, operator)
+		const single = { ...free, split: undefined }
+		if (cause === 'pre-existing') return openPrerequisite(store, { ...single, from: operator }, text, operator)
 		const job: Job = cause === 'test' ? 'test-plan' : 'plan'
 		store.save({
-			...free, job, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1,
+			...single, job, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1,
 			...(job === 'plan' ? { base: undefined } : {}),
-		}, 'ruling', { cause, to: job, by: 'operator', answer: text })
+		}, 'ruling', { cause, to: job, by: 'operator', answer: text, ...(environment ? { after: 'environment' } : {}) })
 	})
 
 /**

@@ -27,7 +27,7 @@ function setup(extra: Record<string, string> = {}) {
 	git('config', 'user.email', 'op@example.com')
 	const env: Record<string, string | undefined> = { ...process.env, MW_HOME: home, MW_WORKER_COMMAND: `${process.execPath} ${join(import.meta.dirname, 'fixtures/scripted-worker.ts')}`, FAKE_LOG: join(dir, 'calls.log'), MW_AUTORUN: '0', PATH: `${bin}:${process.env.PATH}`, ...extra }
 	delete env.MW_STORE
-	const parse = (r: ReturnType<typeof spawnSync>) => ({ code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null })
+	const parse = (r: ReturnType<typeof spawnSync>) => ({ code: r.status, out: r.stdout.length ? JSON.parse(String(r.stdout)) : null, err: r.stderr.length ? JSON.parse(String(r.stderr)) : null, errBytes: r.stderr.length })
 	const mw = (...args: string[]) => parse(spawnSync(process.execPath, [cli, ...args], { env, cwd: repo }))
 	const sh = (command: string) => parse(spawnSync('sh', ['-c', command], { env, cwd: repo }))
 	return { dir, home, repo, env, mw, sh, git }
@@ -246,6 +246,21 @@ test('errors are JSON on stderr with a listed code, the context of its shape, an
 	const wait = t.mw('next').out
 	assert.equal(wait.action, 'wait', 'with a live runner, next waits instead of starting another')
 	assert.equal(wait.then, 'mw next')
+})
+
+test('an error on stderr carries its facts with long evidence summarised near 4 KB, and points at mw show for the rest', () => {
+	const t = setup()
+	t.mw('init', '--autonomy', 'full', '--ship', 'for i in $(seq 1 400); do echo "line $i of a long deploy log"; echo "line $i of a long deploy log" >&2; done; exit 3')
+	const id = t.mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export').out.item.id
+	assert.equal(t.mw('run').out.items[0].hold.code, 'ship_failed')
+	const held = t.mw('show', String(id)).out.item.hold
+	assert.ok(held.context.stdout.length + held.context.stderr.length > 6000, 'the record holds the evidence in full')
+	const refused = t.mw('answer', String(id), 'done')
+	assert.equal(refused.err.error, 'not_answerable')
+	assert.ok(refused.errBytes <= 4608, `stderr is ${refused.errBytes} bytes`)
+	assert.deepEqual(Object.keys(refused.err), ['error', 'message', 'context', 'next'], 'the error keeps its shape')
+	assert.match(refused.err.context.hold.context.stdout, new RegExp(`^line \\d+ of a long deploy log… \\[\\d+ lines, \\d+ bytes; mw show ${id} has it in full\\]$`))
+	assert.deepEqual(refused.err.next.map((n: { run: string }) => n.run), [`mw retry ${id}`, `mw show ${id}`])
 })
 
 test('a runner killed mid-job is replaced: the next run resumes at that job without repeating earlier ones', async () => {

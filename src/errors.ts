@@ -138,3 +138,49 @@ export const errorJson = (e: MadeWellError) => ({
 	...(e.cause ? { cause: e.cause } : {}),
 	next: e.next,
 })
+
+/** What one error may put on stderr: the facts to act on, with long evidence summarised. The record holds it all. */
+export const STDERR_CAP = 4096
+
+/** The work item an error's context is about, when it names one. */
+const itemOf = (context: Record<string, unknown>): number | undefined => {
+	for (const key of ['id', 'item', 'discovery']) if (typeof context[key] === 'number') return context[key] as number
+	const owner = context.owner as { item?: { id?: unknown } } | undefined
+	return typeof owner?.item?.id === 'number' ? owner.item.id : undefined
+}
+
+/**
+ * The error as the CLI prints it: its shape intact, and every long string or list in its context summarised (first
+ * line, lines, bytes; the first entries and the count) until the whole fits near STDERR_CAP. A summarised error
+ * points at `mw show <id>`, which prints the record in full; nothing is lost from the store.
+ */
+export function condense(e: ReturnType<typeof errorJson>): ReturnType<typeof errorJson> {
+	const id = itemOf(e.context as Record<string, unknown>)
+	const see = id === undefined ? '' : `; mw show ${id} has it in full`
+	const shorten = (cap: number) => {
+		let cut = false
+		const walk = (v: unknown): unknown => {
+			if (typeof v === 'string') {
+				if (v.length <= cap) return v
+				cut = true
+				const lines = v.split('\n')
+				return `${lines[0]!.slice(0, cap)}… [${lines.length} line${lines.length === 1 ? '' : 's'}, ${Buffer.byteLength(v)} bytes${see}]`
+			}
+			if (Array.isArray(v)) {
+				const kept: unknown[] = v.slice(0, 10).map(walk)
+				if (v.length > 10) (cut = true), kept.push(`… ${v.length - 10} more of ${v.length}${see}`)
+				return kept
+			}
+			if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]))
+			return v
+		}
+		return { context: walk(e.context) as object, cut }
+	}
+	let cap = 400
+	let short = shorten(cap)
+	while (Buffer.byteLength(JSON.stringify({ ...e, context: short.context })) > STDERR_CAP && cap > 40) short = shorten((cap = Math.floor(cap / 2)))
+	const next = short.cut && id !== undefined && !e.next.some((n) => n.run === `mw show ${id}`)
+		? [...e.next, { run: `mw show ${id}`, why: 'the error\'s context in full, as the record holds it' }]
+		: e.next
+	return { ...e, context: short.context, next }
+}

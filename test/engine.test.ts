@@ -4,7 +4,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFi
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { test } from 'node:test'
-import { Effect, Fiber, Layer } from 'effect'
+import { Effect, Fiber, Layer, Result } from 'effect'
 import { TestClock } from 'effect/testing'
 import { loadPrescriptions, type Card, type Prescriptions } from '../src/cards.ts'
 import { resolveDecision, RUBRIC, type DecisionRequest, type DecisionResult } from '../src/decision.ts'
@@ -596,6 +596,53 @@ test('a second environment ruling in a row holds the item at the failed step; a 
 		assert.equal(t.of('execute', 'test-plan').length, 4)
 		assert.equal(t.of('execute', 'implement').length, 1)
 		assertNoTrace(t)
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('after two environment rulings the operator names the cause: the answer routes the item as the arbiter\'s ruling would, and the record carries the ruling', async () => {
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return checks(req, 'echo "expected a;b"; exit 1')
+		if (req.kind === 'execute' && req.job === 'test-plan' && (n === 2 || n === 3)) return { blocked: 'The supplied checkout contains neither the change nor my check files.' }
+		if (req.kind === 'execute' && req.job === 'test-plan') return checks(req, CHECK)
+		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling(n === 1 ? 'test' : 'environment')
+		return undefined
+	})
+	try {
+		const id = t.item.id
+		await t.run(drive(id, config))
+		let item = t.store.get(id)!
+		assert.equal(item.hold!.code, 'environment')
+		assert.deepEqual(nextFor(item).map((n) => n.run), [
+			`mw show ${id}`, `mw retry ${id}`,
+			...['implementation', 'test', 'pre-existing'].map((c) => `mw answer ${id} --cause ${c} "<what the responsible party must do>"`),
+		], 'the hold offers the retry and the three causes')
+		const bare = await t.run(Effect.result(answer(id, 'the locator is wrong')))
+		assert.equal(Result.isFailure(bare) ? bare.failure.code : 'ok', 'cause_required', 'an environment hold is answerable; the answer needs its cause')
+		await t.run(answer(id, 'the locator must accept the required marker', 'test'))
+		item = t.store.get(id)!
+		assert.deepEqual([item.status, item.job, item.rework, item.split], ['queued', 'test-plan', { cause: 'test', answer: 'the locator must accept the required marker' }, undefined])
+		assert.deepEqual(t.store.events(id).filter((e) => e.kind === 'ruling').at(-1)!.data, { cause: 'test', to: 'test-plan', by: 'operator', answer: 'the locator must accept the required marker', after: 'environment' })
+		await t.run(drive(id, config))
+		assert.equal(t.store.get(id)!.status, 'shipped')
+		assert.equal(t.of('execute', 'arbitrate').length, 3, 'the operator\'s cause never replays the arbiter')
+		assert.equal(t.of('execute', 'implement').length, 1, 'a test cause keeps the implementation')
+		assert.match(t.packet('execute', 'test-plan', 3).exchange.handoff, /^Ruling \(test\): the locator must accept/)
+
+		// The implementation cause replans, as the arbiter's ruling would.
+		const second = t.create('second')
+		await t.run(drive(second.id, config))
+		assert.equal(t.store.get(second.id)!.hold!.code, 'environment')
+		await t.run(answer(second.id, 'the plan names the wrong label', 'implementation'))
+		item = t.store.get(second.id)!
+		assert.deepEqual([item.status, item.job, item.base, item.rework?.cause], ['queued', 'plan', undefined, 'implementation'])
+		await t.run(drive(second.id, config))
+		assert.equal(t.store.get(second.id)!.status, 'shipped')
+		assert.equal(t.of('execute', 'implement', second.id).length, 2, 'the change is made again from the new plan')
+		assert.equal(t.of('execute', 'arbitrate', second.id).length, 3)
+		assertNoTrace(t)
+		assertNoTrace(t, second.id)
 	} finally {
 		t.cleanup()
 	}
