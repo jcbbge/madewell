@@ -23800,10 +23800,10 @@ var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref, recorded
     { run: `git -C ${repo} reset --keep ${recorded}`, why: "only if those commits are unverified agent work and were never pushed" }
   ]);
 });
+var covers = (scope3, file) => scope3.some((d) => d.endsWith("/") || d.endsWith("/**") ? file.startsWith(d.replace(/\*\*$/, "")) : file === d);
 var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declared) {
   const changed = [.../* @__PURE__ */ new Set([...lines2(yield* git(dir, "diff", "--name-only", "--no-renames", "-z", base)), ...lines2(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))])].sort();
-  const covers2 = (d, f) => d.endsWith("/") || d.endsWith("/**") ? f.startsWith(d.replace(/\*\*$/, "")) : f === d;
-  const outside = changed.filter((f) => !declared.some((d) => covers2(d, f)));
+  const outside = changed.filter((f) => !covers(declared, f));
   if (outside.length) {
     return yield* fail9("out_of_scope", `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: "see the whole change against its base" }]);
   }
@@ -24629,7 +24629,6 @@ var afterEnvironment = (store, item, by, answer2) => {
   if (typeof failed === "string") return { ...base, job: failed };
   return { ...base, job: failed[0], split: Object.fromEntries(failed.map((m) => [m, { from: by, launches: 0 }])) };
 };
-var covers = (scope3, file) => scope3.some((d) => d.endsWith("/") || d.endsWith("/**") ? file.startsWith(d.replace(/\*\*$/, "")) : file === d);
 var keepPartial = (dir, item, job, from) => Effect_exports.gen(function* () {
   const { patch } = yield* takeChange(dir, from);
   const path = patchPath(itemHome((yield* Store).path, item.id), `${job}.partial`);
@@ -25242,16 +25241,10 @@ var executeParts = (item, job, t, x) => ({
 import { readFileSync as readFileSync7 } from "node:fs";
 import { resolve as resolve5 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
-var JOBS = ["discover", "ideate", "challenge", "plan", "test-plan", "implement", "arbitrate"];
+var JOBS = AGENT_JOBS;
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
 var MIN_OUT_MS2 = 5 * 6e4;
-var EvalCard = Schema_exports.Struct({
-  harness: Schema_exports.NonEmptyString,
-  provider: Schema_exports.NonEmptyString,
-  account: Schema_exports.NonEmptyString,
-  model: Schema_exports.NonEmptyString,
-  effort: Schema_exports.Literals(["low", "medium", "high", "xhigh", "max"])
-}).annotate({ identifier: "Card" });
+var EvalCard = Card.annotate({ identifier: "Card" });
 var Score = Schema_exports.Struct({
   outcome: Schema_exports.String.annotate({ description: "ok, error or rejected, as the call ended" }),
   valid: Schema_exports.Boolean.annotate({ description: "answered, and the engine would accept the answer" }),
@@ -26342,7 +26335,6 @@ var stepsOf = (item, calls, events2, flying) => {
     else if (ORDER[job] < at) state = "done";
     else if (job === item.job || job === "verify" && item.merged) state = item.status === "held" ? "held" : ["candidate", "queued"].includes(item.status) && !flying.length ? "todo" : "active";
     else state = "todo";
-    if (job === "verify" && state === "done" && item.merged && !done3) state = "done";
     return { job, label: label2, cartridge, who: job === "verify" || job === "ship" ? "made well" : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
   });
 };
