@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { after, test } from 'node:test'
 import { Effect, Layer } from 'effect'
-import type { Card, Prescriptions } from '../src/cards.ts'
+import { loadPrescriptions, type Card, type Prescriptions } from '../src/cards.ts'
 import type { MadeWellError } from '../src/errors.ts'
 import { evaluate, JOBS } from '../src/eval.ts'
 import { openStore, Store } from '../src/store.ts'
@@ -57,6 +57,65 @@ function setup(name: string) {
 	}
 	return { dir, repo, home, store, item, record, requests, run, db, untouched }
 }
+
+test('prescription and replay cards preserve every effort and reject malformed fields and unknown harnesses', async () => {
+	const t = setup('card-boundaries')
+	t.record('intake', 'arbitrate', card('big'), INTAKE, 3)
+	const path = join(t.dir, 'prescriptions.json')
+	const load = (candidate: unknown) => {
+		writeFileSync(path, JSON.stringify({ ...prescriptions, tiers: { ...prescriptions.tiers, candidates: [candidate] } }))
+		return loadPrescriptions(path)
+	}
+	try {
+		for (const effort of ['low', 'medium', 'high', 'xhigh', 'max'] as const) {
+			const candidate = { ...card('candidate'), effort }
+			assert.deepEqual((await Effect.runPromise(load(candidate))).tiers.candidates, [candidate])
+			const report = await Effect.runPromise(t.run(() => ({ ok: true, output: INTAKE }), { card: JSON.stringify(candidate) }))
+			assert.deepEqual(report.cards[0]!.card, candidate)
+			assert.equal(report.cards[0]!.complete, true)
+		}
+		const invalid: Record<string, unknown>[] = []
+		for (const field of ['harness', 'provider', 'account', 'model', 'effort']) {
+			const missing: Record<string, unknown> = { ...card('candidate') }
+			delete missing[field]
+			invalid.push(missing, { ...card('candidate'), [field]: '' }, { ...card('candidate'), [field]: 7 })
+		}
+		invalid.push({ ...card('candidate'), effort: 'ultra' })
+		for (const candidate of invalid) {
+			const p = await Effect.runPromise(Effect.flip(load(candidate)))
+			assert.equal(p.code, 'prescriptions_invalid')
+			assert.equal(p.message, `Prescriptions file ${path} does not match the expected shape.`)
+			const e = await Effect.runPromise(Effect.flip(t.run(() => assert.fail('invalid card must not call worker'), { card: JSON.stringify(candidate) })))
+			assert.equal(e.code, 'eval_card_invalid')
+			assert.equal(e.message, '--card does not match the card shape {harness, provider, account, model, effort}.')
+			const pc = p.context as Record<string, unknown>
+			const ec = e.context as Record<string, unknown>
+			assert.deepEqual(Object.keys(pc).sort(), ['path', 'problems'])
+			assert.equal(pc.path, path)
+			assert.equal(typeof pc.problems, 'string')
+			assert.deepEqual(p.next, [{ run: `$EDITOR ${path}`, why: 'fix the fields listed in context.problems' }])
+			assert.deepEqual(Object.keys(ec).sort(), ['card', 'harnesses', 'problems', 'tiers'])
+			assert.equal(ec.card, JSON.stringify(candidate))
+			assert.deepEqual(ec.tiers, ['all', 'candidates'])
+			assert.deepEqual(ec.harnesses, ['amp', 'claude', 'codex', 'pi'])
+			assert.equal(typeof ec.problems, 'string')
+			assert.deepEqual(e.next.slice(0, 2), [
+				{ run: 'mw eval <job> --card all', why: 'replay on every card of tier "all"' },
+				{ run: 'mw eval <job> --card candidates', why: 'replay on every card of tier "candidates"' },
+			])
+		}
+		const unknown = { ...card('candidate'), harness: 'no-such-harness' }
+		const p = await Effect.runPromise(Effect.flip(load(unknown)))
+		assert.equal(p.code, 'prescriptions_invalid')
+		assert.equal(p.message, 'Tier "candidates" has a card on harness "no-such-harness", which has no entry.')
+		const e = await Effect.runPromise(Effect.flip(t.run(() => assert.fail('unknown harness must not call worker'), { card: JSON.stringify(unknown) })))
+		assert.equal(e.code, 'eval_card_invalid')
+		assert.equal(e.message, '--card names harness "no-such-harness", which has no entry.')
+		assert.deepEqual(p.context, { path, tier: 'candidates', card: unknown, harnesses: ['amp', 'claude', 'codex', 'pi'] })
+		assert.deepEqual(e.context, { card: JSON.stringify(unknown), tiers: ['all', 'candidates'], harnesses: ['amp', 'claude', 'codex', 'pi'] })
+		t.untouched()
+	} finally { t.store.close() }
+})
 
 test('a tier is replayed call by call, scored like the record, and the cheapest card that matches it is recommended', async () => {
 	const t = setup('tier')

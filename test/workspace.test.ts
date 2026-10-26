@@ -166,6 +166,29 @@ test('the scope check names every changed file outside the declared scope', asyn
 	}
 })
 
+test('scope declarations are exact paths or explicit directory suffixes, never implicit globs', async () => {
+	const t = setup()
+	try {
+		mkdirSync(join(t.repo, 'src', 'nested'))
+		const files = ['src/b.ts', 'src/b.ts.extra', 'src/nested/check.ts', 'src/*.ts']
+		for (const file of files) writeFileSync(join(t.repo, file), 'changed\n')
+		const changed = [...files].sort()
+		for (const [declared, allowed] of [
+			[['src/b.ts'], ['src/b.ts']], [['src/'], files], [['src/**'], files],
+			[[], []], [['src'], []], [['src/*.ts'], ['src/*.ts']], [['src/b'], []],
+		] as [string[], string[]][]) {
+			const outside = changed.filter((file) => !allowed.includes(file))
+			if (!outside.length) assert.deepEqual(await run(scopeCheck(t.repo, t.head, declared)), changed)
+			else {
+				const e = await error(scopeCheck(t.repo, t.head, declared))
+				assert.equal(e.code, 'out_of_scope')
+				assert.equal(e.message, `${outside.length} changed file(s) are outside the declared scope.`)
+				assert.deepEqual(e.context, { dir: t.repo, base: t.head, declared, outside, changed })
+			}
+		}
+	} finally { t.cleanup() }
+})
+
 test('the leftover check finds untracked and ignored files a job created, and only those', async () => {
 	const t = setup()
 	try {

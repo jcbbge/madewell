@@ -60,6 +60,24 @@ test('mw alone prints the manual from the command table, and reading creates not
 	assert.equal(existsSync(t.home), false, 'reading the manual or state creates nothing')
 })
 
+test('the manual keeps the named Card contract and default replay jobs', () => {
+	const t = setup()
+	const manual = t.mw()
+	assert.equal(manual.code, 0)
+	assert.deepEqual(manual.out.$defs.Card, {
+		type: 'object',
+		properties: {
+			harness: { type: 'string', minLength: 1 }, provider: { type: 'string', minLength: 1 },
+			account: { type: 'string', minLength: 1 }, model: { type: 'string', minLength: 1 },
+			effort: { type: 'string', enum: ['low', 'medium', 'high', 'xhigh', 'max'] },
+		},
+		required: ['harness', 'provider', 'account', 'model', 'effort'],
+	})
+	const command = manual.out.commands.find((c: { name: string }) => c.name === 'eval')
+	assert.equal(command.input.properties.job.description, "the job whose recorded calls to replay: its intake, originator and execute calls (discover, ideate, challenge, plan, test-plan, implement, arbitrate, or a cartridge's own job)")
+	assert.equal(existsSync(t.home), false)
+})
+
 test('an agent following next delivers a work item through commands run as written, leaving no trace in the product repo', () => {
 	const t = setup()
 	const init = t.mw('init', '--autonomy', 'full', '--ship', 'touch ../shipped')

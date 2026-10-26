@@ -727,6 +727,32 @@ test('an implementer that strays outside the plan\'s scope is refused, and the n
 	}
 })
 
+test('check writers must revert product-scope writes before outside checks can ship without being imported', async () => {
+	for (const scope of [['src/export.sh'], ['src/'], ['src/**']]) {
+		let carried = false
+		const t = setup((req, n) => {
+			if (req.kind !== 'execute') return undefined
+			if (req.job === 'plan') return { ...PLAN, scope }
+			if (req.job !== 'test-plan') return undefined
+			if (n === 1) write(req, 'src/export.sh', 'echo forbidden\n')
+			else {
+				carried = existsSync(join(req.cwd, 'src/export.sh'))
+				rmSync(join(req.cwd, 'src/export.sh'))
+			}
+			return checks(req)
+		})
+		try {
+			const done = await t.run(drive(t.item.id, config))
+			assert.equal(done.status, 'shipped')
+			assert.ok(carried)
+			assert.equal(t.packet('execute', 'test-plan', 1).yourLastAnswerWasRefused, "Checks may not touch the plan's scope, which is product code: src/export.sh. Write check files at other paths.")
+			assert.deepEqual(git(t.repo, 'show', '--name-only', '--format=', 'main').split('\n'), ['src/export.sh'])
+			assert.equal(existsSync(join(t.repo, 'checks')), false)
+			assertNoTrace(t)
+		} finally { t.cleanup() }
+	}
+})
+
 test('an implementer that commits to main holds the item before anything ships; one that leaves a file in the product repo, or edits its shared git excludes, holds it too', async () => {
 	const t = setup((req) => {
 		if (req.kind === 'execute' && req.job === 'implement' && req.item === 1) {
