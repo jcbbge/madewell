@@ -252,6 +252,8 @@ export interface ItemView {
 	readonly title: string
 	readonly kind: string
 	readonly status: Item['status']
+	/** The project folder it works in, so a view can show one project's items. */
+	readonly workspace: string
 	readonly discovery?: number
 	readonly parent?: number
 	readonly after: ReadonlyArray<{ id: number; status: string }>
@@ -366,7 +368,7 @@ const itemViews = (store: StoreService, items: ReadonlyArray<Item>, events: Read
 		const end = evs.findLast((e) => ['shipped', 'dropped', 'discovered'].includes(e.kind))?.at
 		const results = item.verification?.results.filter((r) => r.doneWhen !== GATE) ?? []
 		return {
-			id: item.id, title: item.title, kind: isDiscovery(item) ? 'discovery' : item.parent !== undefined ? 'prerequisite' : item.kind ?? 'feature', status: item.status,
+			id: item.id, title: item.title, kind: isDiscovery(item) ? 'discovery' : item.parent !== undefined ? 'prerequisite' : item.kind ?? 'feature', status: item.status, workspace: item.workspace,
 			...(item.discovery !== undefined ? { discovery: item.discovery } : {}), ...(item.parent !== undefined ? { parent: item.parent } : {}),
 			after: (item.after ?? []).map((id) => ({ id, status: store.get(id)?.status ?? 'missing' })), ...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 			round: item.round, steps: stepsOf(item, mine, evs, fl), doing, owes, since: evs.at(-1)?.at ?? item.updated, started: start, ...(end ? { ended: end } : {}),

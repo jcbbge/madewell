@@ -146,6 +146,26 @@ test('4. every time on the sheet carries its zone, and the sheet shows the clock
 	assert.equal(blazonOf(running(true), { zone: 'Europe/London' }).sheet.masthead.date, '25 October 2026')
 })
 
+test('5. /?workspace=<dir> paints one project: its items, waits, running steps and counts, named in the subtitle; an unknown folder is a warning that lists the projects', () => {
+	const m = running(true)
+	const arc = '/home/jrg/projects/infinity/arc', lens = '/home/jrg/madewell-three-lens'
+	for (const i of m.items) i.workspace = i.id === 4 ? lens : arc
+	m.projects = [arc, lens]
+	const b = blazonOf(m, { workspace: arc, live: { 'item-3-implement-execute.log': stream } })
+	assert.equal(b.sheet.masthead.subtitle, 'Delivery for arc: what waits on you')
+	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [1, 2, 3])
+	assert.deepEqual(b.notices.map((n: { item: number; ink: string }) => [n.item, n.ink]), [[3, 'slate-blue']], 'item 4 waits in another project')
+	assert.deepEqual(b.principal.centre.value, '0')
+	assert.equal(b.colophon, 'From the Made Well record on hive, items of /home/jrg/projects/infinity/arc only; last entry 24 Oct, 21:25 UTC. 3 delivery items; between them 19 agent calls, 755,579 tokens and 6 minutes of agent time. Not sealed: nothing has shipped.')
+	assert.equal(b.sheet.warning, undefined)
+	const other = blazonOf(m, { workspace: lens })
+	assert.deepEqual([other.sheet.masthead.subtitle, other.principal.rings.map((r: { item: number }) => r.item), other.notices.map((n: { item: number }) => n.item), other.principal.centre.value], ['Delivery for madewell-three-lens: what waits on you', [4], [4], '1'])
+	const none = blazonOf(m, { workspace: '/nowhere' })
+	assert.deepEqual([none.principal.rings, none.notices, none.sheet.masthead.subtitle], [[], [], 'Delivery for nowhere: what waits on you'])
+	assert.equal(none.sheet.warning, 'No items for /nowhere on this record. Projects on record: /home/jrg/projects/infinity/arc and /home/jrg/madewell-three-lens.')
+	assert.equal(blazonOf(m).principal.rings.length, 4, 'no workspace, every project')
+})
+
 test('the painter draws the blazon and nothing else: it refuses an unknown tincture and a second vermilion stamp', () => {
 	const P = painter(T)
 	const b = blazonOf(model())

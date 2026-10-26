@@ -7,6 +7,8 @@ import { painter } from './paint.mjs'
 
 const P = painter(T)
 const main = document.getElementById('sheet')
+/** `/?workspace=<dir>` paints one project's items only; the blazon names it in the subtitle. */
+const workspace = new URLSearchParams(location.search).get('workspace') || undefined
 let painted = ''
 let mark = ''
 let lastModel
@@ -41,9 +43,9 @@ const liveOf = async (model) => {
 
 const refetch = async () => {
 	const model = await (await fetch('/api/model')).json()
-	if (!model.items) return paint(blazonOf(EMPTY, { warning: 'Made Well has no record on this machine yet. It appears with the first mw start or mw discover.' }))
+	if (!model.items) return paint(blazonOf(EMPTY, { workspace, warning: 'Made Well has no record on this machine yet. It appears with the first mw start or mw discover.' }))
 	lastModel = model
-	paint(blazonOf(model, { live: await liveOf(model) }))
+	paint(blazonOf(model, { workspace, live: await liveOf(model) }))
 }
 
 const tick = async () => {
@@ -57,13 +59,13 @@ const tick = async () => {
 		}
 	} catch {
 		unreachedSince ??= new Date().toISOString()
-		paint(blazonOf(lastModel ?? EMPTY, { stale: unreachedSince }))
+		paint(blazonOf(lastModel ?? EMPTY, { workspace, stale: unreachedSince }))
 		mark = ''
 	}
 }
 
 /** A record with nothing in it yet, so the sheet still has a masthead and a colophon before the first item. */
-const EMPTY = { at: new Date().toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] }
+const EMPTY = { at: new Date().toISOString(), host: location.hostname, runner: null, eventCount: 0, projects: [], summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] }
 
 document.addEventListener('click', (e) => {
 	const b = e.target.closest('[data-run]')

@@ -8,7 +8,8 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Masthead "Made Well", subtitle | `sheet.masthead.name`, `.subtitle` | fixed words | concept |
 | Sheet number | `sheet.masthead.number` | `model.eventCount`: the record's entry count, so the number rises as the record moves | concept |
 | Date | `sheet.masthead.date` | `model.at`, in UTC | concept |
-| Warning under the masthead | `sheet.warning` | the page's own state: `/api/mark` unreachable since a time, or `/api/model` with `store: null` | concept |
+| Subtitle naming one project | `sheet.masthead.subtitle` | the page's `?workspace=<dir>`: the folder's last segment; every item, wait, running step and count on the sheet is then that project's (`items[].workspace`) | concept |
+| Warning under the masthead | `sheet.warning` | the page's own state: `/api/mark` unreachable since a time, or `/api/model` with `store: null`; or a `?workspace` that matches no item, with `model.projects` listed | concept |
 | Status for screen readers | `sheet.updated` | `model.at`, `model.needs.length` | concept |
 | Rings, one per item | `principal.rings[]` | `model.items[]` with `kind !== 'discovery'`: every open item, then the newest finished ones, at most 8; drawn in item order, outermost first, so a repaint never moves a ring and a new item is the innermost | concept |
 | Ring name | `rings[].item`, `rings[].name` | `items[].id`, `items[].title`; the painter always letters the number, then as much of the title as the arc holds, and the whole title is in the accessible name | concept |
@@ -24,7 +25,7 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Running notice | `notices[]` with `ink: 'slate-blue'` | `model.running[]` grouped by `item`, one notice per running item: `title`, the earliest `since`; `items[].doing` for the sentence | concept |
 | Its output blocks | `notices[].outputs[]` | one per running call of the item: `running[].job` in plain words (`STEP_WORDS`), `running[].since`, and `GET /api/live/<file>` text, each line in plain words (`lineWords`); else `running[].activity[].text` | concept |
 | Legend | `legend[]` | the inks the rings and notices use | concept |
-| Colophon | `colophon` | `model.host`, `summary.last`; the delivery items and discovery runs counted apart, then `summary.calls`, `summary.tokens`, `summary.agentMs` across both, `summary.shipped`, and how many finished items the rings leave out | concept |
+| Colophon | `colophon` | `model.host`, `summary.last`; the delivery items and discovery runs counted apart, then `summary.calls`, `summary.tokens`, `summary.agentMs` across both, `summary.shipped`, and how many finished items the rings leave out. With `?workspace`, the sums are of that project's `items[].calls`, `.tokens`, `.agentMs` | concept |
 | Every time | `when()` | the record's ISO times, shown in UTC with the label "UTC", the clock the CLI prints; a painter that passes another zone gets that zone's label | concept |
 | Sealed | `sheet.sealed` | `summary.shipped > 0` (Stage 1 records it; the seal ordinary is not yet painted) | concept |
 
@@ -36,5 +37,6 @@ node --test test/gazette.test.ts    # the blazon from a recorded model; the pain
 node dist/mw.mjs ui --port 4747     # serve; open http://127.0.0.1:4747/ (the console at /console)
 ```
 
-The rendered page is inspected in the operator's Chrome over CDP (`~/.claude/skills/operator-mac/scripts/cdp.mjs`),
-screenshot to a file and looked at; a file write is not proof.
+The rendered page is inspected in a browser (the operator's Chrome over CDP, `~/.claude/skills/operator-mac/scripts/cdp.mjs`,
+or headless Playwright on the machine that serves it), screenshot to a file and looked at; a file write is not proof.
+`/?workspace=<dir>` is inspected the same way.
