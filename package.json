@@ -4,17 +4,20 @@
   "private": true,
   "type": "module",
   "bin": {
-    "mw": "dist/mw.mjs"
+    "mw": "dist/mw.mjs",
+    "mw-ui": "dist/mw-ui.mjs"
   },
   "files": [
     "dist/mw.mjs",
+    "dist/mw-ui.mjs",
     "prescriptions.json"
   ],
   "engines": {
     "node": ">=24.15"
   },
   "scripts": {
-    "bundle": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --outfile=dist/mw.mjs --log-level=warning",
+    "bundle": "esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --outfile=dist/mw.mjs --log-level=warning && npm run bundle:ui",
+    "bundle:ui": "esbuild src/ui-server.ts --bundle --platform=node --format=esm --target=node24.15 --banner:js='#!/usr/bin/env node' --outfile=dist/mw-ui.mjs --log-level=warning",
     "pretest": "npm run bundle",
     "test": "env $(env | grep -o '^MW_[A-Z_]*' | sed 's/^/-u /') node --test test/*.test.ts",
     "typecheck": "tsc"
