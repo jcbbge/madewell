@@ -165,16 +165,25 @@ export const blazonOf = (model, opts = {}) => {
 		}
 	})
 	if (notices.length) inksUsed.add(INK.waits)
-	for (const r of model.running) {
-		const item = model.items.find((i) => i.id === r.item)
-		const file = r.live ? r.live.slice(r.live.lastIndexOf('/') + 1) : undefined
-		const output = file && opts.live?.[file] != null ? tailWords(opts.live[file]) : r.activity.map((a) => a.text)
+	// One notice per running item, with one block of live output per running call: a build and its checks running
+	// side by side are one card with two blocks.
+	const byItem = new Map()
+	for (const r of model.running) (byItem.get(r.item) ?? byItem.set(r.item, []).get(r.item)).push(r)
+	for (const [id, calls] of byItem) {
+		const item = model.items.find((i) => i.id === id)
+		const outputs = calls.map((r) => {
+			const file = r.live ? r.live.slice(r.live.lastIndexOf('/') + 1) : undefined
+			const lines = file && opts.live?.[file] != null ? tailWords(opts.live[file]) : r.activity.map((a) => a.text)
+			return { step: STEP_WORDS[r.job] ?? titleCase(r.job), since: `since ${when(r.since, zone)}`, lines }
+		})
+		const since = calls.map((r) => r.since).sort()[0]
 		notices.push({
-			item: r.item, ink: INK.moving, name: r.title, says: item?.doing ?? `The ${r.who} is working on ${r.job}.`,
-			since: `Running since ${when(r.since, zone)}`, actions: [], output,
+			item: id, ink: INK.moving, name: calls[0].title, says: item?.doing ?? `The ${calls[0].who} is working on ${calls[0].job}.`,
+			since: `Running since ${when(since, zone)}`, actions: [], outputs,
 		})
 		inksUsed.add(INK.moving)
 	}
+
 
 	const s = model.summary
 	const last = s.last ? when(s.last, zone) : 'none yet'

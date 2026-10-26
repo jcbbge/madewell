@@ -45,30 +45,55 @@ test('the Delivery sheet is written from the model: one ring per item, inks by s
 	for (const word of ['UX', 'DX', 'AX', 'lens', 'cartridge', 'profile', 'NQ', 'hold', 'runner']) assert.doesNotMatch(own, new RegExp(`\\b${word}\\b`), `no "${word}" on the sheet`)
 })
 
-test('a running step is a slate-blue notice with its live output in plain words; a lost connection is a warning on the same sheet', () => {
+/** The fixture with item 3 running its build (and, with `checks`, its checks beside it) under a runner. */
+const running = (checks = false) => {
 	const m = model()
 	m.runner = { pid: 1 }
 	m.items[2].status = 'running'
 	m.items[2].steps[3].state = 'active'
+	if (checks) m.items[2].steps[4].state = 'active'
 	m.running = [{ item: 3, kind: 'execute', job: 'implement', who: 'implementer', since: '2026-10-25T18:00:00.000Z', live: '/x/live/item-3-implement-execute.log', title: m.items[2].title, activity: [] }]
+	if (checks) m.running.push({ item: 3, kind: 'execute', job: 'test-plan', who: 'test architect', since: '2026-10-25T18:00:30.000Z', live: '/x/live/item-3-test-plan-execute.log', title: m.items[2].title, activity: [{ text: 'Reading the plan.' }] })
 	m.needs = m.needs.filter((n: { item: number }) => n.item !== 3)
-	const stream = [
-		'{"type":"user","message":{"content":[{"type":"text","text":"the prompt"}]}}',
-		'{"type":"assistant","message":{"content":[{"type":"text","text":"Reading the plan first."}]}}',
-		'{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"npm test"}}]}}',
-		'{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/w/worktrees/x/src/a.ts"}}]}}',
-	].join('\n')
+	return m
+}
+const stream = [
+	'{"type":"user","message":{"content":[{"type":"text","text":"the prompt"}]}}',
+	'{"type":"assistant","message":{"content":[{"type":"text","text":"Reading the plan first."}]}}',
+	'{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"npm test"}}]}}',
+	'{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"/w/worktrees/x/src/a.ts"}}]}}',
+].join('\n')
+
+test('a running step is a slate-blue notice with its live output in plain words; a lost connection is a warning on the same sheet', () => {
 	assert.deepEqual(tailWords(stream), ['Reading the plan first.', '$ npm test', 'Read src/a.ts'])
 	assert.equal(lineWords('plain text line'), 'plain text line')
+	const m = running()
 	const b = blazonOf(m, { zone: 'UTC', live: { 'item-3-implement-execute.log': stream } })
 	assert.deepEqual(b.principal.rings.map((r: { item: number }) => r.item), [4, 3, 1, 2], 'what waits on you comes before what moves')
 	assert.deepEqual(b.principal.rings[1].fills.slice(0, 4), ['sage', 'sage', 'sage', 'slate-blue'])
-	const running = b.notices.find((n: { ink: string }) => n.ink === 'slate-blue')
-	assert.deepEqual([running.item, running.since, running.output], [3, 'Running since 25 Oct, 18:00', ['Reading the plan first.', '$ npm test', 'Read src/a.ts']])
+	const live = b.notices.find((n: { ink: string }) => n.ink === 'slate-blue')
+	assert.deepEqual([live.item, live.since, live.outputs], [3, 'Running since 25 Oct, 18:00', [{ step: 'Build', since: 'since 25 Oct, 18:00', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] }]])
 	assert.deepEqual(b.legend.map((l: { ink: string }) => l.ink), ['sage', 'vermilion', 'slate-blue', 'ochre'])
 	const stale = blazonOf(m, { zone: 'UTC', stale: '2026-10-25T18:30:00.000Z' })
 	assert.equal(stale.sheet.warning, 'Made Well has not answered since 25 Oct, 18:30. This is the sheet as it was then.')
 	assert.deepEqual(stampOf({ run: 'mw something 9', why: 'look at it, then decide' }), { words: 'Look at it', run: 'mw something 9', weight: 'plain' })
+})
+
+test('1. one card per running item: a build and its checks running side by side are one notice with two output blocks', () => {
+	const b = blazonOf(running(true), { zone: 'UTC', live: { 'item-3-implement-execute.log': stream } })
+	const live = b.notices.filter((n: { ink: string }) => n.ink === 'slate-blue')
+	assert.equal(live.length, 1, 'one notice for item 3, not one per call')
+	assert.deepEqual([live[0].item, live[0].name, live[0].since], [3, 'Three-lens browser verification trace fixture', 'Running since 25 Oct, 18:00'])
+	assert.deepEqual(live[0].outputs, [
+		{ step: 'Build', since: 'since 25 Oct, 18:00', lines: ['Reading the plan first.', '$ npm test', 'Read src/a.ts'] },
+		{ step: 'Checks', since: 'since 25 Oct, 18:00', lines: ['Reading the plan.'] },
+	])
+	assert.deepEqual(b.principal.rings[1].fills.slice(3, 5), ['slate-blue', 'slate-blue'], 'both steps move on the ring')
+	const html = painter(T).sheet(b)
+	assert.equal((html.match(/<section class="notice"/g) ?? []).length, 2, 'one wait and one running item')
+	assert.equal((html.match(/<pre class="output"/g) ?? []).length, 2, 'one block per running call')
+	assert.match(html, /aria-label="Latest output of Build"/)
+	assert.match(html, /aria-label="Latest output of Checks"/)
 })
 
 test('the painter draws the blazon and nothing else: it refuses an unknown tincture and a second vermilion stamp', () => {

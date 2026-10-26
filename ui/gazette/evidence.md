@@ -20,8 +20,8 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Stamp words | `notices[].actions[].words` | `needs[].next[].run`, mapped by `WORDS`; else the first clause of `next[].why` | concept |
 | Stamp command | `notices[].actions[].run` | `needs[].next[].run`, exact | supplied |
 | The one vermilion stamp | `actions[].weight === 'primary'` | the first `next` of the oldest wait | concept |
-| Running notice | `notices[]` with `ink: 'slate-blue'` | `model.running[]`: `item`, `title`, `since`, `live`; `items[].doing` for the sentence | concept |
-| Its output lines | `notices[].output[]` | `GET /api/live/<file>` text, each line in plain words (`lineWords`); else `running[].activity[].text` | concept |
+| Running notice | `notices[]` with `ink: 'slate-blue'` | `model.running[]` grouped by `item`, one notice per running item: `title`, the earliest `since`; `items[].doing` for the sentence | concept |
+| Its output blocks | `notices[].outputs[]` | one per running call of the item: `running[].job` in plain words (`STEP_WORDS`), `running[].since`, and `GET /api/live/<file>` text, each line in plain words (`lineWords`); else `running[].activity[].text` | concept |
 | Legend | `legend[]` | the inks the rings and notices use | concept |
 | Colophon | `colophon` | `model.host`, `summary.last`, `items.length`, `summary.calls`, `summary.tokens`, `summary.agentMs`, `summary.shipped` | concept |
 | Sealed | `sheet.sealed` | `summary.shipped > 0` (Stage 1 records it; the seal ordinary is not yet painted) | concept |

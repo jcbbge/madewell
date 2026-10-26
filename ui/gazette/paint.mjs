@@ -74,7 +74,8 @@ export const painter = (T) => {
     <p>${esc(n.says)}${n.quote ? ` <span class="quote">Made Well says: “${esc(n.quote)}”</span>` : ''}</p>
     ${n.questions?.length ? `<ul class="questions">${n.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>` : ''}
     <p class="since">${esc(n.since)}.</p>
-    ${n.output ? `<pre class="output" aria-label="Its latest output">${n.output.length ? n.output.map(esc).join('\n') : 'No output yet.'}</pre>` : ''}
+    ${(n.outputs ?? []).map((o) => `<p class="live"><b>${esc(o.step)}</b>, ${esc(o.since)}.</p>
+    <pre class="output" aria-label="Latest output of ${esc(o.step)}">${o.lines.length ? o.lines.map(esc).join('\n') : 'No output yet.'}</pre>`).join('\n    ')}
     ${n.actions.length ? `<div class="actions">${n.actions.map((a) => `<button type="button" class="stamp ${esc(a.weight)}" data-run="${esc(a.run)}" title="${esc(a.run)}">${esc(a.words)}</button>`).join('')}</div>
     <p class="slip" aria-live="polite"></p>` : ''}
   </div>
@@ -107,6 +108,7 @@ h2 { font: 800 25px/1.15 Alegreya, Georgia, serif; margin: 2px 0 8px; overflow-w
 .quote { display: block; font-size: 14.5px; margin-top: 4px; overflow-wrap: anywhere; }
 .questions { margin: 0 0 8px; padding-left: 1.2em; font-size: 15px; }
 .since { font-size: 14px; }
+.live { font-size: 14px; margin-top: 10px !important; }
 .output { margin: 6px 0 8px; padding: 2px 0 2px 12px; border-left: 1px solid var(--ink); font: 13.5px/1.4 ui-monospace, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 100%; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 14px; align-items: center; margin-top: 12px; }
 .stamp { font: 700 16px/1 "Alegreya Sans", sans-serif; color: var(--ink); background: var(--${S.ground}); border: 1.5px solid var(--ink); border-radius: 0; box-shadow: 3px 3px 0 var(--ink); padding: 10px 15px; min-height: 44px; cursor: pointer; }
