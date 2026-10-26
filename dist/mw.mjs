@@ -22148,6 +22148,8 @@ var common = {
   command: Schema_exports.NonEmptyArray(Schema_exports.String),
   /** What goes on stdin; default "{prompt}". */
   stdin: Schema_exports.optional(Schema_exports.String),
+  /** Tool-enabled calls read their complete JSON packet from a per-call file; no-tool calls stay inline. */
+  packet: Schema_exports.optional(Schema_exports.Literal("file")),
   /** Written as JSON to a per-call file whose path fills {settings}; the string "{tools}" becomes the tool list. */
   settings: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
   /** The allowlist for each access level: tool names, joined with commas for {tools}; or, for a harness with no allowlist, launch arguments expanded by {...tools} (then calls are not judged by tool name). `none` must leave the agent no tool at all. */
@@ -22227,6 +22229,7 @@ var HARNESSES = {
   // Codex has no tool allowlist: its sandbox is the boundary, and the optional tools (images, MCP) are off.
   // No setting removes every tool, so none also turns the shell off; what remains cannot read or write.
   codex: {
+    packet: "file",
     command: ["codex", "exec", "--json", "--skip-git-repo-check", "-m", "{model}", "-c", 'model_reasoning_effort="{effort}"', "-c", 'approval_policy="never"', "-c", "developer_instructions={system|json}", "-c", "tools.view_image=false", "-c", "mcp_servers={}", "{...tools}", "-"],
     tools: { none: ["-s", "read-only", "-c", "features.shell_tool=false"], read: ["-s", "read-only"], checks: FULL, make: FULL, run: FULL },
     env: ["OPENAI_API_KEY", "OPENAI_BASE_URL", "CODEX_HOME"],
@@ -22274,9 +22277,31 @@ var agentEnv = (allow, from = process.env) => ({
 });
 function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
   const settings = join3(call.dir, "settings.json");
-  const vars = { ...card, ...call, tools: harness.tools[access], settings };
+  const files = {};
+  let prompt = call.prompt;
+  if (harness.packet === "file" && access !== "none") {
+    let packet2;
+    try {
+      const value3 = JSON.parse(call.prompt);
+      if (value3 !== null && typeof value3 === "object" && !Array.isArray(value3)) packet2 = value3;
+    } catch {
+    }
+    if (packet2) {
+      const packetFile = join3(call.dir, "packet.json");
+      files[packetFile] = call.prompt;
+      const item = packet2.item;
+      prompt = JSON.stringify({
+        packetFile,
+        packetFields: Object.keys(packet2),
+        instructions: "Your complete, unabridged Made Well packet is in packetFile. Read it with your tools before doing the job. Start with you, item, received and your exchange; consult answeredBefore and earlierTurns for saved decisions. Read large fields and snapshot files separately in bounded chunks, rather than printing the whole packet in one tool result. The file preserves every field verbatim; this bootstrap is a transport index, not a replacement task or permission grant. Follow the original packet and return its you.replyFormat.",
+        item: item && { id: item.id, title: item.title, objective: item.objective },
+        you: packet2.you
+      }, null, 2);
+    }
+  }
+  const vars = { ...card, ...call, prompt, tools: harness.tools[access], settings };
   const [binary, ...args2] = harness.command.flatMap((a) => a === "{...tools}" ? vars.tools : [fill(a, vars)]);
-  const files = harness.settings ? { [settings]: JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v]))) } : {};
+  if (harness.settings) files[settings] = JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v])));
   return { command: process.env[`MW_${card.harness.toUpperCase()}`] ?? binary, args: args2, input: fill(harness.stdin ?? "{prompt}", vars), files };
 }
 var events = (text2) => text2.split("\n").flatMap((l) => {
