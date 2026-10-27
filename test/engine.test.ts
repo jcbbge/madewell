@@ -612,6 +612,83 @@ test('a second environment ruling in a row holds the item at the failed step; a 
 	}
 })
 
+test('a test-only recovery track restores the kept candidate and checks in intake and execution; the initial split stays blind', async () => {
+	const seen: Record<string, unknown> = {}
+	const t = setup((req, n) => {
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return checks(req, 'exit 1')
+		if (req.kind === 'execute' && req.job === 'test-plan' && (n === 2 || n === 3)) return { blocked: 'The check service is unavailable.' }
+		if (req.kind === 'execute' && req.job === 'test-plan' && n === 4) {
+			seen.candidate = existsSync(join(req.cwd, 'src/export.sh')) && readFileSync(join(req.cwd, 'src/export.sh'), 'utf8')
+			seen.checks = existsSync(join(req.cwd, 'checks/export.check.sh')) && readFileSync(join(req.cwd, 'checks/export.check.sh'), 'utf8')
+			seen.head = git(req.cwd, 'log', '-1', '--format=%s')
+			return seen.candidate && seen.checks ? checks(req, CHECK) : { blocked: 'Recovery lost the candidate or its kept checks.' }
+		}
+		if (req.kind === 'execute' && req.job === 'arbitrate') return ruling(n === 1 ? 'test' : 'environment')
+		return undefined
+	})
+	try {
+		let item = await t.run(drive(t.item.id, config))
+		assert.equal(item.hold?.code, 'environment')
+		const events = t.store.events(item.id)
+		const lastHold = events.findLastIndex((e) => e.kind === 'held')
+		assert.equal(events[lastHold - 1]?.kind, 'ruling', 'the second environment ruling is durable before its hold')
+		assert.equal(events[lastHold - 1]?.data.cause, 'environment')
+		// An earlier runner can preserve this test-only track while the accepted implementation stays on the item.
+		t.store.save({ ...item, split: { 'test-plan': { from: { kind: 'job', job: 'arbitrate' }, launches: 0 } } }, 'recovery-fixture', {})
+		await t.run(retry(item.id))
+		item = await t.run(drive(item.id, config))
+		assert.equal(item.status, 'shipped')
+		assert.deepEqual(seen, { candidate: 'echo a,b\n', checks: 'exit 1\n', head: 'Add CSV export' })
+		const intake = t.packet('intake', 'test-plan', 3)
+		assert.equal(intake.snapshot.contents['src/export.sh'], 'echo a,b\n')
+		const execution = t.packet('execute', 'test-plan', 3)
+		assert.match(execution.you.task, /implementer's change is its last commit/)
+		assert.equal(execution.snapshot.contents['src/export.sh'], 'echo a,b\n')
+		assert.equal(t.packet('intake', 'test-plan', 0).snapshot.contents['src/export.sh'], null)
+		assert.match(t.packet('execute', 'test-plan', 0).you.task, /Your checkout has no implementation/)
+		assert.equal(t.of('execute', 'implement').length, 1, 'recovery never rebuilds the valid implementation')
+		assertNoTrace(t)
+	} finally {
+		t.cleanup()
+	}
+})
+
+for (const cause of ['implementation', 'test', 'pre-existing'] as const) {
+	test(`an environment hold accepts an operator ${cause} ruling without retaining the old maker split`, async () => {
+		const t = setup((req, n) => {
+			if (req.kind === 'execute' && req.job === 'test-plan' && n === 1) return checks(req, 'exit 1')
+			if (req.kind === 'execute' && req.job === 'test-plan' && (n === 2 || n === 3)) return { blocked: 'The check service is unavailable.' }
+			if (req.kind === 'execute' && req.job === 'arbitrate') return ruling(n === 1 ? 'test' : 'environment')
+			return undefined
+		})
+		try {
+			let item = await t.run(drive(t.item.id, config))
+			assert.equal(item.hold?.code, 'environment')
+			t.store.save({ ...item, split: { 'test-plan': { from: { kind: 'job', job: 'arbitrate' }, launches: 0 } } }, 'recovery-fixture', {})
+			assert.equal((await t.run(Effect.flip(answer(item.id, 'Correct the responsible work.')))).code, 'cause_required')
+			assert.ok(nextFor(item).some((n) => n.run.includes(`--cause ${cause}`)))
+			assert.ok(nextFor(item).some((n) => n.run === `mw retry ${item.id}`))
+			await t.run(answer(item.id, 'Correct the responsible work.', cause))
+			item = t.store.get(item.id)!
+			assert.equal(item.split, undefined)
+			if (cause === 'pre-existing') {
+				assert.equal(item.status, 'waiting-prerequisite')
+				assert.ok(item.waitsOn)
+				assert.equal(t.store.get(item.waitsOn!)!.job, 'plan')
+			} else {
+				assert.equal(item.job, cause === 'test' ? 'test-plan' : 'plan')
+				assert.equal(item.rework?.cause, cause)
+				await t.run(drive(item.id, config))
+				assert.equal(t.store.get(item.id)!.status, 'shipped', 'the named route executes instead of the stale maker track')
+				assert.equal(t.of('execute', 'plan').length, cause === 'implementation' ? 2 : 1)
+				assertNoTrace(t)
+			}
+		} finally {
+			t.cleanup()
+		}
+	})
+}
+
 test('writes in a disposable read checkout are flagged but not imported; broken contracts are refused and malformed JSON is re-asked', async () => {
 	// The first ideate answer is JSON that does not parse and starts with "{": reading it must neither hang nor cost an NQ turn.
 	const broken = '{"outcome": "CSV export", "approach": "a script" "decisions": []}'

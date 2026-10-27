@@ -36,6 +36,10 @@ The operator's law for Made Well. It binds every implementation, every agent and
 24. **An unattended project declares how it alerts.** Full autonomy means nobody is watching, so `mw init --autonomy full` requires an alert command, and a project without one cannot be set to full. Every hold records its alert outcome once, delivered or not, with the reason; a project with no alert command is never swept for alerts.
 25. **Field findings are work.** A field review of a run (the observer skill) produces issues on the tracker; each is taken as an item through this pipeline or fixed directly, never left as a note. The first review, of the 2026-10-25 run, produced issues 5 to 14.
 
+### Recovery implementation decision, 2026-10-26
+
+A test-only recovery track with a kept implementation is a correction, so intake and execution receive the candidate and its existing checks. The initial implementer/test-architect split remains blind. An operator's cause answer on an environment hold clears the obsolete maker split before routing to planning, check correction or a prerequisite; environment retry remains available. Environment rulings are recorded before a second ruling holds the item. **DX hit, cell 4:** the documented recovery commands work without private-state repair. **UX hit, cell 4:** delivery resumes without another round of operator setup. **AX hit, cell 1:** the correct saved work is available and its transition is inspectable. Cost: a bounded correction branch and recovery regression coverage; no new workflow or authority. Engine tests demonstrate the resumed test-only track and all three cause answers; a production delivery still needs its own live evidence.
+
 ## Governing rubric: purpose, intent, and volition
 
 **Before judgment, evaluation, proclamation, or prescription, reconstruct the whole.**

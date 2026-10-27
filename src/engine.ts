@@ -48,7 +48,7 @@ const MAX_TURNS = 3
 const UNKNOWN_RESET_MS = 60 * 60_000
 const MIN_OUT_MS = 5 * 60_000
 const NQ_HOLDS = ['nq_turns', 'question_for_operator', 'authority']
-const CHECK_HOLDS = ['arbiter_undetermined', 'too_many_corrections', 'prerequisite_too_deep']
+const CHECK_HOLDS = ['arbiter_undetermined', 'too_many_corrections', 'prerequisite_too_deep', 'environment']
 /** How deep a chain of prerequisite fixes may go: a defect found in a fix of a fix holds for the operator. */
 const MAX_DEPTH = 2
 const DONE: ReadonlyArray<Item['status']> = ['held', 'paused', 'shipped', 'discovered', 'candidate', 'dropped']
@@ -487,8 +487,8 @@ const jobTree = (item: Item, job: Job): Pick<CallSpec, 'at' | 'prepare'> => ({
 		}),
 })
 
-/** The test architect correcting its checks on its own track after a ruling, with the implementer's change kept: never in the blind split. */
-const correcting = (item: Item, job: Job): boolean => job === 'test-plan' && !item.split && item.rework !== undefined && item.change !== undefined
+/** A correction may resume as a test-only track; the initial split still keeps its implementer and stays blind. */
+const correcting = (item: Item, job: Job): boolean => job === 'test-plan' && !item.split?.implement && item.rework !== undefined && item.change !== undefined
 
 interface CallSpec {
 	readonly kind: WorkerRequest['kind']
@@ -756,12 +756,12 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 		case 'environment': {
 			// The step that failed runs again in a fresh worktree, prepared as before: nothing of the work is rebuilt.
 			const again = afterEnvironment(store, current, by, r.answer)
+			store.save(again, 'ruling', { cause: 'environment', to: again.job, by: 'arbiter' })
 			// Twice in a row: the project's environment is the operator's configuration, which no step of the work can fix.
 			// The item holds at that step, so a retry runs it again with a fresh worktree, not the arbiter.
 			if (current.rework?.cause === 'environment') {
 				return hold(store, again, 'environment', `The arbiter ruled the environment twice in a row: the project's worktree, its preparation or a service it needs keeps failing, not the work. ${r.answer}`, { job, step: again.job, failure: current.failure ?? null, ruling: value })
 			}
-			store.save(again, 'ruling', { cause: 'environment', to: again.job, by: 'arbiter' })
 			return
 		}
 		case 'hold':
@@ -1191,7 +1191,10 @@ export function nextFor(item: Item): Next[] {
 		return [{ run: `mw answer ${id} "<your answer to context.questions>"`, why: 'your answer goes to the receiving agent, which confirms it understands or asks again' }]
 	}
 	if (CHECK_HOLDS.includes(code)) {
-		return (['implementation', 'test', 'pre-existing'] as const).map((cause) => ({ run: `mw answer ${id} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: 'the new code or its plan is wrong: the planner replans', test: 'the check is wrong: the test architect rewrites it', 'pre-existing': 'the defect predates this work: it gets its own fix first' }[cause] }))
+		return [
+			...(['implementation', 'test', 'pre-existing'] as const).map((cause) => ({ run: `mw answer ${id} --cause ${cause} "<what the responsible party must do>"`, why: { implementation: 'the new code or its plan is wrong: the planner replans', test: 'the check is wrong: the test architect rewrites it', 'pre-existing': 'the defect predates this work: it gets its own fix first' }[cause] })),
+			...(code === 'environment' ? [{ run: `mw retry ${id}`, why: 'after repairing the environment, run the held step in a fresh worktree' }] : []),
+		]
 	}
 	if (code === 'leftovers') {
 		// Made Well cannot tell an agent's stray files from ones the operator made while the call ran: the operator says which.
@@ -1265,10 +1268,10 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 		}
 		if (!cause) return yield* new MadeWellError({ code: 'cause_required', message: `Item #${id} holds on a failed check; the answer must name its cause.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		const operator: Origin = { kind: 'operator' }
-		if (cause === 'pre-existing') return openPrerequisite(store, { ...free, from: operator }, text, operator)
+		if (cause === 'pre-existing') return openPrerequisite(store, { ...free, split: undefined, from: operator }, text, operator)
 		const job: Job = cause === 'test' ? 'test-plan' : 'plan'
 		store.save({
-			...free, job, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1,
+			...free, job, split: undefined, from: operator, exchange: undefined, rework: { cause, answer: text }, failure: undefined, round: item.round + 1, corrections: item.corrections + 1,
 			...(job === 'plan' ? { base: undefined } : {}),
 		}, 'ruling', { cause, to: job, by: 'operator', answer: text })
 	})
@@ -1327,7 +1330,7 @@ export const retry = (id: number) =>
 		const events = (yield* Store).events(id)
 		if (events.slice(events.findLastIndex((e) => e.kind === 'held') + 1).some((e) => e.kind === 'retried')) return
 		const { store, item } = yield* held(id)
-		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code)) {
+		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || (CHECK_HOLDS.includes(item.hold.code) && item.hold.code !== 'environment')) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
 		// An environment hold runs the failed step again in a fresh worktree, never the arbiter: the step is read from the record
