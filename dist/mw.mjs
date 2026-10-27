@@ -22275,10 +22275,30 @@ var agentEnv = (allow, from = process.env) => ({
   ...Object.fromEntries(allow.filter((a) => a.includes("=")).map((a) => [a.slice(0, a.indexOf("=")), a.slice(a.indexOf("=") + 1)])),
   MW_WORKER: "1"
 });
+var intakePrompt = (prompt) => {
+  try {
+    const packet2 = JSON.parse(prompt);
+    if (get5(packet2, "you.call") !== "intake") return prompt;
+    const snapshot3 = get5(packet2, "snapshot");
+    const contents = snapshot3?.contents;
+    if (!contents || typeof contents !== "object" || Array.isArray(contents)) return prompt;
+    const deferred = Object.fromEntries(Object.entries(contents).map(([path, body]) => [
+      path,
+      typeof body === "string" ? {
+        path,
+        characters: body.length,
+        readDuringExecution: "Read this exact path in the execute job's checkout or snapshot.contents in its complete execution packet. Source bodies are intentionally deferred at no-tool intake, not missing prerequisites. Do not ask the originator or operator to provide them before confirming the handoff."
+      } : body
+    ]));
+    return JSON.stringify({ ...packet2, snapshot: { ...snapshot3, contents: deferred } }, null, 2);
+  } catch {
+    return prompt;
+  }
+};
 function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
   const settings = join3(call.dir, "settings.json");
   const files = {};
-  let prompt = call.prompt;
+  let prompt = access === "none" ? intakePrompt(call.prompt) : call.prompt;
   if (harness.packet === "file" && access !== "none") {
     let packet2;
     try {

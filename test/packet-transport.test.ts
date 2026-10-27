@@ -65,6 +65,41 @@ test('none access keeps the exact inline packet and disabled Codex shell, even w
 	assert.deepEqual(launch.args.slice(-5), ['-s', 'read-only', '-c', 'features.shell_tool=false', '-'])
 })
 
+test('no-tool intake defers only snapshot file bodies and retains its complete task, source, decisions and history below the observed input cap', () => {
+	const body = 'const schema = { title: "Exact original source λ" };\n'.repeat(26_000)
+	const intake = {
+		...packet,
+		you: { ...you, call: 'intake', task: 'Confirm the handoff; ground source during execution.' },
+		received: { plan: { steps: ['Use existing account tokens'], decisions: [{ question: 'How many results?', decision: 'Five, or three in constrained space.' }] } },
+		snapshot: { head: 'candidate', files: ['apps/api/openapi.json', 'src/new.ts'], contents: { 'apps/api/openapi.json': body, 'src/new.ts': null } },
+		answeredBefore: Array.from({ length: 20 }, (_, n) => ({ id: `${n}:0`, question: `Settled decision ${n}?`, answer: `Keep this exact decision ${n}. ${'Context λ. '.repeat(600)}` })),
+		verification: { results: [{ id: 'C1', exitCode: 1, output: 'Read the exact failure in execution.\n'.repeat(1000) }] },
+	}
+	const original = JSON.stringify(intake, null, 2)
+	assert.ok(original.length > 1_048_576, 'realistic code and history exceed the observed upstream input cap')
+	for (const name of ['codex', 'claude', 'pi', 'amp']) {
+		const launch = buildLaunch(card(name), 'none', { ...call, prompt: original })
+		const inline = name === 'amp' ? launch.input.slice(`${call.system}\n\n---\n\nYour packet:\n`.length) : launch.input
+		const projected = JSON.parse(inline)
+		assert.ok(launch.input.length < 1_048_576, name)
+		assert.deepEqual({ ...projected, snapshot: undefined }, { ...intake, snapshot: undefined }, 'all non-snapshot fields stay intact, including the full source and decisions')
+		assert.deepEqual(projected.snapshot.files, intake.snapshot.files)
+		assert.equal(projected.snapshot.head, intake.snapshot.head)
+		assert.equal(projected.snapshot.contents['src/new.ts'], null, 'missing files remain missing')
+		const deferred = projected.snapshot.contents['apps/api/openapi.json']
+		assert.equal(deferred.path, 'apps/api/openapi.json')
+		assert.equal(deferred.characters, body.length)
+		assert.match(deferred.readDuringExecution, /execute.*checkout|checkout.*execute/i)
+		assert.match(deferred.readDuringExecution, /not.*missing|intentionally deferred/i)
+		assert.match(deferred.readDuringExecution, /do not.*ask/i)
+		assert.ok(!launch.input.includes(body.slice(0, 100)), 'source bodies are deferred, never shortened excerpts')
+		assert.ok(!Object.keys(launch.files).some((path) => path.endsWith('/packet.json')), 'intake has no file read or tool grant')
+	}
+	assert.equal(JSON.stringify(intake, null, 2), original, 'the original durable packet is unchanged')
+	const execution = buildLaunch(card(), 'run', { ...call, prompt: original })
+	assert.equal(execution.files[join(call.dir, 'packet.json')], original, 'tool-enabled transport retains every exact original byte')
+})
+
 test('nonobject or malformed prompts stay inline at every access level', () => {
 	for (const value of ['', 'ordinary text', '{broken', 'null', '[]', '[{"you":{}}]', '42', 'true', '"a JSON string"']) {
 		for (const access of ['none', 'read', 'checks', 'make', 'run'] as const) {

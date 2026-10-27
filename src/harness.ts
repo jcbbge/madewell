@@ -168,11 +168,29 @@ const agentEnv = (allow: ReadonlyArray<string>, from: NodeJS.ProcessEnv = proces
 	MW_WORKER: '1',
 })
 
+/** Intake confirms a handoff without tools; exact source grounding belongs to the later execution call. */
+const intakePrompt = (prompt: string): string => {
+	try {
+		const packet = JSON.parse(prompt)
+		if (get(packet, 'you.call') !== 'intake') return prompt
+		const snapshot = get(packet, 'snapshot') as Record<string, unknown> | undefined
+		const contents = snapshot?.contents
+		if (!contents || typeof contents !== 'object' || Array.isArray(contents)) return prompt
+		const deferred = Object.fromEntries(Object.entries(contents).map(([path, body]) => [path,
+			typeof body === 'string' ? {
+				path, characters: body.length,
+				readDuringExecution: 'Read this exact path in the execute job\'s checkout or snapshot.contents in its complete execution packet. Source bodies are intentionally deferred at no-tool intake, not missing prerequisites. Do not ask the originator or operator to provide them before confirming the handoff.',
+			} : body,
+		]))
+		return JSON.stringify({ ...packet, snapshot: { ...snapshot, contents: deferred } }, null, 2)
+	} catch { return prompt }
+}
+
 /** One headless run of a card: the command, its stdin, and per-call files to write under `call.dir`. */
 export function buildLaunch(card: Card, access: Access, call: { system: string; prompt: string; title: string; dir: string }, harness: Harness = HARNESSES[card.harness]!) {
 	const settings = join(call.dir, 'settings.json')
 	const files: Record<string, string> = {}
-	let prompt = call.prompt
+	let prompt = access === 'none' ? intakePrompt(call.prompt) : call.prompt
 	if (harness.packet === 'file' && access !== 'none') {
 		let packet: Record<string, unknown> | undefined
 		try {
