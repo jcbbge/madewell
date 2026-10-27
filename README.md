@@ -38,7 +38,7 @@ Tell it the rules your repo's work follows that no linter catches, and every pla
 mw init --conventions '["Colours and spacing come from the design tokens in src/tokens.css"]'
 ```
 
-Let your own agent watch: `mw next` says what needs you now, `mw status` and `mw show <id>` say where everything is, and `mw ui` shows it all live. Every command prints JSON, and every answer and error lists the `next` commands.
+Let your own agent watch: `mw next` says what needs you now, `mw status` and `mw show <id>` say where everything is, and `mw watch` is the live terminal companion. Every command prints JSON, and every answer and error lists the `next` commands.
 
 Questions and answers stay on the durable record and travel to later handoffs. Exact repeats reuse their saved answers automatically. For reworded questions, intake or the originator references the saved answer by id; Made Well validates the reference, inserts that answer verbatim, and remembers the new wording. The operator is not asked to settle the same question again. Implementation and test-design exchanges remain separate so neither maker sees the other's work.
 
@@ -76,21 +76,21 @@ No provider is registered by the CLI today. Hosts can supply named `DecisionProv
 
 ## Watch a run
 
-**`mw ui`** serves the live console on this machine and prints its address (`http://127.0.0.1:4747/`). It answers, at a glance:
+Run **`mw watch`** from the project's directory, including in a tmux side pane over SSH. It only reads the store; opening or closing it never starts, stops or resumes delivery. No browser, service or port forward is required.
 
-- how much has shipped, and what needs you, with the questions asked and the exact command to run;
-- every item's pipeline (ideate, challenge, plan, implement and checks side by side, verify, ship) with what is happening now and who owes the next move;
-- what each running agent is doing, read from its live output: the files it reads, the commands it runs, what it says;
-- a timeline of every agent call and Made Well step, and where the agent time and tokens go by job: NQ intake, originator answers, the job itself;
-- for any item: its idea, plan, checks and their results, the diff, every NQ question and answer, and every call with its packet, answer, transcript and trace.
+The overview separates Discovery, candidates awaiting promotion, ready/queued delivery, dependency/quota waits and checkpoints, active per-item delivery pipelines, shipped proof, and retained history. Stage names come from each item's saved cartridge pack, not a hard-coded diagram. Ready means promoted with recorded dependencies shipped; it does **not** mean a worktree has already been prepared. Preparation evidence is in the item's trace.
 
-The console only reads the store, so it is safe beside a running `mw run`. `mw replay` writes the same console as one page with the whole record inside it, to read or share with no server.
+- `mw watch --workspace /path/to/repo` selects a project; a subdirectory resolves to its recorded project root.
+- `mw watch --all` shows every project on this machine.
+- `j` / `k` selects an item; Enter cycles overview → pipeline → full evidence. `0` returns to overview.
+- Page Up / Page Down scroll; `g` / `G` moves to the beginning/end.
+- `p` / `c` follows the selected item's parent/first child; `j` / `k` visits other items.
+- `m` toggles host-wide CPU, memory, load and uptime. These are measurements, not work-progress claims. Invocation start/heartbeat samples are also retained in the durable trace.
+- `a` toggles current/all projects; `q` or Ctrl-C exits and restores the terminal.
 
-- From another computer: `ssh -L 4747:localhost:4747 <machine>`, then open the same address.
-- In an Amp orb: `amp orb portal 4747`.
-- `mw ui --host 0.0.0.0` serves your network.
+Per-item detail includes named stages, independent maker tracks, next owner, checks, NQ, dependencies, calls, tokens, timings, original inputs/outputs, and invocation/tool evidence. Unstarted work, waiting work and a lost runner are not reported as progress. Historical items without a saved pack explicitly report that the original default definition is unknown; no history is invented.
 
-**`mw watch`** gives the same view in a terminal (tmux, Ghostty, any SSH session), redrawn every second. When a program reads it, it streams every event as one JSON line instead, so any agent can follow a run with `mw watch --since <seq>`.
+`mw watch --once` prints one snapshot. Piped output retains the global JSON event/call stream for existing consumers, unless `--workspace` explicitly scopes it; `--since <seq>` resumes the stream. `mw trace`, `mw show`, `mw export`, and offline `mw replay` remain available. Legacy `mw ui` commands remain compatibility surfaces, not the companion launch path; watch never launches or recommends them.
 
 ### Three lenses, one trace
 

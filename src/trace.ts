@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto'
 import { Cause, Effect, Exit } from 'effect'
 import { laneOf, stepOf } from './lane.ts'
+import { machineSampler } from './machine.ts'
 import type { Next } from './errors.ts'
 import type { Store } from './store.ts'
 import { toolTracker } from './telemetry.ts'
@@ -34,7 +35,8 @@ export const observe = <A extends object, E, R>(store: Source, item: number, spe
 		const history = store.events(item).filter((e) => e.kind === 'trace-finished' && e.data.job === spec.job && e.data.kind === spec.kind && e.data.status === 'returned').map((e) => Number(e.data.ms)).sort((a, b) => a - b)
 		const typical = history.length >= 3 ? history[Math.floor(history.length / 2)]! : null
 		const durationThreshold = typical === null ? (spec.kind === 'intake' || spec.kind === 'repair' ? 60_000 : 180_000) : Math.max(30_000, typical * 3)
-		note('trace-started', { parent, round: current.round, pid: process.pid, ...spec, durationThreshold, typical })
+		const machine = machineSampler()
+		note('trace-started', { parent, round: current.round, pid: process.pid, ...spec, durationThreshold, typical, machine: machine() })
 		let lastOutput = started
 		let lastResult = started
 		const pending = new Set<number>()
@@ -106,7 +108,7 @@ export const observe = <A extends object, E, R>(store: Source, item: number, spe
 			signal('no-tool-result', pending.size > 0 && facts.toolIdleMs >= TOOL_RESULT_INTERVAL, facts)
 			signal('no-progress', !!spec.harness && spec.args.access !== 'none' && facts.toolIdleMs >= TOOL_RESULT_INTERVAL, { ...facts, basis: 'no reported tool result; not proof of useless work' })
 			signal('unusual-duration', facts.ms >= durationThreshold, { ...facts, threshold: durationThreshold, typical })
-			note('trace-heartbeat', { ...facts, signals: [...active] })
+			note('trace-heartbeat', { ...facts, signals: [...active], machine: machine() })
 		})).pipe(Effect.interruptible))
 		const result = yield* run(onOutput).pipe(Effect.onExit((exit) => Effect.sync(() => {
 			if (partial) consume(partial)
@@ -167,8 +169,26 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 	if (lens === 'ux') return { lens, depth: 30_000, ...ux }
 	const lane = laneOf(item.pack)
 	const step = stepOf(lane, item.job)
+	// Stable containment is reconstructed from the item's saved pack, not the viewer's geometry.
+	const structure = {
+		id: `item:${id}`, parent: item.parent ?? item.discovery ?? null,
+		children: store.list().filter(child => child.parent === id || child.discovery === id).map(child => child.id),
+		definition: item.pack ? 'saved-pack' : 'legacy-default-unknown',
+		lanes: (['discovery', 'delivery'] as const).map(name => ({
+			id: `item:${id}:lane:${name}`, name,
+			stages: lane.pack[name].map((cartridge, index) => ({
+				id: `item:${id}:lane:${name}:stage:${index}:${cartridge.cartridge}`, name: cartridge.cartridge,
+				steps: cartridge.steps.map(spec => ({
+					id: `item:${id}:round:${item.round}:job:${spec.job}`, job: spec.job,
+					contract: stepOf(lane, spec.job), output: item.outputs[spec.job] ?? null,
+					track: item.split?.[spec.job as 'implement' | 'test-plan'] ?? null,
+					invocations: invocations.filter(call => call.parent === `item:${id}:round:${item.round}:job:${spec.job}`).map(call => call.id),
+				})),
+			})),
+		})),
+	}
 	const dx = {
-		...ux, phase: lane.discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery', lane: lane.pack.name,
+		...ux, structure, phase: lane.discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery', lane: lane.pack.name,
 		stage: step.cartridge, job: item.job, profile: step.profile, round: item.round, corrections: item.corrections,
 		hold: item.hold ?? null, verification: item.verification ?? null,
 		nq: item.exchange ?? null, tracks: item.split ?? null, quota: store.exhausted(), runner,

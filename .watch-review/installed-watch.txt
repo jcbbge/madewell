@@ -1,0 +1,36 @@
+[H[2JMADE WELL · NO RUNNER · arc · 18:47:01
+Discovery 0 · Staging 0 · Delivery 0 open / 0 ready / 0 waiting · Delivered 0
+19 calls · 755,579 tokens · 6m1s agent time · 1m50s NQ · 3 questions
+Scope: /home/jrg/projects/infinity/arc · 0 live calls
+  0  DISCOVERY LANE
+  0  STAGING · awaiting promotion
+  0  DELIVERY · ready / queued
+  0  DELIVERY · waiting / held / checkpoints
+  0  DELIVERY · active work queue
+  0  DELIVERED · shipping proof
+  0  DISCOVERY · completed
+  2  DROPPED · retained history
+
+DISCOVERY LANE (0)
+  —
+
+STAGING · awaiting promotion (0)
+  —
+
+DELIVERY · ready / queued (0)
+  —
+
+DELIVERY · waiting / held / checkpoints (0)
+  —
+
+DELIVERY · active work queue (0)
+  —
+
+DELIVERED · shipping proof (0)
+  —
+
+DISCOVERY · completed (0)
+
+? help · q quit · j/k item · Enter depth 0/2 · PgUp/Dn scroll · p/c parent/child · m host · a all [1-29/56]
+{"watched":"/home/jrg/.local/share/madewell/madewell.db","next":[{"run":"mw watch --since 0 --workspace /home/jrg/projects/infinity/arc","why":"carry on from here"}]}
+Connection to 23.29.114.165 closed.

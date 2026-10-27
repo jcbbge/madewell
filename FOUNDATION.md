@@ -40,6 +40,14 @@ The operator's law for Made Well. It binds every implementation, every agent and
 
 A test-only recovery track with a kept implementation is a correction, so intake and execution receive the candidate and its existing checks. The initial implementer/test-architect split remains blind. An operator's cause answer on an environment hold clears the obsolete maker split before routing to planning, check correction or a prerequisite; environment retry remains available. Environment rulings are recorded before a second ruling holds the item. **DX hit, cell 4:** the documented recovery commands work without private-state repair. **UX hit, cell 4:** delivery resumes without another round of operator setup. **AX hit, cell 1:** the correct saved work is available and its transition is inspectable. Cost: a bounded correction branch and recovery regression coverage; no new workflow or authority. Engine tests demonstrate the resumed test-only track and all three cause answers; a production delivery still needs its own live evidence.
 
+### Watch-only launch ruling, 2026-10-27
+
+The operator's companion is `mw watch`, in a terminal beside the project. Every real lane, phase, stage, job, track and invocation remains durable and inspectable; a picture is not the contract. Read views reconstruct containment and state from saved definitions, items and events, never from renderer-only progress. New items freeze the effective cartridge pack (including resolved step defaults); interrupted legacy work records the current default it pins on resumption, explicitly marking its earlier definition unknown. Accepted outputs and interrupted evidence are never replaced by invented historical state.
+
+The terminal reads SQLite read-only, scopes to the project by default, separates discovery, awaiting promotion, ready/queued delivery, active work, waits/checkpoints and delivered proof, and exposes pipeline and invocation/tool depth. Host measurements are observations, not progress: the engine retains start/heartbeat samples in the existing trace; a viewer may take explicitly live samples without writing state. No second scheduler, store or always-on UI service is introduced. The static-seed/browser-only handoff is historical and superseded; mockups carry no workflow authority.
+
+DX hit: inspect and recover through one terminal without private-state repair. UX hit: visible lanes and exact next moves beside the project. AX hit: durable definitions, stable containment, and the same machine-readable trace. Costs: pack bytes per item, bounded host samples on existing trace events, and a terminal renderer. Gate: recovery tests, full suite, typecheck and live VPS/tmux checks recorded in the [launch checklist](dossiers/2026-10-27-watch-launch.md); a checklist row is not done without its evidence.
+
 ## Governing rubric: purpose, intent, and volition
 
 **Before judgment, evaluation, proclamation, or prescription, reconstruct the whole.**

@@ -26,7 +26,8 @@ import { harnessWorker } from './harness.ts'
 import { exportItem } from './export.ts'
 import { stats } from './telemetry.ts'
 import { lensOf } from './trace.ts'
-import { serve, service, staticPage, thisHost, watch } from './ui.ts'
+import { serve, service, staticPage, thisHost } from './ui.ts'
+import { watch } from './watch.ts'
 import { Worker, commandWorker } from './worker.ts'
 
 const storePath = defaultStorePath()
@@ -596,14 +597,16 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'watch',
-		summary: 'Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log); its first line shows the web interface\'s address when it is up, or `mw ui --install` when it is not, and `w` opens it in a browser here or prints the SSH port-forward line for a computer that has one. Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.',
+		summary: 'The read-only terminal companion. Defaults to this project; --workspace selects another and --all shows every project. Discovery, staging/promotion, ready/queued, waiting, active delivery pipelines and delivered evidence share one durable record. j/k selects an item; Enter cycles overview/pipeline/full evidence; PgUp/PgDn scroll; p/c follows parent/child; m shows host CPU and memory; a toggles all projects; 0 returns to overview; q quits. No web service is needed or started. Piped output retains the global JSON event/call stream unless --workspace scopes it; --since resumes after an event and --once exits after one snapshot.',
 		input: Schema.Struct({
 			since: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))).annotate({ description: 'stream only events after this seq' })),
 			once: Schema.optionalKey(Schema.Boolean.annotate({ description: 'print what there is now, then stop' })),
+			workspace: Workspace,
+			all: Schema.optionalKey(Schema.Boolean.annotate({ description: 'show all projects rather than the current project' })),
 		}),
 		output: Schema.Struct({ watched: Schema.String, next: Schema.Array(Next) }),
 		idempotent: true,
-		run: (input) => watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false }),
+		run: (input) => input.all && input.workspace ? usageError('watch', 'Use --workspace or --all, not both.') : watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false, workspace: input.workspace, all: input.all }),
 	}),
 	command({
 		name: 'replay',
@@ -793,7 +796,8 @@ const program = Effect.gen(function* () {
 	const prepared = yield* c.prepare(input)
 	return { store: true, effect: c.run(input, prepared) }
 }).pipe(
-	Effect.flatMap(({ store, effect }) => (effect as Effect.Effect<unknown, MadeWellError, Store | Worker>).pipe(
+	// Watch owns a read-only connection; even constructing the normal Store layer would run migrations.
+	Effect.flatMap(({ store, effect }) => process.argv[2] === 'watch' ? effect as Effect.Effect<unknown, MadeWellError> : (effect as Effect.Effect<unknown, MadeWellError, Store | Worker>).pipe(
 		Effect.provide(Layer.mergeAll(storeLayer(store || existsSync(storePath) ? storePath : ':memory:'), workerLayer)),
 	)),
 )

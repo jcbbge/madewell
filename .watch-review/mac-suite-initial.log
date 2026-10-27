@@ -1,0 +1,301 @@
+
+> madewell@0.0.0 pretest
+> npm run bundle
+
+
+> madewell@0.0.0 bundle
+> node ui/gazette/build.mjs && esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --outfile=dist/mw.mjs --log-level=warning
+
+/Users/jrg/madewell-watch/dist/gazette.html 29598 bytes
+
+> madewell@0.0.0 test
+> env $(env | grep -o '^MW_[A-Z_]*' | sed 's/^/-u /') node --test test/*.test.ts
+
+✖ mw alone prints the manual from the command table, and reading creates nothing (5983.417ms)
+✔ the manual keeps the named Card contract and default replay jobs (277.038417ms)
+✖ an agent following next delivers a work item through commands run as written, leaving no trace in the product repo (272.662959ms)
+✔ discovery candidates are relayed for promotion, and promoting twice promotes once (3385.647208ms)
+✔ a candidate that builds on another starts once that one ships, and promoting it promotes what it builds on (11581.660542ms)
+✔ a hold is relayed by next and alerted once; answer and retry change nothing when repeated (7958.169334ms)
+✔ a failed alert is a recorded notification failure, not a sent alert or a resolved hold (3399.618958ms)
+✔ an item that will never ship is dropped: it leaves the holds and next, keeps its record, and dropping twice drops once (4309.086083ms)
+✔ status shows each maker's track after planning, with its open NQ exchange (3919.95725ms)
+✖ a project registered with no options stops at the checkpoint before shipping; mw go ships it, with no ship command, once its work is on main (259.907875ms)
+✖ errors are JSON on stderr with a listed code, the context of its shape, and next commands (250.028583ms)
+✔ a runner killed mid-job is replaced: the next run resumes at that job without repeating earlier ones (6435.137583ms)
+✔ the console shows each step while it runs: what the agent is doing, who owes the next move, then the item's whole story; watch streams every event with who acted and what happened (4541.007416ms)
+✔ a running runner reloads a new build in place: it finishes the step in flight, keeps its pid and claim, and carries on (5507.08025ms)
+✖ with MW_TELEMETRY, every machine writes its own file there, and stats reads them all together (10638.845416ms)
+✔ prune removes finished work before the cutoff with its record and files, and keeps what work in flight needs (21077.734125ms)
+✔ mw cartridges prints the pack a project runs; init plugs in only a pack that honors the console's contract, and new work runs it (2095.493375ms)
+✔ the decision seam validates all legs and degrades optional faults to the in-process rubric (20.824666ms)
+✔ a below-bar settled choice cannot advance; a reshaped two-leg choice can (3257.203292ms)
+✔ cartridge guidance is recorded before NQ and forward calls, never sent to maker execution (2610.480375ms)
+✔ an item passes through six profiles, splits after planning, and ships when Made Well's own run of its checks passes (2257.222167ms)
+✔ live trace signals precede return, survive interruption, and never steer the work; renderers fail open (2267.9125ms)
+✔ a hanging ship command streams evidence and signals before return, without changing its deadline or marking delivery done (2001.244417ms)
+✔ the implementer and the test architect run at the same time, and neither ever sees the other's output (3745.980209ms)
+✔ a check that fails once and passes on its second run ships without reaching the arbiter, and is recorded as flaky (2031.957459ms)
+✔ a failing check goes to the arbiter with its logs; a bad test is rewritten and run again, a bad implementation is replanned (7259.811375ms)
+fatal: path 'checks/export.check.sh' does not exist in 'main'
+✔ after a test ruling the architect corrects its checks in a checkout holding the kept change and its previous check files; the implementation stays (3211.805708ms)
+✔ a correction the architect reports blocked goes to the arbiter; an environment ruling gives the architect its checkout again, not a run of the old checks (4072.56875ms)
+✔ a second environment ruling in a row holds the item at the failed step; a retry runs that step in a fresh worktree, not the arbiter, even from a record left at the arbiter (5017.503042ms)
+✔ a test-only recovery track restores the kept candidate and checks in intake and execution; the initial split stays blind (5032.404542ms)
+✔ an environment hold accepts an operator implementation ruling without retaining the old maker split (5462.733209ms)
+✔ an environment hold accepts an operator test ruling without retaining the old maker split (5099.34275ms)
+✔ an environment hold accepts an operator pre-existing ruling without retaining the old maker split (3883.306459ms)
+fatal: path 'notes.md' does not exist in 'main'
+✔ writes in a disposable read checkout are flagged but not imported; broken contracts are refused and malformed JSON is re-asked (2420.279959ms)
+✔ a plan that creates a kind of file the repo already has must name the existing one it follows; a refusal after three answered turns holds the item before anything is made (2292.623292ms)
+✔ the project's conventions travel with the item; a plan that does not hold the change to each one is refused, and the checks then prove it (2578.11075ms)
+✔ another session pushing to the product repo while a read call runs is not the agent's write (1754.411125ms)
+✔ an implementer that strays outside the plan's scope is refused, and the next call picks up its work to revert the stray file (2399.312084ms)
+✔ check writers must revert product-scope writes before outside checks can ship without being imported (7300.36025ms)
+✔ an implementer that commits to main holds the item before anything ships; one that leaves a file in the product repo, or edits its shared git excludes, holds it too (3999.030666ms)
+✔ what a maker provisions is torn down once; a failed teardown holds, and a retry repeats only the one that failed (1773.724541ms)
+✔ items in parallel: another item's ship mid-flight trips no guard, and checks run again on the main that ship left (2497.679042ms)
+✔ items in parallel on the same file: when another item's ship leaves a change that no longer applies, the planner plans again from the branch as it is now, with no arbiter (3541.184708ms)
+✔ an item ideated before a sibling ships is planned on the branch the ship left, so its change applies with no replan (3157.465917ms)
+✔ mw run drives no more items at once than the prescriptions allow (3394.926166ms)
+✔ a ship that lands between another item's check run and its merge sends that item's checks round again (3282.091167ms)
+✔ a receiver's questions go to whoever handed the work over; in the split each maker asks the planner on its own track (2674.528ms)
+✔ a question is answered once: asked again at any later hand-off, in any case or punctuation, it is answered from the record and no agent is asked again (1858.774ms)
+✔ reworded questions reuse durable answers at intake or originator, remember aliases, and leave genuinely new questions open (2156.408917ms)
+✔ mixed fresh questions and reused aliases stay lossless and bounded across repeated handoffs (5092.934083ms)
+✔ delivery inherits discovery answers from an older store whose answer events omitted their questions (1725.453416ms)
+✔ an originator that says only the operator can decide goes to the dispatcher, who answers from the operator's source; only what the source leaves open holds (2602.065166ms)
+✔ a usage limit mid-job hands the job and its unfinished work to an agent on another account; when every account is out the item waits and continues (2584.67825ms)
+✔ a pre-existing defect becomes its own item from planning; the original waits, then runs its checks again and ships (3747.235875ms)
+✔ a pre-existing defect found inside a fix that is already two prerequisites deep holds for the operator (5681.467792ms)
+✔ dropping a prerequisite fix releases the item waiting on it: its checks run again on the branch as it is now (3254.341208ms)
+✔ holds stop only that item, name their next commands, and release on an answer or retry; over-budget evidence reaches the hold (3294.414709ms)
+✔ the project's gates run on the change's own files before the checks: a formatter's fix ships, a failing gate goes to the arbiter and the dispatcher answers for it (4228.59075ms)
+✔ the project's prepare command stocks every worktree an agent or the checks work in, before the job; what it provisions is torn down once; a failing prepare holds before the job runs (2565.606417ms)
+✔ without a ship command, shipping pushes main to its upstream, or is done once the change is on main; the commit says why (3239.544958ms)
+✔ discovery turns raw input into candidates that wait for promotion; each promoted item is handed over by discovery and ships (1915.155792ms)
+✔ a cartridge pack replaces the software lane: discovery runs two cartridges, delivery runs its own thinking step, testing unplugged, and the item ships (1666.330792ms)
+✔ a pack that breaks the console's contract is refused with every problem named (0.166334ms)
+✔ full autonomy promotes discoveries but cannot bypass the three-turn NQ bound (1955.734667ms)
+✔ every step: the item stops between cartridges and before it ships; the operator goes on or steers, and the next step hears the steer (1572.487542ms)
+✔ prescription and replay cards preserve every effort and reject malformed fields and unknown harnesses (1271.279958ms)
+✔ a tier is replayed call by call, scored like the record, and the cheapest card that matches it is recommended (3033.01ms)
+✔ each call is held to what its kind requires, and a new brief replays only the job's execute calls on their recorded cards (826.313625ms)
+✔ a replay's writes stay in its worktree and are flagged; a replay that reaches the product repo stops the eval (455.668042ms)
+✔ mw eval replays a delivered item's calls through the worker command and prints the report as JSON, changing no file (7722.913125ms)
+✔ the Delivery sheet is written from the model: one ring per item, inks by state, one notice per wait with its exact commands, and one vermilion stamp (16.220042ms)
+✔ a running step is a slate-blue notice with its live output in plain words; a lost connection is a warning on the same sheet (2.06275ms)
+✔ the painter draws the blazon and nothing else: it refuses an unknown tincture and a second vermilion stamp (2.30975ms)
+✔ on Linux, --install writes one systemd user unit that runs this build with the MW_* variables, enables and starts it; again changes nothing; --uninstall removes it (3.606709ms)
+✔ on macOS, --install writes one LaunchAgent and bootstraps it; again changes nothing; --uninstall boots it out and removes the plist and its log (2.269917ms)
+✔ any other platform is refused with a Made Well error that names it; the CLI reports a service that is not installed and refuses two actions at once (528.462333ms)
+✔ identical texts are carried once with every question, stable id and original authorship preserved (1.986791ms)
+✔ legacy nested generated suffixes use raw previous answers and preserve all fresh and reused decisions (0.416458ms)
+✔ suffix-shaped authored prose is not stripped without exact reuse metadata and bytes (0.153708ms)
+✔ marked fresh answers preserve authored legacy-looking suffixes alongside reused decisions (0.153125ms)
+✔ compaction touches only named history fields and preserves prefixes, unknown text and unrelated bytes (0.201333ms)
+✔ legacy questions are paired by both item and job, including decided and corrected answers (0.101625ms)
+✔ maker histories cannot recover private answers through public aliases or alias chains (0.129125ms)
+✔ empty and unknown references create no fabricated answers; equal text means exact bytes (0.080166ms)
+✔ every built-in harness entry reads its final answer and token count from a recorded transcript (2.116875ms)
+✔ usage limits are read from each harness's own events, with their reset time (1.601083ms)
+✔ each access level launches with exactly its tool allowlist, read never gets a writing tool, and none gets no tool (0.894583ms)
+✔ prescriptions add harness entries without code, and every card must name one (0.088958ms)
+✔ a prescribed harness entry runs neutral: allowlisted environment, per-call files removed, and its stray processes killed (168.208ms)
+✔ a harness's version is read once per runner process, and one that cannot be read never fails the call (280.650958ms)
+✔ going over the wall-time or token budget kills the process group and fails the launch with evidence (567.66ms)
+✔ a worker command that exits without reading its request is a failed call, not a crash (253.741959ms)
+✔ a call with no access runs in an empty directory of its own, never in the workspace (81.723958ms)
+✔ each JSON line is stamped with its arrival time, so tool events get when and how long (509.52525ms)
+✔ mw run stops cleanly on SIGTERM: the agent process group dies and the runner is released (1385.537209ms)
+✖ a daemon left by a runner that was SIGKILLed is killed when the next runner starts (991.083792ms)
+✖ the orphan sweep kills a process carrying a dead runner's marker in its environment, and never one that only mentions the marker (2467.678083ms)
+✔ built-in Codex transports every tool-enabled object packet as exact bytes with a small actionable bootstrap (5.921458ms)
+✔ none access keeps the exact inline packet and disabled Codex shell, even when file transport is selected (0.845ms)
+✔ no-tool intake defers only snapshot file bodies and retains its complete task, source, decisions and history below the observed input cap (22.82775ms)
+✔ nonobject or malformed prompts stay inline at every access level (0.564583ms)
+✔ other built-ins and overriding custom recipes keep their existing inline stdin behavior (1.087083ms)
+✔ prescriptions preserve an explicit file-transport opt-in and reject invalid transport settings (6.252666ms)
+✔ a real recipe sees the exact packet once and its per-call files disappear after successful return (168.657834ms)
+✔ real none-access and non-opted-in recipes receive inline bytes without a packet file (307.155792ms)
+✔ packet files are removed after subprocess failure and budget interruption (1852.883875ms)
+✔ simultaneous file-transport calls receive distinct temporary packet paths and both are cleaned (289.637ms)
+✔ each harness's raw stream becomes tool events and tokens on the call (9.64175ms)
+✔ a store from before the trace gains tool events and tokens for its recorded calls (3.589292ms)
+✔ rule breaks are computed from the engine's facts and the stream, and stored on the call (10.86975ms)
+✔ a refused answer stays on the record as rejected, with the reason (3.501708ms)
+✔ runner start, stop, and a lost runner are events; the loss is on the item it was driving (92.800042ms)
+✔ mw export writes one folder per call: brief, packet, answer, raw stream, tool events and flags (5504.688375ms)
+✔ every span goes to a JSONL file beside the store by default, never to the output; MW_DEBUG=0 turns it off (12813.731125ms)
+✔ the same records written at the metrics level give mw stats the same numbers, with no free text (7.187208ms)
+✔ default and custom lane definitions, outputs, tracks, links and structure survive process death (243.90975ms)
+✔ legacy missing definitions stay explicitly unknown when inspected; watch never fabricates or writes history (3.06975ms)
+✔ project scope applies before metrics and respects path boundaries; each item belongs to one queue (8.128208ms)
+✔ terminal projection scrolls all rows and full detail, fits narrow panes and strips terminal commands (26.909209ms)
+✔ non-TTY watch keeps JSON compatibility and explicit workspace scopes the stream (376.710875ms)
+✔ a job worktree starts at the base commit outside the product repo and leaves no trace, even when the job fails (588.476958ms)
+✔ no worktree is made where a guidance file above it would reach the agent (171.694167ms)
+✔ a snapshot carries HEAD, every tracked path and the named files in full (175.892792ms)
+✔ a read-only call that writes in its checkout is caught with exactly what it changed; the refs and git settings it shares with the repo are not its own (224.984083ms)
+✔ the HEAD guard catches a commit to the branch since the recorded commit (210.017667ms)
+✔ the scope check names every changed file outside the declared scope (200.305542ms)
+✔ scope declarations are exact paths or explicit directory suffixes, never implicit globs (439.022917ms)
+✔ the leftover check finds untracked and ignored files a job created, and only those (383.376542ms)
+✔ provisioned resources are each torn down once, last first, and a failure is reported after the rest run (200.372042ms)
+ℹ tests 129
+ℹ suites 0
+ℹ pass 122
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 304603.979208
+
+✖ failing tests:
+
+test at test/cli.test.ts:44:1
+✖ mw alone prints the manual from the command table, and reading creates nothing (5983.417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'mw init --workspace /private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-CurN6U/repo'
+  - 'mw init --workspace /var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-CurN6U/repo'
+  
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/cli.test.ts:58:9)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'mw init --workspace /private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-CurN6U/repo',
+    expected: 'mw init --workspace /var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-CurN6U/repo',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/cli.test.ts:87:1
+✖ an agent following next delivers a work item through commands run as written, leaving no trace in the product repo (272.662959ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      autonomy: 'full',
+  +   path: '/private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-YUQ3Hw/repo',
+  -   path: '/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-YUQ3Hw/repo',
+      ship: 'touch ../shipped'
+    }
+  
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/cli.test.ts:90:9)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { path: '/private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-YUQ3Hw/repo', ship: 'touch ../shipped', autonomy: 'full' },
+    expected: { path: '/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-YUQ3Hw/repo', ship: 'touch ../shipped', autonomy: 'full' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/cli.test.ts:229:1
+✖ a project registered with no options stops at the checkpoint before shipping; mw go ships it, with no ship command, once its work is on main (259.907875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   path: '/private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-PCDc2Y/repo'
+  -   path: '/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-PCDc2Y/repo'
+    }
+  
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/cli.test.ts:231:9)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { path: '/private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-PCDc2Y/repo' },
+    expected: { path: '/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-PCDc2Y/repo' },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/cli.test.ts:242:1
+✖ errors are JSON on stderr with a listed code, the context of its shape, and next commands (250.028583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+      'project_not_found',
+      {
+        projects: [],
+  +     workspace: '/private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-4LWJnK/repo'
+  -     workspace: '/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-4LWJnK/repo'
+      }
+    ]
+  
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/cli.test.ts:247:9)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ 'project_not_found', { workspace: '/private/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-4LWJnK/repo', projects: [] } ],
+    expected: [ 'project_not_found', { workspace: '/var/folders/fc/v5cb_rpj1vdg60sx65sdrrjr0000gn/T/mw-cli-l0VhV0/case-4LWJnK/repo', projects: [] } ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at test/cli.test.ts:443:1
+✖ with MW_TELEMETRY, every machine writes its own file there, and stats reads them all together (10638.845416ms)
+  TypeError: Cannot read properties of undefined (reading 'store')
+      at file:///Users/jrg/madewell-watch/test/cli.test.ts:457:119
+      at Array.filter (<anonymous>)
+      at file:///Users/jrg/madewell-watch/test/cli.test.ts:457:52
+      at Array.map (<anonymous>)
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/cli.test.ts:457:35)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+
+test at test/harness.test.ts:246:1
+✖ a daemon left by a runner that was SIGKILLed is killed when the next runner starts (991.083792ms)
+  AssertionError [ERR_ASSERTION]: the daemon is running in a session of its own
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/harness.test.ts:264:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at test/harness.test.ts:274:1
+✖ the orphan sweep kills a process carrying a dead runner's marker in its environment, and never one that only mentions the marker (2467.678083ms)
+  AssertionError [ERR_ASSERTION]: the orphan is killed
+      at TestContext.<anonymous> (file:///Users/jrg/madewell-watch/test/harness.test.ts:281:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

@@ -33,7 +33,7 @@ import { NEUTRAL_HOST } from './harness.ts'
 import { answerReference, buildAnswerHistory } from './handoff-history.ts'
 import { projectFor, projectsPath, readProjects } from './project.ts'
 import {
-	INTAKE, ORIGINATOR, Resource, blockedOf, decode, deliverableShape, hasJob, isMaker, lastJson, laneOf, malformed, requiredOf, route, shapeOf, stepOf, validate,
+	INTAKE, ORIGINATOR, Resource, blockedOf, decode, deliverableShape, hasJob, isMaker, lastJson, laneOf, malformed, requiredOf, route, shapeOf, snapshotPack, stepOf, validate,
 	type Cause, type Check, type Job, type Lane, type Maker, type Plan, type Step,
 } from './lane.ts'
 import { DEFAULT_AUTONOMY, Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
@@ -160,8 +160,9 @@ function handoffOf(item: Item, job: Job, t: Track): string {
 export const drive = Effect.fn('mw.drive')(function* (id: number, given: EngineConfig): Effect.fn.Return<Item, MadeWellError, Services> {
 	const store = yield* Store
 	yield* Effect.annotateCurrentSpan({ item: id })
-	const first = store.get(id)
+	let first = store.get(id)
 	if (!first) return yield* notFound(id)
+	if (!first.pack && !DONE.includes(first.status)) first = store.save({ ...first, pack: snapshotPack(first.pack) }, 'pack-pinned', { source: 'installed-default-at-resumption', historicalDefinition: 'unknown' })
 	// The item's cartridges add their own jobs to the prescriptions; a job no tier can run holds the item.
 	const prescribed = yield* Effect.result(forLane(given.prescriptions, L(first)))
 	if (Result.isFailure(prescribed)) return (holdFor(store, id, prescribed.failure), store.get(id)!)

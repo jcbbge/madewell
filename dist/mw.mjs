@@ -6,14 +6,14 @@ var __export = (target, all4) => {
 };
 
 // src/cli.ts
-import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
+import { spawn as spawn2 } from "node:child_process";
+import { existsSync as existsSync6, mkdirSync as mkdirSync8, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync as realpathSync2, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve7 } from "node:path";
+import { basename as basename4, dirname as dirname8, join as join12, resolve as resolve8 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
-// ../../madewell/node_modules/effect/dist/Pipeable.js
+// ../madewell/node_modules/effect/dist/Pipeable.js
 var pipeArguments = (self, args2) => {
   switch (args2.length) {
     case 0:
@@ -57,7 +57,7 @@ var Class = /* @__PURE__ */ (function() {
   return PipeableBase;
 })();
 
-// ../../madewell/node_modules/effect/dist/Function.js
+// ../madewell/node_modules/effect/dist/Function.js
 var dual = function(arity, body) {
   if (typeof arity === "function") {
     return function() {
@@ -132,7 +132,7 @@ function memoizeIdempotent(f) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/Cause.js
+// ../madewell/node_modules/effect/dist/Cause.js
 var Cause_exports = {};
 __export(Cause_exports, {
   AsyncFiberError: () => AsyncFiberError2,
@@ -196,7 +196,7 @@ __export(Cause_exports, {
   squash: () => squash
 });
 
-// ../../madewell/node_modules/effect/dist/Context.js
+// ../madewell/node_modules/effect/dist/Context.js
 var Context_exports = {};
 __export(Context_exports, {
   Reference: () => Reference,
@@ -224,7 +224,7 @@ __export(Context_exports, {
   pick: () => pick
 });
 
-// ../../madewell/node_modules/effect/dist/internal/equal.js
+// ../madewell/node_modules/effect/dist/internal/equal.js
 var getAllObjectKeys = (obj) => {
   const keys3 = new Set(Reflect.ownKeys(obj));
   if (obj.constructor === Object) return keys3;
@@ -248,13 +248,13 @@ var getAllObjectKeys = (obj) => {
 var byReferenceInstances = /* @__PURE__ */ new WeakSet();
 var viewBytes = (view2) => new Uint8Array(view2.buffer, view2.byteOffset, view2.byteLength);
 
-// ../../madewell/node_modules/effect/dist/internal/hash.js
+// ../madewell/node_modules/effect/dist/internal/hash.js
 var backEdges = 0;
 var addBackEdge = () => {
   backEdges++;
 };
 
-// ../../madewell/node_modules/effect/dist/Predicate.js
+// ../madewell/node_modules/effect/dist/Predicate.js
 function isString(input) {
   return typeof input === "string";
 }
@@ -306,7 +306,7 @@ function isIterable(input) {
   return hasProperty(input, Symbol.iterator) || isString(input);
 }
 
-// ../../madewell/node_modules/effect/dist/Hash.js
+// ../madewell/node_modules/effect/dist/Hash.js
 var symbol = "~effect/Hash";
 var hash = (self) => {
   switch (typeof self) {
@@ -430,7 +430,7 @@ var randomHashCache = /* @__PURE__ */ new WeakMap();
 var hashCache = /* @__PURE__ */ new WeakMap();
 var visitedObjects = /* @__PURE__ */ new WeakSet();
 
-// ../../madewell/node_modules/effect/dist/Equal.js
+// ../madewell/node_modules/effect/dist/Equal.js
 var symbol2 = "~effect/Equal";
 function equals() {
   if (arguments.length === 1) {
@@ -600,7 +600,7 @@ var byReferenceUnsafe = (obj) => {
   return obj;
 };
 
-// ../../madewell/node_modules/effect/dist/Redactable.js
+// ../madewell/node_modules/effect/dist/Redactable.js
 var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
 var isRedactable = (u) => hasProperty(u, symbolRedactable);
 function redact(u) {
@@ -622,13 +622,13 @@ var emptyContext = {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/Formatter.js
+// ../madewell/node_modules/effect/dist/Formatter.js
 function format(input, options) {
   const space = options?.space ?? 0;
   const ancestors = /* @__PURE__ */ new WeakSet();
   const gap = !space ? "" : typeof space === "number" ? " ".repeat(space) : space;
   const ind = (d) => gap.repeat(d);
-  const wrap = (v, body) => {
+  const wrap2 = (v, body) => {
     const ctor = v?.constructor;
     return ctor && ctor !== Object.prototype.constructor && ctor.name ? `${ctor.name}(${body})` : body;
   };
@@ -672,12 +672,12 @@ ${ind(d)}]`;
         const keys3 = ownKeys(v);
         if (!gap || keys3.length <= 1) {
           const body = `{${keys3.map((k) => `${formatPropertyKey(k)}:${recur2(safeGet(v, k), d)}`).join(",")}}`;
-          output = wrap(v, body);
+          output = wrap2(v, body);
         } else {
           const body = `{
 ${keys3.map((k) => `${ind(d + 1)}${formatPropertyKey(k)}: ${recur2(safeGet(v, k), d + 1)}`).join(",\n")}
 ${ind(d)}}`;
-          output = wrap(v, body);
+          output = wrap2(v, body);
         }
       }
       ancestors.delete(v);
@@ -774,7 +774,7 @@ function isJsonPrimitiveWrapper(object) {
   return false;
 }
 
-// ../../madewell/node_modules/effect/dist/Inspectable.js
+// ../madewell/node_modules/effect/dist/Inspectable.js
 var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 var toJson = (input) => {
   try {
@@ -841,7 +841,7 @@ var Class2 = class {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/stackTraceLimit.js
+// ../madewell/node_modules/effect/dist/internal/stackTraceLimit.js
 var isStackTraceLimitWritable = () => {
   const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
   if (desc === void 0) {
@@ -858,7 +858,7 @@ var setStackTraceLimit = (value3) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/Utils.js
+// ../madewell/node_modules/effect/dist/Utils.js
 var SingleShotGen = class {
   constructor(self) {
     this.value = self;
@@ -910,7 +910,7 @@ var pickInternalCall = () => {
 };
 var internalCall = /* @__PURE__ */ pickInternalCall();
 
-// ../../madewell/node_modules/effect/dist/internal/record.js
+// ../madewell/node_modules/effect/dist/internal/record.js
 function assignProperty(self, key, value3) {
   if (key === "__proto__") {
     Object.defineProperty(self, key, {
@@ -932,7 +932,7 @@ function assignProperties(self, source) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/internal/core.js
+// ../madewell/node_modules/effect/dist/internal/core.js
 var EffectTypeId = `~effect/Effect`;
 var ExitTypeId = `~effect/Exit`;
 var effectVariance = {
@@ -1346,13 +1346,13 @@ var done = (value3) => {
   return exitFail(Done(value3));
 };
 
-// ../../madewell/node_modules/effect/dist/Effectable.js
+// ../madewell/node_modules/effect/dist/Effectable.js
 var Prototype2 = (options) => makePrimitiveProto({
   op: options.label,
   [evaluate]: options.evaluate
 });
 
-// ../../madewell/node_modules/effect/dist/Equivalence.js
+// ../madewell/node_modules/effect/dist/Equivalence.js
 var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
 var isStrictEquivalent = (x, y) => x === y;
 var strictEqual = () => isStrictEquivalent;
@@ -1379,7 +1379,7 @@ function Array_(item) {
   });
 }
 
-// ../../madewell/node_modules/effect/dist/internal/doNotation.js
+// ../madewell/node_modules/effect/dist/internal/doNotation.js
 var let_ = (map11) => dual(3, (self, name, f) => map11(self, (a) => ({
   ...a,
   [name]: f(a)
@@ -1392,7 +1392,7 @@ var bind = (map11, flatMap7) => dual(3, (self, name, f) => flatMap7(self, (a) =>
   [name]: b
 }))));
 
-// ../../madewell/node_modules/effect/dist/internal/option.js
+// ../madewell/node_modules/effect/dist/internal/option.js
 var TypeId = "~effect/Option";
 var CommonProto = {
   [TypeId]: {
@@ -1458,7 +1458,7 @@ var SomeImpl = function(value3) {
 SomeImpl.prototype = SomeProto;
 var some = (value3) => new SomeImpl(value3);
 
-// ../../madewell/node_modules/effect/dist/internal/result.js
+// ../madewell/node_modules/effect/dist/internal/result.js
 var TypeId2 = "~effect/Result";
 var CommonProto2 = {
   [TypeId2]: {
@@ -1528,7 +1528,7 @@ var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
 var getSuccess = (self) => isFailure(self) ? none : some(self.success);
 var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
-// ../../madewell/node_modules/effect/dist/Order.js
+// ../madewell/node_modules/effect/dist/Order.js
 function make2(compare2) {
   return (self, that) => self === that ? 0 : compare2(self, that);
 }
@@ -1547,7 +1547,7 @@ var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
 var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
 var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
 
-// ../../madewell/node_modules/effect/dist/Option.js
+// ../madewell/node_modules/effect/dist/Option.js
 var none2 = () => none;
 var some2 = some;
 var isOption2 = isOption;
@@ -1575,7 +1575,7 @@ var flatMap = /* @__PURE__ */ dual(2, (self, f) => isNone2(self) ? none2() : f(s
 var flatten = /* @__PURE__ */ flatMap(identity);
 var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
 
-// ../../madewell/node_modules/effect/dist/Context.js
+// ../madewell/node_modules/effect/dist/Context.js
 var ServiceTypeId = "~effect/Context/Service";
 var Service = function() {
   function KeyClass() {
@@ -1805,13 +1805,13 @@ var omit = (...keys3) => (self) => withFlat(self, (map11) => {
 });
 var Reference = Service;
 
-// ../../madewell/node_modules/effect/dist/internal/array.js
+// ../madewell/node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
-// ../../madewell/node_modules/effect/dist/internal/count.js
+// ../madewell/node_modules/effect/dist/internal/count.js
 var normalize = (n) => n > 0 ? Math.floor(n) : 0;
 
-// ../../madewell/node_modules/effect/dist/Result.js
+// ../madewell/node_modules/effect/dist/Result.js
 var Result_exports = {};
 __export(Result_exports, {
   Do: () => Do,
@@ -1966,10 +1966,10 @@ var tap = /* @__PURE__ */ dual(2, (self, f) => {
   return self;
 });
 
-// ../../madewell/node_modules/effect/dist/Tuple.js
+// ../madewell/node_modules/effect/dist/Tuple.js
 var makeEquivalence2 = Tuple;
 
-// ../../madewell/node_modules/effect/dist/Iterable.js
+// ../madewell/node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
   let i = 0;
   for (const a of self) {
@@ -2012,7 +2012,7 @@ var filter2 = /* @__PURE__ */ dual(2, (self, predicate) => ({
   }
 }));
 
-// ../../madewell/node_modules/effect/dist/Record.js
+// ../madewell/node_modules/effect/dist/Record.js
 var has = /* @__PURE__ */ dual(2, (self, key) => Object.hasOwn(self, key));
 var map3 = /* @__PURE__ */ dual(2, (self, f) => {
   const out = {
@@ -2037,7 +2037,7 @@ var makeEquivalence3 = (equivalence) => {
   return (self, that) => is3(self, that) && is3(that, self);
 };
 
-// ../../madewell/node_modules/effect/dist/Array.js
+// ../madewell/node_modules/effect/dist/Array.js
 var Array2 = globalThis.Array;
 var fromIterable = (collection) => Array2.isArray(collection) ? collection : Array2.from(collection);
 var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
@@ -2096,7 +2096,7 @@ var dedupe = (self) => {
   return out;
 };
 
-// ../../madewell/node_modules/effect/dist/Duration.js
+// ../madewell/node_modules/effect/dist/Duration.js
 var TypeId4 = "~effect/Duration";
 var bigint0 = /* @__PURE__ */ BigInt(0);
 var bigint1 = /* @__PURE__ */ BigInt(1);
@@ -2276,32 +2276,32 @@ var DurationProto = {
   }
 };
 var make4 = (input) => {
-  const duration = Object.create(DurationProto);
+  const duration2 = Object.create(DurationProto);
   if (typeof input === "number") {
     if (isNaN(input) || input === 0 || Object.is(input, -0)) {
-      duration.value = zeroDurationValue;
+      duration2.value = zeroDurationValue;
     } else if (!Number.isFinite(input)) {
-      duration.value = input > 0 ? infinityDurationValue : negativeInfinityDurationValue;
+      duration2.value = input > 0 ? infinityDurationValue : negativeInfinityDurationValue;
     } else if (!Number.isInteger(input)) {
-      duration.value = {
+      duration2.value = {
         _tag: "Nanos",
         nanos: roundMillisToNanos(input)
       };
     } else {
-      duration.value = {
+      duration2.value = {
         _tag: "Millis",
         millis: input
       };
     }
   } else if (input === bigint0) {
-    duration.value = zeroDurationValue;
+    duration2.value = zeroDurationValue;
   } else {
-    duration.value = {
+    duration2.value = {
       _tag: "Nanos",
       nanos: input
     };
   }
-  return duration;
+  return duration2;
 };
 var isDuration = (u) => hasProperty(u, TypeId4);
 var isFinite = (self) => self.value._tag !== "Infinity" && self.value._tag !== "NegativeInfinity";
@@ -2486,7 +2486,7 @@ var format2 = (self) => {
   return pieces.join(" ");
 };
 
-// ../../madewell/node_modules/effect/dist/Filter.js
+// ../madewell/node_modules/effect/dist/Filter.js
 var composePassthrough = /* @__PURE__ */ dual(2, (left, right) => (input) => {
   const leftOut = left(input);
   if (isFailure2(leftOut)) return fail2(input);
@@ -2499,7 +2499,7 @@ var toOption = (self) => (input) => {
   return isFailure2(result3) ? none2() : some2(result3.success);
 };
 
-// ../../madewell/node_modules/effect/dist/Scheduler.js
+// ../madewell/node_modules/effect/dist/Scheduler.js
 var Scheduler = /* @__PURE__ */ Reference("effect/Scheduler", {
   fiberCached: true,
   defaultValue: () => new MixedScheduler()
@@ -2643,7 +2643,7 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
-// ../../madewell/node_modules/effect/dist/Tracer.js
+// ../madewell/node_modules/effect/dist/Tracer.js
 var Tracer_exports = {};
 __export(Tracer_exports, {
   CurrentTraceLevel: () => CurrentTraceLevel,
@@ -2659,7 +2659,7 @@ __export(Tracer_exports, {
   nativeTracer: () => nativeTracer
 });
 
-// ../../madewell/node_modules/effect/dist/Data.js
+// ../madewell/node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
   Class: () => Class3,
@@ -2706,7 +2706,7 @@ function taggedMatch() {
 var Error3 = Error2;
 var TaggedError2 = TaggedError;
 
-// ../../madewell/node_modules/effect/dist/encoding/EncodingError.js
+// ../madewell/node_modules/effect/dist/encoding/EncodingError.js
 var EncodingErrorTypeId = "~effect/encoding/EncodingError";
 var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
   /**
@@ -2721,7 +2721,7 @@ var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")
   [EncodingErrorTypeId] = EncodingErrorTypeId;
 };
 
-// ../../madewell/node_modules/effect/dist/encoding/Hex.js
+// ../madewell/node_modules/effect/dist/encoding/Hex.js
 var encode = (input) => typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input);
 var random2 = (length) => {
   switch (length) {
@@ -2810,7 +2810,7 @@ var fromHexChar = (byte) => {
   throw new TypeError("Invalid input");
 };
 
-// ../../madewell/node_modules/effect/dist/Tracer.js
+// ../madewell/node_modules/effect/dist/Tracer.js
 var ParentSpanKey = "effect/Tracer/ParentSpan";
 var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
   fiberCached: true
@@ -2899,10 +2899,10 @@ var NativeSpan = class {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/metric.js
+// ../madewell/node_modules/effect/dist/internal/metric.js
 var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
 
-// ../../madewell/node_modules/effect/dist/internal/references.js
+// ../madewell/node_modules/effect/dist/internal/references.js
 var CurrentErrorReporters = /* @__PURE__ */ Reference("effect/ErrorReporter/CurrentErrorReporters", {
   defaultValue: () => /* @__PURE__ */ new Set()
 });
@@ -2938,7 +2938,7 @@ var CurrentLogSpans = /* @__PURE__ */ Reference("effect/References/CurrentLogSpa
   defaultValue: () => []
 });
 
-// ../../madewell/node_modules/effect/dist/internal/tracer.js
+// ../madewell/node_modules/effect/dist/internal/tracer.js
 var addSpanStackTrace = (options) => {
   if (options?.captureStackTrace === false) {
     return options;
@@ -2975,7 +2975,7 @@ var makeStackCleaner = (line) => (stack) => {
 };
 var spanCleaner = /* @__PURE__ */ makeStackCleaner(3);
 
-// ../../madewell/node_modules/effect/dist/internal/effect.js
+// ../madewell/node_modules/effect/dist/internal/effect.js
 var Interrupt = class extends ReasonBase {
   constructor(fiberId3, annotations2 = constEmptyAnnotations) {
     super("Interrupt", annotations2, "Interrupted");
@@ -3166,10 +3166,10 @@ var cleanErrorStack = (stack, error, annotations2) => {
   return annotations2 ? addStackAnnotations(out.join("\n"), annotations2) : out.join("\n");
 };
 var addStackAnnotations = (stack, annotations2) => {
-  const frame2 = annotations2?.get(StackTraceKey.key);
-  if (frame2) {
+  const frame = annotations2?.get(StackTraceKey.key);
+  if (frame) {
     stack = `${stack}
-${currentStackTrace(frame2)}`;
+${currentStackTrace(frame)}`;
   }
   return stack;
 };
@@ -3177,15 +3177,15 @@ var interruptCauseStack = (error, interrupts) => {
   const out = [`${error.name}: ${error.message}`];
   for (const current of interrupts) {
     const fiberId3 = current.fiberId !== void 0 ? `#${current.fiberId}` : "unknown";
-    const frame2 = current.annotations.get(InterruptorStackTrace.key);
+    const frame = current.annotations.get(InterruptorStackTrace.key);
     out.push(`    at fiber (${fiberId3})`);
-    if (frame2) out.push(currentStackTrace(frame2));
+    if (frame) out.push(currentStackTrace(frame));
   }
   return out.join("\n");
 };
-var currentStackTrace = (frame2) => {
+var currentStackTrace = (frame) => {
   const out = [];
-  let current = frame2;
+  let current = frame;
   let i = 0;
   while (current && i < 10) {
     const stack = current.stack();
@@ -4376,20 +4376,20 @@ var isSuccess3 = /* @__PURE__ */ matchEager({
   onFailure: () => false,
   onSuccess: () => true
 });
-var delay = /* @__PURE__ */ dual(2, (self, duration) => andThen2(sleep(duration), self));
+var delay = /* @__PURE__ */ dual(2, (self, duration2) => andThen2(sleep(duration2), self));
 var timeoutOrElse = /* @__PURE__ */ dual(2, (self, options) => flatMap3(timeoutOption(self, options.duration), (option3) => isNone2(option3) ? options.orElse() : succeed3(option3.value)));
-var timeoutErrorFromDuration = (duration) => new TimeoutError(`Operation timed out after '${format2(duration)}'`);
-var timeout = /* @__PURE__ */ dual(2, (self, duration) => {
-  const decoded = fromInputUnsafe(duration);
+var timeoutErrorFromDuration = (duration2) => new TimeoutError(`Operation timed out after '${format2(duration2)}'`);
+var timeout = /* @__PURE__ */ dual(2, (self, duration2) => {
+  const decoded = fromInputUnsafe(duration2);
   return timeoutOrElse(self, {
     duration: decoded,
     orElse: () => fail3(timeoutErrorFromDuration(decoded))
   });
 });
-var timeoutOption = /* @__PURE__ */ dual(2, (self, duration) => raceFirst(asSome(self), as(sleep(duration), none2())));
-var timed = (self) => clockWith((clock2) => {
-  const start = clock2.monotonicTimeNanosUnsafe();
-  return map5(self, (a) => [nanos(clock2.monotonicTimeNanosUnsafe() - start), a]);
+var timeoutOption = /* @__PURE__ */ dual(2, (self, duration2) => raceFirst(asSome(self), as(sleep(duration2), none2())));
+var timed = (self) => clockWith((clock) => {
+  const start = clock.monotonicTimeNanosUnsafe();
+  return map5(self, (a) => [nanos(clock.monotonicTimeNanosUnsafe() - start), a]);
 });
 var ScopeTypeId = "~effect/Scope";
 var ScopeCloseableTypeId = "~effect/Scope/Closeable";
@@ -4622,7 +4622,7 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       return exit4;
     }
     exit4 = void 0;
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const run2 = {
       fiber: new FiberImpl(fiber3.context),
       awaiters: 0
@@ -4633,8 +4633,8 @@ var makeCachedUnsafe = (self, ttlMillis) => {
       if (current !== run2) return;
       current = void 0;
       if (exitHasInterrupts(exit_)) return;
-      const duration = ttlMillis(exit_);
-      expiresAt = duration === Infinity ? Infinity : clock2.currentTimeMillisUnsafe() + duration;
+      const duration2 = ttlMillis(exit_);
+      expiresAt = duration2 === Infinity ? Infinity : clock.currentTimeMillisUnsafe() + duration2;
       exit4 = exit_;
     }));
     return run2.fiber._exit ?? joined;
@@ -4834,8 +4834,8 @@ var iterateEager = () => (options) => {
       if (!effectIsExit(effect2)) {
         return resumeSequential(state, items, index2, end2, effect2);
       }
-      const terminal = step2(state, item, effect2, index2);
-      if (terminal) return terminal._tag === "Failure" ? terminal : void 0;
+      const terminal2 = step2(state, item, effect2, index2);
+      if (terminal2) return terminal2._tag === "Failure" ? terminal2 : void 0;
     }
   };
   return runSequential;
@@ -4851,22 +4851,22 @@ var iterateConcurrentImpl = (options) => {
     let parentFiber;
     let fibers;
     let resume;
-    let terminal;
+    let terminal2;
     let effect2;
     const failDefect = (error) => {
       const defect = exitDie(error);
-      terminal = defect;
+      terminal2 = defect;
       done3 = true;
-      return fibers && fibers.size > 0 ? flatMap3(uninterruptible(fiberInterruptAll(Array.from(fibers))), () => terminal ?? defect) : defect;
+      return fibers && fibers.size > 0 ? flatMap3(uninterruptible(fiberInterruptAll(Array.from(fibers))), () => terminal2 ?? defect) : defect;
     };
     const go2 = () => {
       let paused = false;
-      for (; !terminal && index2 < end2; index2++) {
+      for (; !terminal2 && index2 < end2; index2++) {
         const item = items[index2];
         const eff = effect2 ?? onItem(state, item, index2);
         if (effectIsExit(eff)) {
-          terminal = step2(state, item, eff, index2);
-          if (terminal) break;
+          terminal2 = step2(state, item, eff, index2);
+          if (terminal2) break;
         } else if (!parentFiber) {
           return callback((cb) => {
             parentFiber = getCurrentFiber();
@@ -4881,16 +4881,16 @@ var iterateConcurrentImpl = (options) => {
             }
             if (result3) return cb(result3);
             return suspend(() => {
-              terminal ??= exitVoid;
-              return flatMap3(fibers ? fiberInterruptAll(fibers) : void_2, () => terminal?._tag === "Failure" ? terminal : void_2);
+              terminal2 ??= exitVoid;
+              return flatMap3(fibers ? fiberInterruptAll(fibers) : void_2, () => terminal2?._tag === "Failure" ? terminal2 : void_2);
             });
           });
         } else {
           effect2 = void 0;
           const fiber3 = forkUnsafe(parentFiber, eff, true, true, "inherit");
           if (fiber3._exit) {
-            terminal = step2(state, item, fiber3._exit, index2);
-            if (terminal) break;
+            terminal2 = step2(state, item, fiber3._exit, index2);
+            if (terminal2) break;
             continue;
           }
           fibers.add(fiber3);
@@ -4898,18 +4898,18 @@ var iterateConcurrentImpl = (options) => {
           fiber3.addObserver((exit4) => {
             fibers.delete(fiber3);
             try {
-              if (terminal) {
+              if (terminal2) {
                 if (exit4._tag === "Failure") {
                   const reasons = exit4.cause.reasons.filter((reason) => reason._tag !== "Interrupt");
                   if (reasons.length > 0) {
                     const cause = causeFromReasons(reasons);
-                    terminal = exitFailCause(terminal._tag === "Failure" ? causeCombine(terminal.cause, cause) : cause);
+                    terminal2 = exitFailCause(terminal2._tag === "Failure" ? causeCombine(terminal2.cause, cause) : cause);
                   }
                 }
               } else {
                 const result3 = step2(state, item, exit4, currentIndex);
                 if (result3) {
-                  terminal = result3;
+                  terminal2 = result3;
                   go2();
                 }
               }
@@ -4917,7 +4917,7 @@ var iterateConcurrentImpl = (options) => {
                 const eff2 = go2();
                 if (eff2) resume(eff2);
               } else if (done3 && fibers.size === 0) {
-                resume(terminal ?? void_2);
+                resume(terminal2 ?? void_2);
               }
             } catch (error) {
               resume(failDefect(error));
@@ -4930,14 +4930,14 @@ var iterateConcurrentImpl = (options) => {
         }
       }
       done3 = true;
-      if (terminal) {
+      if (terminal2) {
         if (fibers && fibers.size > 0) {
           const annotations2 = fiberStackAnnotations(parentFiber);
           fibers.forEach((f) => f.interruptUnsafe(parentFiber.id, annotations2));
           return;
         }
-        if (resume || terminal._tag === "Failure") {
-          return terminal;
+        if (resume || terminal2._tag === "Failure") {
+          return terminal2;
         }
       } else if (resume) {
         if (!fibers) {
@@ -5111,8 +5111,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve8) => {
-      fiber3.addObserver((exit4) => resolve8(exit4));
+    return new Promise((resolve9) => {
+      fiber3.addObserver((exit4) => resolve9(exit4));
     });
   };
 };
@@ -5194,7 +5194,7 @@ var makeSpanUnsafe = (fiber3, name, options) => {
     });
   } else {
     const tracer3 = fiber3.cache.tracer ?? nativeTracer;
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
     const annotationsFromEnv = fiber3.getRef(TracerSpanAnnotations);
     const linksFromEnv = fiber3.getRef(TracerSpanLinks);
@@ -5205,7 +5205,7 @@ var makeSpanUnsafe = (fiber3, name, options) => {
       parent,
       annotations: options?.annotations ?? empty(),
       links,
-      startTime: timingEnabled ? clock2.currentTimeNanosUnsafe() : bigint02,
+      startTime: timingEnabled ? clock.currentTimeNanosUnsafe() : bigint02,
       kind: options?.kind ?? "internal",
       root: options?.root ?? false,
       sampled: options?.sampled ?? (isSome2(parent) && parent.value.sampled === false ? false : !isLogLevelGreaterThan(fiber3.getRef(MinimumTraceLevel), level))
@@ -5225,9 +5225,9 @@ var makeSpan = (name, options) => withFiber((fiber3) => succeed3(makeSpanUnsafe(
 var makeSpanScoped = (name, options) => uninterruptible(withFiber((fiber3) => {
   const scope3 = getUnsafe(fiber3.context, scopeTag);
   const span2 = makeSpanUnsafe(fiber3, name, options ?? {});
-  const clock2 = fiber3.getRef(ClockRef);
+  const clock = fiber3.getRef(ClockRef);
   const timingEnabled = fiber3.getRef(TracerTimingEnabled);
-  return as(scopeAddFinalizerExit(scope3, (exit4) => endSpan(span2, exit4, clock2, timingEnabled)), span2);
+  return as(scopeAddFinalizerExit(scope3, (exit4) => endSpan(span2, exit4, clock, timingEnabled)), span2);
 }));
 var withSpanScoped = function() {
   const dataFirst = typeof arguments[0] !== "string";
@@ -5257,18 +5257,18 @@ var linkSpans = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, span2
   }));
   return updateService(self, TracerSpanLinks, (current) => [...current, ...links]);
 });
-var endSpan = (span2, exit4, clock2, timingEnabled) => sync(() => {
+var endSpan = (span2, exit4, clock, timingEnabled) => sync(() => {
   if (span2.status._tag === "Ended") return;
-  span2.end(timingEnabled ? clock2.currentTimeNanosUnsafe() : bigint02, exit4);
+  span2.end(timingEnabled ? clock.currentTimeNanosUnsafe() : bigint02, exit4);
 });
 var useSpan = (name, ...args2) => {
   const options = args2.length === 1 ? void 0 : args2[0];
   const evaluate3 = args2[args2.length - 1];
   return withFiber((fiber3) => {
     const span2 = makeSpanUnsafe(fiber3, name, options);
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const timingEnabled = fiber3.getRef(TracerTimingEnabled);
-    onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock2, timingEnabled));
+    onExitUnsafe(fiber3, (exit4) => endSpan(span2, exit4, clock, timingEnabled));
     return evaluate3(span2);
   });
 };
@@ -5348,8 +5348,8 @@ var ClockImpl = class {
     return monotonicNowNanos();
   }
   monotonicTimeNanos = /* @__PURE__ */ sync(() => this.monotonicTimeNanosUnsafe());
-  sleep(duration) {
-    return this.sleepMillis(toMillis(duration));
+  sleep(duration2) {
+    return this.sleepMillis(toMillis(duration2));
   }
   sleepMillis(millis2) {
     if (millis2 <= 0) return yieldNow;
@@ -5398,10 +5398,10 @@ var wallTimeNanos = /* @__PURE__ */ (function() {
   };
 })();
 var clockWith = (f) => withFiber((fiber3) => f(fiber3.getRef(ClockRef)));
-var sleep = (duration) => clockWith((clock2) => clock2.sleep(fromInputUnsafe(duration)));
-var currentTimeMillis = /* @__PURE__ */ clockWith((clock2) => clock2.currentTimeMillis);
-var currentTimeNanos = /* @__PURE__ */ clockWith((clock2) => clock2.currentTimeNanos);
-var monotonicTimeNanos = /* @__PURE__ */ clockWith((clock2) => clock2.monotonicTimeNanos);
+var sleep = (duration2) => clockWith((clock) => clock.sleep(fromInputUnsafe(duration2)));
+var currentTimeMillis = /* @__PURE__ */ clockWith((clock) => clock.currentTimeMillis);
+var currentTimeNanos = /* @__PURE__ */ clockWith((clock) => clock.currentTimeNanos);
+var monotonicTimeNanos = /* @__PURE__ */ clockWith((clock) => clock.monotonicTimeNanos);
 var TimeoutErrorTypeId = "~effect/Cause/TimeoutError";
 var isTimeoutError = (u) => hasProperty(u, TimeoutErrorTypeId);
 var TimeoutError = class extends (/* @__PURE__ */ TaggedError("TimeoutError")) {
@@ -5559,10 +5559,10 @@ var logWithLevel = (level) => (...message) => {
     if (isLogLevelGreaterThan(fiber3.cache.minimumLogLevel, logLevel)) {
       return void_2;
     }
-    const clock2 = fiber3.getRef(ClockRef);
+    const clock = fiber3.getRef(ClockRef);
     const loggers = fiber3.getRef(CurrentLoggers);
     if (loggers.size > 0) {
-      const date = new Date(clock2.currentTimeMillisUnsafe());
+      const date = new Date(clock.currentTimeMillisUnsafe());
       for (const logger of loggers) {
         logger.log({
           cause,
@@ -5630,7 +5630,7 @@ var tracerLogger = /* @__PURE__ */ loggerMake(({
   logLevel,
   message
 }) => {
-  const clock2 = fiber3.getRef(ClockRef);
+  const clock = fiber3.getRef(ClockRef);
   const annotations2 = fiber3.getRef(CurrentLogAnnotations);
   const span2 = fiber3.cache.span;
   if (span2 === void 0 || span2._tag === "ExternalSpan") return;
@@ -5643,7 +5643,7 @@ var tracerLogger = /* @__PURE__ */ loggerMake(({
   if (cause.reasons.length > 0) {
     attributes["effect.cause"] = causePretty(cause);
   }
-  span2.event(toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message), clock2.currentTimeNanosUnsafe(), attributes);
+  span2.event(toStringUnknown(Array.isArray(message) && message.length === 1 ? message[0] : message), clock.currentTimeNanosUnsafe(), attributes);
 });
 function interruptChildrenPatch() {
   fiberMiddleware.interruptChildren ??= fiberInterruptChildren;
@@ -5665,7 +5665,7 @@ var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   reporters.forEach((reporter) => reporter.report(opts));
 };
 
-// ../../madewell/node_modules/effect/dist/Cause.js
+// ../madewell/node_modules/effect/dist/Cause.js
 var TypeId5 = CauseTypeId;
 var ReasonTypeId = CauseReasonTypeId;
 var isCause2 = isCause;
@@ -5728,7 +5728,7 @@ var StackTrace = class extends (/* @__PURE__ */ Service()("effect/Cause/StackTra
 var InterruptorStackTrace2 = class extends (/* @__PURE__ */ Service()("effect/Cause/InterruptorStackTrace")) {
 };
 
-// ../../madewell/node_modules/effect/dist/Effect.js
+// ../madewell/node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
   Do: () => Do3,
@@ -5962,7 +5962,7 @@ __export(Effect_exports, {
   zipWith: () => zipWith2
 });
 
-// ../../madewell/node_modules/effect/dist/Exit.js
+// ../madewell/node_modules/effect/dist/Exit.js
 var Exit_exports = {};
 __export(Exit_exports, {
   asVoid: () => asVoid2,
@@ -6021,7 +6021,7 @@ var getSuccess3 = exitGetSuccess;
 var getCause = exitGetCause;
 var findErrorOption3 = exitFindErrorOption;
 
-// ../../madewell/node_modules/effect/dist/Layer.js
+// ../madewell/node_modules/effect/dist/Layer.js
 var Layer_exports = {};
 __export(Layer_exports, {
   CurrentMemoMap: () => CurrentMemoMap,
@@ -6070,7 +6070,7 @@ __export(Layer_exports, {
   withSpan: () => withSpan2
 });
 
-// ../../madewell/node_modules/effect/dist/Deferred.js
+// ../madewell/node_modules/effect/dist/Deferred.js
 var TypeId6 = "~effect/Deferred";
 var DeferredProto = {
   [TypeId6]: {
@@ -6111,19 +6111,19 @@ var doneUnsafe = (self, effect2) => {
   return true;
 };
 
-// ../../madewell/node_modules/effect/dist/References.js
+// ../madewell/node_modules/effect/dist/References.js
 var CurrentLogAnnotations2 = CurrentLogAnnotations;
 var CurrentLogSpans2 = CurrentLogSpans;
 var CurrentStackFrame2 = CurrentStackFrame;
 
-// ../../madewell/node_modules/effect/dist/Scope.js
+// ../madewell/node_modules/effect/dist/Scope.js
 var Scope = scopeTag;
 var makeUnsafe3 = scopeMakeUnsafe;
 var provide = provideScope;
 var forkUnsafe2 = scopeForkUnsafe;
 var close = scopeClose;
 
-// ../../madewell/node_modules/effect/dist/Layer.js
+// ../madewell/node_modules/effect/dist/Layer.js
 var TypeId7 = "~effect/Layer";
 var MemoMapTypeId = "~effect/Layer/MemoMap";
 var makeMemoMapEntry = (memoMap, layer) => {
@@ -6351,7 +6351,7 @@ var provideSpanStackFrame2 = (name, stack) => {
   }));
 };
 
-// ../../madewell/node_modules/effect/dist/Clock.js
+// ../madewell/node_modules/effect/dist/Clock.js
 var Clock_exports = {};
 __export(Clock_exports, {
   Clock: () => Clock,
@@ -6366,7 +6366,7 @@ var currentTimeMillis2 = currentTimeMillis;
 var currentTimeNanos2 = currentTimeNanos;
 var monotonicTimeNanos2 = monotonicTimeNanos;
 
-// ../../madewell/node_modules/effect/dist/internal/dateTime.js
+// ../madewell/node_modules/effect/dist/internal/dateTime.js
 var TypeId8 = "~effect/DateTime";
 var TimeZoneTypeId = "~effect/DateTime/TimeZone";
 var Proto2 = {
@@ -6757,7 +6757,7 @@ var formatIsoOffset = (self) => {
 };
 var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
 
-// ../../madewell/node_modules/effect/dist/Number.js
+// ../madewell/node_modules/effect/dist/Number.js
 var Number3 = globalThis.Number;
 var remainder = /* @__PURE__ */ dual(2, (self, divisor) => {
   if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
@@ -6789,11 +6789,11 @@ function toScientificInteger(n) {
   return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1];
 }
 
-// ../../madewell/node_modules/effect/dist/String.js
+// ../madewell/node_modules/effect/dist/String.js
 var String3 = globalThis.String;
 var trim = (self) => self.trim();
 
-// ../../madewell/node_modules/effect/dist/Pull.js
+// ../madewell/node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
 var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure) => failure._tag === "Fail" && isDone2(failure.error);
@@ -6822,7 +6822,7 @@ var matchEffect2 = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(s
   }
 }));
 
-// ../../madewell/node_modules/effect/dist/Schedule.js
+// ../madewell/node_modules/effect/dist/Schedule.js
 var TypeId9 = "~effect/Schedule";
 var CurrentMetadata = /* @__PURE__ */ Reference("effect/Schedule/CurrentMetadata", {
   defaultValue: /* @__PURE__ */ constant({
@@ -6876,15 +6876,15 @@ var fromStepWithMetadata = (step2) => fromStep(map5(step2, (f) => {
   return (now2, input) => f(meta(now2, input));
 }));
 var toStep = (schedule2) => catchCause(schedule2.step, (cause) => succeed3(() => failCause(cause)));
-var toStepWithMetadata = (schedule2) => clockWith((clock2) => map5(toStep(schedule2), (step2) => {
+var toStepWithMetadata = (schedule2) => clockWith((clock) => map5(toStep(schedule2), (step2) => {
   const metaFn = metadataFn();
   return (input) => suspend(() => {
-    const now2 = clock2.currentTimeMillisUnsafe();
-    return flatMap3(step2(now2, input), ([output, duration]) => {
+    const now2 = clock.currentTimeMillisUnsafe();
+    return flatMap3(step2(now2, input), ([output, duration2]) => {
       const meta = metaFn(now2, input);
       meta.output = output;
-      meta.duration = duration;
-      return as(sleep(duration), meta);
+      meta.duration = duration2;
+      return as(sleep(duration2), meta);
     });
   });
 }));
@@ -6896,25 +6896,25 @@ var passthrough = (self) => fromStep(map5(toStep(self), (step2) => (now2, input)
 var recurs = (times) => while_(forever2, ({
   attempt
 }) => succeed3(attempt <= times));
-var spaced = (duration) => {
-  const decoded = fromInputUnsafe(duration);
+var spaced = (duration2) => {
+  const decoded = fromInputUnsafe(duration2);
   return fromStepWithMetadata(succeed3((meta) => succeed3([meta.attempt - 1, decoded])));
 };
 var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(self), (step2) => {
   const meta = metadataFn();
   return (now2, input) => flatMap3(step2(now2, input), (result3) => {
-    const [output, duration] = result3;
+    const [output, duration2] = result3;
     const eff = predicate({
       ...meta(now2, input),
       output,
-      duration
+      duration: duration2
     });
     return flatMap3(isEffect(eff) ? eff : succeed3(eff), (check2) => check2 ? succeed3(result3) : done2(output));
   });
 })));
 var forever2 = /* @__PURE__ */ spaced(zero);
 
-// ../../madewell/node_modules/effect/dist/ExecutionPlan.js
+// ../madewell/node_modules/effect/dist/ExecutionPlan.js
 var TypeId10 = "~effect/ExecutionPlan";
 var Proto3 = {
   [TypeId10]: TypeId10,
@@ -6943,11 +6943,11 @@ var CurrentMetadata2 = /* @__PURE__ */ Reference("effect/ExecutionPlan/CurrentMe
   })
 });
 
-// ../../madewell/node_modules/effect/dist/internal/layer.js
+// ../madewell/node_modules/effect/dist/internal/layer.js
 var provideLayer = (self, layer, options) => scopedWith((scope3) => flatMap3(options?.local ? buildWithMemoMap(layer, makeMemoMapUnsafe(), scope3) : buildWithScope(layer, scope3), (context3) => provideContext(self, context3)));
 var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source, options) => isContext(source) ? provideContext(self, source) : provideLayer(self, Array.isArray(source) ? mergeAll2(...source) : source, options));
 
-// ../../madewell/node_modules/effect/dist/internal/schedule.js
+// ../madewell/node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
 var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
@@ -7019,13 +7019,13 @@ var buildFromOptions = (options) => {
   return schedule2;
 };
 
-// ../../madewell/node_modules/effect/dist/internal/executionPlan.js
+// ../madewell/node_modules/effect/dist/internal/executionPlan.js
 var makeEventEmitter = (onEvent, currentMetadata) => {
   let lastStepIndex = -1;
   let stepAttempt = 0;
   const emit = (event) => ignoreCause(onEvent(event));
   return {
-    begin: clockWith((clock2) => suspend(() => {
+    begin: clockWith((clock) => suspend(() => {
       const meta = currentMetadata();
       if (meta.stepIndex !== lastStepIndex) {
         lastStepIndex = meta.stepIndex;
@@ -7036,7 +7036,7 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
         attempt: meta.attempt,
         stepAttempt,
         stepIndex: meta.stepIndex,
-        startNanos: clock2.monotonicTimeNanosUnsafe()
+        startNanos: clock.monotonicTimeNanosUnsafe()
       };
       return as(emit({
         _tag: "AttemptStart",
@@ -7045,20 +7045,20 @@ var makeEventEmitter = (onEvent, currentMetadata) => {
         stepIndex: state.stepIndex
       }), state);
     })),
-    end: (state, exit4) => clockWith((clock2) => {
-      const duration = nanos(clock2.monotonicTimeNanosUnsafe() - state.startNanos);
+    end: (state, exit4) => clockWith((clock) => {
+      const duration2 = nanos(clock.monotonicTimeNanosUnsafe() - state.startNanos);
       return emit(exit4._tag === "Success" ? {
         _tag: "AttemptSuccess",
         attempt: state.attempt,
         stepAttempt: state.stepAttempt,
         stepIndex: state.stepIndex,
-        duration
+        duration: duration2
       } : {
         _tag: "AttemptFailure",
         attempt: state.attempt,
         stepAttempt: state.stepAttempt,
         stepIndex: state.stepIndex,
-        duration,
+        duration: duration2,
         cause: exit4.cause
       });
     })
@@ -7124,7 +7124,7 @@ var scheduleFromStep = (step2, first) => {
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
 
-// ../../madewell/node_modules/effect/dist/MutableHashMap.js
+// ../madewell/node_modules/effect/dist/MutableHashMap.js
 var TypeId11 = "~effect/MutableHashMap";
 var MutableHashMapProto = {
   [TypeId11]: TypeId11,
@@ -7228,7 +7228,7 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
   return self;
 });
 
-// ../../madewell/node_modules/effect/dist/Request.js
+// ../madewell/node_modules/effect/dist/Request.js
 var TypeId12 = "~effect/Request";
 var requestVariance = /* @__PURE__ */ byReferenceUnsafe({
   /* c8 ignore next */
@@ -7244,7 +7244,7 @@ var RequestPrototype = {
 };
 var makeEntry = (options) => options;
 
-// ../../madewell/node_modules/effect/dist/internal/request.js
+// ../madewell/node_modules/effect/dist/internal/request.js
 var request = /* @__PURE__ */ dual(2, (self, resolver) => {
   const withResolver = (resolver2) => callback((resume) => {
     const entry = addEntry(resolver2, self, resume, getCurrentFiber());
@@ -7370,7 +7370,7 @@ function runBatch(batch) {
   return batch.run;
 }
 
-// ../../madewell/node_modules/effect/dist/Metric.js
+// ../madewell/node_modules/effect/dist/Metric.js
 var CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes";
 var CurrentMetricAttributes = /* @__PURE__ */ Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({})
@@ -7446,7 +7446,7 @@ function attributesToRecord(attributes) {
   return attributes;
 }
 
-// ../../madewell/node_modules/effect/dist/Effect.js
+// ../madewell/node_modules/effect/dist/Effect.js
 var TypeId14 = EffectTypeId;
 var isEffect2 = isEffect;
 var all3 = all2;
@@ -7690,12 +7690,12 @@ var trackDefects = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, m
   const input = f === void 0 ? defect : f(defect);
   return update(metric, input);
 }));
-var trackDuration = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => clockWith3((clock2) => {
-  const startTime = clock2.monotonicTimeNanosUnsafe();
+var trackDuration = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => clockWith3((clock) => {
+  const startTime = clock.monotonicTimeNanosUnsafe();
   return onExit2(self, () => {
-    const endTime = clock2.monotonicTimeNanosUnsafe();
-    const duration = subtract(fromInputUnsafe(endTime), fromInputUnsafe(startTime));
-    const input = f === void 0 ? duration : f(duration);
+    const endTime = clock.monotonicTimeNanosUnsafe();
+    const duration2 = subtract(fromInputUnsafe(endTime), fromInputUnsafe(startTime));
+    const input = f === void 0 ? duration2 : f(duration2);
     return update(metric, input);
   });
 }));
@@ -7706,8 +7706,8 @@ var tx = (effect2) => withFiber2((fiber3) => {
   if (state && !completedTransactions.has(state)) {
     return effect2;
   }
-  const clock2 = fiber3.getRef(ClockRef);
-  const now2 = clock2.currentTimeMillisUnsafe();
+  const clock = fiber3.getRef(ClockRef);
+  const now2 = clock.currentTimeMillisUnsafe();
   const mutable3 = {
     journal: /* @__PURE__ */ new Map(),
     retry: false,
@@ -7729,7 +7729,7 @@ var tx = (effect2) => withFiber2((fiber3) => {
       while: () => !result3,
       body: () => {
         if (mutable3.attempt > 1) {
-          stampTransaction(mutable3, clock2.currentTimeMillisUnsafe());
+          stampTransaction(mutable3, clock.currentTimeMillisUnsafe());
         }
         return run2;
       },
@@ -7833,7 +7833,7 @@ var flatMapEager2 = flatMapEager;
 var catchEager2 = catchEager;
 var fnUntracedEager2 = fnUntracedEager;
 
-// ../../madewell/node_modules/effect/dist/BigDecimal.js
+// ../madewell/node_modules/effect/dist/BigDecimal.js
 var FINITE_INT_REGEXP = /^[+-]?\d+$/;
 var TypeId15 = "~effect/BigDecimal";
 var BigDecimalProto = {
@@ -7986,7 +7986,7 @@ var toExponential = (n) => {
 };
 var isZero2 = (n) => n.value === bigint03;
 
-// ../../madewell/node_modules/effect/dist/Schema.js
+// ../madewell/node_modules/effect/dist/Schema.js
 var Schema_exports = {};
 __export(Schema_exports, {
   Any: () => Any2,
@@ -8359,7 +8359,7 @@ __export(Schema_exports, {
   withDecodingDefaultTypeKey: () => withDecodingDefaultTypeKey
 });
 
-// ../../madewell/node_modules/effect/dist/BigInt.js
+// ../madewell/node_modules/effect/dist/BigInt.js
 var BigInt3 = globalThis.BigInt;
 var toNumber = (b) => {
   if (b > BigInt3(Number.MAX_SAFE_INTEGER) || b < BigInt3(Number.MIN_SAFE_INTEGER)) {
@@ -8368,7 +8368,7 @@ var toNumber = (b) => {
   return some2(Number(b));
 };
 
-// ../../madewell/node_modules/effect/dist/ByteSize.js
+// ../madewell/node_modules/effect/dist/ByteSize.js
 var bigint04 = /* @__PURE__ */ BigInt(0);
 var bigint13 = /* @__PURE__ */ BigInt(1);
 var decimalBase = /* @__PURE__ */ BigInt(1e3);
@@ -8495,7 +8495,7 @@ var isByteSize = (input) => typeof input === "bigint" && input >= bigint04;
 var toBigInt = (self) => self;
 var toNumber2 = toNumber;
 
-// ../../madewell/node_modules/effect/dist/Chunk.js
+// ../madewell/node_modules/effect/dist/Chunk.js
 var TypeId16 = "~effect/Chunk";
 function copy(src, srcPos, dest, destPos, len) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
@@ -8659,7 +8659,7 @@ var fromArrayUnsafe = (self) => self.length === 0 ? empty6() : self.length === 1
 });
 var size = (self) => self.length;
 
-// ../../madewell/node_modules/effect/dist/DateTime.js
+// ../madewell/node_modules/effect/dist/DateTime.js
 var isDateTime2 = isDateTime;
 var isTimeZone2 = isTimeZone;
 var isTimeZoneOffset2 = isTimeZoneOffset;
@@ -8682,7 +8682,7 @@ var toEpochMillis2 = toEpochMillis;
 var formatIso2 = formatIso;
 var formatIsoZoned2 = formatIsoZoned;
 
-// ../../madewell/node_modules/effect/dist/encoding/Base64.js
+// ../madewell/node_modules/effect/dist/encoding/Base64.js
 var encode2 = (input) => encodeBytes(typeof input === "string" ? encoder2.encode(input) : input);
 var decode2 = (str) => {
   const stripped = stripCrlf(str);
@@ -8761,7 +8761,7 @@ var getCode = (charCode) => {
   return codes[charCode];
 };
 
-// ../../madewell/node_modules/effect/dist/internal/hashMap.js
+// ../madewell/node_modules/effect/dist/internal/hashMap.js
 var HashMapTypeId = "~effect/HashMap";
 var SHIFT = 5;
 var BUCKET_SIZE = 1 << SHIFT;
@@ -9396,14 +9396,14 @@ var keys2 = (self) => new HashMapIterator(self._root, identity);
 var entries = (self) => self[Symbol.iterator]();
 var size2 = (self) => self.size;
 
-// ../../madewell/node_modules/effect/dist/HashMap.js
+// ../madewell/node_modules/effect/dist/HashMap.js
 var isHashMap2 = isHashMap;
 var fromIterable4 = fromIterable3;
 var entries2 = entries;
 var toEntries = (self) => Array.from(entries2(self));
 var size3 = size2;
 
-// ../../madewell/node_modules/effect/dist/internal/hashSet.js
+// ../madewell/node_modules/effect/dist/internal/hashSet.js
 var HashSetTypeId = "~effect/HashSet";
 var hashSetSeed = /* @__PURE__ */ string(HashSetTypeId);
 var HashSetProto = {
@@ -9458,12 +9458,12 @@ var every2 = (self, predicate) => {
   return true;
 };
 
-// ../../madewell/node_modules/effect/dist/HashSet.js
+// ../madewell/node_modules/effect/dist/HashSet.js
 var fromIterable6 = fromIterable5;
 var isHashSet2 = isHashSet;
 var size5 = size4;
 
-// ../../madewell/node_modules/effect/dist/http/Cookies.js
+// ../madewell/node_modules/effect/dist/http/Cookies.js
 var TypeId17 = "~effect/http/Cookies";
 var isCookies = (u) => hasProperty(u, TypeId17);
 var CookieTypeId = "~effect/http/Cookies/Cookie";
@@ -9787,7 +9787,7 @@ var tryDecodeURIComponent = (str) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/redacted.js
+// ../madewell/node_modules/effect/dist/internal/redacted.js
 var redactedRegistry = /* @__PURE__ */ new WeakMap();
 var value = (self) => {
   if (redactedRegistry.has(self)) {
@@ -9797,7 +9797,7 @@ var value = (self) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/Redacted.js
+// ../madewell/node_modules/effect/dist/Redacted.js
 var TypeId18 = "~effect/Redacted";
 var isRedacted = (u) => hasProperty(u, TypeId18);
 var make12 = (value3, options) => {
@@ -9830,7 +9830,7 @@ var Proto5 = {
 var value2 = value;
 var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
-// ../../madewell/node_modules/effect/dist/http/Headers.js
+// ../madewell/node_modules/effect/dist/http/Headers.js
 var TypeId19 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
 var isHeaders = (u) => hasProperty(u, TypeId19);
 var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.create(null), {
@@ -9931,10 +9931,10 @@ var CurrentRedactedNames = /* @__PURE__ */ Reference("effect/Headers/CurrentReda
   defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
 });
 
-// ../../madewell/node_modules/effect/dist/http/internal/urlParams.js
+// ../madewell/node_modules/effect/dist/http/internal/urlParams.js
 var unwrap2 = (value3) => typeof value3 === "string" ? value3 : value2(value3);
 
-// ../../madewell/node_modules/effect/dist/http/UrlParams.js
+// ../madewell/node_modules/effect/dist/http/UrlParams.js
 var TypeId20 = "~effect/http/UrlParams";
 var isUrlParams = (u) => hasProperty(u, TypeId20);
 var Proto7 = {
@@ -10032,7 +10032,7 @@ var CurrentRedactedNames2 = /* @__PURE__ */ Reference("effect/http/UrlParams/Cur
   defaultValue: () => ["AWSAccessKeyId", "Signature", "sig", "X-Goog-Signature"]
 });
 
-// ../../madewell/node_modules/effect/dist/internal/graph.js
+// ../madewell/node_modules/effect/dist/internal/graph.js
 var TypeId21 = "~effect/Graph";
 var isGraph = (u) => hasProperty(u, TypeId21);
 var toImpl = (graph) => graph;
@@ -10156,7 +10156,7 @@ var hydrate = (snapshot3) => {
   return graph;
 };
 
-// ../../madewell/node_modules/effect/dist/internal/schema/annotations.js
+// ../madewell/node_modules/effect/dist/internal/schema/annotations.js
 function resolve(ast) {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
 }
@@ -10178,7 +10178,7 @@ var getExpected = /* @__PURE__ */ memoize((ast) => {
 });
 var annotationExcludedKeys = /* @__PURE__ */ new Set([SENTINELS_ANNOTATION_KEY, STRUCTURAL_ANNOTATION_KEY, "representation", "arbitraryConstraint", "toJsonSchema", "toCode", "toEquivalence", "toFormatter", "toCodec", "toCodecJson", "toCodecStringTree", "toCodecIso", "toCodecArbitrary"]);
 
-// ../../madewell/node_modules/effect/dist/internal/schema/parser.js
+// ../madewell/node_modules/effect/dist/internal/schema/parser.js
 var missing = /* @__PURE__ */ Symbol();
 var succeed7 = succeed4;
 var missingExit = /* @__PURE__ */ succeed7(missing);
@@ -10186,7 +10186,7 @@ var sameExit = /* @__PURE__ */ succeed7(missing);
 var toOption2 = (value3) => value3 === missing ? none2() : some2(value3);
 var fromOptionExit = (option3) => option3._tag === "None" ? missingExit : succeed7(option3.value);
 
-// ../../madewell/node_modules/effect/dist/SchemaIssue.js
+// ../madewell/node_modules/effect/dist/SchemaIssue.js
 var TypeId22 = "~effect/SchemaIssue/Issue";
 function isIssue(u) {
   return hasProperty(u, TypeId22) && u[TypeId22] === TypeId22;
@@ -10529,7 +10529,7 @@ function findMessage(issue) {
   if (typeof message === "string") return message;
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/cause.js
+// ../madewell/node_modules/effect/dist/internal/schema/cause.js
 function getSchemaIssue(cause) {
   let issue;
   for (const reason of cause.reasons) {
@@ -10550,7 +10550,7 @@ function getSchemaIssueOrThrow(cause, message) {
   return issue;
 }
 
-// ../../madewell/node_modules/effect/dist/encoding/Base64Url.js
+// ../madewell/node_modules/effect/dist/encoding/Base64Url.js
 var encode3 = (input) => encode2(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 var decode3 = (str) => {
   const stripped = str.replace(/[\n\r]/g, "");
@@ -10578,7 +10578,7 @@ var decode3 = (str) => {
 var decodeString3 = (str) => map2(decode3(str), (_) => decoder3.decode(_));
 var decoder3 = /* @__PURE__ */ new TextDecoder();
 
-// ../../madewell/node_modules/effect/dist/SchemaGetter.js
+// ../madewell/node_modules/effect/dist/SchemaGetter.js
 var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
 function fail7(f) {
   return transformOptionalEffect((oe, options) => fail6(f(oe, options)));
@@ -10865,7 +10865,7 @@ function collectBracketPathEntries(isLeaf) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/SchemaTransformation.js
+// ../madewell/node_modules/effect/dist/SchemaTransformation.js
 var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
@@ -11058,7 +11058,7 @@ function fromJsonString(options) {
 var fromFormData = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeFormData(), /* @__PURE__ */ encodeFormData());
 var fromURLSearchParams = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeURLSearchParams(), /* @__PURE__ */ encodeURLSearchParams());
 
-// ../../madewell/node_modules/effect/dist/SchemaAST.js
+// ../madewell/node_modules/effect/dist/SchemaAST.js
 function makeGuard(tag2) {
   return (ast) => ast._tag === tag2;
 }
@@ -11976,8 +11976,8 @@ var Objects = class extends ASTNodeImpl {
     const resume = (state, index2, pending2) => {
       const property = properties[index2];
       return flatMap5(exit2(pending2), (exit4) => {
-        const terminal = stepProperty(state, property, exit4);
-        if (terminal) return terminal;
+        const terminal2 = stepProperty(state, property, exit4);
+        if (terminal2) return terminal2;
         const done3 = () => succeed7(state.out);
         const eff = parseProperties(state, properties.slice(index2 + 1));
         return eff ? flatMapEager2(eff, done3) : done3();
@@ -12015,8 +12015,8 @@ var Objects = class extends ASTNodeImpl {
             if (hasKey) assignProperty(out, name, value3);
             continue;
           }
-          const terminal = stepProperty(state, property, exit4);
-          if (terminal) return terminal;
+          const terminal2 = stepProperty(state, property, exit4);
+          if (terminal2) return terminal2;
         }
       } catch (error) {
         return die4(error);
@@ -13136,18 +13136,18 @@ function isTree(u, isLeaf) {
       }
     }
     while (stack.length > 0) {
-      const frame2 = stack[stack.length - 1];
-      const keys3 = frame2.keys;
+      const frame = stack[stack.length - 1];
+      const keys3 = frame.keys;
       if (typeof keys3 === "number") {
-        if (frame2.index < keys3) {
-          u = frame2.value[frame2.index++];
+        if (frame.index < keys3) {
+          u = frame.value[frame.index++];
           continue outer;
         }
-      } else if (frame2.index < keys3.length) {
-        u = frame2.value[keys3[frame2.index++]];
+      } else if (frame.index < keys3.length) {
+        u = frame.value[keys3[frame.index++]];
         continue outer;
       }
-      cache2.set(frame2.value, true);
+      cache2.set(frame.value, true);
       stack.pop();
     }
     return true;
@@ -13182,7 +13182,7 @@ var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options)
 });
 var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough3());
 
-// ../../madewell/node_modules/effect/dist/internal/schema/interpreter.js
+// ../madewell/node_modules/effect/dist/internal/schema/interpreter.js
 var flatMapTransformation = (result3, current, f) => result3 === sameExit ? f(current) : flatMapEager2(result3, f);
 function compileTransformation(transformation) {
   if (transformation._tag === "Middleware") {
@@ -13339,7 +13339,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/compilerRegistry.js
+// ../madewell/node_modules/effect/dist/internal/schema/compilerRegistry.js
 var invalid3 = /* @__PURE__ */ Symbol();
 var cache = /* @__PURE__ */ new WeakMap();
 var compiler;
@@ -13365,10 +13365,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve8) {
+  constructor(ast, compiled, resolve9) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve8;
+    this.resolve = resolve9;
   }
   save(key, value3) {
     Object.defineProperty(this, key, {
@@ -13417,8 +13417,8 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve8, ast, operation) {
-  const entry = resolve8(ast);
+function lazyParser(resolve9, ast, operation) {
+  const entry = resolve9(ast);
   if (entry.compiled === void 0 || Object.hasOwn(entry, operation)) {
     return entry[operation];
   }
@@ -13433,7 +13433,7 @@ function resolve2(ast) {
   return entry;
 }
 
-// ../../madewell/node_modules/effect/dist/SchemaParser.js
+// ../madewell/node_modules/effect/dist/SchemaParser.js
 function makeEffect(schema) {
   const ast = schema.ast;
   let parser;
@@ -13699,7 +13699,7 @@ function makeConstructorSync(ast) {
 var normalCompiler = (ast) => resolve2(ast).parser;
 var constructorCompiler = (ast) => resolve2(ast).makeEffect;
 
-// ../../madewell/node_modules/effect/dist/internal/schema/make.js
+// ../madewell/node_modules/effect/dist/internal/schema/make.js
 var TypeId25 = "~effect/Schema/Schema";
 var RebuildOptions = /* @__PURE__ */ Symbol();
 var SchemaProto = {
@@ -13760,7 +13760,7 @@ function make16(ast, options) {
   return self;
 }
 
-// ../../madewell/node_modules/effect/dist/JsonPointer.js
+// ../madewell/node_modules/effect/dist/JsonPointer.js
 function escapeToken(token) {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -13790,7 +13790,7 @@ function formatUriFragment(path) {
   return path.reduce((fragment, token) => `${fragment}/${formatUriFragmentToken(token)}`, "#");
 }
 
-// ../../madewell/node_modules/effect/dist/JsonSchema.js
+// ../madewell/node_modules/effect/dist/JsonSchema.js
 var META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema#";
 var META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 function isMetaSchemaUri(value3, uri) {
@@ -14150,7 +14150,7 @@ function convertLegacyId(source, out, targetKey, dialect) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toCodec.js
+// ../madewell/node_modules/effect/dist/internal/schema/toCodec.js
 function toCodecJson(schema) {
   return make16(toCodecJsonAST(schema.ast), {
     schema
@@ -14358,11 +14358,11 @@ function toCodecArrayFromSingleASTStep(ast) {
   return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" || ast._tag === "Suspend" ? ast.recur(toCodecArrayFromSingleAST) : ast;
 }
 
-// ../../madewell/node_modules/effect/dist/RegExp.js
+// ../madewell/node_modules/effect/dist/RegExp.js
 var RegExp2 = globalThis.RegExp;
 var escape = (string3) => string3.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-// ../../madewell/node_modules/effect/dist/internal/errors.js
+// ../madewell/node_modules/effect/dist/internal/errors.js
 function errorWithPath(message, path) {
   if (path.length > 0) {
     message += `
@@ -14371,7 +14371,7 @@ function errorWithPath(message, path) {
   return new Error(message);
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
+// ../madewell/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
 function formatDefinitionReference(key) {
   return `#/$defs/${formatUriFragmentToken(key)}`;
 }
@@ -14612,9 +14612,9 @@ function compileJsonSchema(representations, rootPaths, references, options) {
       }
       if (!pointer.startsWith("/$defs/")) return $ref;
       const separator = pointer.indexOf("/", 7);
-      const canonical = definitionAliases.get(unescapeToken(pointer.slice(7, separator < 0 ? void 0 : separator)));
-      if (canonical === void 0) return $ref;
-      return $ref.replace(/^#(?:\/|%2f).*?(?:\/|%2f).*?(?=\/|%2f|$)/i, formatDefinitionReference(canonical));
+      const canonical2 = definitionAliases.get(unescapeToken(pointer.slice(7, separator < 0 ? void 0 : separator)));
+      if (canonical2 === void 0) return $ref;
+      return $ref.replace(/^#(?:\/|%2f).*?(?:\/|%2f).*?(?=\/|%2f|$)/i, formatDefinitionReference(canonical2));
     });
   }
   function getIdentifierFallback(representation) {
@@ -15020,7 +15020,7 @@ function toJsonSchemaDocument(document, options) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toRepresentation.js
+// ../madewell/node_modules/effect/dist/internal/schema/toRepresentation.js
 var defaultReferencePolicy = ({
   identifier: identifier2
 }) => identifier2;
@@ -15337,7 +15337,7 @@ function toRepresentations(asts, options) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/standardSchema.js
+// ../madewell/node_modules/effect/dist/internal/schema/standardSchema.js
 function makeStandardResult(exit4) {
   return isSuccess4(exit4) ? exit4.value : {
     issues: [{
@@ -15367,9 +15367,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve8) => {
+    return new Promise((resolve9) => {
       fiber3.addObserver((exit5) => {
-        resolve8(makeStandardResult(exit5));
+        resolve9(makeStandardResult(exit5));
       });
     });
   };
@@ -15437,7 +15437,7 @@ function toStandardJSONSchemaV1(self) {
   });
 }
 
-// ../../madewell/node_modules/effect/dist/JsonPatch.js
+// ../madewell/node_modules/effect/dist/JsonPatch.js
 function get4(oldValue, newValue) {
   const patches = [];
   getLoop(oldValue, newValue, "", patches);
@@ -15618,7 +15618,7 @@ function rebuildFromStack(stack, newParent) {
   return acc;
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
+// ../madewell/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
   const get6 = encodeSync(serializer);
@@ -15635,7 +15635,7 @@ function toDifferJsonPatch(schema) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toEncoderXml.js
+// ../madewell/node_modules/effect/dist/internal/schema/toEncoderXml.js
 function toEncoderXml(codec, options) {
   const rootName = resolveIdentifier(codec.ast) ?? resolveTitle(codec.ast);
   const serialize = encodeEffect(toCodecStringTree(codec));
@@ -15734,7 +15734,7 @@ var xml = {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toEquivalence.js
+// ../madewell/node_modules/effect/dist/internal/schema/toEquivalence.js
 var toEquivalence = /* @__PURE__ */ memoize((ast) => {
   return recur(ast);
 });
@@ -15918,7 +15918,7 @@ function causeEquivalence(error, defect) {
   return (a, b) => reasons(a.reasons, b.reasons);
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toFormatter.js
+// ../madewell/node_modules/effect/dist/internal/schema/toFormatter.js
 function causeReasonToFormatter(error, defect) {
   return (reason) => {
     switch (reason._tag) {
@@ -16133,7 +16133,7 @@ function toFormatter(ast, options) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/Struct.js
+// ../madewell/node_modules/effect/dist/Struct.js
 var pick2 = /* @__PURE__ */ dual(2, (self, keys3) => {
   return buildStruct(self, (k, v) => hasPropertyKey(keys3, k) ? [k, v] : void 0);
 });
@@ -16166,7 +16166,7 @@ function buildStruct(source, f) {
   return out;
 }
 
-// ../../madewell/node_modules/effect/dist/Optic.js
+// ../madewell/node_modules/effect/dist/Optic.js
 function makeIso(get6, set4) {
   return make17(primitiveNode("Iso", get6, set4));
 }
@@ -16512,7 +16512,7 @@ function id() {
   return identityIso;
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toIso.js
+// ../madewell/node_modules/effect/dist/internal/schema/toIso.js
 function toIso(schema) {
   const serializer = toCodecIso(schema);
   return makeIso(encodeSync(serializer), decodeSync(serializer));
@@ -16524,13 +16524,13 @@ function toIsoFocus(_) {
   return id();
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schemaError.js
+// ../madewell/node_modules/effect/dist/internal/schemaError.js
 var SchemaErrorTypeId = "~effect/Schema/SchemaError";
 function isSchemaError(u) {
   return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
 }
 
-// ../../madewell/node_modules/effect/dist/net/NetAddress.js
+// ../madewell/node_modules/effect/dist/net/NetAddress.js
 var TypeId26 = "~effect/net/NetAddress";
 var ipv4Value = (self) => self.value;
 var ipv6Words = (self) => self;
@@ -16974,7 +16974,7 @@ var unixPathAddress = (path) => {
   return Object.freeze(self);
 };
 
-// ../../madewell/node_modules/effect/dist/net/Host.js
+// ../madewell/node_modules/effect/dist/net/Host.js
 var TypeId27 = "~effect/net/Host";
 var hostError = (input, message) => fail2(new NetAddressError({
   input,
@@ -17087,7 +17087,7 @@ var formatHostPort = (self) => {
   return host.includes(":") ? `[${host}]:${self.port}` : `${host}:${self.port}`;
 };
 
-// ../../madewell/node_modules/effect/dist/net/Dns.js
+// ../madewell/node_modules/effect/dist/net/Dns.js
 var RecordTypeId = "~effect/net/Dns/DnsRecord";
 var isUint8 = (u) => Number.isInteger(u) && u >= 0 && u <= 255;
 var isUint16 = (u) => Number.isInteger(u) && u >= 0 && u <= 65535;
@@ -17254,7 +17254,7 @@ var formatRecord = (self) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/net/IpInterface.js
+// ../madewell/node_modules/effect/dist/net/IpInterface.js
 var TypeId28 = "~effect/net/IpInterface";
 var isIpv4Interface = (u) => isIpInterface(u) && isIpv4Address(u.address);
 var isIpv6Interface = (u) => isIpInterface(u) && isIpv6Address(u.address);
@@ -17316,7 +17316,7 @@ var ipv6FromString2 = (input, options) => flatMap2(parseAddressWithPrefix(input,
 var fromString3 = (input, options) => flatMap2(parseAddressWithPrefix(input, options), (parts2) => flatMap2(ipFromString(parts2.address), (address) => make18(address, parts2.prefixLength ?? width(address))));
 var format5 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../madewell/node_modules/effect/dist/net/IpNetwork.js
+// ../madewell/node_modules/effect/dist/net/IpNetwork.js
 var TypeId29 = "~effect/net/IpNetwork";
 var isIpv4Network = (u) => isIpNetwork(u) && isIpv4Address(u.address);
 var isIpv6Network = (u) => isIpNetwork(u) && isIpv6Address(u.address);
@@ -17385,7 +17385,7 @@ var fromString4 = (input) => {
 };
 var format6 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../madewell/node_modules/effect/dist/Schema.js
+// ../madewell/node_modules/effect/dist/Schema.js
 var TypeId30 = TypeId25;
 function declareConstructor() {
   return (typeParameters, run2, annotations2) => {
@@ -17677,11 +17677,11 @@ function encodeKeys(mapping) {
       const encoded = toEncoded2(self.fields[k]);
       const hasMapping = Object.hasOwn(mapping, k);
       const encodedKey = hasMapping ? mapping[k] : k;
-      const canonical = canonicalPropertyKey(encodedKey);
-      if (seenEncodedKeys.has(canonical)) {
+      const canonical2 = canonicalPropertyKey(encodedKey);
+      if (seenEncodedKeys.has(canonical2)) {
         throw new globalThis.Error(`Duplicate encoded keys: ${formatPropertyKey(encodedKey)}`);
       }
-      seenEncodedKeys.add(canonical);
+      seenEncodedKeys.add(canonical2);
       assignProperty(fields, encodedKey, encoded);
       if (hasMapping) {
         appliedMapping[k] = encodedKey;
@@ -18501,11 +18501,11 @@ function makeIsMultipleOf(options) {
     });
   };
 }
-function encodeNumberPayload(number3) {
-  if (!globalThis.Number.isFinite(number3)) {
-    throw new globalThis.RangeError(`Expected a finite number, got ${format(number3)}`);
+function encodeNumberPayload(number4) {
+  if (!globalThis.Number.isFinite(number4)) {
+    throw new globalThis.RangeError(`Expected a finite number, got ${format(number4)}`);
   }
-  return number3;
+  return number4;
 }
 var isGreaterThan4 = /* @__PURE__ */ makeIsGreaterThan({
   order: Number2,
@@ -20227,7 +20227,7 @@ var durationFromString = /* @__PURE__ */ transformEffect2({
     }, s, options)),
     onSome: succeed6
   }),
-  encode: (duration) => succeed6(globalThis.String(duration))
+  encode: (duration2) => succeed6(globalThis.String(duration2))
 });
 var durationFromNanos = /* @__PURE__ */ transformEffect2({
   decode: (i) => succeed6(nanos(i)),
@@ -20276,8 +20276,8 @@ var Duration = /* @__PURE__ */ declare(isDuration, {
           return millis(e.value);
       }
     },
-    encode: (duration) => {
-      switch (duration.value._tag) {
+    encode: (duration2) => {
+      switch (duration2.value._tag) {
         case "Infinity":
           return {
             _tag: "Infinity"
@@ -20289,12 +20289,12 @@ var Duration = /* @__PURE__ */ declare(isDuration, {
         case "Nanos":
           return {
             _tag: "Nanos",
-            value: duration.value.nanos
+            value: duration2.value.nanos
           };
         case "Millis":
           return {
             _tag: "Millis",
-            value: duration.value.millis
+            value: duration2.value.millis
           };
       }
     }
@@ -21195,7 +21195,7 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
-// ../../madewell/node_modules/effect/dist/Fiber.js
+// ../madewell/node_modules/effect/dist/Fiber.js
 var Fiber_exports = {};
 __export(Fiber_exports, {
   await: () => await_,
@@ -21222,7 +21222,7 @@ var isFiber = (u) => hasProperty(u, FiberTypeId);
 var getCurrent = getCurrentFiber;
 var runIn = fiberRunIn;
 
-// ../../madewell/node_modules/effect/dist/MutableList.js
+// ../madewell/node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
   head: void 0,
@@ -21328,7 +21328,7 @@ var take = (self) => {
   return message;
 };
 
-// ../../madewell/node_modules/effect/dist/Queue.js
+// ../madewell/node_modules/effect/dist/Queue.js
 var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
@@ -21762,7 +21762,7 @@ var finalize = (self, exit4) => {
   openState.awaiters.clear();
 };
 
-// ../../madewell/node_modules/effect/dist/Semaphore.js
+// ../madewell/node_modules/effect/dist/Semaphore.js
 var Semaphore_exports = {};
 __export(Semaphore_exports, {
   make: () => make23,
@@ -22022,7 +22022,7 @@ var stamped = (line, at) => {
     return line;
   }
 };
-var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callback((resume) => {
+var runGroup = (o) => Effect_exports.clockWith((clock) => Effect_exports.callback((resume) => {
   const started = Date.now();
   const call = `${process.pid}-${randomUUID()}`;
   const child = spawn("sh", ["-c", GROUP, "mw-agent", o.files ?? "", o.command, ...o.args], { cwd: o.cwd, env: { ...o.env, MW_CALL: call }, detached: true, stdio: [o.stdin ?? "pipe", "pipe", "pipe", "pipe"] });
@@ -22052,7 +22052,7 @@ var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callba
     }
   };
   const take4 = (raw, end2) => {
-    const line = o.stamp ? stamped(raw, clock2.currentTimeMillisUnsafe()) : raw;
+    const line = o.stamp ? stamped(raw, clock.currentTimeMillisUnsafe()) : raw;
     stdout += line + end2;
     const n = o.tokensIn?.(line);
     if (n) tokens = (tokens ?? 0) + n;
@@ -22378,8 +22378,8 @@ function parseRun(harness, stdout, account, now2) {
     const signal = harness.limit.signals?.map((s) => ({ s, e: evs.findLast((e) => matches(e, s.when)) })).find((x) => x.e);
     if (said || signal) {
       const machine = signal?.s.resetsAt.map((p) => get5(signal.e, p)).find((v) => typeof v === "number" && Number.isFinite(v));
-      const { clock: clock2, minutes: minutes2 } = said?.groups ?? {};
-      const resetsAt = machine !== void 0 ? machine * 1e3 : clock2 ? clockToEpoch(clock2, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
+      const { clock, minutes: minutes2 } = said?.groups ?? {};
+      const resetsAt = machine !== void 0 ? machine * 1e3 : clock ? clockToEpoch(clock, now2) : minutes2 ? now2 + Number(minutes2) * 6e4 : null;
       limit = { account, resetsAt, message: said?.[0] ?? fill(signal.s.message, signal.e) };
     }
   }
@@ -22719,6 +22719,18 @@ var laneOf = (pack) => {
   let lane = lanes.get(key);
   if (!lane) lanes.set(key, lane = compile2(pack ?? SOFTWARE));
   return lane;
+};
+var snapshotPack = (pack) => {
+  const lane = laneOf(pack);
+  const loop = (name) => lane.pack[name].map((c) => ({
+    ...c,
+    steps: c.steps.map((s) => {
+      if (s.job === "verify") return { job: s.job };
+      const { cartridge: _, loop: _loop, receives, ...step2 } = lane[name].find((step3) => step3.job === s.job);
+      return isMaker(s.job) ? step2 : { ...step2, receives };
+    })
+  }));
+  return Schema_exports.decodeUnknownSync(Pack)(structuredClone({ ...lane.pack, discovery: loop("discovery"), delivery: loop("delivery") }));
 };
 var stepOf = (lane, job) => job === "arbitrate" ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: "delivery", profile: job, duty: "", receives: [] };
 var hasJob = (lane, job) => job === "arbitrate" || [...lane.discovery, ...lane.delivery].some((s) => s.job === job);
@@ -23308,17 +23320,18 @@ var alive2 = (pid) => {
     return e.code !== "ESRCH";
   }
 };
-function openStore(path) {
-  mkdirSync2(dirname2(path), { recursive: true });
-  const db = new DatabaseSync(path);
-  db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
+function openStore(path, options = {}) {
+  if (!options.readOnly) mkdirSync2(dirname2(path), { recursive: true });
+  const db = new DatabaseSync(path, { readOnly: options.readOnly ?? false });
+  db.exec("PRAGMA busy_timeout = 5000");
+  if (!options.readOnly) db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS calls (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, kind TEXT NOT NULL, job TEXT NOT NULL, profile TEXT NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`);
-  const sink = telemetry(path);
+  const sink = options.readOnly ? void 0 : telemetry(path);
   let pending2;
   const emit = (t, record2) => pending2 ? pending2.push([t, record2]) : sink?.write(t, record2);
   const tx2 = (fn3) => {
@@ -23341,7 +23354,7 @@ function openStore(path) {
     const insert = db.prepare("INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
     for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0);
   };
-  tx2(() => {
+  if (!options.readOnly) tx2(() => {
     const columns = db.prepare("PRAGMA table_info(calls)").all().map((c) => c.name);
     if (columns.includes("tokens")) return;
     db.exec("ALTER TABLE calls ADD COLUMN tokens TEXT; ALTER TABLE calls ADD COLUMN facts TEXT; ALTER TABLE calls ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'");
@@ -23366,7 +23379,7 @@ function openStore(path) {
       const created = tx2(() => {
         const now2 = (/* @__PURE__ */ new Date()).toISOString();
         const { lastInsertRowid } = db.prepare("INSERT INTO items (doc) VALUES (?)").run("{}");
-        const item = { job: laneOf(fields.pack).delivery[0].job, from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
+        const item = { job: laneOf(fields.pack).delivery[0].job, from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, pack: snapshotPack(fields.pack), id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(item), item.id);
         event(item.id, "created", { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null });
         return item;
@@ -23530,19 +23543,40 @@ var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
 
 // src/trace.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
+
+// src/machine.ts
+import { cpus, freemem, hostname as hostname2, loadavg, totalmem, uptime } from "node:os";
+var machineSampler = () => {
+  let previous;
+  return () => {
+    try {
+      const processors = cpus();
+      const current = processors.reduce((sum3, cpu) => ({ idle: sum3.idle + cpu.times.idle, total: sum3.total + Object.values(cpu.times).reduce((a, b) => a + b, 0) }), { idle: 0, total: 0 });
+      const elapsed = previous ? current.total - previous.total : 0;
+      const cpuPercent = previous && elapsed > 0 ? Math.max(0, Math.min(100, 100 * (1 - (current.idle - previous.idle) / elapsed))) : null;
+      previous = current;
+      return { host: hostname2(), cores: processors.length, cpu: processors[0]?.model ?? "unknown", cpuPercent, load: loadavg(), memoryTotal: totalmem(), memoryFree: freemem(), uptimeSeconds: uptime(), observerRss: process.memoryUsage().rss };
+    } catch {
+      return null;
+    }
+  };
+};
+
+// src/trace.ts
 var TRACE_INTERVAL = 5e3;
 var SILENCE_INTERVAL = 6e4;
 var TOOL_RESULT_INTERVAL = 12e4;
-var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.clockWith((clock2) => Effect_exports.gen(function* () {
+var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.clockWith((clock) => Effect_exports.gen(function* () {
   const invocation = randomUUID2();
-  const started = clock2.currentTimeMillisUnsafe();
+  const started = clock.currentTimeMillisUnsafe();
   const current = store.get(item);
   const parent = `item:${item}:round:${current.round}:job:${spec.job}`;
-  const note = (kind, data) => store.note(item, kind, { invocation, ...data }, new Date(clock2.currentTimeMillisUnsafe()).toISOString());
+  const note = (kind, data) => store.note(item, kind, { invocation, ...data }, new Date(clock.currentTimeMillisUnsafe()).toISOString());
   const history2 = store.events(item).filter((e) => e.kind === "trace-finished" && e.data.job === spec.job && e.data.kind === spec.kind && e.data.status === "returned").map((e) => Number(e.data.ms)).sort((a, b) => a - b);
   const typical = history2.length >= 3 ? history2[Math.floor(history2.length / 2)] : null;
   const durationThreshold = typical === null ? spec.kind === "intake" || spec.kind === "repair" ? 6e4 : 18e4 : Math.max(3e4, typical * 3);
-  note("trace-started", { parent, round: current.round, pid: process.pid, ...spec, durationThreshold, typical });
+  const machine = machineSampler();
+  note("trace-started", { parent, round: current.round, pid: process.pid, ...spec, durationThreshold, typical, machine: machine() });
   let lastOutput = started;
   let lastResult = started;
   const pending2 = /* @__PURE__ */ new Set();
@@ -23576,7 +23610,7 @@ var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.
     }
     let updates;
     try {
-      updates = tracker.append(line, clock2.currentTimeMillisUnsafe());
+      updates = tracker.append(line, clock.currentTimeMillisUnsafe());
     } catch (cause) {
       note("trace-parse", { ok: false, decoder: "tools", reason: String(cause) });
       signal("stream-parse", true, {});
@@ -23585,12 +23619,12 @@ var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.
     for (const { event, state } of updates) {
       note("trace-tool", { parent: invocation, id: `${invocation}:tool:${event.seq}`, state, ...event });
       if (state === "returned") {
-        lastResult = clock2.currentTimeMillisUnsafe();
+        lastResult = clock.currentTimeMillisUnsafe();
         pending2.delete(event.seq);
         signal("no-tool-result", false, { pending: pending2.size, toolIdleMs: 0 });
         signal("no-progress", false, { toolIdleMs: 0 });
       } else {
-        if (pending2.size === 0) lastResult = clock2.currentTimeMillisUnsafe();
+        if (pending2.size === 0) lastResult = clock.currentTimeMillisUnsafe();
         pending2.add(event.seq);
         const key = `${event.tool}:${event.digest}`;
         repetitions = key === pattern ? repetitions + 1 : 1;
@@ -23601,7 +23635,7 @@ var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.
   };
   const onOutput = (channel, text2) => {
     note("trace-output", { channel, text: text2 });
-    lastOutput = clock2.currentTimeMillisUnsafe();
+    lastOutput = clock.currentTimeMillisUnsafe();
     signal("no-output", false, { idleMs: 0 });
     if (channel !== "stdout") return;
     const lines4 = (partial + text2).split("\n");
@@ -23610,18 +23644,18 @@ var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.
   };
   yield* Effect_exports.forkScoped(Effect_exports.forever(Effect_exports.gen(function* () {
     yield* Effect_exports.sleep(TRACE_INTERVAL);
-    const now2 = clock2.currentTimeMillisUnsafe();
+    const now2 = clock.currentTimeMillisUnsafe();
     const facts = { ms: now2 - started, idleMs: now2 - lastOutput, toolIdleMs: now2 - lastResult, pending: pending2.size };
     signal("no-output", facts.idleMs >= SILENCE_INTERVAL, facts);
     signal("no-tool-result", pending2.size > 0 && facts.toolIdleMs >= TOOL_RESULT_INTERVAL, facts);
     signal("no-progress", !!spec.harness && spec.args.access !== "none" && facts.toolIdleMs >= TOOL_RESULT_INTERVAL, { ...facts, basis: "no reported tool result; not proof of useless work" });
     signal("unusual-duration", facts.ms >= durationThreshold, { ...facts, threshold: durationThreshold, typical });
-    note("trace-heartbeat", { ...facts, signals: [...active] });
+    note("trace-heartbeat", { ...facts, signals: [...active], machine: machine() });
   })).pipe(Effect_exports.interruptible));
   const result3 = yield* run2(onOutput).pipe(Effect_exports.onExit((exit4) => Effect_exports.sync(() => {
     if (partial) consume(partial);
     const returned = Exit_exports.isSuccess(exit4) ? Object.fromEntries(Object.entries(exit4.value).filter(([k]) => !["raw", "stdout", "stderr"].includes(k))) : null;
-    note("trace-finished", { job: spec.job, kind: spec.kind, status: Exit_exports.isSuccess(exit4) ? "returned" : Exit_exports.hasInterrupts(exit4) ? "interrupted" : "failed", ms: clock2.currentTimeMillisUnsafe() - started, result: returned, error: Exit_exports.isFailure(exit4) ? Cause_exports.pretty(exit4.cause) : null });
+    note("trace-finished", { job: spec.job, kind: spec.kind, status: Exit_exports.isSuccess(exit4) ? "returned" : Exit_exports.hasInterrupts(exit4) ? "interrupted" : "failed", ms: clock.currentTimeMillisUnsafe() - started, result: returned, error: Exit_exports.isFailure(exit4) ? Cause_exports.pretty(exit4.cause) : null });
   })));
   return { invocation, result: result3 };
 })));
@@ -23695,8 +23729,31 @@ function lensOf(store, id2, lens, next, now2 = Date.now()) {
   if (lens === "ux") return { lens, depth: 3e4, ...ux };
   const lane = laneOf(item.pack);
   const step2 = stepOf(lane, item.job);
+  const structure2 = {
+    id: `item:${id2}`,
+    parent: item.parent ?? item.discovery ?? null,
+    children: store.list().filter((child) => child.parent === id2 || child.discovery === id2).map((child) => child.id),
+    definition: item.pack ? "saved-pack" : "legacy-default-unknown",
+    lanes: ["discovery", "delivery"].map((name) => ({
+      id: `item:${id2}:lane:${name}`,
+      name,
+      stages: lane.pack[name].map((cartridge, index2) => ({
+        id: `item:${id2}:lane:${name}:stage:${index2}:${cartridge.cartridge}`,
+        name: cartridge.cartridge,
+        steps: cartridge.steps.map((spec) => ({
+          id: `item:${id2}:round:${item.round}:job:${spec.job}`,
+          job: spec.job,
+          contract: stepOf(lane, spec.job),
+          output: item.outputs[spec.job] ?? null,
+          track: item.split?.[spec.job] ?? null,
+          invocations: invocations.filter((call) => call.parent === `item:${id2}:round:${item.round}:job:${spec.job}`).map((call) => call.id)
+        }))
+      }))
+    }))
+  };
   const dx = {
     ...ux,
+    structure: structure2,
     phase: lane.discovery.some((s) => s.job === item.job) ? "discovery" : "delivery",
     lane: lane.pack.name,
     stage: step2.cartridge,
@@ -24016,22 +24073,22 @@ ${suffix}`)) fresh2 = fresh2.slice(0, -suffix.length - 2);
     remember(fresh2, freshIds);
   }
   const grouped = /* @__PURE__ */ new Map();
-  const canonical = /* @__PURE__ */ new Map();
+  const canonical2 = /* @__PURE__ */ new Map();
   for (const row of answers) {
     const first = grouped.get(row.answer);
     if (first) {
       const { answer: _answer, ...alias } = row;
       (first.aliases ??= []).push(alias);
-      canonical.set(row.id, first.id);
+      canonical2.set(row.id, first.id);
     } else {
       grouped.set(row.answer, { ...row });
-      canonical.set(row.id, row.id);
+      canonical2.set(row.id, row.id);
     }
   }
   const replacements = [...forms].sort(([a], [b]) => b.length - a.length);
   const compactText = (text2) => {
     for (const [body, ids] of replacements) {
-      const reference = answerReference([...ids].map((id2) => canonical.get(id2)));
+      const reference = answerReference([...ids].map((id2) => canonical2.get(id2)));
       if (text2 === body) return reference;
       for (const separator of ["\n", ": "]) {
         if (text2.endsWith(`${separator}${body}`)) return text2.slice(0, -body.length) + reference;
@@ -24199,8 +24256,9 @@ function handoffOf(item, job, t) {
 var drive = Effect_exports.fn("mw.drive")(function* (id2, given) {
   const store = yield* Store;
   yield* Effect_exports.annotateCurrentSpan({ item: id2 });
-  const first = store.get(id2);
+  let first = store.get(id2);
   if (!first) return yield* notFound2(id2);
+  if (!first.pack && !DONE.includes(first.status)) first = store.save({ ...first, pack: snapshotPack(first.pack) }, "pack-pinned", { source: "installed-default-at-resumption", historicalDefinition: "unknown" });
   const prescribed = yield* Effect_exports.result(forLane(given.prescriptions, L(first)));
   if (Result_exports.isFailure(prescribed)) return holdFor(store, id2, prescribed.failure), store.get(id2);
   const config = { ...given, prescriptions: prescribed.success };
@@ -24627,10 +24685,10 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   if (isMaker(job) && !blockedOf(L(item), job, value3)) {
     const base = from;
     if (job === "implement") {
-      const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
-      if (Result_exports.isFailure(scoped3)) {
-        if (scoped3.failure.code !== "out_of_scope") return yield* scoped3.failure;
-        const { outside } = scoped3.failure.context;
+      const scoped4 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
+      if (Result_exports.isFailure(scoped4)) {
+        if (scoped4.failure.code !== "out_of_scope") return yield* scoped4.failure;
+        const { outside } = scoped4.failure.context;
         return yield* refused(`You changed files outside the plan's scope: ${outside.join(", ")}. Your checkout still holds them: revert them, or report {"blocked": ...} if the plan cannot be done within its scope.`);
       }
     }
@@ -25613,11 +25671,11 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
 });
 
 // src/ui.ts
-import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
-import { closeSync as closeSync2, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
+import { execFileSync as execFileSync2 } from "node:child_process";
+import { closeSync as closeSync2, existsSync as existsSync5, fstatSync, mkdirSync as mkdirSync7, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
-import { homedir as homedir3, hostname as hostname2 } from "node:os";
-import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve6 } from "node:path";
+import { homedir as homedir3, hostname as hostname3 } from "node:os";
+import { basename as basename3, dirname as dirname7, join as join11, resolve as resolve7 } from "node:path";
 
 // src/console.ts
 var CONSOLE = String.raw`<!doctype html>
@@ -26199,6 +26257,268 @@ if (LIVE) { poll(); setInterval(poll, 1000); }
 else { M = STATIC.model; $('conn').hidden = true; render(); }
 </script></body></html>`;
 
+// src/watch.ts
+import { existsSync as existsSync4, realpathSync } from "node:fs";
+import { basename as basename2, resolve as resolve6, sep as sep2 } from "node:path";
+import { stripVTControlCharacters } from "node:util";
+import { emitKeypressEvents } from "node:readline";
+var terminal = "\x1B[";
+var clean = (text2) => stripVTControlCharacters(text2).replace(/[\x00-\x08\x0b-\x1f\x7f-\x9f]/g, "");
+var duration = (ms) => `${Math.floor(ms / 6e4)}m${Math.floor(ms / 1e3) % 60}s`;
+var number3 = (n) => n.toLocaleString("en-US");
+var gib = (n) => `${(n / 2 ** 30).toFixed(1)} GiB`;
+var stateMark = { done: "\u2713", active: ">", held: "!", failed: "x", waiting: "~", todo: "\xB7", skipped: "-" };
+var segmenter = new Intl.Segmenter(void 0, { granularity: "grapheme" });
+var width2 = (s) => /[\p{Emoji_Presentation}\u1100-\u115f\u2e80-\ua4cf\uac00-\ud7af\uf900-\ufaff\uff01-\uff60]/u.test(s) ? 2 : 1;
+var wrap = (text2, cols) => {
+  const out = [];
+  for (const line of clean(text2).split("\n")) {
+    let current = "", used = 0;
+    for (const { segment } of segmenter.segment(line.replaceAll("	", "  "))) {
+      const n = width2(segment);
+      if (used + n > cols && current) {
+        out.push(current);
+        current = "";
+        used = 0;
+      }
+      current += segment;
+      used += n;
+    }
+    out.push(current);
+  }
+  return out;
+};
+var canonical = (path) => {
+  try {
+    return realpathSync(path);
+  } catch {
+    return resolve6(path);
+  }
+};
+var workspaceAt = (items, cwd) => {
+  const path = canonical(cwd);
+  return [...new Set(items.map((i) => resolve6(i.workspace)))].filter((p) => path === canonical(p) || path.startsWith(canonical(p) + sep2)).sort((a, b) => canonical(b).length - canonical(a).length)[0] ?? path;
+};
+var scoped3 = (store, workspace) => {
+  if (!workspace) return store;
+  const items = store.list().filter((i) => canonical(i.workspace) === canonical(workspace));
+  const ids = new Set(items.map((i) => i.id));
+  return {
+    ...store,
+    list: () => items,
+    get: (id2) => ids.has(id2) ? store.get(id2) : void 0,
+    allEvents: () => store.allEvents().filter((e) => e.item === 0 || ids.has(e.item)),
+    callHeads: () => store.callHeads().filter((c) => ids.has(c.item)),
+    calls: (id2, call) => store.calls(id2, call).filter((c) => ids.has(c.item))
+  };
+};
+var groupsOf = (m) => {
+  const discovery = m.items.filter((i) => i.kind === "discovery");
+  const delivery = m.items.filter((i) => i.kind !== "discovery");
+  return [
+    { title: "DISCOVERY LANE", items: discovery.filter((i) => !["discovered", "dropped"].includes(i.status)) },
+    { title: "STAGING \xB7 awaiting promotion", items: delivery.filter((i) => i.status === "candidate") },
+    { title: "DELIVERY \xB7 ready / queued", items: delivery.filter((i) => i.status === "queued" && i.after.every((d) => d.status === "shipped")) },
+    { title: "DELIVERY \xB7 waiting / held / checkpoints", items: delivery.filter((i) => ["held", "paused", "waiting-quota", "waiting-prerequisite"].includes(i.status) || i.status === "queued" && i.after.some((d) => d.status !== "shipped")) },
+    { title: "DELIVERY \xB7 active work queue", items: delivery.filter((i) => i.status === "running") },
+    { title: "DELIVERED \xB7 shipping proof", items: delivery.filter((i) => i.status === "shipped") },
+    { title: "DISCOVERY \xB7 completed", items: discovery.filter((i) => i.status === "discovered") },
+    { title: "DROPPED \xB7 retained history", items: m.items.filter((i) => i.status === "dropped") }
+  ];
+};
+var machineLines = (machine) => machine ? [
+  `HOST ${machine.host} \xB7 ${machine.cores} CPU cores \xB7 CPU ${machine.cpuPercent === null ? "sampling" : machine.cpuPercent.toFixed(0) + "%"} \xB7 load ${machine.load.map((n) => n.toFixed(2)).join(" / ")}`,
+  `Memory ${gib(machine.memoryFree)} free / ${gib(machine.memoryTotal)} total \xB7 uptime ${duration(machine.uptimeSeconds * 1e3)} \xB7 viewer RSS ${gib(machine.observerRss)}`,
+  "Host-wide live sample, not work progress. Invocation start/heartbeat samples are saved in the trace."
+] : ["Host measurements unavailable."];
+var screen = (m, nav, cols, rows, scope3, machine, detail) => {
+  cols = Math.max(1, cols);
+  rows = Math.max(3, rows);
+  const groups = groupsOf(m);
+  const ordered = groups.flatMap((g) => g.items);
+  if (!ordered.some((i) => i.id === nav.selected)) nav.selected = ordered[0]?.id;
+  const selected = m.items.find((i) => i.id === nav.selected);
+  const header = [
+    `MADE WELL \xB7 ${m.runner ? "runner " + m.runner.pid : "NO RUNNER"} \xB7 ${basename2(scope3)} \xB7 ${m.at.slice(11, 19)}`,
+    `Discovery ${groups[0].items.length} \xB7 Staging ${m.summary.candidates} \xB7 Delivery ${groups[4].items.length} open / ${groups[2].items.length} ready / ${groups[3].items.length} waiting \xB7 Delivered ${m.summary.shipped}`,
+    `${number3(m.summary.calls)} calls \xB7 ${number3(m.summary.tokens)} tokens \xB7 ${duration(m.summary.agentMs)} agent time \xB7 ${duration(m.summary.nqMs)} NQ \xB7 ${m.summary.questions} questions`
+  ];
+  const body = [];
+  if (nav.machine) body.push(...machineLines(machine), "");
+  if (nav.help) {
+    body.push(`Scope: ${scope3}`, "KEYS \xB7 watch never changes delivery state", "j / k or arrows: select next / previous item and inspect it", "Enter / Tab: overview, pipeline, full evidence", "0 / Escape: overview", "Page Up / Page Down / Space: scroll", "g / G: first / last page", "p / c: parent / first child; j/k visits other items", "m: host measurements", "a: current project / all projects", "? : close this help", "q / Ctrl-C: quit and restore terminal");
+  } else if (nav.depth === 0) {
+    body.push(`Scope: ${scope3} \xB7 ${m.running.length} live calls`, ...groups.map((g) => `${g.items.length.toString().padStart(3)}  ${g.title}`), "");
+    for (const n of m.needs) body.push(`NEEDS YOU ${n.item ? "#" + n.item : ""}: ${n.message}`, ...n.next.map((c) => `  ${c.run} \u2014 ${c.why}`), "");
+    for (const group of groups) {
+      body.push(`${group.title} (${group.items.length})`);
+      if (!group.items.length) body.push("  \u2014");
+      for (const item of group.items) {
+        body.push(`${nav.selected === item.id ? ">" : " "} #${item.id} ${item.title} [${item.status}]`, `  ${item.doing}`);
+        const stages = [...new Set(item.steps.map((s) => s.cartridge))].map((stage) => {
+          const steps = item.steps.filter((s) => s.cartridge === stage);
+          const parallel = steps.some((s) => s.job === "implement") && steps.some((s) => s.job === "test-plan");
+          return `${stage}: ${steps.map((s) => `${stateMark[s.state === "active" && !m.runner ? "waiting" : s.state]}${s.job}`).join(parallel ? " || " : " \u2192 ")}`;
+        });
+        body.push("  " + stages.join(" | "));
+        if (item.commit) body.push(`  commit ${item.commit} \xB7 checks ${item.checks ? item.checks.passed + "/" + item.checks.total : "not recorded"}`);
+      }
+      body.push("");
+    }
+    body.push("ACTIVITY \xB7 recent durable events");
+    for (const e of m.events.slice(-12)) body.push(`${e.at.slice(11, 19)} #${e.item} ${e.actor}: ${e.say}`);
+  } else if (selected) {
+    body.push(
+      `#${selected.id} ${selected.title}`,
+      `${selected.status} \xB7 ${selected.doing}`,
+      `Next move owed by: ${selected.owes || "nobody"}`,
+      `Round ${selected.round} \xB7 ${duration(selected.agentMs)} \xB7 ${number3(selected.tokens)} tokens \xB7 ${selected.calls} calls`,
+      `Discovery: ${selected.discovery ?? "\u2014"} \xB7 prerequisite parent: ${selected.parent ?? "\u2014"} \xB7 waits on: ${selected.waitsOn ?? "\u2014"}`,
+      ""
+    );
+    for (const s of selected.steps) body.push(`${stateMark[s.state === "active" && !m.runner ? "waiting" : s.state]} ${s.cartridge} / ${s.job} [${s.state === "active" && !m.runner ? "waiting for runner" : s.state}] \xB7 ${s.who}`, `  ${duration(s.agentMs)} agent \xB7 ${duration(s.ms)} elapsed span \xB7 ${s.calls} calls \xB7 ${number3(s.tokens)} tokens \xB7 ${s.questions} questions`);
+    body.push("", nav.depth === 1 ? "PIPELINE \xB7 persisted state and diagnostics" : "EVIDENCE \xB7 full inputs, outputs, invocations and tools", detail ?? "No detail on record.");
+  } else body.push("No items in this project. Use a for all projects; opening watch does not start work.");
+  const flat = body.flatMap((l) => wrap(l, cols));
+  const top = header.map((l) => wrap(l, cols)[0]).slice(0, Math.max(0, rows - 3));
+  const room = Math.max(1, rows - top.length - 2);
+  nav.offset = Math.max(0, Math.min(nav.offset, Math.max(0, flat.length - room)));
+  const footer = `? help \xB7 q quit \xB7 j/k item \xB7 Enter depth ${nav.depth}/2 \xB7 PgUp/Dn scroll \xB7 p/c parent/child \xB7 m host \xB7 a all [${nav.offset + 1}-${Math.min(nav.offset + room, flat.length)}/${flat.length}]`;
+  return [...top, ...flat.slice(nav.offset, nav.offset + room), "", wrap(footer, cols)[0]].slice(0, rows).join("\n");
+};
+var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
+  let store;
+  let seq = opts.since, calls = 0, initialized = false;
+  const nav = { depth: 0, offset: 0, all: opts.all ?? false, machine: false };
+  const sample = machineSampler();
+  let lastModel;
+  let scope3 = opts.workspace ?? process.cwd();
+  let last = "", finished = false, cleaned = false, entered = false, input = false;
+  let timer;
+  const wasRaw = process.stdin.isRaw;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    clearInterval(timer);
+    process.stdout.off("resize", tick);
+    store?.close();
+    if (entered) process.stdout.write(`${terminal}?25h${terminal}?1049l`);
+    if (input) {
+      process.stdin.off("keypress", onKey);
+      process.stdin.setRawMode(wasRaw);
+      process.stdin.pause();
+    }
+  };
+  const done3 = () => {
+    if (!finished) {
+      finished = true;
+      cleanup();
+      resume(Effect_exports.succeed({ watched: path, next: [{ run: `mw watch --since ${seq}${nav.all ? " --all" : opts.tty || opts.workspace ? ` --workspace ${quote2(scope3)}` : ""}`, why: "carry on from here" }] }));
+    }
+  };
+  const tick = () => {
+    if (finished) return;
+    try {
+      if (!store && existsSync4(path)) store = openStore(path, { readOnly: true });
+      if (store && !initialized) {
+        calls = opts.since > 0 ? store.mark().calls : 0;
+        initialized = true;
+      }
+      if (!store) {
+        if (opts.tty) process.stdout.write(`${terminal}H${terminal}2J${wrap(`MADE WELL \xB7 no store yet at ${path}. Watching does not start work. q quits.`, process.stdout.columns || 80).join("\n")}`);
+        return;
+      }
+      scope3 = workspaceAt(store.list(), opts.workspace ?? process.cwd());
+      const source = scoped3(store, nav.all || !opts.tty && !opts.workspace ? void 0 : scope3);
+      if (opts.tty) {
+        const m = lastModel = modelOf(source, nextOf);
+        if (!m.items.some((i) => i.id === nav.selected)) nav.selected = groupsOf(m).flatMap((g) => g.items)[0]?.id;
+        const detail = nav.depth && nav.selected ? JSON.stringify(lensOf(source, nav.selected, nav.depth === 1 ? "dx" : "ax", nextOf(source.get(nav.selected))), null, 2) : void 0;
+        const text2 = screen(m, nav, process.stdout.columns || 120, process.stdout.rows || 40, nav.all ? "ALL PROJECTS" : scope3, sample(), detail);
+        if (text2 !== last) process.stdout.write(`${terminal}H${terminal}2J${text2}`);
+        last = text2;
+      } else {
+        const titles = new Map(source.list().map((i) => [i.id, i.title]));
+        for (const e of source.allEvents().filter((e2) => e2.seq > seq)) {
+          process.stdout.write(JSON.stringify({ event: { ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) } }) + "\n");
+          seq = e.seq;
+        }
+        for (const c of source.callHeads().filter((c2) => c2.id > calls)) {
+          process.stdout.write(JSON.stringify({ call: c }) + "\n");
+          calls = c.id;
+        }
+      }
+    } catch (cause) {
+      finished = true;
+      cleanup();
+      resume(Effect_exports.fail(new MadeWellError({ code: "usage", message: "Watch could not read the record.", context: { command: "watch" }, cause: String(cause), next: [{ run: "mw status", why: "inspect the store without starting delivery" }] })));
+    }
+  };
+  const onKey = (_text, key) => {
+    if (finished) return;
+    const k = key.sequence ?? "";
+    if (k === "q" || k === "") return done3();
+    const items = lastModel ? groupsOf(lastModel).flatMap((g) => g.items) : [];
+    const index2 = items.findIndex((i) => i.id === nav.selected);
+    if (["j", "\x1B[B", "k", "\x1B[A"].includes(k)) {
+      const direction = k === "j" || k === "\x1B[B" ? 1 : -1;
+      nav.selected = items[Math.max(0, Math.min(items.length - 1, index2 + direction))]?.id;
+      nav.offset = 0;
+      nav.depth = Math.max(1, nav.depth);
+    } else if (k === "\r" || k === "	") {
+      nav.depth = (nav.depth + 1) % 3;
+      nav.offset = 0;
+    } else if (k === "0" || k === "\x1B") {
+      nav.depth = 0;
+      nav.offset = 0;
+    } else if (k === "\x1B[6~" || k === " ") nav.offset += Math.max(1, (process.stdout.rows || 40) - 6);
+    else if (k === "\x1B[5~") nav.offset -= Math.max(1, (process.stdout.rows || 40) - 6);
+    else if (k === "g") nav.offset = 0;
+    else if (k === "G") nav.offset = Number.MAX_SAFE_INTEGER;
+    else if (k === "a") {
+      nav.all = !nav.all;
+      nav.offset = 0;
+      nav.selected = void 0;
+    } else if (k === "m") {
+      nav.machine = !nav.machine;
+      nav.offset = 0;
+    } else if (k === "?") {
+      nav.help = !nav.help;
+      nav.offset = 0;
+    } else if (k === "p" || k === "c") {
+      const current = items.find((i) => i.id === nav.selected);
+      const target = k === "p" ? current?.parent ?? current?.discovery : items.find((i) => i.parent === nav.selected || i.discovery === nav.selected)?.id;
+      if (items.some((i) => i.id === target)) {
+        nav.selected = target;
+        nav.depth = 1;
+        nav.offset = 0;
+      }
+    }
+    tick();
+  };
+  if (opts.tty && !opts.once) {
+    if (process.stdin.isTTY) {
+      input = true;
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      emitKeypressEvents(process.stdin);
+      process.stdin.on("keypress", onKey);
+    }
+    entered = true;
+    process.stdout.write(`${terminal}?1049h${terminal}?25l`);
+  }
+  tick();
+  if (finished) return;
+  if (opts.once) {
+    if (opts.tty) process.stdout.write("\n");
+    done3();
+    return;
+  }
+  process.stdout.on("resize", tick);
+  timer = setInterval(tick, 1e3);
+  return Effect_exports.sync(cleanup);
+});
+
 // src/ui.ts
 var actorOf = (e) => {
   const d = e.data;
@@ -26589,7 +26909,7 @@ var modelOf = (store, nextOf) => {
   const movable = items.filter((i) => ["queued", "running", "waiting-quota", "waiting-prerequisite"].includes(i.status));
   return {
     at: new Date(now2).toISOString(),
-    host: hostname2().split(".")[0],
+    host: hostname3().split(".")[0],
     store: store.path,
     projects: [...new Set(items.map((i) => i.workspace))],
     runner: runner2,
@@ -26662,7 +26982,7 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read = (name) => existsSync4(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
+  const read = (name) => existsSync5(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
   let change = read("change");
   if (!change && shipped) {
@@ -26696,7 +27016,7 @@ var itemDetail = (store, nextOf, id2) => {
 };
 var spansOf = (path, item) => {
   const file = spansPath(path);
-  if (!existsSync4(file)) return [];
+  if (!existsSync5(file)) return [];
   const all4 = readFileSync8(file, "utf8").split("\n").flatMap((l) => {
     try {
       return l ? [JSON.parse(l)] : [];
@@ -26714,7 +27034,7 @@ var spansOf = (path, item) => {
 var storeWatcher = (path) => {
   let store;
   return () => {
-    if (!store && existsSync4(path)) store = openStore(path);
+    if (!store && existsSync5(path)) store = openStore(path);
     return store;
   };
 };
@@ -26772,7 +27092,7 @@ var serve = (path, nextOf, host, port, renderer) => Effect_exports.callback((res
       const call = /^\/api\/call\/(\d+)$/.exec(url.pathname);
       if (call) return ((c) => json(res, c ?? null, c ? 200 : 404))(store.call(Number(call[1])));
       const live = /^\/api\/live\/([\w.-]+\.log)$/.exec(url.pathname);
-      if (live) return json(res, readFrom(join11(liveDir(path), basename2(live[1])), Number(url.searchParams.get("from") ?? 0)));
+      if (live) return json(res, readFrom(join11(liveDir(path), basename3(live[1])), Number(url.searchParams.get("from") ?? 0)));
       const spans = /^\/api\/spans\/(\d+)$/.exec(url.pathname);
       if (spans) return json(res, spansOf(path, Number(spans[1])));
       json(res, { error: "not_found", path: url.pathname }, 404);
@@ -26809,7 +27129,7 @@ var thisHost = () => ({
   uid: process.getuid?.() ?? 0,
   env: process.env,
   node: process.execPath,
-  script: resolve6(process.argv[1] ?? ""),
+  script: resolve7(process.argv[1] ?? ""),
   run: (file, args2) => {
     try {
       return { code: 0, out: execFileSync2(file, args2, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), err: "" };
@@ -26892,7 +27212,7 @@ var serviceStatus = (h) => {
   const base = { service: h.platform === "darwin" ? LABEL : `${SERVICE}.service`, platform: h.platform };
   if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
   const { unit } = servicePaths(h);
-  if (!existsSync4(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
+  if (!existsSync5(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
   const text2 = readFileSync8(unit, "utf8");
   const args2 = execStartOf(h, text2);
   const address = addressOf(args2);
@@ -26922,7 +27242,7 @@ var installService = (h, s) => {
   if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
   const { unit } = servicePaths(h);
   const text2 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
-  const before = existsSync4(unit) ? readFileSync8(unit, "utf8") : void 0;
+  const before = existsSync5(unit) ? readFileSync8(unit, "utf8") : void 0;
   const wrote = [];
   if (before !== text2) {
     mkdirSync7(dirname7(unit), { recursive: true });
@@ -26954,14 +27274,14 @@ var uninstallService = (h) => {
   const paths = servicePaths(h);
   const removed = [];
   const next = inspectNext(h);
-  if (existsSync4(paths.unit)) {
+  if (existsSync5(paths.unit)) {
     if (h.platform === "darwin") h.run("launchctl", ["bootout", `gui/${h.uid}/${LABEL}`]);
     else h.run("systemctl", ["--user", "disable", "--now", SERVICE]);
     rmSync6(paths.unit, { force: true });
     removed.push(paths.unit);
     if (h.platform !== "darwin") must(h, "systemctl", ["--user", "daemon-reload"], next);
   }
-  if (paths.log && existsSync4(paths.log)) {
+  if (paths.log && existsSync5(paths.log)) {
     rmSync6(paths.log, { force: true });
     removed.push(paths.log);
   }
@@ -26975,167 +27295,6 @@ var service3 = (h, action, s) => Effect_exports.gen(function* () {
     ok = yield* Effect_exports.promise(() => answering(view2.address));
   }
   return { ...view2, answering: ok };
-});
-var webLine = async (h, port = 4747) => {
-  const s = SUPPORTED.includes(h.platform) ? serviceStatus(h) : void 0;
-  const url = s?.address ?? `http://127.0.0.1:${port}/`;
-  if (await answering(url)) return { url, text: `${url}  (w opens it)` };
-  if (s?.installed) return { text: `web: installed but not answering \xB7 ${inspectNext(h)[0].run}` };
-  return { text: "web: mw ui --install" };
-};
-var openWeb = (h, url) => {
-  const opener = h.platform === "darwin" ? "open" : h.env.DISPLAY || h.env.WAYLAND_DISPLAY ? "xdg-open" : void 0;
-  if (opener && (h.platform === "darwin" || h.run("which", [opener]).code === 0)) {
-    spawn2(opener, [url], { detached: true, stdio: "ignore" }).unref();
-    return `Opened ${url}`;
-  }
-  const port = new URL(url).port || "80";
-  const here = hostname2().split(".")[0];
-  return `No browser on ${here}. On your computer: ssh -L ${port}:127.0.0.1:${port} ${here}   then open http://localhost:${port}/`;
-};
-var ESC = "\x1B[";
-var paint = (code, s) => `${ESC}${code}m${s}${ESC}0m`;
-var dim = (s) => paint("2", s);
-var bold = (s) => paint("1", s);
-var ACTOR = { operator: "35", agent: "34", "made well": "32", runner: "2" };
-var GLYPH = { done: paint("32", "\u25CF"), active: paint("34", "\u25C9"), held: paint("31", "\u25C9"), failed: paint("31", "\u2715"), waiting: paint("33", "\u25CC"), todo: dim("\u25CB"), skipped: dim("\xB7") };
-var visible = (s) => s.replace(/\x1b\[[0-9;]*m/g, "");
-var fit = (s, w) => {
-  if (visible(s).length <= w) return s;
-  let out = "";
-  let n = 0;
-  for (const part of s.split(/(\x1b\[[0-9;]*m)/)) {
-    if (part.startsWith("\x1B[")) out += part;
-    else for (const ch of part) {
-      if (n === w - 1) return `${out}\u2026${ESC}0m`;
-      out += ch;
-      n++;
-    }
-  }
-  return out;
-};
-var clock = (iso) => new Date(iso).toLocaleTimeString("en-GB", { hour12: false });
-var tokensText = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n);
-var STATUS = { held: "31", shipped: "32", candidate: "33", "waiting-quota": "33", "waiting-prerequisite": "33", dropped: "2", discovered: "32" };
-var frame = (m, cols, rows, web = { text: "" }) => {
-  const out = [];
-  const s = m.summary;
-  const now2 = Date.parse(m.at);
-  const project = m.projects.length === 1 ? basename2(m.projects[0]) : `${m.projects.length} projects`;
-  out.push(`${bold("MADE WELL")}  ${project}  ${m.runner ? paint("32", `\u25CF runner ${m.runner.pid}`) : paint("33", "\u25CB no runner")}  ${dim(clock(m.at))}  ${paint("36", web.text)}`);
-  if (web.slip) out.push(paint("36", web.slip));
-  out.push(`${paint("32", `${s.shipped} shipped`)} \xB7 ${s.moving} moving \xB7 ${s.queued} queued \xB7 ${s.held ? paint("31", `${s.held} need you`) : "0 need you"} \xB7 ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time \xB7 ${tokensText(s.tokens)} tokens \xB7 ${s.calls} calls \xB7 NQ ${s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0}%`)}`);
-  if (m.needs.length) {
-    out.push("");
-    out.push(paint("31", bold("NEEDS YOU")));
-    for (const n of m.needs) {
-      out.push(`  ${paint("31", n.item ? `#${n.item}` : "\u2022")} ${n.message}`);
-      for (const q of n.questions.slice(0, 4)) out.push(dim(`     \u2013 ${q}`));
-      for (const c of n.next.slice(0, 3)) out.push(`    ${paint("36", c.run)}  ${dim(c.why)}`);
-    }
-  }
-  out.push("");
-  out.push(bold("WORK"));
-  for (const i of m.items.filter((i2) => i2.status !== "dropped")) {
-    const steps = i.steps.map((st) => GLYPH[st.state]).join("") + " ".repeat(Math.max(0, 8 - i.steps.length));
-    const word = { discovered: "found", "waiting-quota": "quota", "waiting-prerequisite": "waits" }[i.status] ?? i.status;
-    out.push(`  ${bold(`#${String(i.id).padEnd(3)}`)} ${steps} ${paint(STATUS[i.status] ?? "0", word.padEnd(9))} ${short(i.title, 48).padEnd(48)} ${dim(short(i.doing, 120))}`);
-  }
-  if (m.running.length) {
-    out.push("");
-    out.push(bold("NOW"));
-    for (const r of m.running) {
-      out.push(`  ${bold(`#${r.item}`)} ${r.kind === "execute" ? r.job : `${r.kind} \xB7 ${r.job}`} \xB7 ${r.who}${r.card ? dim(` \xB7 ${r.card}`) : ""}  ${paint("34", secs(now2 - Date.parse(r.since)))}`);
-      for (const a of r.activity.slice(-2)) out.push(dim(`     \u2502 ${a.text}`));
-    }
-  }
-  out.push("");
-  out.push(bold("LOG"));
-  const room = Math.max(3, rows - out.length - 2);
-  for (const e of m.events.slice(-room)) out.push(`  ${dim(clock(e.at))}  ${paint(ACTOR[e.actor], e.actor.padEnd(9))} ${e.item ? `#${e.item}`.padEnd(5) : "     "}${e.say}`);
-  out.push(dim("Ctrl-C quits \xB7 w opens the web page \xB7 mw show <id> for one item's record"));
-  return out.map((l) => fit(l, cols)).join("\n");
-};
-var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
-  const open = storeWatcher(path);
-  const h = opts.host ?? thisHost();
-  let seq = opts.since;
-  let calls = opts.since > 0 ? open()?.mark().calls ?? 0 : 0;
-  let lastFrame = "";
-  let web = { text: "" };
-  let slip;
-  const tick = () => {
-    const store = open();
-    if (opts.tty) {
-      const line = { text: web.text, ...slip && slip.until > Date.now() ? { slip: slip.text } : {} };
-      const text2 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40, line) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.  ${paint("36", web.text)}`;
-      if (text2 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text2}
-`);
-      lastFrame = text2;
-      return;
-    }
-    if (!store) return;
-    const titles = new Map(store.list().map((i) => [i.id, i.title]));
-    for (const e of store.allEvents().filter((e2) => e2.seq > seq)) {
-      process.stdout.write(JSON.stringify({ event: { ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) } }) + "\n");
-      seq = e.seq;
-    }
-    for (const c of store.callHeads().filter((c2) => c2.id > calls)) {
-      process.stdout.write(JSON.stringify({ call: c }) + "\n");
-      calls = c.id;
-    }
-  };
-  const done3 = () => resume(Effect_exports.succeed({ watched: path, next: [{ run: `mw watch --since ${seq}`, why: "carry on from here" }] }));
-  const lookup2 = () => void webLine(h).then((w) => {
-    web = w;
-    if (opts.tty) tick();
-  });
-  const onKey = (b) => {
-    const k = b.toString();
-    if (k === "" || k === "q") return process.kill(process.pid, "SIGINT");
-    if (k === "w") {
-      slip = { text: web.url ? openWeb(h, web.url) : "The web page is not up: run mw ui --install, or mw ui in another terminal.", until: Date.now() + 15e3 };
-      tick();
-    }
-  };
-  if (opts.once) {
-    if (opts.tty) {
-      void webLine(h).then((w) => {
-        web = w;
-        tick();
-        process.stdout.write("\n");
-        done3();
-      });
-      return;
-    }
-    tick();
-    done3();
-    return;
-  }
-  tick();
-  if (opts.tty) {
-    process.stdout.write(`${ESC}?25l`);
-    lookup2();
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode(true);
-      process.stdin.resume();
-      process.stdin.on("data", onKey);
-    }
-  }
-  const timer = setInterval(tick, 1e3);
-  const webTimer = opts.tty ? setInterval(lookup2, 5e3) : void 0;
-  return Effect_exports.sync(() => {
-    clearInterval(timer);
-    if (webTimer) clearInterval(webTimer);
-    if (opts.tty) {
-      process.stdout.write(`${ESC}?25h`);
-      if (process.stdin.isTTY) {
-        process.stdin.off("data", onKey);
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
-      }
-    }
-  });
 });
 
 // src/cli.ts
@@ -27285,7 +27444,7 @@ var found = (store, id2) => {
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve7(workspace ?? ".");
+  const path = resolve8(workspace ?? ".");
   const projects = yield* readProjects(registry);
   const project = projectFor(projects, path);
   if (project) return { path, project };
@@ -27306,7 +27465,7 @@ var wake = Effect_exports.fn("mw.wake")(function* (id2) {
   const home = dirname8(store.path);
   mkdirSync8(home, { recursive: true });
   const log2 = openSync3(join12(home, "runner.log"), "a");
-  spawn3(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
+  spawn2(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
   return watch2;
 });
 var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
@@ -27315,7 +27474,7 @@ var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve7(input["source-file"]);
+  const path = resolve8(input["source-file"]);
   return Effect_exports.try({
     try: () => readFileSync9(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
@@ -27352,7 +27511,7 @@ var retention = (store, before) => {
   return { ids, kept };
 };
 var sizeOf = (path) => {
-  if (!existsSync5(path)) return 0;
+  if (!existsSync6(path)) return 0;
   const s = statSync3(path);
   return s.isDirectory() ? readdirSync5(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
 };
@@ -27433,15 +27592,15 @@ var COMMANDS = [
     output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = resolve7(input.workspace ?? ".");
-      if (!existsSync5(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      const path = resolve8(input.workspace ?? ".");
+      if (!existsSync6(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
       const conventions = input.conventions === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Schema_exports.NonEmptyString)))(input.conventions).pipe(
         Effect_exports.mapError((e) => usageError("init", `--conventions must be a JSON array of non-empty strings: ${e.message}`))
       );
-      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve7(input.cartridges);
+      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve8(input.cartridges);
       if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
       const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...conventions ? { conventions } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
       const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
@@ -27466,7 +27625,7 @@ var COMMANDS = [
     }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = input.check ? resolve7(input.check) : projectFor(yield* readProjects(registry), resolve7(input.workspace ?? "."))?.cartridges;
+      const path = input.check ? resolve8(input.check) : projectFor(yield* readProjects(registry), resolve8(input.workspace ?? "."))?.cartridges;
       const pack = path ? yield* loadPack(path) : SOFTWARE;
       const lane = laneOf(path ? pack : void 0);
       const line = (s) => `${s.cartridge} / ${s.job} (${s.job === "verify" ? "made well" : s.profile})`;
@@ -27490,7 +27649,7 @@ var COMMANDS = [
       return { source, ...yield* registered(input.workspace) };
     }),
     run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
-      const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
+      const title = input.title ?? `Discovery of ${input["source-file"] ? basename4(input["source-file"]) : "raw input"}`;
       const pack = yield* packFor(workspace);
       const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
       const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, autonomy, ...pack ? { pack } : {} });
@@ -27668,14 +27827,16 @@ var COMMANDS = [
   }),
   command({
     name: "watch",
-    summary: "Follow the run. In a terminal: the console redrawn every second (what runs now with its latest output, where every item is, what needs you and the commands that resolve it, and the log); its first line shows the web interface's address when it is up, or `mw ui --install` when it is not, and `w` opens it in a browser here or prints the SSH port-forward line for a computer that has one. Read by a program: every event as one JSON line {event} with who acted and a plain sentence, and every agent call {call} once it ends, then each new one as it happens. --since <event seq> carries on from there; --once prints what there is and stops.",
+    summary: "The read-only terminal companion. Defaults to this project; --workspace selects another and --all shows every project. Discovery, staging/promotion, ready/queued, waiting, active delivery pipelines and delivered evidence share one durable record. j/k selects an item; Enter cycles overview/pipeline/full evidence; PgUp/PgDn scroll; p/c follows parent/child; m shows host CPU and memory; a toggles all projects; 0 returns to overview; q quits. No web service is needed or started. Piped output retains the global JSON event/call stream unless --workspace scopes it; --since resumes after an event and --once exits after one snapshot.",
     input: Schema_exports.Struct({
       since: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isGreaterThanOrEqualTo(0)))).annotate({ description: "stream only events after this seq" })),
-      once: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "print what there is now, then stop" }))
+      once: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "print what there is now, then stop" })),
+      workspace: Workspace,
+      all: Schema_exports.optionalKey(Schema_exports.Boolean.annotate({ description: "show all projects rather than the current project" }))
     }),
     output: Schema_exports.Struct({ watched: Schema_exports.String, next: Schema_exports.Array(Next) }),
     idempotent: true,
-    run: (input) => watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false })
+    run: (input) => input.all && input.workspace ? usageError("watch", "Use --workspace or --all, not both.") : watch(storePath, nextFor, { tty: process.stdout.isTTY === true, since: input.since ?? 0, once: input.once ?? false, workspace: input.workspace, all: input.all })
   }),
   command({
     name: "replay",
@@ -27683,7 +27844,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve7(input.out ?? resolve7(dirname8(storePath), "replay.html"));
+      const out = resolve8(input.out ?? resolve8(dirname8(storePath), "replay.html"));
       writeFileSync8(out, staticPage(yield* Store, nextFor));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
     })
@@ -27696,7 +27857,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve7(input.out ?? resolve7(dirname8(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve8(input.out ?? resolve8(dirname8(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -27709,9 +27870,9 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync5(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const files = existsSync6(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
       const lines4 = files.flatMap((f) => readFileSync9(join12(dir, f), "utf8").split("\n").filter(Boolean));
-      return { dir: resolve7(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve7(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
+      return { dir: resolve8(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve8(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
   command({
@@ -27764,12 +27925,12 @@ var COMMANDS = [
       }
       const { ids, kept } = retention(store, before);
       const home = dirname8(storePath);
-      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync5);
+      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync6);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       if (!dryRun) {
         for (const f of files) rmSync7(f, { recursive: true, force: true });
-        if (existsSync5(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
+        if (existsSync6(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
       }
       const { items: _, ...records } = store.prune(ids, before, dryRun);
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
@@ -27825,7 +27986,7 @@ var manual = Effect_exports.gen(function* () {
     $defs,
     state: {
       home: dirname8(registry),
-      store: existsSync5(storePath) ? storePath : null,
+      store: existsSync6(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
       next: yield* nextAction()
@@ -27865,8 +28026,9 @@ Usage: ${usageOf(c)}`))
   const prepared = yield* c.prepare(input);
   return { store: true, effect: c.run(input, prepared) };
 }).pipe(
-  Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync5(storePath) ? storePath : ":memory:"), workerLayer))
+  // Watch owns a read-only connection; even constructing the normal Store layer would run migrations.
+  Effect_exports.flatMap(({ store, effect: effect2 }) => process.argv[2] === "watch" ? effect2 : effect2.pipe(
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync6(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
 function reloadWatch() {
@@ -27891,7 +28053,7 @@ function reloadWatch() {
   return {
     wanted: () => wanted,
     stop: () => (clearInterval(timer), process.off("SIGHUP", want)),
-    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
+    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync2(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
   };
 }
 var signalled = Effect_exports.callback((resume) => {

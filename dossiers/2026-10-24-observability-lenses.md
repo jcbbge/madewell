@@ -4,7 +4,7 @@
 
 This dossier locks the observability design model for Made Well B2. It is a specification for implementation, not a transcript.
 
-Made Well is already durable. The TypeScript + Effect rewrite made work items, invocations, steps, stages, phases, lanes, events, calls, tool events, flags, the glass, and exports survive across process death and repeated invocations. Durability is not the ask here, and this dossier does not re-spec it.
+Durability is the existing contract of the TypeScript + Effect rewrite: work items, invocations, steps, stages, phases, lanes, events, calls, tool events, flags, the glass, and exports must survive process death and repeated invocations. This dossier does not replace that contract. The former assertion that every part was already implemented is not acceptance evidence; any gap found by the [watch launch audit](2026-10-27-watch-launch.md) is a defect against the contract, not a new feature request. The operator's mockup is non-authoritative. The current companion is terminal-native `mw watch`; display metaphors below do not prescribe literal labels or a browser implementation.
 
 The ask is **trust**.
 

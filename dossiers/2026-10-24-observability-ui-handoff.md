@@ -1,5 +1,7 @@
 # Observability UI — Handoff & Retrospective
 
+> **Historical brief, superseded for implementation on 2026-10-27.** The operator ordered a watch-only terminal companion over the real durable model. The static seed-data prototype, browser-only access, and exclusion of navigation/depth below are not current instructions. The artifact/mockup is non-authoritative. Follow FOUNDATION.md and the [watch launch checklist](2026-10-27-watch-launch.md). The retrospective remains here as history; it does not narrow the durability or observability contract.
+
 **Date:** 2026-10-24
 **Status:** No working prototype exists. Design specs are on `main`. One UI attempt was built and deliberately removed from history because it was wrong. This note explains the intent, the inheritance, and — most importantly — the failure pattern to not repeat.
 

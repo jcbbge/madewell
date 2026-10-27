@@ -171,6 +171,20 @@ export const laneOf = (pack?: Pack): Lane => {
 	return lane
 }
 
+/** Freeze the effective cartridge topology and step defaults, not a reference to this build's software pack. */
+export const snapshotPack = (pack?: Pack): Pack => {
+	const lane = laneOf(pack)
+	const loop = (name: 'discovery' | 'delivery') => lane.pack[name].map(c => ({
+		...c, steps: c.steps.map(s => {
+			// Verify and the makers' input isolation are fixed console contracts, not configurable fields.
+			if (s.job === 'verify') return { job: s.job }
+			const { cartridge: _, loop: _loop, receives, ...step } = lane[name].find(step => step.job === s.job)!
+			return isMaker(s.job) ? step : { ...step, receives }
+		}),
+	}))
+	return Schema.decodeUnknownSync(Pack)(structuredClone({ ...lane.pack, discovery: loop('discovery'), delivery: loop('delivery') }))
+}
+
 /** A job of the lane, or a bare step for a job it does not have (an item recorded under another pack). */
 export const stepOf = (lane: Lane, job: Job): Step =>
 	job === 'arbitrate' ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: 'delivery', profile: job, duty: '', receives: [] }

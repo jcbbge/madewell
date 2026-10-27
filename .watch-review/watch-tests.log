@@ -1,0 +1,15 @@
+✔ default and custom lane definitions, outputs, tracks, links and structure survive process death (173.828375ms)
+✔ legacy missing definitions stay explicitly unknown when inspected; watch never fabricates or writes history (2.450917ms)
+✔ project scope applies before metrics and respects path boundaries; each item belongs to one queue (8.838792ms)
+✔ terminal projection scrolls all rows and full detail, fits narrow panes and strips terminal commands (21.333833ms)
+✔ non-TTY watch keeps JSON compatibility and explicit workspace scopes the stream (387.764875ms)
+✔ watch never opens a writable store layer, migrates the database or emits telemetry (93.510958ms)
+✔ host observations are durable invocation evidence, not viewer-owned history (5111.620292ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5999.5575

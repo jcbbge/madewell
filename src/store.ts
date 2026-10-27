@@ -10,7 +10,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { Context, Effect, Layer } from 'effect'
 import type { Card } from './cards.ts'
 import { MadeWellError, type Next } from './errors.ts'
-import { laneOf, type Check, type Cause, type Job, type Maker, type Pack } from './lane.ts'
+import { laneOf, snapshotPack, type Check, type Cause, type Job, type Maker, type Pack } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 
@@ -127,7 +127,7 @@ export interface Item {
 	/** For a candidate: the discovery run that found it. */
 	readonly discovery?: number
 	readonly kind?: 'feature' | 'fix' | 'chore'
-	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
+	/** The cartridge pack frozen at creation. Legacy items may lack it; their original default is unknown. */
 	readonly pack?: Pack
 	/** How involved the operator is with it; candidates and fix items inherit it. Absent means checkpoints. */
 	readonly autonomy?: Autonomy
@@ -199,17 +199,18 @@ const alive = (pid: number) => {
 	}
 }
 
-export function openStore(path: string) {
-	mkdirSync(dirname(path), { recursive: true })
-	const db = new DatabaseSync(path)
-	db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
+export function openStore(path: string, options: { readOnly?: boolean } = {}) {
+	if (!options.readOnly) mkdirSync(dirname(path), { recursive: true })
+	const db = new DatabaseSync(path, { readOnly: options.readOnly ?? false })
+	db.exec('PRAGMA busy_timeout = 5000')
+	if (!options.readOnly) db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS calls (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, kind TEXT NOT NULL, job TEXT NOT NULL, profile TEXT NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`)
-	const sink = telemetry(path)
+	const sink = options.readOnly ? undefined : telemetry(path)
 	let pending: [string, Record<string, unknown>][] | undefined
 	/** Inside a transaction, held until it commits; a rolled-back record never reaches the telemetry file. */
 	const emit = (t: string, record: Record<string, unknown>) => (pending ? pending.push([t, record]) : sink?.write(t, record))
@@ -233,7 +234,7 @@ export function openStore(path: string) {
 		const insert = db.prepare('INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 		for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0)
 	}
-	tx(() => {
+	if (!options.readOnly) tx(() => {
 		const columns = (db.prepare('PRAGMA table_info(calls)').all() as { name: string }[]).map((c) => c.name)
 		if (columns.includes('tokens')) return
 		db.exec("ALTER TABLE calls ADD COLUMN tokens TEXT; ALTER TABLE calls ADD COLUMN facts TEXT; ALTER TABLE calls ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'")
@@ -260,7 +261,7 @@ export function openStore(path: string) {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')
-				const item: Item = { job: laneOf(fields.pack).delivery[0]!.job, from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
+				const item: Item = { job: laneOf(fields.pack).delivery[0]!.job, from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, pack: snapshotPack(fields.pack), id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(item), item.id)
 				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item
