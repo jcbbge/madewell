@@ -9,6 +9,7 @@
   "files": [
     "dist/mw.mjs",
     "dist/gazette.html",
+    "ui/fonts",
     "prescriptions.json"
   ],
   "engines": {

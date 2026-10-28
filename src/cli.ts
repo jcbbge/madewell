@@ -14,13 +14,16 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Fiber, Layer, Schema } from 'effect'
+import { API_SCHEMAS, contextOf } from './api.ts'
 import { loadPrescriptions } from './cards.ts'
 import { itemHome } from './change.ts'
 import { answer, drop, go, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
+import { requestPackUpdate } from './functions.ts'
 import { laneOf, loadPack, Pack, SOFTWARE, stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
+import { QA_JSON_SCHEMAS, QaAccepted, QaCaseDetail, QaCaseList, QaCounter, QaExportQuery, QaExportResult, QaId, QaObservationList, QaRunDetail, QaRunList, qaCase, qaCases, qaCreateCase, qaError, qaExport, qaLink, qaObservations, qaObserve, qaParseJson, qaReviseCase, qaRun, qaRuns, qaStartRun, qaStorageError, qaVerdict } from './qa.ts'
 import { DEFAULT_AUTONOMY, Store, defaultStorePath, storeLayer, type Autonomy, type Item } from './store.ts'
 import { harnessWorker } from './harness.ts'
 import { exportItem } from './export.ts'
@@ -144,7 +147,7 @@ const view = (item: Item, driven = true): typeof ItemView.Type => ({
 	...(item.resetsAt !== undefined ? { resumesAt: new Date(item.resetsAt).toISOString() } : {}),
 	...(item.hold ? { hold: item.hold } : {}),
 	...(item.shipped ? { shipped: item.shipped } : {}),
-	next: item.status === 'held' || item.status === 'paused' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped', 'dropped'].includes(item.status) ? [] : item.status === 'queued' ? (driven || process.env.MW_AUTORUN !== '0' ? [{ run: `mw status ${item.id}`, why: 'queued: the machine picks it up by itself' }] : [{ run: 'mw run', why: 'deliver it' }]) : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
+	next: item.status === 'held' || item.status === 'paused' ? nextFor(item) : item.status === 'candidate' ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: 'send it into delivery' }] : item.status === 'discovered' ? [{ run: `mw promote ${item.id}`, why: 'send every candidate into delivery' }] : ['shipped', 'completed', 'dropped'].includes(item.status) ? [] : item.status === 'queued' ? (driven || process.env.MW_AUTORUN !== '0' ? [{ run: `mw status ${item.id}`, why: 'queued: the machine picks it up by itself' }] : [{ run: 'mw run', why: 'deliver it' }]) : !driven ? [{ run: 'mw run', why: 'no runner is driving it: it resumes where it stopped' }] : [{ run: `mw status ${item.id}`, why: 'check on it later; it continues on its own' }],
 })
 
 const holdView = (store: Store['Service'], h: OpenHold): typeof HoldView.Type => ({ ...h, next: nextFor(store.get(h.item)!) })
@@ -156,7 +159,7 @@ const board = (store: Store['Service']): typeof Board.Type => {
 	const driven = store.runner() !== null
 	const moving = count('running') + count('waiting-quota') + count('waiting-prerequisite')
 	return {
-		summary: `${count('held') + count('paused')} need you, ${count('candidate')} candidates, ${moving} in progress${moving && !driven ? ' with no runner' : ''}, ${count('queued')} queued, ${count('shipped')} shipped`,
+		summary: `${count('held') + count('paused')} need you, ${count('candidate')} candidates, ${moving} in progress${moving && !driven ? ' with no runner' : ''}, ${count('queued')} queued, ${count('shipped')} shipped, ${count('completed')} completed`,
 		items: items.map((i) => view(i, driven)),
 		next: held.length ? held.flatMap(nextFor) : (count('queued') || moving) && !driven ? [{ run: 'mw run', why: 'deliver queued items and resume any whose runner stopped' }] : [],
 	}
@@ -213,9 +216,19 @@ const readSource = (input: { source?: string; 'source-file'?: string }) => {
 	})
 }
 
+const readQaInput = Effect.fn('mw.readQaInput')(function* (input: { 'input-file': string }) {
+	const path = resolve(input['input-file'])
+	const bytes = yield* Effect.try({ try: () => readFileSync(path), catch: () => new MadeWellError({ code: 'source_unreadable', message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote(path)}`, why: 'check that the JSON input file exists and is readable' }] }) })
+	return yield* Effect.try({ try: () => qaParseJson(bytes), catch: qaStorageError })
+})
+const qaInputFile = (schema: keyof typeof QA_JSON_SCHEMAS) => Schema.String.annotate({ description: `UTF-8 JSON file (maximum 65536 bytes), exact ${schema} body, with a caller-supplied requestId; no path IDs in the body. JSON Schema: ${JSON.stringify(QA_JSON_SCHEMAS[schema])}` })
+const qaCliId = Schema.String.check(Schema.isPattern(/^[1-9]\d*$/)).pipe(Schema.decodeTo(Schema.NumberFromString), Schema.decodeTo(QaId))
+const qaCliCounter = Schema.String.check(Schema.isPattern(/^(0|[1-9]\d*)$/)).pipe(Schema.decodeTo(Schema.NumberFromString), Schema.decodeTo(QaCounter))
+const qaPageFlags = { after: Schema.optionalKey(qaCliCounter), limit: Schema.optionalKey(qaCliId) }
+
 /** One item per request: a repeated `start` or `discover` returns the item the first one created. */
 const createOnce = (store: Store['Service'], fields: Parameters<Store['Service']['create']>[0]) =>
-	store.list().find((i) => i.parent === undefined && i.discovery === undefined && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace)
+	store.list().find((i) => i.parent === undefined && i.discovery === undefined && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace && JSON.stringify(i.pack) === JSON.stringify(fields.pack))
 	?? store.create(fields)
 
 /** The live runner's owner, or null. Asking takes and gives back the runner claim, so it is only asked when work can move. */
@@ -235,7 +248,8 @@ const MOVING: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quo
  */
 const retention = (store: Store['Service'], before: string) => {
 	const items = store.list()
-	const live = items.filter((i) => i.status !== 'shipped' && i.status !== 'discovered' && i.status !== 'dropped')
+	const qaAnchors = new Set(store.qaRetained())
+	const live = items.filter((i) => !['shipped', 'completed', 'discovered', 'dropped'].includes(i.status))
 	const links = (i: Item) => [i.waitsOn, i.parent, i.discovery, ...(i.after ?? [])]
 	const lastMerge = new Map<string, { id: number; seq: number }>()
 	for (const i of items.filter((i) => i.merged && live.some((l) => l.workspace === i.workspace))) {
@@ -244,6 +258,7 @@ const retention = (store: Store['Service'], before: string) => {
 	}
 	const old = items.filter((i) => !live.includes(i) && Date.parse(i.updated) < Date.parse(before))
 	const why = (i: Item) => {
+		if (qaAnchors.has(i.id)) return 'retained by manual QA history'
 		const by = live.find((l) => links(l).includes(i.id) || links(i).includes(l.id))
 		if (by) return `#${by.id} (${by.status}) needs it`
 		if (lastMerge.get(i.workspace)?.id === i.id) return `the last merge into ${i.workspace}, which its in-flight items check the branch against`
@@ -325,6 +340,8 @@ interface Command<S extends Schema.Struct<Schema.Struct.Fields>, O extends Schem
 	readonly args?: ReadonlyArray<string>
 	readonly input: S
 	readonly output: O
+	/** A shared wire schema when the command exposes an existing versioned contract. */
+	readonly outputJsonSchema?: Readonly<Record<string, unknown>>
 	/** Repeating the command gives the same result and makes no further change. */
 	readonly idempotent?: boolean
 	/** Checks the input before the store opens; only commands with a `prepare` may create the store. */
@@ -377,14 +394,17 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'cartridges',
-		summary: 'The cartridge pack a project\'s work runs: discovery\'s and delivery\'s cartridges, each step\'s profile, duty, what it receives and the shape it returns. Without a pack of its own, the project runs the default software pack; save `.pack` to a file, change it, and plug it in with `mw init --cartridges <file>`. --check validates a pack file against the console\'s contract without registering it.',
+		summary: 'Inspect the project pack or --item\'s pinned pack. --check validates a file. --update <file> --item <id> queues a function-pack replacement at the next node boundary without changing completed or in-flight nodes. New work reads the project pack afresh; start/discover can override it per task with --cartridges.',
 		input: Schema.Struct({
 			workspace: Workspace,
 			check: optional('a cartridge pack file to validate instead'),
+			item: Schema.optionalKey(Id),
+			update: optional('replacement function pack file; requires --item'),
 		}),
 		output: Schema.Struct({
 			source: Schema.String.annotate({ description: '"default", or the pack file' }),
 			pack: Pack,
+			update: Schema.optionalKey(Fact),
 			lane: Schema.Struct({
 				discovery: Schema.Array(Schema.String).annotate({ description: 'each step as "cartridge / job (profile)", in order' }),
 				delivery: Schema.Array(Schema.String),
@@ -393,12 +413,15 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
-			const path = input.check ? resolve(input.check) : projectFor(yield* readProjects(registry), resolve(input.workspace ?? '.'))?.cartridges
-			const pack = path ? yield* loadPack(path) : SOFTWARE
-			const lane = laneOf(path ? pack : undefined)
-			const line = (s: { cartridge: string; job: string; profile: string }) => `${s.cartridge} / ${s.job} (${s.job === 'verify' ? 'made well' : s.profile})`
+			if ((input.update && input.item === undefined) || (input.check && (input.update || input.item !== undefined))) return yield* usageError('cartridges', 'Use --check alone, --item to inspect, or --update <file> --item <id>.')
+			const pinned = input.item === undefined ? undefined : yield* found(yield* Store, input.item)
+			const path = input.check || input.update ? resolve((input.check ?? input.update)!) : pinned ? undefined : projectFor(yield* readProjects(registry), resolve(input.workspace ?? '.'))?.cartridges
+			const pack = path ? yield* loadPack(path) : pinned?.pack ?? SOFTWARE
+			const update = input.update ? yield* requestPackUpdate(input.item!, pack) : undefined
+			const lane = laneOf(pack)
+			const line = (s: { cartridge: string; job: string; profile: string }) => `${s.cartridge} / ${s.job} (${s.profile})`
 			return {
-				source: path ?? 'default', pack, lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
+				source: path ?? (pinned ? `item:${pinned.id}` : 'default'), pack, ...(update ? { update } : {}), lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
 				next: input.check ? [{ run: `mw init --cartridges ${quote(path!)}`, why: 'plug it into this project; new work runs it' }] : [{ run: 'mw cartridges | jq .pack > pack.json', why: 'start a pack of your own from this one' }],
 			}
 		}),
@@ -406,7 +429,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	command({
 		name: 'discover',
 		summary: 'Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.',
-		input: Schema.Struct({ ...Source, workspace: Workspace, title: optional('a title for the discovery run'), autonomy: AutonomyInput }),
+		input: Schema.Struct({ ...Source, workspace: Workspace, title: optional('a title for the discovery run'), autonomy: AutonomyInput, cartridges: optional('override the project cartridge pack for this run') }),
 		output: Created,
 		idempotent: true,
 		prepare: (input) => Effect.gen(function* () {
@@ -416,9 +439,9 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
 			const title = input.title ?? `Discovery of ${input['source-file'] ? basename(input['source-file']) : 'raw input'}`
-			const pack = yield* packFor(workspace)
+			const pack = yield* (input.cartridges ? loadPack(resolve(input.cartridges)) : packFor(workspace))
 			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY
-			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]!.job, autonomy, ...(pack ? { pack } : {}) })
+			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]?.job ?? '', autonomy, ...(pack ? { pack } : {}), ...(pack?.runtime === 'functions' ? { flow: { loop: 'discovery', accepted: [] } } : {}) })
 			return { item: view(item), next: yield* wake(item.id) }
 		}),
 	}),
@@ -437,7 +460,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	command({
 		name: 'start',
 		summary: 'Add one work item straight to the delivery queue.',
-		input: Schema.Struct({ objective: Schema.String.annotate({ description: 'one line: what done means' }), ...Source, workspace: Workspace, title: optional('defaults to the objective'), autonomy: AutonomyInput }),
+		input: Schema.Struct({ objective: Schema.String.annotate({ description: 'one line: what done means' }), ...Source, workspace: Workspace, title: optional('defaults to the objective'), autonomy: AutonomyInput, cartridges: optional('override the project cartridge pack for this task') }),
 		output: Created,
 		idempotent: true,
 		prepare: (input) => Effect.gen(function* () {
@@ -446,7 +469,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			return { source, ...(yield* registered(input.workspace)) }
 		}),
 		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
-			const pack = yield* packFor(workspace)
+			const pack = yield* (input.cartridges ? loadPack(resolve(input.cartridges)) : packFor(workspace))
 			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY
 			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...(pack ? { pack } : {}) })
 			return { item: view(item), next: yield* wake(item.id) }
@@ -495,6 +518,20 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const store = yield* Store
 			const item = yield* found(store, input.id)
 			return { ...view(item, store.runner() !== null), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) }
+		}),
+	}),
+	command({
+		name: 'context',
+		summary: 'Compact agent context: task intent, current node/state, saved revision, bounded questions/answers, evidence links and next inputs with owner and authority. The same projection as GET /api/v1/items/{id}, without running a server. Read-only.',
+		args: ['id'],
+		input: Schema.Struct({ id: Id }),
+		output: Fact,
+		outputJsonSchema: API_SCHEMAS.Context,
+		idempotent: true,
+		run: (input) => Effect.gen(function* () {
+			const store = yield* Store
+			const item = yield* found(store, input.id)
+			return contextOf(store, item.id)
 		}),
 	}),
 	command({
@@ -578,7 +615,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'ui',
-		summary: 'The web interface: a read-only page on this machine. At / is the Gazette sheet: what waits on the operator (each with the exact command to copy), every item\'s steps as rings, what runs now with its live output, repainted as the record moves. At /console is the full console: each item\'s pipeline with time, tokens and NQ questions per step, a timeline of every agent call, and each item\'s idea, plan, checks, diff, NQ exchanges and calls. Both read the JSON API under /api. Prints its address as one JSON line, then serves until interrupted; reach it from another computer with an SSH tunnel or a forwarded port. --install provisions it as an always-on background service of this user that starts at boot and restarts on failure (a systemd user unit on Linux, with lingering where allowed; a LaunchAgent on macOS), running this same build with the MW_* variables set now; running it again changes nothing. --status says whether it is installed, running and answering, and its address. --uninstall stops it and removes every file --install wrote.',
+		summary: 'The live work display at / (also /runs), with contextual discovery at /api/v1 and explicit operator submission/answer operations protected by Origin and X-MW-CSRF. Set MW_UI_ORIGINS to exact trusted proxy origins when forwarding. Observers remain read-only. /gazette retains the earlier Gazette and /console the detailed console; legacy read APIs are unchanged. Prints its address as one JSON line, then serves until interrupted. --install provisions an always-on background service of this user (systemd on Linux, LaunchAgent on macOS), running this build with the current MW_* variables; --status inspects it and --uninstall removes it.',
 		input: Schema.Struct({
 			port: Schema.optionalKey(Schema.NumberFromString.pipe(Schema.decodeTo(Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: 'defaults to 4747; 0 picks a free one' })),
 			host: optional('the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network'),
@@ -591,7 +628,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const actions = (['install', 'uninstall', 'status'] as const).filter((a) => input[a])
 			if (actions.length > 1) return usageError('ui', `Give one of --install, --uninstall or --status, not ${actions.map((a) => `--${a}`).join(' and ')}.`)
 			if (actions[0]) return service(thisHost(), actions[0], { ...(input.port !== undefined ? { port: input.port } : {}), ...(input.host !== undefined ? { host: input.host } : {}) })
-			return serve(storePath, nextFor, input.host ?? '127.0.0.1', input.port ?? 4747)
+			return serve(storePath, nextFor, input.host ?? '127.0.0.1', input.port ?? 4747, undefined, (store, id) => Effect.runPromise(wake(id).pipe(Effect.provideService(Store, store))))
 		},
 	}),
 	command({
@@ -695,19 +732,79 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			const files = [...ids.flatMap((id) => [join(home, 'exports', String(id)), itemHome(storePath, id)]), ...(ids.length ? [join(home, 'replay.html')] : [])].filter(existsSync)
 			const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`)
 			const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0)
-			if (!dryRun) {
+			const { items: _, ...records } = yield* Effect.try({ try: () => store.prune(ids, before, dryRun, () => {
 				for (const f of files) rmSync(f, { recursive: true, force: true })
 				if (existsSync(join(home, 'exports')) && !readdirSync(join(home, 'exports')).length) rmSync(join(home, 'exports'), { recursive: true })
-			}
-			const { items: _, ...records } = store.prune(ids, before, dryRun)
+			}), catch: qaStorageError })
 			const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`
-			const also = kept.length ? `; ${kept.length} older finished item(s) stay because work in flight needs them` : ''
+			const qaKept = kept.filter((item) => item.why === 'retained by manual QA history').length
+			const also = kept.length ? `; ${kept.length} older finished item(s) stay (${qaKept} retained by manual QA history; ${kept.length - qaKept} needed by work in flight)` : ''
 			return {
 				before, dryRun, summary: `${dryRun ? 'Would remove' : 'Removed'} ${what}${also}.`, items: ids, records, files, kept,
 				freed: dryRun ? null : start - storeBytes(),
 				next: dryRun && ids.length + records.events ? [{ run: `mw prune --before ${before}`, why: 'remove them; nothing still moving or waiting on the operator is touched' }] : [],
 			}
 		}).pipe(Effect.scoped),
+	}),
+	command({
+		name: 'qa-case-create', summary: 'Create immutable revision 1 of manual QA instructions on an existing workItem/workspace. No work is scheduled. The JSON file is the same body as POST /api/v1/qa/cases.',
+		input: Schema.Struct({ 'input-file': qaInputFile('QaCreateCaseInput') }), output: QaAccepted, outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted, idempotent: true,
+		run: (input) => readQaInput(input).pipe(Effect.flatMap(qaCreateCase)),
+	}),
+	command({
+		name: 'qa-case-revise', summary: 'Append complete replacement instructions. JSON revision is expected currentRevision; stale drafts are durably retained as conflicts. POST /api/v1/qa/cases/{caseId}/revisions.', args: ['caseId'],
+		input: Schema.Struct({ caseId: qaCliId, 'input-file': qaInputFile('QaReviseCaseInput') }), output: QaAccepted, outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted, idempotent: true,
+		run: (input) => readQaInput(input).pipe(Effect.flatMap((body) => qaReviseCase(input.caseId, body))),
+	}),
+	command({
+		name: 'qa-cases', summary: 'List latest QA case instructions, ascending ID, with AND filters. q is a case-insensitive literal substring of title/area/change. Defaults: after 0, limit 50 (maximum 100).',
+		input: Schema.Struct({ workspace: Schema.optionalKey(Schema.String), 'work-item': Schema.optionalKey(qaCliId), q: Schema.optionalKey(Schema.String), area: Schema.optionalKey(Schema.String), ...qaPageFlags }), output: QaCaseList, outputJsonSchema: QA_JSON_SCHEMAS.QaCaseList, idempotent: true,
+		run: ({ 'work-item': workItem, ...filters }) => qaCases({ ...filters, ...(workItem === undefined ? {} : { workItem }) }),
+	}),
+	command({
+		name: 'qa-case', summary: 'Read current or explicitly pinned immutable instructions; a case has no global pass.', args: ['caseId'],
+		input: Schema.Struct({ caseId: qaCliId, revision: Schema.optionalKey(qaCliId) }), output: QaCaseDetail, outputJsonSchema: QA_JSON_SCHEMAS.QaCaseDetail, idempotent: true,
+		run: ({ caseId, ...filters }) => qaCase(caseId, filters),
+	}),
+	command({
+		name: 'qa-run-start', summary: 'Pin ordered case revisions and explicit application/environment/version on existing work. Every new entry starts untested, including old revisions. POST /api/v1/qa/runs.',
+		input: Schema.Struct({ 'input-file': qaInputFile('QaStartRunInput') }), output: QaAccepted, outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted, idempotent: true,
+		run: (input) => readQaInput(input).pipe(Effect.flatMap(qaStartRun)),
+	}),
+	command({
+		name: 'qa-runs', summary: 'List immutable run summaries, ascending ID, with AND filters. Defaults: after 0, limit 50 (maximum 100).',
+		input: Schema.Struct({ workspace: Schema.optionalKey(Schema.String), 'work-item': Schema.optionalKey(qaCliId), 'case-id': Schema.optionalKey(qaCliId), ...qaPageFlags }), output: QaRunList, outputJsonSchema: QA_JSON_SCHEMAS.QaRunList, idempotent: true,
+		run: ({ 'work-item': workItem, 'case-id': caseId, ...filters }) => qaRuns({ ...filters, ...(workItem === undefined ? {} : { workItem }), ...(caseId === undefined ? {} : { caseId }) }),
+	}),
+	command({
+		name: 'qa-run', summary: 'Read/resume a saved QA run, without a mutation. Entries expose pinned instructions, current revision/outdated flags, per-entry counter and latest explicit manual verdict.', args: ['runId'],
+		input: Schema.Struct({ runId: qaCliId }), output: QaRunDetail, outputJsonSchema: QA_JSON_SCHEMAS.QaRunDetail, idempotent: true,
+		run: ({ runId }) => qaRun(runId),
+	}),
+	command({
+		name: 'qa-observe', summary: 'Append note/technical/historical evidence using expected entry revision. Never sets manual status; note requires reportedResult:null. POST /api/v1/qa/runs/{runId}/cases/{caseId}/observations.', args: ['runId', 'caseId'],
+		input: Schema.Struct({ runId: qaCliId, caseId: qaCliId, 'input-file': qaInputFile('QaObserveInput') }), output: QaAccepted, outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted, idempotent: true,
+		run: (input) => readQaInput(input).pipe(Effect.flatMap((body) => qaObserve(input.runId, input.caseId, body))),
+	}),
+	command({
+		name: 'qa-verdict', summary: 'Explicit trusted-local operator manual declaration, not authentication. Requires operator enteredBy and operator-manual-verdict attestation; never autosave. POST /api/v1/qa/runs/{runId}/cases/{caseId}/verdicts.', args: ['runId', 'caseId'],
+		input: Schema.Struct({ runId: qaCliId, caseId: qaCliId, 'input-file': qaInputFile('QaVerdictInput') }), output: QaAccepted, outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted, idempotent: true,
+		run: (input) => readQaInput(input).pipe(Effect.flatMap((body) => qaVerdict(input.runId, input.caseId, body))),
+	}),
+	command({
+		name: 'qa-observations', summary: 'Read append-only evidence with exact entrant/verifier/time and manual versus reported result provenance. Defaults: after 0, limit 50 (maximum 100).', args: ['runId'],
+		input: Schema.Struct({ runId: qaCliId, 'case-id': Schema.optionalKey(qaCliId), ...qaPageFlags }), output: QaObservationList, outputJsonSchema: QA_JSON_SCHEMAS.QaObservationList, idempotent: true,
+		run: ({ runId, 'case-id': caseId, ...filters }) => qaObservations(runId, { ...filters, ...(caseId === undefined ? {} : { caseId }) }),
+	}),
+	command({
+		name: 'qa-export', summary: 'Export complete pinned QA history, provenance, associations and rejected drafts. Defaults: selection all, format json. follow-ups selects current manual failed/needs-refinement only. Markdown is a JSON string field, not a file or plain-text stdout. GET /api/v1/qa/runs/{runId}/export.', args: ['runId'],
+		input: Schema.Struct({ runId: qaCliId, ...QaExportQuery.fields }), output: QaExportResult, outputJsonSchema: QA_JSON_SCHEMAS.QaExportResult, idempotent: true,
+		run: ({ runId, ...query }) => qaExport(runId, query),
+	}),
+	command({
+		name: 'qa-link', summary: 'Explicitly associate an existing observation with existing same-workspace work, an opaque reference or a later compatible retest. No scheduling, observation counter increment or verdict change. POST /api/v1/qa/runs/{runId}/cases/{caseId}/links.', args: ['runId', 'caseId'],
+		input: Schema.Struct({ runId: qaCliId, caseId: qaCliId, 'input-file': qaInputFile('QaLinkInput') }), output: QaAccepted, outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted, idempotent: true,
+		run: (input) => readQaInput(input).pipe(Effect.flatMap((body) => qaLink(input.runId, input.caseId, body))),
 	}),
 ]
 
@@ -743,7 +840,7 @@ const jsonSchema = (schema: Schema.Top) => {
 const manual = Effect.gen(function* () {
 	const store = yield* Store
 	const items = store.list()
-	const commands = COMMANDS.map((c) => ({ name: c.name, usage: usageOf(c), summary: c.summary, idempotent: c.idempotent ?? false, input: jsonSchema(Schema.toType(c.input)), output: jsonSchema(c.output) }))
+	const commands = COMMANDS.map((c) => ({ name: c.name, usage: usageOf(c), summary: c.summary, idempotent: c.idempotent ?? false, input: jsonSchema(Schema.toType(c.input)), output: c.outputJsonSchema ?? jsonSchema(c.output) }))
 	return {
 		manual: 'mw',
 		about: 'Made Well delivers software work items to production with coding agents: ideation, planning, implementation and verification, each a separate agent, shipping when every check passes. Discovery turns raw notes into candidate items; the operator promotes the ones to deliver.',
@@ -787,7 +884,7 @@ const program = Effect.gen(function* () {
 	const slot = [...positionals, ...Object.values(values)].find((v) => typeof v === 'string' && SLOT.test(v.trim()))
 	if (slot) return yield* usageError(name, `Replace the placeholder ${slot} with the real value before running the command.`)
 	const input = yield* (Schema.decodeUnknownEffect(c.input)(raw) as Effect.Effect<any, Schema.SchemaError>).pipe(
-		Effect.mapError((e) => usageError(name, `${e.message}\nUsage: ${usageOf(c)}`)),
+		Effect.mapError((e) => name.startsWith('qa-') ? qaError(400, 'invalid_input', { command: name, refresh: 'mw' }) : usageError(name, `${e.message}\nUsage: ${usageOf(c)}`)),
 	)
 	if (!c.prepare) return { store: false, effect: c.run(input, undefined) }
 	const prepared = yield* c.prepare(input)

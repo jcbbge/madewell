@@ -13,8 +13,9 @@ import { MadeWellError, type Next } from './errors.ts'
 import { laneOf, type Check, type Cause, type Job, type Maker, type Pack } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
+import type { QaAccepted, QaCase, QaCaseRevision, QaCommand, QaConflict, QaLink, QaLinkView, QaObservation, QaOutcome, QaQuery, QaReadResult, QaRun, QaSnapshot } from './qa.ts'
 
-type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'discovered' | 'dropped'
+type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'completed' | 'discovered' | 'dropped'
 
 /**
  * How involved the operator is (FOUNDATION, ruling 17). full: no stops, and what would go to the operator is decided by the
@@ -129,6 +130,9 @@ export interface Item {
 	readonly kind?: 'feature' | 'fix' | 'chore'
 	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
 	readonly pack?: Pack
+	/** Function packs retain their exact accepted prefix and apply updates only between nodes. */
+	readonly flow?: { readonly loop: 'discovery' | 'delivery'; readonly accepted: ReadonlyArray<string>; readonly update?: number }
+	readonly completion?: { readonly output: Record<string, unknown>; readonly nodes: number }
 	/** How involved the operator is with it; candidates and fix items inherit it. Absent means checkpoints. */
 	readonly autonomy?: Autonomy
 	/** The checkpoint the operator last let it pass, so it does not stop there twice. */
@@ -199,21 +203,66 @@ const alive = (pid: number) => {
 	}
 }
 
+const qaFailure = (status: number, reason: string, facts: Record<string, unknown> = {}) => new MadeWellError({
+	code: 'qa_request', message: `Manual QA request refused: ${reason}. Keep the draft and retry identity until the outcome is known.`, context: { status, reason, facts },
+	next: [{ run: typeof facts.refresh === 'string' ? facts.refresh : 'mw qa-cases', why: 'inspect saved history before a new request; conflicts require explicit review and a new request ID' }],
+})
+const qaGuard = <A>(run: () => A): A => {
+	try { return run() } catch (cause) {
+		if (cause instanceof MadeWellError) throw cause
+		const busy = cause instanceof Error && /(?:SQLITE_BUSY|database is locked|database table is locked)/i.test(cause.message)
+		throw qaFailure(busy ? 503 : 500, busy ? 'store_busy' : 'storage_failed')
+	}
+}
+const qaCanonical = (value: unknown): unknown => Array.isArray(value) ? value.map(qaCanonical) : value && typeof value === 'object'
+	? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, qaCanonical(child)])) : value
+
 export function openStore(path: string) {
 	mkdirSync(dirname(path), { recursive: true })
 	const db = new DatabaseSync(path)
 	db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
+		CREATE TABLE IF NOT EXISTS operator_requests (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, receipt TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS calls (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, kind TEXT NOT NULL, job TEXT NOT NULL, profile TEXT NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`)
+	qaGuard(() => {
+		// Refuse an incompatible existing table; never backfill, drop or rewrite QA history.
+		const tables = {
+			qa_cases: 'id INTEGER PRIMARY KEY AUTOINCREMENT, work_item INTEGER NOT NULL, workspace TEXT NOT NULL, current_revision INTEGER NOT NULL, created_at TEXT NOT NULL',
+			qa_case_revisions: 'case_id INTEGER NOT NULL, revision INTEGER NOT NULL, doc TEXT NOT NULL, PRIMARY KEY(case_id,revision)',
+			qa_runs: 'id INTEGER PRIMARY KEY AUTOINCREMENT, work_item INTEGER NOT NULL, workspace TEXT NOT NULL, doc TEXT NOT NULL',
+			qa_observations: 'id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, case_id INTEGER NOT NULL, case_revision INTEGER NOT NULL, entry_revision INTEGER NOT NULL, doc TEXT NOT NULL, UNIQUE(run_id,case_id,entry_revision)',
+			qa_requests: 'id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, outcome TEXT NOT NULL',
+		}
+		for (const [name, definition] of Object.entries(tables)) {
+			const expected = definition.split(', ').filter((part) => !part.startsWith('PRIMARY ') && !part.startsWith('UNIQUE(')).map((part) => {
+				const [column, type] = part.split(' ')
+				return { name: column, type, notnull: part.includes('NOT NULL') ? 1 : 0, pk: name === 'qa_case_revisions' ? ['case_id', 'revision'].indexOf(column!) + 1 : part.includes('PRIMARY KEY') ? 1 : 0 }
+			})
+			const existing = db.prepare(`PRAGMA table_info(${name})`).all() as { name: string; type: string; notnull: number; pk: number }[]
+			if (existing.length && JSON.stringify(existing.map(({ name, type, notnull, pk }) => ({ name, type: type.toUpperCase(), notnull, pk }))) !== JSON.stringify(expected)) throw qaFailure(500, 'storage_failed', { table: name, reason: 'incompatible_schema; stop for a migration brief' })
+			if (existing.length && name === 'qa_observations') {
+				const indexes = db.prepare('PRAGMA index_list(qa_observations)').all() as { name: string; unique: number }[]
+				const unique = indexes.some((index) => index.unique && JSON.stringify((db.prepare('SELECT name FROM pragma_index_info(?) ORDER BY seqno').all(index.name) as { name: string }[]).map((c) => c.name)) === JSON.stringify(['run_id', 'case_id', 'entry_revision']))
+				if (!unique) throw qaFailure(500, 'storage_failed', { table: name, reason: 'incompatible_schema; missing entry uniqueness' })
+			}
+		}
+		db.exec('BEGIN IMMEDIATE')
+		try {
+			for (const [name, definition] of Object.entries(tables)) db.exec(`CREATE TABLE IF NOT EXISTS ${name} (${definition})`)
+			db.exec('CREATE INDEX IF NOT EXISTS qa_cases_work ON qa_cases(work_item); CREATE INDEX IF NOT EXISTS qa_runs_work ON qa_runs(work_item); CREATE INDEX IF NOT EXISTS qa_observations_entry ON qa_observations(run_id,case_id,id); COMMIT')
+		} catch (cause) { db.exec('ROLLBACK'); throw cause }
+	})
 	const sink = telemetry(path)
 	let pending: [string, Record<string, unknown>][] | undefined
 	/** Inside a transaction, held until it commits; a rolled-back record never reaches the telemetry file. */
 	const emit = (t: string, record: Record<string, unknown>) => (pending ? pending.push([t, record]) : sink?.write(t, record))
 	const tx = <T>(fn: () => T): T => {
+		// A synchronous operator command can create/save several records and its receipt atomically.
+		if (pending) return fn()
 		db.exec('BEGIN IMMEDIATE')
 		pending = []
 		try {
@@ -248,19 +297,256 @@ export function openStore(path: string) {
 	const event = (item: number, kind: string, data: Record<string, unknown>, at = new Date().toISOString()) => {
 		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
 		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
+		return Number(lastInsertRowid)
 	}
 	const read = (id: number): Item | undefined => {
 		const row = db.prepare('SELECT doc FROM items WHERE id = ?').get(id) as { doc: string } | undefined
 		return row && JSON.parse(row.doc)
 	}
 
+	const qaCaseRow = (caseId: number): QaCase => {
+		const row = db.prepare('SELECT id, work_item AS workItem, workspace, current_revision AS currentRevision, created_at AS createdAt FROM qa_cases WHERE id = ?').get(caseId) as QaCase | undefined
+		if (!row) throw qaFailure(404, 'not_found', { caseId, refresh: 'mw qa-cases' })
+		return { ...row }
+	}
+	const qaRevisionRow = (caseId: number, revision: number): QaCaseRevision => {
+		const row = db.prepare('SELECT doc FROM qa_case_revisions WHERE case_id = ? AND revision = ?').get(caseId, revision) as { doc: string } | undefined
+		if (!row) throw qaFailure(404, 'not_found', { caseId, revision, refresh: `mw qa-case ${caseId}` })
+		return JSON.parse(row.doc)
+	}
+	const qaRunRow = (runId: number): QaRun => {
+		const row = db.prepare('SELECT doc FROM qa_runs WHERE id = ?').get(runId) as { doc: string } | undefined
+		if (!row) throw qaFailure(404, 'not_found', { runId, refresh: 'mw qa-runs' })
+		return JSON.parse(row.doc)
+	}
+	const qaHistory = (runId: number, caseId: number): QaObservation[] => (db.prepare('SELECT doc FROM qa_observations WHERE run_id = ? AND case_id = ? ORDER BY id').all(runId, caseId) as { doc: string }[]).map((r) => JSON.parse(r.doc))
+	const qaEntry = (run: QaRun, caseId: number) => {
+		const pin = run.cases.find((p) => p.caseId === caseId)
+		if (!pin) throw qaFailure(409, 'case_not_in_run', { runId: run.id, caseId, refresh: `mw qa-run ${run.id}` })
+		return pin
+	}
+	const qaAnchor = (workItem: number, workspace: string) => {
+		const item = read(workItem)
+		if (!item) throw new MadeWellError({ code: 'item_not_found', message: `No work item #${workItem}. Select an existing work anchor; QA never creates one.`, context: { id: workItem }, next: [{ run: 'mw status', why: 'select existing work or separately use the authorized work interface' }] })
+		if (item.workspace !== workspace) throw qaFailure(409, 'workspace_mismatch', { workItem, workspace, expected: item.workspace, refresh: `mw context ${workItem}` })
+	}
+	const qaRetained = (): number[] => (db.prepare('SELECT work_item AS id FROM qa_cases UNION SELECT work_item AS id FROM qa_runs ORDER BY id').all() as { id: number }[]).map((r) => r.id)
+	const qaLinks = (): QaLink[] => (db.prepare("SELECT seq, at, data FROM events WHERE kind = 'qa-linkObservation' ORDER BY seq").all() as { seq: number; at: string; data: string }[]).map((row) => {
+		const data = JSON.parse(row.data) as { requestId: string; association: Pick<QaLink, 'enteredBy' | 'source' | 'target'> }
+		return { event: row.seq, at: row.at, requestId: data.requestId, ...data.association }
+	})
+	const qaProjection = (query: QaQuery): QaReadResult => {
+		const page = <T extends { id: number }>(rows: T[], filters: { after?: number; limit?: number }) => {
+			const selected = rows.filter((row) => row.id > (filters.after ?? 0))
+			const items = selected.slice(0, filters.limit ?? 50)
+			const hasMore = selected.length > items.length
+			return { apiVersion: '1' as const, items, nextAfter: hasMore ? items.at(-1)!.id : null, hasMore }
+		}
+		if (query.kind === 'cases') {
+			const f = query.filters
+			const cases = (db.prepare('SELECT id FROM qa_cases ORDER BY id').all() as { id: number }[]).map(({ id }) => qaCaseRow(id))
+			const rows = cases.filter((c) => (f.workspace === undefined || c.workspace === f.workspace) && (f.workItem === undefined || c.workItem === f.workItem)).flatMap((c) => {
+				const i = qaRevisionRow(c.id, c.currentRevision).instructions
+				if (f.area !== undefined && i.area !== f.area) return []
+				if (f.q !== undefined && ![i.title, i.area, i.change].some((value) => value.toLowerCase().includes(f.q!.toLowerCase()))) return []
+				return [{ ...c, title: i.title, area: i.area }]
+			})
+			return page(rows, f)
+		}
+		if (query.kind === 'case') { const c = qaCaseRow(query.caseId); return { apiVersion: '1', case: c, revision: qaRevisionRow(c.id, query.filters.revision ?? c.currentRevision) } }
+		if (query.kind === 'runs') {
+			const f = query.filters
+			const runs = (db.prepare('SELECT doc FROM qa_runs ORDER BY id').all() as { doc: string }[]).map((r): QaRun => JSON.parse(r.doc))
+			return page(runs.filter((r) => (f.workspace === undefined || r.workspace === f.workspace) && (f.workItem === undefined || r.workItem === f.workItem) && (f.caseId === undefined || r.cases.some((p) => p.caseId === f.caseId))).map((r) => ({ id: r.id, workItem: r.workItem, workspace: r.workspace, application: r.application, environment: r.environment, version: r.version, startedAt: r.startedAt, caseCount: r.cases.length })), f)
+		}
+		if (query.kind === 'export') {
+			// Reuse the original seam inside this same qaRead transaction, not several public reads.
+			const snapshot = qaProjection({ kind: 'snapshot', runId: query.runId }) as QaSnapshot
+			const links = qaLinks()
+			return { schemaVersion: 1, selection: query.selection, externalEvidence: 'unavailable-reference-only', run: snapshot.run,
+				entries: snapshot.entries.filter((entry) => query.selection === 'all' || entry.status === 'failed' || entry.status === 'needs-refinement').map((entry) => {
+					const c = qaCaseRow(entry.caseId)
+					const conflicts = (db.prepare("SELECT seq, item, at, data FROM events WHERE kind = 'qa-conflict' AND item IN (?, ?) ORDER BY seq").all(c.workItem, snapshot.run.workItem) as { seq: number; item: number; at: string; data: string }[]).flatMap((row): QaConflict[] => {
+						const data = JSON.parse(row.data) as QaConflict & { target: { runId?: number; caseId: number } }
+						if (data.target.caseId !== c.id) return []
+						if (data.operation === 'reviseCase' ? row.item !== c.workItem : !['observeCase', 'recordVerdict', 'linkObservation'].includes(data.operation) || row.item !== snapshot.run.workItem || data.target.runId !== snapshot.run.id) return []
+						return [{ event: row.seq, workItem: row.item, at: row.at, operation: data.operation, requestId: data.requestId, runId: data.operation === 'reviseCase' ? null : snapshot.run.id, caseId: c.id, expected: data.expected, actual: data.actual, input: data.input } as QaConflict]
+					})
+					const views = links.filter((link) => (link.source.runId === snapshot.run.id && link.source.caseId === c.id) || (link.target.kind === 'retest' && link.target.run.id === snapshot.run.id && link.target.caseId === c.id)).map((link): QaLinkView => ({ link, targetAvailability: link.target.kind === 'reference' ? 'not-checked' : link.target.kind === 'work-item' ? read(link.target.workItem) ? 'present' : 'unavailable' : 'present' }))
+					return { ...entry, case: c, currentCaseRevision: c.currentRevision, outdated: c.currentRevision !== entry.caseRevision, latestVerdictId: entry.observations.findLast((o) => o.kind === 'manual-verdict')?.id ?? null, links: views, conflicts }
+				}),
+			}
+		}
+		const run = qaRunRow(query.runId)
+		if (query.kind === 'observations') {
+			if (query.filters.caseId !== undefined) qaEntry(run, query.filters.caseId)
+			const rows = (db.prepare('SELECT doc FROM qa_observations WHERE run_id = ? ORDER BY id').all(run.id) as { doc: string }[]).map((r): QaObservation => JSON.parse(r.doc)).filter((o) => query.filters.caseId === undefined || o.caseId === query.filters.caseId)
+			return page(rows, query.filters)
+		}
+		const entries = run.cases.map((pin) => {
+			const instructions = qaRevisionRow(pin.caseId, pin.caseRevision)
+			const observations = qaHistory(run.id, pin.caseId)
+			const latestVerdict = observations.findLast((o) => o.kind === 'manual-verdict')
+			return { ...pin, instructions, entryRevision: observations.at(-1)?.entryRevision ?? 0, status: latestVerdict?.verdict ?? 'untested' as const, observations, latestVerdictId: latestVerdict?.id ?? null }
+		})
+		if (query.kind === 'snapshot') return { schemaVersion: 1, run, entries: entries.map(({ latestVerdictId: _, ...entry }) => entry) }
+		return { apiVersion: '1', run, entries: entries.map(({ instructions, observations: _, ...entry }) => {
+			const currentCaseRevision = qaCaseRow(entry.caseId).currentRevision
+			return { ...entry, title: instructions.instructions.title, area: instructions.instructions.area, currentCaseRevision, outdated: currentCaseRevision !== entry.caseRevision, instructionsHref: `/api/v1/qa/cases/${entry.caseId}?revision=${entry.caseRevision}`, observationsHref: `/api/v1/qa/runs/${run.id}/observations?caseId=${entry.caseId}` }
+		}) }
+	}
+
 	const store = {
 		path,
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy'>>): Item {
+		qaRetained,
+		qaRead(query: QaQuery): QaReadResult {
+			return qaGuard(() => {
+				if (pending) return qaProjection(query)
+				db.exec('BEGIN')
+				try { const result = qaProjection(query); db.exec('COMMIT'); return result }
+				catch (cause) { db.exec('ROLLBACK'); throw cause }
+			})
+		},
+		qaWrite(command: QaCommand, at: string): QaOutcome {
+			return qaGuard(() => tx((): QaOutcome => {
+				const { operation, input } = command
+				const fingerprint = JSON.stringify(qaCanonical(command))
+				const prior = db.prepare('SELECT fingerprint, outcome FROM qa_requests WHERE id = ?').get(input.requestId) as { fingerprint: string; outcome: string } | undefined
+				if (prior) {
+					if (prior.fingerprint !== fingerprint) throw qaFailure(409, 'request_id_conflict', { requestId: input.requestId })
+					const outcome = JSON.parse(prior.outcome) as QaOutcome
+					return outcome.accepted ? { accepted: true, value: { ...outcome.value, receipt: { ...outcome.value.receipt, replayed: true } } } : outcome
+				}
+				const save = (outcome: QaOutcome): QaOutcome => {
+					const saved = outcome.accepted ? { accepted: true, value: { ...outcome.value, receipt: Object.fromEntries(Object.entries(outcome.value.receipt).filter(([key]) => key !== 'replayed')) } } : outcome
+					db.prepare('INSERT INTO qa_requests (id, fingerprint, outcome) VALUES (?, ?, ?)').run(input.requestId, fingerprint, JSON.stringify(saved))
+					return outcome
+				}
+				const target = { ...('runId' in command ? { runId: command.runId } : {}), ...('caseId' in command ? { caseId: command.caseId } : {}) }
+				const stale = (workItem: number, expected: number, actual: number): QaOutcome => {
+					const refresh = 'runId' in command ? `mw qa-run ${command.runId}` : `mw qa-case ${'caseId' in command ? command.caseId : ''}`
+					const readLink = 'runId' in command ? `/api/v1/qa/runs/${command.runId}` : `/api/v1/qa/cases/${'caseId' in command ? command.caseId : ''}`
+					const conflictEvent = event(workItem, 'qa-conflict', { operation, requestId: input.requestId, target, input, before: actual, after: actual, expected, actual, read: readLink }, at)
+					return save({ accepted: false, error: { status: 409, reason: 'stale_revision', facts: { ...target, workItem, expected, actual, expectedRevision: expected, actualRevision: actual, requestId: input.requestId, conflictEvent, read: readLink, refresh } } })
+				}
+				const accepted = (workItem: number, resource: QaAccepted['receipt']['resource'], id: number, caseId: number | null, before: number, revision: number, association?: Pick<QaLink, 'enteredBy' | 'source' | 'target'>): QaOutcome => {
+					const links = { read: resource === 'case' ? `/api/v1/qa/cases/${id}` : `/api/v1/qa/runs/${id}`, workItem: `/api/v1/items/${workItem}` }
+					const receipt = { operation, resource, id, caseId, revision, at }
+					const seq = event(workItem, `qa-${operation}`, { operation, requestId: input.requestId, target: resource === 'case' ? { caseId: id } : { runId: id, ...(caseId === null ? {} : { caseId }) }, input, before, after: revision, receipt, links, ...(association ? { association } : {}) }, at)
+					return save({ accepted: true, value: { apiVersion: '1', accepted: true, requestId: input.requestId, receipt: { ...receipt, event: seq, replayed: false }, links } })
+				}
+				if (command.operation === 'createCase') {
+					const i = command.input
+					qaAnchor(i.workItem, i.workspace)
+					const id = Number(db.prepare('INSERT INTO qa_cases (work_item, workspace, current_revision, created_at) VALUES (?, ?, 1, ?)').run(i.workItem, i.workspace, at).lastInsertRowid)
+					const revision: QaCaseRevision = { caseId: id, revision: 1, at, enteredBy: i.enteredBy, instructions: i.instructions }
+					db.prepare('INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, 1, ?)').run(id, JSON.stringify(revision))
+					return accepted(i.workItem, 'case', id, null, 0, 1)
+				}
+				if (command.operation === 'reviseCase') {
+					const c = qaCaseRow(command.caseId)
+					qaAnchor(c.workItem, c.workspace)
+					if (command.input.revision !== c.currentRevision) return stale(c.workItem, command.input.revision, c.currentRevision)
+					const revision: QaCaseRevision = { caseId: c.id, revision: c.currentRevision + 1, at, enteredBy: command.input.enteredBy, instructions: command.input.instructions }
+					if (!Number.isSafeInteger(revision.revision)) throw qaFailure(400, 'invalid_input', { caseId: c.id, reason: 'revision_exhausted' })
+					db.prepare('INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, ?, ?)').run(c.id, revision.revision, JSON.stringify(revision))
+					db.prepare('UPDATE qa_cases SET current_revision = ? WHERE id = ?').run(revision.revision, c.id)
+					return accepted(c.workItem, 'case', c.id, null, c.currentRevision, revision.revision)
+				}
+				if (command.operation === 'startRun') {
+					const i = command.input
+					qaAnchor(i.workItem, i.workspace)
+					for (const pin of i.cases) {
+						const c = qaCaseRow(pin.caseId)
+						qaAnchor(c.workItem, c.workspace)
+						if (c.workspace !== i.workspace) throw qaFailure(409, 'workspace_mismatch', { caseId: c.id, workspace: i.workspace, expected: c.workspace, refresh: `mw qa-case ${c.id}` })
+						qaRevisionRow(c.id, pin.caseRevision)
+					}
+					const id = Number(db.prepare('INSERT INTO qa_runs (work_item, workspace, doc) VALUES (?, ?, ?)').run(i.workItem, i.workspace, '{}').lastInsertRowid)
+					const { requestId: _, ...fields } = i
+					const run: QaRun = { ...fields, id, startedAt: at }
+					db.prepare('UPDATE qa_runs SET doc = ? WHERE id = ?').run(JSON.stringify(run), id)
+					return accepted(i.workItem, 'run', id, null, 0, 0)
+				}
+				const run = qaRunRow(command.runId)
+				qaAnchor(run.workItem, run.workspace)
+				const pin = qaEntry(run, command.caseId)
+				const current = qaHistory(run.id, pin.caseId).at(-1)?.entryRevision ?? 0
+				if (command.input.revision !== current) return stale(run.workItem, command.input.revision, current)
+				if (command.operation === 'linkObservation') {
+					const i = command.input
+					const refresh = `mw qa-export ${run.id} --selection all --format json`
+					const facts = { runId: run.id, caseId: pin.caseId, observationId: i.observationId, target: i.target, refresh }
+					const row = db.prepare('SELECT doc FROM qa_observations WHERE id = ?').get(i.observationId) as { doc: string } | undefined
+					const observation: QaObservation | undefined = row && JSON.parse(row.doc)
+					if (!observation || observation.runId !== run.id || observation.caseId !== pin.caseId || observation.caseRevision !== pin.caseRevision) throw qaFailure(404, 'not_found', facts)
+					qaRevisionRow(pin.caseId, pin.caseRevision)
+					const duplicate = qaLinks().find((link) => {
+						if (link.source.observationId !== i.observationId) return false
+						const target = i.target
+						return target.kind === 'work-item' ? link.target.kind === 'work-item' && link.target.workItem === target.workItem
+							: target.kind === 'retest' ? link.target.kind === 'retest' && link.target.run.id === target.runId
+							: link.target.kind === 'reference' && link.target.reference.label === target.reference.label && link.target.reference.ref === target.reference.ref
+					})
+					if (duplicate) return save({ accepted: false, error: { status: 409, reason: 'link_exists', facts: { ...facts, requestId: i.requestId, existingEvent: duplicate.event } } })
+					let linkedTarget: QaLink['target']
+					try {
+						if (i.target.kind === 'work-item') {
+							qaAnchor(i.target.workItem, run.workspace)
+							const { id, workspace, title, objective, source, status, updated } = read(i.target.workItem)!
+							linkedTarget = { kind: 'work-item', workItem: id, snapshot: { id, workspace, title, objective, source, status, updated } }
+						} else if (i.target.kind === 'reference') linkedTarget = i.target
+						else {
+							const retest = qaRunRow(i.target.runId)
+							if (retest.workspace !== run.workspace) throw qaFailure(409, 'workspace_mismatch', { ...facts, workspace: run.workspace, expected: retest.workspace })
+							if (retest.id <= run.id || retest.application !== run.application) throw qaFailure(409, 'invalid_retest', { ...facts, reason: retest.id <= run.id ? 'not_later_run' : 'different_application' })
+							const targetPin = qaEntry(retest, pin.caseId)
+							qaRevisionRow(targetPin.caseId, targetPin.caseRevision)
+							linkedTarget = { kind: 'retest', run: retest, ...targetPin }
+						}
+					} catch (cause) {
+						if (cause instanceof MadeWellError && cause.code === 'qa_request') {
+							const context = cause.context as { status: number; reason: string; facts: Record<string, unknown> }
+							throw qaFailure(context.status, context.reason, { ...context.facts, ...facts })
+						}
+						if (cause instanceof MadeWellError && cause.code === 'item_not_found' && i.target.kind === 'work-item') throw new MadeWellError({ code: 'item_not_found', message: cause.message, context: { id: i.target.workItem }, next: [{ run: refresh, why: 'inspect source evidence and choose an existing same-workspace target' }] })
+						throw cause
+					}
+					return accepted(run.workItem, 'run-entry', run.id, pin.caseId, current, current, { enteredBy: i.enteredBy, source: { runId: run.id, ...pin, observationId: i.observationId }, target: linkedTarget })
+				}
+				if (!Number.isSafeInteger(current + 1)) throw qaFailure(400, 'invalid_input', { runId: run.id, caseId: pin.caseId, reason: 'revision_exhausted' })
+				const i = command.input
+				const id = Number(db.prepare('INSERT INTO qa_observations (run_id, case_id, case_revision, entry_revision, doc) VALUES (?, ?, ?, ?, ?)').run(run.id, pin.caseId, pin.caseRevision, current + 1, '{}').lastInsertRowid)
+				const observation: QaObservation = {
+					id, runId: run.id, ...pin, entryRevision: current + 1, at, enteredBy: i.enteredBy, actual: i.actual, reproduction: i.reproduction, notes: i.notes, evidence: i.evidence,
+					...(command.operation === 'recordVerdict' ? { kind: 'manual-verdict' as const, claimedVerifier: command.input.enteredBy, observedAt: at, reportedResult: null, verdict: command.input.verdict } : { kind: command.input.kind, claimedVerifier: command.input.claimedVerifier, observedAt: command.input.observedAt, reportedResult: command.input.reportedResult, verdict: null }),
+				}
+				db.prepare('UPDATE qa_observations SET doc = ? WHERE id = ?').run(JSON.stringify(observation), id)
+				return accepted(run.workItem, 'run-entry', run.id, pin.caseId, current, current + 1)
+			}))
+		},
+		/** Synchronous only: the command, its engine transitions and receipt share one SQLite lock/commit.
+		 * Receipts survive item pruning so retrying an old submission can never recreate deleted work. */
+		operatorRequest(id: string, fingerprint: string, run: () => { item: number; revision: string; event: number }) {
+			return tx(() => {
+				const prior = db.prepare('SELECT fingerprint, receipt FROM operator_requests WHERE id = ?').get(id) as { fingerprint: string; receipt: string } | undefined
+				if (prior) {
+					if (prior.fingerprint !== fingerprint) throw new MadeWellError({
+						code: 'api_request', message: 'This request ID was already used with different input. Keep the original request for an uncertain retry; use a new ID for a new message.',
+						context: { status: 409, reason: 'request_id_conflict', facts: { requestId: id } }, next: [{ run: 'mw status', why: 'inspect accepted work before submitting a different request' }],
+					})
+					return { ...JSON.parse(prior.receipt) as { item: number; revision: string; event: number }, replayed: true }
+				}
+				const receipt = run()
+				db.prepare('INSERT INTO operator_requests (id, fingerprint, receipt) VALUES (?, ?, ?)').run(id, fingerprint, JSON.stringify(receipt))
+				return { ...receipt, replayed: false }
+			})
+		},
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy' | 'flow'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')
-				const item: Item = { job: laneOf(fields.pack).delivery[0]!.job, from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
+				const item: Item = { job: laneOf(fields.pack).delivery[0]?.job ?? '', from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(item), item.id)
 				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item
@@ -375,7 +661,11 @@ export function openStore(path: string) {
 		 * evals of those calls), with the runner's own events from before the cutoff, then gives the space back.
 		 * Returns what each table lost; a dry run only counts. The caller holds the runner claim.
 		 */
-		prune(ids: ReadonlyArray<number>, before: string, dryRun: boolean) {
+		prune(ids: ReadonlyArray<number>, before: string, dryRun: boolean, beforeDelete?: () => void) {
+			const protect = () => {
+				const retained = qaRetained().filter((id) => ids.includes(id))
+				if (retained.length) throw qaFailure(409, 'retention_changed', { ids: retained, refresh: `mw prune --before ${new Date(before).toISOString()} --dry-run` })
+			}
 			const items = `(${ids.join(',')})`
 			const calls = `(SELECT id FROM calls WHERE item IN ${items})`
 			const evals = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'evals'").get() !== undefined
@@ -389,12 +679,15 @@ export function openStore(path: string) {
 				items: `items WHERE id IN ${items}`,
 			}
 			const each = (sql: (table: string) => number) => Object.fromEntries(Object.entries(from).map(([k, t]) => [k, t ? sql(t) : 0])) as Record<keyof typeof from, number>
-			if (dryRun) return each((t) => (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n)
-			const removed = tx(() => {
+			if (dryRun) return qaGuard(() => { protect(); return each((t) => (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n) })
+			const removed = qaGuard(() => tx(() => {
+				// Recheck under BEGIN IMMEDIATE before even the first filesystem deletion.
+				protect()
+				beforeDelete?.()
 				const r = each((t) => Number(db.prepare(`DELETE FROM ${t}`).run().changes))
 				if (Object.values(r).some(Boolean)) event(0, 'pruned', { before, ...r, ids })
 				return r
-			})
+			}))
 			// Deleted rows leave free pages; VACUUM gives them back, and the checkpoint empties the WAL it went through.
 			if ((db.prepare('PRAGMA freelist_count').get() as { freelist_count: number }).freelist_count) db.exec('VACUUM')
 			db.exec('PRAGMA wal_checkpoint(TRUNCATE)')

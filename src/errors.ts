@@ -28,6 +28,14 @@ export const ERRORS = {
 	},
 	projects_invalid: { means: 'The project registry in Made Well\'s home is not valid.', context: Schema.Struct({ path: Schema.String, problems: Schema.String }) },
 	item_not_found: { means: 'No work item has this number.', context: Schema.Struct({ id: Id }) },
+	api_request: {
+		means: 'A versioned API request failed validation, security, concurrency or transport checks; context names the HTTP status and reason.',
+		context: Schema.Struct({ status: Schema.Int, reason: Schema.String, facts: Schema.Record(Schema.String, Schema.Unknown) }),
+	},
+	qa_request: {
+		means: 'A manual QA request was refused; retain the exact draft and request ID, and follow the refresh command before rebasing a conflict.',
+		context: Schema.Struct({ status: Schema.Int, reason: Schema.String, facts: Schema.Record(Schema.String, Schema.Unknown) }),
+	},
 	capture_failed: { means: 'Live process output could not be captured; its process group was stopped rather than continuing without evidence.', context: Schema.Struct({ command: Schema.String, channel: Schema.String, reason: Schema.String }) },
 	not_held: { means: 'The item is not waiting on the operator, so there is nothing to answer or retry.', context: Schema.Struct({ id: Id, status: Schema.String, job: Schema.String }) },
 	not_answerable: { means: 'The item holds on something an answer does not resolve; `next` names what does.', context: Schema.Struct({ id: Id, hold: Hold }) },
@@ -61,6 +69,10 @@ export const ERRORS = {
 		}),
 	},
 	cartridges_unreadable: { means: 'The cartridge pack file cannot be read.', context: Schema.Struct({ path: Schema.String, reason: Schema.String }) },
+	function_failed: {
+		means: 'A function failed its input, execution or output contract. Accepted earlier nodes remain saved.',
+		context: Schema.Struct({ id: Id, job: Schema.String, reason: Schema.String }),
+	},
 	cartridges_invalid: {
 		means: 'The cartridge pack does not plug into the console: it is not valid JSON, does not match the pack shape, or breaks the console\'s contract (`problems` lists each).',
 		context: Schema.Struct({ path: Schema.String, problems: Schema.Array(Schema.String) }),

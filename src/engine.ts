@@ -29,6 +29,7 @@ import { budgetFor, cardsFor, DEFAULT_PARALLEL, forLane, harnessOf, INTAKE_ACCES
 import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
 import { resolveDecision, RUBRIC, type DecisionProviders } from './decision.ts'
 import { MadeWellError, quote, type Next } from './errors.ts'
+import { acceptFunction, advanceFunctions, functionInput } from './functions.ts'
 import { NEUTRAL_HOST } from './harness.ts'
 import { answerReference, buildAnswerHistory } from './handoff-history.ts'
 import { projectFor, projectsPath, readProjects } from './project.ts'
@@ -51,7 +52,7 @@ const NQ_HOLDS = ['nq_turns', 'question_for_operator', 'authority']
 const CHECK_HOLDS = ['arbiter_undetermined', 'too_many_corrections', 'prerequisite_too_deep', 'environment']
 /** How deep a chain of prerequisite fixes may go: a defect found in a fix of a fix holds for the operator. */
 const MAX_DEPTH = 2
-const DONE: ReadonlyArray<Item['status']> = ['held', 'paused', 'shipped', 'discovered', 'candidate', 'dropped']
+const DONE: ReadonlyArray<Item['status']> = ['held', 'paused', 'shipped', 'completed', 'discovered', 'candidate', 'dropped']
 const READY: ReadonlyArray<Item['status']> = ['queued', 'running', 'waiting-quota', 'waiting-prerequisite']
 /** The prescribed tier intake runs on: the cheapest cards. Without it, intake uses the job's own tier. */
 const INTAKE_TIER = 'intake'
@@ -186,6 +187,14 @@ export const drive = Effect.fn('mw.drive')(function* (id: number, given: EngineC
 
 const advance = Effect.fn('mw.advance')(function* (item: Item, config: EngineConfig) {
 	const store = yield* Store
+	if (item.pack?.runtime === 'functions') {
+		const node = yield* advanceFunctions(item)
+		if (node) {
+			const prescriptions = yield* forLane(config.prescriptions, L(store.get(item.id)!))
+			yield* step(item.id, node.job, { ...config, prescriptions })
+		}
+		return
+	}
 	if (!item.base) {
 		// The branch the item starts from, and ships to. Only Made Well's ship may move it from here on.
 		const base = yield* branchOf(item.workspace)
@@ -363,7 +372,7 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 	const item0 = store.get(id)!
 	const x0 = trackOf(item0, job).exchange!
 	// The dispatcher and the operator answer on the cards of the lane's first job.
-	const by: Job = x0.from.kind === 'job' ? x0.from.job : L(item0).delivery[0]!.job
+	const by: Job = item0.pack?.runtime === 'functions' ? job : x0.from.kind === 'job' ? x0.from.job : L(item0).delivery[0]!.job
 	const card = yield* pickOrWait(id, cardsFor(config.prescriptions, by))
 	if (!card) return
 	const item = store.get(id)!
@@ -416,7 +425,7 @@ const originate = Effect.fn('mw.originate')(function* (id: number, job: Job, con
 const dispatch = (id: number, job: Job, config: EngineConfig, originator: string, questions: ReadonlyArray<string>, originatorSays: string) =>
 	Effect.gen(function* () {
 		const item0 = (yield* Store).get(id)!
-		const card = yield* pickOrWait(id, cardsFor(config.prescriptions, L(item0).delivery[0]!.job))
+		const card = yield* pickOrWait(id, cardsFor(config.prescriptions, item0.pack?.runtime === 'functions' ? job : L(item0).delivery[0]!.job))
 		if (!card) return null
 		const item = (yield* Store).get(id)!
 		const call = yield* callAgent(id, job, config, {
@@ -454,7 +463,7 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 		return
 	}
 	const plan = planOf(item)
-	const maker = isMaker(job)
+	const maker = item.pack?.runtime !== 'functions' && isMaker(job)
 	yield* callAgent(id, job, config, {
 		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (deliverableShape(L(item), job, auto(item))?.required as string[] | undefined) ?? [],
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
@@ -527,24 +536,25 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const worker = yield* Worker
 		const item = store.get(id)!
 		const p = config.prescriptions
-		const wt = yield* worktree(item.workspace, spec.at ?? item.base!.commit, `item-${id}-${job}-${spec.kind}`)
+		const functions = item.pack?.runtime === 'functions'
+		const wt = functions ? { path: item.workspace, base: '' } : yield* worktree(item.workspace, spec.at ?? item.base!.commit, `item-${id}-${job}-${spec.kind}`)
 		// A call with no access never sees its worktree, so it gets nothing prepared.
-		if (spec.access !== 'none') {
+		if (!functions && spec.access !== 'none') {
 			const failed = yield* prepareWorktree(id, job, wt.path, `item-${id}-${job}-${spec.kind}`, wt.base)
 			// The receiver's broken worktree is its question to the originator; the originator's has nobody above it.
 			if (failed && spec.kind === 'originator') return void hold(store, store.get(id)!, 'prepare_failed', failed.message, failed.context)
 			if (failed) return void (yield* launchFailed(id, job, spec.kind, spec.card, failed.message, failed.context))
 		}
-		if (spec.prepare) yield* spec.prepare(wt.path)
+		if (!functions && spec.prepare) yield* spec.prepare(wt.path)
 		const prompt = yield* spec.packet(wt.path)
 		const budget = budgetFor(p, job)
 		const harness = harnessOf(p, spec.card.harness)
 		// A call with no access runs in an empty directory of its own and touches nothing: there is nothing to prove.
-		const none = spec.access === 'none'
+		const none = functions || spec.access === 'none'
 		const read = spec.access === 'read'
 		const product = none ? undefined : yield* capture(item.workspace)
 		const before = none ? undefined : yield* capture(wt.path, !read)
-		const head = before?.head ?? (yield* revParse(wt.path, 'HEAD'))
+		const head = functions ? '' : before?.head ?? (yield* revParse(wt.path, 'HEAD'))
 		const live = liveFile(store, `item-${id}-${job}-${spec.kind}`)
 		store.note(id, 'call-started', { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...(live ? { live } : {}) })
 		const started = new Date()
@@ -654,6 +664,14 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	// A malformed answer is re-asked as it is, by Made Well's own code: the work in the checkout stands.
 	const problem = malformed(L(item), job, answered.output, auto(item))
 	const call = problem ? ((yield* repair(id, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered) : answered
+	if (item.pack?.runtime === 'functions') {
+		const result = validate(L(item), job, call.output)
+		store.note(id, 'trace-decode', { call: call.callId, job, ok: result.ok, ...(!result.ok ? { reason: result.reason } : {}) })
+		if (!result.ok) return yield* refuse(id, job, call, result.reason)
+		const blocked = blockedOf(L(item), job, result.value)
+		if (blocked) return hold(store, store.get(id)!, 'function_failed', blocked, { job, call: call.callId })
+		return acceptFunction(store, id, stepOf(L(item), job), JSON.stringify(result.value))
+	}
 	// A plan is held to what its base already holds: the files tracked in its own checkout.
 	const v = validate(L(item), job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined, auto(item), item.conventions)
 	store.note(id, 'trace-decode', { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...(!v.ok ? { reason: v.reason } : {}) })
@@ -1153,7 +1171,7 @@ const holdTurns = (store: StoreService, item: Item, job: Job, context: Record<st
 }
 
 /** The items this one builds on that have not shipped; it starts once they have. */
-const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => store.get(id)?.status !== 'shipped')
+const unshipped = (store: StoreService, item: Item) => (item.after ?? []).filter((id) => !['shipped', 'completed'].includes(store.get(id)?.status ?? ''))
 
 /** Whether an item cannot move until the operator acts: something it waits on is held, or was never promoted. */
 export const stuck = (store: StoreService, item: Item): boolean => {
@@ -1178,7 +1196,7 @@ const openPrerequisite = (store: StoreService, item: Item, answer: string, by: O
 export function nextFor(item: Item): Next[] {
 	const id = item.id
 	if (item.status === 'paused') {
-		const ship = item.hold?.context.next === 'ship'
+		const ship = item.pack?.runtime !== 'functions' && item.hold?.context.next === 'ship'
 		return [
 			{ run: `mw go ${id}`, why: ship ? 'it merges onto main and ships' : `it goes on to ${String(item.hold?.context.next ?? 'the next step')}` },
 			{ run: `mw answer ${id} "<what should change>"`, why: ship ? 'the planner plans again from your words, the change is made again and checked, and it stops here again' : 'it goes on, and the next step receives your words as the operator\'s' },
@@ -1227,13 +1245,13 @@ const released = (item: Item): Item => ({
 
 /**
  * The operator answers a hold: a question goes back to the receiving agent; a failed check is routed by its cause.
- * Repeating the answer that released the item's last hold changes nothing.
+ * Repeating the answer that released the item's last hold or checkpoint changes nothing.
  */
 export const answer = (id: number, text: string, cause?: Cause) =>
 	Effect.gen(function* () {
 		const store = yield* Store
 		const events = store.events(id)
-		const repeat = events.slice(events.findLastIndex((e) => e.kind === 'held') + 1).some((e) =>
+		const repeat = events.slice(events.findLastIndex((e) => e.kind === 'held' || e.kind === 'paused') + 1).some((e) =>
 			(e.data.by === 'operator' || e.data.originator === 'operator') && e.data.cause === cause
 			&& (e.data.answer ?? store.get(e.data.prerequisite as number)?.objective) === text)
 		if (repeat) return
@@ -1241,7 +1259,7 @@ export const answer = (id: number, text: string, cause?: Cause) =>
 		const free = released(item)
 		if (item.status === 'paused') {
 			// Steering at a checkpoint: before the ship, the change itself is what changes; between steps, the next one hears it.
-			if (item.hold.context.next === 'ship') {
+			if (item.pack?.runtime !== 'functions' && item.hold.context.next === 'ship') {
 				store.save({ ...free, job: 'plan', from: { kind: 'operator' }, exchange: undefined, rework: { cause: 'implementation', answer: text }, round: item.round + 1, base: undefined, verification: undefined }, 'ruling', { cause: 'implementation', to: 'plan', by: 'operator', answer: text })
 			} else {
 				store.save({ ...free, passed: String(item.hold.context.key), steer: text }, 'steered', { job: item.job, answer: text, by: 'operator' })
@@ -1418,11 +1436,13 @@ const SUBAGENT_RULE = 'If your tools can start another agent, that is an NQ exch
  * Packets say who you are. The pack's own brief says what this kind of work needs every agent to know.
  */
 const briefOf = (lane: Lane) => [
-	'You are an agent in Made Well, a pipeline that takes one work item from ideation through planning and making to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.',
+	'You are an agent in Made Well, a work OS: capture input, generate tasks, complete tasks. Your packet says which profile you are, the function you perform, and, under you.replyFormat, the JSON Schema your output must match. Execute only your configured function; stage names do not grant additional authority.',
 	NEUTRAL_HOST,
 	RUBRIC,
 	'Ideation and planning record every settled choice in decisions[] with question, decision, why, verdict and three judged legs. Factual clarifications and saved-answer reuse need no new choice. Optional decisionResolution guidance is advisory, never authority: apply the same gate yourself before adopting it. Below-bar or stop guidance must be reshaped, not executed.',
-	'Leave no trace. Your working directory is a disposable worktree of the project\'s repository, removed when your call ends: write only there, never in the repository\'s own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.',
+	lane.pack.runtime === 'functions'
+		? 'Your function operates in its configured workspace and access level. Do only the authorized task. Your returned JSON is the durable output. Clean up temporary resources you create. There is no implicit Git, deployment or verification stage. Do not start another agent outside the NQ protocol.'
+		: 'Leave no trace. Your working directory is a disposable worktree of the project\'s repository, removed when your call ends: write only there, never in the repository\'s own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.',
 	'Honor the conventions the project\'s repository already has.',
 	...(lane.pack.brief ? [lane.pack.brief] : []),
 	'Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.',
@@ -1445,6 +1465,7 @@ const receivedBy = (item: Item, job: Job) =>
 
 /** The files the plan names, as they are in the call's checkout: its scope, and the existing files its new ones follow. */
 const snapshotFor = (item: Item, job: Job, dir: string) => {
+	if (item.pack?.runtime === 'functions') return Effect.succeed(undefined)
 	const plan = planOf(item)
 	if (!plan || !stepOf(L(item), job).receives.includes('plan')) return Effect.succeed(undefined)
 	const files = [...new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])]
@@ -1464,6 +1485,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 		const snap = yield* snapshotFor(item, job, dir)
 		return JSON.stringify({
 			item: itemFacts(item),
+			...(item.pack?.runtime === 'functions' ? { function: { ...functionInput(item, stepOf(L(item), job)), node: stepOf(L(item), job), pack: { name: item.pack.name, version: item.pack.version ?? null } } } : {}),
 			...(withReceived ? { received: receivedBy(item, job) } : {}),
 			...(snap ? { snapshot: snap } : {}),
 			...(saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {}),
@@ -1494,6 +1516,7 @@ const arbiterTask = (lane: Lane, autonomous: boolean) => [
 const CORRECTING_TASK = 'Correct your checks from the ruling. Your checkout is the candidate Made Well ran them on: the implementer\'s change is its last commit (HEAD) on top of the branch the item started from, and your previous check files sit uncommitted in the working tree beside it, at the paths you wrote them. Correct them in place, or write new ones, at paths outside the plan\'s scope; Made Well takes the check files from your checkout and runs each check\'s command itself, from the repo root, against that same change. The implementation is not yours to change: Made Well refuses a change inside the plan\'s scope. Each check proves one done-when item by its id, and every done-when item needs at least one. A check proves its done-when item from this item\'s change alone: never run or count the whole test suite, and never pin anything outside the plan\'s scope; other items ship onto the same branch while this one is in flight.'
 
 const taskOf = (item: Item, job: Job) => {
+	if (item.pack?.runtime === 'functions') return stepOf(L(item), job).task
 	const own = job === 'arbitrate' ? arbiterTask(L(item), auto(item)) : correcting(item, job) ? CORRECTING_TASK : TASKS[job]
 	const extra = stepOf(L(item), job).task
 	return own && extra ? `${own} ${extra}` : own ?? extra
@@ -1529,7 +1552,7 @@ const jobEvidence = (item: Item, job: Job) =>
 const originatorParts = (item: Item, job: Job, x: Exchange, answered: ReturnType<typeof ledger>) => ({
 	you: {
 		profile: profileOf(item, x.from), call: 'originator',
-		task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`
+		task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${item.pack?.runtime === 'functions' ? 'Resolve routine choices within the authorized task. Set needsOperator when authority or required resources are missing. Autonomy does not grant permission to deploy, spend money or perform destructive or external actions.' : `${auto(item) ? FULL_AUTHORITY : 'Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item\'s own ship, money, credentials, or anything outside the workspace.'} Shipping this item, its deploy included, is already authorized.`}`
 			+ ' Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well supplies the verbatim answer once under answeredBefore and records the new wording as an alias; exchange notes reference its id. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.',
 		replyFormat: shapeOf(ORIGINATOR),
 	},

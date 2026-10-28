@@ -4,7 +4,7 @@ import { Cause, Effect, Exit } from 'effect'
 import { laneOf, stepOf } from './lane.ts'
 import type { Next } from './errors.ts'
 import type { Store } from './store.ts'
-import { toolTracker } from './telemetry.ts'
+import { toolTracker, totalTokens } from './telemetry.ts'
 import type { WorkerRequest } from './worker.ts'
 
 type Source = typeof Store.Service
@@ -156,19 +156,22 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 			result: finished?.data.result ?? null, error: finished?.data.error ?? null, tools: [...tools.values()], entries,
 		}
 	})
-	const done = item.status === 'shipped' || item.status === 'discovered'
+	const done = item.status === 'shipped' || item.status === 'discovered' || item.status === 'completed'
 	const needsYou = item.status === 'held' || item.status === 'paused' || item.status === 'candidate'
 	const live = invocations.filter((i) => i.status === 'running')
 	const state = done ? item.status : needsYou ? 'needs-you' : item.status.startsWith('waiting-') ? 'waiting' : live.length ? 'working' : item.status === 'dropped' ? 'stopped' : runner ? 'queued' : 'not-running'
 	const ux = {
 		item: id, title: item.title, objective: item.objective, done, needsYou, state,
-		next, proof: { shipped: item.shipped ?? null, verification: item.verification ? { passed: item.verification.passed, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
+		next, proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: item.verification.passed, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
 	}
 	if (lens === 'ux') return { lens, depth: 30_000, ...ux }
 	const lane = laneOf(item.pack)
 	const step = stepOf(lane, item.job)
 	const dx = {
-		...ux, phase: lane.discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery', lane: lane.pack.name,
+		...ux, phase: item.flow?.loop ?? (lane.discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery'), lane: lane.pack.name,
+		pack: lane.pack, flow: item.flow ?? null,
+		updates: events.filter((e) => e.kind.startsWith('cartridges-')),
+		metrics: { invocations: invocations.length, failed: invocations.filter((i) => i.status === 'failed' || i.call?.outcome === 'error').length, ms: invocations.reduce((n, i) => n + i.ms, 0), tokens: calls.some((c) => c.tokens) ? calls.reduce((n, c) => n + totalTokens(c.tokens), 0) : null, unreportedUsage: calls.filter((c) => !c.tokens).length },
 		stage: step.cartridge, job: item.job, profile: step.profile, round: item.round, corrections: item.corrections,
 		hold: item.hold ?? null, verification: item.verification ?? null,
 		nq: item.exchange ?? null, tracks: item.split ?? null, quota: store.exhausted(), runner,

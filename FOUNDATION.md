@@ -2,6 +2,125 @@
 
 The operator's law for Made Well. It binds every implementation, every agent and every evaluation.
 
+## Governing model: capture input → generate tasks → complete tasks
+
+*Operator ruling, 2026-10-28. This section records the operator's three-step diagram and clarification. It takes precedence wherever older rulings or implementation descriptions below make the software-delivery pipeline the identity of Made Well or impose it on every kind of work. The core is preserved; this is not permission to discard NQ, durable work records, answer reuse, independent acceptance or recovery.*
+
+**Made Well is a work OS: a notebook for a to-do list.** It is agnostic to framework, platform, provider, model, tool, technology, industry, team and organization. Software delivery is one application of it, not its definition. A task need not concern code, a repository, a build, a merge or a deployment.
+
+**There are three top-level steps:**
+
+1. **Capture raw input.**
+2. **Generate the task list.**
+3. **Complete the task list.**
+
+These are not three agent profiles or three software-delivery phases. Delivery belongs inside each task. Do not replace this model with one undifferentiated pipeline for every input.
+
+### Step 1): Capture Raw Input
+
+The diagram's input box reads:
+
+```text
+RAW INPUT
+- notes
+- transcripts
+- documents
+- specs/briefs
+```
+
+An arrow leads from raw input into a group containing these operations, top to bottom, with the operator's exact spelling and capitalization:
+
+```text
+Declare()
+lookFirst()
+classify()
+Lenses()
+oneThing()
+route()
+confirm()
+```
+
+The connector leaves this whole group and enters the task-list group. Raw input is not drawn going directly into implementation. These labels do not prescribe seven agents, seven model calls or seven new subsystems. The diagram establishes their names and placement, not additional function contracts invented by an implementer.
+
+### Step 2) generate task list
+
+The task list contains separate tasks. The diagram shows three, colored pink, green and blue, each labelled `TASK X`. Each contains its own delivery:
+
+```text
+TASK X
+
+delivery(){
+    ideation()
+    planning()
+    implementation()
+    verification()
+}
+```
+
+In each task, the four function boxes appear horizontally in that order. `ideation()` and `planning()` are faded; `implementation()` and `verification()` are darker. The diagram provides no legend defining the faded state. Preserve that distinction without asserting that it means optional, already complete or skipped, and without turning every listed function into a mandatory fresh agent call.
+
+**The task is the unit of delivery; the task list is the organizing object.** Implementation means carrying out that task; verification means checking its result against its acceptance conditions. Neither inherently means coding or running software tests. A simple file edit must not acquire the entire software-delivery pipeline merely because Made Well records it. Complex work must retain its separate tasks, context and completion evidence rather than being flattened into one oversized assignment. Reuse settled decisions and answers; the operator must not repeatedly reconstruct the work for each agent.
+
+### Step 3) complete the fucking task list
+
+Each illustrated task has its own right-pointing arrow to its own same-colored result box. All three result boxes read:
+
+```text
+TASK X
+Delivered
+```
+
+There is no arrow chaining the tasks to one another. The diagram does not mandate serial or parallel scheduling. Each task must reach its own verified delivered result; a generated list or an agent's claim is not completion. What constitutes delivery comes from the task's contract, not a universal requirement to merge code or deploy software.
+
+### Every block is a function; every run produces data
+
+*Further operator ruling, 2026-10-28. This governs capture, task generation, delivery and their constituent operations, not only calls to agents. It supersedes any older wording that makes detailed capture optional debug output or treats telemetry, metrics and evaluation as expendable peripherals.*
+
+**Every step, phase and block in the diagram is a function: it accepts input and produces output.** Composed functions are functions too. In delivery, `ideation()`, `planning()`, `implementation()` and `verification()` each have an input/output contract every time a task traverses them. Their combined calls and outputs constitute the task's delivery checklist and its evidence of completion. Keep those contributions linked to the task; do not replace them with an untraceable final summary or a separate status ledger. A function call is not necessarily an agent call, and a stable contract does not mean an agent returns identical content on every run.
+
+**Every single run must be inspectable as structured, machine-readable data.** Capture:
+
+- **Identity and linkage:** the function called, its implementation/version, invocation identity, parent call, task and run, including separate attempts and nested calls.
+- **Before the call:** the actual arguments, effective configuration, incoming state and outputs from preceding calls that form this call's input. Record invocation before execution so an interrupted call does not disappear.
+- **Inside the call:** runtime variables and state changes, intermediate values, nested function and tool calls, events, logs and errors. Instrument the computation, not just its outer start and finish. Externally inaccessible internals must be identified as unavailable, never fabricated or described as captured.
+- **After the call:** the actual returned output, outgoing state, acceptance/check results and the connection to the next consumer. Preserve failures, partial output and interruption evidence; no return is not a successful return. A future return cannot be recorded before execution: before/after means the incoming values and prior returns versus this call's actual result.
+- **Telemetry and metrics:** timing, duration, outcome and available resource/usage measurements linked to the invocation that produced them. Unknown measurements remain unknown, not zero. Metrics are derived from recorded executions, not substituted for their inputs, outputs and logs.
+- **Agent-call configuration:** the effective prompt and supplied context, profile, harness, provider, model, settings, tools and their results, alongside the returned response. Capture the configuration actually used, not merely its defaults. This records observable execution data, not inaccessible model internals. Credentials and secret values are redacted explicitly rather than exposed in traces.
+
+The same durable record supports detailed inspection, aggregate metrics and evaluation. A simple task may have a small trace; it does not get an invisible execution path. A concise user-facing view must not discard the underlying evidence. Capture remains available for failed and interrupted runs and is not conditional on a debug toggle. Existing access boundaries, including independent maker/check-design isolation, still apply: recording evidence does not grant every worker access to it.
+
+**Evaluation is a required capability.** The operator needs to inspect a function's recorded input/output, vary its arguments or configuration, run it again, and compare the results. For agent functions, tunable inputs include prompts, settings and profiles. Preserve the baseline, the changed inputs, the resulting outputs and the acceptance evidence so the effect of a change can be assessed. Evaluations must distinguish replay of saved evidence from fresh execution; repeating a side effect still requires its normal authority and an appropriate isolated environment. A comparison does not itself authorize automatic tuning or changes to live work.
+
+**Actual use generates the evidence.** Agents must use Made Well for work managed through Made Well, rather than doing the work outside it and entering a completion claim afterward. Synthetic fixtures help test the machinery but do not replace data from real runs. The requirement is a simple work model with rich execution evidence—not simplification by deleting telemetry, metrics, logs or the evaluation capability. Observing agents remain read-only; the existing execution roles produce the runs.
+
+### Every node is a replaceable cartridge; visibility is the minimum
+
+*Further operator ruling, 2026-10-28.* Every function, module and node is a component that plugs into the console. The four delivery functions and seven capture/discovery functions are defaults, not compulsory slots. Domain, organization, team, function and task may each need a different composition. A flow may contain one node, ten, a thousand or none. Implementation alone is valid. Additional delivery steps, nested verification steps, and replacements for `Declare()`, `lookFirst()` and `classify()` must not require rewriting the console. Empty composition performs no work; it must never masquerade as verified delivery.
+
+The extension model takes its direction from pi.dev: discoverable contracts, replaceable components and explicit reload/update lifecycle. Made Well must know what is installed/configured, what each node accepts and returns, which version a run uses, and how to validate and apply an update. Hot swapping preserves accepted work and the configuration of a call already in flight; replacement takes effect at a saved boundary. Updates are recorded, never silent mutations of historical runs. An extension cannot bypass NQ, recording, authority or saved-state recovery.
+
+**A bare-minimum live display is required, not optional.** Show the work list, actual configured nodes, current call, last activity/heartbeat, elapsed time, failures, holds and observational signs of silence or repetition. Expose each call's arguments, outputs, logs and available metrics. Explicitly distinguish a stopped runner, stale observation, failed call and completed work. Unknown usage is unknown, not zero. The display reads the same durable record as the agent; it is not a second scheduler. The operator's supplied screenshot is a non-authoritative example of visibility, not a mandated layout, simulated dataset or new approval policy.
+
+**Implementation, 2026-10-28:** `runtime: "functions"` packs extend the existing pack registry with ordered agent/command nodes and nested composition. They need no Git repository or fixed stage names. Agent nodes use the existing NQ/card machinery; command nodes use a JSON stdin/stdout boundary and captured stderr. `mw cartridges` inspects and validates packs; per-task overrides and boundary updates are explicit. The existing software runtime remains available with its maker isolation and shipping guarantees. Function completion means its configured output contracts passed, not an implicit software test, merge or deploy. Trusted command extensions run with the host process's permissions; this is not a plugin sandbox. Locals are visible when extensions emit them, not through automatic inspection of arbitrary process memory. Package downloading, automatic upgrades and full pi extension API compatibility are not implemented.
+
+Decision: **DX hit** — composition changes in data rather than engine branches, at the cost of maintaining the software compatibility path. **UX hit** — a live, minimal read surface makes failures and lack of progress visible, at the cost of a separate detailed legacy view. **AX hit** — explicit node contracts, pinned configurations and durable call evidence support inspection and tuning, at the cost of trace volume. The same store and runner remain authoritative; no new inference provider, scheduler or automatic repair policy is added.
+
+### Readable by default; inspectable in depth
+
+*Operator direction, 2026-10-28:* use Impeccable's design guidance, a good monospace for system messaging, and proportions derived from the primary font. The audience is nontechnical. Default to the high-level picture and offer deeper inspection without discarding evidence.
+
+The work display starts with the task, its plain-language state, what happened, what needs attention and its configured steps. Calls, metrics, configuration, raw inputs/outputs and logs are behind explicit disclosures. A stopped runner is not completion; an empty composition explicitly says no work was performed. Silence or repetition is an observation, not a diagnosis. The observing agent explains the next action; this view does not move work.
+
+The implemented design uses locally served IBM Plex Sans for prose and IBM Plex Mono for system messages, statuses, timestamps and technical data. The primary 16px type has a 24px line; its quarter-line gives a 6px spacing unit, expressed in rem so proportions follow text scaling. [DESIGN.md](DESIGN.md) records the tokens, audience and interaction rules. Impeccable's typography, distillation and craft guidance informs this implementation; its defaults do not override the operator's explicit monospace requirement.
+
+Decision: **UX hit** — understandable status before diagnostics, with the cost of one extra disclosure for technical inspection. **DX hit** — shared font-derived tokens and native disclosures instead of a component framework, with two small licensed font assets to maintain. **AX hit** — the complete trace remains available through the same read API, without another status model; detailed browser inspection requires opening the disclosures. No new worker, scheduler or authority is introduced.
+
+### Scope and implementation honesty
+
+The software-specific stages, six profiles, worktrees, checks, merge and deployment rules below describe the software delivery configuration where applicable. They must not redefine the platform-agnostic work model. NQ still governs every actual agent-to-agent exchange; it does not require creating an exchange where the work needs none. This clarification preserves the core, not every accumulated implementation detail.
+
+**Required is not implemented merely by writing it here.** The implementation and its evidence must state which parts of this model actually run. The compatibility software pack still defaults to the older software pipeline; a function pack opts into the open composition. Resolve remaining gaps against this model, not by rewriting the operator's intent to match the engine.
+
 ## Rulings of 2026-10-21
 
 1. **Made Well is two vending machines.** Each takes an input and produces an output every time. Discovery turns raw context into candidate work items; delivery turns one promoted work item into that item delivered. See "Discovery and delivery".
@@ -84,6 +203,8 @@ Prefer appropriately scoped context, bounded exchanges, reused valid evidence, d
 
 *Ruling of 2026-10-21. It supersedes the earlier rule that discovery fed delivery first in, first out, with nobody approving it and no go-ahead.*
 
+*Read under the governing three-step model of 2026-10-28: discovery generates tasks from captured input; delivery completes each task. The software outcomes below are configuration-specific, not the definition of all work.*
+
 - **Discovery:** raw context (notes, transcripts, meetings) in → a list of candidate work items (features, bug fixes, chores) out. Discovery preserves sources, establishes understanding, surfaces uncertainty, and distills the source into separate items. The items form a queue.
 - **Promotion:** the operator chooses which items to promote. Each promoted item runs on its own through the one shared delivery pipeline. Items may run in parallel; a stop in one item stops only that item.
 - **Delivery:** one work item in → that item delivered: checks green, merged to main, deployed to production. It takes the item through the inner loop under a bounded contract. Verification ships automatically when every check passes; when a check fails, the Arbiter rules on the cause. There is no separate ship stage.
@@ -127,7 +248,7 @@ The six agents separate the ideator from its challenging peer and separate test 
 
 ## Inner loop: ideation → planning → implementation → verification
 
-These four stages are required and distinct:
+These four responsibilities are distinct within a task's delivery. The following describes the software delivery configuration, not four mandatory fresh agent stages for every task in Made Well:
 
 1. **Ideation:** shape and challenge what should be done (ideator, ideation peer).
 2. **Planning:** ground the actionable implementation and independent test design in the real environment and agreed contract (planner). The plan then splits: the test architect writes the checks while the implementer makes (ruling 12).
@@ -283,7 +404,7 @@ When an account hits its usage limit, it is marked out until its reset and the s
 
 ## Work-level observability
 
-The operator's primary questions are: **Is the work done? What result and acceptance evidence establish that? If not, what remains, what is blocking it, and who owes the next action?** Observe the work, not the agent's internal reasoning or individual tool-call sequence. Internal execution details may remain diagnostic evidence, as in the debug mode; they are not a prerequisite for work recovery or the primary progress interface.
+The operator's primary progress questions are: **Is the work done? What result and acceptance evidence establish that? If not, what remains, what is blocking it, and who owes the next action?** The progress view answers these concisely; the underlying record must also expose every function's arguments, observable runtime values, nested calls, returned outputs, logs and metrics as required by the 2026-10-28 function/data ruling. Detailed execution evidence is mandatory, not optional debug-only data. Progress and diagnostics are views of the same record, not competing definitions of observability.
 
 A failed or lost worker does not end the work: it is redriven on its saved state. A viewer never becomes a scheduler, acceptance authority, or second tracking system.
 
@@ -352,3 +473,57 @@ Any proposed implementation or evaluation must distinguish **required**, **imple
 The observed failure is a complete recorded packet followed by a Codex response saying the packet was elided, with no tool use. Keeping it inline preserves simplicity but repeats that failure; truncating it would discard decisions. A temporary file plus a visible task/reply bootstrap preserves the full input and lets the job read large fields separately. **DX hit, cell 2:** reliable handoffs with an opt-in harness setting, at the cost of a file read. **UX hit, cell 4:** fewer delivery interruptions without another operator choice, at the cost of less inline detail. **AX hit, cell 1:** exact recoverable context and explicit field locations, at the cost of bounded tool reads. All three hit. No new storage, stage, authority or context truncation is introduced. Assess through transport/cleanup tests and the previously failing live handoff.
 
 No-tool intake is an inline handoff confirmation, not source execution. Its launch projects only existing `snapshot.contents` string bodies to exact path/character-count references that explicitly defer grounding to the execute checkout and full execution packet. Missing files remain null. Task, source, decisions, history and failure evidence stay intact; the original recorded packet and tool-enabled execution transport are unchanged. This resolves a recorded upstream input-length refusal dominated by generated source snapshots without summarizing decisions or granting tools. **DX hit, cell 4:** no manual packet repair; **UX hit, cell 4:** confirmation stops blocking delivery on unavailable source tools; **AX hit, cell 1:** the role receives the context it can use, with exact deferred grounding. Cost: one transport projection with regression coverage. The large-packet regression proves bounded intake and complete execution bytes; each actual delivery still requires its live check.
+
+### Contextual contracts and operator browser input, 2026-10-28
+
+The operator authorizes a browser write surface for **their own** new tasks and answers. This does not change ruling 16: the observing agent remains outside the glass. `mw context <id>` and `GET /api/v1/items/<id>` are one compact projection of intent, position, saved revision, conversation and actionable inputs with owner/authority; raw evidence is linked rather than repeatedly embedded. The dogfood trace exceeded 323,765 bytes after intake and one in-flight execute, so full AX capture stays intact while the default context limits text previews and makes truncation explicit. No read projection schedules, retries, repairs or answers work.
+
+The versioned API is additive, documented in OpenAPI 3.1.1 with RFC9457 problems. Browser answers invoke the existing engine answer function, retaining hold causes, recipient confirmation and accepted-prefix semantics. A synchronous SQLite transaction contains the command, its exact text in existing item/event fields, its input reference and a retry receipt. Receipts survive restart and pruning; a request ID with different input conflicts, and a new answer must match the saved item revision. CSRF tokens, explicit trusted origins/Host checks, bounded UTF-8 JSON and a body deadline protect the local single-operator surface. These are not multi-tenant authentication. Clients keep drafts on failure and reuse the same request ID/input on uncertain retries. There is no arbitrary shell endpoint, fabricated conversation response or second scheduler.
+
+Answer deduplication belongs to the latest hold or checkpoint, not the item's entire history. Retrying the instruction that released that stop changes nothing; the same words at a later checkpoint are a new instruction. Dogfooding reproduced the previous false no-op and the engine regression covers both boundaries.
+
+**Decision: reuse the store and engine, expose a bounded versioned projection instead of replacing CLI or AX output. DX hit, cell 2:** one schema/projection and engine owner reduce integration drift; cost is an additive API and receipt table. **UX hit, cell 2:** explicit browser submission/answers remove terminal dependence and retries cannot duplicate work; cost is honest conflict recovery rather than silently guessing intent. **AX hit, cell 1:** headless context names exact next inputs and evidence without repeated full packets; cost is following evidence links for omitted detail. All three hit. Exact proxy origins must be configured; trusted local access remains an explicit deployment assumption.
+
+The OTLP endpoint exports actual `ExportTraceServiceRequest` JSON from saved finished invocation evidence, not renamed custom telemetry. It has typed attributes, stable IDs within a store path and recorded timestamps; no timed parent is invented. Running/lost/interrupted evidence stays on the native trace. This is not a full OTel SDK, collector transport or logs/metrics export. The current Amp bridge records dispatch/result and heartbeat, not Amp tool-by-tool streams; missing internals remain unavailable.
+
+Demonstrated by targeted API tests: exact input and engine NQ release, checkpoint/cause handling, nonanswerable refusal, concurrent requests, restart replay, process death before commit, replay after pruning, request/body security, compact context and recoverable accepted-input wake failure. Browser integration and full-suite acceptance belong to the following nodes; no implementation receipt substitutes for them.
+
+### Manual QA evidence contract, 2026-10-28
+
+Manual QA attaches to existing durable work without becoming a delivery node, scheduler or software acceptance gate. The anchor may be a capture/manual-QA task, including historical cases with no original delivery. Exact workspace equality is required, not a live checkout or project registration. No QA write creates an Item, changes its document/state/verification/revision, claims the runner, wakes work or converts a finding into repair authority. Source material remains advisory; the existing full-autonomy and NQ authority rules are unchanged. Observing agents stay outside the glass.
+
+The backend source adds five tables to the existing Store: cases, immutable instruction revisions, immutable runs with ordered revision pins, append-only observations and QA-specific retry receipts. `src/qa.ts` owns shared closed Effect schemas and service boundaries; the Store owns SQL/transactions; CLI and versioned HTTP call those same functions. Server times come from Clock. Each mutation has an observed function invocation and an owning-item `qa-*` event with exact input, QA counters and receipt references; interrupted trace evidence is not a successful return. Item events/export remain the evidence record, not a second tracking system or fabricated agent call.
+
+**Manual means an explicit trusted-local declaration:** only the verdict operation accepts `enteredBy.kind:"operator"` with `attestation:"operator-manual-verdict"`. This is not human authentication. A local process can falsely claim a role; no cryptographic proof is promised. Technical/historical reported results, imported checkmarks and claimed verifiers are evidence, never manual success. The latest manual verdict sets one pinned run entry's state: `untested`, `passed`, `failed` or `needs-refinement`. Reset is a new observation. Every new run starts untested, even for previously passed revisions. Changing instructions leaves old runs pinned and visibly outdated. Application/environment and known-with-source versus explicitly unknown version are recorded without inference.
+
+Per-case revision CAS and per-run-entry observation CAS prevent silent overwrites without making unrelated entries conflict. Every accepted note increments its entry counter. A request ID plus recursively key-sorted validated input/operation/targets identifies an attempt across transports/restart; string bytes and array order remain exact. Identical retries return the saved outcome, never another domain effect. Stale CAS saves the exact rejected draft in a `qa-conflict` event and a permanent 409 receipt. Only explicit review, current revision and a new ID can submit revised intent. Invalid/security inputs are not retained as QA evidence. Accepted domain rows, event and receipt share one synchronous transaction; read projections/snapshots share a short read transaction.
+
+**Clearing notes is an append, not deletion or a verdict reset.** The shared observation content predicate retains every existing accepted input and additionally permits an otherwise content-empty request only when `kind:"note"`, expected `revision > 0` and exactly `notes:""`. Required fields, limits and null note `reportedResult` remain unchanged; omitted/null notes, otherwise empty revision-0 notes, empty technical/historical observations and whitespace-only notes without other content remain invalid. Positive expected revision is not evidence of existence: the Store's existing lookup, anchor, run-pin and transactional CAS checks remain authoritative; an untouched entry conflicts at actual revision 0. Any prior observation establishes a counter, not only notes. Acceptance appends the exact empty string and increments only that entry counter while retaining earlier evidence and the latest manual verdict/status. Replay and permanent stale-conflict receipts remain unchanged; another fresh ID/current revision is another append. Clients must honor the latest note even when empty rather than resurrect older text; browser clearing/reload acceptance is separate from this backend correction.
+
+**Accepted note-clearing decision — all three hit. DX cell 4:** one shared predicate restores CLI/API editing without migrations, costing one documented exception and independent regression coverage. **UX cell 4:** ordinary clearing preserves history and verdicts without another control, costing existing conflict review and separately unproved browser integration. **AX cell 1:** exact clear intent retains CAS and stable retry identity without another operation, costing one observation/event/receipt per new accepted clear; no measured resource saving is claimed. Independent engine regression, full-suite and typecheck results remain owed by the acceptance owner; the maker ran no self-checks.
+
+QA history and receipts have no deletion/TTL here. Ordinary prune retains every case/run anchor, its events/calls and managed item/export files. The Store rechecks all chosen IDs under `BEGIN IMMEDIATE` before invoking the synchronous files-first deletion callback; a newly created QA case/run anchor invalidates the selection with `retention_changed`, before any file or row deletion. Merely linking follow-up work does not protect that target. Opaque external evidence references are text, not managed attachments or promises of availability.
+
+The public seams are twelve flat `mw qa-*` commands, `/api/v1/qa/cases` and `/api/v1/qa/runs` routes, OpenAPI schemas, discovery/context read links and the full ordered `qaSnapshot(runId)` projection. They inherit the existing local Host/Origin/CSRF and bounded UTF-8 body protections. The additive export/link contract below supplies formatting and explicit associations; UI, attachment hosting, Arc import and retest orchestration remain excluded. Clients use explicit new runs, never copied verdicts. Client drafts survive polling, uncertain transport and conflicts; note autosave serializes per entry, while instruction revisions, verdicts, associations and retest creation remain explicit actions.
+
+**Accepted decision:** reuse existing work/Store, immutable evidence and guarded retention instead of another scheduler or last-writer-wins notes. **DX hit, cell 2:** one mutation owner/schema and independent per-entry CAS, costing five additive tables and retained storage. **UX hit, cell 2:** resumable pinned instructions and no silent draft loss or invented pass, costing explicit conflict review and deliberate verdict submission. **AX hit, cell 1:** exact provenance, replay identity and full snapshot/read links, costing retained trace volume and no claim of human authentication. All three hit. Destructive schema collisions require NQ, not a migration improvised by the implementer.
+
+**Evidence status:** backend source and documented contracts are delivered for independent acceptance, not declared demonstrated by the maker. No implementation self-checks were run in this assignment. The engine owns targeted integration, full-suite and typecheck verification; subsequent UI/browser and real Arc acceptance remain separate work. Fixture declarations and a successful transport response cannot establish those outcomes.
+
+### Manual QA export and association contract, 2026-10-28
+
+`qaExport(runId, query={})`, `mw qa-export <runId> [--selection all|follow-ups] [--format json|markdown]` and `GET /api/v1/qa/runs/{runId}/export` share closed schemas and defaults `all`/`json`. Success is always JSON: `{apiVersion:"1",format:"json",data:QaExportDocument}` or `{apiVersion:"1",format:"markdown",markdown:string}`, HTTP 200. The version-1 document holds selection, `externalEvidence:"unavailable-reference-only"`, the full immutable run/pins and complete selected entries. Follow-ups means only current manual failed/needs-refinement, never technical/historical reported results or linked work status. Empty selections are valid. The existing `qaSnapshot` shape and behavior stay unchanged; export reuses that projection inside the same Store read transaction, adding case metadata/current revision/outdated/latest verdict, all relevant conflicts and outgoing/incoming retest associations in event order.
+
+Markdown is a pure deterministic formatter in `src/export.ts`, with literal fenced supplied text and labelled missing data. It includes exact pinned reproduction instructions, every observation and its provenance, immutable association context, rejected drafts and read locations; no summary/truncation replaces history. User whitespace, CRLF and Unicode are not normalized. JSON remains authoritative. External evidence is reference-only and unavailable **in the export**, not probed or asserted absent remotely. Recorded evidence is not repair authorization, an accepted agent handoff, or invented missing fixtures. No generated timestamp, file writer, network fetch, agent call or scheduler is introduced. Legacy forensic `exportItem`, replay and OTLP stay unchanged.
+
+`qaLink(runId,caseId,input)`, `mw qa-link <runId> <caseId> --input-file <file>` and `POST /api/v1/qa/runs/{runId}/cases/{caseId}/links` accept `{requestId,revision,enteredBy,observationId,target}`. The target is existing same-workspace work, an opaque reference, or an existing later run of the same workspace/application pinning the same case ID to an existing revision. Any existing source observation kind is linkable without upgrading it to a manual finding. Untouched entries are not given synthetic observations. The link supplies no new work authority. Return the existing `QaAccepted` with operation `linkObservation`, resource `run-entry`, source run/case IDs and **unchanged** entry revision, HTTP 200 for new acceptance and replay.
+
+Associations belong only to a `qa-linkObservation` event on the source run owner, with validated immutable source/target context and a QA retry receipt committed together under the existing write lock. There is no table, mutable backlink, target Item/event update or observation insertion. Observation counters still count exactly observations. Request replay is first, including after restart/target pruning; stale CAS retains the rejected draft and permanent receipt. After normal CAS, a new ID for the same source observation/target saves terminal `link_exists` with existing event and refresh, rather than another link. Same/earlier retests or different applications return `invalid_retest`; normal not-found/workspace/case/security/storage errors remain explicit. No unlink/edit API exists.
+
+Retests are two separately resumable explicit requests: create a run with complete reviewed pins, actor, application/environment/version, workspace/work item and a new request ID; confirm its receipt; then link the original observation to that run using another saved ID/body. Every new entry starts untested. A failed link leaves that run intact, not deleted/recreated. Linking an already observed compatible run never resets it; fix completion cannot change the original manual failure or retest verdict. Client drafts/pending requests survive errors and conflicts; links are never autosaved.
+
+Existing retention protects case/run anchors, including all retests. Merely linked implementation work is **not** protected: its exact seven fields (`id`, `workspace`, `title`, `objective`, `source`, `status`, `updated`) are captured atomically on the source event. Normal prune may remove that target; export retains the snapshot with `targetAvailability:"unavailable"`. Captured status is status at association, not current resolution. References are `not-checked`; retained retests are present. Linking and pruning share the Store write lock: link-first captures before prune, prune-first refuses absent work. QA receipts/history remain indefinitely; no promise extends to pruned execution internals or external attachments.
+
+**Accepted export decision — all three hit. DX cell 2:** one schema/read/formatter shared by CLI/HTTP; cost is additive types and potentially large synchronous exports. **UX cell 2:** complete readable follow-up briefs without hidden history loss; cost is long literal blocks rather than polished prose. **AX cell 1:** exact versioned provenance/conflicts and stable IDs without re-questioning; cost is full-history bytes and separately supplied external access. **Accepted association decision — all three hit. DX cell 2:** existing transaction/events/receipts avoid another owner; cost is event scans. **UX cell 2:** original failure and independently untested retest stay honest even after target prune; cost is two deliberate submissions and no link editing. **AX cell 1:** retry identity and immutable pins make evidence actionable without inferred authority; cost is unavailable pruned execution internals. Reconsider indexing only with measured history-volume latency, not speculative infrastructure.
+
+**Implemented versus demonstrated:** source/docs are delivered for independent engine tests/typecheck; the maker ran no self-checks and asserts no acceptance count. The preceding backend's supplied acceptance is prerequisite evidence, not proof of this addition. UI controls/browser acceptance, real Arc ingestion, long-run volume and actual human verification remain separate. Labelled fixtures and valid receipts never establish those results.

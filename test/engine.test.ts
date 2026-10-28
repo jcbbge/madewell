@@ -9,6 +9,7 @@ import { TestClock } from 'effect/testing'
 import { loadPrescriptions, type Card, type Prescriptions } from '../src/cards.ts'
 import { resolveDecision, RUBRIC, type DecisionRequest, type DecisionResult } from '../src/decision.ts'
 import { answer, BRIEF, drive, drop, go, nextFor, promote, retry, runQueue } from '../src/engine.ts'
+import { requestPackUpdate } from '../src/functions.ts'
 import { NEUTRAL_HOST } from '../src/harness.ts'
 import { deliverableShape, laneOf, problemsOf, SOFTWARE, type Job, type Pack } from '../src/lane.ts'
 import { openStore, Store, type Autonomy } from '../src/store.ts'
@@ -1634,4 +1635,108 @@ test('every step: the item stops between cartridges and before it ships; the ope
 	} finally {
 		t.cleanup()
 	}
+})
+
+test('function packs run a single implementation, nested checks and an empty flow without Git or implicit stages', async () => {
+	const t = setup((req) => req.kind === 'execute' ? { value: JSON.parse(req.prompt).function.args.seed * 3 } : clear)
+	try {
+		const workspace = join(t.tmp, 'not-a-repository')
+		mkdirSync(workspace)
+		const output = { type: 'object', required: ['value'], properties: { value: { type: 'number' } } }
+		const implementation = { job: 'implement', profile: 'implementer', duty: 'Triple the given seed.', args: { seed: 7 }, output }
+		const pack: Pack = { name: 'work', runtime: 'functions', discovery: [], delivery: [{ cartridge: 'delivery', steps: [implementation] }] }
+		const create = (pack: Pack) => t.store.create({ title: 'Transform an input', objective: 'Triple seven', source: '7', workspace, pack, autonomy: 'full' })
+		const one = await t.run(drive(create(pack).id, config))
+		assert.equal(one.status, 'completed')
+		assert.deepEqual(one.completion, { output: { value: 21 }, nodes: 1 })
+		assert.equal(one.base, undefined)
+		assert.equal(one.shipped, undefined)
+		assert.deepEqual(t.store.calls(one.id).map((c) => c.kind), ['intake', 'execute'])
+		const nested: Pack = { ...pack, delivery: [{ cartridge: 'delivery', steps: [implementation, { job: 'verification', children: [
+			{ job: 'check-result', receives: ['implement'], run: `${process.execPath} -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>{const n=JSON.parse(s).received.implement.value;console.error("checking "+n);console.log(JSON.stringify({value:n+2}))})'`, output },
+		] }] }] }
+		assert.deepEqual(problemsOf(nested), [])
+		const many = await t.run(drive(create(nested).id, config))
+		assert.equal(many.status, 'completed')
+		assert.deepEqual(many.completion?.output, { 'check-result': { value: 23 } })
+		assert.deepEqual(many.flow?.accepted, ['implement', 'check-result', 'verification'])
+		assert.match(JSON.stringify(lensOf(t.store, many.id, 'ax', [])), /checking 21/)
+		const empty = await t.run(drive(create({ ...pack, delivery: [] }).id, config))
+		assert.deepEqual(empty.completion, { output: { source: '7' }, nodes: 0 })
+		assert.equal(t.store.calls(empty.id).length, 0)
+		const checkpointPack: Pack = { ...pack, delivery: [pack.delivery[0]!, { cartridge: 'confirmation', steps: [{ job: 'ship', run: `${process.execPath} -e 'let s="";process.stdin.on("data",c=>s+=c);process.stdin.on("end",()=>console.log(JSON.stringify({value:JSON.parse(s).operatorNote==="Use 23"?23:17})))'`, output }] }] }
+		const checkpoint = t.store.create({ ...create({ ...checkpointPack, delivery: [...checkpointPack.delivery, { cartridge: 'final', steps: [{ ...checkpointPack.delivery[1]!.steps[0]!, job: 'final-value' }] }] }), autonomy: 'steps' })
+		assert.equal((await t.run(drive(checkpoint.id, config))).status, 'paused')
+		assert.equal(t.store.get(checkpoint.id)!.outputs.ship, undefined)
+		await t.run(answer(checkpoint.id, 'Use 23'))
+		await t.run(answer(checkpoint.id, 'Use 23'))
+		assert.equal(t.store.events(checkpoint.id).filter((e) => e.kind === 'steered').length, 1, 'retrying the same checkpoint answer is a no-op')
+		assert.equal((await t.run(drive(checkpoint.id, config))).status, 'paused')
+		assert.deepEqual(JSON.parse(t.store.get(checkpoint.id)!.outputs.ship!), { value: 23 }, 'a node named ship stays an ordinary function and receives checkpoint steering')
+		await t.run(answer(checkpoint.id, 'Use 23'))
+		const resumed = await t.run(drive(checkpoint.id, config))
+		assert.equal(resumed.status, 'completed')
+		assert.deepEqual(resumed.completion?.output, { value: 23 }, 'the same text at a different checkpoint is a new answer')
+		for (const steps of [
+			[{ job: 'invalid-input', input: { type: 'object', required: ['missing'] }, run: 'exit 99', output }],
+			[{ job: 'invalid-output', run: `echo '{"value":"wrong"}'`, output }],
+			[{ job: 'invalid-group', children: [], output }],
+			[{ job: 'blocked', run: `echo '{"blocked":"Permission missing"}'`, output: { type: 'object' } }],
+		]) {
+			const bad = await t.run(drive(create({ ...pack, delivery: [{ cartridge: 'work', steps }] }).id, config))
+			assert.equal(bad.status, 'held')
+			assert.equal(bad.completion, undefined)
+			assert.ok(t.store.events(bad.id).some((e) => e.kind === 'trace-finished' && e.data.status === 'failed'))
+		}
+	} finally { t.cleanup() }
+})
+
+test('function-pack updates preserve an in-flight call and replace only future nodes', async () => {
+	const output = { type: 'object', required: ['value'], properties: { value: { type: 'number' } } }
+	const first = { job: 'implement', profile: 'implementer', duty: 'Return the given value.', args: { value: 9 }, output }
+	const pack: Pack = { name: 'live', version: '1', runtime: 'functions', discovery: [], delivery: [{ cartridge: 'work', steps: [first, { job: 'old', run: 'echo "{}"', output: { type: 'object' } }] }] }
+	const replacement: Pack = { ...pack, version: '2', delivery: [{ cartridge: 'work', steps: [first, { job: 'new', receives: ['implement'], run: `echo '{"value":17}'`, output }] }] }
+	const t = setup(async (req) => {
+		if (req.kind !== 'execute') return clear
+		const invalid = { ...replacement, delivery: [{ cartridge: 'work', steps: [{ ...first, args: { value: 99 } }] }] }
+		assert.equal((await t.run(Effect.flip(requestPackUpdate(req.item, invalid)))).code, 'cartridges_invalid')
+		await t.run(requestPackUpdate(req.item, replacement))
+		return { value: 9 }
+	})
+	try {
+		const item = t.store.create({ title: 'Update during a call', objective: 'Keep old output, use new next step', source: 'approved', workspace: t.repo, pack, autonomy: 'full' })
+		const done = await t.run(drive(item.id, config))
+		assert.equal(done.status, 'completed')
+		assert.deepEqual(done.flow?.accepted, ['implement', 'new'])
+		assert.equal(done.pack?.version, '2')
+		assert.deepEqual(JSON.parse(done.outputs.implement!), { value: 9 })
+		assert.deepEqual(done.completion?.output, { value: 17 })
+		assert.equal(done.outputs.old, undefined)
+		assert.equal(t.store.events(item.id).filter((e) => e.kind === 'cartridges-applied').length, 1)
+	} finally { t.cleanup() }
+})
+
+test('a failed function retains its evidence and retry does not repeat accepted work', async () => {
+	const t = setup()
+	try {
+		const marker = join(t.tmp, 'permit')
+		const pack: Pack = { name: 'recovery', runtime: 'functions', discovery: [], delivery: [{ cartridge: 'work', steps: [
+			{ job: 'first', run: `echo '{"kept":31}'`, output: { type: 'object', required: ['kept'] } },
+			{ job: 'second', run: `test -f ${marker} || { echo 'missing permit' >&2; exit 7; }; echo '{"done":true}'`, output: { type: 'object', required: ['done'] } },
+		] }] }
+		const item = t.store.create({ title: 'Resume', objective: 'Retain accepted output', source: 'approved', workspace: t.repo, pack, autonomy: 'full' })
+		const held = await t.run(drive(item.id, config))
+		assert.equal(held.status, 'held')
+		assert.equal(held.hold?.code, 'function_failed')
+		assert.equal(held.job, 'second')
+		assert.ok(t.store.events(item.id).some((e) => e.kind === 'trace-output' && String(e.data.text).includes('missing permit')))
+		const changed = { ...pack, delivery: [{ cartridge: 'work', steps: [pack.delivery[0]!.steps[0]!, { ...pack.delivery[0]!.steps[1]!, run: `echo '{"done":false}'` }] }] }
+		assert.equal((await t.run(Effect.flip(requestPackUpdate(item.id, changed)))).code, 'cartridges_invalid', 'retry retains the attempted function contract')
+		writeFileSync(marker, '')
+		await t.run(retry(item.id))
+		const done = await t.run(drive(item.id, config))
+		assert.equal(done.status, 'completed')
+		assert.deepEqual(done.completion?.output, { done: true })
+		assert.equal(t.store.events(item.id).filter((e) => e.kind === 'trace-started' && e.data.job === 'first').length, 1)
+	} finally { t.cleanup() }
 })

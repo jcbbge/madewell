@@ -88,7 +88,9 @@ export const forLane = (p: Prescriptions, lane: Lane) =>
 	Effect.gen(function* () {
 		const jobs: Record<string, unknown> = { ...p.jobs }
 		for (const step of [...lane.discovery, ...lane.delivery]) {
-			if (step.job === 'verify' || jobs[step.job]) continue
+			if (lane.pack.runtime === 'functions') {
+				if (step.run || step.children) continue
+			} else if (step.job === 'verify' || jobs[step.job]) continue
 			const tier = step.tier ?? 'deep'
 			if (!p.tiers[tier]) {
 				return yield* new MadeWellError({
@@ -97,7 +99,7 @@ export const forLane = (p: Prescriptions, lane: Lane) =>
 					next: [{ run: '$EDITOR "$MW_PRESCRIPTIONS"', why: `define tier "${tier}", or prescribe "${step.job}" under jobs` }, { run: 'mw cartridges', why: 'see the pack and the tier each step asks for' }],
 				})
 			}
-			jobs[step.job] = { tier, access: 'read', ...(step.budget ? { budget: step.budget } : {}) }
+			jobs[step.job] = { tier, access: step.access ?? (lane.pack.runtime === 'functions' ? 'none' : 'read'), ...(step.budget ? { budget: step.budget } : {}) }
 		}
 		return { ...p, jobs: jobs as Prescriptions['jobs'] }
 	})

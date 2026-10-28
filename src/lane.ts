@@ -4,10 +4,11 @@
 // items; delivery takes one promoted item and returns it delivered. The console is the fixed part: the loops,
 // the durable item, NQ at every hand-off, holds, card swaps, recording and the views. Cartridges are what plug
 // into it: each is a named group of steps, and each step is one agent job with a contract, what it receives
-// and the JSON its deliverable must match. A cartridge pack is the ordered set for both loops; software
+// and the JSON its deliverable must match. Function packs also accept trusted commands and nested groups.
+// A cartridge pack is the ordered set for both loops; software
 // development is the default pack, and a project can plug in its own (`mw init --cartridges <file>`).
 //
-// The console owns five slots, because its own machinery acts on what they return: `discover` (the last
+// Only the software runtime owns five slots, because its machinery acts on what they return: `discover` (the last
 // discovery step: return the candidates), `plan` (the contract the makers are held to: scope and done-when),
 // `implement` and `test-plan` (the makers, run in parallel after the plan and blind to each other, ruling 12)
 // and `verify` (Made Well runs the item's checks itself, merges and ships, ruling 14). A failure goes to the
@@ -31,6 +32,12 @@ type JsonSchema = Readonly<Record<string, unknown>>
 /** One job as the console runs it: a cartridge's step with its defaults filled in. */
 export interface Step {
 	readonly job: Job
+	readonly run?: string
+	readonly input?: JsonSchema
+	readonly args?: Readonly<Record<string, unknown>>
+	readonly children?: ReadonlyArray<string>
+	readonly parent?: string
+	readonly access?: 'none' | 'read' | 'make' | 'checks' | 'run'
 	/** The cartridge it belongs to, shown as its stage. */
 	readonly cartridge: string
 	readonly loop: 'discovery' | 'delivery'
@@ -50,7 +57,7 @@ export interface Step {
 // ── Cartridge packs ────────────────────────────────────────────────────────────────────────────────────
 
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0))
-const StepSpec = Schema.Struct({
+const StepFields = {
 	job: Schema.String.annotate({ description: 'the job\'s name, lowercase letters, digits and "-"; a slot (discover, plan, implement, test-plan, verify) gets the console\'s behaviour' }),
 	profile: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'the agent profile that does it, never a personal name' })),
 	duty: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'what the job is for and what it must not do, in one or two sentences' })),
@@ -59,16 +66,29 @@ const StepSpec = Schema.Struct({
 	output: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown).annotate({ description: 'a thinking step\'s deliverable as JSON Schema, {"type": "object", ...}: Made Well checks type, properties, required, items, enum and anyOf' })),
 	tier: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'a thinking step\'s prescribed tier when the prescriptions do not name its job; default "deep"' })),
 	budget: Schema.optionalKey(Schema.Struct({ minutes: Positive, tokens: Schema.optional(Positive) }).annotate({ description: 'a thinking step\'s budget when the prescriptions do not name its job' })),
+	run: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'functions runtime: trusted command, JSON input on stdin, JSON object output on stdout; stderr carries logs' })),
+	input: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+	args: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+	access: Schema.optionalKey(Schema.Literals(['none', 'read', 'make', 'checks', 'run'])),
+}
+interface NodeSpec extends Schema.Struct.Type<typeof StepFields> {
+	readonly children?: ReadonlyArray<NodeSpec>
+}
+const StepSpec: Schema.Codec<NodeSpec> = Schema.Struct({
+	...StepFields,
+	children: Schema.optionalKey(Schema.Array(Schema.suspend((): Schema.Codec<NodeSpec> => StepSpec))),
 }).annotate({ identifier: 'Step' })
 const CartridgeSpec = Schema.Struct({
 	cartridge: Schema.NonEmptyString.annotate({ description: 'its name, shown as the stage of its steps' }),
-	steps: Schema.NonEmptyArray(StepSpec),
+	steps: Schema.Array(StepSpec),
 }).annotate({ identifier: 'Cartridge' })
 export const Pack = Schema.Struct({
 	name: Schema.NonEmptyString,
+	runtime: Schema.optionalKey(Schema.Literals(['software', 'functions']).annotate({ description: 'software keeps the existing maker/check/ship contract; functions has no required stage names or Git dependency' })),
+	version: Schema.optionalKey(Schema.NonEmptyString),
 	brief: Schema.optionalKey(Schema.String.annotate({ description: 'what every call of this kind of work should know, added to the shared brief' })),
-	discovery: Schema.NonEmptyArray(CartridgeSpec).annotate({ description: 'raw input in, candidates out; the last step is "discover"' }),
-	delivery: Schema.NonEmptyArray(CartridgeSpec).annotate({ description: 'one item in, delivered out: thinking steps, then "plan", then "implement" (and "test-plan" beside it, or leave it out), then "verify"' }),
+	discovery: Schema.Array(CartridgeSpec).annotate({ description: 'raw input in, candidates out; software ends with "discover"' }),
+	delivery: Schema.Array(CartridgeSpec).annotate({ description: 'ordered cartridges; functions may have zero, one or many nodes, including nested children' }),
 }).annotate({ identifier: 'Pack' })
 export type Pack = typeof Pack.Type
 
@@ -88,6 +108,7 @@ const ARBITER = {
 
 /** Why a pack breaks the console's contract: one sentence per problem, empty when it plugs in. */
 export function problemsOf(pack: Pack): string[] {
+	if (pack.runtime === 'functions') return functionProblems(pack)
 	const out: string[] = []
 	const seen = new Set<string>()
 	const loop = (name: 'discovery' | 'delivery') => pack[name].flatMap((c) => c.steps.map((s) => ({ ...s, cartridge: c.cartridge })))
@@ -96,6 +117,7 @@ export function problemsOf(pack: Pack): string[] {
 	for (const [name, steps] of [['discovery', disc], ['delivery', del]] as const) {
 		steps.forEach((s, i) => {
 			const at = `${name} step ${s.job}`
+			if (s.run || s.children || s.input || s.args || s.access) out.push(`${at}: function-node fields require runtime "functions".`)
 			if (!/^[a-z][a-z0-9-]*$/.test(s.job)) out.push(`${name} step "${s.job}": a job name is lowercase letters, digits and "-".`)
 			if (s.job === 'arbitrate' || s.job === 'ship') out.push(`${at}: "${s.job}" is the console's own; it cannot be placed.`)
 			if (seen.has(s.job)) out.push(`${at}: the job name is used twice.`)
@@ -131,6 +153,40 @@ export function problemsOf(pack: Pack): string[] {
 	return out
 }
 
+/** Groups compose child outputs. Execution order is depth first; identities remain stable across updates. */
+function functionSteps(pack: Pack, loop: 'discovery' | 'delivery'): Step[] {
+	const steps: Step[] = []
+	const visit = (node: NodeSpec, cartridge: string, parent?: string) => {
+		for (const child of node.children ?? []) visit(child, cartridge, node.job)
+		steps.push({ ...node, cartridge, loop, profile: node.profile ?? 'made well', duty: node.duty ?? '',
+			receives: node.receives ?? (node.children ? node.children.map((c) => c.job) : steps.slice(-1).map((s) => s.job)),
+			...(parent ? { parent } : {}), children: node.children?.map((c) => c.job),
+		})
+	}
+	for (const cartridge of pack[loop]) for (const node of cartridge.steps) visit(node, cartridge.cartridge)
+	return steps
+}
+
+function functionProblems(pack: Pack): string[] {
+	const problems: string[] = []
+	const seen = new Set<string>()
+	for (const loop of ['discovery', 'delivery'] as const) {
+		const earlier = new Set<string>()
+		for (const step of functionSteps(pack, loop)) {
+			const at = `${loop} node ${step.job}`
+			if (!/^[a-z][a-z0-9-]*$/.test(step.job)) problems.push(`${at}: use lowercase letters, digits and "-".`)
+			if (seen.has(step.job)) problems.push(`${at}: duplicate node identity.`)
+			if (step.children && (step.run || step.profile !== 'made well' || step.task)) problems.push(`${at}: a group composes children; give executable behavior to a child.`)
+			if (!step.children && !step.run && (!step.duty || step.profile === 'made well')) problems.push(`${at}: an agent needs profile and duty; otherwise provide run or children.`)
+			if (!step.children && step.output?.type !== 'object') problems.push(`${at}: declare an object output schema.`)
+			for (const received of step.receives) if (!earlier.has(received)) problems.push(`${at}: ${received} is not an earlier output in ${loop}.`)
+			earlier.add(step.job)
+			seen.add(step.job)
+		}
+	}
+	return problems
+}
+
 /** A pack with its defaults filled in, ready for the console. */
 export interface Lane {
 	readonly pack: Pack
@@ -142,6 +198,10 @@ export interface Lane {
 }
 
 function compile(pack: Pack): Lane {
+	if (pack.runtime === 'functions') return {
+		pack, discovery: functionSteps(pack, 'discovery'), delivery: functionSteps(pack, 'delivery'), makers: [],
+		arbiter: { ...ARBITER, cartridge: 'delivery', loop: 'delivery', receives: [] },
+	}
 	const loop = (name: 'discovery' | 'delivery'): Step[] => {
 		const steps = pack[name].flatMap((c) => c.steps.map((s) => ({ s, cartridge: c.cartridge })))
 		return steps.map(({ s, cartridge }, i) => {
@@ -173,7 +233,7 @@ export const laneOf = (pack?: Pack): Lane => {
 
 /** A job of the lane, or a bare step for a job it does not have (an item recorded under another pack). */
 export const stepOf = (lane: Lane, job: Job): Step =>
-	job === 'arbitrate' ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: 'delivery', profile: job, duty: '', receives: [] }
+	job === 'arbitrate' && lane.pack.runtime !== 'functions' ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: 'delivery', profile: job, duty: '', receives: [] }
 
 export const hasJob = (lane: Lane, job: Job) => job === 'arbitrate' || [...lane.discovery, ...lane.delivery].some((s) => s.job === job)
 
@@ -186,7 +246,7 @@ export const loadPack = (path: string) =>
 		})
 		const invalid = (problems: string[]) => new MadeWellError({
 			code: 'cartridges_invalid', message: `The cartridge pack ${path} does not plug into the console.`, context: { path, problems },
-			cause: 'A pack is {name, brief?, discovery: [cartridge], delivery: [cartridge]}, each cartridge {cartridge, steps: [step]}. Discovery ends with "discover"; delivery is thinking steps, then "plan", "implement" (and "test-plan" beside it), then "verify". A thinking step needs a profile, a duty and an output JSON Schema.',
+			cause: 'A pack is {name, runtime?, version?, brief?, discovery: [cartridge], delivery: [cartridge]}. Each cartridge has steps. The default software runtime keeps plan/makers/verify. runtime "functions" has no required nodes: use agent profiles, trusted commands, or nested children with input/output contracts.',
 			next: [{ run: `$EDITOR ${path}`, why: 'fix each problem in context.problems' }, { run: 'mw cartridges', why: 'compare with the default software pack' }],
 		})
 		const json = yield* Effect.try({ try: () => JSON.parse(text) as unknown, catch: (e) => invalid([`It is not valid JSON: ${String(e)}`]) })
@@ -260,7 +320,7 @@ export const arbiterSchema = (lane: Lane, autonomous: boolean) =>
 
 /** A slot's deliverable schema, or undefined for a thinking step (its JSON Schema is the cartridge's). */
 const slotSchema = (lane: Lane, job: Job, autonomous: boolean): Schema.Top & Schema.ConstraintDecoder<unknown> | undefined =>
-	job === 'arbitrate' ? arbiterSchema(lane, autonomous) : (SLOT_DELIVERABLES as Record<string, Schema.Top & Schema.ConstraintDecoder<unknown>>)[job]
+	lane.pack.runtime === 'functions' ? undefined : job === 'arbitrate' ? arbiterSchema(lane, autonomous) : (SLOT_DELIVERABLES as Record<string, Schema.Top & Schema.ConstraintDecoder<unknown>>)[job]
 
 /** The JSON Schema a job's answer must match, as its packet shows it. */
 export const deliverableShape = (lane: Lane, job: Job, autonomous = false): Record<string, unknown> | undefined => {
@@ -295,7 +355,7 @@ export function conforms(schema: Readonly<Record<string, unknown>>, value: unkno
 
 /** Why an answer's JSON fails its shape, as opposed to a rule about its content: only that is re-asked. Undefined when it fits. */
 export function malformed(lane: Lane, job: Job, output: string, autonomous = false): string | undefined {
-	if (job === 'discover') return Array.isArray(lastJson(output)?.items) ? undefined : 'The answer did not end with {"items": [...]}.'
+	if (lane.pack.runtime !== 'functions' && job === 'discover') return Array.isArray(lastJson(output)?.items) ? undefined : 'The answer did not end with {"items": [...]}.'
 	const schema = slotSchema(lane, job, autonomous)
 	if (schema) {
 		const r = decode(schema, output)
@@ -381,7 +441,7 @@ function unfollowed(p: Plan, tracked: ReadonlyArray<string>): string | undefined
  * `tracked`, the files at the plan's base, enables the follows rule; without it (re-reading a stored plan) the rule is not applied.
  */
 export function validate(lane: Lane, job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>, autonomous = false, conventions: ReadonlyArray<string> = []): { ok: true; value: Record<string, unknown>; dropped?: ReadonlyArray<{ position: number; missing: string[] }> } | { ok: false; reason: string } {
-	if (job === 'discover') {
+	if (lane.pack.runtime !== 'functions' && job === 'discover') {
 		// Discovery keeps what it can: an item without a title or objective is dropped, not the whole run.
 		const report = lastJson(output)
 		if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' }
@@ -397,7 +457,7 @@ export function validate(lane: Lane, job: Job, output: string, plan?: Plan, trac
 		const dropped = all.flatMap((i, n) => kept.includes(n) ? [] : [{ position: n + 1, missing: ['title', 'objective'].filter((key) => !text(i?.[key])) }])
 		return { ok: true, value: { items }, ...(dropped.length ? { dropped } : {}) }
 	}
-	if (job === 'verify') return { ok: false, reason: 'verify is Made Well\'s own code, not an agent job.' }
+	if (lane.pack.runtime !== 'functions' && job === 'verify') return { ok: false, reason: 'verify is Made Well\'s own code, not an agent job.' }
 	// Custom thinking steps use the same gate even when their output schema is supplied by a pack.
 	const decisions = lastJson(output)?.decisions
 	if (decisions !== undefined) {

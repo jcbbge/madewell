@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { after, test } from 'node:test'
+import { API_SCHEMAS, contextOf } from '../src/api.ts'
+import { openStore } from '../src/store.ts'
 
 const root = mkdtempSync(join(tmpdir(), 'mw-cli-'))
 after(() => rmSync(root, { recursive: true, force: true }))
@@ -39,18 +41,21 @@ function setup(extra: Record<string, string> = {}) {
 	return { dir, home, repo, env, mw, sh, git }
 }
 
-const COMMANDS = ['next', 'init', 'cartridges', 'discover', 'promote', 'start', 'run', 'status', 'show', 'trace', 'holds', 'answer', 'retry', 'go', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
+const COMMANDS = ['next', 'init', 'cartridges', 'discover', 'promote', 'start', 'run', 'status', 'show', 'context', 'trace', 'holds', 'answer', 'retry', 'go', 'drop', 'ui', 'watch', 'replay', 'export', 'stats', 'eval', 'prune']
+const QA_COMMANDS = ['qa-case-create', 'qa-case-revise', 'qa-cases', 'qa-case', 'qa-run-start', 'qa-runs', 'qa-run', 'qa-observe', 'qa-verdict', 'qa-observations', 'qa-export', 'qa-link']
 
 test('mw alone prints the manual from the command table, and reading creates nothing', () => {
 	const t = setup()
 	const manual = t.mw()
 	assert.equal(manual.code, 0)
-	assert.deepEqual(manual.out.commands.map((c: { name: string }) => c.name), COMMANDS)
+	const names = manual.out.commands.map((c: { name: string }) => c.name) as string[]
+	assert.deepEqual(names.filter((name) => !QA_COMMANDS.includes(name)), COMMANDS)
+	assert.deepEqual(names.filter((name) => QA_COMMANDS.includes(name)).sort(), [...QA_COMMANDS].sort())
 	assert.equal(manual.out.commands.find((c: { name: string }) => c.name === 'answer').usage, 'mw answer <id> <text...> [--cause <cause>]')
 	assert.deepEqual(manual.out.commands.find((c: { name: string }) => c.name === 'answer').input.required, ['id', 'text'])
 	assert.equal(manual.out.errors.store_locked.context.properties.owner.properties.pid.type, 'integer')
 	// Every command in the manual is one the dispatcher knows, and rejects a bad option as that command.
-	for (const name of COMMANDS) assert.deepEqual([name, t.mw(name, '--bogus').err.context], [name, { command: name }])
+	for (const name of [...COMMANDS, ...QA_COMMANDS]) assert.deepEqual([name, t.mw(name, '--bogus').err.context], [name, { command: name }])
 	assert.deepEqual(t.mw('deploy').err.context, { command: 'deploy' })
 
 	const next = manual.out.state.next
@@ -59,11 +64,33 @@ test('mw alone prints the manual from the command table, and reading creates not
 	assert.deepEqual(t.mw('next').out, next)
 	assert.deepEqual(t.mw('holds').out, { holds: [], next: [] })
 	assert.equal(t.mw('status', '3').err.error, 'item_not_found')
+	assert.equal(t.mw('context', '3').err.error, 'item_not_found')
+	assert.deepEqual(manual.out.commands.find((c: { name: string }) => c.name === 'context').output, API_SCHEMAS.Context)
 	// A relay's command run before the operator's words replace its slot is refused.
 	const unfilled = t.sh(`mw answer 1 "<your words>"`)
 	assert.equal(unfilled.err.error, 'usage')
 	assert.match(unfilled.err.message, /placeholder/)
 	assert.equal(existsSync(t.home), false, 'reading the manual or state creates nothing')
+})
+
+test('context returns the shared HTTP projection without starting a server or changing state', () => {
+	const t = setup()
+	t.mw('init')
+	const id = t.mw('start', '--objective', 'Inspect context', '--source', 'operator words').out.item.id
+	const store = openStore(join(t.home, 'madewell.db'))
+	try {
+		const before = store.mark()
+		const result = t.mw('context', String(id))
+		assert.equal(result.code, 0)
+		assert.deepEqual(result.out, contextOf(store, id))
+		assert.deepEqual(result.out.evidence.cli, { record: `mw show ${id}`, trace: `mw trace ${id} --lens ax`, context: `mw context ${id}` })
+		assert.equal(result.out.observation.command, `mw context ${id}`)
+		assert.equal(result.out.observation.authority, 'read-only')
+		assert.deepEqual(store.mark(), before)
+		assert.equal(store.runner(), null)
+		assert.equal(t.mw('context', '0').err.error, 'usage')
+		assert.equal(t.mw('context', 'not-an-id').err.error, 'usage')
+	} finally { store.close() }
 })
 
 test('the manual keeps the named Card contract and default replay jobs', () => {
@@ -357,8 +384,21 @@ test('the console shows each step while it runs: what the agent is doing, who ow
 		assert.deepEqual([item.doing, item.owes], ['The planner is writing the plan', 'planner'], 'the item says what happens now and who owes the next move')
 		assert.deepEqual(item.steps.map((s: { job: string; state: string }) => `${s.job}:${s.state}`), ['ideate:done', 'challenge:done', 'plan:active', 'implement:todo', 'test-plan:todo', 'verify:todo', 'ship:todo'])
 		const page = await (await fetch(url)).text()
-		assert.match(page, /<main class="sheet"/, 'the Gazette sheet is served at /')
-		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the Gazette page\'s script parses')
+		assert.match(page, /Made Well · Your work/, 'the plain-language work display is served at /')
+		assert.doesNotThrow(() => new Function(page.slice(page.indexOf('<script>') + 8, page.lastIndexOf('</script>'))), 'the monitor script parses')
+		const qaResponse = await fetch(url + 'qa')
+		assert.equal(qaResponse.status, 200, 'manual QA is reachable in the same host')
+		assert.match(qaResponse.headers.get('content-type')!, /text\/html/)
+		const qaPage = await qaResponse.text()
+		assert.match(qaPage, /Manual QA/i)
+		for (const script of qaPage.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)) assert.doesNotThrow(() => new Function(script[1]!), 'served QA scripts parse')
+		for (const family of ['sans', 'mono']) {
+			const font = await fetch(url + `fonts/ibm-plex-${family}-latin.woff2`)
+			assert.equal(font.headers.get('content-type'), 'font/woff2')
+			assert.equal(Buffer.from(await font.arrayBuffer()).subarray(0, 4).toString(), 'wOF2', 'the fonts are available without an external font service')
+		}
+		assert.equal((await get('api/runs')).items[0].id, 1)
+		assert.match(await (await fetch(url + 'gazette')).text(), /<main class="sheet"/, 'the Gazette remains available')
 		const console_ = await (await fetch(url + 'console')).text()
 		assert.match(console_, /<title>Made Well<\/title>/, 'the console stays at /console')
 		assert.doesNotThrow(() => new Function(console_.slice(console_.indexOf('<script>') + 8, console_.lastIndexOf('</script>'))), 'the console page\'s script parses')
@@ -636,4 +676,39 @@ test('mw cartridges prints the pack a project runs; init plugs in only a pack th
 
 	assert.equal(t.mw('init', '--cartridges', 'default').out.project.cartridges, undefined)
 	assert.equal(t.mw('cartridges').out.source, 'default')
+})
+
+test('function packs are registered, overridden, updated and discovered through the CLI without Git', () => {
+	const t = setup()
+	const workspace = join(t.dir, 'plain-work')
+	mkdirSync(workspace)
+	const file = join(t.dir, 'functions.json')
+	const output = { type: 'object', required: ['value'], properties: { value: { type: 'number' } } }
+	const pack = { name: 'plain', runtime: 'functions', version: '1', discovery: [{ cartridge: 'capture', steps: [{ job: 'tasks', run: `echo '{"items":[{"title":"First task","objective":"Return three"},{"title":"Second task","objective":"Return three again"}]}'`, output: { type: 'object', required: ['items'] } }] }], delivery: [{ cartridge: 'work', steps: [{ job: 'one', run: `echo '{"value":3}'`, output }] }] }
+	writeFileSync(file, JSON.stringify(pack))
+	assert.equal(t.mw('cartridges', '--check', file).code, 0)
+	assert.equal(t.mw('init', '--workspace', workspace, '--cartridges', file).code, 0)
+	const start = () => t.mw('start', '--workspace', workspace, '--objective', 'Transform', '--source', 'approved').out.item
+	const item = start()
+	assert.equal(start().id, item.id)
+	writeFileSync(file, JSON.stringify({ ...pack, version: '2', delivery: [{ cartridge: 'work', steps: [{ job: 'two', run: `echo '{"value":7}'`, output }] }] }))
+	assert.equal(t.mw('cartridges', '--update', file, '--item', String(item.id)).out.update.state, 'pending')
+	assert.equal(t.mw('run').code, 0)
+	assert.equal(t.mw('show', String(item.id)).out.item.status, 'completed')
+	assert.deepEqual(t.mw('trace', String(item.id), '--lens', 'ax').out.proof.completion, { output: { value: 7 }, nodes: 1 })
+	assert.equal(t.mw('cartridges', '--item', String(item.id)).out.pack.version, '2')
+	assert.equal(t.mw('cartridges', '--update', file, '--item', String(item.id)).err.error, 'cartridges_invalid')
+	const empty = join(t.dir, 'empty.json')
+	writeFileSync(empty, JSON.stringify({ ...pack, discovery: [], delivery: [] }))
+	const overridden = t.mw('start', '--workspace', workspace, '--cartridges', empty, '--objective', 'Transform', '--source', 'approved').out.item
+	assert.notEqual(overridden.id, item.id)
+	const discovery = t.mw('discover', '--workspace', workspace, '--source', 'Two tasks').out.item
+	assert.equal(t.mw('run').code, 0)
+	assert.equal(t.mw('trace', String(overridden.id), '--lens', 'ax').out.proof.completion.nodes, 0)
+	const candidates = t.mw('status').out.items.filter((i: { discovery: number }) => i.discovery === discovery.id)
+	assert.equal(candidates.length, 2)
+	assert.ok(candidates.every((i: { status: string }) => i.status === 'candidate'))
+	assert.equal(t.mw('promote', String(discovery.id)).code, 0)
+	assert.equal(t.mw('run').code, 0)
+	assert.ok(candidates.every((i: { id: number }) => t.mw('show', String(i.id)).out.item.status === 'completed'))
 })

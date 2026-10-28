@@ -9,11 +9,11 @@ var __export = (target, all4) => {
 import { spawn as spawn3 } from "node:child_process";
 import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync3, readdirSync as readdirSync5, readFileSync as readFileSync9, realpathSync, rmSync as rmSync7, statSync as statSync3, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve7 } from "node:path";
+import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve8 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
-// ../../madewell/node_modules/effect/dist/Pipeable.js
+// node_modules/effect/dist/Pipeable.js
 var pipeArguments = (self, args2) => {
   switch (args2.length) {
     case 0:
@@ -57,7 +57,7 @@ var Class = /* @__PURE__ */ (function() {
   return PipeableBase;
 })();
 
-// ../../madewell/node_modules/effect/dist/Function.js
+// node_modules/effect/dist/Function.js
 var dual = function(arity, body) {
   if (typeof arity === "function") {
     return function() {
@@ -132,7 +132,7 @@ function memoizeIdempotent(f) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/Cause.js
+// node_modules/effect/dist/Cause.js
 var Cause_exports = {};
 __export(Cause_exports, {
   AsyncFiberError: () => AsyncFiberError2,
@@ -196,7 +196,7 @@ __export(Cause_exports, {
   squash: () => squash
 });
 
-// ../../madewell/node_modules/effect/dist/Context.js
+// node_modules/effect/dist/Context.js
 var Context_exports = {};
 __export(Context_exports, {
   Reference: () => Reference,
@@ -224,7 +224,7 @@ __export(Context_exports, {
   pick: () => pick
 });
 
-// ../../madewell/node_modules/effect/dist/internal/equal.js
+// node_modules/effect/dist/internal/equal.js
 var getAllObjectKeys = (obj) => {
   const keys3 = new Set(Reflect.ownKeys(obj));
   if (obj.constructor === Object) return keys3;
@@ -248,13 +248,13 @@ var getAllObjectKeys = (obj) => {
 var byReferenceInstances = /* @__PURE__ */ new WeakSet();
 var viewBytes = (view2) => new Uint8Array(view2.buffer, view2.byteOffset, view2.byteLength);
 
-// ../../madewell/node_modules/effect/dist/internal/hash.js
+// node_modules/effect/dist/internal/hash.js
 var backEdges = 0;
 var addBackEdge = () => {
   backEdges++;
 };
 
-// ../../madewell/node_modules/effect/dist/Predicate.js
+// node_modules/effect/dist/Predicate.js
 function isString(input) {
   return typeof input === "string";
 }
@@ -306,7 +306,7 @@ function isIterable(input) {
   return hasProperty(input, Symbol.iterator) || isString(input);
 }
 
-// ../../madewell/node_modules/effect/dist/Hash.js
+// node_modules/effect/dist/Hash.js
 var symbol = "~effect/Hash";
 var hash = (self) => {
   switch (typeof self) {
@@ -394,10 +394,10 @@ var number = (n) => {
   float64.setFloat64(0, n !== n ? NaN : n);
   return optimize(combine(float64.getInt32(0), float64.getInt32(4)));
 };
-var string = (str) => {
-  let h = 5381, i = str.length;
+var string = (str2) => {
+  let h = 5381, i = str2.length;
   while (i) {
-    h = h * 33 ^ str.charCodeAt(--i);
+    h = h * 33 ^ str2.charCodeAt(--i);
   }
   return optimize(h);
 };
@@ -430,7 +430,7 @@ var randomHashCache = /* @__PURE__ */ new WeakMap();
 var hashCache = /* @__PURE__ */ new WeakMap();
 var visitedObjects = /* @__PURE__ */ new WeakSet();
 
-// ../../madewell/node_modules/effect/dist/Equal.js
+// node_modules/effect/dist/Equal.js
 var symbol2 = "~effect/Equal";
 function equals() {
   if (arguments.length === 1) {
@@ -600,7 +600,7 @@ var byReferenceUnsafe = (obj) => {
   return obj;
 };
 
-// ../../madewell/node_modules/effect/dist/Redactable.js
+// node_modules/effect/dist/Redactable.js
 var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
 var isRedactable = (u) => hasProperty(u, symbolRedactable);
 function redact(u) {
@@ -622,7 +622,7 @@ var emptyContext = {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/Formatter.js
+// node_modules/effect/dist/Formatter.js
 function format(input, options) {
   const space = options?.space ?? 0;
   const ancestors = /* @__PURE__ */ new WeakSet();
@@ -755,18 +755,18 @@ function formatJson(input, options) {
     return serialized;
   }, options?.space) ?? "null";
 }
-function hasGetter(object) {
-  for (const key of Object.getOwnPropertyNames(object)) {
-    if (Object.getOwnPropertyDescriptor(object, key)?.get !== void 0) {
+function hasGetter(object2) {
+  for (const key of Object.getOwnPropertyNames(object2)) {
+    if (Object.getOwnPropertyDescriptor(object2, key)?.get !== void 0) {
       return true;
     }
   }
   return false;
 }
-function isJsonPrimitiveWrapper(object) {
+function isJsonPrimitiveWrapper(object2) {
   for (const valueOf of [Number.prototype.valueOf, Boolean.prototype.valueOf, String.prototype.valueOf]) {
     try {
-      Reflect.apply(valueOf, object, []);
+      Reflect.apply(valueOf, object2, []);
       return true;
     } catch {
     }
@@ -774,7 +774,7 @@ function isJsonPrimitiveWrapper(object) {
   return false;
 }
 
-// ../../madewell/node_modules/effect/dist/Inspectable.js
+// node_modules/effect/dist/Inspectable.js
 var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 var toJson = (input) => {
   try {
@@ -841,7 +841,7 @@ var Class2 = class {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/stackTraceLimit.js
+// node_modules/effect/dist/internal/stackTraceLimit.js
 var isStackTraceLimitWritable = () => {
   const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
   if (desc === void 0) {
@@ -858,7 +858,7 @@ var setStackTraceLimit = (value3) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/Utils.js
+// node_modules/effect/dist/Utils.js
 var SingleShotGen = class {
   constructor(self) {
     this.value = self;
@@ -910,7 +910,7 @@ var pickInternalCall = () => {
 };
 var internalCall = /* @__PURE__ */ pickInternalCall();
 
-// ../../madewell/node_modules/effect/dist/internal/record.js
+// node_modules/effect/dist/internal/record.js
 function assignProperty(self, key, value3) {
   if (key === "__proto__") {
     Object.defineProperty(self, key, {
@@ -932,7 +932,7 @@ function assignProperties(self, source) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/internal/core.js
+// node_modules/effect/dist/internal/core.js
 var EffectTypeId = `~effect/Effect`;
 var ExitTypeId = `~effect/Exit`;
 var effectVariance = {
@@ -1096,10 +1096,10 @@ var dedupeReasons = (self, that) => {
   const buckets = /* @__PURE__ */ new Map();
   const out = [];
   for (const reason of self.concat(that)) {
-    const hash2 = hash(reason);
-    const bucket = buckets.get(hash2);
+    const hash3 = hash(reason);
+    const bucket = buckets.get(hash3);
     if (bucket === void 0) {
-      buckets.set(hash2, [reason]);
+      buckets.set(hash3, [reason]);
     } else if (bucket.some((previous) => equals(previous, reason))) {
       continue;
     } else {
@@ -1346,13 +1346,13 @@ var done = (value3) => {
   return exitFail(Done(value3));
 };
 
-// ../../madewell/node_modules/effect/dist/Effectable.js
+// node_modules/effect/dist/Effectable.js
 var Prototype2 = (options) => makePrimitiveProto({
   op: options.label,
   [evaluate]: options.evaluate
 });
 
-// ../../madewell/node_modules/effect/dist/Equivalence.js
+// node_modules/effect/dist/Equivalence.js
 var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
 var isStrictEquivalent = (x, y) => x === y;
 var strictEqual = () => isStrictEquivalent;
@@ -1379,7 +1379,7 @@ function Array_(item) {
   });
 }
 
-// ../../madewell/node_modules/effect/dist/internal/doNotation.js
+// node_modules/effect/dist/internal/doNotation.js
 var let_ = (map11) => dual(3, (self, name, f) => map11(self, (a) => ({
   ...a,
   [name]: f(a)
@@ -1392,7 +1392,7 @@ var bind = (map11, flatMap7) => dual(3, (self, name, f) => flatMap7(self, (a) =>
   [name]: b
 }))));
 
-// ../../madewell/node_modules/effect/dist/internal/option.js
+// node_modules/effect/dist/internal/option.js
 var TypeId = "~effect/Option";
 var CommonProto = {
   [TypeId]: {
@@ -1458,7 +1458,7 @@ var SomeImpl = function(value3) {
 SomeImpl.prototype = SomeProto;
 var some = (value3) => new SomeImpl(value3);
 
-// ../../madewell/node_modules/effect/dist/internal/result.js
+// node_modules/effect/dist/internal/result.js
 var TypeId2 = "~effect/Result";
 var CommonProto2 = {
   [TypeId2]: {
@@ -1528,7 +1528,7 @@ var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
 var getSuccess = (self) => isFailure(self) ? none : some(self.success);
 var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
-// ../../madewell/node_modules/effect/dist/Order.js
+// node_modules/effect/dist/Order.js
 function make2(compare2) {
   return (self, that) => self === that ? 0 : compare2(self, that);
 }
@@ -1547,7 +1547,7 @@ var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
 var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
 var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
 
-// ../../madewell/node_modules/effect/dist/Option.js
+// node_modules/effect/dist/Option.js
 var none2 = () => none;
 var some2 = some;
 var isOption2 = isOption;
@@ -1575,7 +1575,7 @@ var flatMap = /* @__PURE__ */ dual(2, (self, f) => isNone2(self) ? none2() : f(s
 var flatten = /* @__PURE__ */ flatMap(identity);
 var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
 
-// ../../madewell/node_modules/effect/dist/Context.js
+// node_modules/effect/dist/Context.js
 var ServiceTypeId = "~effect/Context/Service";
 var Service = function() {
   function KeyClass() {
@@ -1749,11 +1749,11 @@ var getUnsafe = /* @__PURE__ */ dual(2, (self, service4) => {
 });
 var get = getUnsafe;
 var defaultValueCacheKey = "~effect/Context/defaultValue";
-var getDefaultValue = (ref) => {
-  if (defaultValueCacheKey in ref) {
-    return ref[defaultValueCacheKey];
+var getDefaultValue = (ref2) => {
+  if (defaultValueCacheKey in ref2) {
+    return ref2[defaultValueCacheKey];
   }
-  return ref[defaultValueCacheKey] = ref.defaultValue();
+  return ref2[defaultValueCacheKey] = ref2.defaultValue();
 };
 var serviceNotFoundError = (service4) => {
   const error = new Error(`Service not found${service4.key ? `: ${String(service4.key)}` : ""}`);
@@ -1805,13 +1805,13 @@ var omit = (...keys3) => (self) => withFlat(self, (map11) => {
 });
 var Reference = Service;
 
-// ../../madewell/node_modules/effect/dist/internal/array.js
+// node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
-// ../../madewell/node_modules/effect/dist/internal/count.js
+// node_modules/effect/dist/internal/count.js
 var normalize = (n) => n > 0 ? Math.floor(n) : 0;
 
-// ../../madewell/node_modules/effect/dist/Result.js
+// node_modules/effect/dist/Result.js
 var Result_exports = {};
 __export(Result_exports, {
   Do: () => Do,
@@ -1966,10 +1966,10 @@ var tap = /* @__PURE__ */ dual(2, (self, f) => {
   return self;
 });
 
-// ../../madewell/node_modules/effect/dist/Tuple.js
+// node_modules/effect/dist/Tuple.js
 var makeEquivalence2 = Tuple;
 
-// ../../madewell/node_modules/effect/dist/Iterable.js
+// node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
   let i = 0;
   for (const a of self) {
@@ -2012,7 +2012,7 @@ var filter2 = /* @__PURE__ */ dual(2, (self, predicate) => ({
   }
 }));
 
-// ../../madewell/node_modules/effect/dist/Record.js
+// node_modules/effect/dist/Record.js
 var has = /* @__PURE__ */ dual(2, (self, key) => Object.hasOwn(self, key));
 var map3 = /* @__PURE__ */ dual(2, (self, f) => {
   const out = {
@@ -2037,7 +2037,7 @@ var makeEquivalence3 = (equivalence) => {
   return (self, that) => is3(self, that) && is3(that, self);
 };
 
-// ../../madewell/node_modules/effect/dist/Array.js
+// node_modules/effect/dist/Array.js
 var Array2 = globalThis.Array;
 var fromIterable = (collection) => Array2.isArray(collection) ? collection : Array2.from(collection);
 var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
@@ -2050,10 +2050,10 @@ function isCanonicalArrayIndex(key) {
 }
 var findFirst2 = findFirst;
 var hashBucketsAdd = (buckets, value3) => {
-  const hash2 = hash(value3);
-  const bucket = buckets.get(hash2);
+  const hash3 = hash(value3);
+  const bucket = buckets.get(hash3);
   if (bucket === void 0) {
-    buckets.set(hash2, [value3]);
+    buckets.set(hash3, [value3]);
     return true;
   }
   for (const previous of bucket) {
@@ -2096,7 +2096,7 @@ var dedupe = (self) => {
   return out;
 };
 
-// ../../madewell/node_modules/effect/dist/Duration.js
+// node_modules/effect/dist/Duration.js
 var TypeId4 = "~effect/Duration";
 var bigint0 = /* @__PURE__ */ BigInt(0);
 var bigint1 = /* @__PURE__ */ BigInt(1);
@@ -2486,7 +2486,7 @@ var format2 = (self) => {
   return pieces.join(" ");
 };
 
-// ../../madewell/node_modules/effect/dist/Filter.js
+// node_modules/effect/dist/Filter.js
 var composePassthrough = /* @__PURE__ */ dual(2, (left, right) => (input) => {
   const leftOut = left(input);
   if (isFailure2(leftOut)) return fail2(input);
@@ -2499,7 +2499,7 @@ var toOption = (self) => (input) => {
   return isFailure2(result3) ? none2() : some2(result3.success);
 };
 
-// ../../madewell/node_modules/effect/dist/Scheduler.js
+// node_modules/effect/dist/Scheduler.js
 var Scheduler = /* @__PURE__ */ Reference("effect/Scheduler", {
   fiberCached: true,
   defaultValue: () => new MixedScheduler()
@@ -2643,7 +2643,7 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
-// ../../madewell/node_modules/effect/dist/Tracer.js
+// node_modules/effect/dist/Tracer.js
 var Tracer_exports = {};
 __export(Tracer_exports, {
   CurrentTraceLevel: () => CurrentTraceLevel,
@@ -2659,7 +2659,7 @@ __export(Tracer_exports, {
   nativeTracer: () => nativeTracer
 });
 
-// ../../madewell/node_modules/effect/dist/Data.js
+// node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
   Class: () => Class3,
@@ -2706,7 +2706,7 @@ function taggedMatch() {
 var Error3 = Error2;
 var TaggedError2 = TaggedError;
 
-// ../../madewell/node_modules/effect/dist/encoding/EncodingError.js
+// node_modules/effect/dist/encoding/EncodingError.js
 var EncodingErrorTypeId = "~effect/encoding/EncodingError";
 var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
   /**
@@ -2721,7 +2721,7 @@ var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")
   [EncodingErrorTypeId] = EncodingErrorTypeId;
 };
 
-// ../../madewell/node_modules/effect/dist/encoding/Hex.js
+// node_modules/effect/dist/encoding/Hex.js
 var encode = (input) => typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input);
 var random2 = (length) => {
   switch (length) {
@@ -2756,13 +2756,13 @@ var random32 = () => {
   const d = randomWord();
   return String.fromCharCode(hexCharCodes[a >>> 28], hexCharCodes[a >>> 24 & 15], hexCharCodes[a >>> 20 & 15], hexCharCodes[a >>> 16 & 15], hexCharCodes[a >>> 12 & 15], hexCharCodes[a >>> 8 & 15], hexCharCodes[a >>> 4 & 15], hexCharCodes[a & 15], hexCharCodes[b >>> 28], hexCharCodes[b >>> 24 & 15], hexCharCodes[b >>> 20 & 15], hexCharCodes[b >>> 16 & 15], hexCharCodes[b >>> 12 & 15], hexCharCodes[b >>> 8 & 15], hexCharCodes[b >>> 4 & 15], hexCharCodes[b & 15], hexCharCodes[c >>> 28], hexCharCodes[c >>> 24 & 15], hexCharCodes[c >>> 20 & 15], hexCharCodes[c >>> 16 & 15], hexCharCodes[c >>> 12 & 15], hexCharCodes[c >>> 8 & 15], hexCharCodes[c >>> 4 & 15], hexCharCodes[c & 15], hexCharCodes[d >>> 28], hexCharCodes[d >>> 24 & 15], hexCharCodes[d >>> 20 & 15], hexCharCodes[d >>> 16 & 15], hexCharCodes[d >>> 12 & 15], hexCharCodes[d >>> 8 & 15], hexCharCodes[d >>> 4 & 15], hexCharCodes[d & 15]);
 };
-var decode = (str) => {
-  const bytes3 = new TextEncoder().encode(str);
+var decode = (str2) => {
+  const bytes3 = new TextEncoder().encode(str2);
   if (bytes3.length % 2 !== 0) {
     return fail2(new EncodingError({
       module: "Hex",
       kind: "Decode",
-      input: str,
+      input: str2,
       message: `Length must be a multiple of 2, but is ${bytes3.length}`
     }));
   }
@@ -2779,12 +2779,12 @@ var decode = (str) => {
     return fail2(new EncodingError({
       module: "Hex",
       kind: "Decode",
-      input: str,
+      input: str2,
       message: e instanceof Error ? e.message : "Invalid input"
     }));
   }
 };
-var decodeString = (str) => map2(decode(str), (_) => decoder.decode(_));
+var decodeString = (str2) => map2(decode(str2), (_) => decoder.decode(_));
 var encoder = /* @__PURE__ */ new TextEncoder();
 var decoder = /* @__PURE__ */ new TextDecoder();
 var byteToHex = /* @__PURE__ */ Array.from({
@@ -2810,7 +2810,7 @@ var fromHexChar = (byte) => {
   throw new TypeError("Invalid input");
 };
 
-// ../../madewell/node_modules/effect/dist/Tracer.js
+// node_modules/effect/dist/Tracer.js
 var ParentSpanKey = "effect/Tracer/ParentSpan";
 var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
   fiberCached: true
@@ -2899,10 +2899,10 @@ var NativeSpan = class {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/metric.js
+// node_modules/effect/dist/internal/metric.js
 var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
 
-// ../../madewell/node_modules/effect/dist/internal/references.js
+// node_modules/effect/dist/internal/references.js
 var CurrentErrorReporters = /* @__PURE__ */ Reference("effect/ErrorReporter/CurrentErrorReporters", {
   defaultValue: () => /* @__PURE__ */ new Set()
 });
@@ -2938,7 +2938,7 @@ var CurrentLogSpans = /* @__PURE__ */ Reference("effect/References/CurrentLogSpa
   defaultValue: () => []
 });
 
-// ../../madewell/node_modules/effect/dist/internal/tracer.js
+// node_modules/effect/dist/internal/tracer.js
 var addSpanStackTrace = (options) => {
   if (options?.captureStackTrace === false) {
     return options;
@@ -2975,7 +2975,7 @@ var makeStackCleaner = (line) => (stack) => {
 };
 var spanCleaner = /* @__PURE__ */ makeStackCleaner(3);
 
-// ../../madewell/node_modules/effect/dist/internal/effect.js
+// node_modules/effect/dist/internal/effect.js
 var Interrupt = class extends ReasonBase {
   constructor(fiberId3, annotations2 = constEmptyAnnotations) {
     super("Interrupt", annotations2, "Interrupted");
@@ -3266,8 +3266,8 @@ var FiberImpl = class {
   get currentDispatcher() {
     return this._dispatcher ??= this.cache.scheduler.makeDispatcher();
   }
-  getRef(ref) {
-    return get(this.context, ref);
+  getRef(ref2) {
+    return get(this.context, ref2);
   }
   addObserver(cb) {
     if (this._exit) {
@@ -3544,13 +3544,13 @@ var fiberJoinAll = (self) => callback((resume) => {
     }
   };
   let done3 = 0;
-  let failed = false;
+  let failed2 = false;
   for (let i = 0; i < fibers.length; i++) {
-    if (failed) break;
+    if (failed2) break;
     const observer = (exit4) => {
       done3++;
       if (exit4._tag === "Failure") {
-        failed = true;
+        failed2 = true;
         removeObservers();
         return resume(exit4);
       }
@@ -3563,7 +3563,7 @@ var fiberJoinAll = (self) => callback((resume) => {
     fibers[i].addObserver(observer);
   }
   return sync(() => {
-    failed = true;
+    failed2 = true;
     removeObservers();
   });
 });
@@ -4320,10 +4320,10 @@ var makeMatch = (op, onFailure) => {
   return MatchImpl2;
 };
 var MatchImpl = /* @__PURE__ */ makeMatch("Match", function(cause, fiber3) {
-  const fail10 = cause.reasons.find(isFailReason);
-  if (fail10 === void 0) return failCause(cause);
+  const fail11 = cause.reasons.find(isFailReason);
+  if (fail11 === void 0) return failCause(cause);
   const handlers = this.payload;
-  return fiber3.succeedWith(continuationMarksStack ? handlers.onFailure(fail10.error) : internalCall(() => handlers.onFailure(fail10.error)));
+  return fiber3.succeedWith(continuationMarksStack ? handlers.onFailure(fail11.error) : internalCall(() => handlers.onFailure(fail11.error)));
 });
 var MatchCauseImpl = /* @__PURE__ */ makeMatch("MatchCause", function(cause, fiber3) {
   const handlers = this.payload;
@@ -4332,8 +4332,8 @@ var MatchCauseImpl = /* @__PURE__ */ makeMatch("MatchCause", function(cause, fib
 var matchCause = /* @__PURE__ */ dual(2, (self, options) => new MatchCauseImpl(self, options));
 var matchEffect = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(self, {
   onFailure: (cause) => {
-    const fail10 = cause.reasons.find(isFailReason);
-    return fail10 ? options.onFailure(fail10.error) : failCause(cause);
+    const fail11 = cause.reasons.find(isFailReason);
+    return fail11 ? options.onFailure(fail11.error) : failCause(cause);
   },
   onSuccess: options.onSuccess
 }));
@@ -5111,8 +5111,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve8) => {
-      fiber3.addObserver((exit4) => resolve8(exit4));
+    return new Promise((resolve9) => {
+      fiber3.addObserver((exit4) => resolve9(exit4));
     });
   };
 };
@@ -5533,8 +5533,8 @@ var loggerMake = (log2) => {
 };
 var formatLabel = (key) => key.replace(/[\s="]/g, "_");
 var formatLogSpan = (self, now2) => {
-  const label2 = formatLabel(self[0]);
-  return `${label2}=${now2 - self[1]}ms`;
+  const label3 = formatLabel(self[0]);
+  return `${label3}=${now2 - self[1]}ms`;
 };
 var logWithLevel = (level) => (...message) => {
   let cause = void 0;
@@ -5665,7 +5665,7 @@ var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   reporters.forEach((reporter) => reporter.report(opts));
 };
 
-// ../../madewell/node_modules/effect/dist/Cause.js
+// node_modules/effect/dist/Cause.js
 var TypeId5 = CauseTypeId;
 var ReasonTypeId = CauseReasonTypeId;
 var isCause2 = isCause;
@@ -5728,7 +5728,7 @@ var StackTrace = class extends (/* @__PURE__ */ Service()("effect/Cause/StackTra
 var InterruptorStackTrace2 = class extends (/* @__PURE__ */ Service()("effect/Cause/InterruptorStackTrace")) {
 };
 
-// ../../madewell/node_modules/effect/dist/Effect.js
+// node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
   Do: () => Do3,
@@ -5962,7 +5962,7 @@ __export(Effect_exports, {
   zipWith: () => zipWith2
 });
 
-// ../../madewell/node_modules/effect/dist/Exit.js
+// node_modules/effect/dist/Exit.js
 var Exit_exports = {};
 __export(Exit_exports, {
   asVoid: () => asVoid2,
@@ -6021,7 +6021,7 @@ var getSuccess3 = exitGetSuccess;
 var getCause = exitGetCause;
 var findErrorOption3 = exitFindErrorOption;
 
-// ../../madewell/node_modules/effect/dist/Layer.js
+// node_modules/effect/dist/Layer.js
 var Layer_exports = {};
 __export(Layer_exports, {
   CurrentMemoMap: () => CurrentMemoMap,
@@ -6070,7 +6070,7 @@ __export(Layer_exports, {
   withSpan: () => withSpan2
 });
 
-// ../../madewell/node_modules/effect/dist/Deferred.js
+// node_modules/effect/dist/Deferred.js
 var TypeId6 = "~effect/Deferred";
 var DeferredProto = {
   [TypeId6]: {
@@ -6111,19 +6111,19 @@ var doneUnsafe = (self, effect2) => {
   return true;
 };
 
-// ../../madewell/node_modules/effect/dist/References.js
+// node_modules/effect/dist/References.js
 var CurrentLogAnnotations2 = CurrentLogAnnotations;
 var CurrentLogSpans2 = CurrentLogSpans;
 var CurrentStackFrame2 = CurrentStackFrame;
 
-// ../../madewell/node_modules/effect/dist/Scope.js
+// node_modules/effect/dist/Scope.js
 var Scope = scopeTag;
 var makeUnsafe3 = scopeMakeUnsafe;
 var provide = provideScope;
 var forkUnsafe2 = scopeForkUnsafe;
 var close = scopeClose;
 
-// ../../madewell/node_modules/effect/dist/Layer.js
+// node_modules/effect/dist/Layer.js
 var TypeId7 = "~effect/Layer";
 var MemoMapTypeId = "~effect/Layer/MemoMap";
 var makeMemoMapEntry = (memoMap, layer) => {
@@ -6351,7 +6351,7 @@ var provideSpanStackFrame2 = (name, stack) => {
   }));
 };
 
-// ../../madewell/node_modules/effect/dist/Clock.js
+// node_modules/effect/dist/Clock.js
 var Clock_exports = {};
 __export(Clock_exports, {
   Clock: () => Clock,
@@ -6366,7 +6366,7 @@ var currentTimeMillis2 = currentTimeMillis;
 var currentTimeNanos2 = currentTimeNanos;
 var monotonicTimeNanos2 = monotonicTimeNanos;
 
-// ../../madewell/node_modules/effect/dist/internal/dateTime.js
+// node_modules/effect/dist/internal/dateTime.js
 var TypeId8 = "~effect/DateTime";
 var TimeZoneTypeId = "~effect/DateTime/TimeZone";
 var Proto2 = {
@@ -6757,7 +6757,7 @@ var formatIsoOffset = (self) => {
 };
 var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
 
-// ../../madewell/node_modules/effect/dist/Number.js
+// node_modules/effect/dist/Number.js
 var Number3 = globalThis.Number;
 var remainder = /* @__PURE__ */ dual(2, (self, divisor) => {
   if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
@@ -6789,11 +6789,11 @@ function toScientificInteger(n) {
   return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1];
 }
 
-// ../../madewell/node_modules/effect/dist/String.js
+// node_modules/effect/dist/String.js
 var String3 = globalThis.String;
 var trim = (self) => self.trim();
 
-// ../../madewell/node_modules/effect/dist/Pull.js
+// node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
 var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure) => failure._tag === "Fail" && isDone2(failure.error);
@@ -6822,7 +6822,7 @@ var matchEffect2 = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(s
   }
 }));
 
-// ../../madewell/node_modules/effect/dist/Schedule.js
+// node_modules/effect/dist/Schedule.js
 var TypeId9 = "~effect/Schedule";
 var CurrentMetadata = /* @__PURE__ */ Reference("effect/Schedule/CurrentMetadata", {
   defaultValue: /* @__PURE__ */ constant({
@@ -6914,7 +6914,7 @@ var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(s
 })));
 var forever2 = /* @__PURE__ */ spaced(zero);
 
-// ../../madewell/node_modules/effect/dist/ExecutionPlan.js
+// node_modules/effect/dist/ExecutionPlan.js
 var TypeId10 = "~effect/ExecutionPlan";
 var Proto3 = {
   [TypeId10]: TypeId10,
@@ -6943,11 +6943,11 @@ var CurrentMetadata2 = /* @__PURE__ */ Reference("effect/ExecutionPlan/CurrentMe
   })
 });
 
-// ../../madewell/node_modules/effect/dist/internal/layer.js
+// node_modules/effect/dist/internal/layer.js
 var provideLayer = (self, layer, options) => scopedWith((scope3) => flatMap3(options?.local ? buildWithMemoMap(layer, makeMemoMapUnsafe(), scope3) : buildWithScope(layer, scope3), (context3) => provideContext(self, context3)));
 var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source, options) => isContext(source) ? provideContext(self, source) : provideLayer(self, Array.isArray(source) ? mergeAll2(...source) : source, options));
 
-// ../../madewell/node_modules/effect/dist/internal/schedule.js
+// node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
 var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
@@ -7019,7 +7019,7 @@ var buildFromOptions = (options) => {
   return schedule2;
 };
 
-// ../../madewell/node_modules/effect/dist/internal/executionPlan.js
+// node_modules/effect/dist/internal/executionPlan.js
 var makeEventEmitter = (onEvent, currentMetadata) => {
   let lastStepIndex = -1;
   let stepAttempt = 0;
@@ -7124,7 +7124,7 @@ var scheduleFromStep = (step2, first) => {
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
 
-// ../../madewell/node_modules/effect/dist/MutableHashMap.js
+// node_modules/effect/dist/MutableHashMap.js
 var TypeId11 = "~effect/MutableHashMap";
 var MutableHashMapProto = {
   [TypeId11]: TypeId11,
@@ -7159,8 +7159,8 @@ var get2 = /* @__PURE__ */ dual(2, (self, key) => {
   } else if (isSimpleKey(key)) {
     return none2();
   }
-  const hash2 = hash(key);
-  const bucket = self.buckets.get(hash2);
+  const hash3 = hash(key);
+  const bucket = self.buckets.get(hash3);
   if (bucket === void 0) {
     return none2();
   }
@@ -7182,10 +7182,10 @@ var set = /* @__PURE__ */ dual(3, (self, key, value3) => {
     self.backing.set(key, value3);
     return self;
   }
-  const hash2 = hash(key);
-  const bucket = self.buckets.get(hash2);
+  const hash3 = hash(key);
+  const bucket = self.buckets.get(hash3);
   if (bucket === void 0) {
-    self.buckets.set(hash2, [key]);
+    self.buckets.set(hash3, [key]);
     self.backing.set(key, value3);
     return self;
   }
@@ -7209,8 +7209,8 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
     self.backing.delete(key_);
     return self;
   }
-  const hash2 = hash(key_);
-  const bucket = self.buckets.get(hash2);
+  const hash3 = hash(key_);
+  const bucket = self.buckets.get(hash3);
   if (bucket === void 0) {
     return self;
   }
@@ -7223,12 +7223,12 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
     }
   }
   if (bucket.length === 0) {
-    self.buckets.delete(hash2);
+    self.buckets.delete(hash3);
   }
   return self;
 });
 
-// ../../madewell/node_modules/effect/dist/Request.js
+// node_modules/effect/dist/Request.js
 var TypeId12 = "~effect/Request";
 var requestVariance = /* @__PURE__ */ byReferenceUnsafe({
   /* c8 ignore next */
@@ -7244,7 +7244,7 @@ var RequestPrototype = {
 };
 var makeEntry = (options) => options;
 
-// ../../madewell/node_modules/effect/dist/internal/request.js
+// node_modules/effect/dist/internal/request.js
 var request = /* @__PURE__ */ dual(2, (self, resolver) => {
   const withResolver = (resolver2) => callback((resume) => {
     const entry = addEntry(resolver2, self, resume, getCurrentFiber());
@@ -7370,7 +7370,7 @@ function runBatch(batch) {
   return batch.run;
 }
 
-// ../../madewell/node_modules/effect/dist/Metric.js
+// node_modules/effect/dist/Metric.js
 var CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes";
 var CurrentMetricAttributes = /* @__PURE__ */ Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({})
@@ -7446,7 +7446,7 @@ function attributesToRecord(attributes) {
   return attributes;
 }
 
-// ../../madewell/node_modules/effect/dist/Effect.js
+// node_modules/effect/dist/Effect.js
 var TypeId14 = EffectTypeId;
 var isEffect2 = isEffect;
 var all3 = all2;
@@ -7670,8 +7670,8 @@ var annotateLogs = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (effect2
   return newAnnotations;
 }));
 var annotateLogsScoped2 = annotateLogsScoped;
-var withLogSpan = /* @__PURE__ */ dual(2, (effect2, label2) => flatMap3(currentTimeMillis, (now2) => updateService(effect2, CurrentLogSpans2, (spans) => {
-  const span2 = [label2, now2];
+var withLogSpan = /* @__PURE__ */ dual(2, (effect2, label3) => flatMap3(currentTimeMillis, (now2) => updateService(effect2, CurrentLogSpans2, (spans) => {
+  const span2 = [label3, now2];
   return [span2, ...spans];
 })));
 var track = /* @__PURE__ */ dual((args2) => isEffect2(args2[0]), (self, metric, f) => onExit2(self, (exit4) => {
@@ -7756,10 +7756,10 @@ var stampTransaction = (state, now2) => {
   state.elapsed = now2 - state.start;
 };
 var isTransactionConsistent = (state) => {
-  for (const [ref, {
+  for (const [ref2, {
     version
   }] of state.journal) {
-    if (ref.version !== version) {
+    if (ref2.version !== version) {
       return false;
     }
   }
@@ -7770,9 +7770,9 @@ var awaitPendingTransaction = (state) => callback2((resume) => {
     return resume(void_4);
   }
   const key = {};
-  const refs = Array.from(state.journal.keys());
+  const refs2 = Array.from(state.journal.keys());
   const clearPending = () => {
-    for (const clear3 of refs) {
+    for (const clear3 of refs2) {
       clear3.pending.delete(key);
     }
   };
@@ -7780,25 +7780,25 @@ var awaitPendingTransaction = (state) => callback2((resume) => {
     clearPending();
     resume(void_4);
   };
-  for (const ref of refs) {
-    ref.pending.set(key, onCall);
+  for (const ref2 of refs2) {
+    ref2.pending.set(key, onCall);
   }
   return sync3(clearPending);
 });
 function commitTransaction(fiber3, state) {
-  for (const [ref, {
+  for (const [ref2, {
     value: value3,
     written
   }] of state.journal) {
     if (!written) continue;
-    if (!Object.is(value3, ref.value)) {
-      ref.version = ref.version + 1;
-      ref.value = value3;
+    if (!Object.is(value3, ref2.value)) {
+      ref2.version = ref2.version + 1;
+      ref2.value = value3;
     }
-    for (const pending2 of ref.pending.values()) {
+    for (const pending2 of ref2.pending.values()) {
       fiber3.currentDispatcher.scheduleTask(pending2, 0);
     }
-    ref.pending.clear();
+    ref2.pending.clear();
   }
 }
 function clearTransaction(state) {
@@ -7833,7 +7833,7 @@ var flatMapEager2 = flatMapEager;
 var catchEager2 = catchEager;
 var fnUntracedEager2 = fnUntracedEager;
 
-// ../../madewell/node_modules/effect/dist/BigDecimal.js
+// node_modules/effect/dist/BigDecimal.js
 var FINITE_INT_REGEXP = /^[+-]?\d+$/;
 var TypeId15 = "~effect/BigDecimal";
 var BigDecimalProto = {
@@ -7986,7 +7986,7 @@ var toExponential = (n) => {
 };
 var isZero2 = (n) => n.value === bigint03;
 
-// ../../madewell/node_modules/effect/dist/Schema.js
+// node_modules/effect/dist/Schema.js
 var Schema_exports = {};
 __export(Schema_exports, {
   Any: () => Any2,
@@ -8359,7 +8359,7 @@ __export(Schema_exports, {
   withDecodingDefaultTypeKey: () => withDecodingDefaultTypeKey
 });
 
-// ../../madewell/node_modules/effect/dist/BigInt.js
+// node_modules/effect/dist/BigInt.js
 var BigInt3 = globalThis.BigInt;
 var toNumber = (b) => {
   if (b > BigInt3(Number.MAX_SAFE_INTEGER) || b < BigInt3(Number.MIN_SAFE_INTEGER)) {
@@ -8368,7 +8368,7 @@ var toNumber = (b) => {
   return some2(Number(b));
 };
 
-// ../../madewell/node_modules/effect/dist/ByteSize.js
+// node_modules/effect/dist/ByteSize.js
 var bigint04 = /* @__PURE__ */ BigInt(0);
 var bigint13 = /* @__PURE__ */ BigInt(1);
 var decimalBase = /* @__PURE__ */ BigInt(1e3);
@@ -8495,7 +8495,7 @@ var isByteSize = (input) => typeof input === "bigint" && input >= bigint04;
 var toBigInt = (self) => self;
 var toNumber2 = toNumber;
 
-// ../../madewell/node_modules/effect/dist/Chunk.js
+// node_modules/effect/dist/Chunk.js
 var TypeId16 = "~effect/Chunk";
 function copy(src, srcPos, dest, destPos, len) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
@@ -8609,23 +8609,23 @@ var of = (a) => makeChunk({
   a
 });
 var fromIterable2 = (self) => isChunk(self) ? self : fromArrayUnsafe(fromIterable(self));
-var copyToArray = (self, array2, initial) => {
+var copyToArray = (self, array3, initial) => {
   switch (self.backing._tag) {
     case "IArray": {
-      copy(self.backing.array, 0, array2, initial, self.length);
+      copy(self.backing.array, 0, array3, initial, self.length);
       break;
     }
     case "IConcat": {
-      copyToArray(self.left, array2, initial);
-      copyToArray(self.right, array2, initial + self.left.length);
+      copyToArray(self.left, array3, initial);
+      copyToArray(self.right, array3, initial + self.left.length);
       break;
     }
     case "ISingleton": {
-      array2[initial] = self.backing.a;
+      array3[initial] = self.backing.a;
       break;
     }
     case "ISlice": {
-      copy(toReadonlyArray(self.backing.chunk), self.backing.offset, array2, initial, self.length);
+      copy(toReadonlyArray(self.backing.chunk), self.backing.offset, array3, initial, self.length);
       break;
     }
   }
@@ -8659,7 +8659,7 @@ var fromArrayUnsafe = (self) => self.length === 0 ? empty6() : self.length === 1
 });
 var size = (self) => self.length;
 
-// ../../madewell/node_modules/effect/dist/DateTime.js
+// node_modules/effect/dist/DateTime.js
 var isDateTime2 = isDateTime;
 var isTimeZone2 = isTimeZone;
 var isTimeZoneOffset2 = isTimeZoneOffset;
@@ -8682,10 +8682,10 @@ var toEpochMillis2 = toEpochMillis;
 var formatIso2 = formatIso;
 var formatIsoZoned2 = formatIsoZoned;
 
-// ../../madewell/node_modules/effect/dist/encoding/Base64.js
+// node_modules/effect/dist/encoding/Base64.js
 var encode2 = (input) => encodeBytes(typeof input === "string" ? encoder2.encode(input) : input);
-var decode2 = (str) => {
-  const stripped = stripCrlf(str);
+var decode2 = (str2) => {
+  const stripped = stripCrlf(str2);
   const length = stripped.length;
   if (length % 4 !== 0) {
     return fail2(new EncodingError({
@@ -8723,7 +8723,7 @@ var decode2 = (str) => {
     }));
   }
 };
-var decodeString2 = (str) => map2(decode2(str), (_) => decoder2.decode(_));
+var decodeString2 = (str2) => map2(decode2(str2), (_) => decoder2.decode(_));
 var encodeBytes = (bytes3) => {
   const length = bytes3.length;
   let result3 = "";
@@ -8749,7 +8749,7 @@ var encodeBytes = (bytes3) => {
 };
 var encoder2 = /* @__PURE__ */ new TextEncoder();
 var decoder2 = /* @__PURE__ */ new TextDecoder();
-var stripCrlf = (str) => str.replace(/[\n\r]/g, "");
+var stripCrlf = (str2) => str2.replace(/[\n\r]/g, "");
 var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 var codes = /* @__PURE__ */ new Uint8Array(123).fill(255);
 for (let i = 0; i < alphabet.length; i++) codes[/* @__PURE__ */ alphabet.charCodeAt(i)] = i;
@@ -8761,7 +8761,7 @@ var getCode = (charCode) => {
   return codes[charCode];
 };
 
-// ../../madewell/node_modules/effect/dist/internal/hashMap.js
+// node_modules/effect/dist/internal/hashMap.js
 var HashMapTypeId = "~effect/HashMap";
 var SHIFT = 5;
 var BUCKET_SIZE = 1 << SHIFT;
@@ -8773,17 +8773,17 @@ var popcount = (n) => {
   n = (n & 858993459) + (n >>> 2 & 858993459);
   return (n + (n >>> 4) & 252645135) * 16843009 >>> 24;
 };
-var mask = (hash2, shift) => hash2 >>> shift & BITMAP_INDEX_MASK;
-var bitpos = (hash2, shift) => 1 << mask(hash2, shift);
+var mask = (hash3, shift) => hash3 >>> shift & BITMAP_INDEX_MASK;
+var bitpos = (hash3, shift) => 1 << mask(hash3, shift);
 var index = (bitmap, bit) => popcount(bitmap & bit - 1);
-function mergeLeaves(edit, shift, hash1, node1, hash2, node2) {
+function mergeLeaves(edit, shift, hash1, node1, hash22, node2) {
   if (shift > 32) {
     throw new Error("HashMap: max depth exceeded");
   }
   const bit1 = bitpos(hash1, shift);
-  const bit2 = bitpos(hash2, shift);
+  const bit2 = bitpos(hash22, shift);
   if (bit1 === bit2) {
-    const child = mergeLeaves(edit, shift + SHIFT, hash1, node1, hash2, node2);
+    const child = mergeLeaves(edit, shift + SHIFT, hash1, node1, hash22, node2);
     return new IndexedNode(edit, bit1, [child]);
   }
   const bitmap = bit1 | bit2;
@@ -8828,9 +8828,9 @@ var EmptyNode = class extends Node {
   has(_shift, _hash, _key) {
     return false;
   }
-  set(edit, _shift, hash2, key, value3, added) {
+  set(edit, _shift, hash3, key, value3, added) {
     added.value = true;
-    return new LeafNode(edit, hash2, key, value3);
+    return new LeafNode(edit, hash3, key, value3);
   }
   remove(_edit, _shift, _hash, _key, _removed) {
     return this;
@@ -8848,28 +8848,28 @@ var LeafNode = class _LeafNode extends Node {
   hash;
   key;
   value;
-  constructor(edit, hash2, key, value3) {
+  constructor(edit, hash3, key, value3) {
     super();
     this.edit = edit;
-    this.hash = hash2;
+    this.hash = hash3;
     this.key = key;
     this.value = value3;
   }
   get size() {
     return 1;
   }
-  get(_shift, hash2, key) {
-    if (this.hash === hash2 && equals(this.key, key)) {
+  get(_shift, hash3, key) {
+    if (this.hash === hash3 && equals(this.key, key)) {
       return some2(this.value);
     }
     return none2();
   }
-  has(_shift, hash2, key) {
-    return this.hash === hash2 && equals(this.key, key);
+  has(_shift, hash3, key) {
+    return this.hash === hash3 && equals(this.key, key);
   }
-  set(edit, shift, hash2, key, value3, added) {
+  set(edit, shift, hash3, key, value3, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    if (this.hash === hash2 && equals(this.key, key)) {
+    if (this.hash === hash3 && equals(this.key, key)) {
       if (equals(this.value, value3)) {
         return this;
       }
@@ -8877,23 +8877,23 @@ var LeafNode = class _LeafNode extends Node {
         this.value = value3;
         return this;
       }
-      return new _LeafNode(edit, hash2, key, value3);
+      return new _LeafNode(edit, hash3, key, value3);
     }
     added.value = true;
-    if (this.hash === hash2) {
-      return new CollisionNode(edit, hash2, [[this.key, this.value], [key, value3]]);
+    if (this.hash === hash3) {
+      return new CollisionNode(edit, hash3, [[this.key, this.value], [key, value3]]);
     }
-    const newBit = bitpos(hash2, shift);
+    const newBit = bitpos(hash3, shift);
     const existingBit = bitpos(this.hash, shift);
     if (newBit === existingBit) {
-      return new IndexedNode(edit, newBit, [this.set(edit, shift + SHIFT, hash2, key, value3, added)]);
+      return new IndexedNode(edit, newBit, [this.set(edit, shift + SHIFT, hash3, key, value3, added)]);
     }
     const bitmap = newBit | existingBit;
-    const nodes = newBit >>> 0 < existingBit >>> 0 ? [new _LeafNode(edit, hash2, key, value3), this] : [this, new _LeafNode(edit, hash2, key, value3)];
+    const nodes = newBit >>> 0 < existingBit >>> 0 ? [new _LeafNode(edit, hash3, key, value3), this] : [this, new _LeafNode(edit, hash3, key, value3)];
     return new IndexedNode(edit, bitmap, nodes);
   }
-  remove(_edit, _shift, hash2, key, removed) {
-    if (this.hash === hash2 && equals(this.key, key)) {
+  remove(_edit, _shift, hash3, key, removed) {
+    if (this.hash === hash3 && equals(this.key, key)) {
       removed.value = true;
       return void 0;
     }
@@ -8908,17 +8908,17 @@ var CollisionNode = class _CollisionNode extends Node {
   edit;
   hash;
   entries;
-  constructor(edit, hash2, entries3) {
+  constructor(edit, hash3, entries3) {
     super();
     this.edit = edit;
-    this.hash = hash2;
+    this.hash = hash3;
     this.entries = entries3;
   }
   get size() {
     return this.entries.length;
   }
-  get(_shift, hash2, key) {
-    if (this.hash !== hash2) {
+  get(_shift, hash3, key) {
+    if (this.hash !== hash3) {
       return none2();
     }
     for (const [k, v] of this.entries) {
@@ -8928,8 +8928,8 @@ var CollisionNode = class _CollisionNode extends Node {
     }
     return none2();
   }
-  has(_shift, hash2, key) {
-    if (this.hash !== hash2) {
+  has(_shift, hash3, key) {
+    if (this.hash !== hash3) {
       return false;
     }
     for (const [k] of this.entries) {
@@ -8939,11 +8939,11 @@ var CollisionNode = class _CollisionNode extends Node {
     }
     return false;
   }
-  set(edit, shift, hash2, key, value3, added) {
+  set(edit, shift, hash3, key, value3, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    if (this.hash !== hash2) {
+    if (this.hash !== hash3) {
       added.value = true;
-      return mergeLeaves(edit, shift, this.hash, this, hash2, new LeafNode(edit, hash2, key, value3));
+      return mergeLeaves(edit, shift, this.hash, this, hash3, new LeafNode(edit, hash3, key, value3));
     }
     for (let i = 0; i < this.entries.length; i++) {
       if (equals(this.entries[i][0], key)) {
@@ -8966,9 +8966,9 @@ var CollisionNode = class _CollisionNode extends Node {
     }
     return new _CollisionNode(edit, this.hash, [...this.entries, [key, value3]]);
   }
-  remove(edit, _shift, hash2, key, removed) {
+  remove(edit, _shift, hash3, key, removed) {
     if (this.canEdit(edit)) this._hash = void 0;
-    if (this.hash !== hash2) {
+    if (this.hash !== hash3) {
       return this;
     }
     const idx = this.entries.findIndex(([k]) => equals(k, key));
@@ -9018,29 +9018,29 @@ var IndexedNode = class _IndexedNode extends Node {
     }
     return this._size;
   }
-  get(shift, hash2, key) {
-    const bit = bitpos(hash2, shift);
+  get(shift, hash3, key) {
+    const bit = bitpos(hash3, shift);
     if ((this.bitmap & bit) === 0) {
       return none2();
     }
     const idx = index(this.bitmap, bit);
-    return this.children[idx].get(shift + SHIFT, hash2, key);
+    return this.children[idx].get(shift + SHIFT, hash3, key);
   }
-  has(shift, hash2, key) {
-    const bit = bitpos(hash2, shift);
+  has(shift, hash3, key) {
+    const bit = bitpos(hash3, shift);
     if ((this.bitmap & bit) === 0) {
       return false;
     }
     const idx = index(this.bitmap, bit);
-    return this.children[idx].has(shift + SHIFT, hash2, key);
+    return this.children[idx].has(shift + SHIFT, hash3, key);
   }
-  set(edit, shift, hash2, key, value3, added) {
+  set(edit, shift, hash3, key, value3, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const bit = bitpos(hash2, shift);
+    const bit = bitpos(hash3, shift);
     const idx = index(this.bitmap, bit);
     if ((this.bitmap & bit) !== 0) {
       const child = this.children[idx];
-      const newChild = child.set(edit, shift + SHIFT, hash2, key, value3, added);
+      const newChild = child.set(edit, shift + SHIFT, hash3, key, value3, added);
       if (child === newChild) {
         return this;
       }
@@ -9053,7 +9053,7 @@ var IndexedNode = class _IndexedNode extends Node {
       return new _IndexedNode(edit, this.bitmap, newChildren);
     } else {
       added.value = true;
-      const newChild = new LeafNode(edit, hash2, key, value3);
+      const newChild = new LeafNode(edit, hash3, key, value3);
       const newBitmap = this.bitmap | bit;
       if (this.canEdit(edit)) {
         this.children.splice(idx, 0, newChild);
@@ -9072,15 +9072,15 @@ var IndexedNode = class _IndexedNode extends Node {
       return new _IndexedNode(edit, newBitmap, newChildren);
     }
   }
-  remove(edit, shift, hash2, key, removed) {
+  remove(edit, shift, hash3, key, removed) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const bit = bitpos(hash2, shift);
+    const bit = bitpos(hash3, shift);
     if ((this.bitmap & bit) === 0) {
       return this;
     }
     const idx = index(this.bitmap, bit);
     const child = this.children[idx];
-    const newChild = child.remove(edit, shift + SHIFT, hash2, key, removed);
+    const newChild = child.remove(edit, shift + SHIFT, hash3, key, removed);
     if (!removed.value) {
       return this;
     }
@@ -9148,22 +9148,22 @@ var ArrayNode = class _ArrayNode extends Node {
     }
     return this._size;
   }
-  get(shift, hash2, key) {
-    const idx = mask(hash2, shift);
+  get(shift, hash3, key) {
+    const idx = mask(hash3, shift);
     const child = this.children[idx];
-    return child ? child.get(shift + SHIFT, hash2, key) : none2();
+    return child ? child.get(shift + SHIFT, hash3, key) : none2();
   }
-  has(shift, hash2, key) {
-    const idx = mask(hash2, shift);
+  has(shift, hash3, key) {
+    const idx = mask(hash3, shift);
     const child = this.children[idx];
-    return child ? child.has(shift + SHIFT, hash2, key) : false;
+    return child ? child.has(shift + SHIFT, hash3, key) : false;
   }
-  set(edit, shift, hash2, key, value3, added) {
+  set(edit, shift, hash3, key, value3, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const idx = mask(hash2, shift);
+    const idx = mask(hash3, shift);
     const child = this.children[idx];
     if (child) {
-      const newChild = child.set(edit, shift + SHIFT, hash2, key, value3, added);
+      const newChild = child.set(edit, shift + SHIFT, hash3, key, value3, added);
       if (child === newChild) {
         return this;
       }
@@ -9176,7 +9176,7 @@ var ArrayNode = class _ArrayNode extends Node {
       return new _ArrayNode(edit, this.count, newChildren);
     } else {
       added.value = true;
-      const newChild = new LeafNode(edit, hash2, key, value3);
+      const newChild = new LeafNode(edit, hash3, key, value3);
       if (this.canEdit(edit)) {
         this.children[idx] = newChild;
         this.count++;
@@ -9188,14 +9188,14 @@ var ArrayNode = class _ArrayNode extends Node {
       return new _ArrayNode(edit, this.count + 1, newChildren);
     }
   }
-  remove(edit, shift, hash2, key, removed) {
+  remove(edit, shift, hash3, key, removed) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const idx = mask(hash2, shift);
+    const idx = mask(hash3, shift);
     const child = this.children[idx];
     if (!child) {
       return this;
     }
-    const newChild = child.remove(edit, shift + SHIFT, hash2, key, removed);
+    const newChild = child.remove(edit, shift + SHIFT, hash3, key, removed);
     if (!removed.value) {
       return this;
     }
@@ -9353,9 +9353,9 @@ var fromIterable3 = (entries3) => {
     value: false
   };
   for (const [key, value3] of entries3) {
-    const hash2 = hash(key);
+    const hash3 = hash(key);
     added.value = false;
-    root = root.set(NaN, 0, hash2, key, value3, added);
+    root = root.set(NaN, 0, hash3, key, value3, added);
     if (added.value) {
       size7++;
     }
@@ -9370,13 +9370,13 @@ var has3 = /* @__PURE__ */ dual(2, (self, key) => {
   const impl = self;
   return impl._root.has(0, hash(key), key);
 });
-var setHash = (self, key, hash2, value3) => {
+var setHash = (self, key, hash3, value3) => {
   const impl = self;
   const added = {
     value: false
   };
   const edit = impl._editable ? impl._edit : NaN;
-  const newRoot = impl._root.set(edit, 0, hash2, key, value3, added);
+  const newRoot = impl._root.set(edit, 0, hash3, key, value3, added);
   if (impl._editable) {
     impl._root = newRoot;
     if (added.value) {
@@ -9396,14 +9396,14 @@ var keys2 = (self) => new HashMapIterator(self._root, identity);
 var entries = (self) => self[Symbol.iterator]();
 var size2 = (self) => self.size;
 
-// ../../madewell/node_modules/effect/dist/HashMap.js
+// node_modules/effect/dist/HashMap.js
 var isHashMap2 = isHashMap;
 var fromIterable4 = fromIterable3;
 var entries2 = entries;
 var toEntries = (self) => Array.from(entries2(self));
 var size3 = size2;
 
-// ../../madewell/node_modules/effect/dist/internal/hashSet.js
+// node_modules/effect/dist/internal/hashSet.js
 var HashSetTypeId = "~effect/HashSet";
 var hashSetSeed = /* @__PURE__ */ string(HashSetTypeId);
 var HashSetProto = {
@@ -9458,12 +9458,12 @@ var every2 = (self, predicate) => {
   return true;
 };
 
-// ../../madewell/node_modules/effect/dist/HashSet.js
+// node_modules/effect/dist/HashSet.js
 var fromIterable6 = fromIterable5;
 var isHashSet2 = isHashSet;
 var size5 = size4;
 
-// ../../madewell/node_modules/effect/dist/http/Cookies.js
+// node_modules/effect/dist/http/Cookies.js
 var TypeId17 = "~effect/http/Cookies";
 var isCookies = (u) => hasProperty(u, TypeId17);
 var CookieTypeId = "~effect/http/Cookies/Cookie";
@@ -9522,11 +9522,11 @@ var fromReadonlyRecord = (cookies) => {
   return self;
 };
 var fromIterable7 = (cookies) => {
-  const record2 = {};
+  const record3 = {};
   for (const cookie of cookies) {
-    assignProperty(record2, cookie.name, cookie);
+    assignProperty(record3, cookie.name, cookie);
   }
-  return fromReadonlyRecord(record2);
+  return fromReadonlyRecord(record3);
 };
 var fromSetCookie = (headers) => {
   const arrayHeaders = typeof headers === "string" ? [headers] : headers;
@@ -9714,80 +9714,80 @@ function serializeCookie(self) {
   if (error !== void 0) {
     throw error;
   }
-  let str = self.name + "=" + self.valueEncoded;
+  let str2 = self.name + "=" + self.valueEncoded;
   if (self.options === void 0) {
-    return str;
+    return str2;
   }
   const options = self.options;
   if (options.maxAge !== void 0) {
     const maxAge = toSeconds(fromInputUnsafe(options.maxAge));
-    str += "; Max-Age=" + Math.trunc(maxAge);
+    str2 += "; Max-Age=" + Math.trunc(maxAge);
   }
   if (options.domain !== void 0) {
-    str += "; Domain=" + options.domain;
+    str2 += "; Domain=" + options.domain;
   }
   if (options.path !== void 0) {
-    str += "; Path=" + options.path;
+    str2 += "; Path=" + options.path;
   }
   if (options.priority !== void 0) {
     switch (options.priority) {
       case "low":
-        str += "; Priority=Low";
+        str2 += "; Priority=Low";
         break;
       case "medium":
-        str += "; Priority=Medium";
+        str2 += "; Priority=Medium";
         break;
       case "high":
-        str += "; Priority=High";
+        str2 += "; Priority=High";
         break;
     }
   }
   if (options.expires !== void 0) {
-    str += "; Expires=" + options.expires.toUTCString();
+    str2 += "; Expires=" + options.expires.toUTCString();
   }
   if (options.httpOnly) {
-    str += "; HttpOnly";
+    str2 += "; HttpOnly";
   }
   if (options.secure) {
-    str += "; Secure";
+    str2 += "; Secure";
   }
   if (options.partitioned) {
-    str += "; Partitioned";
+    str2 += "; Partitioned";
   }
   if (options.sameSite !== void 0) {
     switch (options.sameSite) {
       case "lax":
-        str += "; SameSite=Lax";
+        str2 += "; SameSite=Lax";
         break;
       case "strict":
-        str += "; SameSite=Strict";
+        str2 += "; SameSite=Strict";
         break;
       case "none":
-        str += "; SameSite=None";
+        str2 += "; SameSite=None";
         break;
     }
   }
-  return str;
+  return str2;
 }
 var toRecord = (self) => {
-  const record2 = {};
+  const record3 = {};
   const cookies = Object.values(self.cookies);
   for (let index2 = 0; index2 < cookies.length; index2++) {
     const cookie = cookies[index2];
-    assignProperty(record2, cookie.name, cookie.value);
+    assignProperty(record3, cookie.name, cookie.value);
   }
-  return record2;
+  return record3;
 };
 var toSetCookieHeaders = (self) => Object.values(self.cookies).map(serializeCookie);
-var tryDecodeURIComponent = (str) => {
+var tryDecodeURIComponent = (str2) => {
   try {
-    return decodeURIComponent(str);
+    return decodeURIComponent(str2);
   } catch (_) {
-    return str;
+    return str2;
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/redacted.js
+// node_modules/effect/dist/internal/redacted.js
 var redactedRegistry = /* @__PURE__ */ new WeakMap();
 var value = (self) => {
   if (redactedRegistry.has(self)) {
@@ -9797,7 +9797,7 @@ var value = (self) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/Redacted.js
+// node_modules/effect/dist/Redacted.js
 var TypeId18 = "~effect/Redacted";
 var isRedacted = (u) => hasProperty(u, TypeId18);
 var make12 = (value3, options) => {
@@ -9830,7 +9830,7 @@ var Proto5 = {
 var value2 = value;
 var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
-// ../../madewell/node_modules/effect/dist/http/Headers.js
+// node_modules/effect/dist/http/Headers.js
 var TypeId19 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
 var isHeaders = (u) => hasProperty(u, TypeId19);
 var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.create(null), {
@@ -9931,10 +9931,10 @@ var CurrentRedactedNames = /* @__PURE__ */ Reference("effect/Headers/CurrentReda
   defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
 });
 
-// ../../madewell/node_modules/effect/dist/http/internal/urlParams.js
+// node_modules/effect/dist/http/internal/urlParams.js
 var unwrap2 = (value3) => typeof value3 === "string" ? value3 : value2(value3);
 
-// ../../madewell/node_modules/effect/dist/http/UrlParams.js
+// node_modules/effect/dist/http/UrlParams.js
 var TypeId20 = "~effect/http/UrlParams";
 var isUrlParams = (u) => hasProperty(u, TypeId20);
 var Proto7 = {
@@ -10032,7 +10032,7 @@ var CurrentRedactedNames2 = /* @__PURE__ */ Reference("effect/http/UrlParams/Cur
   defaultValue: () => ["AWSAccessKeyId", "Signature", "sig", "X-Goog-Signature"]
 });
 
-// ../../madewell/node_modules/effect/dist/internal/graph.js
+// node_modules/effect/dist/internal/graph.js
 var TypeId21 = "~effect/Graph";
 var isGraph = (u) => hasProperty(u, TypeId21);
 var toImpl = (graph) => graph;
@@ -10073,17 +10073,17 @@ var ProtoGraph = {
     return false;
   },
   [symbol]() {
-    let hash2 = graphSeed;
-    hash2 = hash2 ^ string(this.type);
-    hash2 = hash2 ^ number(this.nodes.size);
-    hash2 = hash2 ^ number(this.edges.size);
+    let hash3 = graphSeed;
+    hash3 = hash3 ^ string(this.type);
+    hash3 = hash3 ^ number(this.nodes.size);
+    hash3 = hash3 ^ number(this.edges.size);
     for (const [nodeIndex, nodeData] of this.nodes) {
-      hash2 ^= combine(hash(nodeIndex), hash(nodeData));
+      hash3 ^= combine(hash(nodeIndex), hash(nodeData));
     }
     for (const [edgeIndex, edgeData] of this.edges) {
-      hash2 ^= combine(hash(edgeIndex), edgeHash(this.type, edgeData));
+      hash3 ^= combine(hash(edgeIndex), edgeHash(this.type, edgeData));
     }
-    return optimize(hash2);
+    return optimize(hash3);
   },
   toJSON() {
     return {
@@ -10156,7 +10156,7 @@ var hydrate = (snapshot3) => {
   return graph;
 };
 
-// ../../madewell/node_modules/effect/dist/internal/schema/annotations.js
+// node_modules/effect/dist/internal/schema/annotations.js
 function resolve(ast) {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
 }
@@ -10172,13 +10172,13 @@ var resolveIdentifier = /* @__PURE__ */ resolveAt("identifier");
 var resolveIdentifierFallback = /* @__PURE__ */ resolveAt(IDENTIFIER_FALLBACK_KEY);
 var resolveTitle = /* @__PURE__ */ resolveAt("title");
 var getExpected = /* @__PURE__ */ memoize((ast) => {
-  const identifier2 = resolve(ast)?.identifier;
-  if (typeof identifier2 === "string") return identifier2;
+  const identifier3 = resolve(ast)?.identifier;
+  if (typeof identifier3 === "string") return identifier3;
   return ast.getExpected(getExpected);
 });
 var annotationExcludedKeys = /* @__PURE__ */ new Set([SENTINELS_ANNOTATION_KEY, STRUCTURAL_ANNOTATION_KEY, "representation", "arbitraryConstraint", "toJsonSchema", "toCode", "toEquivalence", "toFormatter", "toCodec", "toCodecJson", "toCodecStringTree", "toCodecIso", "toCodecArbitrary"]);
 
-// ../../madewell/node_modules/effect/dist/internal/schema/parser.js
+// node_modules/effect/dist/internal/schema/parser.js
 var missing = /* @__PURE__ */ Symbol();
 var succeed7 = succeed4;
 var missingExit = /* @__PURE__ */ succeed7(missing);
@@ -10186,7 +10186,7 @@ var sameExit = /* @__PURE__ */ succeed7(missing);
 var toOption2 = (value3) => value3 === missing ? none2() : some2(value3);
 var fromOptionExit = (option3) => option3._tag === "None" ? missingExit : succeed7(option3.value);
 
-// ../../madewell/node_modules/effect/dist/SchemaIssue.js
+// node_modules/effect/dist/SchemaIssue.js
 var TypeId22 = "~effect/SchemaIssue/Issue";
 function isIssue(u) {
   return hasProperty(u, TypeId22) && u[TypeId22] === TypeId22;
@@ -10529,7 +10529,7 @@ function findMessage(issue) {
   if (typeof message === "string") return message;
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/cause.js
+// node_modules/effect/dist/internal/schema/cause.js
 function getSchemaIssue(cause) {
   let issue;
   for (const reason of cause.reasons) {
@@ -10550,10 +10550,10 @@ function getSchemaIssueOrThrow(cause, message) {
   return issue;
 }
 
-// ../../madewell/node_modules/effect/dist/encoding/Base64Url.js
+// node_modules/effect/dist/encoding/Base64Url.js
 var encode3 = (input) => encode2(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-var decode3 = (str) => {
-  const stripped = str.replace(/[\n\r]/g, "");
+var decode3 = (str2) => {
+  const stripped = str2.replace(/[\n\r]/g, "");
   const length = stripped.length;
   if (length % 4 === 1) {
     return fail2(new EncodingError({
@@ -10575,10 +10575,10 @@ var decode3 = (str) => {
   sanitized = sanitized.replace(/-/g, "+").replace(/_/g, "/");
   return decode2(sanitized);
 };
-var decodeString3 = (str) => map2(decode3(str), (_) => decoder3.decode(_));
+var decodeString3 = (str2) => map2(decode3(str2), (_) => decoder3.decode(_));
 var decoder3 = /* @__PURE__ */ new TextDecoder();
 
-// ../../madewell/node_modules/effect/dist/SchemaGetter.js
+// node_modules/effect/dist/SchemaGetter.js
 var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
 function fail7(f) {
   return transformOptionalEffect((oe, options) => fail6(f(oe, options)));
@@ -10865,14 +10865,14 @@ function collectBracketPathEntries(isLeaf) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/SchemaTransformation.js
+// node_modules/effect/dist/SchemaTransformation.js
 var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
   encode;
-  constructor(decode6, encode5) {
+  constructor(decode7, encode5) {
     super();
-    this.decode = decode6;
+    this.decode = decode7;
     this.encode = encode5;
   }
   flip() {
@@ -10885,9 +10885,9 @@ var Transformation = class extends Class {
   _tag = "Transformation";
   decode;
   encode;
-  constructor(decode6, encode5) {
+  constructor(decode7, encode5) {
     super();
-    this.decode = decode6;
+    this.decode = decode7;
     this.encode = encode5;
   }
   flip() {
@@ -11058,7 +11058,7 @@ function fromJsonString(options) {
 var fromFormData = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeFormData(), /* @__PURE__ */ encodeFormData());
 var fromURLSearchParams = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeURLSearchParams(), /* @__PURE__ */ encodeURLSearchParams());
 
-// ../../madewell/node_modules/effect/dist/SchemaAST.js
+// node_modules/effect/dist/SchemaAST.js
 function makeGuard(tag2) {
   return (ast) => ast._tag === tag2;
 }
@@ -11895,11 +11895,11 @@ var Objects = class extends ASTNodeImpl {
           return yield* fail6(new InvalidType(ast, input, options));
         }
         compileMembers();
-        const record2 = input;
+        const record3 = input;
         const out = {};
         const state = {
           ast,
-          input: record2,
+          input: record3,
           out,
           issues: void 0,
           options
@@ -11907,7 +11907,7 @@ var Objects = class extends ASTNodeImpl {
         const errorsAllOption = options.errors === "all";
         const onExcessPropertyError = options.onExcessProperty === "error";
         const concurrency = options.concurrency === void 0 ? 1 : resolveConcurrency(options.concurrency);
-        const indexKeys = indexCount && onExcessPropertyError ? ast.indexSignatures.map((index2) => getIndexSignatureKeys(record2, index2.parameter, options)) : void 0;
+        const indexKeys = indexCount && onExcessPropertyError ? ast.indexSignatures.map((index2) => getIndexSignatureKeys(record3, index2.parameter, options)) : void 0;
         if (onExcessPropertyError) {
           const coveredKeys = indexKeys ? new Set(expectedKeys) : expectedKeys;
           if (indexKeys) {
@@ -11915,11 +11915,11 @@ var Objects = class extends ASTNodeImpl {
               for (const key of keys3) coveredKeys.add(key);
             }
           }
-          const inputKeys = Reflect.ownKeys(record2);
+          const inputKeys = Reflect.ownKeys(record3);
           for (let i = 0; i < inputKeys.length; i++) {
             const key = inputKeys[i];
-            if (!coveredKeys.has(key) && Object.prototype.propertyIsEnumerable.call(record2, key)) {
-              const unexpected = new UnexpectedKey(ast, record2[key], options);
+            if (!coveredKeys.has(key) && Object.prototype.propertyIsEnumerable.call(record3, key)) {
+              const unexpected = new UnexpectedKey(ast, record3[key], options);
               const issue = new Pointer([key], unexpected);
               if (errorsAllOption) {
                 if (state.issues) {
@@ -11944,7 +11944,7 @@ var Objects = class extends ASTNodeImpl {
           for (let i = 0; i < indexCount; i++) {
             const index2 = indexes[i];
             const parse = index2.is.parameter === string2 ? parseStringIndex : parseIndex;
-            const keys3 = indexKeys?.[i] ?? (index2.is.parameter === string2 ? Object.keys(record2) : getIndexSignatureKeys(record2, index2.is.parameter, options));
+            const keys3 = indexKeys?.[i] ?? (index2.is.parameter === string2 ? Object.keys(record3) : getIndexSignatureKeys(record3, index2.is.parameter, options));
             for (let j = 0; j < keys3.length; j++) {
               const eff = parse(state, keys3[j], index2);
               if (!effectIsExit(eff)) yield* eff;
@@ -11955,7 +11955,7 @@ var Objects = class extends ASTNodeImpl {
           const keyPairs = empty2();
           for (let i = 0; i < indexCount; i++) {
             const index2 = indexes[i];
-            const keys3 = indexKeys?.[i] ?? (index2.is.parameter === string2 ? Object.keys(record2) : getIndexSignatureKeys(record2, index2.is.parameter, options));
+            const keys3 = indexKeys?.[i] ?? (index2.is.parameter === string2 ? Object.keys(record3) : getIndexSignatureKeys(record3, index2.is.parameter, options));
             for (let j = 0; j < keys3.length; j++) {
               keyPairs.push([keys3[j], index2]);
             }
@@ -11992,11 +11992,11 @@ var Objects = class extends ASTNodeImpl {
         return fail6(new InvalidType(ast, input, options));
       }
       const props = compileMembers();
-      const record2 = input;
+      const record3 = input;
       const out = {};
       const state = {
         ast,
-        input: record2,
+        input: record3,
         out,
         issues: void 0,
         options
@@ -12005,8 +12005,8 @@ var Objects = class extends ASTNodeImpl {
         for (let index2 = 0; index2 < props.length; index2++) {
           const property = props[index2];
           const name = property.name;
-          const hasKey = hasPropertySignature(record2, name);
-          const value3 = hasKey ? record2[name] : missing;
+          const hasKey = hasPropertySignature(record3, name);
+          const value3 = hasKey ? record3[name] : missing;
           const exit4 = property.parser(value3, options);
           if (!effectIsExit(exit4)) {
             return resume(state, index2, exit4);
@@ -12111,15 +12111,15 @@ function structWithRest(ast, records) {
   let propertySignatures = ast.propertySignatures;
   let indexSignatures = ast.indexSignatures;
   let checks = ast.checks;
-  for (const record2 of records) {
-    for (const propertySignature of record2.propertySignatures) {
+  for (const record3 of records) {
+    for (const propertySignature of record3.propertySignatures) {
       if (propertySignatures.some((ps) => ps.name === propertySignature.name)) {
         throw new Error(`Duplicate identifier: ${JSON.stringify(propertySignature.name)}. ts(2300)`);
       }
     }
-    propertySignatures = propertySignatures.concat(record2.propertySignatures);
-    indexSignatures = indexSignatures.concat(record2.indexSignatures);
-    checks = combineChecks(checks, record2.checks);
+    propertySignatures = propertySignatures.concat(record3.propertySignatures);
+    indexSignatures = indexSignatures.concat(record3.indexSignatures);
+    checks = combineChecks(checks, record3.checks);
   }
   return new Objects(propertySignatures, indexSignatures, void 0, checks);
 }
@@ -13182,7 +13182,7 @@ var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options)
 });
 var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough3());
 
-// ../../madewell/node_modules/effect/dist/internal/schema/interpreter.js
+// node_modules/effect/dist/internal/schema/interpreter.js
 var flatMapTransformation = (result3, current, f) => result3 === sameExit ? f(current) : flatMapEager2(result3, f);
 function compileTransformation(transformation) {
   if (transformation._tag === "Middleware") {
@@ -13339,7 +13339,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/compilerRegistry.js
+// node_modules/effect/dist/internal/schema/compilerRegistry.js
 var invalid3 = /* @__PURE__ */ Symbol();
 var cache = /* @__PURE__ */ new WeakMap();
 var compiler;
@@ -13365,10 +13365,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve8) {
+  constructor(ast, compiled, resolve9) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve8;
+    this.resolve = resolve9;
   }
   save(key, value3) {
     Object.defineProperty(this, key, {
@@ -13393,8 +13393,8 @@ var CompilerEntry = class extends InterpretedEntry {
     return this.save("decodeEffect", this.operation("decodeEffect") ?? compile(this.ast, (ast) => lazyParser(this.resolve, ast, "parser")));
   }
   get parser() {
-    const decode6 = this.decode;
-    return decode6 === void 0 ? this.decodeEffect : this.save("parser", withDecode(decode6, () => this.decodeEffect));
+    const decode7 = this.decode;
+    return decode7 === void 0 ? this.decodeEffect : this.save("parser", withDecode(decode7, () => this.decodeEffect));
   }
   get makeEffect() {
     const makeEffect2 = this.operation("makeEffect");
@@ -13417,13 +13417,13 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve8, ast, operation) {
-  const entry = resolve8(ast);
-  if (entry.compiled === void 0 || Object.hasOwn(entry, operation)) {
-    return entry[operation];
+function lazyParser(resolve9, ast, operation2) {
+  const entry = resolve9(ast);
+  if (entry.compiled === void 0 || Object.hasOwn(entry, operation2)) {
+    return entry[operation2];
   }
   let parser;
-  return (input, options) => (parser ??= entry[operation])(input, options);
+  return (input, options) => (parser ??= entry[operation2])(input, options);
 }
 function resolve2(ast) {
   const cached3 = cache.get(ast);
@@ -13433,7 +13433,7 @@ function resolve2(ast) {
   return entry;
 }
 
-// ../../madewell/node_modules/effect/dist/SchemaParser.js
+// node_modules/effect/dist/SchemaParser.js
 function makeEffect(schema) {
   const ast = schema.ast;
   let parser;
@@ -13626,15 +13626,15 @@ function makeSync(ast, options) {
   return (input, overrideOptions) => (run2 ??= makeSyncEntry(resolve2(ast), options))(input, overrideOptions);
 }
 function makeSyncEntry(entry, options) {
-  const decode6 = entry.decode;
+  const decode7 = entry.decode;
   let detailed;
-  const run2 = decode6 === void 0 ? (input, parseOptions = defaultParseOptions) => (detailed ??= makeDetailedSync(entry))(input, parseOptions) : (input, parseOptions = defaultParseOptions) => {
+  const run2 = decode7 === void 0 ? (input, parseOptions = defaultParseOptions) => (detailed ??= makeDetailedSync(entry))(input, parseOptions) : (input, parseOptions = defaultParseOptions) => {
     if (input === missing) {
       return (detailed ??= makeDetailedSync(entry))(input, parseOptions);
     }
     let output;
     try {
-      output = decode6(input, parseOptions);
+      output = decode7(input, parseOptions);
     } catch (error) {
       getSchemaIssueOrThrow(die2(error), "Sync adapter can only throw schema issues");
       throw error;
@@ -13699,7 +13699,7 @@ function makeConstructorSync(ast) {
 var normalCompiler = (ast) => resolve2(ast).parser;
 var constructorCompiler = (ast) => resolve2(ast).makeEffect;
 
-// ../../madewell/node_modules/effect/dist/internal/schema/make.js
+// node_modules/effect/dist/internal/schema/make.js
 var TypeId25 = "~effect/Schema/Schema";
 var RebuildOptions = /* @__PURE__ */ Symbol();
 var SchemaProto = {
@@ -13760,7 +13760,7 @@ function make16(ast, options) {
   return self;
 }
 
-// ../../madewell/node_modules/effect/dist/JsonPointer.js
+// node_modules/effect/dist/JsonPointer.js
 function escapeToken(token) {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -13790,7 +13790,7 @@ function formatUriFragment(path) {
   return path.reduce((fragment, token) => `${fragment}/${formatUriFragmentToken(token)}`, "#");
 }
 
-// ../../madewell/node_modules/effect/dist/JsonSchema.js
+// node_modules/effect/dist/JsonSchema.js
 var META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema#";
 var META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 function isMetaSchemaUri(value3, uri) {
@@ -14150,7 +14150,7 @@ function convertLegacyId(source, out, targetKey, dialect) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toCodec.js
+// node_modules/effect/dist/internal/schema/toCodec.js
 function toCodecJson(schema) {
   return make16(toCodecJsonAST(schema.ast), {
     schema
@@ -14358,11 +14358,11 @@ function toCodecArrayFromSingleASTStep(ast) {
   return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" || ast._tag === "Suspend" ? ast.recur(toCodecArrayFromSingleAST) : ast;
 }
 
-// ../../madewell/node_modules/effect/dist/RegExp.js
+// node_modules/effect/dist/RegExp.js
 var RegExp2 = globalThis.RegExp;
 var escape = (string3) => string3.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-// ../../madewell/node_modules/effect/dist/internal/errors.js
+// node_modules/effect/dist/internal/errors.js
 function errorWithPath(message, path) {
   if (path.length > 0) {
     message += `
@@ -14371,7 +14371,7 @@ function errorWithPath(message, path) {
   return new Error(message);
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
+// node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
 function formatDefinitionReference(key) {
   return `#/$defs/${formatUriFragmentToken(key)}`;
 }
@@ -15020,10 +15020,10 @@ function toJsonSchemaDocument(document, options) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toRepresentation.js
+// node_modules/effect/dist/internal/schema/toRepresentation.js
 var defaultReferencePolicy = ({
-  identifier: identifier2
-}) => identifier2;
+  identifier: identifier3
+}) => identifier3;
 function annotationsField(annotations2) {
   return annotations2 === void 0 ? void 0 : {
     annotations: annotations2
@@ -15103,25 +15103,25 @@ function toRepresentations(asts, options) {
   function getCandidate(input) {
     const ast = getLastEncoding(input);
     const owner = getContextOwner(ast);
-    let identifier2 = resolveIdentifier(ast);
-    const fallback = identifier2 === void 0 ? (ast !== input ? resolveIdentifier(input) : void 0) ?? resolveIdentifierFallback(ast) : void 0;
-    if (fallback !== void 0) identifier2 = `${fallback}Encoded`;
+    let identifier3 = resolveIdentifier(ast);
+    const fallback = identifier3 === void 0 ? (ast !== input ? resolveIdentifier(input) : void 0) ?? resolveIdentifierFallback(ast) : void 0;
+    if (fallback !== void 0) identifier3 = `${fallback}Encoded`;
     let candidatesByIdentifier = candidates2.get(owner);
     if (candidatesByIdentifier === void 0) {
       candidatesByIdentifier = /* @__PURE__ */ new Map();
       candidates2.set(owner, candidatesByIdentifier);
     }
-    let candidate2 = candidatesByIdentifier.get(identifier2);
+    let candidate2 = candidatesByIdentifier.get(identifier3);
     if (candidate2 === void 0) {
       candidate2 = {
         ast: owner,
-        identifier: identifier2,
+        identifier: identifier3,
         fallback,
         occurrences: 0,
         isRecursive: false,
         reference: void 0
       };
-      candidatesByIdentifier.set(identifier2, candidate2);
+      candidatesByIdentifier.set(identifier3, candidate2);
     }
     return candidate2;
   }
@@ -15337,7 +15337,7 @@ function toRepresentations(asts, options) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/standardSchema.js
+// node_modules/effect/dist/internal/schema/standardSchema.js
 function makeStandardResult(exit4) {
   return isSuccess4(exit4) ? exit4.value : {
     issues: [{
@@ -15367,9 +15367,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve8) => {
+    return new Promise((resolve9) => {
       fiber3.addObserver((exit5) => {
-        resolve8(makeStandardResult(exit5));
+        resolve9(makeStandardResult(exit5));
       });
     });
   };
@@ -15437,7 +15437,7 @@ function toStandardJSONSchemaV1(self) {
   });
 }
 
-// ../../madewell/node_modules/effect/dist/JsonPatch.js
+// node_modules/effect/dist/JsonPatch.js
 function get4(oldValue, newValue) {
   const patches = [];
   getLoop(oldValue, newValue, "", patches);
@@ -15618,7 +15618,7 @@ function rebuildFromStack(stack, newParent) {
   return acc;
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
+// node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
   const get6 = encodeSync(serializer);
@@ -15635,7 +15635,7 @@ function toDifferJsonPatch(schema) {
   };
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toEncoderXml.js
+// node_modules/effect/dist/internal/schema/toEncoderXml.js
 function toEncoderXml(codec, options) {
   const rootName = resolveIdentifier(codec.ast) ?? resolveTitle(codec.ast);
   const serialize = encodeEffect(toCodecStringTree(codec));
@@ -15654,8 +15654,8 @@ function stringTreeToXml(value3, options) {
   const lines4 = [];
   recur2(rootName, value3, 0);
   return lines4.join(pretty2 ? "\n" : "");
-  function push(depth, text2) {
-    lines4.push(pretty2 ? indent.repeat(depth) + text2 : text2);
+  function push(depth, text4) {
+    lines4.push(pretty2 ? indent.repeat(depth) + text4 : text4);
   }
   function recur2(tagName, node, depth, originalNameForMeta) {
     const {
@@ -15684,8 +15684,8 @@ function stringTreeToXml(value3, options) {
           push(depth, `</${safe}>`);
           return;
         }
-        const object = node;
-        const keys3 = Object.keys(object);
+        const object2 = node;
+        const keys3 = Object.keys(object2);
         if (sortKeys) keys3.sort();
         if (keys3.length === 0) {
           push(depth, `<${safe}${attrs}/>`);
@@ -15693,7 +15693,7 @@ function stringTreeToXml(value3, options) {
         }
         push(depth, `<${safe}${attrs}>`);
         for (const key of keys3) {
-          recur2(xml.parseTagName(key).safe, object[key], depth + 1, key);
+          recur2(xml.parseTagName(key).safe, object2[key], depth + 1, key);
         }
         push(depth, `</${safe}>`);
       } finally {
@@ -15734,7 +15734,7 @@ var xml = {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toEquivalence.js
+// node_modules/effect/dist/internal/schema/toEquivalence.js
 var toEquivalence = /* @__PURE__ */ memoize((ast) => {
   return recur(ast);
 });
@@ -15918,7 +15918,7 @@ function causeEquivalence(error, defect) {
   return (a, b) => reasons(a.reasons, b.reasons);
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toFormatter.js
+// node_modules/effect/dist/internal/schema/toFormatter.js
 function causeReasonToFormatter(error, defect) {
   return (reason) => {
     switch (reason._tag) {
@@ -16133,7 +16133,7 @@ function toFormatter(ast, options) {
   }
 }
 
-// ../../madewell/node_modules/effect/dist/Struct.js
+// node_modules/effect/dist/Struct.js
 var pick2 = /* @__PURE__ */ dual(2, (self, keys3) => {
   return buildStruct(self, (k, v) => hasPropertyKey(keys3, k) ? [k, v] : void 0);
 });
@@ -16166,7 +16166,7 @@ function buildStruct(source, f) {
   return out;
 }
 
-// ../../madewell/node_modules/effect/dist/Optic.js
+// node_modules/effect/dist/Optic.js
 function makeIso(get6, set4) {
   return make17(primitiveNode("Iso", get6, set4));
 }
@@ -16512,7 +16512,7 @@ function id() {
   return identityIso;
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schema/toIso.js
+// node_modules/effect/dist/internal/schema/toIso.js
 function toIso(schema) {
   const serializer = toCodecIso(schema);
   return makeIso(encodeSync(serializer), decodeSync(serializer));
@@ -16524,13 +16524,13 @@ function toIsoFocus(_) {
   return id();
 }
 
-// ../../madewell/node_modules/effect/dist/internal/schemaError.js
+// node_modules/effect/dist/internal/schemaError.js
 var SchemaErrorTypeId = "~effect/Schema/SchemaError";
 function isSchemaError(u) {
   return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
 }
 
-// ../../madewell/node_modules/effect/dist/net/NetAddress.js
+// node_modules/effect/dist/net/NetAddress.js
 var TypeId26 = "~effect/net/NetAddress";
 var ipv4Value = (self) => self.value;
 var ipv6Words = (self) => self;
@@ -16974,7 +16974,7 @@ var unixPathAddress = (path) => {
   return Object.freeze(self);
 };
 
-// ../../madewell/node_modules/effect/dist/net/Host.js
+// node_modules/effect/dist/net/Host.js
 var TypeId27 = "~effect/net/Host";
 var hostError = (input, message) => fail2(new NetAddressError({
   input,
@@ -16989,10 +16989,10 @@ var validateDomainName = (name) => {
   if (relative2.length === 0) return "domain name must not be empty";
   if (relative2.length > 253) return "domain name must be at most 253 characters";
   const labels = relative2.split(".");
-  for (const label2 of labels) {
-    if (label2.length === 0) return "domain name labels must not be empty";
-    if (label2.length > 63) return "domain name labels must be at most 63 characters";
-    if (!labelPattern.test(label2)) {
+  for (const label3 of labels) {
+    if (label3.length === 0) return "domain name labels must not be empty";
+    if (label3.length > 63) return "domain name labels must be at most 63 characters";
+    if (!labelPattern.test(label3)) {
       return "domain name labels must contain only letters, digits, hyphens, or underscores and must not start or end with a hyphen";
     }
   }
@@ -17087,7 +17087,7 @@ var formatHostPort = (self) => {
   return host.includes(":") ? `[${host}]:${self.port}` : `${host}:${self.port}`;
 };
 
-// ../../madewell/node_modules/effect/dist/net/Dns.js
+// node_modules/effect/dist/net/Dns.js
 var RecordTypeId = "~effect/net/Dns/DnsRecord";
 var isUint8 = (u) => Number.isInteger(u) && u >= 0 && u <= 255;
 var isUint16 = (u) => Number.isInteger(u) && u >= 0 && u <= 65535;
@@ -17205,8 +17205,8 @@ var quote = (value3) => {
   return out + '"';
 };
 var nameSpecials = [34, 36, 40, 41, 59, 64];
-var formatName = (text2) => {
-  const bytes3 = encoder3.encode(text2);
+var formatName = (text4) => {
+  const bytes3 = encoder3.encode(text4);
   let out = "";
   for (let i = 0; i < bytes3.length; i++) {
     const byte = bytes3[i];
@@ -17254,7 +17254,7 @@ var formatRecord = (self) => {
   }
 };
 
-// ../../madewell/node_modules/effect/dist/net/IpInterface.js
+// node_modules/effect/dist/net/IpInterface.js
 var TypeId28 = "~effect/net/IpInterface";
 var isIpv4Interface = (u) => isIpInterface(u) && isIpv4Address(u.address);
 var isIpv6Interface = (u) => isIpInterface(u) && isIpv6Address(u.address);
@@ -17316,7 +17316,7 @@ var ipv6FromString2 = (input, options) => flatMap2(parseAddressWithPrefix(input,
 var fromString3 = (input, options) => flatMap2(parseAddressWithPrefix(input, options), (parts2) => flatMap2(ipFromString(parts2.address), (address) => make18(address, parts2.prefixLength ?? width(address))));
 var format5 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../madewell/node_modules/effect/dist/net/IpNetwork.js
+// node_modules/effect/dist/net/IpNetwork.js
 var TypeId29 = "~effect/net/IpNetwork";
 var isIpv4Network = (u) => isIpNetwork(u) && isIpv4Address(u.address);
 var isIpv6Network = (u) => isIpNetwork(u) && isIpv6Address(u.address);
@@ -17385,7 +17385,7 @@ var fromString4 = (input) => {
 };
 var format6 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../madewell/node_modules/effect/dist/Schema.js
+// node_modules/effect/dist/Schema.js
 var TypeId30 = TypeId25;
 function declareConstructor() {
   return (typeParameters, run2, annotations2) => {
@@ -17831,20 +17831,20 @@ function refine(refinement, annotations2) {
     schema
   });
 }
-function brand(identifier2) {
+function brand(identifier3) {
   return (schema) => make20(schema.ast, {
     schema,
-    identifier: identifier2
+    identifier: identifier3
   });
 }
-function fromBrand(identifier2, ctor) {
+function fromBrand(identifier3, ctor) {
   return (self) => (
     // The constructor already guarantees a single concrete brand key.
-    (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier2))
+    (ctor.checks ? self.check(...ctor.checks) : self).pipe(brand(identifier3))
   );
 }
-function middlewareDecoding2(decode6) {
-  return (schema) => make20(middlewareDecoding(schema.ast, new Middleware(decode6, identity)), {
+function middlewareDecoding2(decode7) {
+  return (schema) => make20(middlewareDecoding(schema.ast, new Middleware(decode7, identity)), {
     schema
   });
 }
@@ -17874,8 +17874,8 @@ function decodeTo2(to, transformation) {
   };
 }
 function linkDecoding() {
-  return (to, decode6) => link()(to, {
-    decode: decode6,
+  return (to, decode7) => link()(to, {
+    decode: decode7,
     encode: forbiddenEncoding
   });
 }
@@ -19361,11 +19361,11 @@ function Defect(options) {
 }
 function ReadonlyMap(key, value3) {
   const schema = declareConstructor()([key, value3], ([key2, value4]) => {
-    const array2 = ArraySchema(Tuple2([key2, value4]));
+    const array3 = ArraySchema(Tuple2([key2, value4]));
     return (input, ast, options) => {
       if (input instanceof globalThis.Map) {
-        return mapBothEager2(decodeUnknownEffect(array2)([...input], options), {
-          onSuccess: (array3) => new globalThis.Map(array3),
+        return mapBothEager2(decodeUnknownEffect(array3)([...input], options), {
+          onSuccess: (array4) => new globalThis.Map(array4),
           onFailure: (issue) => makeCompositeAtKey(ast, "entries", issue, input, options)
         });
       }
@@ -19395,11 +19395,11 @@ function ReadonlyMap(key, value3) {
 }
 function ReadonlySet(value3) {
   const schema = declareConstructor()([value3], ([value4]) => {
-    const array2 = ArraySchema(value4);
+    const array3 = ArraySchema(value4);
     return (input, ast, options) => {
       if (input instanceof globalThis.Set) {
-        return mapBothEager2(decodeUnknownEffect(array2)([...input], options), {
-          onSuccess: (array3) => new globalThis.Set(array3),
+        return mapBothEager2(decodeUnknownEffect(array3)([...input], options), {
+          onSuccess: (array4) => new globalThis.Set(array4),
           onFailure: (issue) => makeCompositeAtKey(ast, "values", issue, input, options)
         });
       }
@@ -19635,7 +19635,7 @@ var StandardSchemaV1FailureResult = /* @__PURE__ */ Struct({
 });
 var BooleanFromBit = /* @__PURE__ */ Literals([0, 1]).pipe(/* @__PURE__ */ decodeTo2(Boolean3, /* @__PURE__ */ transform2({
   decode: (bit) => bit === 1,
-  encode: (bool) => bool ? 1 : 0
+  encode: (bool2) => bool2 ? 1 : 0
 })));
 var Base64String = /* @__PURE__ */ String6.annotate({
   expected: "a base64 encoded string that will be decoded as Uint8Array",
@@ -20088,7 +20088,7 @@ var DateTimeZoned = /* @__PURE__ */ declare((u) => isDateTime2(u) && isZoned2(u)
   toEquivalence: () => Equivalence4
 });
 var DateTimeZonedFromString = /* @__PURE__ */ DateTimeZonedString.pipe(/* @__PURE__ */ decodeTo2(DateTimeZoned, dateTimeZonedFromString));
-var netAddressFromString = (declaration, parse, encode5, identifier2) => String6.pipe(decodeTo2(declaration, transformEffect2({
+var netAddressFromString = (declaration, parse, encode5, identifier3) => String6.pipe(decodeTo2(declaration, transformEffect2({
   decode: (input, options) => {
     const result3 = parse(input);
     return isSuccess2(result3) ? succeed6(result3.success) : fail6(new InvalidValue({
@@ -20097,7 +20097,7 @@ var netAddressFromString = (declaration, parse, encode5, identifier2) => String6
   },
   encode: (value3) => succeed6(encode5(value3))
 }))).annotate({
-  identifier: identifier2
+  identifier: identifier3
 });
 var MacAddress = /* @__PURE__ */ declare(isMacAddress, {
   identifier: "MacAddress"
@@ -20115,10 +20115,10 @@ var IpAddress = /* @__PURE__ */ declare(isIpAddress, {
   identifier: "IpAddress"
 });
 var IpAddressFromString = /* @__PURE__ */ netAddressFromString(IpAddress, ipFromString, formatIp, "IpAddressFromString");
-var netAddressRefinement = (schema, guard, expected, identifier2) => refine(guard, {
+var netAddressRefinement = (schema, guard, expected, identifier3) => refine(guard, {
   expected
 })(schema).annotate({
-  identifier: identifier2
+  identifier: identifier3
 });
 var IpMulticastAddress = /* @__PURE__ */ netAddressRefinement(IpAddress, isMulticast, "a multicast address", "IpMulticastAddress");
 var IpMulticastAddressFromString = /* @__PURE__ */ netAddressRefinement(IpAddressFromString, isMulticast, "a multicast address", "IpMulticastAddressFromString");
@@ -20353,8 +20353,8 @@ var dnsRecordOfType = (type, fields) => declare((u) => isDnsRecord(u) && u._tag 
         }, input, options));
       },
       // Records hold only their tag and fields as own properties.
-      encode: (record2) => succeed6({
-        ...record2
+      encode: (record3) => succeed6({
+        ...record3
       })
     }));
   }
@@ -20847,21 +20847,21 @@ function OptionFromOptionalNullOr(schema, options) {
   })));
 }
 function Redacted(value3, options) {
-  const label2 = typeof options?.label === "string" ? options.label : void 0;
+  const label3 = typeof options?.label === "string" ? options.label : void 0;
   const disallowJsonEncode = options?.disallowJsonEncode === true;
-  const normalizedOptions = label2 !== void 0 ? disallowJsonEncode ? {
-    label: label2,
+  const normalizedOptions = label3 !== void 0 ? disallowJsonEncode ? {
+    label: label3,
     disallowJsonEncode: true
   } : {
-    label: label2
+    label: label3
   } : disallowJsonEncode ? {
     disallowJsonEncode: true
   } : void 0;
-  const decodeLabel = label2 !== void 0 ? decodeUnknownEffect(Literal2(label2)) : void 0;
+  const decodeLabel = label3 !== void 0 ? decodeUnknownEffect(Literal2(label3)) : void 0;
   const schema = declareConstructor()([value3], ([value4]) => (input, ast, poptions) => {
     if (isRedacted(input)) {
-      const label3 = decodeLabel !== void 0 ? mapErrorEager2(decodeLabel(input.label, poptions), (issue) => new Pointer(["label"], issue)) : void_4;
-      return flatMapEager2(label3, () => mapBothEager2(decodeUnknownEffect(value4)(value2(input), poptions), {
+      const label4 = decodeLabel !== void 0 ? mapErrorEager2(decodeLabel(input.label, poptions), (issue) => new Pointer(["label"], issue)) : void_4;
+      return flatMapEager2(label4, () => mapBothEager2(decodeUnknownEffect(value4)(value2(input), poptions), {
         onSuccess: (value5) => make12(value5, {
           label: input.label
         }),
@@ -20886,7 +20886,7 @@ function Redacted(value3, options) {
     expected: "Redacted",
     toCodecJson: ([value4]) => link()(value4, {
       decode: transform((e) => make12(e, {
-        label: label2
+        label: label3
       })),
       encode: disallowJsonEncode ? forbidden((oe) => "Cannot serialize Redacted" + (isSome2(oe) && typeof oe.value.label === "string" ? ` with label: "${oe.value.label}"` : "")) : transform(value2)
     }),
@@ -20961,9 +20961,9 @@ function Result(success, failure) {
 }
 var immerable = /* @__PURE__ */ globalThis.Symbol.for("immer-draftable");
 var payloadToken = {};
-function makeClass(Inherited, identifier2, struct2, annotations2, proto) {
-  const getClassSchema = getClassSchemaFactory(struct2, identifier2, annotations2);
-  const ClassTypeId = getClassTypeId(identifier2);
+function makeClass(Inherited, identifier3, struct2, annotations2, proto) {
+  const getClassSchema = getClassSchemaFactory(struct2, identifier3, annotations2);
+  const ClassTypeId = getClassTypeId(identifier3);
   const out = class extends Inherited {
     constructor(...[input, options]) {
       const internalOptions = options;
@@ -20983,7 +20983,7 @@ function makeClass(Inherited, identifier2, struct2, annotations2, proto) {
       return ClassTypeId;
     }
     static [immerable] = true;
-    static identifier = identifier2;
+    static identifier = identifier3;
     static fields = struct2.fields;
     static get ast() {
       return getClassSchema(this).ast;
@@ -21012,7 +21012,7 @@ function makeClass(Inherited, identifier2, struct2, annotations2, proto) {
     static check(...checks) {
       return this.rebuild(appendChecks(this.ast, checks));
     }
-    static extend(identifier3) {
+    static extend(identifier4) {
       return (schema, annotations3) => {
         const extension = isStruct(schema) ? schema : Struct(schema);
         const fields = {
@@ -21020,9 +21020,9 @@ function makeClass(Inherited, identifier2, struct2, annotations2, proto) {
           ...extension.fields
         };
         const ast = struct(fields, struct2.ast.checks, {
-          identifier: identifier3
+          identifier: identifier4
         });
-        return makeClass(this, identifier3, makeStruct(appendChecks(ast, extension.ast.checks), fields), annotations3, proto);
+        return makeClass(this, identifier4, makeStruct(appendChecks(ast, extension.ast.checks), fields), annotations3, proto);
       };
     }
     static mapFields(f, options) {
@@ -21030,7 +21030,7 @@ function makeClass(Inherited, identifier2, struct2, annotations2, proto) {
     }
   };
   if (proto !== void 0) {
-    Object.assign(out.prototype, proto(identifier2));
+    Object.assign(out.prototype, proto(identifier3));
   }
   return out;
 }
@@ -21042,22 +21042,22 @@ function getClassTransformation(self) {
     }
   })), passthrough2());
 }
-function getClassTypeId(identifier2) {
-  return `~effect/Schema/Class/${identifier2}`;
+function getClassTypeId(identifier3) {
+  return `~effect/Schema/Class/${identifier3}`;
 }
-function getClassSchemaFactory(from, identifier2, annotations2) {
+function getClassSchemaFactory(from, identifier3, annotations2) {
   let memo;
   return (self) => {
     if (memo !== void 0) {
       return memo;
     }
-    const ClassTypeId = getClassTypeId(identifier2);
+    const ClassTypeId = getClassTypeId(identifier3);
     const isClassValue = (input) => input instanceof self || hasProperty(input, ClassTypeId);
     const transformation = getClassTransformation(self);
     const to = make20(new Declaration([from.ast], () => (input, ast, options) => {
       return isClassValue(input) ? succeed6(input) : fail6(new InvalidType(ast, input, options));
     }, {
-      identifier: identifier2,
+      identifier: identifier3,
       [CONSTRUCTOR_ANNOTATION_KEY]: ([from2]) => ({
         isConstructed: isClassValue,
         link: new Link(from2, transformation)
@@ -21074,17 +21074,17 @@ function getClassSchemaFactory(from, identifier2, annotations2) {
 function isStruct(schema) {
   return isSchema(schema);
 }
-var Class4 = (identifier2) => (schema, annotations2) => {
+var Class4 = (identifier3) => (schema, annotations2) => {
   const struct2 = isStruct(schema) ? schema : Struct(schema);
-  return makeClass(Class3, identifier2, struct2, annotations2, (identifier3) => ({
+  return makeClass(Class3, identifier3, struct2, annotations2, (identifier4) => ({
     toString() {
-      return `${identifier3}(${format({
+      return `${identifier4}(${format({
         ...this
       })})`;
     }
   }));
 };
-var TaggedClass2 = (identifier2) => {
+var TaggedClass2 = (identifier3) => {
   return (tagValue, schema, annotations2) => {
     const struct2 = isStruct(schema) ? schema.mapFields((fields) => ({
       _tag: tag(tagValue),
@@ -21092,17 +21092,17 @@ var TaggedClass2 = (identifier2) => {
     }), {
       unsafePreserveChecks: true
     }) : TaggedStruct(tagValue, schema);
-    return Class4(identifier2 ?? tagValue)(struct2, annotations2);
+    return Class4(identifier3 ?? tagValue)(struct2, annotations2);
   };
 };
-var Error4 = (identifier2) => (schema, annotations2) => {
+var Error4 = (identifier3) => (schema, annotations2) => {
   const struct2 = isStruct(schema) ? schema : Struct(schema);
-  const self = makeClass(Error2, identifier2, struct2, annotations2, (identifier3) => ({
-    name: identifier3
+  const self = makeClass(Error2, identifier3, struct2, annotations2, (identifier4) => ({
+    name: identifier4
   }));
   return self;
 };
-var TaggedError3 = (identifier2) => {
+var TaggedError3 = (identifier3) => {
   return (tagValue, schema, annotations2) => {
     const struct2 = isStruct(schema) ? schema.mapFields((fields) => ({
       _tag: tag(tagValue),
@@ -21110,7 +21110,7 @@ var TaggedError3 = (identifier2) => {
     }), {
       unsafePreserveChecks: true
     }) : TaggedStruct(tagValue, schema);
-    return Error4(identifier2 ?? tagValue)(struct2, annotations2);
+    return Error4(identifier3 ?? tagValue)(struct2, annotations2);
   };
 };
 function overrideToFormatter(toFormatter3) {
@@ -21195,7 +21195,7 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
-// ../../madewell/node_modules/effect/dist/Fiber.js
+// node_modules/effect/dist/Fiber.js
 var Fiber_exports = {};
 __export(Fiber_exports, {
   await: () => await_,
@@ -21222,7 +21222,7 @@ var isFiber = (u) => hasProperty(u, FiberTypeId);
 var getCurrent = getCurrentFiber;
 var runIn = fiberRunIn;
 
-// ../../madewell/node_modules/effect/dist/MutableList.js
+// node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
   head: void 0,
@@ -21284,16 +21284,16 @@ var takeN = (self, n) => {
   if (n <= 0 || !self.head) return [];
   n = Math.min(n, self.length);
   if (n === self.length && self.head?.offset === 0 && !self.head.next) {
-    const array3 = self.head.array;
+    const array4 = self.head.array;
     clear(self);
-    return array3;
+    return array4;
   }
-  const array2 = new Array(n);
+  const array3 = new Array(n);
   let index2 = 0;
   let chunk = self.head;
   while (chunk) {
     while (chunk.offset < chunk.array.length) {
-      array2[index2++] = chunk.array[chunk.offset];
+      array3[index2++] = chunk.array[chunk.offset];
       if (chunk.mutable) chunk.array[chunk.offset] = void 0;
       chunk.offset++;
       if (index2 === n) {
@@ -21301,13 +21301,13 @@ var takeN = (self, n) => {
         self.length -= n;
         if (self.length === 0) clear(self);
         else compactHead(self);
-        return array2;
+        return array3;
       }
     }
     chunk = chunk.next;
   }
   clear(self);
-  return array2;
+  return array3;
 };
 var takeAll = (self) => takeN(self, self.length);
 var take = (self) => {
@@ -21328,7 +21328,7 @@ var take = (self) => {
   return message;
 };
 
-// ../../madewell/node_modules/effect/dist/Queue.js
+// node_modules/effect/dist/Queue.js
 var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
@@ -21494,15 +21494,15 @@ var failCauseUnsafe = (self, cause) => {
     return false;
   }
   const exit4 = exitFailCause(cause);
-  const fail10 = exitZipRight(exit4, exitFailDone);
+  const fail11 = exitZipRight(exit4, exitFailDone);
   if (self.state.offers.size === 0 && self.messages.length === 0) {
-    finalize(self, fail10);
+    finalize(self, fail11);
     return true;
   }
   self.state = {
     ...self.state,
     _tag: "Closing",
-    exit: fail10
+    exit: fail11
   };
   scheduleReleaseTaker(self);
   return true;
@@ -21762,7 +21762,7 @@ var finalize = (self, exit4) => {
   openState.awaiters.clear();
 };
 
-// ../../madewell/node_modules/effect/dist/Semaphore.js
+// node_modules/effect/dist/Semaphore.js
 var Semaphore_exports = {};
 __export(Semaphore_exports, {
   make: () => make23,
@@ -21889,6 +21889,15 @@ var takeIfAvailable = /* @__PURE__ */ dual(2, (self, permits) => self.takeIfAvai
 var release = /* @__PURE__ */ dual(2, (self, permits) => self.release(permits));
 var releaseAll = (self) => self.releaseAll;
 
+// src/api.ts
+import { createHash as createHash4, randomBytes, randomUUID as randomUUID3, timingSafeEqual } from "node:crypto";
+
+// src/engine.ts
+import { createHash as createHash2 } from "node:crypto";
+import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { tmpdir as tmpdir3 } from "node:os";
+import { dirname as dirname6, join as join9 } from "node:path";
+
 // src/cards.ts
 import { readFileSync } from "node:fs";
 
@@ -21910,6 +21919,14 @@ var ERRORS = {
   },
   projects_invalid: { means: "The project registry in Made Well's home is not valid.", context: Schema_exports.Struct({ path: Schema_exports.String, problems: Schema_exports.String }) },
   item_not_found: { means: "No work item has this number.", context: Schema_exports.Struct({ id: Id }) },
+  api_request: {
+    means: "A versioned API request failed validation, security, concurrency or transport checks; context names the HTTP status and reason.",
+    context: Schema_exports.Struct({ status: Schema_exports.Int, reason: Schema_exports.String, facts: Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown) })
+  },
+  qa_request: {
+    means: "A manual QA request was refused; retain the exact draft and request ID, and follow the refresh command before rebasing a conflict.",
+    context: Schema_exports.Struct({ status: Schema_exports.Int, reason: Schema_exports.String, facts: Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown) })
+  },
   capture_failed: { means: "Live process output could not be captured; its process group was stopped rather than continuing without evidence.", context: Schema_exports.Struct({ command: Schema_exports.String, channel: Schema_exports.String, reason: Schema_exports.String }) },
   not_held: { means: "The item is not waiting on the operator, so there is nothing to answer or retry.", context: Schema_exports.Struct({ id: Id, status: Schema_exports.String, job: Schema_exports.String }) },
   not_answerable: { means: "The item holds on something an answer does not resolve; `next` names what does.", context: Schema_exports.Struct({ id: Id, hold: Hold }) },
@@ -21943,6 +21960,10 @@ var ERRORS = {
     })
   },
   cartridges_unreadable: { means: "The cartridge pack file cannot be read.", context: Schema_exports.Struct({ path: Schema_exports.String, reason: Schema_exports.String }) },
+  function_failed: {
+    means: "A function failed its input, execution or output contract. Accepted earlier nodes remain saved.",
+    context: Schema_exports.Struct({ id: Id, job: Schema_exports.String, reason: Schema_exports.String })
+  },
   cartridges_invalid: {
     means: "The cartridge pack does not plug into the console: it is not valid JSON, does not match the pack shape, or breaks the console's contract (`problems` lists each).",
     context: Schema_exports.Struct({ path: Schema_exports.String, problems: Schema_exports.Array(Schema_exports.String) })
@@ -22324,7 +22345,7 @@ function buildLaunch(card, access, call, harness = HARNESSES[card.harness]) {
   if (harness.settings) files[settings] = JSON.stringify(Object.fromEntries(Object.entries(harness.settings).map(([k, v]) => [k, v === "{tools}" ? harness.tools[access] : typeof v === "string" ? fill(v, vars) : v])));
   return { command: process.env[`MW_${card.harness.toUpperCase()}`] ?? binary, args: args2, input: fill(harness.stdin ?? "{prompt}", vars), files };
 }
-var events = (text2) => text2.split("\n").flatMap((l) => {
+var events = (text4) => text4.split("\n").flatMap((l) => {
   try {
     const e = JSON.parse(l);
     return e && typeof e === "object" ? [e] : [];
@@ -22340,8 +22361,8 @@ var tokensIn = (harness, line) => {
   return harness.tokens.paths.reduce((sum3, p) => sum3 + (Number(get5(e, p)) || 0), 0);
 };
 var DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-function clockToEpoch(text2, now2) {
-  const m = /(?:\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+)?\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?(\s*\(UTC\))?/i.exec(text2);
+function clockToEpoch(text4, now2) {
+  const m = /(?:\b(sun|mon|tue|wed|thu|fri|sat)[a-z]*\.?\s+)?\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\.?(\s*\(UTC\))?/i.exec(text4);
   if (!m) return null;
   const [, day, h, min5 = "0", ap, utc] = m;
   const hour = Number(h) % 12 + (ap.toLowerCase() === "p" ? 12 : 0);
@@ -22360,21 +22381,21 @@ function parseRun(harness, stdout, account, now2) {
   const evs = harness.output === "jsonl" ? events(stdout) : [];
   let output = stdout.trim();
   let succeeded = output !== "";
-  let failed = [];
+  let failed2 = [];
   if (harness.output === "jsonl") {
     const a = harness.answer;
     const last = evs.findLast((e) => matches(e, a.event));
-    failed = evs.filter((e) => a.failed?.some((m) => matches(e, m)));
+    failed2 = evs.filter((e) => a.failed?.some((m) => matches(e, m)));
     output = textOf(get5(last, a.text));
-    succeeded = last !== void 0 && output.trim() !== "" && (!a.ok || matches(last, a.ok)) && (!a.done || evs.some((e) => matches(e, a.done))) && failed.length === 0;
+    succeeded = last !== void 0 && output.trim() !== "" && (!a.ok || matches(last, a.ok)) && (!a.done || evs.some((e) => matches(e, a.done))) && failed2.length === 0;
   }
   const pattern = new RegExp(harness.limit.pattern);
   const answeredLimit = new RegExp(`^\\s*(?:${harness.limit.pattern})`).test(output);
   const own = evs.filter((e) => harness.limit.events?.some((m) => matches(e, m)));
   let limit = null;
   if (!succeeded || answeredLimit) {
-    const text2 = answeredLimit ? output : own.flatMap(strings).find((s) => pattern.test(s));
-    const said = text2 ? pattern.exec(text2) : null;
+    const text4 = answeredLimit ? output : own.flatMap(strings).find((s) => pattern.test(s));
+    const said = text4 ? pattern.exec(text4) : null;
     const signal = harness.limit.signals?.map((s) => ({ s, e: evs.findLast((e) => matches(e, s.when)) })).find((x) => x.e);
     if (said || signal) {
       const machine = signal?.s.resetsAt.map((p) => get5(signal.e, p)).find((v) => typeof v === "number" && Number.isFinite(v));
@@ -22384,7 +22405,7 @@ function parseRun(harness, stdout, account, now2) {
     }
   }
   const ok = succeeded && !limit;
-  return { output, ok, limit, error: ok ? "" : [...new Set([...failed, ...own].flatMap(strings))].join(" ").slice(-2e3) || output };
+  return { output, ok, limit, error: ok ? "" : [...new Set([...failed2, ...own].flatMap(strings))].join(" ").slice(-2e3) || output };
 }
 var versions = /* @__PURE__ */ new Map();
 var versionOf = (command2, args2, env) => {
@@ -22459,12 +22480,12 @@ var Prescriptions = Schema_exports.Struct({
 });
 var DEFAULT_PARALLEL = 3;
 var loadPrescriptions = (path) => Effect_exports.gen(function* () {
-  const text2 = yield* Effect_exports.try({
+  const text4 = yield* Effect_exports.try({
     try: () => readFileSync(path, "utf8"),
     catch: (e) => new MadeWellError({ code: "prescriptions_unreadable", message: `Cannot read prescriptions file ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: `MW_PRESCRIPTIONS=<readable prescriptions file> mw run`, why: "point Made Well at a prescriptions file it can read" }] })
   });
   const value3 = yield* Effect_exports.try({
-    try: () => JSON.parse(text2),
+    try: () => JSON.parse(text4),
     catch: (e) => new MadeWellError({ code: "prescriptions_invalid", message: `Prescriptions file ${path} is not valid JSON.`, context: { path, reason: String(e) }, next: [{ run: `node -e "JSON.parse(require('fs').readFileSync('${path}','utf8'))"`, why: "see the exact parse error position" }] })
   });
   const p = yield* Schema_exports.decodeUnknownEffect(Prescriptions)(value3).pipe(
@@ -22488,7 +22509,9 @@ var loadPrescriptions = (path) => Effect_exports.gen(function* () {
 var forLane = (p, lane) => Effect_exports.gen(function* () {
   const jobs2 = { ...p.jobs };
   for (const step2 of [...lane.discovery, ...lane.delivery]) {
-    if (step2.job === "verify" || jobs2[step2.job]) continue;
+    if (lane.pack.runtime === "functions") {
+      if (step2.run || step2.children) continue;
+    } else if (step2.job === "verify" || jobs2[step2.job]) continue;
     const tier = step2.tier ?? "deep";
     if (!p.tiers[tier]) {
       return yield* new MadeWellError({
@@ -22498,7 +22521,7 @@ var forLane = (p, lane) => Effect_exports.gen(function* () {
         next: [{ run: '$EDITOR "$MW_PRESCRIPTIONS"', why: `define tier "${tier}", or prescribe "${step2.job}" under jobs` }, { run: "mw cartridges", why: "see the pack and the tier each step asks for" }]
       });
     }
-    jobs2[step2.job] = { tier, access: "read", ...step2.budget ? { budget: step2.budget } : {} };
+    jobs2[step2.job] = { tier, access: step2.access ?? (lane.pack.runtime === "functions" ? "none" : "read"), ...step2.budget ? { budget: step2.budget } : {} };
   }
   return { ...p, jobs: jobs2 };
 });
@@ -22606,7 +22629,7 @@ var resolveDecision = Effect_exports.fn("mw.resolveDecision")(function* (request
 // src/lane.ts
 var isMaker = (job) => job === "implement" || job === "test-plan";
 var Positive2 = Schema_exports.Finite.check(Schema_exports.isGreaterThan(0));
-var StepSpec = Schema_exports.Struct({
+var StepFields = {
   job: Schema_exports.String.annotate({ description: `the job's name, lowercase letters, digits and "-"; a slot (discover, plan, implement, test-plan, verify) gets the console's behaviour` }),
   profile: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the agent profile that does it, never a personal name" })),
   duty: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "what the job is for and what it must not do, in one or two sentences" })),
@@ -22614,17 +22637,27 @@ var StepSpec = Schema_exports.Struct({
   receives: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.String).annotate({ description: 'earlier jobs of the same loop whose deliverables it gets ("discover" in delivery: the candidate); default: every earlier one' })),
   output: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown).annotate({ description: `a thinking step's deliverable as JSON Schema, {"type": "object", ...}: Made Well checks type, properties, required, items, enum and anyOf` })),
   tier: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: `a thinking step's prescribed tier when the prescriptions do not name its job; default "deep"` })),
-  budget: Schema_exports.optionalKey(Schema_exports.Struct({ minutes: Positive2, tokens: Schema_exports.optional(Positive2) }).annotate({ description: "a thinking step's budget when the prescriptions do not name its job" }))
+  budget: Schema_exports.optionalKey(Schema_exports.Struct({ minutes: Positive2, tokens: Schema_exports.optional(Positive2) }).annotate({ description: "a thinking step's budget when the prescriptions do not name its job" })),
+  run: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "functions runtime: trusted command, JSON input on stdin, JSON object output on stdout; stderr carries logs" })),
+  input: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
+  args: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown)),
+  access: Schema_exports.optionalKey(Schema_exports.Literals(["none", "read", "make", "checks", "run"]))
+};
+var StepSpec = Schema_exports.Struct({
+  ...StepFields,
+  children: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.suspend(() => StepSpec)))
 }).annotate({ identifier: "Step" });
 var CartridgeSpec = Schema_exports.Struct({
   cartridge: Schema_exports.NonEmptyString.annotate({ description: "its name, shown as the stage of its steps" }),
-  steps: Schema_exports.NonEmptyArray(StepSpec)
+  steps: Schema_exports.Array(StepSpec)
 }).annotate({ identifier: "Cartridge" });
 var Pack = Schema_exports.Struct({
   name: Schema_exports.NonEmptyString,
+  runtime: Schema_exports.optionalKey(Schema_exports.Literals(["software", "functions"]).annotate({ description: "software keeps the existing maker/check/ship contract; functions has no required stage names or Git dependency" })),
+  version: Schema_exports.optionalKey(Schema_exports.NonEmptyString),
   brief: Schema_exports.optionalKey(Schema_exports.String.annotate({ description: "what every call of this kind of work should know, added to the shared brief" })),
-  discovery: Schema_exports.NonEmptyArray(CartridgeSpec).annotate({ description: 'raw input in, candidates out; the last step is "discover"' }),
-  delivery: Schema_exports.NonEmptyArray(CartridgeSpec).annotate({ description: 'one item in, delivered out: thinking steps, then "plan", then "implement" (and "test-plan" beside it, or leave it out), then "verify"' })
+  discovery: Schema_exports.Array(CartridgeSpec).annotate({ description: 'raw input in, candidates out; software ends with "discover"' }),
+  delivery: Schema_exports.Array(CartridgeSpec).annotate({ description: "ordered cartridges; functions may have zero, one or many nodes, including nested children" })
 }).annotate({ identifier: "Pack" });
 var SLOTS = ["discover", "plan", "implement", "test-plan", "verify"];
 var SLOT_DEFAULTS = {
@@ -22640,6 +22673,7 @@ var ARBITER = {
   duty: "A check failed or a step could not be done as written. Decide from the evidence whose it is: a pre-existing defect, a bad implementation, or a bad test."
 };
 function problemsOf(pack) {
+  if (pack.runtime === "functions") return functionProblems(pack);
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const loop = (name) => pack[name].flatMap((c) => c.steps.map((s) => ({ ...s, cartridge: c.cartridge })));
@@ -22648,6 +22682,7 @@ function problemsOf(pack) {
   for (const [name, steps] of [["discovery", disc], ["delivery", del]]) {
     steps.forEach((s, i) => {
       const at = `${name} step ${s.job}`;
+      if (s.run || s.children || s.input || s.args || s.access) out.push(`${at}: function-node fields require runtime "functions".`);
       if (!/^[a-z][a-z0-9-]*$/.test(s.job)) out.push(`${name} step "${s.job}": a job name is lowercase letters, digits and "-".`);
       if (s.job === "arbitrate" || s.job === "ship") out.push(`${at}: "${s.job}" is the console's own; it cannot be placed.`);
       if (seen.has(s.job)) out.push(`${at}: the job name is used twice.`);
@@ -22682,7 +22717,51 @@ function problemsOf(pack) {
   }
   return out;
 }
+function functionSteps(pack, loop) {
+  const steps = [];
+  const visit = (node, cartridge, parent) => {
+    for (const child of node.children ?? []) visit(child, cartridge, node.job);
+    steps.push({
+      ...node,
+      cartridge,
+      loop,
+      profile: node.profile ?? "made well",
+      duty: node.duty ?? "",
+      receives: node.receives ?? (node.children ? node.children.map((c) => c.job) : steps.slice(-1).map((s) => s.job)),
+      ...parent ? { parent } : {},
+      children: node.children?.map((c) => c.job)
+    });
+  };
+  for (const cartridge of pack[loop]) for (const node of cartridge.steps) visit(node, cartridge.cartridge);
+  return steps;
+}
+function functionProblems(pack) {
+  const problems = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const loop of ["discovery", "delivery"]) {
+    const earlier = /* @__PURE__ */ new Set();
+    for (const step2 of functionSteps(pack, loop)) {
+      const at = `${loop} node ${step2.job}`;
+      if (!/^[a-z][a-z0-9-]*$/.test(step2.job)) problems.push(`${at}: use lowercase letters, digits and "-".`);
+      if (seen.has(step2.job)) problems.push(`${at}: duplicate node identity.`);
+      if (step2.children && (step2.run || step2.profile !== "made well" || step2.task)) problems.push(`${at}: a group composes children; give executable behavior to a child.`);
+      if (!step2.children && !step2.run && (!step2.duty || step2.profile === "made well")) problems.push(`${at}: an agent needs profile and duty; otherwise provide run or children.`);
+      if (!step2.children && step2.output?.type !== "object") problems.push(`${at}: declare an object output schema.`);
+      for (const received of step2.receives) if (!earlier.has(received)) problems.push(`${at}: ${received} is not an earlier output in ${loop}.`);
+      earlier.add(step2.job);
+      seen.add(step2.job);
+    }
+  }
+  return problems;
+}
 function compile2(pack) {
+  if (pack.runtime === "functions") return {
+    pack,
+    discovery: functionSteps(pack, "discovery"),
+    delivery: functionSteps(pack, "delivery"),
+    makers: [],
+    arbiter: { ...ARBITER, cartridge: "delivery", loop: "delivery", receives: [] }
+  };
   const loop = (name) => {
     const steps = pack[name].flatMap((c) => c.steps.map((s) => ({ s, cartridge: c.cartridge })));
     return steps.map(({ s, cartridge }, i) => {
@@ -22720,10 +22799,10 @@ var laneOf = (pack) => {
   if (!lane) lanes.set(key, lane = compile2(pack ?? SOFTWARE));
   return lane;
 };
-var stepOf = (lane, job) => job === "arbitrate" ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: "delivery", profile: job, duty: "", receives: [] };
+var stepOf = (lane, job) => job === "arbitrate" && lane.pack.runtime !== "functions" ? lane.arbiter : [...lane.discovery, ...lane.delivery].find((s) => s.job === job) ?? { job, cartridge: job, loop: "delivery", profile: job, duty: "", receives: [] };
 var hasJob = (lane, job) => job === "arbitrate" || [...lane.discovery, ...lane.delivery].some((s) => s.job === job);
 var loadPack = (path) => Effect_exports.gen(function* () {
-  const text2 = yield* Effect_exports.try({
+  const text4 = yield* Effect_exports.try({
     try: () => readFileSync2(path, "utf8"),
     catch: (e) => new MadeWellError({ code: "cartridges_unreadable", message: `Cannot read the cartridge pack ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: "mw cartridges", why: "print the default pack to start one from" }] })
   });
@@ -22731,10 +22810,10 @@ var loadPack = (path) => Effect_exports.gen(function* () {
     code: "cartridges_invalid",
     message: `The cartridge pack ${path} does not plug into the console.`,
     context: { path, problems: problems2 },
-    cause: 'A pack is {name, brief?, discovery: [cartridge], delivery: [cartridge]}, each cartridge {cartridge, steps: [step]}. Discovery ends with "discover"; delivery is thinking steps, then "plan", "implement" (and "test-plan" beside it), then "verify". A thinking step needs a profile, a duty and an output JSON Schema.',
+    cause: 'A pack is {name, runtime?, version?, brief?, discovery: [cartridge], delivery: [cartridge]}. Each cartridge has steps. The default software runtime keeps plan/makers/verify. runtime "functions" has no required nodes: use agent profiles, trusted commands, or nested children with input/output contracts.',
     next: [{ run: `$EDITOR ${path}`, why: "fix each problem in context.problems" }, { run: "mw cartridges", why: "compare with the default software pack" }]
   });
-  const json2 = yield* Effect_exports.try({ try: () => JSON.parse(text2), catch: (e) => invalid4([`It is not valid JSON: ${String(e)}`]) });
+  const json2 = yield* Effect_exports.try({ try: () => JSON.parse(text4), catch: (e) => invalid4([`It is not valid JSON: ${String(e)}`]) });
   const pack = yield* Schema_exports.decodeUnknownEffect(Pack)(json2).pipe(Effect_exports.mapError((e) => invalid4([String(e)])));
   const problems = problemsOf(pack);
   if (problems.length) return yield* invalid4(problems);
@@ -22791,7 +22870,7 @@ var arbiterSchema = (lane, autonomous) => Schema_exports.Struct({
   evidence: Text,
   provisioned: Provisioned
 });
-var slotSchema = (lane, job, autonomous) => job === "arbitrate" ? arbiterSchema(lane, autonomous) : SLOT_DELIVERABLES[job];
+var slotSchema = (lane, job, autonomous) => lane.pack.runtime === "functions" ? void 0 : job === "arbitrate" ? arbiterSchema(lane, autonomous) : SLOT_DELIVERABLES[job];
 var deliverableShape = (lane, job, autonomous = false) => {
   const schema = slotSchema(lane, job, autonomous);
   return schema ? shapeOf(schema) : stepOf(lane, job).output;
@@ -22815,7 +22894,7 @@ function conforms(schema, value3, at = "answer") {
   return out;
 }
 function malformed(lane, job, output, autonomous = false) {
-  if (job === "discover") return Array.isArray(lastJson(output)?.items) ? void 0 : 'The answer did not end with {"items": [...]}.';
+  if (lane.pack.runtime !== "functions" && job === "discover") return Array.isArray(lastJson(output)?.items) ? void 0 : 'The answer did not end with {"items": [...]}.';
   const schema = slotSchema(lane, job, autonomous);
   if (schema) {
     const r = decode5(schema, output);
@@ -22881,21 +22960,21 @@ function unfollowed(p, tracked) {
   return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(" ")}` : void 0;
 }
 function validate3(lane, job, output, plan, tracked, autonomous = false, conventions = []) {
-  if (job === "discover") {
+  if (lane.pack.runtime !== "functions" && job === "discover") {
     const report = lastJson(output);
     if (!Array.isArray(report?.items)) return { ok: false, reason: 'The answer did not end with {"items": [...]}.' };
-    const text2 = (v) => typeof v === "string" ? v.trim() : "";
+    const text4 = (v) => typeof v === "string" ? v.trim() : "";
     const all4 = report.items;
-    const kept = all4.flatMap((i, n) => text2(i?.title) && text2(i?.objective) ? [n] : []);
+    const kept = all4.flatMap((i, n) => text4(i?.title) && text4(i?.objective) ? [n] : []);
     const items = kept.map((n, k) => {
       const i = all4[n];
       const after = [...new Set((Array.isArray(i.after) ? i.after : []).map((p) => kept.indexOf(Number(p) - 1)).filter((m) => m >= 0 && m < k))].map((m) => m + 1);
-      return { title: text2(i.title), objective: text2(i.objective), text: text2(i.text), kind: i.kind === "fix" || i.kind === "chore" ? i.kind : "feature", ...after.length ? { after } : {} };
+      return { title: text4(i.title), objective: text4(i.objective), text: text4(i.text), kind: i.kind === "fix" || i.kind === "chore" ? i.kind : "feature", ...after.length ? { after } : {} };
     });
-    const dropped = all4.flatMap((i, n) => kept.includes(n) ? [] : [{ position: n + 1, missing: ["title", "objective"].filter((key) => !text2(i?.[key])) }]);
+    const dropped = all4.flatMap((i, n) => kept.includes(n) ? [] : [{ position: n + 1, missing: ["title", "objective"].filter((key) => !text4(i?.[key])) }]);
     return { ok: true, value: { items }, ...dropped.length ? { dropped } : {} };
   }
-  if (job === "verify") return { ok: false, reason: "verify is Made Well's own code, not an agent job." };
+  if (lane.pack.runtime !== "functions" && job === "verify") return { ok: false, reason: "verify is Made Well's own code, not an agent job." };
   const decisions = lastJson(output)?.decisions;
   if (decisions !== void 0) {
     const judged = Schema_exports.decodeUnknownResult(Decisions)(decisions);
@@ -22958,11 +23037,11 @@ function route(lane, job, value3, corrections) {
   const i = steps.findIndex((s) => s.job === job);
   return { to: "next", job: steps[i + 1].job };
 }
-function lastJson(text2) {
-  text2 = text2.replace(/\s*```\s*$/, "");
-  for (let start = text2.lastIndexOf("{"); start !== -1; start = start === 0 ? -1 : text2.lastIndexOf("{", start - 1)) {
+function lastJson(text4) {
+  text4 = text4.replace(/\s*```\s*$/, "");
+  for (let start = text4.lastIndexOf("{"); start !== -1; start = start === 0 ? -1 : text4.lastIndexOf("{", start - 1)) {
     try {
-      const value3 = JSON.parse(text2.slice(start).trim());
+      const value3 = JSON.parse(text4.slice(start).trim());
       if (value3 && typeof value3 === "object" && !Array.isArray(value3)) return value3;
     } catch {
     }
@@ -23144,9 +23223,9 @@ var buildOf = () => {
   if (build2 !== void 0) return build2;
   try {
     const here = dirname(fileURLToPath(import.meta.url));
-    const hash2 = createHash("sha256");
-    for (const f of readdirSync(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash2.update(f).update(readFileSync3(join4(here, f)));
-    build2 = hash2.digest("hex").slice(0, 12);
+    const hash3 = createHash("sha256");
+    for (const f of readdirSync(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash3.update(f).update(readFileSync3(join4(here, f)));
+    build2 = hash3.digest("hex").slice(0, 12);
   } catch {
     build2 = null;
   }
@@ -23163,10 +23242,10 @@ function telemetry(storePath2) {
   const full = [void 0, "", "full"].includes(process.env.MW_TELEMETRY_LEVEL);
   return {
     file,
-    write(t, record2) {
+    write(t, record3) {
       try {
         mkdirSync(dirname(file), { recursive: true });
-        appendFileSync2(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record2 : metrics(record2) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
+        appendFileSync2(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record3 : metrics(record3) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
       } catch {
       }
     }
@@ -23176,7 +23255,7 @@ var nanosToMs = (n) => Number(n / 1000000n);
 var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => {
   const local = !file.startsWith(":memory:");
   if (process.env.MW_DEBUG === "0" || !sink && !local) return Layer_exports.empty;
-  const write = (span2) => {
+  const write2 = (span2) => {
     sink?.write("span", span2);
     if (!local) return;
     try {
@@ -23193,7 +23272,7 @@ var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => 
         end2(endTime, exit4);
         const parent = options.parent._tag === "Some" ? options.parent.value.spanId : null;
         const outcome = exit4._tag === "Success" ? "ok" : "error";
-        write({ name: span2.name, trace: span2.traceId, span: span2.spanId, parent, start: new Date(nanosToMs(span2.startTime)).toISOString(), ms: nanosToMs(endTime - span2.startTime), outcome, attributes: Object.fromEntries(span2.attributes) });
+        write2({ name: span2.name, trace: span2.traceId, span: span2.spanId, parent, start: new Date(nanosToMs(span2.startTime)).toISOString(), ms: nanosToMs(endTime - span2.startTime), outcome, attributes: Object.fromEntries(span2.attributes) });
       };
       return span2;
     }
@@ -23268,9 +23347,9 @@ function stats(lines4) {
     if (c) for (const t of [c.p, c.p.jobs[c.job], c.p.cards[c.card]]) t.refused++;
   }
   for (const i of items.values()) {
-    const ref = { item: i.item, store: i.store };
-    if (i.shipped) i.p.leadTime.shipped.push({ ...ref, minutes: minutesBetween(i.created, i.shipped) });
-    else i.p.leadTime.open.push({ ...ref, status: i.status, minutes: minutesBetween(i.created, latest.get(`${i.p.host}\0${i.store}`)) });
+    const ref2 = { item: i.item, store: i.store };
+    if (i.shipped) i.p.leadTime.shipped.push({ ...ref2, minutes: minutesBetween(i.created, i.shipped) });
+    else i.p.leadTime.open.push({ ...ref2, status: i.status, minutes: minutesBetween(i.created, latest.get(`${i.p.host}\0${i.store}`)) });
   }
   const tenth = (n) => Math.round(n * 10) / 10;
   const round2 = (t) => {
@@ -23308,20 +23387,68 @@ var alive2 = (pid) => {
     return e.code !== "ESRCH";
   }
 };
+var qaFailure = (status, reason, facts = {}) => new MadeWellError({
+  code: "qa_request",
+  message: `Manual QA request refused: ${reason}. Keep the draft and retry identity until the outcome is known.`,
+  context: { status, reason, facts },
+  next: [{ run: typeof facts.refresh === "string" ? facts.refresh : "mw qa-cases", why: "inspect saved history before a new request; conflicts require explicit review and a new request ID" }]
+});
+var qaGuard = (run2) => {
+  try {
+    return run2();
+  } catch (cause) {
+    if (cause instanceof MadeWellError) throw cause;
+    const busy = cause instanceof Error && /(?:SQLITE_BUSY|database is locked|database table is locked)/i.test(cause.message);
+    throw qaFailure(busy ? 503 : 500, busy ? "store_busy" : "storage_failed");
+  }
+};
+var qaCanonical = (value3) => Array.isArray(value3) ? value3.map(qaCanonical) : value3 && typeof value3 === "object" ? Object.fromEntries(Object.entries(value3).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, qaCanonical(child)])) : value3;
 function openStore(path) {
   mkdirSync2(dirname2(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
+		CREATE TABLE IF NOT EXISTS operator_requests (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, receipt TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS calls (id INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, kind TEXT NOT NULL, job TEXT NOT NULL, profile TEXT NOT NULL, card TEXT NOT NULL, system TEXT NOT NULL, prompt TEXT NOT NULL, outcome TEXT NOT NULL, output TEXT, error TEXT, raw TEXT, started TEXT NOT NULL, ms INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`);
+  qaGuard(() => {
+    const tables = {
+      qa_cases: "id INTEGER PRIMARY KEY AUTOINCREMENT, work_item INTEGER NOT NULL, workspace TEXT NOT NULL, current_revision INTEGER NOT NULL, created_at TEXT NOT NULL",
+      qa_case_revisions: "case_id INTEGER NOT NULL, revision INTEGER NOT NULL, doc TEXT NOT NULL, PRIMARY KEY(case_id,revision)",
+      qa_runs: "id INTEGER PRIMARY KEY AUTOINCREMENT, work_item INTEGER NOT NULL, workspace TEXT NOT NULL, doc TEXT NOT NULL",
+      qa_observations: "id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, case_id INTEGER NOT NULL, case_revision INTEGER NOT NULL, entry_revision INTEGER NOT NULL, doc TEXT NOT NULL, UNIQUE(run_id,case_id,entry_revision)",
+      qa_requests: "id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, outcome TEXT NOT NULL"
+    };
+    for (const [name, definition] of Object.entries(tables)) {
+      const expected = definition.split(", ").filter((part) => !part.startsWith("PRIMARY ") && !part.startsWith("UNIQUE(")).map((part) => {
+        const [column, type] = part.split(" ");
+        return { name: column, type, notnull: part.includes("NOT NULL") ? 1 : 0, pk: name === "qa_case_revisions" ? ["case_id", "revision"].indexOf(column) + 1 : part.includes("PRIMARY KEY") ? 1 : 0 };
+      });
+      const existing = db.prepare(`PRAGMA table_info(${name})`).all();
+      if (existing.length && JSON.stringify(existing.map(({ name: name2, type, notnull, pk }) => ({ name: name2, type: type.toUpperCase(), notnull, pk }))) !== JSON.stringify(expected)) throw qaFailure(500, "storage_failed", { table: name, reason: "incompatible_schema; stop for a migration brief" });
+      if (existing.length && name === "qa_observations") {
+        const indexes = db.prepare("PRAGMA index_list(qa_observations)").all();
+        const unique = indexes.some((index2) => index2.unique && JSON.stringify(db.prepare("SELECT name FROM pragma_index_info(?) ORDER BY seqno").all(index2.name).map((c) => c.name)) === JSON.stringify(["run_id", "case_id", "entry_revision"]));
+        if (!unique) throw qaFailure(500, "storage_failed", { table: name, reason: "incompatible_schema; missing entry uniqueness" });
+      }
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      for (const [name, definition] of Object.entries(tables)) db.exec(`CREATE TABLE IF NOT EXISTS ${name} (${definition})`);
+      db.exec("CREATE INDEX IF NOT EXISTS qa_cases_work ON qa_cases(work_item); CREATE INDEX IF NOT EXISTS qa_runs_work ON qa_runs(work_item); CREATE INDEX IF NOT EXISTS qa_observations_entry ON qa_observations(run_id,case_id,id); COMMIT");
+    } catch (cause) {
+      db.exec("ROLLBACK");
+      throw cause;
+    }
+  });
   const sink = telemetry(path);
   let pending2;
-  const emit = (t, record2) => pending2 ? pending2.push([t, record2]) : sink?.write(t, record2);
+  const emit = (t, record3) => pending2 ? pending2.push([t, record3]) : sink?.write(t, record3);
   const tx2 = (fn3) => {
+    if (pending2) return fn3();
     db.exec("BEGIN IMMEDIATE");
     pending2 = [];
     try {
@@ -23329,7 +23456,7 @@ function openStore(path) {
       db.exec("COMMIT");
       const committed = pending2;
       pending2 = void 0;
-      for (const [t, record2] of committed) sink?.write(t, record2);
+      for (const [t, record3] of committed) sink?.write(t, record3);
       return r;
     } catch (e) {
       pending2 = void 0;
@@ -23354,19 +23481,276 @@ function openStore(path) {
   });
   const event = (item, kind, data, at = (/* @__PURE__ */ new Date()).toISOString()) => {
     const { lastInsertRowid } = db.prepare("INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)").run(item, at, kind, JSON.stringify(data));
-    emit("event", { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data });
+    emit("event", { seq: Number(lastInsertRowid), item, workspace: read2(item)?.workspace ?? null, at, kind, data });
+    return Number(lastInsertRowid);
   };
-  const read = (id2) => {
+  const read2 = (id2) => {
     const row = db.prepare("SELECT doc FROM items WHERE id = ?").get(id2);
     return row && JSON.parse(row.doc);
   };
+  const qaCaseRow = (caseId) => {
+    const row = db.prepare("SELECT id, work_item AS workItem, workspace, current_revision AS currentRevision, created_at AS createdAt FROM qa_cases WHERE id = ?").get(caseId);
+    if (!row) throw qaFailure(404, "not_found", { caseId, refresh: "mw qa-cases" });
+    return { ...row };
+  };
+  const qaRevisionRow = (caseId, revision) => {
+    const row = db.prepare("SELECT doc FROM qa_case_revisions WHERE case_id = ? AND revision = ?").get(caseId, revision);
+    if (!row) throw qaFailure(404, "not_found", { caseId, revision, refresh: `mw qa-case ${caseId}` });
+    return JSON.parse(row.doc);
+  };
+  const qaRunRow = (runId) => {
+    const row = db.prepare("SELECT doc FROM qa_runs WHERE id = ?").get(runId);
+    if (!row) throw qaFailure(404, "not_found", { runId, refresh: "mw qa-runs" });
+    return JSON.parse(row.doc);
+  };
+  const qaHistory = (runId, caseId) => db.prepare("SELECT doc FROM qa_observations WHERE run_id = ? AND case_id = ? ORDER BY id").all(runId, caseId).map((r) => JSON.parse(r.doc));
+  const qaEntry = (run2, caseId) => {
+    const pin2 = run2.cases.find((p) => p.caseId === caseId);
+    if (!pin2) throw qaFailure(409, "case_not_in_run", { runId: run2.id, caseId, refresh: `mw qa-run ${run2.id}` });
+    return pin2;
+  };
+  const qaAnchor = (workItem, workspace) => {
+    const item = read2(workItem);
+    if (!item) throw new MadeWellError({ code: "item_not_found", message: `No work item #${workItem}. Select an existing work anchor; QA never creates one.`, context: { id: workItem }, next: [{ run: "mw status", why: "select existing work or separately use the authorized work interface" }] });
+    if (item.workspace !== workspace) throw qaFailure(409, "workspace_mismatch", { workItem, workspace, expected: item.workspace, refresh: `mw context ${workItem}` });
+  };
+  const qaRetained = () => db.prepare("SELECT work_item AS id FROM qa_cases UNION SELECT work_item AS id FROM qa_runs ORDER BY id").all().map((r) => r.id);
+  const qaLinks = () => db.prepare("SELECT seq, at, data FROM events WHERE kind = 'qa-linkObservation' ORDER BY seq").all().map((row) => {
+    const data = JSON.parse(row.data);
+    return { event: row.seq, at: row.at, requestId: data.requestId, ...data.association };
+  });
+  const qaProjection = (query) => {
+    const page2 = (rows, filters) => {
+      const selected = rows.filter((row) => row.id > (filters.after ?? 0));
+      const items = selected.slice(0, filters.limit ?? 50);
+      const hasMore = selected.length > items.length;
+      return { apiVersion: "1", items, nextAfter: hasMore ? items.at(-1).id : null, hasMore };
+    };
+    if (query.kind === "cases") {
+      const f = query.filters;
+      const cases = db.prepare("SELECT id FROM qa_cases ORDER BY id").all().map(({ id: id2 }) => qaCaseRow(id2));
+      const rows = cases.filter((c) => (f.workspace === void 0 || c.workspace === f.workspace) && (f.workItem === void 0 || c.workItem === f.workItem)).flatMap((c) => {
+        const i = qaRevisionRow(c.id, c.currentRevision).instructions;
+        if (f.area !== void 0 && i.area !== f.area) return [];
+        if (f.q !== void 0 && ![i.title, i.area, i.change].some((value3) => value3.toLowerCase().includes(f.q.toLowerCase()))) return [];
+        return [{ ...c, title: i.title, area: i.area }];
+      });
+      return page2(rows, f);
+    }
+    if (query.kind === "case") {
+      const c = qaCaseRow(query.caseId);
+      return { apiVersion: "1", case: c, revision: qaRevisionRow(c.id, query.filters.revision ?? c.currentRevision) };
+    }
+    if (query.kind === "runs") {
+      const f = query.filters;
+      const runs = db.prepare("SELECT doc FROM qa_runs ORDER BY id").all().map((r) => JSON.parse(r.doc));
+      return page2(runs.filter((r) => (f.workspace === void 0 || r.workspace === f.workspace) && (f.workItem === void 0 || r.workItem === f.workItem) && (f.caseId === void 0 || r.cases.some((p) => p.caseId === f.caseId))).map((r) => ({ id: r.id, workItem: r.workItem, workspace: r.workspace, application: r.application, environment: r.environment, version: r.version, startedAt: r.startedAt, caseCount: r.cases.length })), f);
+    }
+    if (query.kind === "export") {
+      const snapshot3 = qaProjection({ kind: "snapshot", runId: query.runId });
+      const links = qaLinks();
+      return {
+        schemaVersion: 1,
+        selection: query.selection,
+        externalEvidence: "unavailable-reference-only",
+        run: snapshot3.run,
+        entries: snapshot3.entries.filter((entry) => query.selection === "all" || entry.status === "failed" || entry.status === "needs-refinement").map((entry) => {
+          const c = qaCaseRow(entry.caseId);
+          const conflicts = db.prepare("SELECT seq, item, at, data FROM events WHERE kind = 'qa-conflict' AND item IN (?, ?) ORDER BY seq").all(c.workItem, snapshot3.run.workItem).flatMap((row) => {
+            const data = JSON.parse(row.data);
+            if (data.target.caseId !== c.id) return [];
+            if (data.operation === "reviseCase" ? row.item !== c.workItem : !["observeCase", "recordVerdict", "linkObservation"].includes(data.operation) || row.item !== snapshot3.run.workItem || data.target.runId !== snapshot3.run.id) return [];
+            return [{ event: row.seq, workItem: row.item, at: row.at, operation: data.operation, requestId: data.requestId, runId: data.operation === "reviseCase" ? null : snapshot3.run.id, caseId: c.id, expected: data.expected, actual: data.actual, input: data.input }];
+          });
+          const views = links.filter((link2) => link2.source.runId === snapshot3.run.id && link2.source.caseId === c.id || link2.target.kind === "retest" && link2.target.run.id === snapshot3.run.id && link2.target.caseId === c.id).map((link2) => ({ link: link2, targetAvailability: link2.target.kind === "reference" ? "not-checked" : link2.target.kind === "work-item" ? read2(link2.target.workItem) ? "present" : "unavailable" : "present" }));
+          return { ...entry, case: c, currentCaseRevision: c.currentRevision, outdated: c.currentRevision !== entry.caseRevision, latestVerdictId: entry.observations.findLast((o) => o.kind === "manual-verdict")?.id ?? null, links: views, conflicts };
+        })
+      };
+    }
+    const run2 = qaRunRow(query.runId);
+    if (query.kind === "observations") {
+      if (query.filters.caseId !== void 0) qaEntry(run2, query.filters.caseId);
+      const rows = db.prepare("SELECT doc FROM qa_observations WHERE run_id = ? ORDER BY id").all(run2.id).map((r) => JSON.parse(r.doc)).filter((o) => query.filters.caseId === void 0 || o.caseId === query.filters.caseId);
+      return page2(rows, query.filters);
+    }
+    const entries3 = run2.cases.map((pin2) => {
+      const instructions = qaRevisionRow(pin2.caseId, pin2.caseRevision);
+      const observations = qaHistory(run2.id, pin2.caseId);
+      const latestVerdict = observations.findLast((o) => o.kind === "manual-verdict");
+      return { ...pin2, instructions, entryRevision: observations.at(-1)?.entryRevision ?? 0, status: latestVerdict?.verdict ?? "untested", observations, latestVerdictId: latestVerdict?.id ?? null };
+    });
+    if (query.kind === "snapshot") return { schemaVersion: 1, run: run2, entries: entries3.map(({ latestVerdictId: _, ...entry }) => entry) };
+    return { apiVersion: "1", run: run2, entries: entries3.map(({ instructions, observations: _, ...entry }) => {
+      const currentCaseRevision = qaCaseRow(entry.caseId).currentRevision;
+      return { ...entry, title: instructions.instructions.title, area: instructions.instructions.area, currentCaseRevision, outdated: currentCaseRevision !== entry.caseRevision, instructionsHref: `/api/v1/qa/cases/${entry.caseId}?revision=${entry.caseRevision}`, observationsHref: `/api/v1/qa/runs/${run2.id}/observations?caseId=${entry.caseId}` };
+    }) };
+  };
   const store = {
     path,
+    qaRetained,
+    qaRead(query) {
+      return qaGuard(() => {
+        if (pending2) return qaProjection(query);
+        db.exec("BEGIN");
+        try {
+          const result3 = qaProjection(query);
+          db.exec("COMMIT");
+          return result3;
+        } catch (cause) {
+          db.exec("ROLLBACK");
+          throw cause;
+        }
+      });
+    },
+    qaWrite(command2, at) {
+      return qaGuard(() => tx2(() => {
+        const { operation: operation2, input } = command2;
+        const fingerprint = JSON.stringify(qaCanonical(command2));
+        const prior = db.prepare("SELECT fingerprint, outcome FROM qa_requests WHERE id = ?").get(input.requestId);
+        if (prior) {
+          if (prior.fingerprint !== fingerprint) throw qaFailure(409, "request_id_conflict", { requestId: input.requestId });
+          const outcome = JSON.parse(prior.outcome);
+          return outcome.accepted ? { accepted: true, value: { ...outcome.value, receipt: { ...outcome.value.receipt, replayed: true } } } : outcome;
+        }
+        const save = (outcome) => {
+          const saved = outcome.accepted ? { accepted: true, value: { ...outcome.value, receipt: Object.fromEntries(Object.entries(outcome.value.receipt).filter(([key]) => key !== "replayed")) } } : outcome;
+          db.prepare("INSERT INTO qa_requests (id, fingerprint, outcome) VALUES (?, ?, ?)").run(input.requestId, fingerprint, JSON.stringify(saved));
+          return outcome;
+        };
+        const target = { ..."runId" in command2 ? { runId: command2.runId } : {}, ..."caseId" in command2 ? { caseId: command2.caseId } : {} };
+        const stale = (workItem, expected, actual) => {
+          const refresh = "runId" in command2 ? `mw qa-run ${command2.runId}` : `mw qa-case ${"caseId" in command2 ? command2.caseId : ""}`;
+          const readLink = "runId" in command2 ? `/api/v1/qa/runs/${command2.runId}` : `/api/v1/qa/cases/${"caseId" in command2 ? command2.caseId : ""}`;
+          const conflictEvent = event(workItem, "qa-conflict", { operation: operation2, requestId: input.requestId, target, input, before: actual, after: actual, expected, actual, read: readLink }, at);
+          return save({ accepted: false, error: { status: 409, reason: "stale_revision", facts: { ...target, workItem, expected, actual, expectedRevision: expected, actualRevision: actual, requestId: input.requestId, conflictEvent, read: readLink, refresh } } });
+        };
+        const accepted = (workItem, resource, id3, caseId, before, revision, association) => {
+          const links = { read: resource === "case" ? `/api/v1/qa/cases/${id3}` : `/api/v1/qa/runs/${id3}`, workItem: `/api/v1/items/${workItem}` };
+          const receipt = { operation: operation2, resource, id: id3, caseId, revision, at };
+          const seq = event(workItem, `qa-${operation2}`, { operation: operation2, requestId: input.requestId, target: resource === "case" ? { caseId: id3 } : { runId: id3, ...caseId === null ? {} : { caseId } }, input, before, after: revision, receipt, links, ...association ? { association } : {} }, at);
+          return save({ accepted: true, value: { apiVersion: "1", accepted: true, requestId: input.requestId, receipt: { ...receipt, event: seq, replayed: false }, links } });
+        };
+        if (command2.operation === "createCase") {
+          const i2 = command2.input;
+          qaAnchor(i2.workItem, i2.workspace);
+          const id3 = Number(db.prepare("INSERT INTO qa_cases (work_item, workspace, current_revision, created_at) VALUES (?, ?, 1, ?)").run(i2.workItem, i2.workspace, at).lastInsertRowid);
+          const revision = { caseId: id3, revision: 1, at, enteredBy: i2.enteredBy, instructions: i2.instructions };
+          db.prepare("INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, 1, ?)").run(id3, JSON.stringify(revision));
+          return accepted(i2.workItem, "case", id3, null, 0, 1);
+        }
+        if (command2.operation === "reviseCase") {
+          const c = qaCaseRow(command2.caseId);
+          qaAnchor(c.workItem, c.workspace);
+          if (command2.input.revision !== c.currentRevision) return stale(c.workItem, command2.input.revision, c.currentRevision);
+          const revision = { caseId: c.id, revision: c.currentRevision + 1, at, enteredBy: command2.input.enteredBy, instructions: command2.input.instructions };
+          if (!Number.isSafeInteger(revision.revision)) throw qaFailure(400, "invalid_input", { caseId: c.id, reason: "revision_exhausted" });
+          db.prepare("INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, ?, ?)").run(c.id, revision.revision, JSON.stringify(revision));
+          db.prepare("UPDATE qa_cases SET current_revision = ? WHERE id = ?").run(revision.revision, c.id);
+          return accepted(c.workItem, "case", c.id, null, c.currentRevision, revision.revision);
+        }
+        if (command2.operation === "startRun") {
+          const i2 = command2.input;
+          qaAnchor(i2.workItem, i2.workspace);
+          for (const pin3 of i2.cases) {
+            const c = qaCaseRow(pin3.caseId);
+            qaAnchor(c.workItem, c.workspace);
+            if (c.workspace !== i2.workspace) throw qaFailure(409, "workspace_mismatch", { caseId: c.id, workspace: i2.workspace, expected: c.workspace, refresh: `mw qa-case ${c.id}` });
+            qaRevisionRow(c.id, pin3.caseRevision);
+          }
+          const id3 = Number(db.prepare("INSERT INTO qa_runs (work_item, workspace, doc) VALUES (?, ?, ?)").run(i2.workItem, i2.workspace, "{}").lastInsertRowid);
+          const { requestId: _, ...fields } = i2;
+          const run3 = { ...fields, id: id3, startedAt: at };
+          db.prepare("UPDATE qa_runs SET doc = ? WHERE id = ?").run(JSON.stringify(run3), id3);
+          return accepted(i2.workItem, "run", id3, null, 0, 0);
+        }
+        const run2 = qaRunRow(command2.runId);
+        qaAnchor(run2.workItem, run2.workspace);
+        const pin2 = qaEntry(run2, command2.caseId);
+        const current = qaHistory(run2.id, pin2.caseId).at(-1)?.entryRevision ?? 0;
+        if (command2.input.revision !== current) return stale(run2.workItem, command2.input.revision, current);
+        if (command2.operation === "linkObservation") {
+          const i2 = command2.input;
+          const refresh = `mw qa-export ${run2.id} --selection all --format json`;
+          const facts = { runId: run2.id, caseId: pin2.caseId, observationId: i2.observationId, target: i2.target, refresh };
+          const row = db.prepare("SELECT doc FROM qa_observations WHERE id = ?").get(i2.observationId);
+          const observation2 = row && JSON.parse(row.doc);
+          if (!observation2 || observation2.runId !== run2.id || observation2.caseId !== pin2.caseId || observation2.caseRevision !== pin2.caseRevision) throw qaFailure(404, "not_found", facts);
+          qaRevisionRow(pin2.caseId, pin2.caseRevision);
+          const duplicate = qaLinks().find((link2) => {
+            if (link2.source.observationId !== i2.observationId) return false;
+            const target2 = i2.target;
+            return target2.kind === "work-item" ? link2.target.kind === "work-item" && link2.target.workItem === target2.workItem : target2.kind === "retest" ? link2.target.kind === "retest" && link2.target.run.id === target2.runId : link2.target.kind === "reference" && link2.target.reference.label === target2.reference.label && link2.target.reference.ref === target2.reference.ref;
+          });
+          if (duplicate) return save({ accepted: false, error: { status: 409, reason: "link_exists", facts: { ...facts, requestId: i2.requestId, existingEvent: duplicate.event } } });
+          let linkedTarget;
+          try {
+            if (i2.target.kind === "work-item") {
+              qaAnchor(i2.target.workItem, run2.workspace);
+              const { id: id3, workspace, title, objective, source, status, updated } = read2(i2.target.workItem);
+              linkedTarget = { kind: "work-item", workItem: id3, snapshot: { id: id3, workspace, title, objective, source, status, updated } };
+            } else if (i2.target.kind === "reference") linkedTarget = i2.target;
+            else {
+              const retest = qaRunRow(i2.target.runId);
+              if (retest.workspace !== run2.workspace) throw qaFailure(409, "workspace_mismatch", { ...facts, workspace: run2.workspace, expected: retest.workspace });
+              if (retest.id <= run2.id || retest.application !== run2.application) throw qaFailure(409, "invalid_retest", { ...facts, reason: retest.id <= run2.id ? "not_later_run" : "different_application" });
+              const targetPin = qaEntry(retest, pin2.caseId);
+              qaRevisionRow(targetPin.caseId, targetPin.caseRevision);
+              linkedTarget = { kind: "retest", run: retest, ...targetPin };
+            }
+          } catch (cause) {
+            if (cause instanceof MadeWellError && cause.code === "qa_request") {
+              const context3 = cause.context;
+              throw qaFailure(context3.status, context3.reason, { ...context3.facts, ...facts });
+            }
+            if (cause instanceof MadeWellError && cause.code === "item_not_found" && i2.target.kind === "work-item") throw new MadeWellError({ code: "item_not_found", message: cause.message, context: { id: i2.target.workItem }, next: [{ run: refresh, why: "inspect source evidence and choose an existing same-workspace target" }] });
+            throw cause;
+          }
+          return accepted(run2.workItem, "run-entry", run2.id, pin2.caseId, current, current, { enteredBy: i2.enteredBy, source: { runId: run2.id, ...pin2, observationId: i2.observationId }, target: linkedTarget });
+        }
+        if (!Number.isSafeInteger(current + 1)) throw qaFailure(400, "invalid_input", { runId: run2.id, caseId: pin2.caseId, reason: "revision_exhausted" });
+        const i = command2.input;
+        const id2 = Number(db.prepare("INSERT INTO qa_observations (run_id, case_id, case_revision, entry_revision, doc) VALUES (?, ?, ?, ?, ?)").run(run2.id, pin2.caseId, pin2.caseRevision, current + 1, "{}").lastInsertRowid);
+        const observation = {
+          id: id2,
+          runId: run2.id,
+          ...pin2,
+          entryRevision: current + 1,
+          at,
+          enteredBy: i.enteredBy,
+          actual: i.actual,
+          reproduction: i.reproduction,
+          notes: i.notes,
+          evidence: i.evidence,
+          ...command2.operation === "recordVerdict" ? { kind: "manual-verdict", claimedVerifier: command2.input.enteredBy, observedAt: at, reportedResult: null, verdict: command2.input.verdict } : { kind: command2.input.kind, claimedVerifier: command2.input.claimedVerifier, observedAt: command2.input.observedAt, reportedResult: command2.input.reportedResult, verdict: null }
+        };
+        db.prepare("UPDATE qa_observations SET doc = ? WHERE id = ?").run(JSON.stringify(observation), id2);
+        return accepted(run2.workItem, "run-entry", run2.id, pin2.caseId, current, current + 1);
+      }));
+    },
+    /** Synchronous only: the command, its engine transitions and receipt share one SQLite lock/commit.
+     * Receipts survive item pruning so retrying an old submission can never recreate deleted work. */
+    operatorRequest(id2, fingerprint, run2) {
+      return tx2(() => {
+        const prior = db.prepare("SELECT fingerprint, receipt FROM operator_requests WHERE id = ?").get(id2);
+        if (prior) {
+          if (prior.fingerprint !== fingerprint) throw new MadeWellError({
+            code: "api_request",
+            message: "This request ID was already used with different input. Keep the original request for an uncertain retry; use a new ID for a new message.",
+            context: { status: 409, reason: "request_id_conflict", facts: { requestId: id2 } },
+            next: [{ run: "mw status", why: "inspect accepted work before submitting a different request" }]
+          });
+          return { ...JSON.parse(prior.receipt), replayed: true };
+        }
+        const receipt = run2();
+        db.prepare("INSERT INTO operator_requests (id, fingerprint, receipt) VALUES (?, ?, ?)").run(id2, fingerprint, JSON.stringify(receipt));
+        return { ...receipt, replayed: false };
+      });
+    },
     create(fields) {
       const created = tx2(() => {
         const now2 = (/* @__PURE__ */ new Date()).toISOString();
         const { lastInsertRowid } = db.prepare("INSERT INTO items (doc) VALUES (?)").run("{}");
-        const item = { job: laneOf(fields.pack).delivery[0].job, from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
+        const item = { job: laneOf(fields.pack).delivery[0]?.job ?? "", from: { kind: "dispatcher" }, status: "queued", outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now2, updated: now2 };
         db.prepare("UPDATE items SET doc = ? WHERE id = ?").run(JSON.stringify(item), item.id);
         event(item.id, "created", { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null });
         return item;
@@ -23374,7 +23758,7 @@ function openStore(path) {
       return created;
     },
     get(id2) {
-      return read(id2);
+      return read2(id2);
     },
     /** Records an event that changes nothing on the item: a step starting or finishing, so it is visible while it runs. */
     note(id2, kind, data = {}, at) {
@@ -23404,7 +23788,7 @@ function openStore(path) {
         const id2 = Number(db.prepare("INSERT INTO calls (item, kind, job, profile, card, system, prompt, outcome, output, error, raw, started, ms, tokens, facts, flags) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms, tokens && JSON.stringify(tokens), facts ? JSON.stringify(facts) : null, JSON.stringify(flags)).lastInsertRowid);
         insertTools(id2, tools);
         const { system, prompt, output, raw, ...summary } = call;
-        emit("call", { id: id2, ...summary, workspace: read(call.item)?.workspace ?? null, tokens, flags, facts: facts ?? null, tools, system, prompt, output, raw });
+        emit("call", { id: id2, ...summary, workspace: read2(call.item)?.workspace ?? null, tokens, flags, facts: facts ?? null, tools, system, prompt, output, raw });
         return id2;
       });
     },
@@ -23460,7 +23844,7 @@ function openStore(path) {
           return void 0;
         });
         if (!owner) return Effect_exports.void;
-        const busy = owner.item === null ? void 0 : read(owner.item);
+        const busy = owner.item === null ? void 0 : read2(owner.item);
         return Effect_exports.fail(new MadeWellError({
           code: "store_locked",
           message: "Another live runner owns this Made Well store.",
@@ -23478,7 +23862,11 @@ function openStore(path) {
      * evals of those calls), with the runner's own events from before the cutoff, then gives the space back.
      * Returns what each table lost; a dry run only counts. The caller holds the runner claim.
      */
-    prune(ids, before, dryRun) {
+    prune(ids, before, dryRun, beforeDelete) {
+      const protect = () => {
+        const retained = qaRetained().filter((id2) => ids.includes(id2));
+        if (retained.length) throw qaFailure(409, "retention_changed", { ids: retained, refresh: `mw prune --before ${new Date(before).toISOString()} --dry-run` });
+      };
       const items = `(${ids.join(",")})`;
       const calls = `(SELECT id FROM calls WHERE item IN ${items})`;
       const evals = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'evals'").get() !== void 0;
@@ -23491,12 +23879,17 @@ function openStore(path) {
         items: `items WHERE id IN ${items}`
       };
       const each = (sql) => Object.fromEntries(Object.entries(from).map(([k, t]) => [k, t ? sql(t) : 0]));
-      if (dryRun) return each((t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n);
-      const removed = tx2(() => {
+      if (dryRun) return qaGuard(() => {
+        protect();
+        return each((t) => db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get().n);
+      });
+      const removed = qaGuard(() => tx2(() => {
+        protect();
+        beforeDelete?.();
         const r = each((t) => Number(db.prepare(`DELETE FROM ${t}`).run().changes));
         if (Object.values(r).some(Boolean)) event(0, "pruned", { before, ...r, ids });
         return r;
-      });
+      }));
       if (db.prepare("PRAGMA freelist_count").get().freelist_count) db.exec("VACUUM");
       db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
       return removed;
@@ -23599,12 +23992,12 @@ var observe = (store, item, spec, run2) => Effect_exports.scoped(Effect_exports.
       }
     }
   };
-  const onOutput = (channel, text2) => {
-    note("trace-output", { channel, text: text2 });
+  const onOutput = (channel, text4) => {
+    note("trace-output", { channel, text: text4 });
     lastOutput = clock2.currentTimeMillisUnsafe();
     signal("no-output", false, { idleMs: 0 });
     if (channel !== "stdout") return;
-    const lines4 = (partial + text2).split("\n");
+    const lines4 = (partial + text4).split("\n");
     partial = lines4.pop();
     for (const line of lines4) consume(line);
   };
@@ -23678,7 +24071,7 @@ function lensOf(store, id2, lens, next, now2 = Date.now()) {
       entries: entries3
     };
   });
-  const done3 = item.status === "shipped" || item.status === "discovered";
+  const done3 = item.status === "shipped" || item.status === "discovered" || item.status === "completed";
   const needsYou = item.status === "held" || item.status === "paused" || item.status === "candidate";
   const live = invocations.filter((i) => i.status === "running");
   const state = done3 ? item.status : needsYou ? "needs-you" : item.status.startsWith("waiting-") ? "waiting" : live.length ? "working" : item.status === "dropped" ? "stopped" : runner2 ? "queued" : "not-running";
@@ -23690,15 +24083,19 @@ function lensOf(store, id2, lens, next, now2 = Date.now()) {
     needsYou,
     state,
     next,
-    proof: { shipped: item.shipped ?? null, verification: item.verification ? { passed: item.verification.passed, results: item.verification.results.map(({ id: id3, doneWhen, exitCode }) => ({ id: id3, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id2).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null }
+    proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: item.verification.passed, results: item.verification.results.map(({ id: id3, doneWhen, exitCode }) => ({ id: id3, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id2).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null }
   };
   if (lens === "ux") return { lens, depth: 3e4, ...ux };
   const lane = laneOf(item.pack);
   const step2 = stepOf(lane, item.job);
   const dx = {
     ...ux,
-    phase: lane.discovery.some((s) => s.job === item.job) ? "discovery" : "delivery",
+    phase: item.flow?.loop ?? (lane.discovery.some((s) => s.job === item.job) ? "discovery" : "delivery"),
     lane: lane.pack.name,
+    pack: lane.pack,
+    flow: item.flow ?? null,
+    updates: events2.filter((e) => e.kind.startsWith("cartridges-")),
+    metrics: { invocations: invocations.length, failed: invocations.filter((i) => i.status === "failed" || i.call?.outcome === "error").length, ms: invocations.reduce((n, i) => n + i.ms, 0), tokens: calls.some((c) => c.tokens) ? calls.reduce((n, c) => n + totalTokens(c.tokens), 0) : null, unreportedUsage: calls.filter((c) => !c.tokens).length },
     stage: step2.cartridge,
     job: item.job,
     profile: step2.profile,
@@ -23792,13 +24189,13 @@ var capture = Effect_exports.fn("mw.capture")(function* (dir, shared = true) {
   const files = {};
   walk(dir, "", files);
   if (!shared) return { dir, head: head3, refs: {}, files };
-  const refs = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
+  const refs2 = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
   const common2 = resolve4(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
   for (const part of ["config", "info", "hooks"]) walk(common2, part, files, ".git/");
   delete files[".git/info/refs"];
-  return { dir, head: head3, refs, files };
+  return { dir, head: head3, refs: refs2, files };
 });
-function walk(root, rel2, into2, label2 = "") {
+function walk(root, rel2, into2, label3 = "") {
   const p = join6(root, rel2);
   let s;
   try {
@@ -23807,20 +24204,20 @@ function walk(root, rel2, into2, label2 = "") {
     return;
   }
   if (s.isDirectory()) {
-    for (const name of readdirSync2(p)) if (name !== ".git") walk(root, rel2 ? `${rel2}/${name}` : name, into2, label2);
+    for (const name of readdirSync2(p)) if (name !== ".git") walk(root, rel2 ? `${rel2}/${name}` : name, into2, label3);
   } else if (rel2) {
-    into2[label2 + rel2] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
+    into2[label3 + rel2] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
   }
 }
 function changes(before, after) {
   const keys3 = (a, b) => [.../* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])].sort();
-  const refs = keys3(before.refs, after.refs).filter((ref) => before.refs[ref] !== after.refs[ref]).map((ref) => ({ ref, from: before.refs[ref] ?? null, to: after.refs[ref] ?? null }));
+  const refs2 = keys3(before.refs, after.refs).filter((ref2) => before.refs[ref2] !== after.refs[ref2]).map((ref2) => ({ ref: ref2, from: before.refs[ref2] ?? null, to: after.refs[ref2] ?? null }));
   const paths = keys3(before.files, after.files);
   const added = paths.filter((p) => !(p in before.files));
   const removed = paths.filter((p) => !(p in after.files));
   const modified = paths.filter((p) => p in before.files && p in after.files && before.files[p] !== after.files[p]);
   const head3 = before.head === after.head ? void 0 : { from: before.head, to: after.head };
-  return head3 || refs.length || added.length || removed.length || modified.length ? { ...head3 ? { head: head3 } : {}, refs, added, removed, modified } : void 0;
+  return head3 || refs2.length || added.length || removed.length || modified.length ? { ...head3 ? { head: head3 } : {}, refs: refs2, added, removed, modified } : void 0;
 }
 var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
   const before = yield* capture(dir, false);
@@ -23836,11 +24233,11 @@ var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
   }
   return result3;
 }).pipe(Effect_exports.withSpan("mw.readOnly", { attributes: { dir } }));
-var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref, recorded) {
-  const now2 = (yield* git(repo, "rev-parse", "--verify", `${ref}^{commit}`)).trim();
+var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref2, recorded) {
+  const now2 = (yield* git(repo, "rev-parse", "--verify", `${ref2}^{commit}`)).trim();
   if (now2 === recorded) return;
   const landed = yield* Effect_exports.orElseSucceed(git(repo, "log", "--format=%H %s", `${recorded}..${now2}`), () => "");
-  return yield* fail9("branch_moved", `${ref} moved from ${recorded.slice(0, 12)} to ${now2.slice(0, 12)}.`, { repo, ref, recorded, now: now2, landed: landed.trim().split("\n").filter(Boolean) }, [
+  return yield* fail9("branch_moved", `${ref2} moved from ${recorded.slice(0, 12)} to ${now2.slice(0, 12)}.`, { repo, ref: ref2, recorded, now: now2, landed: landed.trim().split("\n").filter(Boolean) }, [
     { run: `git -C ${repo} log --stat ${recorded}..${now2}`, why: "see what landed on the branch and who made it" },
     { run: `git -C ${repo} reset --keep ${recorded}`, why: "only if those commits are unverified agent work and were never pushed" }
   ]);
@@ -23873,13 +24270,13 @@ var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
     const { code, stdout, stderr } = yield* exec("sh", ["-c", r.teardown], cwd, TEARDOWN_TIMEOUT_MS);
     records.push({ kind: r.kind, id: r.id, teardown: r.teardown, exitCode: code, output: (stdout + stderr).slice(-4e3) });
   }
-  const failed = records.filter((r) => r.exitCode !== 0);
-  if (failed.length) {
+  const failed2 = records.filter((r) => r.exitCode !== 0);
+  if (failed2.length) {
     return yield* fail9(
       "teardown_failed",
-      `${failed.length} of ${records.length} provisioned resource(s) were not torn down.`,
-      { cwd, failed, records },
-      failed.map((r) => ({ run: `cd ${cwd} && ${r.teardown}`, why: `tear down ${r.kind} ${r.id} once context.failed shows why it failed` }))
+      `${failed2.length} of ${records.length} provisioned resource(s) were not torn down.`,
+      { cwd, failed: failed2, records },
+      failed2.map((r) => ({ run: `cd ${cwd} && ${r.teardown}`, why: `tear down ${r.kind} ${r.id} once context.failed shows why it failed` }))
     );
   }
   return records;
@@ -23903,13 +24300,13 @@ var readPatch = (path) => {
 };
 var removeHome = (home) => rmSync4(home, { recursive: true, force: true });
 var branchOf = Effect_exports.fn("mw.branchOf")(function* (repo) {
-  const ref = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim();
-  if (!ref) {
+  const ref2 = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim();
+  if (!ref2) {
     return yield* new MadeWellError({ code: "no_branch", message: `${repo} has no branch checked out.`, context: { repo }, next: [{ run: `git -C ${repo} switch main`, why: "check out the branch items ship to, then retry" }] });
   }
-  return { ref, commit: yield* revParse(repo, ref) };
+  return { ref: ref2, commit: yield* revParse(repo, ref2) };
 });
-var revParse = (repo, ref) => Effect_exports.map(git(repo, "rev-parse", "--verify", `${ref}^{commit}`), (s) => s.trim());
+var revParse = (repo, ref2) => Effect_exports.map(git(repo, "rev-parse", "--verify", `${ref2}^{commit}`), (s) => s.trim());
 var takeChange = Effect_exports.fn("mw.takeChange")(function* (dir, base) {
   yield* git(dir, "add", "-A");
   const files = lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "-z", base));
@@ -23921,10 +24318,10 @@ var commit = Effect_exports.fn("mw.commit")(function* (dir, message) {
   yield* git(dir, "commit", "--quiet", "--no-verify", "--allow-empty", "-m", message);
   return yield* revParse(dir, "HEAD");
 });
-var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref, from, to) {
-  const checkedOut = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim() === ref;
+var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref2, from, to) {
+  const checkedOut = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim() === ref2;
   if (checkedOut) yield* git(repo, "merge", "--ff-only", "--quiet", to);
-  else yield* git(repo, "update-ref", ref, to, from);
+  else yield* git(repo, "update-ref", ref2, to, from);
 });
 var GATE = "(gate)";
 var runGates = Effect_exports.fn("mw.gates")(function* (item, dir, base, gates, change, budget, env, live) {
@@ -23963,11 +24360,121 @@ $ ${check2.run}
   return results2;
 });
 
-// src/engine.ts
-import { createHash as createHash2 } from "node:crypto";
-import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
-import { tmpdir as tmpdir3 } from "node:os";
-import { dirname as dirname6, join as join9 } from "node:path";
+// src/functions.ts
+var functionInput = (item, step2) => ({
+  item: { id: item.id, title: item.title, objective: item.objective, source: item.source },
+  args: step2.args ?? {},
+  ...item.steer ? { operatorNote: item.steer } : {},
+  received: Object.fromEntries(step2.receives.map((job) => [job, lastJson(item.outputs[job] ?? "")]))
+});
+var failed = (item, job, reason) => new MadeWellError({
+  code: "function_failed",
+  message: `Function ${job || "(empty flow)"} could not complete: ${reason}`,
+  context: { id: item.id, job, reason },
+  next: [{ run: `mw trace ${item.id} --lens ax`, why: "inspect the recorded input, output and failure before retrying" }, { run: `mw retry ${item.id}`, why: "after fixing the cause, resume without repeating accepted nodes" }]
+});
+var flowOf = (item) => item.flow ?? { loop: "delivery", accepted: [] };
+var requestPackUpdate = Effect_exports.fn("mw.requestPackUpdate")(function* (id2, pack) {
+  const store = yield* Store;
+  const item = store.get(id2);
+  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `No item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "find the work item" }] });
+  const problems = problemsOf(pack);
+  if (item.pack?.runtime !== "functions" || pack.runtime !== "functions") problems.push("Live updates require function packs on both sides; software runs retain their pinned pack.");
+  if (["completed", "shipped", "discovered", "dropped"].includes(item.status)) problems.push("This run has ended. Start a new run with the new pack.");
+  const flow = flowOf(item);
+  const before = laneOf(item.pack)[flow.loop];
+  const after = laneOf(pack)[flow.loop];
+  const inFlight2 = item.exchange || store.events(id2).some((e) => e.kind === "trace-started" && e.data.job === item.job && !flow.accepted.includes(item.job));
+  const frozen = flow.accepted.length + (inFlight2 ? 1 : 0);
+  for (let i = 0; i < frozen; i++) if (JSON.stringify(before[i]) !== JSON.stringify(after[i])) problems.push(`Keep accepted/in-flight node ${before[i]?.job} unchanged and in place.`);
+  if (problems.length) return yield* new MadeWellError({ code: "cartridges_invalid", message: "This cartridge update cannot be applied.", context: { path: `item:${id2}`, problems }, next: [{ run: `mw trace ${id2} --lens ax`, why: "inspect the pinned pack and accepted calls" }] });
+  store.note(id2, "cartridges-requested", { pack });
+  return { item: id2, state: "pending", applies: "at the next node boundary; accepted and in-flight nodes stay unchanged" };
+});
+function acceptFunction(store, id2, step2, output) {
+  const item = store.get(id2);
+  const flow = flowOf(item);
+  const accepted = [...flow.accepted, step2.job];
+  const next = laneOf(item.pack)[flow.loop][accepted.length];
+  store.save({
+    ...item,
+    status: "running",
+    outputs: { ...item.outputs, [step2.job]: output },
+    flow: { ...flow, accepted },
+    job: next?.job ?? "",
+    from: { kind: "job", job: step2.job },
+    exchange: void 0,
+    launches: 0,
+    rejected: void 0,
+    pickingUp: void 0,
+    steer: void 0
+  }, "accepted", { job: step2.job, output: lastJson(output), next: next?.job ?? null });
+}
+var Candidates = Schema_exports.Struct({ items: Schema_exports.Array(Schema_exports.Struct({ title: Schema_exports.NonEmptyString, objective: Schema_exports.NonEmptyString, text: Schema_exports.optionalKey(Schema_exports.String) })) });
+var advanceFunctions = Effect_exports.fn("mw.advanceFunctions")(function* (given) {
+  const store = yield* Store;
+  let item = given;
+  let flow = flowOf(item);
+  const update2 = store.events(item.id).findLast((e) => e.kind === "cartridges-requested" && e.seq > (flow.update ?? 0));
+  if (update2 && !item.exchange) {
+    const pack = update2.data.pack;
+    const before = laneOf(item.pack)[flow.loop];
+    const after = laneOf(pack)[flow.loop];
+    const attempted = store.events(item.id).some((e) => e.kind === "trace-started" && e.data.job === item.job && !flow.accepted.includes(item.job));
+    const frozen = flow.accepted.length + (attempted ? 1 : 0);
+    if (before.slice(0, frozen).every((node, i) => JSON.stringify(node) === JSON.stringify(after[i]))) {
+      flow = { ...flow, update: update2.seq };
+      item = store.save({ ...item, pack, flow, job: after[flow.accepted.length]?.job ?? "" }, "cartridges-applied", { request: update2.seq, from: item.pack, to: pack });
+    } else {
+      flow = { ...flow, update: update2.seq };
+      item = store.save({ ...item, flow }, "cartridges-rejected", { request: update2.seq, reason: "The accepted prefix advanced; submit an update preserving it." });
+    }
+  }
+  const steps = laneOf(item.pack)[flow.loop];
+  const step2 = steps[flow.accepted.length];
+  if (!step2) {
+    const output = lastJson(item.outputs[flow.accepted.at(-1) ?? ""] ?? "") ?? { source: item.source };
+    if (flow.loop === "discovery" && steps.length) {
+      const candidates2 = yield* Schema_exports.decodeUnknownEffect(Candidates)(output).pipe(Effect_exports.mapError((e) => failed(item, "discovery", String(e))));
+      const existing = store.list().filter((i) => i.discovery === item.id);
+      const ids = candidates2.items.map((c, index2) => existing[index2]?.id ?? store.create({
+        title: c.title,
+        objective: c.objective,
+        source: c.text ?? item.source,
+        workspace: item.workspace,
+        pack: item.pack,
+        autonomy: item.autonomy,
+        discovery: item.id,
+        status: item.autonomy === "full" ? "queued" : "candidate",
+        from: { kind: "dispatcher" },
+        flow: { loop: "delivery", accepted: [] }
+      }).id);
+      store.save({ ...item, status: "discovered", completion: { output, nodes: flow.accepted.length } }, "discovered", { candidates: ids });
+    } else store.save({ ...item, status: "completed", completion: { output, nodes: flow.accepted.length } }, "completed", { output, nodes: flow.accepted.length, acceptance: "configured contracts; no implicit verification or shipping" });
+    return;
+  }
+  const previous = steps[flow.accepted.length - 1];
+  const checkpoint = `functions:${flow.loop}:${step2.job}`;
+  if (item.autonomy === "steps" && previous && previous.cartridge !== step2.cartridge && item.passed !== checkpoint) {
+    const message = `Checkpoint: ${previous.cartridge} is done; ${step2.cartridge} (${step2.job}) is next.`;
+    store.save({ ...item, status: "paused", hold: { code: "checkpoint", message, context: { key: checkpoint, after: previous.cartridge, next: step2.job } } }, "paused", { key: checkpoint, message });
+    return;
+  }
+  if (item.job !== step2.job || item.status === "queued") item = store.save({ ...item, flow, job: step2.job, status: "running" }, "running", { job: step2.job });
+  const input = functionInput(item, step2);
+  const problems = step2.input ? conforms(step2.input, input, "input") : [];
+  if (!problems.length && !step2.run && !step2.children) return step2;
+  const { result: result3 } = yield* observe(store, item.id, { job: step2.job, kind: step2.children ? "compose" : "function", args: { input, node: step2, pack: { name: item.pack.name, version: item.pack.version ?? null } } }, (onOutput) => Effect_exports.gen(function* () {
+    if (problems.length) return yield* failed(item, step2.job, problems.join("; "));
+    const result4 = step2.children ? { code: 0, stdout: JSON.stringify(input.received), stderr: "" } : yield* runGroup({ command: "sh", args: ["-c", step2.run], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step2.budget ?? { minutes: 30 }, onOutput });
+    if (result4.code !== 0) return yield* failed(item, step2.job, `exit ${result4.code}: ${result4.stderr}`);
+    const checked = validate3(laneOf(item.pack), step2.job, result4.stdout);
+    if (!checked.ok) return yield* failed(item, step2.job, checked.reason);
+    if (typeof checked.value.blocked === "string") return yield* failed(item, step2.job, checked.value.blocked);
+    return { output: JSON.stringify(checked.value) };
+  }));
+  acceptFunction(store, item.id, step2, result3.output);
+});
 
 // src/handoff-history.ts
 var answerReference = (ids) => `See saved answers: ${[...new Set(ids)].join(", ")}.`;
@@ -23976,11 +24483,11 @@ function buildAnswerHistory(events2, job) {
   const raw = /* @__PURE__ */ new Map();
   const pending2 = /* @__PURE__ */ new Map();
   const forms = /* @__PURE__ */ new Map();
-  const remember = (text2, ids) => {
-    if (!text2 || !ids.length) return;
-    const refs = forms.get(text2) ?? /* @__PURE__ */ new Set();
-    for (const id2 of ids) refs.add(id2);
-    forms.set(text2, refs);
+  const remember = (text4, ids) => {
+    if (!text4 || !ids.length) return;
+    const refs2 = forms.get(text4) ?? /* @__PURE__ */ new Set();
+    for (const id2 of ids) refs2.add(id2);
+    forms.set(text4, refs2);
   };
   for (const e of [...events2].sort((a, b) => a.seq - b.seq)) {
     const source = String(e.data.job ?? "");
@@ -24003,9 +24510,9 @@ ${suffix}`)) fresh2 = fresh2.slice(0, -suffix.length - 2);
     const ids = [];
     const freshIds = [];
     questions.forEach((question, index2) => {
-      const ref = reuse.find((r) => r.question === question);
-      const prior = ref && answers.find((a) => a.id === ref.answerId);
-      if (ref && !prior) return;
+      const ref2 = reuse.find((r) => r.question === question);
+      const prior = ref2 && answers.find((a) => a.id === ref2.answerId);
+      if (ref2 && !prior) return;
       const id2 = `${e.seq}:${index2}`;
       answers.push({ id: id2, question, answer: prior ? prior.answer : fresh2, by: prior ? prior.by : String(e.data.originator), job: source });
       raw.set(id2, prior ? raw.get(prior.id) : original);
@@ -24029,15 +24536,15 @@ ${suffix}`)) fresh2 = fresh2.slice(0, -suffix.length - 2);
     }
   }
   const replacements = [...forms].sort(([a], [b]) => b.length - a.length);
-  const compactText = (text2) => {
+  const compactText = (text4) => {
     for (const [body, ids] of replacements) {
       const reference = answerReference([...ids].map((id2) => canonical.get(id2)));
-      if (text2 === body) return reference;
+      if (text4 === body) return reference;
       for (const separator of ["\n", ": "]) {
-        if (text2.endsWith(`${separator}${body}`)) return text2.slice(0, -body.length) + reference;
+        if (text4.endsWith(`${separator}${body}`)) return text4.slice(0, -body.length) + reference;
       }
     }
-    return text2;
+    return text4;
   };
   const compactTurns = (value3) => Array.isArray(value3) ? value3.map(
     (turn) => turn && typeof turn === "object" && typeof turn.answer === "string" ? { ...turn, answer: compactText(turn.answer) } : turn
@@ -24141,7 +24648,7 @@ var MIN_OUT_MS = 5 * 6e4;
 var NQ_HOLDS = ["nq_turns", "question_for_operator", "authority"];
 var CHECK_HOLDS = ["arbiter_undetermined", "too_many_corrections", "prerequisite_too_deep", "environment"];
 var MAX_DEPTH = 2;
-var DONE = ["held", "paused", "shipped", "discovered", "candidate", "dropped"];
+var DONE = ["held", "paused", "shipped", "completed", "discovered", "candidate", "dropped"];
 var READY = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var INTAKE_TIER = "intake";
 var liveFile = (store, name) => {
@@ -24220,6 +24727,14 @@ var drive = Effect_exports.fn("mw.drive")(function* (id2, given) {
 });
 var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
   const store = yield* Store;
+  if (item.pack?.runtime === "functions") {
+    const node = yield* advanceFunctions(item);
+    if (node) {
+      const prescriptions = yield* forLane(config.prescriptions, L(store.get(item.id)));
+      yield* step(item.id, node.job, { ...config, prescriptions });
+    }
+    return;
+  }
   if (!item.base) {
     const base = yield* branchOf(item.workspace);
     const conventions = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.conventions ?? [];
@@ -24371,7 +24886,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
   const store = yield* Store;
   const item0 = store.get(id2);
   const x0 = trackOf(item0, job).exchange;
-  const by = x0.from.kind === "job" ? x0.from.job : L(item0).delivery[0].job;
+  const by = item0.pack?.runtime === "functions" ? job : x0.from.kind === "job" ? x0.from.job : L(item0).delivery[0].job;
   const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, by));
   if (!card) return;
   const item = store.get(id2);
@@ -24418,7 +24933,7 @@ var originate = Effect_exports.fn("mw.originate")(function* (id2, job, config) {
 });
 var dispatch = (id2, job, config, originator, questions, originatorSays) => Effect_exports.gen(function* () {
   const item0 = (yield* Store).get(id2);
-  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, L(item0).delivery[0].job));
+  const card = yield* pickOrWait(id2, cardsFor(config.prescriptions, item0.pack?.runtime === "functions" ? job : L(item0).delivery[0].job));
   if (!card) return null;
   const item = (yield* Store).get(id2);
   const call = yield* callAgent(id2, job, config, {
@@ -24455,7 +24970,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config, decis
     return;
   }
   const plan = planOf(item);
-  const maker = isMaker(job);
+  const maker = item.pack?.runtime !== "functions" && isMaker(job);
   yield* callAgent(id2, job, config, {
     kind: "execute",
     profile: stepOf(L(item), job).profile,
@@ -24488,21 +25003,22 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const worker = yield* Worker;
   const item = store.get(id2);
   const p = config.prescriptions;
-  const wt = yield* worktree(item.workspace, spec.at ?? item.base.commit, `item-${id2}-${job}-${spec.kind}`);
-  if (spec.access !== "none") {
-    const failed = yield* prepareWorktree(id2, job, wt.path, `item-${id2}-${job}-${spec.kind}`, wt.base);
-    if (failed && spec.kind === "originator") return void hold(store, store.get(id2), "prepare_failed", failed.message, failed.context);
-    if (failed) return void (yield* launchFailed(id2, job, spec.kind, spec.card, failed.message, failed.context));
+  const functions = item.pack?.runtime === "functions";
+  const wt = functions ? { path: item.workspace, base: "" } : yield* worktree(item.workspace, spec.at ?? item.base.commit, `item-${id2}-${job}-${spec.kind}`);
+  if (!functions && spec.access !== "none") {
+    const failed2 = yield* prepareWorktree(id2, job, wt.path, `item-${id2}-${job}-${spec.kind}`, wt.base);
+    if (failed2 && spec.kind === "originator") return void hold(store, store.get(id2), "prepare_failed", failed2.message, failed2.context);
+    if (failed2) return void (yield* launchFailed(id2, job, spec.kind, spec.card, failed2.message, failed2.context));
   }
-  if (spec.prepare) yield* spec.prepare(wt.path);
+  if (!functions && spec.prepare) yield* spec.prepare(wt.path);
   const prompt = yield* spec.packet(wt.path);
   const budget = budgetFor(p, job);
   const harness = harnessOf(p, spec.card.harness);
-  const none3 = spec.access === "none";
-  const read = spec.access === "read";
+  const none3 = functions || spec.access === "none";
+  const read2 = spec.access === "read";
   const product = none3 ? void 0 : yield* capture(item.workspace);
-  const before = none3 ? void 0 : yield* capture(wt.path, !read);
-  const head3 = before?.head ?? (yield* revParse(wt.path, "HEAD"));
+  const before = none3 ? void 0 : yield* capture(wt.path, !read2);
+  const head3 = functions ? "" : before?.head ?? (yield* revParse(wt.path, "HEAD"));
   const live = liveFile(store, `item-${id2}-${job}-${spec.kind}`);
   store.note(id2, "call-started", { job, kind: spec.kind, profile: spec.profile, card: spec.card, access: spec.access, budget, packetBytes: prompt.length, ...live ? { live } : {} });
   const started = /* @__PURE__ */ new Date();
@@ -24510,7 +25026,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const { invocation, result: res } = yield* observe(store, id2, { job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, args: { ...request3 } }, (onOutput) => worker.run({ ...request3, onOutput }).pipe(
     Effect_exports.withSpan(`mw.${spec.kind}.${job}`, { attributes: { item: id2, job, kind: spec.kind, profile: spec.profile, harness: spec.card.harness, model: spec.card.model, account: spec.card.account } })
   ));
-  const changed = before ? changes(before, yield* capture(wt.path, !read)) : void 0;
+  const changed = before ? changes(before, yield* capture(wt.path, !read2)) : void 0;
   const call = {
     item: id2,
     kind: spec.kind,
@@ -24612,6 +25128,14 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const home = itemHome(store.path, id2);
   const problem = malformed(L(item), job, answered.output, auto(item));
   const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered : answered;
+  if (item.pack?.runtime === "functions") {
+    const result3 = validate3(L(item), job, call.output);
+    store.note(id2, "trace-decode", { call: call.callId, job, ok: result3.ok, ...!result3.ok ? { reason: result3.reason } : {} });
+    if (!result3.ok) return yield* refuse(id2, job, call, result3.reason);
+    const blocked = blockedOf(L(item), job, result3.value);
+    if (blocked) return hold(store, store.get(id2), "function_failed", blocked, { job, call: call.callId });
+    return acceptFunction(store, id2, stepOf(L(item), job), JSON.stringify(result3.value));
+  }
   const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item), item.conventions);
   store.note(id2, "trace-decode", { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...!v.ok ? { reason: v.reason } : {} });
   if (v.ok && v.dropped?.length) store.note(id2, "discovery-dropped", { call: call.callId, candidates: v.dropped });
@@ -24741,11 +25265,11 @@ var failedStep = (store, item) => {
   return blocked[0] ?? from ?? "verify";
 };
 var afterEnvironment = (store, item, by, answer2) => {
-  const failed = failedStep(store, item);
+  const failed2 = failedStep(store, item);
   const base = { ...item, from: by, rework: { cause: "environment", answer: answer2 }, failure: void 0, exchange: void 0, launches: 0 };
-  if (failed === "verify") return { ...base, job: "verify", verification: void 0 };
-  if (typeof failed === "string") return { ...base, job: failed };
-  return { ...base, job: failed[0], split: Object.fromEntries(failed.map((m) => [m, { from: by, launches: 0 }])) };
+  if (failed2 === "verify") return { ...base, job: "verify", verification: void 0 };
+  if (typeof failed2 === "string") return { ...base, job: failed2 };
+  return { ...base, job: failed2[0], split: Object.fromEntries(failed2.map((m) => [m, { from: by, launches: 0 }])) };
 };
 var keepPartial = (dir, item, job, from) => Effect_exports.gen(function* () {
   const { patch } = yield* takeChange(dir, from);
@@ -24856,8 +25380,8 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   store.note(id2, "verify-started", { gates: gates.map((g) => g.run), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...live ? { live } : {} });
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
-    const failed2 = yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base);
-    if (failed2) return { kind: "unprepared", ...failed2 };
+    const failed3 = yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base);
+    if (failed3) return { kind: "unprepared", ...failed3 };
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
     const gated = yield* runGates(id2, wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
@@ -24920,15 +25444,15 @@ Plan again from the branch as it is now.`
     torn ? `Torn down after the run: ${listed(torn.data.records)}.` : "Nothing was provisioned, so nothing was torn down.",
     Result_exports.isFailure(head3) ? `${now2.base.ref} could not be read now: ${head3.failure.message}` : head3.success === run2.on ? `${now2.base.ref} has not moved since.` : `${now2.base.ref} has moved since, to ${head3.success.slice(0, 12)}.`
   ].join(" ");
-  const failed = run2.results.filter((r) => r.exitCode !== 0);
+  const failed2 = run2.results.filter((r) => r.exitCode !== 0);
   const failure = [
-    `${failed.length} of ${run2.results.length} ${run2.results.some((r) => r.doneWhen === GATE) ? "gates and checks" : "checks"} failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
-    ...failed.map((r) => r.doneWhen === GATE ? `The project's gate ${r.id} exited ${r.exitCode}: ${r.run}
+    `${failed2.length} of ${run2.results.length} ${run2.results.some((r) => r.doneWhen === GATE) ? "gates and checks" : "checks"} failed when Made Well ran them on ${now2.base.ref} at ${run2.on.slice(0, 12)} with the implementer's change.`,
+    ...failed2.map((r) => r.doneWhen === GATE ? `The project's gate ${r.id} exited ${r.exitCode}: ${r.run}
 ${r.output}` : `Check ${r.id} (done-when ${r.doneWhen}) exited ${r.exitCode}: ${r.run}
 ${r.output}`),
     environment
   ].join("\n\n");
-  const from = failed.some((r) => r.doneWhen !== GATE) ? { kind: "job", job: "test-plan" } : { kind: "dispatcher" };
+  const from = failed2.some((r) => r.doneWhen !== GATE) ? { kind: "job", job: "test-plan" } : { kind: "dispatcher" };
   store.save({ ...now2, verification, job: "arbitrate", from, failure, exchange: void 0, launches: 0 }, "failure", { from: "verify", results: summary, ...fixed });
 });
 var commitMessage = (item) => {
@@ -24950,10 +25474,10 @@ var stepsBefore = (item) => {
   const steps = L(item).delivery.map((s) => s.job);
   return steps.slice(0, steps.indexOf("plan"));
 };
-var pushCommand = (repo, ref) => Effect_exports.map(Effect_exports.result(git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", `${ref.replace("refs/heads/", "")}@{upstream}`)), (r) => {
+var pushCommand = (repo, ref2) => Effect_exports.map(Effect_exports.result(git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", `${ref2.replace("refs/heads/", "")}@{upstream}`)), (r) => {
   const upstream = Result_exports.isSuccess(r) ? r.success.trim() : "";
   const slash = upstream.indexOf("/");
-  return slash > 0 ? `git push ${quote2(upstream.slice(0, slash))} ${quote2(`${ref}:refs/heads/${upstream.slice(slash + 1)}`)}` : void 0;
+  return slash > 0 ? `git push ${quote2(upstream.slice(0, slash))} ${quote2(`${ref2}:refs/heads/${upstream.slice(slash + 1)}`)}` : void 0;
 });
 var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   const store = yield* Store;
@@ -25039,7 +25563,7 @@ var launchFailed = Effect_exports.fn("mw.launchFailed")(function* (id2, job, kin
 var holdTurns = (store, item, job, context3) => {
   return hold(store, item, "nq_turns", `The ${stepOf(L(item), job).profile} still has questions after ${MAX_TURNS} answered turns: the hand-off, its scope or its provisioning is wrong.`, context3);
 };
-var unshipped = (store, item) => (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
+var unshipped = (store, item) => (item.after ?? []).filter((id2) => !["shipped", "completed"].includes(store.get(id2)?.status ?? ""));
 var stuck = (store, item) => {
   const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "paused" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
   const fixBlocked = (id2) => store.get(id2)?.status !== "dropped" && blocked(id2);
@@ -25066,7 +25590,7 @@ ${item.failure ?? ""}`,
 function nextFor(item) {
   const id2 = item.id;
   if (item.status === "paused") {
-    const ship = item.hold?.context.next === "ship";
+    const ship = item.pack?.runtime !== "functions" && item.hold?.context.next === "ship";
     return [
       { run: `mw go ${id2}`, why: ship ? "it merges onto main and ships" : `it goes on to ${String(item.hold?.context.next ?? "the next step")}` },
       { run: `mw answer ${id2} "<what should change>"`, why: ship ? "the planner plans again from your words, the change is made again and checked, and it stops here again" : "it goes on, and the next step receives your words as the operator's" },
@@ -25110,18 +25634,18 @@ var released = (item) => ({
   launches: 0,
   ...item.split ? { split: Object.fromEntries(Object.entries(item.split).map(([k, t]) => [k, { ...t, launches: 0 }])) } : {}
 });
-var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
+var answer = (id2, text4, cause) => Effect_exports.gen(function* () {
   const store = yield* Store;
   const events2 = store.events(id2);
-  const repeat3 = events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => (e.data.by === "operator" || e.data.originator === "operator") && e.data.cause === cause && (e.data.answer ?? store.get(e.data.prerequisite)?.objective) === text2);
+  const repeat3 = events2.slice(events2.findLastIndex((e) => e.kind === "held" || e.kind === "paused") + 1).some((e) => (e.data.by === "operator" || e.data.originator === "operator") && e.data.cause === cause && (e.data.answer ?? store.get(e.data.prerequisite)?.objective) === text4);
   if (repeat3) return;
   const { item } = yield* held(id2);
   const free = released(item);
   if (item.status === "paused") {
-    if (item.hold.context.next === "ship") {
-      store.save({ ...free, job: "plan", from: { kind: "operator" }, exchange: void 0, rework: { cause: "implementation", answer: text2 }, round: item.round + 1, base: void 0, verification: void 0 }, "ruling", { cause: "implementation", to: "plan", by: "operator", answer: text2 });
+    if (item.pack?.runtime !== "functions" && item.hold.context.next === "ship") {
+      store.save({ ...free, job: "plan", from: { kind: "operator" }, exchange: void 0, rework: { cause: "implementation", answer: text4 }, round: item.round + 1, base: void 0, verification: void 0 }, "ruling", { cause: "implementation", to: "plan", by: "operator", answer: text4 });
     } else {
-      store.save({ ...free, passed: String(item.hold.context.key), steer: text2 }, "steered", { job: item.job, answer: text2, by: "operator" });
+      store.save({ ...free, passed: String(item.hold.context.key), steer: text4 }, "steered", { job: item.job, answer: text4, by: "operator" });
     }
     return;
   }
@@ -25136,12 +25660,12 @@ var answer = (id2, text2, cause) => Effect_exports.gen(function* () {
 The operator's correction, after the exchange on this hand-off ran out of turns with these questions open:
 ${open.map((q) => `- ${q}`).join("\n")}
 
-${text2}`;
-      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", questions: open, answer: text2 });
+${text4}`;
+      store.save(withTrack(free, job2, { ...t, exchange: { from: x.from, handoff, status: "awaiting-receiver", turns: [] } }), "nq-corrected", { job: job2, originator: "operator", questions: open, answer: text4 });
       return;
     }
-    const turns = x.turns.map((turn, i) => i === x.turns.length - 1 ? { ...turn, answer: text2, by: "operator" } : turn);
-    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", questions: x.turns.at(-1)?.questions ?? [], answer: text2 });
+    const turns = x.turns.map((turn, i) => i === x.turns.length - 1 ? { ...turn, answer: text4, by: "operator" } : turn);
+    store.save(withTrack(free, job2, { ...t, exchange: { ...x, status: "awaiting-receiver", turns } }), "nq-answer", { job: job2, originator: "operator", questions: x.turns.at(-1)?.questions ?? [], answer: text4 });
     return;
   }
   if (!CHECK_HOLDS.includes(item.hold.code)) {
@@ -25149,7 +25673,7 @@ ${text2}`;
   }
   if (!cause) return yield* new MadeWellError({ code: "cause_required", message: `Item #${id2} holds on a failed check; the answer must name its cause.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
   const operator = { kind: "operator" };
-  if (cause === "pre-existing") return openPrerequisite(store, { ...free, split: void 0, from: operator }, text2, operator);
+  if (cause === "pre-existing") return openPrerequisite(store, { ...free, split: void 0, from: operator }, text4, operator);
   const job = cause === "test" ? "test-plan" : "plan";
   store.save({
     ...free,
@@ -25157,35 +25681,35 @@ ${text2}`;
     split: void 0,
     from: operator,
     exchange: void 0,
-    rework: { cause, answer: text2 },
+    rework: { cause, answer: text4 },
     failure: void 0,
     round: item.round + 1,
     corrections: item.corrections + 1,
     ...job === "plan" ? { base: void 0 } : {}
-  }, "ruling", { cause, to: job, by: "operator", answer: text2 });
+  }, "ruling", { cause, to: job, by: "operator", answer: text4 });
 });
-var promote = (discovery, ids = []) => Effect_exports.gen(function* () {
+var promote = (discovery2, ids = []) => Effect_exports.gen(function* () {
   const store = yield* Store;
-  const run2 = store.get(discovery);
-  if (!run2) return yield* notFound2(discovery);
-  const found2 = store.list().filter((i) => i.discovery === discovery);
-  const candidates2 = found2.filter((i) => i.status === "candidate");
+  const run2 = store.get(discovery2);
+  if (!run2) return yield* notFound2(discovery2);
+  const found3 = store.list().filter((i) => i.discovery === discovery2);
+  const candidates2 = found3.filter((i) => i.status === "candidate");
   if (run2.status !== "discovered") {
-    return yield* new MadeWellError({ code: "not_discovered", message: `Item #${discovery} is not a finished discovery run (it is ${run2.status}).`, context: { id: discovery, status: run2.status, job: run2.job }, next: [{ run: "mw status", why: "find the discovery run and its candidates" }] });
+    return yield* new MadeWellError({ code: "not_discovered", message: `Item #${discovery2} is not a finished discovery run (it is ${run2.status}).`, context: { id: discovery2, status: run2.status, job: run2.job }, next: [{ run: "mw status", why: "find the discovery run and its candidates" }] });
   }
-  const unknown2 = ids.filter((id2) => !found2.some((c) => c.id === id2));
+  const unknown2 = ids.filter((id2) => !found3.some((c) => c.id === id2));
   if (unknown2.length) {
-    return yield* new MadeWellError({ code: "not_a_candidate", message: `Not candidates of discovery #${discovery}: ${unknown2.join(", ")}.`, context: { discovery, unknown: unknown2, candidates: candidates2.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery}`, why: "promote every waiting candidate" }] });
+    return yield* new MadeWellError({ code: "not_a_candidate", message: `Not candidates of discovery #${discovery2}: ${unknown2.join(", ")}.`, context: { discovery: discovery2, unknown: unknown2, candidates: candidates2.map((c) => ({ id: c.id, title: c.title })) }, next: [{ run: `mw promote ${discovery2}`, why: "promote every waiting candidate" }] });
   }
   const named = /* @__PURE__ */ new Set();
   const add4 = (id2) => {
     if (named.has(id2)) return;
     named.add(id2);
-    for (const p of found2.find((c) => c.id === id2)?.after ?? []) add4(p);
+    for (const p of found3.find((c) => c.id === id2)?.after ?? []) add4(p);
   };
-  for (const id2 of ids.length ? ids : found2.map((c) => c.id)) add4(id2);
-  const chosen = found2.filter((c) => named.has(c.id));
-  for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery });
+  for (const id2 of ids.length ? ids : found3.map((c) => c.id)) add4(id2);
+  const chosen = found3.filter((c) => named.has(c.id));
+  for (const c of chosen) if (c.status === "candidate") store.save({ ...c, status: "queued" }, "promoted", { discovery: discovery2 });
   return chosen.map((c) => store.get(c.id));
 });
 var go = (id2) => Effect_exports.gen(function* () {
@@ -25265,11 +25789,11 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
 var FULL_AUTHORITY = "Made Well runs in full autonomy: nobody is there to decide, so decide even what the operator's source leaves open, by the rubric (a choice that satisfies two of the three governing questions is the answer). Set needsOperator only when the work needs something only the operator has and Made Well cannot supply: a credential, an account, or money.";
 var SUBAGENT_RULE = "If your tools can start another agent, that is an NQ exchange you originate and answer for: give it a complete brief, have it state its understanding and questions before it works, answer them yourself, stop and report after three turns with questions still open, and put its understanding, your answers and its result in your report.";
 var briefOf = (lane) => [
-  "You are an agent in Made Well, a pipeline that takes one work item from ideation through planning and making to a verified, shipped change. Your packet says which profile you are, the job you do, and, under you.replyFormat, the JSON Schema your reply must match. It runs from what every call of this work item shares to what is yours alone.",
+  "You are an agent in Made Well, a work OS: capture input, generate tasks, complete tasks. Your packet says which profile you are, the function you perform, and, under you.replyFormat, the JSON Schema your output must match. Execute only your configured function; stage names do not grant additional authority.",
   NEUTRAL_HOST,
   RUBRIC,
   "Ideation and planning record every settled choice in decisions[] with question, decision, why, verdict and three judged legs. Factual clarifications and saved-answer reuse need no new choice. Optional decisionResolution guidance is advisory, never authority: apply the same gate yourself before adopting it. Below-bar or stop guidance must be reshaped, not executed.",
-  `Leave no trace. Your working directory is a disposable worktree of the project's repository, removed when your call ends: write only there, never in the repository's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
+  lane.pack.runtime === "functions" ? "Your function operates in its configured workspace and access level. Do only the authorized task. Your returned JSON is the durable output. Clean up temporary resources you create. There is no implicit Git, deployment or verification stage. Do not start another agent outside the NQ protocol." : `Leave no trace. Your working directory is a disposable worktree of the project's repository, removed when your call ends: write only there, never in the repository's own checkout or anywhere else on the machine. Stop every process you start. Tear down whatever you provision (database branches, dev clones, servers); report anything still standing under "provisioned" as {"kind", "id", "teardown"} and Made Well tears it down. Never commit, branch or push: Made Well alone brings work onto main.`,
   "Honor the conventions the project's repository already has.",
   ...lane.pack.brief ? [lane.pack.brief] : [],
   "Write in proportion to the work. A small change gets a short deliverable: record a decision only where a real choice was open, in a sentence or two, and never restate what your packet already says.",
@@ -25284,6 +25808,7 @@ var receivedBy = (item, job) => Object.fromEntries(stepOf(L(item), job).receives
   return d === void 0 ? [] : [[j, d]];
 }));
 var snapshotFor = (item, job, dir) => {
+  if (item.pack?.runtime === "functions") return Effect_exports.succeed(void 0);
   const plan = planOf(item);
   if (!plan || !stepOf(L(item), job).receives.includes("plan")) return Effect_exports.succeed(void 0);
   const files = [.../* @__PURE__ */ new Set([...plan.scope, ...(plan.follows ?? []).map((f) => f.follows)])];
@@ -25296,6 +25821,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
   const snap = yield* snapshotFor(item, job, dir);
   return JSON.stringify({
     item: itemFacts(item),
+    ...item.pack?.runtime === "functions" ? { function: { ...functionInput(item, stepOf(L(item), job)), node: stepOf(L(item), job), pack: { name: item.pack.name, version: item.pack.version ?? null } } } : {},
     ...withReceived ? { received: receivedBy(item, job) } : {},
     ...snap ? { snapshot: snap } : {},
     ...saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {},
@@ -25318,6 +25844,7 @@ var arbiterTask = (lane, autonomous) => [
 ].join(" ");
 var CORRECTING_TASK = "Correct your checks from the ruling. Your checkout is the candidate Made Well ran them on: the implementer's change is its last commit (HEAD) on top of the branch the item started from, and your previous check files sit uncommitted in the working tree beside it, at the paths you wrote them. Correct them in place, or write new ones, at paths outside the plan's scope; Made Well takes the check files from your checkout and runs each check's command itself, from the repo root, against that same change. The implementation is not yours to change: Made Well refuses a change inside the plan's scope. Each check proves one done-when item by its id, and every done-when item needs at least one. A check proves its done-when item from this item's change alone: never run or count the whole test suite, and never pin anything outside the plan's scope; other items ship onto the same branch while this one is in flight.";
 var taskOf = (item, job) => {
+  if (item.pack?.runtime === "functions") return stepOf(L(item), job).task;
   const own = job === "arbitrate" ? arbiterTask(L(item), auto(item)) : correcting(item, job) ? CORRECTING_TASK : TASKS[job];
   const extra = stepOf(L(item), job).task;
   return own && extra ? `${own} ${extra}` : own ?? extra;
@@ -25342,7 +25869,7 @@ var originatorParts = (item, job, x, answered) => ({
   you: {
     profile: profileOf(item, x.from),
     call: "originator",
-    task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized. Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well supplies the verbatim answer once under answeredBefore and records the new wording as an alias; exchange notes reference its id. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.`,
+    task: `You handed this work over as the ${profileOf(item, x.from)}. The ${stepOf(L(item), job).profile} asked questions before it does the ${job} job. Resolve in order: your context, repository intent and purpose, then the three-legged rubric. Clarify what you handed over; never change your hand-off or the work. Record new choices in decisions[] with their triple gate. ${item.pack?.runtime === "functions" ? "Resolve routine choices within the authorized task. Set needsOperator when authority or required resources are missing. Autonomy does not grant permission to deploy, spend money or perform destructive or external actions." : `${auto(item) ? FULL_AUTHORITY : "Set needsOperator only for authority the source leaves open: destructive or irreversible actions, production beyond this item's own ship, money, credentials, or anything outside the workspace."} Shipping this item, its deploy included, is already authorized.`} Read answeredBefore first. A saved answer settles the same question even when reworded: return reuse with that current question and its saved answerId, never answer it anew or send it to the operator. Made Well supplies the verbatim answer once under answeredBefore and records the new wording as an alias; exchange notes reference its id. Only answer genuinely new questions in answer; when every question is reused, say "See saved answers". A materially changed fact is a new question: state what changed, not just a paraphrase.`,
     replyFormat: shapeOf(ORIGINATOR)
   },
   yourHandoff: x.from.kind === "job" && x.handoff === item.outputs[x.from.job] ? deliverableOf(item, x.from.job) : x.handoff,
@@ -25362,9 +25889,882 @@ var executeParts = (item, job, t, x) => ({
   ...t.pickingUp ? { pickingUp: t.pickingUp } : {}
 });
 
+// src/otlp.ts
+import { createHash as createHash3 } from "node:crypto";
+import { resolve as resolve5 } from "node:path";
+var record2 = (value3) => value3 !== null && typeof value3 === "object" && !Array.isArray(value3) ? value3 : {};
+var label = (value3) => typeof value3 === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_.:@+-]{0,127}$/.test(value3) ? value3 : void 0;
+var text = (key, value3) => ({ key, value: { stringValue: value3 } });
+var integer = (key, value3) => ({ key, value: { intValue: String(value3) } });
+var identifier2 = (parts2, length) => {
+  const hex = createHash3("sha256").update(JSON.stringify(parts2)).digest("hex").slice(0, length);
+  return /^0+$/.test(hex) ? `${hex.slice(0, -1)}1` : hex;
+};
+var unixNano = (at) => {
+  const ms = Date.parse(at);
+  if (!Number.isSafeInteger(ms) || ms < 0) return void 0;
+  const ns = BigInt(ms) * 1000000n;
+  return ns <= 18446744073709551615n ? ns : void 0;
+};
+function otlpOf(store, id2) {
+  const item = store.get(id2);
+  if (!item) throw new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list existing work" }] });
+  const events2 = store.events(id2);
+  const starts = /* @__PURE__ */ new Map();
+  const finishes = /* @__PURE__ */ new Map();
+  const links = /* @__PURE__ */ new Map();
+  for (const event of events2) {
+    const invocation = event.data.invocation;
+    if (typeof invocation !== "string" || !invocation) continue;
+    if (event.kind === "trace-started" && !starts.has(invocation)) starts.set(invocation, event);
+    if (event.kind === "trace-finished" && !finishes.has(invocation)) finishes.set(invocation, event);
+    if (event.kind === "trace-call" && typeof event.data.call === "number") links.set(invocation, event.data.call);
+  }
+  const calls = new Map(store.calls(id2).map((call) => [call.id, call]));
+  const traceId = identifier2(["madewell.otlp.trace.v1", resolve5(store.path), id2, item.created], 32);
+  const spans = [];
+  for (const [invocation, start] of starts) {
+    const finish = finishes.get(invocation);
+    if (!finish || finish.seq <= start.seq || !["returned", "failed"].includes(String(finish.data.status))) continue;
+    const from = unixNano(start.at);
+    const to = unixNano(finish.at);
+    if (from === void 0 || to === void 0 || to < from) continue;
+    const call = calls.get(links.get(invocation) ?? -1);
+    const result3 = record2(finish.data.result);
+    const failed2 = finish.data.status === "failed" || result3.ok === false || result3.code === null || typeof result3.code === "number" && result3.code !== 0 || result3.overBudget !== void 0 && result3.overBudget !== null || call !== void 0 && call.outcome !== "ok";
+    const outcome = failed2 ? call?.outcome === "limit" || call?.outcome === "rejected" ? call.outcome : "error" : "ok";
+    const attributes = [integer("madewell.task.id", id2), text("madewell.outcome", outcome)];
+    const card = call?.card ?? record2(record2(start.data.args).card);
+    for (const [key, value3] of [
+      ["madewell.job", start.data.job],
+      ["madewell.kind", start.data.kind],
+      ["madewell.provider", card.provider],
+      ["madewell.model", card.model]
+    ]) {
+      const safe = label(value3);
+      if (safe) attributes.push(text(key, safe));
+    }
+    const ms = finish.data.ms;
+    if (typeof ms === "number" && Number.isFinite(ms) && ms >= 0) attributes.push({ key: "madewell.duration_ms", value: { doubleValue: ms } });
+    for (const key of ["input", "output", "cacheRead", "cacheWrite"]) {
+      const count = call?.tokens?.[key];
+      if (typeof count === "number" && Number.isSafeInteger(count) && count > 0) attributes.push(integer(`madewell.usage.tokens.${key}`, count));
+    }
+    spans.push({
+      traceId,
+      spanId: identifier2(["madewell.otlp.span.v1", traceId, invocation], 16),
+      name: `mw.${label(start.data.job) ?? "invocation"}.${label(start.data.kind) ?? "call"}`,
+      kind: 1,
+      startTimeUnixNano: String(from),
+      endTimeUnixNano: String(to),
+      attributes,
+      status: { code: failed2 ? 2 : 1 }
+    });
+  }
+  return { resourceSpans: spans.length ? [{
+    resource: { attributes: [text("service.name", "madewell")] },
+    scopeSpans: [{ scope: { name: "madewell.invocations" }, spans }]
+  }] : [] };
+}
+
+// src/export.ts
+import { mkdirSync as mkdirSync6, writeFileSync as writeFileSync6 } from "node:fs";
+import { join as join10 } from "node:path";
+var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
+  const item = store.get(id2);
+  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
+  const calls = store.calls(id2);
+  yield* Effect_exports.try({
+    try: () => {
+      mkdirSync6(dir, { recursive: true });
+      writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
+      calls.forEach((c, i) => {
+        const folder = join10(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
+        mkdirSync6(folder, { recursive: true });
+        const { system, prompt, output, raw, tools, flags, ...meta } = c;
+        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
+        for (const [name, text4] of files) writeFileSync6(join10(folder, name), text4);
+      });
+    },
+    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
+  });
+  return { dir, calls: calls.length };
+});
+var formatQaMarkdown = (document) => {
+  const lines4 = [
+    "# Manual QA follow-up brief",
+    "",
+    `schemaVersion: ${document.schemaVersion}`,
+    `selection: ${document.selection}`,
+    "",
+    "Recorded evidence is not repair authorization. Manual verdicts and reported results are different.",
+    "External content is unavailable in this export: reference-only, not fetched (unavailable-reference-only).",
+    "Missing fixtures and prerequisites are not invented. JSON is the authoritative lossless transport.",
+    "The immutable run retains all original ordered pins; selected entries may be a subset.",
+    ""
+  ];
+  const literal = (label3, value3) => {
+    lines4.push(`${label3}:${value3 === null || value3 === "" ? " not supplied" : ""}`, "");
+    if (value3 === null) return;
+    let width2 = 3;
+    for (const match8 of value3.matchAll(/`+/g)) width2 = Math.max(width2, match8[0].length + 1);
+    const fence = "`".repeat(width2);
+    lines4.push(`${fence}
+${value3}
+${fence}`, "");
+  };
+  const canonical = (value3) => Array.isArray(value3) ? value3.map(canonical) : value3 && typeof value3 === "object" ? Object.fromEntries(Object.entries(value3).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, canonical(child)])) : value3;
+  const structured = (label3, value3) => literal(label3, JSON.stringify(canonical(value3), null, 2));
+  const actor = (label3, value3) => {
+    if (!value3) {
+      lines4.push(`${label3}: not supplied`, "");
+      return;
+    }
+    literal(`${label3} kind`, value3.kind);
+    literal(`${label3} label`, value3.label);
+  };
+  const references = (label3, values2) => {
+    lines4.push(`${label3}${values2.length ? ":" : ": not supplied"}`, "");
+    values2.forEach((value3, index2) => {
+      lines4.push(`Reference ${index2 + 1}`, "");
+      literal("Label", value3.label);
+      literal("Reference (not fetched)", value3.ref);
+    });
+  };
+  const version = (value3) => {
+    lines4.push(value3.kind === "unknown" ? "Tested version: explicitly unknown" : "Tested version: known with source", "");
+    if (value3.kind === "known") {
+      literal("Version value", value3.value);
+      references("Version source", [value3.source]);
+    }
+  };
+  const locations = (runId, caseId, revision) => {
+    literal("CLI run read", `mw qa-run ${runId}`);
+    literal("HTTP run read", `GET /api/v1/qa/runs/${runId}`);
+    literal("CLI complete export", `mw qa-export ${runId} --selection all --format json`);
+    literal("HTTP complete export", `GET /api/v1/qa/runs/${runId}/export?selection=all&format=json`);
+    if (caseId !== void 0) {
+      literal("CLI observations read (paginate to locate the observation ID)", `mw qa-observations ${runId} --case-id ${caseId}`);
+      literal("HTTP observations read (paginate to locate the observation ID)", `GET /api/v1/qa/runs/${runId}/observations?caseId=${caseId}`);
+      if (revision !== void 0) {
+        literal("CLI pinned instructions read", `mw qa-case ${caseId} --revision ${revision}`);
+        literal("HTTP pinned instructions read", `GET /api/v1/qa/cases/${caseId}?revision=${revision}`);
+      }
+    }
+  };
+  const run2 = (value3) => {
+    lines4.push(`Run ID: ${value3.id}`, `Work item: ${value3.workItem}`, "");
+    literal("Workspace (recorded project identity)", value3.workspace);
+    literal("Application", value3.application);
+    literal("Environment", value3.environment);
+    literal("Started at", value3.startedAt);
+    actor("Run enteredBy", value3.enteredBy);
+    version(value3.version);
+    structured("Original ordered case pins", value3.cases);
+    locations(value3.id);
+  };
+  const instructions = (value3) => {
+    literal("Title", value3.title);
+    literal("Area", value3.area);
+    literal("Instruction change", value3.change);
+    references("Instruction sourceRefs", value3.sourceRefs);
+    literal("Prerequisites", value3.prerequisites);
+    literal("Test data", value3.testData);
+    lines4.push("Ordered actions:", "");
+    value3.actions.forEach((action, index2) => literal(`${index2 + 1}. Action`, action));
+    literal("Expected behavior", value3.expected);
+  };
+  const rejectedText = (value3, label3 = "Rejected input") => {
+    if (typeof value3 === "string") literal(label3, value3);
+    else if (Array.isArray(value3)) value3.forEach((child, index2) => rejectedText(child, `${label3} [${index2 + 1}]`));
+    else if (value3 && typeof value3 === "object") Object.keys(value3).sort().forEach((key) => rejectedText(value3[key], `${label3}.${key}`));
+  };
+  lines4.push("## Run", "");
+  run2(document.run);
+  if (!document.entries.length) lines4.push("Selected entries: none.", "");
+  for (const entry of document.entries) {
+    lines4.push(`## Case ${entry.caseId}`, "", `Pinned instruction revision: ${entry.caseRevision}`, `Current case revision: ${entry.currentCaseRevision}`, `Outdated: ${entry.outdated}`, `Case work item: ${entry.case.workItem}`, "");
+    literal("Case workspace", entry.case.workspace);
+    literal("Case created at", entry.case.createdAt);
+    actor("Instruction author", entry.instructions.enteredBy);
+    literal("Instruction at", entry.instructions.at);
+    instructions(entry.instructions.instructions);
+    lines4.push(`Current manual status: ${entry.status}`, `Entry revision: ${entry.entryRevision}`, `Latest manual verdict ID: ${entry.latestVerdictId ?? "not supplied"}`, "");
+    locations(document.run.id, entry.caseId, entry.caseRevision);
+    lines4.push("### Observation history", "");
+    if (!entry.observations.length) lines4.push("Observations: none; manual status is untested.", "");
+    for (const observation of entry.observations) {
+      lines4.push(`#### Observation ${observation.id}`, "", `Run ID: ${observation.runId}`, `Case ID: ${observation.caseId}`, `Pinned revision: ${observation.caseRevision}`, `Entry revision: ${observation.entryRevision}`, "");
+      literal("Kind", observation.kind);
+      actor("Entrant (enteredBy)", observation.enteredBy);
+      actor("Claimed verifier (not authentication)", observation.claimedVerifier);
+      literal("Server at", observation.at);
+      literal("Historical observedAt", observation.observedAt);
+      literal("Manual verdict", observation.verdict);
+      literal("Reported result (not a manual verdict)", observation.reportedResult);
+      literal("Actual behavior", observation.actual);
+      literal("Reproduction", observation.reproduction);
+      literal("Notes", observation.notes);
+      references("Evidence (reference-only; unavailable in this export)", observation.evidence);
+    }
+    lines4.push("### Recorded associations", "", "A recorded fix reference does not resolve a manual failure. Retests have independent manual status.", "");
+    if (!entry.links.length) lines4.push("Associations: none.", "");
+    for (const { link: link2, targetAvailability } of entry.links) {
+      lines4.push(`#### Association event ${link2.event}`, "", `Local targetAvailability: ${targetAvailability}`, `Source observation ID: ${link2.source.observationId}`, "");
+      literal("Association at", link2.at);
+      literal("Association request ID", link2.requestId);
+      actor("Association enteredBy", link2.enteredBy);
+      structured("Immutable source IDs", link2.source);
+      locations(link2.source.runId, link2.source.caseId, link2.source.caseRevision);
+      if (link2.target.kind === "work-item") {
+        lines4.push("Recorded fix reference: work item", "", `Target work item: ${link2.target.workItem}`, "");
+        const saved = link2.target.snapshot;
+        literal("Captured workspace", saved.workspace);
+        literal("Captured title", saved.title);
+        literal("Captured objective", saved.objective);
+        literal("Captured source", saved.source);
+        literal("Status at association (not current resolution)", saved.status);
+        literal("Captured updated time", saved.updated);
+        literal("CLI target read (may be unavailable)", `mw context ${link2.target.workItem}`);
+        literal("HTTP target read (may be unavailable)", `GET /api/v1/items/${link2.target.workItem}`);
+      } else if (link2.target.kind === "reference") references("Recorded fix reference", [link2.target.reference]);
+      else {
+        lines4.push("Retest: immutable target run; no verdict copied or inferred.", "", `Target case ID: ${link2.target.caseId}`, `Target pinned revision: ${link2.target.caseRevision}`, "");
+        run2(link2.target.run);
+        locations(link2.target.run.id, link2.target.caseId, link2.target.caseRevision);
+      }
+    }
+    lines4.push("### Rejected drafts and conflicts", "", "Rejected input was not applied and is not a verdict or pinned instruction.", "");
+    if (!entry.conflicts.length) lines4.push("Conflicts: none.", "");
+    for (const conflict of entry.conflicts) {
+      lines4.push(`#### Conflict event ${conflict.event}`, "", `Owning work item: ${conflict.workItem}`, `Case ID: ${conflict.caseId}`, `Run ID: ${conflict.runId ?? "case-wide"}`, `Expected counter: ${conflict.expected}`, `Actual counter: ${conflict.actual}`, "");
+      if (conflict.operation === "reviseCase") lines4.push("Case-wide rejected instruction draft, not this run's pinned instructions.", "");
+      literal("Operation", conflict.operation);
+      literal("Request ID", conflict.requestId);
+      literal("Server at", conflict.at);
+      structured("Exact rejected input (JSON)", conflict.input);
+      rejectedText(conflict.input);
+      literal("CLI event record", `mw show ${conflict.workItem}`);
+      literal("HTTP event record", `GET /api/item/${conflict.workItem}`);
+    }
+  }
+  return lines4.join("\n");
+};
+
+// src/qa.ts
+var QA_BODY_LIMIT = 65536;
+var QaId = Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER }));
+var QaCounter = Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }));
+var text2 = (max5) => Schema_exports.String.check(Schema_exports.isMaxCodePoints(max5));
+var nonblank = (max5) => text2(max5).check(Schema_exports.isPattern(/\S/));
+var requestId = Schema_exports.String.check(Schema_exports.isPattern(/^[A-Za-z0-9_-]{16,128}$/));
+var timestamp = Schema_exports.String.check(Schema_exports.isPattern(/^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$/), Schema_exports.makeFilter((value3) => {
+  const parts2 = /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})/.exec(value3);
+  if (!parts2 || !Number.isFinite(Date.parse(value3))) return false;
+  const [, y, m, d, h, min5, s] = parts2;
+  const days2 = new Date(Date.UTC(Number(y), Number(m), 0)).getUTCDate();
+  return Number(m) >= 1 && Number(m) <= 12 && Number(d) >= 1 && Number(d) <= days2 && Number(h) < 24 && Number(min5) < 60 && Number(s) < 60;
+}, { toJsonSchema: () => ({ format: "date-time" }) }));
+var QaState = Schema_exports.Literals(["untested", "passed", "failed", "needs-refinement"]);
+var QaActor = Schema_exports.Struct({ kind: Schema_exports.Literals(["operator", "agent", "import"]), label: nonblank(300) });
+var QaRef = Schema_exports.Struct({ label: nonblank(300), ref: nonblank(4096) });
+var refs = Schema_exports.Array(QaRef).check(Schema_exports.isMaxLength(50));
+var QaInstructions = Schema_exports.Struct({
+  title: nonblank(300),
+  area: nonblank(300),
+  change: nonblank(8e3),
+  sourceRefs: refs,
+  prerequisites: text2(8e3),
+  testData: text2(8e3),
+  actions: Schema_exports.Array(nonblank(2e3)).check(Schema_exports.isBetweenLength(1, 100)),
+  expected: nonblank(8e3)
+});
+var QaVersion = Schema_exports.Union([Schema_exports.Struct({ kind: Schema_exports.Literal("unknown") }), Schema_exports.Struct({ kind: Schema_exports.Literal("known"), value: nonblank(300), source: QaRef })]);
+var QaCase = Schema_exports.Struct({ id: QaId, workItem: QaId, workspace: nonblank(4096), currentRevision: QaId, createdAt: timestamp });
+var QaCaseRevision = Schema_exports.Struct({ caseId: QaId, revision: QaId, at: timestamp, enteredBy: QaActor, instructions: QaInstructions });
+var pin = Schema_exports.Struct({ caseId: QaId, caseRevision: QaId });
+var pins = Schema_exports.Array(pin).check(Schema_exports.isBetweenLength(1, 100), Schema_exports.makeFilter((value3) => new Set(value3.map((p) => p.caseId)).size === value3.length, { toJsonSchema: () => [{}, true] }));
+var QaRun = Schema_exports.Struct({ id: QaId, workItem: QaId, workspace: nonblank(4096), application: nonblank(2e3), environment: nonblank(2e3), version: QaVersion, startedAt: timestamp, enteredBy: QaActor, cases: pins });
+var QaObservation = Schema_exports.Struct({
+  id: QaId,
+  runId: QaId,
+  caseId: QaId,
+  caseRevision: QaId,
+  entryRevision: QaId,
+  at: timestamp,
+  kind: Schema_exports.Literals(["note", "technical", "historical", "manual-verdict"]),
+  enteredBy: QaActor,
+  claimedVerifier: Schema_exports.NullOr(QaActor),
+  observedAt: Schema_exports.NullOr(timestamp),
+  actual: text2(8e3),
+  reproduction: text2(8e3),
+  notes: text2(8e3),
+  evidence: refs,
+  reportedResult: Schema_exports.NullOr(QaState),
+  verdict: Schema_exports.NullOr(QaState)
+});
+var QaCreateCaseInput = Schema_exports.Struct({ requestId, workItem: QaId, workspace: nonblank(4096), enteredBy: QaActor, instructions: QaInstructions });
+var QaReviseCaseInput = Schema_exports.Struct({ requestId, revision: QaId, enteredBy: QaActor, instructions: QaInstructions });
+var QaStartRunInput = Schema_exports.Struct({ requestId, workItem: QaId, workspace: nonblank(4096), enteredBy: QaActor, application: nonblank(2e3), environment: nonblank(2e3), version: QaVersion, cases: pins });
+var observationInput = { requestId, revision: QaCounter, enteredBy: QaActor, claimedVerifier: Schema_exports.NullOr(QaActor), observedAt: Schema_exports.NullOr(timestamp), actual: text2(8e3), reproduction: text2(8e3), notes: text2(8e3), evidence: refs };
+var QaObserveInput = Schema_exports.Union([
+  Schema_exports.Struct({ ...observationInput, kind: Schema_exports.Literal("note"), reportedResult: Schema_exports.Null }),
+  Schema_exports.Struct({ ...observationInput, kind: Schema_exports.Literals(["technical", "historical"]), reportedResult: Schema_exports.NullOr(QaState) })
+]).check(Schema_exports.makeFilter((value3) => !!(value3.actual.trim() || value3.reproduction.trim() || value3.notes.trim() || value3.evidence.length || value3.reportedResult) || value3.kind === "note" && value3.revision > 0 && value3.notes === "", { toJsonSchema: () => [{}, true] }));
+var verdictInput = { requestId, revision: QaCounter, enteredBy: Schema_exports.Struct({ kind: Schema_exports.Literal("operator"), label: nonblank(300) }), attestation: Schema_exports.Literal("operator-manual-verdict"), reproduction: text2(8e3), notes: text2(8e3), evidence: refs };
+var QaVerdictInput = Schema_exports.Union([
+  Schema_exports.Struct({ ...verdictInput, verdict: Schema_exports.Literal("untested"), actual: text2(8e3) }),
+  Schema_exports.Struct({ ...verdictInput, verdict: Schema_exports.Literals(["passed", "failed", "needs-refinement"]), actual: nonblank(8e3) })
+]);
+var QaLinkInput = Schema_exports.Struct({ requestId, revision: QaCounter, enteredBy: QaActor, observationId: QaId, target: Schema_exports.Union([
+  Schema_exports.Struct({ kind: Schema_exports.Literal("work-item"), workItem: QaId }),
+  Schema_exports.Struct({ kind: Schema_exports.Literal("reference"), reference: QaRef }),
+  Schema_exports.Struct({ kind: Schema_exports.Literal("retest"), runId: QaId })
+]) });
+var QaLinkedWork = Schema_exports.Struct({ id: QaId, workspace: Schema_exports.String, title: Schema_exports.String, objective: Schema_exports.String, source: Schema_exports.String, status: Schema_exports.String, updated: Schema_exports.String });
+var QaLink = Schema_exports.Struct({
+  event: QaId,
+  at: timestamp,
+  requestId,
+  enteredBy: QaActor,
+  source: Schema_exports.Struct({ runId: QaId, caseId: QaId, caseRevision: QaId, observationId: QaId }),
+  target: Schema_exports.Union([
+    Schema_exports.Struct({ kind: Schema_exports.Literal("work-item"), workItem: QaId, snapshot: QaLinkedWork }),
+    Schema_exports.Struct({ kind: Schema_exports.Literal("reference"), reference: QaRef }),
+    Schema_exports.Struct({ kind: Schema_exports.Literal("retest"), run: QaRun, caseId: QaId, caseRevision: QaId })
+  ])
+});
+var QaLinkView = Schema_exports.Struct({ link: QaLink, targetAvailability: Schema_exports.Literals(["present", "unavailable", "not-checked"]) });
+var conflictFields = { event: QaId, workItem: QaId, at: timestamp, requestId, caseId: QaId, expected: QaCounter, actual: QaCounter };
+var QaConflict = Schema_exports.Union([
+  Schema_exports.Struct({ ...conflictFields, operation: Schema_exports.Literal("reviseCase"), runId: Schema_exports.Null, input: QaReviseCaseInput }),
+  Schema_exports.Struct({ ...conflictFields, operation: Schema_exports.Literal("observeCase"), runId: QaId, input: QaObserveInput }),
+  Schema_exports.Struct({ ...conflictFields, operation: Schema_exports.Literal("recordVerdict"), runId: QaId, input: QaVerdictInput }),
+  Schema_exports.Struct({ ...conflictFields, operation: Schema_exports.Literal("linkObservation"), runId: QaId, input: QaLinkInput })
+]);
+var selection = Schema_exports.Literals(["all", "follow-ups"]);
+var QaExportQuery = Schema_exports.Struct({ selection: Schema_exports.optionalKey(selection), format: Schema_exports.optionalKey(Schema_exports.Literals(["json", "markdown"])) });
+var QaExportEntry = Schema_exports.Struct({
+  caseId: QaId,
+  caseRevision: QaId,
+  case: QaCase,
+  instructions: QaCaseRevision,
+  entryRevision: QaCounter,
+  status: QaState,
+  currentCaseRevision: QaId,
+  outdated: Schema_exports.Boolean,
+  latestVerdictId: Schema_exports.NullOr(QaId),
+  observations: Schema_exports.Array(QaObservation),
+  links: Schema_exports.Array(QaLinkView),
+  conflicts: Schema_exports.Array(QaConflict)
+});
+var QaExportDocument = Schema_exports.Struct({ schemaVersion: Schema_exports.Literal(1), selection, externalEvidence: Schema_exports.Literal("unavailable-reference-only"), run: QaRun, entries: Schema_exports.Array(QaExportEntry) });
+var QaExportResult = Schema_exports.Union([
+  Schema_exports.Struct({ apiVersion: Schema_exports.Literal("1"), format: Schema_exports.Literal("json"), data: QaExportDocument }),
+  Schema_exports.Struct({ apiVersion: Schema_exports.Literal("1"), format: Schema_exports.Literal("markdown"), markdown: Schema_exports.String })
+]);
+var QaAccepted = Schema_exports.Struct({
+  apiVersion: Schema_exports.Literal("1"),
+  accepted: Schema_exports.Literal(true),
+  requestId,
+  receipt: Schema_exports.Struct({ operation: Schema_exports.Literals(["createCase", "reviseCase", "startRun", "observeCase", "recordVerdict", "linkObservation"]), resource: Schema_exports.Literals(["case", "run", "run-entry"]), id: QaId, caseId: Schema_exports.NullOr(QaId), revision: QaCounter, event: QaId, at: timestamp, replayed: Schema_exports.Boolean }),
+  links: Schema_exports.Struct({ read: Schema_exports.String, workItem: Schema_exports.String })
+});
+var page = (schema) => Schema_exports.Struct({ apiVersion: Schema_exports.Literal("1"), items: Schema_exports.Array(schema), nextAfter: Schema_exports.NullOr(QaId), hasMore: Schema_exports.Boolean });
+var QaCaseList = page(Schema_exports.Struct({ ...QaCase.fields, title: nonblank(300), area: nonblank(300) }));
+var QaCaseDetail = Schema_exports.Struct({ apiVersion: Schema_exports.Literal("1"), case: QaCase, revision: QaCaseRevision });
+var QaRunList = page(Schema_exports.Struct({ id: QaId, workItem: QaId, workspace: nonblank(4096), application: nonblank(2e3), environment: nonblank(2e3), version: QaVersion, startedAt: timestamp, caseCount: QaId }));
+var QaRunDetail = Schema_exports.Struct({ apiVersion: Schema_exports.Literal("1"), run: QaRun, entries: Schema_exports.Array(Schema_exports.Struct({
+  caseId: QaId,
+  caseRevision: QaId,
+  title: nonblank(300),
+  area: nonblank(300),
+  entryRevision: QaCounter,
+  status: QaState,
+  currentCaseRevision: QaId,
+  outdated: Schema_exports.Boolean,
+  latestVerdictId: Schema_exports.NullOr(QaId),
+  instructionsHref: Schema_exports.String,
+  observationsHref: Schema_exports.String
+})) });
+var QaObservationList = page(QaObservation);
+var QaSnapshot = Schema_exports.Struct({ schemaVersion: Schema_exports.Literal(1), run: QaRun, entries: Schema_exports.Array(Schema_exports.Struct({ caseId: QaId, caseRevision: QaId, instructions: QaCaseRevision, entryRevision: QaCounter, status: QaState, observations: Schema_exports.Array(QaObservation) })) });
+var pagination = { after: Schema_exports.optionalKey(QaCounter), limit: Schema_exports.optionalKey(Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 1, maximum: 100 }))) };
+var QaCasesQuery = Schema_exports.Struct({ workspace: Schema_exports.optionalKey(nonblank(4096)), workItem: Schema_exports.optionalKey(QaId), q: Schema_exports.optionalKey(text2(300)), area: Schema_exports.optionalKey(text2(300)), ...pagination });
+var QaCaseQuery = Schema_exports.Struct({ revision: Schema_exports.optionalKey(QaId) });
+var QaRunsQuery = Schema_exports.Struct({ workspace: Schema_exports.optionalKey(nonblank(4096)), workItem: Schema_exports.optionalKey(QaId), caseId: Schema_exports.optionalKey(QaId), ...pagination });
+var QaObservationsQuery = Schema_exports.Struct({ caseId: Schema_exports.optionalKey(QaId), ...pagination });
+var QA_SCHEMAS = { QaActor, QaRef, QaInstructions, QaVersion, QaCase, QaCaseRevision, QaRun, QaObservation, QaAccepted, QaCreateCaseInput, QaReviseCaseInput, QaStartRunInput, QaObserveInput, QaVerdictInput, QaCaseList, QaCaseDetail, QaRunList, QaRunDetail, QaObservationList, QaSnapshot, QaCasesQuery, QaCaseQuery, QaRunsQuery, QaObservationsQuery, QaLinkInput, QaLinkedWork, QaLink, QaLinkView, QaConflict, QaExportQuery, QaExportEntry, QaExportDocument, QaExportResult };
+var QA_JSON_SCHEMAS = Object.fromEntries(Object.entries(QA_SCHEMAS).map(([name, schema]) => {
+  const doc = Schema_exports.toJsonSchemaDocument(schema, { onExcessProperty: "error", referencePolicy: () => void 0 });
+  return [name, doc.schema];
+}));
+var qaError = (status, reason, facts = {}) => new MadeWellError({
+  code: "qa_request",
+  message: `Manual QA request refused: ${reason}. Retain your draft and request ID; refresh and review before submitting changed input.`,
+  context: { status, reason, facts },
+  next: [{ run: typeof facts.refresh === "string" ? facts.refresh : "mw qa-cases", why: "inspect saved QA history; reuse exact input/ID for an uncertain retry, or a new ID after explicit conflict review" }]
+});
+var qaStorageError = (cause) => {
+  if (cause instanceof MadeWellError) return cause;
+  const message = cause instanceof Error ? cause.message : "";
+  return /(?:SQLITE_BUSY|database is locked|database table is locked)/i.test(message) ? qaError(503, "store_busy") : qaError(500, "storage_failed");
+};
+var decode6 = (schema, input) => Schema_exports.decodeUnknownEffect(schema)(input, { onExcessProperty: "error" }).pipe(Effect_exports.mapError(() => qaError(400, "invalid_input")));
+var qaParseJson = (bytes3) => {
+  if (bytes3.byteLength > QA_BODY_LIMIT) throw qaError(400, "invalid_input", { maxBodyBytes: QA_BODY_LIMIT });
+  try {
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes3));
+  } catch {
+    throw qaError(400, "invalid_input", { expected: "UTF-8 JSON" });
+  }
+};
+var write = Effect_exports.fn("mw.qaWrite")(function* (command2) {
+  const store = yield* Store;
+  const itemId = yield* Effect_exports.try({ try: () => {
+    if (command2.operation === "createCase" || command2.operation === "startRun") return command2.input.workItem;
+    if (command2.operation === "reviseCase") return store.qaRead({ kind: "case", caseId: command2.caseId, filters: {} }).case.workItem;
+    return store.qaRead({ kind: "run", runId: command2.runId }).run.workItem;
+  }, catch: qaStorageError }).pipe(Effect_exports.catchIf((error) => error.code === "qa_request" && error.context.reason === "not_found", () => Effect_exports.succeed(null)));
+  const attempt = Effect_exports.gen(function* () {
+    const at = new Date(yield* Clock_exports.currentTimeMillis).toISOString();
+    return yield* Effect_exports.try({ try: () => store.qaWrite(command2, at), catch: qaStorageError });
+  });
+  const exists = yield* Effect_exports.try({ try: () => itemId !== null && !!store.get(itemId), catch: qaStorageError });
+  const outcome = yield* (itemId !== null && exists ? observe(store, itemId, { job: `qa-${command2.operation}`, kind: "function", args: { apiVersion: "1", ...command2 } }, () => attempt).pipe(Effect_exports.map(({ result: result3 }) => result3)) : attempt).pipe(Effect_exports.catchDefect((cause) => Effect_exports.fail(qaStorageError(cause))));
+  if (!outcome.accepted) return yield* qaError(outcome.error.status, outcome.error.reason, outcome.error.facts);
+  return outcome.value;
+});
+var qaCreateCase = Effect_exports.fn("mw.qaCreateCase")(function* (input) {
+  return yield* write({ operation: "createCase", input: yield* decode6(QaCreateCaseInput, input) });
+});
+var qaReviseCase = Effect_exports.fn("mw.qaReviseCase")(function* (caseId, input) {
+  return yield* write({ operation: "reviseCase", caseId: yield* decode6(QaId, caseId), input: yield* decode6(QaReviseCaseInput, input) });
+});
+var qaStartRun = Effect_exports.fn("mw.qaStartRun")(function* (input) {
+  return yield* write({ operation: "startRun", input: yield* decode6(QaStartRunInput, input) });
+});
+var qaLink = Effect_exports.fn("mw.qaLink")(function* (runId, caseId, input) {
+  return yield* write({ operation: "linkObservation", runId: yield* decode6(QaId, runId), caseId: yield* decode6(QaId, caseId), input: yield* decode6(QaLinkInput, input) });
+});
+var qaObserve = Effect_exports.fn("mw.qaObserve")(function* (runId, caseId, input) {
+  return yield* write({ operation: "observeCase", runId: yield* decode6(QaId, runId), caseId: yield* decode6(QaId, caseId), input: yield* decode6(QaObserveInput, input) });
+});
+var qaVerdict = Effect_exports.fn("mw.qaVerdict")(function* (runId, caseId, input) {
+  if (input && typeof input === "object") {
+    const body = input;
+    if (body.enteredBy?.kind !== "operator" || body.attestation !== "operator-manual-verdict") return yield* qaError(403, "manual_authority_required");
+  }
+  return yield* write({ operation: "recordVerdict", runId: yield* decode6(QaId, runId), caseId: yield* decode6(QaId, caseId), input: yield* decode6(QaVerdictInput, input) });
+});
+var read = Effect_exports.fn("mw.qaRead")(function* (query) {
+  const store = yield* Store;
+  return yield* Effect_exports.try({ try: () => store.qaRead(query), catch: qaStorageError });
+});
+var qaCases = Effect_exports.fn("mw.qaCases")(function* (filters = {}) {
+  return yield* read({ kind: "cases", filters: yield* decode6(QaCasesQuery, filters) });
+});
+var qaCase = Effect_exports.fn("mw.qaCase")(function* (caseId, filters = {}) {
+  return yield* read({ kind: "case", caseId: yield* decode6(QaId, caseId), filters: yield* decode6(QaCaseQuery, filters) });
+});
+var qaRuns = Effect_exports.fn("mw.qaRuns")(function* (filters = {}) {
+  return yield* read({ kind: "runs", filters: yield* decode6(QaRunsQuery, filters) });
+});
+var qaRun = Effect_exports.fn("mw.qaRun")(function* (runId) {
+  return yield* read({ kind: "run", runId: yield* decode6(QaId, runId) });
+});
+var qaObservations = Effect_exports.fn("mw.qaObservations")(function* (runId, filters = {}) {
+  return yield* read({ kind: "observations", runId: yield* decode6(QaId, runId), filters: yield* decode6(QaObservationsQuery, filters) });
+});
+var qaSnapshot = Effect_exports.fn("mw.qaSnapshot")(function* (runId) {
+  return yield* read({ kind: "snapshot", runId: yield* decode6(QaId, runId) });
+});
+var qaExport = Effect_exports.fn("mw.qaExport")(function* (runId, query = {}) {
+  const resolved = yield* decode6(QaExportQuery, query);
+  const data = yield* read({ kind: "export", runId: yield* decode6(QaId, runId), selection: resolved.selection ?? "all" });
+  return resolved.format === "markdown" ? { apiVersion: "1", format: "markdown", markdown: formatQaMarkdown(data) } : { apiVersion: "1", format: "json", data };
+});
+
+// src/api.ts
+var ROOT = "/api/v1";
+var BODY_LIMIT = 65536;
+var TEXT_LIMIT = 32768;
+var hash2 = (value3) => createHash4("sha256").update(value3).digest("hex");
+var revisionOf = (item) => hash2(JSON.stringify(item));
+var fail10 = (status, reason, message, facts = {}) => new MadeWellError({
+  code: "api_request",
+  message,
+  context: { status, reason, facts },
+  next: [{ run: "mw status", why: "inspect the saved work; retain your draft and request ID until acceptance is known" }]
+});
+var found = (store, id2) => {
+  const item = store?.get(id2);
+  if (!item) throw new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list existing work" }] });
+  return item;
+};
+var sync4 = (effect2) => {
+  const result3 = Effect_exports.runSync(effect2.pipe(Effect_exports.match({ onFailure: (error) => ({ ok: false, error }), onSuccess: (value3) => ({ ok: true, value: value3 }) })));
+  if (!result3.ok) throw result3.error;
+  return result3.value;
+};
+var answerPolicy = (item) => {
+  const options = nextFor(item).filter((n) => n.run.startsWith(`mw answer ${item.id} `));
+  const causes = options.flatMap((n) => /--cause ([\w-]+)/.exec(n.run)?.[1] ?? []);
+  return {
+    allowed: options.length > 0,
+    causeRequired: causes.length > 0,
+    causes,
+    reason: options.length ? options.map((n) => n.why).join("; ") : item.hold?.message ?? `The item is ${item.status}; it is not waiting for an answer.`
+  };
+};
+var messagesOf = (item, events2, store) => {
+  const messages = [{ id: `source:${item.id}`, at: item.created, role: "operator", kind: "source", text: item.source, event: events2.find((e) => e.kind === "created")?.seq ?? null }];
+  for (const e of events2) {
+    if (e.kind === "nq-question" && Array.isArray(e.data.questions)) messages.push({ id: `event:${e.seq}`, at: e.at, role: String(e.data.receiver ?? "agent"), kind: "question", text: e.data.questions.map(String).join("\n"), event: e.seq });
+    const text4 = e.data.answer ?? (e.kind === "ruling" && typeof e.data.prerequisite === "number" ? store.get(e.data.prerequisite)?.objective : void 0);
+    if (["nq-answer", "nq-corrected", "steered", "ruling"].includes(e.kind) && typeof text4 === "string") messages.push({ id: `event:${e.seq}`, at: e.at, role: String(e.data.originator ?? e.data.by ?? "agent"), kind: "answer", text: text4, event: e.seq });
+  }
+  return messages;
+};
+var contextOf = (store, id2) => {
+  const item = found(store, id2);
+  const events2 = store.events(id2);
+  const revision = revisionOf(item);
+  const policy = answerPolicy(item);
+  const history2 = messagesOf(item, events2, store).filter((m) => m.kind !== "source");
+  let remaining = 12e3;
+  const selected = [];
+  for (const m of history2.slice(-20).reverse()) {
+    if (!remaining) break;
+    const text4 = m.text.slice(0, Math.min(2e3, remaining));
+    remaining -= text4.length;
+    selected.unshift({ ...m, text: text4, truncated: text4.length < m.text.length });
+  }
+  const actions = nextFor(item).map((n) => {
+    const command2 = n.run.split(" ")[1];
+    const cause = /--cause ([\w-]+)/.exec(n.run)?.[1];
+    const read2 = n.run.startsWith("mw ") && ["context", "trace", "show", "status", "holds", "next", "stats", "watch", "export", "replay"].includes(command2);
+    return {
+      owner: read2 ? "observer" : "operator",
+      authority: read2 ? "read-only" : "explicit-operator-action",
+      reason: n.why,
+      command: n.run,
+      transport: command2 === "answer" ? "http" : "cli",
+      ...command2 === "answer" ? { method: "POST", href: `${ROOT}/items/${id2}/answers` } : {},
+      inputs: command2 === "answer" ? { revision, text: null, ...cause ? { cause } : {}, requestId: null } : { id: id2 },
+      preconditions: { revision, status: item.status, holdCode: item.hold?.code ?? null }
+    };
+  });
+  return {
+    apiVersion: "1",
+    item: { id: id2, title: item.title, objective: item.objective, source: item.source.slice(0, 8e3), sourceTruncated: item.source.length > 8e3, workspace: item.workspace },
+    position: { status: item.status, node: item.job, round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? "discovery" : "delivery"), accepted: item.flow?.accepted ?? [] },
+    revision,
+    evidence: { event: events2.at(-1)?.seq ?? 0, record: `/api/item/${id2}`, trace: `/api/trace/${id2}?lens=ax`, conversation: `${ROOT}/items/${id2}/conversation`, otlp: `${ROOT}/items/${id2}/otlp`, qaCases: `${ROOT}/qa/cases?workItem=${id2}`, qaRuns: `${ROOT}/qa/runs?workItem=${id2}`, cli: { record: `mw show ${id2}`, trace: `mw trace ${id2} --lens ax`, context: `mw context ${id2}` } },
+    answer: policy,
+    conversation: selected,
+    conversationTruncated: selected.length < history2.length || selected.some((m) => m.truncated),
+    next: actions,
+    observation: { owner: "observer", authority: "read-only", reason: actions.length ? "Relay the operator decision; do not answer on their behalf." : "Read saved evidence; no automatic retry, repair or steering is authorized.", method: "GET", href: `${ROOT}/items/${id2}`, command: `mw context ${id2}` }
+  };
+};
+var str = { type: "string" };
+var integer2 = { type: "integer", minimum: 0 };
+var bool = { type: "boolean" };
+var nullable = (schema) => ({ anyOf: [schema, { type: "null" }] });
+var array2 = (items) => ({ type: "array", items });
+var object = (properties, required2 = Object.keys(properties)) => ({ type: "object", properties, required: required2, additionalProperties: false });
+var ref = (name) => ({ $ref: `#/components/schemas/${name}` });
+var textInput = (maxLength) => ({ type: "string", minLength: 1, maxLength, pattern: "\\S" });
+var requestIdSchema = { type: "string", pattern: "^[A-Za-z0-9_-]{16,128}$" };
+var revisionSchema = { type: "string", pattern: "^[a-f0-9]{64}$" };
+var messageSchema = object({ id: str, at: str, role: str, kind: str, text: str, event: nullable(integer2), truncated: bool }, ["id", "at", "role", "kind", "text", "event"]);
+var actionSchema = object({ owner: str, authority: str, reason: str, command: str, transport: str, method: str, href: str, inputs: { type: "object", additionalProperties: true }, preconditions: object({ revision: revisionSchema, status: str, holdCode: nullable(str) }) }, ["owner", "authority", "reason", "command", "transport", "inputs", "preconditions"]);
+var attributesSchema = array2(object({ key: str, value: { oneOf: [object({ stringValue: str }), object({ intValue: { type: "string", pattern: "^-?[0-9]+$" } }), object({ doubleValue: { type: "number" } })] } }));
+var API_SCHEMAS = {
+  ...QA_JSON_SCHEMAS,
+  Submit: object({ requestId: requestIdSchema, workspace: textInput(4096), title: textInput(300), objective: textInput(2e3), source: textInput(TEXT_LIMIT) }, ["requestId", "workspace", "objective", "source"]),
+  Answer: object({ requestId: requestIdSchema, revision: revisionSchema, text: textInput(TEXT_LIMIT), cause: { enum: ["implementation", "test", "pre-existing"] } }, ["requestId", "revision", "text"]),
+  Context: object({
+    apiVersion: { const: "1" },
+    item: object({ id: integer2, title: str, objective: str, source: str, sourceTruncated: bool, workspace: str }),
+    position: object({ status: str, node: str, round: integer2, loop: str, accepted: array2(str) }),
+    revision: revisionSchema,
+    evidence: object({ event: integer2, record: str, trace: str, conversation: str, otlp: str, qaCases: str, qaRuns: str, cli: object({ record: str, trace: str, context: str }) }),
+    answer: object({ allowed: bool, causeRequired: bool, causes: array2(str), reason: str }),
+    conversation: array2(messageSchema),
+    conversationTruncated: bool,
+    next: array2(actionSchema),
+    observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str })
+  }),
+  Conversation: object({ apiVersion: { const: "1" }, item: integer2, revision: revisionSchema, messages: array2(messageSchema), nextAfter: nullable(integer2), hasMore: bool }),
+  Accepted: object({ apiVersion: { const: "1" }, accepted: { const: true }, requestId: requestIdSchema, receipt: object({ item: integer2, revision: revisionSchema, event: integer2, replayed: bool }), context: nullable(ref("Context")), warnings: array2(str) }),
+  Problem: object({ type: str, title: str, status: integer2, detail: str, instance: str, code: str, reason: str, context: { type: "object", additionalProperties: true }, task: nullable(ref("Context")), next: array2(object({ run: str, why: str })), recovery: object({ preserveDraft: { const: true }, retry: str }) }),
+  Projects: object({ apiVersion: { const: "1" }, projects: array2(object({ workspace: str, autonomy: str, pack: str })) }),
+  Session: object({ apiVersion: { const: "1" }, csrfToken: str, header: { const: "X-MW-CSRF" }, maxBodyBytes: integer2 }),
+  Discovery: object({ apiVersion: { const: "1" }, openapi: str, session: str, projects: str, submit: str, qaCases: str, qaRuns: str, authority: str, telemetry: object({ format: str, exported: str, unavailable: array2(str) }) }),
+  Otlp: object({ resourceSpans: array2(object({ resource: object({ attributes: attributesSchema }), scopeSpans: array2(object({ scope: object({ name: str }), spans: array2(object({ traceId: { type: "string", pattern: "^[a-f0-9]{32}$" }, spanId: { type: "string", pattern: "^[a-f0-9]{16}$" }, name: str, kind: { const: 1 }, startTimeUnixNano: { type: "string", pattern: "^[0-9]+$" }, endTimeUnixNano: { type: "string", pattern: "^[0-9]+$" }, attributes: attributesSchema, status: object({ code: { enum: [1, 2] } }) })) })) })) })
+};
+var discovery = {
+  apiVersion: "1",
+  openapi: `${ROOT}/openapi.json`,
+  session: `${ROOT}/session`,
+  projects: `${ROOT}/projects`,
+  submit: `${ROOT}/items`,
+  qaCases: `${ROOT}/qa/cases`,
+  qaRuns: `${ROOT}/qa/runs`,
+  authority: "Local single operator. Observing agents remain read-only; writes require explicit operator input.",
+  telemetry: { format: "OTLP/HTTP JSON ExportTraceServiceRequest", exported: "Saved, finished invocation spans with bounded metadata; GET /api/v1/items/{id}/otlp. Millisecond source precision, deterministic IDs within the same store path, no invented parent spans.", unavailable: ["Running/lost/interrupted invocations stay on the legacy trace, not fabricated as finished spans.", "No OTel SDK, collector delivery, logs/metrics export, raw bodies, tool events or model internals.", "External transports may capture only dispatch/result and heartbeat without tool-by-tool streams."] }
+};
+var response = (schema, description = "Success") => ({ description, content: { "application/json": { schema } } });
+var operation = (operationId, schema, input) => ({
+  operationId,
+  responses: { "200": response(schema), ...input === "Submit" ? { "201": response(schema, "Created and durably accepted") } : {}, default: { description: "RFC9457 problem; retain the draft. See reason, task and recovery.", content: { "application/problem+json": { schema: ref("Problem") } } } },
+  ...input ? { security: [{ csrf: [] }], parameters: [{ name: "Origin", in: "header", required: true, schema: str, description: "An exact allowed UI origin. MW_UI_ORIGINS adds trusted proxy origins; forwarded headers are not trusted." }], requestBody: { required: true, content: { "application/json": { schema: ref(input) } } } } : {}
+});
+var qaOperation = (id2, output, input, query, path = []) => {
+  const base = operation(id2, ref(output), input);
+  const properties = query ? QA_JSON_SCHEMAS[query].properties : {};
+  const problem = { description: "RFC9457 QA problem; keep the exact draft. A saved stale_revision includes conflictEvent and a refresh command; link_exists includes existingEvent. Invalid retests return invalid_retest; missing work targets retain item_not_found. Storage failures are storage_failed or store_busy.", content: { "application/problem+json": { schema: ref("Problem") } } };
+  return {
+    ...base,
+    parameters: [...base.parameters ?? [], ...path.map((name) => ({ name, in: "path", required: true, schema: { type: "integer", minimum: 1, maximum: Number.MAX_SAFE_INTEGER } })), ...Object.entries(properties).map(([name, schema]) => ({ name, in: "query", required: false, schema, description: query === "QaExportQuery" ? "Unknown/repeated parameters are refused. selection defaults to all; follow-ups selects current manual failed/needs-refinement only. format defaults to json; markdown is a string inside the JSON response, never text/plain or a file." : "Unknown/repeated parameters are refused. Lists are ascending by ID; after defaults to 0, limit to 50 (maximum 100)." }))],
+    responses: { ...base.responses, ...["qaCreateCase", "qaStartRun"].includes(id2) ? { "201": response(ref(output), "Created; replays return 200") } : {}, "400": problem, "403": problem, "404": problem, "405": problem, "408": problem, "409": problem, "413": problem, "415": problem, "500": problem, "503": problem }
+  };
+};
+var OPENAPI = {
+  openapi: "3.1.1",
+  info: { title: "Made Well operator and agent context API", version: "1", description: "Additive contract only; legacy /api routes are not described by this document. CSRF is not multi-tenant authentication. Never expose the local UI to untrusted users." },
+  paths: {
+    [ROOT]: { get: operation("discoverApi", ref("Discovery")) },
+    [`${ROOT}/openapi.json`]: { get: operation("readOpenApi", { type: "object", description: "OpenAPI 3.1.1 document", required: ["openapi", "info", "paths", "components"] }) },
+    [`${ROOT}/session`]: { get: operation("readSession", ref("Session")) },
+    [`${ROOT}/projects`]: { get: operation("listProjects", ref("Projects")) },
+    [`${ROOT}/items`]: { post: operation("submitWork", ref("Accepted"), "Submit") },
+    [`${ROOT}/items/{id}`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], get: operation("readContext", ref("Context")) },
+    [`${ROOT}/items/{id}/answers`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], post: operation("answerWork", ref("Accepted"), "Answer") },
+    [`${ROOT}/items/{id}/conversation`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], get: { ...operation("readConversation", ref("Conversation")), parameters: [{ name: "after", in: "query", schema: integer2, description: "Last seen event seq; absent starts with source. Pages contain up to 50 messages." }] } },
+    [`${ROOT}/items/{id}/otlp`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], get: operation("exportOtlp", ref("Otlp")) },
+    [`${ROOT}/qa/cases`]: { get: qaOperation("qaCases", "QaCaseList", void 0, "QaCasesQuery"), post: qaOperation("qaCreateCase", "QaAccepted", "QaCreateCaseInput") },
+    [`${ROOT}/qa/cases/{caseId}`]: { get: qaOperation("qaCase", "QaCaseDetail", void 0, "QaCaseQuery", ["caseId"]) },
+    [`${ROOT}/qa/cases/{caseId}/revisions`]: { post: qaOperation("qaReviseCase", "QaAccepted", "QaReviseCaseInput", void 0, ["caseId"]) },
+    [`${ROOT}/qa/runs`]: { get: qaOperation("qaRuns", "QaRunList", void 0, "QaRunsQuery"), post: qaOperation("qaStartRun", "QaAccepted", "QaStartRunInput") },
+    [`${ROOT}/qa/runs/{runId}`]: { get: qaOperation("qaRun", "QaRunDetail", void 0, void 0, ["runId"]) },
+    [`${ROOT}/qa/runs/{runId}/export`]: { get: qaOperation("qaExport", "QaExportResult", void 0, "QaExportQuery", ["runId"]) },
+    [`${ROOT}/qa/runs/{runId}/observations`]: { get: qaOperation("qaObservations", "QaObservationList", void 0, "QaObservationsQuery", ["runId"]) },
+    [`${ROOT}/qa/runs/{runId}/cases/{caseId}/observations`]: { post: qaOperation("qaObserve", "QaAccepted", "QaObserveInput", void 0, ["runId", "caseId"]) },
+    [`${ROOT}/qa/runs/{runId}/cases/{caseId}/verdicts`]: { post: qaOperation("qaVerdict", "QaAccepted", "QaVerdictInput", void 0, ["runId", "caseId"]) },
+    [`${ROOT}/qa/runs/{runId}/cases/{caseId}/links`]: { post: qaOperation("qaLink", "QaAccepted", "QaLinkInput", void 0, ["runId", "caseId"]) }
+  },
+  components: { schemas: API_SCHEMAS, securitySchemes: { csrf: { type: "apiKey", in: "header", name: "X-MW-CSRF", description: "Read /api/v1/session from the same origin. Token rotates on server restart; it is CSRF protection, not user authentication." } } }
+};
+var validateBody = (value3, kind) => {
+  if (!value3 || typeof value3 !== "object" || Array.isArray(value3)) throw fail10(400, "invalid_body", "The JSON body must be an object.");
+  const body = value3;
+  const schema = API_SCHEMAS[kind];
+  for (const key of Object.keys(body)) if (!Object.hasOwn(schema.properties, key)) throw fail10(400, "invalid_body", `Unknown field: ${key}.`, { field: key });
+  for (const [key, field] of Object.entries(schema.properties)) {
+    const v = body[key];
+    if (v === void 0 && !schema.required.includes(key)) continue;
+    if (typeof v !== "string" || !v.trim() || field.maxLength && [...v].length > field.maxLength || field.pattern && !new RegExp(field.pattern).test(v) || field.enum && !field.enum.includes(v)) throw fail10(400, "invalid_body", `Invalid ${key}; see its schema in ${ROOT}/openapi.json.`, { field: key });
+  }
+  return body;
+};
+var readBody = (req) => new Promise((resolve9, reject) => {
+  let size7 = 0;
+  const chunks = [];
+  const timer = setTimeout(() => finish(fail10(408, "body_timeout", "Request body did not arrive within 10 seconds.")), 1e4);
+  const finish = (error, value3) => {
+    clearTimeout(timer);
+    req.off("data", data);
+    req.off("end", end2);
+    req.off("error", broken);
+    req.off("aborted", broken);
+    if (error) {
+      req.resume();
+      reject(error);
+    } else resolve9(value3);
+  };
+  const broken = () => finish(fail10(400, "body_interrupted", "Request body was interrupted; retry the same request ID and exact input."));
+  const data = (chunk) => {
+    size7 += chunk.length;
+    if (size7 > BODY_LIMIT) return finish(fail10(413, "body_too_large", `JSON body exceeds ${BODY_LIMIT} bytes.`));
+    chunks.push(chunk);
+  };
+  const end2 = () => {
+    try {
+      finish(void 0, JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks))));
+    } catch {
+      finish(fail10(400, "invalid_json", "Expected valid UTF-8 JSON."));
+    }
+  };
+  req.on("data", data);
+  req.once("end", end2);
+  req.once("error", broken);
+  req.once("aborted", broken);
+});
+var createApi = (options) => {
+  const token = randomBytes(32).toString("hex");
+  const configured = options.origins ?? (process.env.MW_UI_ORIGINS ?? "").split(",").filter(Boolean);
+  const send = (res, body, status = 200, problem = false) => {
+    res.writeHead(status, { "content-type": problem ? "application/problem+json" : "application/json", "cache-control": "no-store", "x-content-type-options": "nosniff", "referrer-policy": "no-referrer" });
+    res.end(JSON.stringify(body));
+  };
+  const security = (req, write2) => {
+    const port = req.socket.localPort;
+    const origins = [`http://127.0.0.1:${port}`, `http://localhost:${port}`, `http://[::1]:${port}`, ...configured];
+    const hosts = origins.map((origin2) => {
+      try {
+        return new URL(origin2).host;
+      } catch {
+        return "";
+      }
+    });
+    if (!req.headers.host || !hosts.includes(req.headers.host) || req.headers["sec-fetch-site"] && !["same-origin", "none"].includes(String(req.headers["sec-fetch-site"]))) throw fail10(403, "origin_forbidden", "This is a local single-operator API. Use the UI origin, or configure its exact trusted proxy origin in MW_UI_ORIGINS.");
+    const origin = req.headers.origin;
+    if ((write2 || origin) && (typeof origin !== "string" || !origins.includes(origin))) throw fail10(403, "origin_forbidden", "Origin must exactly match a trusted UI origin.");
+    if (write2) {
+      const supplied = req.headers["x-mw-csrf"];
+      if (typeof supplied !== "string" || !/^[a-f0-9]{64}$/.test(supplied) || !timingSafeEqual(Buffer.from(supplied), Buffer.from(token))) throw fail10(403, "csrf_required", "Refresh /api/v1/session, retain the draft and resend the same request ID with X-MW-CSRF.");
+      if (!/^application\/json(?:\s*;\s*charset=utf-8)?$/i.test(req.headers["content-type"] ?? "") || req.headers["content-encoding"]) throw fail10(415, "content_type", "Use application/json UTF-8 with no Content-Encoding.");
+      if (Number(req.headers["content-length"] ?? 0) > BODY_LIMIT) throw fail10(413, "body_too_large", `JSON body exceeds ${BODY_LIMIT} bytes.`);
+    }
+  };
+  return async (req, res) => {
+    let target;
+    let authorized = false;
+    try {
+      const url = new URL(req.url ?? ROOT, "http://console");
+      if (url.pathname === `${ROOT}/qa` || url.pathname.startsWith(`${ROOT}/qa/`)) {
+        security(req, false);
+        const collection = /^\/api\/v1\/qa\/(cases|runs)$/.exec(url.pathname);
+        const caseRoute = /^\/api\/v1\/qa\/cases\/([^/]+)(?:\/(revisions))?$/.exec(url.pathname);
+        const runRoute = /^\/api\/v1\/qa\/runs\/([^/]+)(?:\/(observations|export)|\/cases\/([^/]+)\/(observations|verdicts|links))?$/.exec(url.pathname);
+        if (!collection && !caseRoute && !runRoute) throw fail10(404, "route_not_found", "No QA operation matches this path.");
+        const allowed = collection ? ["GET", "POST"] : caseRoute?.[2] || runRoute?.[4] ? ["POST"] : ["GET"];
+        if (!allowed.includes(req.method ?? "")) {
+          res.setHeader("Allow", allowed.join(", "));
+          throw fail10(405, "method_not_allowed", `Use ${allowed.join(" or ")} for this resource.`);
+        }
+        const writing = req.method === "POST";
+        if (writing) security(req, true);
+        authorized = true;
+        const numeric = (value3, key, zero3 = false) => {
+          if (!/^(0|[1-9]\d*)$/.test(value3) || !Number.isSafeInteger(Number(value3)) || Number(value3) < (zero3 ? 0 : 1)) throw qaError(400, "invalid_input", { field: key });
+          return Number(value3);
+        };
+        const caseId = caseRoute ? numeric(caseRoute[1], "caseId") : runRoute?.[3] ? numeric(runRoute[3], "caseId") : void 0;
+        const runId = runRoute ? numeric(runRoute[1], "runId") : void 0;
+        const keys3 = writing ? [] : collection?.[1] === "cases" ? ["workspace", "workItem", "q", "area", "after", "limit"] : collection?.[1] === "runs" ? ["workspace", "workItem", "caseId", "after", "limit"] : caseRoute ? ["revision"] : runRoute?.[2] === "export" ? ["selection", "format"] : runRoute?.[2] ? ["caseId", "after", "limit"] : [];
+        const query = {};
+        for (const [key, value3] of url.searchParams) {
+          if (!keys3.includes(key) || Object.hasOwn(query, key)) throw qaError(400, "invalid_input", { field: key, reason: "unknown_or_repeated_parameter" });
+          query[key] = ["workItem", "caseId", "after", "limit", "revision"].includes(key) ? numeric(value3, key, key === "after") : value3;
+        }
+        const body = writing ? await readBody(req) : void 0;
+        let effect2;
+        if (collection?.[1] === "cases") effect2 = writing ? qaCreateCase(body) : qaCases(query);
+        else if (collection?.[1] === "runs") effect2 = writing ? qaStartRun(body) : qaRuns(query);
+        else if (caseRoute) effect2 = writing ? qaReviseCase(caseId, body) : qaCase(caseId, query);
+        else if (runRoute?.[4]) effect2 = runRoute[4] === "links" ? qaLink(runId, caseId, body) : runRoute[4] === "verdicts" ? qaVerdict(runId, caseId, body) : qaObserve(runId, caseId, body);
+        else if (runRoute?.[2] === "export") effect2 = qaExport(runId, query);
+        else effect2 = runRoute?.[2] ? qaObservations(runId, query) : qaRun(runId);
+        const existing = options.open();
+        const store = existing ?? openStore(":memory:");
+        try {
+          const result3 = await Effect_exports.runPromise(effect2.pipe(Effect_exports.provideService(Store, store), Effect_exports.match({ onFailure: (error) => ({ ok: false, error }), onSuccess: (value4) => ({ ok: true, value: value4 }) })));
+          if (!result3.ok) throw result3.error;
+          const value3 = result3.value;
+          return send(res, result3.value, writing && collection && !value3.receipt?.replayed ? 201 : 200);
+        } finally {
+          if (!existing) store.close();
+        }
+      }
+      const match8 = /^\/api\/v1\/items\/([1-9]\d*)(?:\/(answers|conversation|otlp))?$/.exec(url.pathname);
+      target = match8 ? Number(match8[1]) : void 0;
+      if (target !== void 0 && !Number.isSafeInteger(target)) throw fail10(400, "invalid_id", "Item ID must be a positive safe integer.");
+      const write2 = url.pathname === `${ROOT}/items` || match8?.[2] === "answers";
+      security(req, false);
+      if (req.method !== (write2 ? "POST" : "GET")) {
+        res.setHeader("Allow", write2 ? "POST" : "GET");
+        throw fail10(405, "method_not_allowed", `Use ${write2 ? "POST" : "GET"} for this resource.`);
+      }
+      if (write2) security(req, true);
+      authorized = true;
+      if (url.pathname === ROOT) return send(res, discovery);
+      if (url.pathname === `${ROOT}/openapi.json`) return send(res, OPENAPI);
+      if (url.pathname === `${ROOT}/session`) return send(res, { apiVersion: "1", csrfToken: token, header: "X-MW-CSRF", maxBodyBytes: BODY_LIMIT });
+      if (url.pathname === `${ROOT}/projects`) return send(res, { apiVersion: "1", projects: sync4(readProjects(projectsPath(options.path))).map((p) => ({ workspace: p.path, autonomy: p.autonomy ?? DEFAULT_AUTONOMY, pack: p.cartridges ?? "default" })) });
+      if (write2) {
+        const body = validateBody(await readBody(req), target === void 0 ? "Submit" : "Answer");
+        const fingerprint = hash2(JSON.stringify([url.pathname, ...Object.keys(API_SCHEMAS[target === void 0 ? "Submit" : "Answer"].properties).map((key) => [key, body[key] ?? null])]));
+        const registered2 = () => {
+          const projects = sync4(readProjects(projectsPath(options.path)));
+          const project = projects.find((p) => p.path === body.workspace);
+          if (!project) throw new MadeWellError({ code: "project_not_found", message: "Select an exactly registered workspace.", context: { workspace: body.workspace, projects: projects.map((p) => p.path) }, next: [{ run: "mw init", why: "register the project locally before submitting browser work" }] });
+          return project;
+        };
+        if (target === void 0 && !options.open()) registered2();
+        const store = options.open(target === void 0);
+        if (!store) found(void 0, target);
+        const receipt = store.operatorRequest(body.requestId, fingerprint, () => {
+          let item;
+          if (target === void 0) {
+            const project = registered2();
+            const pack = project.cartridges ? sync4(loadPack(project.cartridges)) : void 0;
+            item = store.create({ title: body.title ?? body.objective, objective: body.objective, source: body.source, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...pack ? { pack } : {} });
+          } else {
+            item = found(store, target);
+            if (revisionOf(item) !== body.revision) throw fail10(409, "stale_revision", "The saved task changed. Refresh its context and review the question before sending a new request; your draft is not discarded.", { id: target, expected: body.revision, actual: revisionOf(item) });
+            const policy = answerPolicy(item);
+            if (body.cause && !policy.causes.includes(body.cause)) throw fail10(400, "invalid_cause", "This hold does not accept that cause.", { allowed: policy.causes });
+            sync4(answer(target, body.text, body.cause).pipe(Effect_exports.provideService(Store, store)));
+            item = found(store, target);
+            if (revisionOf(item) === body.revision) throw fail10(409, "answer_not_applied", "The engine treated this text as an earlier answer, not a new transition. Inspect the current hold; no new message was accepted.", { id: target });
+          }
+          store.note(item.id, "operator-message", { requestId: body.requestId, kind: target === void 0 ? "submission" : "answer", inputEvent: store.events(item.id).at(-1).seq, ...body.revision ? { expectedRevision: body.revision } : {} });
+          return { item: item.id, revision: revisionOf(item), event: store.events(item.id).at(-1).seq };
+        });
+        const warnings = [];
+        try {
+          if (options.wake && store.get(receipt.item)) await options.wake(store, receipt.item);
+        } catch {
+          warnings.push("Input is durably accepted, but runner wake failed. Retry this same request ID/input or inspect mw status; do not submit a duplicate.");
+        }
+        return send(res, { apiVersion: "1", accepted: true, requestId: body.requestId, receipt, context: store.get(receipt.item) ? contextOf(store, receipt.item) : null, warnings }, target === void 0 && !receipt.replayed ? 201 : 200);
+      }
+      if (match8) {
+        const store = options.open();
+        const item = found(store, target);
+        if (match8[2] === "otlp") return send(res, otlpOf(store, item.id));
+        if (match8[2] === "conversation") {
+          const after = url.searchParams.has("after") ? Number(url.searchParams.get("after")) : -1;
+          if (!Number.isSafeInteger(after) || after < -1) throw fail10(400, "invalid_cursor", "after must be an event sequence number.");
+          const messages = messagesOf(item, store.events(item.id), store).filter((m) => after < 0 || (m.event ?? 0) > after);
+          const page2 = messages.slice(0, 50);
+          return send(res, { apiVersion: "1", item: item.id, revision: revisionOf(item), messages: page2, nextAfter: page2.at(-1)?.event ?? null, hasMore: messages.length > page2.length });
+        }
+        return send(res, contextOf(store, item.id));
+      }
+      throw fail10(404, "route_not_found", "No versioned API operation matches this path.");
+    } catch (cause) {
+      const error = cause instanceof MadeWellError ? cause : fail10(500, "internal_error", "The request could not be completed. Retain the draft and retry the same request ID; inspect the saved state before making a new request.");
+      const details = error.context;
+      const status = error.code === "api_request" || error.code === "qa_request" ? details.status : error.code === "item_not_found" ? 404 : ["not_held", "not_answerable", "cause_required"].includes(error.code) ? 409 : 400;
+      let task = null;
+      try {
+        const store = authorized ? options.open() : void 0;
+        if (target && store?.get(target)) task = contextOf(store, target);
+      } catch {
+      }
+      send(res, { type: `urn:madewell:problem:${details.reason ?? error.code}`, title: error.code === "api_request" ? details.reason : ERRORS[error.code].means, status, detail: error.message, instance: `urn:uuid:${randomUUID3()}`, code: error.code, reason: details.reason ?? error.code, context: error.context, task, next: error.next, recovery: { preserveDraft: true, retry: "For an uncertain outcome resend the same request ID and exact input. For stale state, refresh and review before creating a new request." } }, status, true);
+    }
+  };
+};
+
 // src/eval.ts
 import { readFileSync as readFileSync7 } from "node:fs";
-import { resolve as resolve5 } from "node:path";
+import { resolve as resolve6 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = AGENT_JOBS;
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
@@ -25423,7 +26823,7 @@ var verdict = (recorded, replay) => {
   return d > 0 ? "better" : d < 0 ? "worse" : "same";
 };
 var sameCard = (a, b) => a.harness === b.harness && a.provider === b.provider && a.account === b.account && a.model === b.model && a.effort === b.effort;
-var label = (c) => `${c.harness} \xB7 ${c.model} \xB7 ${c.effort}`;
+var label2 = (c) => `${c.harness} \xB7 ${c.model} \xB7 ${c.effort}`;
 var usage = (message) => new MadeWellError({ code: "usage", message, context: { command: "eval" }, next: [{ run: "mw", why: "read the manual: every command and its input schema" }] });
 var candidates = (arg, p) => Effect_exports.gen(function* () {
   const tiers = Object.keys(p.tiers);
@@ -25456,7 +26856,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   if (items.some((i) => !ITEM_IDS.test(i) || Number(i) < 1)) return yield* usage(`--item takes work item numbers separated by commas, such as --item 3,5; got "${o.item}".`);
   const ids = items.map(Number);
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
-  const briefPath = o.brief === void 0 ? void 0 : resolve5(o.brief);
+  const briefPath = o.brief === void 0 ? void 0 : resolve6(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
     try: () => readFileSync7(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
@@ -25571,14 +26971,14 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
     card: best.card,
     tier: tierOf(best.card),
     prescribed,
-    why: `${label(best.card)} matched the record on ${best.replay.calls} call(s): ${best.replay.valid} valid vs ${best.recorded.valid} recorded, ${best.replay.flags} rule break(s) vs ${best.recorded.flags}, ${tokens(best.replay)} and ${best.replay.seconds}s vs ${tokens(best.recorded)} and ${best.recorded.seconds}s recorded. It is the cheapest of ${results2.filter((r) => r.matches).length} matching card(s), by tokens and then seconds.`
+    why: `${label2(best.card)} matched the record on ${best.replay.calls} call(s): ${best.replay.valid} valid vs ${best.recorded.valid} recorded, ${best.replay.flags} rule break(s) vs ${best.recorded.flags}, ${tokens(best.replay)} and ${best.replay.seconds}s vs ${tokens(best.recorded)} and ${best.recorded.seconds}s recorded. It is the cheapest of ${results2.filter((r) => r.matches).length} matching card(s), by tokens and then seconds.`
   } : null;
   const command2 = ["mw eval", o.job, ...o.card !== void 0 ? ["--card", quote2(o.card)] : [], ...briefPath ? ["--brief", quote2(briefPath)] : [], ...ids.length ? ["--item", ids.join(",")] : [], ...o.limit ? ["--limit", String(o.limit)] : []].join(" ");
   const lead = cardsFor(p, o.job)[0];
   const next = [
-    ...best && !sameCard(best.card, lead) ? [{ run: `$EDITOR ${quote2(o.prescriptionsPath)}`, why: `to prescribe ${label(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` }] : [],
+    ...best && !sameCard(best.card, lead) ? [{ run: `$EDITOR ${quote2(o.prescriptionsPath)}`, why: `to prescribe ${label2(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` }] : [],
     ...!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: "no evaluated card matched the record: keep the prescription, or try other cards" }] : [],
-    ...results2.filter((r) => r.limited).map((r) => ({ run: command2, why: `${label(r.card)} stopped at a usage limit; run again after ${r.limited.resetsAt} to complete it` })),
+    ...results2.filter((r) => r.limited).map((r) => ({ run: command2, why: `${label2(r.card)} stopped at a usage limit; run again after ${r.limited.resetsAt} to complete it` })),
     { run: `sqlite3 ${quote2(store.path)} "SELECT call, card, outcome, score, output FROM eval_calls WHERE eval = ${run2}"`, why: "read each replayed answer; raw streams, facts and flags are on the same rows" }
   ];
   const recordedCards = calls.reduce((cs, c) => cs.some((x) => sameCard(x, c.card)) ? cs : [...cs, c.card], []);
@@ -25588,36 +26988,12 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   return report;
 }, Effect_exports.scoped);
 
-// src/export.ts
-import { mkdirSync as mkdirSync6, writeFileSync as writeFileSync6 } from "node:fs";
-import { join as join10 } from "node:path";
-var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
-  const item = store.get(id2);
-  if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
-  const calls = store.calls(id2);
-  yield* Effect_exports.try({
-    try: () => {
-      mkdirSync6(dir, { recursive: true });
-      writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
-      calls.forEach((c, i) => {
-        const folder = join10(dir, `${String(i + 1).padStart(3, "0")}-${c.kind}-${c.job}`);
-        mkdirSync6(folder, { recursive: true });
-        const { system, prompt, output, raw, tools, flags, ...meta } = c;
-        const files = [["call.json", JSON.stringify(meta, null, 2)], ["brief.txt", system], ["packet.txt", prompt], ["answer.txt", output ?? ""], ["raw.jsonl", raw ?? ""], ["tools.json", JSON.stringify(tools, null, 2)], ["flags.json", JSON.stringify(flags, null, 2)]];
-        for (const [name, text2] of files) writeFileSync6(join10(folder, name), text2);
-      });
-    },
-    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
-  });
-  return { dir, calls: calls.length };
-});
-
 // src/ui.ts
 import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
 import { closeSync as closeSync2, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync2, readdirSync as readdirSync4, readFileSync as readFileSync8, readSync as readSync2, rmSync as rmSync6, statSync as statSync2, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
 import { homedir as homedir3, hostname as hostname2 } from "node:os";
-import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve6 } from "node:path";
+import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve7 } from "node:path";
 
 // src/console.ts
 var CONSOLE = String.raw`<!doctype html>
@@ -26199,6 +27575,513 @@ if (LIVE) { poll(); setInterval(poll, 1000); }
 else { M = STATIC.model; $('conn').hidden = true; render(); }
 </script></body></html>`;
 
+// src/monitor.ts
+var NOTEBOOK_STYLE = String.raw`
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:100 700;font-display:swap;src:url('/fonts/ibm-plex-sans-latin.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/ibm-plex-mono-latin.woff2') format('woff2')}
+:root{
+ color-scheme:light;
+ --font-text:'IBM Plex Sans',system-ui,sans-serif;
+ --font-system:'IBM Plex Mono',ui-monospace,monospace;
+ --text-body:1rem;--text-small:.875rem;--text-code:.8125rem;--text-section:1.25rem;--text-title:2rem;
+ --line:1.5rem;--unit:calc(var(--line)/4);
+ --space-1:var(--unit);--space-2:calc(var(--unit)*2);--space-3:calc(var(--unit)*3);
+ --space-4:var(--line);--space-6:calc(var(--line)*1.5);--space-8:calc(var(--line)*2);--space-12:calc(var(--line)*3);
+ --paper:#fff;--side:#f5f7f6;--ink:#26332e;--muted:#59665f;--line-color:#d9e1dc;
+ --accent:#225e48;--selected:#e4eee8;--hover:#edf2ee;--warning:#81500d;--warning-bg:#fbf2e1;
+ --error:#963d30;--error-bg:#fbefed;--radius:var(--space-1);
+ font:var(--text-body)/var(--line) var(--font-text);color:var(--ink);background:var(--paper);
+}
+*{box-sizing:border-box}body{margin:0}button,a,summary{-webkit-tap-highlight-color:transparent}
+::selection{background:#cce1d3;color:var(--ink)}a{color:var(--accent);text-underline-offset:.2em}
+button:focus-visible,summary:focus-visible,a:focus-visible,pre:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.skip{position:fixed;top:var(--space-2);left:var(--space-2);transform:translateY(-200%);z-index:3;background:var(--paper);padding:var(--space-2)}.skip:focus{transform:none}
+.app-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:var(--space-4);flex-wrap:wrap;padding:var(--space-4) var(--space-8);border-bottom:1px solid var(--line-color);background:var(--paper)}
+h1{font-size:var(--text-section);line-height:var(--line);font-weight:600;margin:0}.app-title{color:var(--muted)}
+#connection{margin-left:auto;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted);max-width:56ch}
+#connection.error{color:var(--error)}
+.workspace{display:grid;grid-template-columns:19.5rem minmax(0,1fr);min-height:calc(100vh - var(--space-12))}
+.work-list{padding:var(--space-6) var(--space-4);background:var(--side);border-right:1px solid var(--line-color)}
+.work-list h2{font-size:var(--text-body);line-height:var(--line);margin:0 var(--space-2) var(--space-1);font-weight:600}
+#list-summary{margin:0 var(--space-2) var(--space-4);font-size:var(--text-small);color:var(--muted)}
+nav button{width:100%;display:block;text-align:left;color:inherit;font:inherit;border:1px solid transparent;border-radius:var(--radius);background:transparent;padding:var(--space-2);margin-bottom:var(--space-1);cursor:pointer;transition:background-color 160ms ease-out,border-color 160ms ease-out}
+nav button:hover{background:var(--hover)}nav button:active{background:var(--selected)}nav button[aria-current=true]{background:var(--selected);border-color:#b5cec0}
+.task-name{display:block;font-weight:500;overflow-wrap:anywhere}.task-state{display:block;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted);margin-top:var(--space-1)}
+article{padding:var(--space-8);min-width:0;max-width:66rem;scroll-margin-top:var(--space-12)}
+h2{font-size:var(--text-title);line-height:calc(var(--line)*1.5);font-weight:500;letter-spacing:-.02em;margin:0 0 var(--space-3);text-wrap:balance;overflow-wrap:anywhere}
+h3{font-size:var(--text-section);line-height:var(--line);font-weight:500;margin:var(--space-6) 0 var(--space-3)}
+p{margin:0 0 var(--space-2);max-width:68ch;text-wrap:pretty;overflow-wrap:anywhere}.muted{color:var(--muted)}
+.system{font:var(--text-small)/var(--line) var(--font-system);font-weight:400;color:var(--muted);font-variant-numeric:tabular-nums}
+.status{display:inline-block;margin:0 0 var(--space-4);font:var(--text-small)/var(--line) var(--font-system);color:var(--accent)}
+.status.attention{color:var(--warning)}.status.quiet{color:var(--muted)}
+.notice{margin:var(--space-4) 0;padding:var(--space-3) var(--space-4);background:var(--warning-bg);color:var(--warning);border-radius:var(--radius)}
+.notice p:last-child{margin-bottom:0}.notice .system{color:inherit}.notice h3{font:500 var(--text-body)/var(--line) var(--font-text);margin:0 0 var(--space-1)}
+.steps{list-style:none;margin:0;padding:0}.steps .steps{margin-left:var(--space-4)}
+.step{display:flex;align-items:baseline;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--line-color)}
+.step-name{overflow-wrap:anywhere;min-width:0}.step-state{margin-left:auto;text-align:right;flex-shrink:0;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted)}
+.step-state.done{color:var(--accent)}.step-state.attention{color:var(--warning)}
+.technical{margin-top:var(--space-8);border-top:1px solid var(--line-color)}
+details{border-bottom:1px solid var(--line-color)}summary{padding:var(--space-3) var(--space-1);cursor:pointer;overflow-wrap:anywhere;transition:background-color 160ms ease-out}
+summary:hover{background:var(--side)}summary:active{background:var(--hover)}summary::marker{color:var(--muted)}
+summary .hint{display:block;margin-left:var(--space-3);font:var(--text-small)/var(--line) var(--font-text);color:var(--muted)}
+.technical>summary{font-weight:500}.disclosure-body{padding:0 var(--space-1) var(--space-4);min-width:0}
+.disclosure-body h3{font-size:var(--text-body);margin:var(--space-4) 0 var(--space-2)}
+pre{margin:0 0 var(--space-3);padding:var(--space-3);white-space:pre-wrap;overflow-wrap:anywhere;max-height:24rem;overflow:auto;background:var(--side);font:var(--text-code)/calc(var(--unit)*3) var(--font-system);font-variant-numeric:tabular-nums;tab-size:2}
+pre.error{color:var(--error);background:var(--error-bg)}
+.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3) var(--space-4);margin:var(--space-3) 0 var(--space-4)}
+.metrics dt{color:var(--muted);font-size:var(--text-small)}.metrics dd{margin:0;font:var(--text-body)/var(--line) var(--font-system)}
+.empty{padding-top:var(--space-8)}.empty h2{max-width:24ch}.read-note{margin:var(--space-6) 0 0;font-size:var(--text-small);color:var(--muted)}
+.action{font:inherit;color:var(--accent);background:var(--paper);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--space-1) var(--space-3);cursor:pointer;transition:background-color 160ms ease-out}
+.action:hover{background:var(--hover)}.action:active{background:var(--selected)}.action:disabled{color:var(--muted);border-color:var(--line-color);background:var(--side);cursor:not-allowed}
+.action.primary{color:var(--paper);background:var(--accent)}.action.primary:hover{background:#194b39}.action.primary:disabled{color:var(--muted);background:var(--side)}
+.conversation,.composer{max-width:68ch}.conversation{margin-top:var(--space-8)}.messages{list-style:none;padding:0;margin:0}.message{padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}
+.message p,.returned-text{white-space:pre-wrap;overflow-wrap:anywhere}.message .system{margin-bottom:var(--space-1)}.message details{border:0}.message summary{padding-left:0}
+.field{display:block;margin:var(--space-3) 0}.field label{display:block;font-weight:500;margin-bottom:var(--space-1)}
+input,textarea,select{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--paper);border:1px solid #8a9a91;border-radius:var(--radius);padding:var(--space-2);caret-color:var(--accent)}
+textarea{min-height:9rem;resize:vertical}input:read-only,textarea:read-only,select:disabled{background:var(--side)}
+.actions{display:flex;flex-wrap:wrap;gap:var(--space-2);margin:var(--space-3) 0}.feedback{margin:var(--space-3) 0}.feedback.error{color:var(--error)}.feedback.success{color:var(--accent)}
+.draft-note{font-size:var(--text-small);color:var(--muted)}[hidden]{display:none!important}
+@media(max-width:48rem){
+ .app-header{padding:var(--space-3) var(--space-4);gap:var(--space-2) var(--space-3)}#connection{margin-left:0;width:100%}
+ .workspace{display:block}.work-list{padding:var(--space-4);border-right:0;border-bottom:1px solid var(--line-color)}
+ nav{max-height:12rem;overflow:auto;scroll-padding:var(--space-2)}article{padding:var(--space-6) var(--space-4)}
+ h2{font-size:1.5rem;line-height:calc(var(--line)*1.25)}.step{flex-wrap:wrap;gap:0 var(--space-2)}
+ .step-state{flex-shrink:1}.steps .steps{margin-left:var(--space-2)}.technical{margin-top:var(--space-6)}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+`;
+var MONITOR = String.raw`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Made Well · Your work</title>
+<link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>${NOTEBOOK_STYLE}</style></head><body>
+<a class="skip" href="#detail">Skip to task</a>
+<header class="app-header"><h1>Made Well</h1><a href="/" aria-current="page">Work</a><a href="/qa">Manual QA</a><button class="action" id="new-work" type="button">New work</button><span id="connection" role="status">Connecting to your work…</span></header>
+<div class="workspace"><aside class="work-list"><h2>Your tasks</h2><p id="list-summary">Loading…</p><nav aria-label="Your tasks" id="runs"></nav></aside><main><article id="detail" tabindex="-1"><p class="system">Loading your work…</p></article></main></div>
+<script>
+const list=document.querySelector('#runs'),detail=document.querySelector('#detail'),connection=document.querySelector('#connection'),listSummary=document.querySelector('#list-summary');
+let selected=Number(location.hash.slice(1))||null,composing=location.hash==='#new',fetching=false,listKey='',renderKey='';
+let newWorkView=null;
+const drafts=new Map(),conversations=new Map();
+const expanded=new Set();
+const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
+const json=x=>JSON.stringify(x,null,2);
+const duration=ms=>ms<1000?Math.round(ms)+' ms':ms<60000?(ms/1000).toFixed(1)+' s':(ms/60000).toFixed(1)+' min';
+const time=at=>new Date(at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const labels={candidate:'Ready to review',queued:'Not started',running:'In progress',held:'Needs attention',paused:'Ready to continue',completed:'Completed',shipped:'Delivered',discovered:'Tasks ready',dropped:'Stopped','waiting-quota':'Waiting for capacity','waiting-prerequisite':'Waiting for another task'};
+const friendly=job=>({ideate:'Shape the idea',challenge:'Review the idea',plan:'Plan the work',implement:'Do the work','test-plan':'Prepare the checks',verify:'Check the result',verification:'Check the result',discover:'Find the tasks',arbitrate:'Review the problem',ship:'Deliver the work'}[job]??job.replaceAll('-',' ').replace(/^./,c=>c.toUpperCase()));
+async function get(url){const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error('Could not load saved work (HTTP '+r.status+'). Try again.');return r.json()}
+function draftFor(key){
+ if(drafts.has(key))return drafts.get(key);
+ let d={fields:{},phase:'draft'},storageError='';
+ try{const saved=localStorage.getItem('mw:operator-draft:v1:'+key);if(saved)d=JSON.parse(saved)}catch{storageError='Draft storage is unavailable. Keep this page open and copy your text before leaving. Sending is disabled until the draft can be saved.'}
+ if(d.phase==='sending')d.phase='uncertain';d.storageError=storageError;drafts.set(key,d);return d;
+}
+function saveDraft(key,d){
+ try{localStorage.setItem('mw:operator-draft:v1:'+key,JSON.stringify({...d,storageError:''}));d.storageError='';return true}
+ catch{d.storageError='Could not save your draft in this browser. Copy your text before leaving. Free browser storage and try again; nothing new will be sent without a saved request ID.';return false}
+}
+function action(text,run,primary=false){const b=el('button',text,'action'+(primary?' primary':''));b.type='button';b.onclick=run;return b}
+function message(parent,m,key){
+ const li=el('li',undefined,'message');li.append(el('p',(m.kind==='source'?'Original request':m.kind==='question'?'Question':'Answer')+' · '+m.role+(m.at?' · '+time(m.at):''),'system'));
+ const long=m.text.length>600||m.truncated;
+ li.append(el('p',long?m.text.slice(0,600)+'…':m.text));
+ if(long)disclosure(li,'message:'+key+':'+m.id,'Read full message',async b=>{
+  if(!m.truncated){b.append(el('p',m.text));return}
+  const load=async()=>{b.replaceChildren(el('p','Loading the saved message…','system'));try{
+   const page=await get('/api/v1/items/'+key+'/conversation'+(m.kind==='source'?'':'?after='+Math.max(0,m.event-1)));
+   const full=page.messages.find(x=>x.id===m.id);if(!full)throw new Error('The saved message is no longer available.');b.replaceChildren(el('p',full.text));
+  }catch(e){b.replaceChildren(el('p',e.message,'feedback error'),action('Try again',load))}};await load();
+ });parent.append(li);
+}
+// A pending request is immutable until acceptance or a definite rejection is known.
+// Drafts are local only; all accepted messages and work state belong to the API.
+function composer(key,isNew=false){
+ const d=draftFor(key),root=el('section',undefined,'composer'),form=el('form'),policy=el('p',undefined,'muted'),feedback=el('div',undefined,'feedback'),storage=el('p',undefined,'feedback error');
+ let context=null,projects=[],feedbackKey='';const controls={};
+ feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');storage.setAttribute('role','alert');
+ const field=(name,label,tag='textarea')=>{const box=el('div',undefined,'field'),l=el('label',label),input=el(tag);input.id='draft-'+key+'-'+name;l.htmlFor=input.id;input.name=name;input.value=d.fields[name]??'';controls[name]=input;
+  input.addEventListener(tag==='select'?'change':'input',()=>{d.fields[name]=input.value;if(d.phase==='accepted'){d.phase='draft';d.notice=''}if(!isNew&&!d.revision&&context)d.revision=context.revision;saveDraft(key,d);update()});box.append(l,input);form.append(box);return input};
+ if(isNew){field('workspace','Workspace','select').required=true;field('objective','Short objective','input').required=true;field('source','Describe the work').required=true}
+ else{root.append(el('h3','Your reply'));field('text','Answer or direction for this task').required=true;field('cause','What caused the problem?','select')}
+ const note=el('p','Drafts are saved in this browser on this device. Your exact text is sent only when you submit.','draft-note');
+ const buttons=el('div',undefined,'actions'),send=action(isNew?'Submit work':'Send reply',()=>{},true),review=action('Review and edit draft',async()=>{
+  if(!isNew&&!context)return;
+  if(!isNew&&d.reviewRevision!==context.revision){review.disabled=true;try{const latest=await get('/api/v1/items/'+key);d.reviewRevision=latest.revision;conversation(Number(key),latest);d.notice='Read the latest conversation above, then confirm your review. Your draft has not changed.';saveDraft(key,d)}catch(e){d.problem={detail:e.message}}finally{review.disabled=false;update()}return}
+  d.pending=null;d.phase='draft';d.problem=null;d.notice='Draft kept. Review your text, then send when ready.';d.revision=context?.revision;d.reviewRevision=undefined;saveDraft(key,d);update();(controls.text??controls.source).focus();
+ });send.type='submit';
+ buttons.append(send,review);form.append(note,buttons);root.append(policy,feedback,storage,form);
+ function update(next){
+  if(next)context=next;
+  const pending=!!d.pending,busy=d.phase==='sending',stale=!isNew&&!!d.revision&&!!context&&d.revision!==context.revision;
+  const allowed=isNew?projects.some(p=>p.workspace===controls.workspace.value):context?.answer.allowed===true;
+  policy.textContent=isNew?'Choose a registered workspace. Its configured steps will handle the work.':context?.answer.reason??'Loading the task’s answer policy…';
+  form.hidden=!isNew&&!allowed&&!pending;
+  if(!isNew){
+   const cause=controls.cause,causes=context?.answer.causes??[];
+   if(json([...cause.options].map(o=>o.value))!==json(['',...causes])){cause.replaceChildren(new Option('Choose a cause',''),...causes.map(c=>new Option(friendly(c),c)));cause.value=d.fields.cause??''}
+   cause.closest('.field').hidden=!context?.answer.causeRequired&&!d.pending?.body.cause;cause.required=!!context?.answer.causeRequired;
+  }
+  for(const input of Object.values(controls)){if(input.tagName==='SELECT')input.disabled=pending;else input.readOnly=pending}
+  send.disabled=busy||d.phase==='rejected'||(!pending&&(!allowed||stale))||(!pending&&!isNew&&!context);
+  send.textContent=busy?'Sending…':pending?'Retry same request':isNew?'Submit work':'Send reply';
+  review.hidden=busy||!(d.phase==='rejected'||(!pending&&stale));
+  review.textContent=isNew?'Review and edit draft':d.reviewRevision===context?.revision?'I reviewed the latest task · keep my draft':'Review latest task';
+  storage.textContent=d.storageError??'';
+  const state=json([d.phase,d.problem,d.notice,stale,allowed,d.fields.text,form.hidden]);
+  if(state!==feedbackKey){feedbackKey=state;feedback.replaceChildren();feedback.className='feedback'+(d.problem?' error':d.phase==='accepted'?' success':'');
+   if(busy)feedback.append(el('p','Sending your exact text. Please wait…','system'));
+   else if(d.problem){feedback.append(el('p',d.problem.detail??'Your message could not be sent.'));disclosure(feedback,'problem:'+key,'Error details',b=>section(b,'Server response',d.problem,true))}
+   else if(d.notice)feedback.append(el('p',d.notice));
+   if(isNew&&d.phase==='accepted'&&d.receipt){const link=el('a','Open task #'+d.receipt.item);link.href='#'+d.receipt.item;feedback.append(link)}
+   if(d.phase==='uncertain')feedback.append(el('p','Acceptance is not confirmed. Your text and request ID are saved. Retry the same request to check or finish it; do not submit it as new work.'));
+   if(stale&&!pending)feedback.append(el('p','This task changed while your draft was open. Read the latest conversation, then confirm your review before sending.'));
+   if(form.hidden&&d.fields.text)disclosure(feedback,'saved-draft:'+key,'Your saved reply draft',b=>b.append(el('p',d.fields.text,'returned-text')));
+  }
+ }
+ form.addEventListener('submit',async e=>{
+  e.preventDefault();if(d.phase==='sending'||d.phase==='rejected')return;
+  if(!d.pending){
+   if(!isNew&&(!context?.answer.allowed||(d.revision&&d.revision!==context.revision)))return;
+   const fields=d.fields;
+   const limits=isNew?{workspace:4096,objective:2000,source:32768}:{text:32768};
+   for(const [name,max]of Object.entries(limits))if(!fields[name]?.trim()||Array.from(fields[name]).length>max){d.problem={detail:'Enter '+(name==='source'?'a description':name==='text'?'a reply':name)+' of no more than '+max.toLocaleString()+' characters. Your draft is kept.'};update();controls[name].focus();return}
+   if(!isNew&&context.answer.causeRequired&&!context.answer.causes.includes(fields.cause)){d.problem={detail:'Choose the cause of this problem before sending.'};update();controls.cause.focus();return}
+   const body=isNew?{requestId:crypto.randomUUID(),workspace:fields.workspace,objective:fields.objective,source:fields.source}:{requestId:crypto.randomUUID(),revision:d.revision??context.revision,text:fields.text,...(context.answer.causeRequired?{cause:fields.cause}:{})};
+   if(new TextEncoder().encode(JSON.stringify(body)).length>65536){d.problem={detail:'This message is too large to send (64 KiB JSON limit). Shorten it; the draft is still here.'};update();return}
+   d.pending={url:'/api/v1/items'+(isNew?'':'/'+key+'/answers'),body};
+  }
+  d.phase='sending';d.problem=null;d.notice='';if(!saveDraft(key,d)){d.phase='uncertain';update();return}update();
+  try{
+   const post=async()=>{const session=await get('/api/v1/session');const r=await fetch(d.pending.url,{method:'POST',headers:{'Content-Type':'application/json','X-MW-CSRF':session.csrfToken},body:JSON.stringify(d.pending.body),signal:AbortSignal.timeout(15000)});return {r,data:await r.json()}};
+   let response=await post();if(response.r.status===403&&response.data.reason==='csrf_required')response=await post();
+   const {r,data}=response;
+   if(!r.ok){d.problem=data;d.phase=r.status>=500||r.status===408||r.status===403||data.reason==='request_id_conflict'?'uncertain':'rejected';if(data.task)context=data.task;saveDraft(key,d);update();return}
+   if(data.accepted!==true||data.requestId!==d.pending.body.requestId)throw new Error('Acceptance could not be confirmed.');
+   d.phase='accepted';d.notice='Accepted · '+(isNew?'Task #'+data.receipt.item+' was created.':'Your reply was saved.')+(data.warnings?.length?' '+data.warnings.join(' '):'');d.receipt=data.receipt;d.pending=null;d.fields={};d.revision=undefined;d.problem=null;
+   for(const control of Object.values(controls))control.value='';saveDraft(key,d);if(data.context)context=data.context;update();
+   if(isNew){const reply=draftFor(String(data.receipt.item));reply.notice=d.notice;reply.phase='accepted';saveDraft(String(data.receipt.item),reply);if(composing)location.hash=String(data.receipt.item)}
+   renderKey='';refresh();
+  }catch(e){d.phase='uncertain';d.problem={detail:'Connection interrupted. '+e.message};saveDraft(key,d);update()}
+ });
+ const setProjects=values=>{projects=values;const input=controls.workspace;input.replaceChildren(new Option('Choose a workspace',''),...values.map(p=>new Option(p.workspace,p.workspace)));input.value=d.fields.workspace??'';
+  if(!input.value&&values.length===1&&!d.fields.workspace){input.value=values[0].workspace;d.fields.workspace=input.value;saveDraft(key,d)}update()};
+ update();return {root,update,setProjects};
+}
+function conversation(id,context){
+ if(!conversations.has(id)){
+  const root=el('section',undefined,'conversation'),messages=el('ol',undefined,'messages'),history=el('div'),reply=composer(String(id));root.append(el('h3','Conversation'),messages,history,reply.root);
+  disclosure(history,'history:'+id,'Browse the full conversation',b=>{
+   const items=el('ol',undefined,'messages'),status=el('p',undefined,'system');let after=null;
+   const load=async()=>{more.disabled=true;status.textContent='Loading saved messages…';try{const page=await get('/api/v1/items/'+id+'/conversation'+(after===null?'':'?after='+after));for(const m of page.messages)message(items,m,id);after=page.nextAfter;more.hidden=!page.hasMore;status.textContent=page.hasMore?'More messages are available.':'You have reached the latest saved message.'}catch(e){status.textContent=e.message}finally{more.disabled=false}};
+   const more=action('Load more messages',load);b.append(items,status,more);load();
+  },'Original request and every recorded question and answer');
+  conversations.set(id,{id,root,messages,reply,key:''});
+ }
+ const view=conversations.get(id),k=json([context.item.source,context.item.sourceTruncated,context.conversation,context.conversationTruncated]);
+ if(view.key!==k){view.key=k;view.messages.replaceChildren();message(view.messages,{id:'source:'+id,kind:'source',role:'operator',text:context.item.source,truncated:context.item.sourceTruncated},id);for(const m of context.conversation)message(view.messages,m,id);
+  if(context.conversationTruncated)view.messages.append(el('li','Showing recent messages. Open the full conversation for earlier evidence.','draft-note'))}
+ view.reply.update(context);return view.root;
+}
+function showNewWork(){
+ if(newWorkView?.root.isConnected)return;
+ if(newWorkView){detail.className='';detail.replaceChildren(newWorkView.root);renderKey='';return}
+ const root=el('section'),c=composer('new',true),status=el('p',undefined,'system');root.append(el('h2','New work'),el('p','Tell Made Well what you want done. The description becomes the original request, exactly as you write it.'),status,c.root);
+ const load=async()=>{status.textContent='Loading registered workspaces…';retry.hidden=true;try{const data=await get('/api/v1/projects');c.setProjects(data.projects);status.textContent=data.projects.length?'':'No workspaces are registered yet. Ask your agent to register a workspace before submitting work.'}catch(e){status.textContent=e.message;retry.hidden=false}};
+ const retry=action('Reload workspaces',load);root.append(retry);newWorkView={root};detail.className='';detail.replaceChildren(root);renderKey='';load();
+}
+function section(parent,title,value,error=false){const p=el('pre',typeof value==='string'?value:json(value),error?'error':undefined);p.tabIndex=0;p.setAttribute('aria-label',title);parent.append(el('h3',title),p)}
+function disclosure(parent,key,title,fill,hint){
+ const d=el('details'),s=el('summary',title),b=el('div',undefined,'disclosure-body');let filled=false;
+ d.dataset.key=key;d.open=expanded.has(key);if(hint)s.append(el('span',hint,'hint'));d.append(s,b);
+ const populate=()=>{if(!filled){fill(b);filled=true}};if(d.open)populate();
+ d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open){expanded.add(key);populate()}else expanded.delete(key)});parent.append(d);return d;
+}
+function overview(v){
+ const status=v.itemRecord.status;
+ if(status==='completed')return {title:'Completed',text:v.proof.completion?.nodes===0?'No steps were set up, so no work was performed.':'The steps for this task are finished. Only the work listed below is included.',tone:v.proof.completion?.nodes===0?'quiet':''};
+ if(status==='shipped')return {title:'Delivered',text:'The work was delivered. Its recorded checks and delivery details are available below.'};
+ if(status==='discovered')return {title:'Tasks ready',text:'The input has been turned into tasks.',next:'Ask your agent to help you review the task list.'};
+ if(status==='candidate')return {title:'Ready to review',text:'This task has not started.',next:'Tell your agent whether you want to go ahead.'};
+ if(status==='paused')return {title:'Ready to continue',text:'Work has reached a review point. Your progress is saved.',next:'Review the conversation below for what comes next.',tone:'attention'};
+ if(status==='held')return {title:'Needs attention',text:'A step could not continue. Your progress is saved.',next:'Review the conversation below for what needs attention.',tone:'attention'};
+ if(status==='dropped')return {title:'Stopped',text:'This task was stopped. Its previous activity is still available below.',tone:'quiet'};
+ if(v.state==='not-running')return {title:'Not running',text:'Made Well is not running this task right now. It is not complete.',next:'Ask your agent for the command to continue from the saved progress.',tone:'attention'};
+ if(status==='waiting-quota')return {title:'Waiting for capacity',text:'The available accounts are busy or at their limits. Work resumes when capacity becomes available.',tone:'quiet'};
+ if(status==='waiting-prerequisite')return {title:'Waiting for another task',text:'Another task needs to finish before this one can continue.',tone:'quiet'};
+ if(v.state==='working')return {title:'In progress',text:'Made Well is working through the steps for this task.'};
+ return {title:'Not started',text:'This task is waiting for its turn.',tone:'quiet'};
+}
+function render(v,context){
+ const key=json([v,context]);if(key===renderKey)return;renderKey=key;
+ const focused=document.activeElement,focus=focused?.closest('details')?.dataset.key,preFocus=focused?.tagName==='PRE'?focused.getAttribute('aria-label'):null;
+ const scroll=new Map([...detail.querySelectorAll('details')].map(d=>[d.dataset.key,[...d.querySelectorAll('pre')].map(p=>[p.scrollTop,p.scrollLeft])]));
+ const head=el('section'),tail=el('div'),view=overview(v);head.append(el('h2',v.title),el('p',view.title,'status '+(view.tone??'')));
+ if(v.objective&&v.objective!==v.title)head.append(el('p',v.objective));
+ head.append(el('p',view.text,'muted'));if(view.next)head.append(el('p',view.next));
+ const returned=v.proof.completion?.output?.result;
+ if(v.itemRecord.status==='completed'&&v.pack.runtime==='functions'&&typeof returned==='string'){head.append(el('h3','Result'));const result=el('div',undefined,'message');result.append(el('p',returned.length>1200?returned.slice(0,1200)+'…':returned,'returned-text'));if(returned.length>1200)disclosure(result,'result:'+v.item,'Read the full result',b=>b.append(el('p',returned,'returned-text')));head.append(result)}
+ const active=v.invocations.filter(i=>i.status==='running'||i.status==='lost');
+ if(!v.done&&active.length){
+  const quiet=active.some(i=>i.signals.some(s=>['no-output','no-progress','repeated-output','repeated-operation'].includes(s.data.code)));
+  const lost=active.some(i=>i.stale||i.status==='lost');
+  if(quiet||lost){const notice=el('section',undefined,'notice');notice.append(el('h3',lost?'Updates may have stopped':'No recent progress confirmed'),el('p',lost?'The latest activity may be out of date. Ask your agent to check whether work is still running.':'This step is quiet or repeating activity. That alone does not mean it is stuck.'));head.append(notice)}
+  const last=active.map(i=>i.heartbeat?.at??i.started).sort().at(-1);head.append(el('p','Last activity at '+time(last),'system'));
+ }
+ head.append(el('h3','Steps'));
+ const nodes=el('ol',undefined,'steps');
+ function node(n,parent){
+  const li=el('li'),row=el('div',undefined,'step');
+  const done=Object.hasOwn(v.itemRecord.outputs,n.job)||(v.pack.runtime!=='functions'&&n.job==='verify'&&v.proof.verification?.passed===true);
+  const current=n.job===v.job||active.some(i=>i.job===n.job);
+  const state=done?'Done':current?(v.hold?'Needs attention':v.state==='working'?'In progress':'Not started'):'Not started';
+  row.append(el('span',friendly(n.job),'step-name'),el('span',state,'step-state '+(done?'done':current&&v.hold?'attention':'')));li.append(row);
+  if(n.children?.length){const children=el('ol',undefined,'steps');for(const child of n.children)node(child,children);li.append(children)}parent.append(li);
+ }
+ for(const c of v.pack[v.itemRecord.flow?.loop??v.phase]??[])for(const n of c.steps??[])node(n,nodes);
+ if(nodes.children.length)head.append(nodes);else head.append(el('p','No steps have been set up for this task.','muted'));
+ const thread=conversation(v.item,context);
+ const tech=disclosure(tail,'technical:'+v.item,'Activity & technical details',b=>{
+  const m=el('dl',undefined,'metrics');for(const [name,value]of [['Calls recorded',v.metrics.invocations],['Failed calls',v.metrics.failed],['Total call time',duration(v.metrics.ms)],['Reported tokens',v.metrics.tokens===null?'Not reported':v.metrics.tokens.toLocaleString()]]){const pair=el('div');pair.append(el('dt',name),el('dd',String(value)));m.append(pair)}b.append(m);
+  if(v.metrics.tokens!==null&&v.metrics.unreportedUsage)b.append(el('p','Token usage is missing for '+v.metrics.unreportedUsage+' calls; this is a partial total.','system'));
+  b.append(el('p','Task #'+v.item+' · '+v.lane+(v.pack.version?' @ '+v.pack.version:''),'system'),el('p',v.runner?'Runner process '+v.runner.pid:'No runner process owns the work queue.','system'));
+  if(v.hold)section(b,'Recorded reason',v.hold.message,true);
+  if(v.next.length)section(b,'Commands for your agent',v.next);
+  b.append(el('h3','Calls · newest first'));
+  if(!v.invocations.length)b.append(el('p','No calls recorded yet.','muted'));
+  for(const i of [...v.invocations].reverse())disclosure(b,'call:'+i.id,i.job+' / '+i.kind+' · '+i.status+' · '+duration(i.ms),body=>{
+   body.append(el('p','Started '+i.started+(i.heartbeat?' · heartbeat '+i.heartbeat.at:''),'system'));
+   if(i.error)section(body,'Error',i.error,true);
+   if(i.signals.length)section(body,'Observed signals',i.signals.map(s=>({at:s.at,...s.data})));
+   section(body,'Input / effective arguments',i.args);section(body,'Returned output',i.result??'No return recorded');
+   section(body,'Logs / intermediate values',i.entries.filter(e=>['trace-output','trace-tool','trace-value'].includes(e.kind)).map(e=>({at:e.at,kind:e.kind,...e.data})));
+   if(i.call)section(body,'Agent call / prompt / response',i.call);
+  });
+  disclosure(b,'pack:'+v.item,'Setup & changes',body=>{section(body,'Pinned configuration',v.pack);section(body,'Update history',v.updates)});
+  disclosure(b,'events:'+v.item,'Full record & completion evidence',body=>{section(body,'Completion evidence',v.proof);section(body,'Events',v.events)});
+  const link=el('a','Open the full technical console');link.href='/console';b.append(el('p'));b.lastElementChild.append(link);
+ },'Calls, timing, inputs, outputs and logs');tech.className='technical';
+ tail.append(el('p','New work and replies are your instructions to Made Well. Progress and conversation come from the saved work record.','read-note'));
+ detail.className='';
+ // Never detach the live composer during polling: selection, IME and focus stay native.
+ if(thread.parentElement===detail){detail.firstElementChild.replaceWith(head);detail.lastElementChild.replaceWith(tail)}
+ else detail.replaceChildren(head,thread,tail);
+ for(const d of detail.querySelectorAll('details')){const saved=scroll.get(d.dataset.key);if(saved)[...d.querySelectorAll('pre')].forEach((p,i)=>{if(saved[i]){p.scrollTop=saved[i][0];p.scrollLeft=saved[i][1]}})}
+ if(focused!==document.body&&focused?.isConnected)focused.focus({preventScroll:true});
+ else if(focus){const d=[...detail.querySelectorAll('details')].find(d=>d.dataset.key===focus);const target=preFocus?[...d?.querySelectorAll('pre')??[]].find(p=>p.getAttribute('aria-label')===preFocus):d?.querySelector('summary');target?.focus({preventScroll:true})}
+}
+async function refresh(){if(fetching)return;fetching=true;try{
+ const board=await get('/api/runs');
+ if(!composing&&selected===null&&board.items.length)selected=(board.items.find(i=>i.status==='held'||i.status==='paused')??board.items[0]).id;
+ const key=json([selected,composing,board.items]);if(key!==listKey){const focused=document.activeElement?.dataset.item;list.replaceChildren();listKey=key;
+  const attention=board.items.filter(i=>i.status==='held'||i.status==='paused').length;listSummary.textContent=board.items.length+' '+(board.items.length===1?'task':'tasks')+(attention?' · '+attention+' '+(attention===1?'needs':'need')+' attention':'');
+  for(const i of board.items){const b=el('button');b.dataset.item=String(i.id);b.setAttribute('aria-current',String(!composing&&selected===i.id));b.append(el('span',i.title,'task-name'),el('span',labels[i.status]??i.status,'task-state'));b.onclick=()=>{composing=false;selected=i.id;location.hash=String(i.id);refresh()};list.append(b);if(focused===String(i.id))b.focus({preventScroll:true})}
+ }
+ if(composing)showNewWork();
+ else if(!board.items.length){detail.className='empty';detail.replaceChildren(el('h2','A place for your next task.'),el('p','Choose New work to describe what you want done. Follow its progress here, from the first step to the result.','muted'));renderKey=''}
+ else if(!board.items.some(i=>i.id===selected)){detail.replaceChildren(el('h2','That task is not available.'),el('p','Choose another task from your list.'));renderKey=''}
+ else{const id=selected;const [v,context]=await Promise.all([get('/api/trace/'+id+'?lens=ax'),get('/api/v1/items/'+id)]);if(selected===id&&!composing)render(v,context)}
+ connection.textContent='Up to date · '+time(new Date());connection.className='';connection.removeAttribute('title');
+ }catch(e){connection.textContent='Connection lost · Showing the last saved view';connection.className='error';connection.title=e.message}finally{fetching=false}}
+document.querySelector('.skip').addEventListener('click',e=>{e.preventDefault();detail.focus();detail.scrollIntoView({block:'start'})});
+document.querySelector('#new-work').addEventListener('click',()=>{composing=true;location.hash='new';showNewWork();detail.focus();detail.scrollIntoView({block:'start'});refresh()});
+window.addEventListener('hashchange',()=>{composing=location.hash==='#new';selected=Number(location.hash.slice(1))||null;renderKey='';if(composing)showNewWork();refresh()});if(composing)showNewWork();refresh();setInterval(refresh,2000);
+</script></body></html>`;
+
+// src/qa-notebook.ts
+var QA_NOTEBOOK = String.raw`<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Made Well · Manual QA</title>
+<link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>${NOTEBOOK_STYLE}
+.run-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:var(--space-2) var(--space-4);padding:var(--space-2) var(--space-8);border-bottom:1px solid var(--line-color)}
+.run-bar .field,.run-bar .actions{margin:0}.run-bar .field{min-width:0}.run-bar select{padding:var(--space-1) var(--space-2)}
+#run-info{grid-column:1/-1;max-width:none;margin:0}.run-bar .recovery{grid-column:1/-1;margin:0;border:0}.run-bar .recovery>summary{padding:var(--space-1)}
+.filters .field{margin:var(--space-2) 0}.filters label{font-size:var(--text-small)}
+.filters summary{padding:var(--space-2) var(--space-1)}.actual-behavior{min-height:calc(var(--line)*3)}
+#cases{max-height:60vh;overflow:auto;scroll-padding:var(--space-2)}
+.literal{white-space:pre-wrap;overflow-wrap:anywhere}.instructions li{margin-bottom:var(--space-2);white-space:pre-wrap;overflow-wrap:anywhere}
+fieldset{border:0;padding:0;margin:var(--space-4) 0;min-width:0}legend{font-weight:500;margin-bottom:var(--space-2)}
+.choices{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4)}.choice{display:flex;align-items:baseline;gap:var(--space-2)}
+input[type=radio],input[type=checkbox]{width:auto;accent-color:var(--accent)}
+.reference-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:var(--space-2);margin-bottom:var(--space-2)}
+.reference-row .field{margin:0}.reference-row button{justify-self:start;grid-column:1/-1}
+.pin{padding:var(--space-2) 0;border-bottom:1px solid var(--line-color)}.pin select{max-width:24rem;margin:var(--space-2) 0}
+.qa-result{font:var(--text-small)/var(--line) var(--font-system);color:var(--muted)}
+.qa-result[data-state=passed]{color:var(--accent)}.qa-result[data-state=failed]{color:var(--error)}.qa-result[data-state=needs-refinement]{color:var(--warning)}
+.save-feedback{margin:var(--space-3) 0}.save-feedback p{margin-bottom:var(--space-1)}
+.recovery{margin:var(--space-4) 0}.history-entry{padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}
+@media(max-width:48rem){.app-header{position:static}.run-bar{grid-template-columns:minmax(0,1fr);padding:var(--space-2) var(--space-4)}#cases{max-height:15rem}.reference-row{grid-template-columns:minmax(0,1fr)}}
+</style></head><body>
+<a class="skip" href="#detail">Skip to selected case</a>
+<header class="app-header"><h1>Made Well</h1><a href="/">Work</a><a href="/qa" aria-current="page">Manual QA</a><span id="connection" role="status">Loading saved reviews…</span></header>
+<section class="run-bar" aria-label="Review runs">
+<div class="field"><label for="run">Review run</label><select id="run"><option value="">Choose a saved review</option></select></div>
+<div class="actions"><button class="action" id="start" type="button">Start review</button><button class="action" id="refresh" type="button">Refresh record (not drafts)</button></div>
+<p id="run-info" class="system">Resume a saved review or start a new one. New runs are untested.</p>
+<details id="recovery" class="recovery"><summary>Locally saved drafts</summary><p class="draft-note">Recovery on this browser only, not the durable record. Each page keeps its own copy; recovering never deletes another tab’s draft. Review recovered text before saving. Shared-browser users can read these drafts.</p><div id="recoveries"></div></details>
+</section>
+<div class="workspace"><aside class="work-list"><h2>Cases in this run</h2><p id="counts" class="system">No run selected.</p>
+<div class="filters">
+<div class="field"><label for="search">Search cases</label><input id="search" type="search" placeholder="Title, change or instructions"></div>
+<details><summary>Filter cases <span id="active-filters" class="system">· None active</span></summary>
+<div class="field"><label for="project">Project</label><select id="project"><option value="">All projects</option></select></div>
+<div class="field"><label for="area">Area</label><select id="area"><option value="">All areas</option></select></div>
+<div class="field"><label for="source">Source / change group</label><select id="source"><option value="">All source labels</option></select></div>
+<div class="field"><label for="result">Manual result</label><select id="result"><option value="">All results</option><option value="untested">Untested</option><option value="passed">Passed</option><option value="failed">Failed</option><option value="needs-refinement">Needs refinement</option></select></div>
+</details>
+</div><p id="matches" class="system"></p><nav id="cases" aria-label="Cases in this run"></nav></aside>
+<main><article id="detail" tabindex="-1"><h2>Your manual review</h2><p>Read the pinned instructions, try the change, then record what happened. Automated and historical reports are evidence, never your manual verdict.</p><p>Cases are authored through the existing agent CLI/API. This notebook does not launch work.</p></article></main></div>
+<script>
+const $=id=>document.getElementById(id), el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
+const clone=x=>JSON.parse(JSON.stringify(x)), json=x=>JSON.stringify(x,null,2), same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const labels={untested:'Untested',passed:'Passed',failed:'Failed','needs-refinement':'Needs refinement'};
+const actor={kind:'operator',label:'operator'}, prefix='mw:qa-notebook:v1:', pageId=crypto.randomUUID();
+const drafts=new Map(), runtime=new Map(), documents=new Map(), caseButtons=new Map();
+let runs=[],catalog=[],current=null,selected=null,view=null,formView=null,polling=false,loadSequence=0;
+let runId=Number(new URLSearchParams(location.hash.slice(1)).get('run'))||null;
+selected=Number(new URLSearchParams(location.hash.slice(1)).get('case'))||null;
+const stateFor=d=>{if(!runtime.has(d.key))runtime.set(d.key,{busy:false,composing:0,timer:null});return runtime.get(d.key)};
+function button(text,fn,primary=false){const b=el('button',text,'action'+(primary?' primary':''));b.type='button';b.onclick=fn;return b}
+function field(parent,label,tag='input',value=''){const box=el('div',undefined,'field'),l=el('label',label),input=el(tag);input.id='qa-'+crypto.randomUUID();l.htmlFor=input.id;input.value=value;box.append(l,input);parent.append(box);return input}
+function options(select,items,empty){const value=select.value,signature=JSON.stringify([items,empty]);if(select.dataset.options===signature)return;select.dataset.options=signature;select.replaceChildren();if(empty!==undefined)select.append(new Option(empty,''));for(const [v,t] of items)select.append(new Option(t,String(v)));select.value=value;if(select.selectedIndex<0)select.selectedIndex=0}
+function disclosure(parent,title){const d=el('details'),s=el('summary',title),body=el('div',undefined,'disclosure-body');d.append(s,body);parent.append(d);return body}
+function literal(parent,title,text){parent.append(el('h3',title),el('p',text||'Not supplied.','literal'))}
+function safeRef(parent,ref){const p=el('p');let url;try{url=new URL(ref.ref);if(!['https:','http:'].includes(url.protocol))url=null}catch{}if(url){const a=el('a',ref.label);a.href=url.href;a.target='_blank';a.rel='noopener noreferrer';p.append(a,document.createTextNode(' · '+ref.ref))}else p.textContent=ref.label+' · '+ref.ref;parent.append(p)}
+const versionText=v=>v.kind==='known'?v.value+' · source: '+v.source.label+' ('+v.source.ref+')':'Unknown version — not inferred';
+const entryUrl=(run,caseId,operation)=>'/api/v1/qa/runs/'+run+'/cases/'+caseId+'/'+operation;
+async function get(url){const r=await fetch(url,{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(12000)});const body=await r.json();if(!r.ok)throw new Error(body.detail||'Could not load the saved record (HTTP '+r.status+').');return body}
+async function pages(path){let items=[],after=0;for(;;){const p=await get(path+(path.includes('?')?'&':'?')+'limit=100&after='+after);items.push(...p.items);if(!p.hasMore)return items;after=p.nextAfter}}
+async function readRun(id){const result=await get('/api/v1/qa/runs/'+id+'/export?selection=all&format=json'),previous=documents.get(id);if(previous&&previous.entries.some((e,i)=>{const next=result.data.entries[i];return !next||e.entryRevision>next.entryRevision||e.currentCaseRevision>next.currentCaseRevision||e.links.length>next.links.length||e.conflicts.length>next.conflicts.length}))return previous;documents.set(id,result.data);return result.data}
+function savedFields(entry){const last=entry.observations.filter(o=>o.kind==='note'||o.kind==='manual-verdict').at(-1);return last?{actual:last.actual,reproduction:last.reproduction,notes:last.notes,evidence:clone(last.evidence)}:{actual:'',reproduction:'',notes:'',evidence:[]}}
+function draftFor(run,entry){const key='entry:'+run+':'+entry.caseId;if(!drafts.has(key)){const fields=savedFields(entry);drafts.set(key,{key,type:'entry',runId:run,caseId:entry.caseId,title:entry.instructions.instructions.title,fields,base:clone(fields),revision:entry.entryRevision,dirty:false,phase:'saved',pending:null,verdict:entry.status,link:{kind:'reference',observationId:entry.latestVerdictId||entry.observations.at(-1)?.id||'',label:'',ref:'',targetId:''}})}return drafts.get(key)}
+const localChanges=d=>!!(d.dirty||d.verdictDirty||d.linkDirty);
+function persist(d){d.updatedAt=new Date().toISOString();try{const serialized=JSON.stringify(d);localStorage.setItem(prefix+pageId+':'+d.key,serialized);if(localStorage.getItem(prefix+pageId+':'+d.key)!==serialized)throw new Error('Storage did not retain the request.');d.storageError='';return true}catch{d.storageError='Browser storage failed. Copy your draft before leaving. No new request is sent without a saved retry identity.';return false}}
+function changed(d){d.dirty=!same(d.fields,d.base);if(!d.pending&&!d.needsReview)d.phase=d.dirty?'draft':'saved';persist(d);updateMounted(d);schedule(d)}
+function updateMounted(d){if(view?.d===d)view.update();if(formView?.d===d)formView.update()}
+function schedule(d){const r=stateFor(d);clearTimeout(r.timer);if(d.type==='entry'&&d.dirty&&!d.pending&&!d.needsReview&&!d.storageError&&!r.busy&&!r.composing)r.timer=setTimeout(()=>saveNotes(d),800)}
+function cancelTimer(d){clearTimeout(stateFor(d).timer)}
+function reconcile(d,entry){if(d.pending||stateFor(d).busy)return;if(d.revision===entry.entryRevision)return;const editing=view?.d===d&&view.root.contains(document.activeElement)&&document.activeElement.matches('input,textarea,select');if(localChanges(d)||d.needsReview||stateFor(d).composing||editing){d.needsReview=true;d.phase='conflict';d.notice='The saved entry changed. Your local draft has not been rebased.';cancelTimer(d);persist(d)}else{d.fields=savedFields(entry);d.base=clone(d.fields);d.revision=entry.entryRevision;d.verdict=entry.status;persist(d);if(view?.d===d)view.syncFields()}}
+function problemText(p){return p?.detail||p?.message||'The request was refused. Your draft is retained.'}
+function reason(p){return p?.context?.reason||p?.reason||''}
+function contentValid(fields,revision){return !!(fields.actual.trim()||fields.reproduction.trim()||fields.notes.trim()||fields.evidence.length||(revision>0&&fields.notes===''))}
+function evidenceValid(refs){return refs.length<=50&&refs.every(r=>r.label.trim()&&r.ref.trim()&&r.label.length<=300&&r.ref.length<=4096)}
+function queue(d,url,body,kind,fields){if(stateFor(d).busy||d.pending||d.needsReview)return;cancelTimer(d);d.pending={url,body:JSON.stringify(body),kind,fields:fields?clone(fields):null,link:kind==='link'?clone(d.link):null};d.phase='ready';d.problem=null;d.notice='';if(!persist(d)){updateMounted(d);return}send(d)}
+async function send(d){const r=stateFor(d);if(r.busy||!d.pending)return;if(!persist(d)){updateMounted(d);return}r.busy=true;d.phase='sending';persist(d);updateMounted(d);const p=clone(d.pending);
+ try{const session=await get('/api/v1/session');if(new TextEncoder().encode(p.body).length>session.maxBodyBytes){d.phase='rejected';d.problem={detail:'This request is too large. Shorten the draft or reduce evidence references.'};return}
+  const response=await fetch(p.url,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-MW-CSRF':session.csrfToken},body:p.body,signal:AbortSignal.timeout(15000)});
+  let body;try{body=await response.json()}catch{throw new Error('The server response could not be read. Acceptance is uncertain.')}
+  if(!response.ok){d.problem=body;d.phase=response.status>=500?'uncertain':response.status===409&&d.type==='entry'?'conflict':'rejected';if(d.phase==='conflict'){d.needsReview=true;if(reason(body)==='link_exists')d.notice='This observation already has that link. The existing association is retained; do not create another.';try{const doc=await readRun(d.runId);if(runId===d.runId){current=doc;renderRun()}}catch{d.notice=(d.notice||'')+' Refresh failed; use Load saved content for review.'}}return}
+  const expected=JSON.parse(p.body);if(body.accepted!==true||body.requestId!==expected.requestId||!body.receipt||!Number.isSafeInteger(body.receipt.revision))throw new Error('A matching receipt was not returned. Acceptance is uncertain.');
+  d.receipt=body;d.pending=null;d.problem=null;d.review=null;d.needsReview=false;d.phase='saved';d.notice='Saved to the durable record.';
+  if(d.type==='start'){d.createdRun=body.receipt.id;d.dirty=!same(d.fields,p.fields);d.notice='Review run created. Every entry starts untested. Newer form edits, if any, are retained separately.'}
+  else{d.revision=body.receipt.revision;if(p.fields){d.base=p.fields;d.dirty=!same(d.fields,p.fields)}if(p.kind==='verdict')d.verdictDirty=d.verdict!==expected.verdict;if(p.kind==='link')d.linkDirty=!same(d.link,p.link);if(localChanges(d))d.phase='draft'}
+  // Persist the receipt before reading again. A reload never recreates a confirmed run.
+  persist(d);try{const doc=await readRun(d.type==='start'?d.createdRun:d.runId);if(d.type==='entry'){const e=doc.entries.find(e=>e.caseId===d.caseId);reconcile(d,e)}if(runId===doc.run.id){current=doc;renderRun()}}catch(e){d.notice='Saved; refreshing the record failed. '+e.message}
+ }catch(e){d.phase='uncertain';d.problem={detail:e.message||'Connection lost. Acceptance is uncertain.'}}
+ finally{r.busy=false;if(d.type==='entry'&&!d.pending){const e=documents.get(d.runId)?.entries.find(e=>e.caseId===d.caseId);if(e&&e.entryRevision>=d.revision)reconcile(d,e)}persist(d);updateMounted(d);if(!d.pending&&!d.needsReview)schedule(d)}
+}
+function saveNotes(d){if(d.pending||d.needsReview||!d.dirty||stateFor(d).busy||stateFor(d).composing)return;if(!evidenceValid(d.fields.evidence)){d.notice='Complete each evidence label and reference before saving.';updateMounted(d);return}if(!contentValid(d.fields,d.revision)){d.notice='An untouched entry needs a note, actual behavior or evidence. Whitespace alone is not evidence.';updateMounted(d);return}queue(d,entryUrl(d.runId,d.caseId,'observations'),{requestId:crypto.randomUUID(),revision:d.revision,kind:'note',enteredBy:actor,claimedVerifier:null,observedAt:null,...clone(d.fields),reportedResult:null},'note',d.fields)}
+async function review(d){try{const doc=await readRun(d.runId),e=doc.entries.find(x=>x.caseId===d.caseId);d.review={revision:e.entryRevision,fields:savedFields(e),status:e.status};d.notice='Read the saved content and your retained draft below. Confirming uses this reviewed revision; another concurrent write will still conflict.';persist(d);if(runId===d.runId){current=doc;renderRun()}updateMounted(d)}catch(e){d.notice=e.message;updateMounted(d)}}
+function feedback(parent,d){const box=el('div',undefined,'save-feedback'),line=el('p',undefined,'system'),message=el('p'),storage=el('p',undefined,'feedback error'),actions=el('div',undefined,'actions'),comparison=el('section');line.setAttribute('role','status');storage.setAttribute('role','alert');
+ const retry=button('Retry original request',()=>send(d)),load=button('Load saved content for review',()=>review(d)),confirm=button('I reviewed both — keep my draft',()=>{if(!d.review||stateFor(d).busy)return;d.revision=d.review.revision;d.base=clone(d.review.fields);d.dirty=!same(d.fields,d.base);d.pending=null;d.needsReview=false;d.problem=null;d.phase='draft';d.review=null;d.notice='Review confirmed. Save your notes or explicitly submit the verdict/link again.';persist(d);updateMounted(d)}),edit=button('Edit refused request',()=>{if(d.phase!=='rejected'||stateFor(d).busy)return;d.pending=null;d.problem=null;d.phase='draft';d.notice='Draft kept. Correct it before submitting again.';persist(d);updateMounted(d)}),save=button('Save notes now',()=>{if(persist(d))saveNotes(d)}),copy=button('Download local draft',()=>download(json(d),'manual-qa-local-draft.json','application/json'));
+ actions.append(retry,load,confirm,edit,save,copy);box.append(line,message,storage,actions,comparison);parent.append(box);let reviewKey='';
+ return ()=>{const busy=stateFor(d).busy;line.textContent=d.storageError?'Not saved — browser storage unavailable':busy?'Saving…':d.phase==='uncertain'?'Acceptance uncertain':d.phase==='conflict'||d.needsReview?'Save failed — review required':d.phase==='rejected'?'Save failed':d.pending?'Save failed — request retained':localChanges(d)?'Draft saved locally — not yet saved to the record':'Saved';message.textContent=(d.problem?problemText(d.problem)+' ':'')+(d.notice||'');storage.textContent=d.storageError||'';retry.hidden=!d.pending||d.phase==='conflict'||d.needsReview;retry.disabled=busy;load.hidden=d.type!=='entry'||!d.needsReview;load.disabled=busy;confirm.hidden=!d.review;edit.hidden=d.phase!=='rejected';save.hidden=d.type!=='entry'||!d.dirty||!!d.pending||!!d.needsReview;save.disabled=busy;const k=JSON.stringify([d.review,d.pending?.body,d.needsReview]);if(k!==reviewKey){reviewKey=k;comparison.replaceChildren();if(d.review){comparison.append(el('h3','Saved content · '+labels[d.review.status]));for(const [key,label]of [['actual','Actual behavior'],['notes','Notes'],['reproduction','Reproduction']])literal(comparison,label,d.review.fields[key]);d.review.fields.evidence.forEach(r=>safeRef(comparison,r));comparison.append(el('h3','Your retained local draft'),el('p','Your editable fields remain unchanged. Confirm review before saving.'));}if(d.pending&&d.needsReview){const b=disclosure(comparison,'Rejected request and problem details');b.append(el('pre',d.pending.body),el('pre',json(d.problem)))}}};
+}
+function referenceEditor(parent,d){const section=el('section'),rows=el('div');section.append(el('h3','Evidence references'),el('p','Reference only: attachments are not uploaded or verified.','draft-note'),rows);const add=button('Add evidence reference',()=>{d.fields.evidence.push({label:'',ref:''});draw();changed(d)});section.append(add);parent.append(section);
+ function draw(){rows.replaceChildren();d.fields.evidence.forEach((ref,index)=>{const row=el('div',undefined,'reference-row'),label=field(row,'Evidence '+(index+1)+' label','input',ref.label),value=field(row,'Evidence '+(index+1)+' reference','input',ref.ref);label.maxLength=300;value.maxLength=4096;for(const [input,key]of [[label,'label'],[value,'ref']]){input.oninput=()=>{ref[key]=input.value;changed(d)};composition(input,d)}row.append(button('Remove reference '+(index+1),()=>{d.fields.evidence.splice(index,1);draw();changed(d);add.focus()}));rows.append(row)});add.disabled=d.fields.evidence.length>=50}draw();return draw;
+}
+function composition(input,d){input.addEventListener('compositionstart',()=>{stateFor(d).composing++;cancelTimer(d)});input.addEventListener('compositionend',()=>{stateFor(d).composing=Math.max(0,stateFor(d).composing-1);schedule(d)})}
+function instructions(parent,i){literal(parent,'What changed',i.change);literal(parent,'Before you start',i.prerequisites);literal(parent,'Test data',i.testData);parent.append(el('h3','Try it'));const steps=el('ol',undefined,'instructions');i.actions.forEach(a=>steps.append(el('li',a)));parent.append(steps);if(i.sourceRefs.length){const b=disclosure(parent,'Source references');i.sourceRefs.forEach(r=>safeRef(b,r))}literal(parent,'Expected behavior',i.expected)}
+function makeCase(doc,entry){const d=draftFor(doc.run.id,entry),root=el('section'),title=el('h2',entry.instructions.instructions.title),status=el('p',undefined,'qa-result'),pin=el('p',undefined,'system');root.append(title,status,pin);instructions(root,entry.instructions.instructions);
+ const controls={};for(const [key,label]of [['actual','Actual behavior'],['notes','Notes'],['reproduction','Additional reproduction details']]){const input=field(root,label,'textarea',d.fields[key]);input.maxLength=8000;input.oninput=()=>{d.fields[key]=input.value;changed(d)};composition(input,d);controls[key]=input}controls.actual.className='actual-behavior';controls.actual.rows=2;
+ const form=el('form'),fieldset=el('fieldset'),legend=el('legend','Manual verdict'),choices=el('div',undefined,'choices'),radios=[];fieldset.append(legend,choices);for(const [value,label]of Object.entries(labels)){const l=el('label',undefined,'choice'),input=el('input');input.type='radio';input.name='manual-verdict';input.value=value;input.checked=d.verdict===value;input.onchange=()=>{d.verdict=value;d.verdictDirty=true;persist(d);update()};l.append(input,document.createTextNode(label));choices.append(l);radios.push(input)}
+ const attestLabel=el('label',undefined,'choice'),attest=el('input');attest.type='checkbox';attest.required=true;attestLabel.append(attest,document.createTextNode('I am recording my own manual review (including an explicit reset to Untested).'));const verdictMessage=el('p',undefined,'feedback error'),submit=button('Record manual verdict',()=>{},true);submit.type='submit';form.append(fieldset,attestLabel,el('p','Passed, Failed and Needs refinement require actual behavior. This declaration is not proof of human identity.','draft-note'),verdictMessage,submit);root.append(form);
+ root.append(controls.notes.parentElement);const optional=disclosure(root,'Additional reproduction & evidence (optional)');optional.append(controls.reproduction.parentElement);const drawRefs=referenceEditor(optional,d);
+ root.append(el('p','Notes, actual behavior and evidence autosave independently of your manual verdict. Record refresh only reads saved data; it does not save draft text. Typing stays available while saving.','draft-note'));const updateFeedback=feedback(root,d);
+ form.onsubmit=e=>{e.preventDefault();verdictMessage.textContent='';if(!form.reportValidity())return;if(d.verdict!=='untested'&&!d.fields.actual.trim()){verdictMessage.textContent='Describe the actual behavior before recording this verdict.';controls.actual.focus();return}if(!evidenceValid(d.fields.evidence)){verdictMessage.textContent='Complete the evidence labels and references first.';optional.parentElement.open=true;return}queue(d,entryUrl(d.runId,d.caseId,'verdicts'),{requestId:crypto.randomUUID(),revision:d.revision,enteredBy:actor,attestation:'operator-manual-verdict',verdict:d.verdict,...clone(d.fields)},'verdict',d.fields);attest.checked=false};
+ const follow=disclosure(root,'Fix references & retests'),followList=el('div'),linkForm=el('form'),observation=field(linkForm,'Observation to link','select'),kind=field(linkForm,'Link to','select');options(kind,[['reference','Existing fix reference'],['work-item','Existing work item'],['retest','Existing later review run']]);kind.value=d.link.kind;
+ const target=field(linkForm,'Existing work item or later run number','input',d.link.targetId),refLabel=field(linkForm,'Fix reference label','input',d.link.label),ref=field(linkForm,'Fix reference','input',d.link.ref);target.type='number';target.min='1';target.step='1';refLabel.maxLength=300;ref.maxLength=4096;const linkMessage=el('p',undefined,'feedback error'),linkSend=button('Save explicit link',()=>{},true);linkSend.type='submit';linkForm.append(linkMessage,linkSend);follow.append(el('p','Links do not launch agents, authorize repairs or change either verdict. Captured work status is not proof a failure was fixed.'),followList,linkForm);
+ const retest=button('Start a new retest',()=>{if(!observation.value)return;startForm({runId:d.runId,caseId:d.caseId,observationId:Number(observation.value),revision:d.revision,application:doc.run.application,workspace:doc.run.workspace,workItem:doc.run.workItem,caseRevision:entry.caseRevision})});follow.append(retest,el('p','Create a run with reviewed pins and environment, confirm its receipt, then explicitly link this observation. A failed link never recreates the run.','draft-note'));
+ for(const [input,key]of [[kind,'kind'],[observation,'observationId'],[target,'targetId'],[refLabel,'label'],[ref,'ref']])input.addEventListener(input.tagName==='SELECT'?'change':'input',()=>{d.link[key]=input.value;d.linkDirty=true;persist(d);update()});
+ linkForm.onsubmit=e=>{e.preventDefault();linkMessage.textContent='';let t;if(kind.value==='reference'){if(!refLabel.value.trim()||!ref.value.trim()){linkMessage.textContent='Supply a label and reference.';return}t={kind:'reference',reference:{label:refLabel.value,ref:ref.value}}}else{const id=Number(target.value);if(!Number.isSafeInteger(id)||id<1){linkMessage.textContent='Select an existing positive work item or run number.';return}t=kind.value==='retest'?{kind:'retest',runId:id}:{kind:'work-item',workItem:id}}queue(d,entryUrl(d.runId,d.caseId,'links'),{requestId:crypto.randomUUID(),revision:d.revision,enteredBy:actor,observationId:Number(observation.value),target:t},'link')};
+ const history=disclosure(root,'History, provenance & technical details'),historyBody=el('div'),historyRecords=new Set();history.append(el('p','Instruction author: '+entry.instructions.enteredBy.kind+' · '+entry.instructions.enteredBy.label+' · '+new Date(entry.instructions.at).toLocaleString(),'system'),historyBody);
+ const conflicts=disclosure(history,'Rejected drafts — not applied'),conflictText=el('pre');conflicts.append(conflictText);let conflictKey='',linksKey='';
+ const rawCase=disclosure(history,'Exact pinned case and run');rawCase.append(el('pre',json({run:doc.run,case:entry.case,instructions:entry.instructions})));
+ function syncFields(){for(const [k,input]of Object.entries(controls))if(input.value!==d.fields[k])input.value=d.fields[k];drawRefs();radios.forEach(r=>r.checked=r.value===d.verdict)}
+ function update(){const latest=documents.get(d.runId)?.entries.find(e=>e.caseId===d.caseId)||entry;status.textContent='Manual result: '+labels[latest.status];status.dataset.state=latest.status;pin.textContent='Pinned instructions: revision '+latest.caseRevision+(latest.outdated?' · Outdated: current revision is '+latest.currentCaseRevision+'. This run keeps its original instructions.':' · Current revision');updateFeedback();const blocked=!!d.pending||!!d.needsReview||stateFor(d).busy;submit.disabled=blocked;linkSend.disabled=blocked||d.dirty||!latest.observations.length;retest.disabled=blocked||d.dirty||!latest.observations.length;
+  options(observation,latest.observations.map(o=>[o.id,(o.kind==='manual-verdict'?'Manual '+labels[o.verdict]:o.kind+' evidence')+' · '+new Date(o.at).toLocaleString()+' · observation '+o.id]));if(d.link.observationId&&latest.observations.some(o=>String(o.id)===String(d.link.observationId)))observation.value=String(d.link.observationId);target.parentElement.hidden=kind.value==='reference';refLabel.parentElement.hidden=ref.parentElement.hidden=kind.value!=='reference';
+  const duplicate=latest.links.find(v=>{const l=v.link,t=l.target;return l.source.runId===d.runId&&l.source.observationId===Number(observation.value)&&t.kind===kind.value&&(t.kind==='reference'?t.reference.label===refLabel.value&&t.reference.ref===ref.value:t.kind==='work-item'?t.workItem===Number(target.value):t.run.id===Number(target.value))});if(duplicate){linkSend.disabled=true;linkMessage.textContent='Already linked · saved association '+duplicate.link.event+'. Choose a different target to make another link.'}else if(linkMessage.textContent.startsWith('Already linked'))linkMessage.textContent='';
+  const lk=JSON.stringify(latest.links);if(lk!==linksKey){linksKey=lk;renderLinks(followList,latest.links,d.runId)}
+  for(const o of latest.observations){if(historyRecords.has(o.id))continue;historyRecords.add(o.id);const b=disclosure(historyBody,(o.kind==='manual-verdict'?'Manual verdict: '+labels[o.verdict]:o.kind+' evidence — reported result: '+(o.reportedResult?labels[o.reportedResult]:'not supplied'))+' · '+new Date(o.at).toLocaleString());b.append(el('p','Entered by '+o.enteredBy.kind+' · '+o.enteredBy.label+'; claimed verifier: '+(o.claimedVerifier?o.claimedVerifier.kind+' · '+o.claimedVerifier.label:'not supplied')+'. Claims are not authentication.'));literal(b,'Actual behavior',o.actual);literal(b,'Reproduction',o.reproduction);literal(b,'Notes',o.notes);o.evidence.forEach(r=>safeRef(b,r));const raw=disclosure(b,'Exact observation');raw.append(el('pre',json(o)))}
+  const ck=JSON.stringify(latest.conflicts);if(ck!==conflictKey){conflictKey=ck;const scroll=conflictText.scrollTop;conflictText.textContent=json(latest.conflicts);conflictText.scrollTop=scroll;conflicts.parentElement.hidden=!latest.conflicts.length}
+ }
+ return {root,d,update,syncFields};
+}
+function renderLinks(parent,links,sourceRun){if(!links.length){if(!parent.childElementCount)parent.append(el('p','No recorded links.','no-links muted'));return}parent.querySelector('.no-links')?.remove();for(const v of links){const l=v.link,t=l.target,existing=parent.querySelector('[data-event="'+l.event+'"]');if(existing){if(t.kind==='work-item'){existing.querySelector('.availability').textContent='Recorded fix reference · '+v.targetAvailability;const a=existing.querySelector('.work-target');if(a)a.hidden=v.targetAvailability!=='present'}continue}const b=el('section',undefined,'history-entry');b.dataset.event=String(l.event);if(t.kind==='reference'){b.append(el('p','Recorded fix reference · availability not checked','system'));safeRef(b,t.reference)}else if(t.kind==='work-item'){b.append(el('p','Recorded fix reference · '+v.targetAvailability,'availability system'),el('p',t.snapshot.title));const a=el('a','Open linked work','work-target');a.href='/#'+t.workItem;a.hidden=v.targetAvailability!=='present';b.append(a,el('p','Status at association: '+t.snapshot.status+' — not current resolution.','system'));const raw=disclosure(b,'Captured work context');raw.append(el('pre',json(t.snapshot)))}else{const incoming=l.source.runId!==sourceRun,id=incoming?l.source.runId:t.run.id;const a=el('a',incoming?'Open original review':'Open retest');a.href='/qa#run='+id+'&case='+l.source.caseId;b.append(a,el('p','Retest pins revision '+t.caseRevision+' · '+t.run.environment+' · '+versionText(t.run.version),'system'),el('p','Read that run for its own manual result; this link does not resolve the original finding.'));}const raw=disclosure(b,'Immutable association details');raw.append(el('pre',json(l)));parent.append(b)}}
+function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type})),a=el('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function exportControls(parent,id){const body=disclosure(parent,'Export this review'),form=el('form'),selection=field(form,'Export selection','select'),format=field(form,'Export format','select'),message=el('p',undefined,'system'),send=button('Download export',()=>{});options(selection,[['all','Whole run'],['follow-ups','Follow-ups: Failed and Needs refinement only']]);options(format,[['markdown','Markdown'],['json','JSON']]);send.type='submit';form.append(send,message);body.append(el('p','Complete recorded evidence, not repair authorization. External content is reference-only and is not fetched.'),form);form.onsubmit=async e=>{e.preventDefault();send.disabled=true;message.textContent='Loading complete export…';try{const r=await get('/api/v1/qa/runs/'+id+'/export?selection='+selection.value+'&format='+format.value);download(r.format==='markdown'?r.markdown:json(r.data),'manual-qa-'+id+'-'+selection.value+(r.format==='markdown'?'.md':'.json'),r.format==='markdown'?'text/markdown':'application/json');message.textContent='Export downloaded. JSON is the authoritative lossless format.'}catch(e){message.textContent='Export failed. '+e.message}finally{send.disabled=false}}}
+function updateFilters(){if(!current)return;options($('project'),[...new Set(runs.map(r=>r.workspace).concat(current.run.workspace))].map(v=>[v,v]),'All projects');options($('area'),[...new Set(current.entries.map(e=>e.instructions.instructions.area))].map(v=>[v,v]),'All areas');options($('source'),[...new Set(current.entries.flatMap(e=>e.instructions.instructions.sourceRefs.map(r=>r.label)))].map(v=>[v,v]),'All source labels')}
+function renderList(){const active=['project','area','source','result'].filter(id=>$(id).value).length;$('active-filters').textContent=active?'· '+active+' active':'· None active';if(!current)return;const q=$('search').value.toLocaleLowerCase(),shown=current.entries.filter(e=>{const i=e.instructions.instructions;return (!$('project').value||$('project').value===current.run.workspace)&&(!$('area').value||i.area===$('area').value)&&(!$('source').value||i.sourceRefs.some(r=>r.label===$('source').value))&&(!$('result').value||e.status===$('result').value)&&(!q||[i.title,i.area,i.change,i.prerequisites,i.testData,...i.actions,i.expected,...i.sourceRefs.map(r=>r.label)].join('\n').toLocaleLowerCase().includes(q))});const keys=new Set(shown.map(e=>e.caseId));for(const [id,b]of caseButtons)if(!keys.has(id)){b.remove();caseButtons.delete(id)}for(const [index,e]of shown.entries()){let b=caseButtons.get(e.caseId);if(!b){b=button('',()=>selectCase(e.caseId,true));b.append(el('span',e.instructions.instructions.title,'task-name'),el('span',undefined,'task-state'));caseButtons.set(e.caseId,b)}if($('cases').children[index]!==b)$('cases').insertBefore(b,$('cases').children[index]||null);b.setAttribute('aria-current',String(e.caseId===selected));b.lastChild.textContent=labels[e.status]+(e.outdated?' · Outdated instructions':'')}const n=current.entries.length;const counts=Object.keys(labels).map(s=>current.entries.filter(e=>e.status===s).length+' '+labels[s].toLowerCase());$('counts').textContent=n+' cases · '+counts.join(' · ');$('matches').textContent=shown.length?shown.length+' shown'+(selected&&!keys.has(selected)?' · Selected case is outside these filters.':''):'No matching cases. Change or clear the filters.'}
+function renderRun(){if(!current||current.run.id!==runId)return;const r=current.run;$('run-info').textContent=r.application+' · '+r.environment+' · '+versionText(r.version);updateFilters();renderList();if(formView)return;if(view&&view.d.runId===runId&&view.d.caseId===selected){const entry=current.entries.find(e=>e.caseId===selected);reconcile(view.d,entry);view.update();return}if(!current.entries.length){$('detail').replaceChildren(el('h2','No cases in this run'));return}selectCase(current.entries.some(e=>e.caseId===selected)?selected:current.entries[0].caseId)}
+function selectCase(id,focus=false){if(!current)return;const entry=current.entries.find(e=>e.caseId===id);if(!entry)return;selected=id;formView=null;view=makeCase(current,entry);$('detail').replaceChildren(view.root);exportControls($('detail'),runId);reconcile(view.d,entry);view.syncFields();view.update();history.replaceState(null,'','#run='+runId+'&case='+id);renderList();if(focus){$('detail').focus({preventScroll:true});$('detail').scrollIntoView({block:'start'})}schedule(view.d)}
+async function selectRun(id){const seq=++loadSequence;runId=id;view=null;formView=null;current=null;caseButtons.clear();$('cases').replaceChildren();$('counts').textContent='Loading saved counts…';$('matches').textContent='';$('detail').replaceChildren(el('p','Loading the saved review…','system'));$('run-info').textContent='Loading pinned environment and instructions…';try{const doc=await readRun(id);if(seq!==loadSequence)return;current=doc;$('run').value=String(id);renderRun();$('connection').textContent='Saved record loaded'}catch(e){if(seq!==loadSequence)return;$('connection').textContent='Load failed';$('counts').textContent='Counts unavailable.';$('detail').replaceChildren(el('h2','Review could not be loaded'),el('p',e.message),button('Try again',()=>selectRun(id)));$('run-info').textContent='Environment and progress unavailable until the record loads.'}}
+async function refresh(){if(polling)return;polling=true;try{runs=await pages('/api/v1/qa/runs');options($('run'),runs.map(r=>[r.id,'Run '+r.id+' · '+r.application+' · '+new Date(r.startedAt).toLocaleDateString()]),runs.length?'Choose a saved review':'No saved review runs yet');if(runId)$('run').value=String(runId);const requested=runId;if(requested){const doc=await readRun(requested);if(runId===requested){current=doc;renderRun()}}else if(!runs.length)$('run-info').textContent='No saved review runs. Start a review from existing authored cases.';$('connection').textContent='Record read · '+new Date().toLocaleTimeString()+' · Draft saving shown below';$('connection').className=''}catch(e){$('connection').textContent=(current?'Refresh failed — showing last saved record. ':'Load failed — no current record. ')+e.message;$('connection').className='error'}finally{polling=false}}
+function startForm(source=null,recovered=null){view=null;const d=recovered||{key:'start:'+crypto.randomUUID(),type:'start',title:source?'New retest':'New review',fields:{workspace:source?.workspace||'',workItem:source?.workItem||'',application:source?.application||'',environment:'',versionKind:'unknown',version:'',versionLabel:'',versionRef:'',pins:source?[{caseId:source.caseId,caseRevision:source.caseRevision}]:[]},source,phase:'draft',pending:null,dirty:true};drafts.set(d.key,d);const root=el('section'),form=el('form'),controls={};root.append(el('h2',d.source?'Start a retest':'Start review'),el('p','Select existing authored cases and the exact instructions you will test. A new run never copies previous verdicts.'));const updateFeedback=feedback(root,d);
+ const workspace=field(form,'Project / workspace','select');workspace.required=true;controls.workspace=workspace;const workItem=field(form,'Existing work item number','input',d.fields.workItem);workItem.type='number';workItem.min='1';workItem.step='1';workItem.required=true;controls.workItem=workItem;form.append(el('p','Use the durable task that owns this review. Case authors supply it; existing case owners are shown below. No new task is created here.','draft-note'));
+ for(const [key,label]of [['application','Application tested'],['environment','Environment tested']]){controls[key]=field(form,label,'input',d.fields[key]);controls[key].required=true;controls[key].maxLength=2000}const versionKind=field(form,'Tested version','select');options(versionKind,[['unknown','Unknown — explicitly not known'],['known','Known — supply version and source']]);versionKind.value=d.fields.versionKind;controls.versionKind=versionKind;for(const [key,label]of [['version','Version value'],['versionLabel','Version source label'],['versionRef','Version source reference']]){controls[key]=field(form,label,'input',d.fields[key]);controls[key].maxLength=key==='versionRef'?4096:300}
+ if(d.source)controls.application.readOnly=true;
+ const pins=el('section'),pinMessage=el('p',undefined,'system'),sendButton=button('Create untested review run',()=>{},true),message=el('p',undefined,'feedback error'),receipt=el('section');sendButton.type='submit';pins.append(el('h3','Choose cases & pinned revisions'),pinMessage);const pinList=el('div');pins.append(pinList);form.append(pins,message,sendButton);root.append(form,receipt,button('Back to selected review',()=>{formView=null;if(current)selectCase(selected||current.entries[0]?.caseId)}));$('detail').replaceChildren(root);$('detail').focus();let confirmedKey='';
+ function save(){d.dirty=true;persist(d);update()}
+ for(const [key,input]of Object.entries(controls))input.addEventListener(input.tagName==='SELECT'?'change':'input',()=>{d.fields[key]=input.value;if(key==='workspace'){d.fields.pins=[];drawPins()}save()});
+ function drawPins(){pinList.replaceChildren();const cases=catalog.filter(c=>c.workspace===workspace.value&&(!d.source||c.id===d.source.caseId));pinMessage.textContent=cases.length?'Select at least one case (up to 100). Review any newer revision before selecting it.':'No authored cases for this project. Case authoring uses the existing CLI/API.';for(const c of cases){const row=el('div',undefined,'pin'),label=el('label',undefined,'choice'),check=el('input');check.type='checkbox';check.checked=d.fields.pins.some(p=>p.caseId===c.id);label.append(check,document.createTextNode(c.title+' · '+c.area));row.append(label,el('p','Existing owner: work item '+c.workItem,'system'));const revision=field(row,'Instructions for '+c.title,'select'),old=d.source?.caseId===c.id?d.source.caseRevision:d.fields.pins.find(p=>p.caseId===c.id)?.caseRevision,values=[...new Set([old,c.currentRevision].filter(Boolean))];options(revision,values.map(v=>[v,'Revision '+v+(v===c.currentRevision?' · current':' · previously pinned')]));revision.value=String(d.fields.pins.find(p=>p.caseId===c.id)?.caseRevision||c.currentRevision);const preview=disclosure(row,'Read selected instructions');let previewSeq=0;const loadPreview=async()=>{const seq=++previewSeq;preview.replaceChildren(el('p','Loading instructions…','system'));try{const detail=await get('/api/v1/qa/cases/'+c.id+'?revision='+revision.value);if(seq===previewSeq){preview.replaceChildren();instructions(preview,detail.revision.instructions)}}catch(e){if(seq===previewSeq)preview.replaceChildren(el('p',e.message),button('Try again',loadPreview))}};preview.parentElement.addEventListener('toggle',()=>{if(preview.parentElement.open)loadPreview()});check.onchange=()=>{d.fields.pins=d.fields.pins.filter(p=>p.caseId!==c.id);if(check.checked)d.fields.pins.push({caseId:c.id,caseRevision:Number(revision.value)});if(!workItem.value){workItem.value=String(c.workItem);d.fields.workItem=workItem.value}save()};revision.onchange=()=>{const pin=d.fields.pins.find(p=>p.caseId===c.id);if(pin)pin.caseRevision=Number(revision.value);if(preview.parentElement.open)loadPreview();save()};pinList.append(row)}}
+ function update(){updateFeedback();const known=versionKind.value==='known';for(const key of ['version','versionLabel','versionRef']){controls[key].parentElement.hidden=!known;controls[key].required=known}sendButton.disabled=!!d.pending||!!d.createdRun||stateFor(d).busy;const k=JSON.stringify([d.createdRun,d.source,d.linked]);if(k!==confirmedKey){confirmedKey=k;receipt.replaceChildren();if(d.createdRun){receipt.append(el('h3','Run creation confirmed'),el('p','Run '+d.createdRun+' exists. It was created with untested entries; read it for its current state.'));const a=el('a','Open created review');a.href='/qa#run='+d.createdRun;receipt.append(a);if(d.source){receipt.append(el('p','The original observation is not linked until you explicitly save the association. The created run survives any link failure.'));receipt.append(button('Review & link original observation',()=>linkCreatedRetest(d)))}const b=disclosure(receipt,'Confirmed run receipt and retained form');b.append(el('pre',json({receipt:d.receipt,fields:d.fields})))}}}
+ form.onsubmit=e=>{e.preventDefault();message.textContent='';if(!form.reportValidity())return;if(!d.fields.pins.length||d.fields.pins.length>100){message.textContent='Select between 1 and 100 authored cases.';return}const id=Number(workItem.value);if(!Number.isSafeInteger(id)||id<1){message.textContent='Supply an existing positive work item number.';return}const version=versionKind.value==='unknown'?{kind:'unknown'}:{kind:'known',value:controls.version.value,source:{label:controls.versionLabel.value,ref:controls.versionRef.value}};queue(d,'/api/v1/qa/runs',{requestId:crypto.randomUUID(),workItem:id,workspace:workspace.value,enteredBy:actor,application:controls.application.value,environment:controls.environment.value,version,cases:clone(d.fields.pins)},'start',d.fields)};
+ formView={d,update};persist(d);update();pages('/api/v1/qa/cases').then(c=>{catalog=c;if(formView?.d!==d)return;options(workspace,[...new Set(c.map(x=>x.workspace))].map(v=>[v,v]),'Choose a project');workspace.value=d.fields.workspace;if(d.source)workspace.disabled=true;drawPins()}).catch(e=>{pinMessage.textContent='Case list failed to load. '+e.message;pins.append(button('Retry loading cases',()=>startForm(null,d)))});
+}
+async function linkCreatedRetest(start){try{const source=start.source,doc=await readRun(source.runId),entry=doc.entries.find(e=>e.caseId===source.caseId);runId=source.runId;current=doc;selected=source.caseId;formView=null;selectCase(source.caseId,true);const d=view.d;if(d.pending||(d.linkDirty&&(d.link.ref||d.link.label||d.link.targetId))){d.notice='Run '+start.createdRun+' is retained. Finish or download your existing link draft before preparing this retest link; it has not been replaced.';persist(d);view.update();return}d.link={kind:'retest',observationId:source.observationId,targetId:String(start.createdRun),label:'',ref:''};d.linkDirty=true;persist(d);selectCase(source.caseId);d.notice='Run '+start.createdRun+' already exists. Open Fix references & retests, review this observation and save the explicit link. No run will be recreated.';view.update();if(entry.entryRevision!==source.revision){d.needsReview=true;d.phase='conflict';d.notice+=' The source entry has changed since creation began; explicit review is required.';persist(d);view.update()}}catch(e){start.notice='Created run retained; source could not be loaded. '+e.message;persist(start);updateMounted(start)}}
+function showRecoveries(){
+ const list=$('recoveries');list.replaceChildren();
+ try{
+  const records=[];
+  for(let i=0;i<localStorage.length;i++){
+   const key=localStorage.key(i);if(!key?.startsWith(prefix))continue;
+   try{const d=JSON.parse(localStorage.getItem(key));if(localChanges(d)||d.pending||d.needsReview||d.createdRun)records.push({key,d})}
+   catch{list.append(el('p','A saved recovery record could not be read. It has not been deleted.','feedback error'))}
+  }
+  records.sort((a,b)=>String(b.d.updatedAt).localeCompare(String(a.d.updatedAt)));
+  if(!records.length)list.append(el('p','No pending local drafts.','system'));
+  for(const {key,d}of records){
+   const row=el('section',undefined,'history-entry');
+   row.append(el('p',(d.title||'Review draft')+' · '+(d.runId?'Run '+d.runId+' · ':'')+new Date(d.updatedAt).toLocaleString()),el('p',d.pending?'Includes an immutable pending request. Retry it before sending newer edits.':'Local draft; compare with the current saved record.','draft-note'));
+   row.append(button('Recover a separate copy',async()=>{
+    try{
+     const copy=clone(d);copy.pending=copy.pending||null;if(copy.phase==='sending')copy.phase='uncertain';copy.storageError='';
+     if(copy.type==='start'){copy.key='start:'+crypto.randomUUID();startForm(null,copy)}
+     else{
+      const existing=drafts.get(copy.key);
+      if(existing&&(existing.pending||localChanges(existing))){row.append(el('p','This page already has a draft for the same entry. Download either copy or recover in a new tab; neither copy was replaced.','feedback error'));return}
+      drafts.set(copy.key,copy);if(!copy.pending){copy.needsReview=true;copy.phase='conflict'}persist(copy);
+      await selectRun(copy.runId);if(!current||current.run.id!==copy.runId)return;selectCase(copy.caseId,true);if(copy.needsReview)await review(copy);
+     }
+     $('recovery').open=false;
+    }catch(e){row.append(el('p','Recovery failed. '+e.message,'feedback error'))}
+   }),button('Download this draft',()=>download(json(d),'manual-qa-local-draft.json','application/json')));
+   const raw=disclosure(row,'Exact retained draft');raw.append(el('pre',json(d)));
+   if(key.startsWith(prefix+pageId+':'))row.append(el('p','This page owns this recovery copy.','draft-note'));
+   list.append(row);
+  }
+ }catch{list.append(el('p','Browser storage is unavailable. Keep this page open and copy your text before leaving.','feedback error'))}
+}
+$('run').onchange=()=>{if($('run').value)selectRun(Number($('run').value))};$('start').onclick=()=>startForm();$('refresh').onclick=refresh;
+for(const id of ['search','project','area','source','result'])$(id).addEventListener(id==='search'?'input':'change',renderList);
+$('recovery').addEventListener('toggle',()=>{if($('recovery').open)showRecoveries()});window.addEventListener('storage',e=>{if(e.key?.startsWith(prefix)&&$('recovery').open&&!$('recoveries').contains(document.activeElement))showRecoveries()});
+window.addEventListener('hashchange',()=>{const params=new URLSearchParams(location.hash.slice(1)),id=Number(params.get('run'));selected=Number(params.get('case'))||null;if(id)selectRun(id)});
+window.addEventListener('pagehide',()=>{for(const d of drafts.values())if(localChanges(d)||d.pending||d.createdRun)persist(d)});
+refresh();setInterval(()=>{if(!document.hidden)refresh()},6000);
+</script></body></html>`;
+
 // src/ui.ts
 var actorOf = (e) => {
   const d = e.data;
@@ -26410,11 +28293,15 @@ var activityIn = (file, n = 6) => {
   }
   return out;
 };
-var labelOf = (job) => job === "test-plan" ? "Checks" : job === "arbitrate" ? "Arbiter" : job.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-var isDiscovery = (item) => laneOf(item.pack).discovery.some((s) => s.job === item.job);
+var labelOf = (job) => job === "test-plan" ? "Checks" : job === "arbitrate" ? "Arbiter" : job.split("-").map((w) => w ? w[0].toUpperCase() + w.slice(1) : "").join(" ");
+var isDiscovery = (item) => item.flow ? item.flow.loop === "discovery" : laneOf(item.pack).discovery.some((s) => s.job === item.job);
 var orderOf = (lane) => {
   const order = {};
   lane.discovery.forEach((s, i) => order[s.job] = i);
+  if (lane.pack.runtime === "functions") {
+    lane.delivery.forEach((s, i) => order[s.job] = i);
+    return order;
+  }
   let n = 0;
   let maker;
   for (const s of lane.delivery) order[s.job] = isMaker(s.job) ? maker ??= ++n : ++n;
@@ -26436,18 +28323,19 @@ var stepsOf = (item, calls, events2, flying) => {
   const questions = (job) => events2.filter((e) => e.kind === "nq-question" && e.data.job === job).reduce((n, e) => n + (e.data.questions?.length ?? 0), 0);
   const lane = laneOf(item.pack);
   const ORDER = orderOf(lane);
-  const discovery = isDiscovery(item);
-  const jobs2 = discovery ? lane.discovery.map((s) => s.job) : [...lane.delivery.map((s) => s.job), "ship"];
-  const arbiter = calls.some((c) => c.job === "arbitrate") || item.job === "arbitrate";
+  const discovery2 = isDiscovery(item);
+  const jobs2 = discovery2 ? lane.discovery.map((s) => s.job) : [...lane.delivery.map((s) => s.job), ...lane.pack.runtime === "functions" ? [] : ["ship"]];
+  const arbiter = lane.pack.runtime !== "functions" && (calls.some((c) => c.job === "arbitrate") || item.job === "arbitrate");
   const steps = (arbiter ? [...jobs2.slice(0, -1), "arbitrate", "ship"] : jobs2).map((job) => ({ job, label: labelOf(job), cartridge: job === "ship" ? stepOf(lane, "verify").cartridge : stepOf(lane, job).cartridge }));
   const at = ORDER[item.job] ?? 0;
-  const done3 = item.status === "shipped" || item.status === "discovered";
-  return steps.map(({ job, label: label2, cartridge }) => {
+  const done3 = item.status === "shipped" || item.status === "discovered" || item.status === "completed";
+  return steps.map(({ job, label: label3, cartridge }) => {
     const mine = calls.filter((c) => c.job === job);
     const span2 = mine.length ? Date.parse(mine.at(-1).started) + mine.at(-1).ms - Date.parse(mine[0].started) : 0;
     let state;
     const track2 = item.split?.[job];
-    if (done3) state = mine.length || job === "verify" || job === "ship" || discovery ? "done" : "skipped";
+    if (item.flow?.accepted.includes(job)) state = "done";
+    else if (done3) state = mine.length || job === "verify" || job === "ship" || discovery2 ? "done" : "skipped";
     else if (item.status === "dropped") state = mine.length ? "done" : "todo";
     else if (item.parent !== void 0 && ORDER[job] < ORDER.plan) state = "skipped";
     else if (job === "arbitrate") state = item.job === "arbitrate" ? item.status === "held" ? "held" : "active" : "done";
@@ -26460,15 +28348,17 @@ var stepsOf = (item, calls, events2, flying) => {
     else if (ORDER[job] < at) state = "done";
     else if (job === item.job || job === "verify" && item.merged) state = item.status === "held" ? "held" : ["candidate", "queued"].includes(item.status) && !flying.length ? "todo" : "active";
     else state = "todo";
-    return { job, label: label2, cartridge, who: job === "verify" || job === "ship" ? "made well" : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
+    return { job, label: label3, cartridge, who: job === "verify" || job === "ship" ? "made well" : stepOf(lane, job).profile, state, ...tally(mine), questions: questions(job), ms: span2 };
   });
 };
 var doingOf = (store, item, flying, driven, nextOf, events2) => {
   const title = (id2) => `#${id2}`;
-  const unshipped2 = (item.after ?? []).filter((id2) => store.get(id2)?.status !== "shipped");
+  const unshipped2 = (item.after ?? []).filter((id2) => !["shipped", "completed"].includes(store.get(id2)?.status ?? ""));
   switch (item.status) {
     case "shipped":
       return { doing: `Shipped${item.shipped?.main ? ` at ${item.shipped.main.slice(0, 10)}` : ""}`, owes: "" };
+    case "completed":
+      return { doing: `Completed ${item.completion?.nodes ?? 0} configured functions; no implicit verification or shipping`, owes: "" };
     case "discovered": {
       const waiting = store.list().filter((c) => c.discovery === item.id && c.status === "candidate").length;
       return { doing: waiting ? `Found candidates; ${plural(waiting, "candidate")} wait for you to promote` : "Found its candidates", owes: waiting ? "operator" : "" };
@@ -26516,7 +28406,7 @@ var itemViews = (store, items, events2, calls, flying, driven, nextOf) => items.
   const fl = flying.filter((f) => f.item === item.id);
   const { doing, owes } = doingOf(store, item, fl, driven, nextOf, evs);
   const start = evs.findLast((e) => e.kind === "promoted")?.at ?? item.created;
-  const end2 = evs.findLast((e) => ["shipped", "dropped", "discovered"].includes(e.kind))?.at;
+  const end2 = evs.findLast((e) => ["shipped", "completed", "dropped", "discovered"].includes(e.kind))?.at;
   const results2 = item.verification?.results.filter((r) => r.doneWhen !== GATE) ?? [];
   return {
     id: item.id,
@@ -26662,16 +28552,16 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read = (name) => existsSync4(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
+  const read2 = (name) => existsSync4(patchPath(home, name)) ? readFileSync8(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
-  let change = read("change");
+  let change = read2("change");
   if (!change && shipped) {
     try {
       change = execFileSync2("git", ["-C", item.workspace, "show", "--format=%H %s%n", "--no-color", shipped], { encoding: "utf8", maxBuffer: 16 << 20, stdio: ["ignore", "pipe", "ignore"] });
     } catch {
     }
   }
-  return { change: cap(change), checks: cap(read("checks")) };
+  return { change: cap(change), checks: cap(read2("checks")) };
 };
 var itemDetail = (store, nextOf, id2) => {
   const item = store.get(id2);
@@ -26713,8 +28603,8 @@ var spansOf = (path, item) => {
 };
 var storeWatcher = (path) => {
   let store;
-  return () => {
-    if (!store && existsSync4(path)) store = openStore(path);
+  return (create = false) => {
+    if (!store && (create || existsSync4(path))) store = openStore(path);
     return store;
   };
 };
@@ -26737,23 +28627,36 @@ var gazettePage = () => {
     return void 0;
   }
 };
-var serve = (path, nextOf, host, port, renderer) => Effect_exports.callback((resume) => {
+var serve = (path, nextOf, host, port, renderer, wake2) => Effect_exports.callback((resume) => {
   const open = storeWatcher(path);
-  const html = (res, page) => {
+  const api = createApi({ path, open, wake: wake2 });
+  const html = (res, page2) => {
     res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-    res.end(page);
+    res.end(page2);
   };
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? "/", "http://console");
+    if (url.pathname === "/api/v1" || url.pathname.startsWith("/api/v1/")) {
+      void api(req, res);
+      return;
+    }
     const store = open();
     try {
-      if (url.pathname === "/") {
-        const page = gazettePage();
-        if (page) return html(res, page);
+      if (url.pathname === "/" || url.pathname === "/runs") return html(res, MONITOR);
+      if (url.pathname === "/qa") return html(res, QA_NOTEBOOK);
+      if (/^\/fonts\/ibm-plex-(sans|mono)-latin\.woff2$/.test(url.pathname)) {
+        const font = readFileSync8(new URL(`../ui${url.pathname}`, import.meta.url));
+        res.writeHead(200, { "content-type": "font/woff2", "cache-control": "public, max-age=86400" });
+        return void res.end(font);
+      }
+      if (url.pathname === "/gazette") {
+        const page2 = gazettePage();
+        if (page2) return html(res, page2);
         return json(res, { error: "not_found", message: "The Gazette page is not built: dist/gazette.html is missing beside this build.", context: { path: GAZETTE.pathname }, next: [{ run: "npm run bundle", why: "build it, then start mw ui again" }, { run: `open http://${host}:${port}/console`, why: "the console needs no build" }] }, 503);
       }
       if (url.pathname === "/console") return html(res, CONSOLE);
       if (url.pathname === "/favicon.ico") return void (res.writeHead(204), res.end());
+      if (url.pathname === "/api/runs") return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job })), at: (/* @__PURE__ */ new Date()).toISOString() });
       if (!store) return json(res, { store: null, path, at: (/* @__PURE__ */ new Date()).toISOString() });
       if (url.pathname === "/api/mark") return json(res, { ...store.mark(), runner: store.runner()?.pid ?? null, live: liveFiles(path).map((f) => `${f.name}:${f.bytes}`).join(",") });
       if (url.pathname === "/api/model") return json(res, modelOf(store, nextOf));
@@ -26793,7 +28696,8 @@ var serve = (path, nextOf, host, port, renderer) => Effect_exports.callback((res
       ui: url,
       store: path,
       next: [
-        { run: `open ${url}`, why: "the Gazette sheet: what waits on you, each item's steps and what runs now, repainted as the record moves" },
+        { run: `open ${url}`, why: "live work, saved conversation, new tasks and operator replies; technical evidence stays available in disclosures" },
+        { run: `open ${url}gazette`, why: "the existing Gazette sheet" },
         { run: `open ${url}console`, why: "the console: every item's pipeline with time, tokens and questions, what each agent is doing, and where the time goes" },
         { run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: "from another computer, then open the same address there" },
         { run: "mw ui --install", why: "keep it up as a background service of this user, started at boot and restarted on failure" },
@@ -26809,7 +28713,7 @@ var thisHost = () => ({
   uid: process.getuid?.() ?? 0,
   env: process.env,
   node: process.execPath,
-  script: resolve6(process.argv[1] ?? ""),
+  script: resolve7(process.argv[1] ?? ""),
   run: (file, args2) => {
     try {
       return { code: 0, out: execFileSync2(file, args2, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), err: "" };
@@ -26871,12 +28775,12 @@ var must = (h, file, args2, next) => {
   return r;
 };
 var inspectNext = (h) => h.platform === "darwin" ? [{ run: `launchctl print gui/${h.uid}/${LABEL}`, why: "see the service as launchd sees it" }, { run: `tail -50 ${servicePaths(h).log}`, why: "read its output" }] : [{ run: `systemctl --user status ${SERVICE}`, why: "see the service as systemd sees it" }, { run: `journalctl --user -u ${SERVICE} -n 50`, why: "read its output" }];
-var execStartOf = (h, text2) => {
+var execStartOf = (h, text4) => {
   if (h.platform === "darwin") {
-    const array2 = /<key>ProgramArguments<\/key><array>(.*?)<\/array>/s.exec(text2)?.[1] ?? "";
-    return [...array2.matchAll(/<string>(.*?)<\/string>/gs)].map((m) => m[1].replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"));
+    const array3 = /<key>ProgramArguments<\/key><array>(.*?)<\/array>/s.exec(text4)?.[1] ?? "";
+    return [...array3.matchAll(/<string>(.*?)<\/string>/gs)].map((m) => m[1].replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&"));
   }
-  const line = /^ExecStart=(.*)$/m.exec(text2)?.[1] ?? "";
+  const line = /^ExecStart=(.*)$/m.exec(text4)?.[1] ?? "";
   return [...line.matchAll(/"((?:[^"\\]|\\.)*)"|(\S+)/g)].map((m) => m[1] !== void 0 ? m[1].replace(/\\(.)/g, "$1") : m[2]);
 };
 var addressOf = (args2) => {
@@ -26893,8 +28797,8 @@ var serviceStatus = (h) => {
   if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
   const { unit } = servicePaths(h);
   if (!existsSync4(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
-  const text2 = readFileSync8(unit, "utf8");
-  const args2 = execStartOf(h, text2);
+  const text4 = readFileSync8(unit, "utf8");
+  const args2 = execStartOf(h, text4);
   const address = addressOf(args2);
   let running = false;
   let pid = null;
@@ -26921,25 +28825,25 @@ var serviceStatus = (h) => {
 var installService = (h, s) => {
   if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
   const { unit } = servicePaths(h);
-  const text2 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
+  const text4 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
   const before = existsSync4(unit) ? readFileSync8(unit, "utf8") : void 0;
   const wrote = [];
-  if (before !== text2) {
+  if (before !== text4) {
     mkdirSync7(dirname7(unit), { recursive: true });
-    writeFileSync7(unit, text2);
+    writeFileSync7(unit, text4);
     wrote.push(unit);
   }
   const next = inspectNext(h);
   let linger;
   if (h.platform === "darwin") {
     const loaded = h.run("launchctl", ["print", `gui/${h.uid}/${LABEL}`]).code === 0;
-    if (loaded && before !== text2) must(h, "launchctl", ["bootout", `gui/${h.uid}/${LABEL}`], next);
-    if (!loaded || before !== text2) must(h, "launchctl", ["bootstrap", `gui/${h.uid}`, unit], next);
+    if (loaded && before !== text4) must(h, "launchctl", ["bootout", `gui/${h.uid}/${LABEL}`], next);
+    if (!loaded || before !== text4) must(h, "launchctl", ["bootstrap", `gui/${h.uid}`, unit], next);
   } else {
     must(h, "systemctl", ["--user", "daemon-reload"], next);
     const active = h.run("systemctl", ["--user", "is-active", SERVICE]).out.trim() === "active";
     must(h, "systemctl", ["--user", "enable", ...active ? [] : ["--now"], SERVICE], next);
-    if (active && before !== text2) must(h, "systemctl", ["--user", "restart", SERVICE], next);
+    if (active && before !== text4) must(h, "systemctl", ["--user", "restart", SERVICE], next);
     if (h.run("loginctl", ["show-user", String(h.uid), "-p", "Linger", "--value"]).out.trim() === "yes") linger = "already enabled";
     else {
       const r = h.run("loginctl", ["enable-linger"]);
@@ -27068,10 +28972,10 @@ var watch = (path, nextOf, opts) => Effect_exports.callback((resume) => {
     const store = open();
     if (opts.tty) {
       const line = { text: web.text, ...slip && slip.until > Date.now() ? { slip: slip.text } : {} };
-      const text2 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40, line) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.  ${paint("36", web.text)}`;
-      if (text2 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text2}
+      const text4 = store ? frame(modelOf(store, nextOf), process.stdout.columns || 120, process.stdout.rows || 40, line) : `${bold("MADE WELL")}  no store yet at ${path}; it appears with the first \`mw discover\` or \`mw start\`.  ${paint("36", web.text)}`;
+      if (text4 !== lastFrame) process.stdout.write(`${ESC}H${ESC}2J${text4}
 `);
-      lastFrame = text2;
+      lastFrame = text4;
       return;
     }
     if (!store) return;
@@ -27265,7 +29169,7 @@ var view = (item, driven = true) => ({
   ...item.resetsAt !== void 0 ? { resumesAt: new Date(item.resetsAt).toISOString() } : {},
   ...item.hold ? { hold: item.hold } : {},
   ...item.shipped ? { shipped: item.shipped } : {},
-  next: item.status === "held" || item.status === "paused" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "dropped"].includes(item.status) ? [] : item.status === "queued" ? driven || process.env.MW_AUTORUN !== "0" ? [{ run: `mw status ${item.id}`, why: "queued: the machine picks it up by itself" }] : [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
+  next: item.status === "held" || item.status === "paused" ? nextFor(item) : item.status === "candidate" ? [{ run: `mw promote ${item.discovery} ${item.id}`, why: "send it into delivery" }] : item.status === "discovered" ? [{ run: `mw promote ${item.id}`, why: "send every candidate into delivery" }] : ["shipped", "completed", "dropped"].includes(item.status) ? [] : item.status === "queued" ? driven || process.env.MW_AUTORUN !== "0" ? [{ run: `mw status ${item.id}`, why: "queued: the machine picks it up by itself" }] : [{ run: "mw run", why: "deliver it" }] : !driven ? [{ run: "mw run", why: "no runner is driving it: it resumes where it stopped" }] : [{ run: `mw status ${item.id}`, why: "check on it later; it continues on its own" }]
 });
 var holdView = (store, h) => ({ ...h, next: nextFor(store.get(h.item)) });
 var board = (store) => {
@@ -27275,17 +29179,17 @@ var board = (store) => {
   const driven = store.runner() !== null;
   const moving = count("running") + count("waiting-quota") + count("waiting-prerequisite");
   return {
-    summary: `${count("held") + count("paused")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped`,
+    summary: `${count("held") + count("paused")} need you, ${count("candidate")} candidates, ${moving} in progress${moving && !driven ? " with no runner" : ""}, ${count("queued")} queued, ${count("shipped")} shipped, ${count("completed")} completed`,
     items: items.map((i) => view(i, driven)),
     next: held2.length ? held2.flatMap(nextFor) : (count("queued") || moving) && !driven ? [{ run: "mw run", why: "deliver queued items and resume any whose runner stopped" }] : []
   };
 };
-var found = (store, id2) => {
+var found2 = (store, id2) => {
   const item = store.get(id2);
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve7(workspace ?? ".");
+  const path = resolve8(workspace ?? ".");
   const projects = yield* readProjects(registry);
   const project = projectFor(projects, path);
   if (project) return { path, project };
@@ -27315,13 +29219,22 @@ var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve7(input["source-file"]);
+  const path = resolve8(input["source-file"]);
   return Effect_exports.try({
     try: () => readFileSync9(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
-var createOnce = (store, fields) => store.list().find((i) => i.parent === void 0 && i.discovery === void 0 && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace) ?? store.create(fields);
+var readQaInput = Effect_exports.fn("mw.readQaInput")(function* (input) {
+  const path = resolve8(input["input-file"]);
+  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync9(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
+  return yield* Effect_exports.try({ try: () => qaParseJson(bytes3), catch: qaStorageError });
+});
+var qaInputFile = (schema) => Schema_exports.String.annotate({ description: `UTF-8 JSON file (maximum 65536 bytes), exact ${schema} body, with a caller-supplied requestId; no path IDs in the body. JSON Schema: ${JSON.stringify(QA_JSON_SCHEMAS[schema])}` });
+var qaCliId = Schema_exports.String.check(Schema_exports.isPattern(/^[1-9]\d*$/)).pipe(Schema_exports.decodeTo(Schema_exports.NumberFromString), Schema_exports.decodeTo(QaId));
+var qaCliCounter = Schema_exports.String.check(Schema_exports.isPattern(/^(0|[1-9]\d*)$/)).pipe(Schema_exports.decodeTo(Schema_exports.NumberFromString), Schema_exports.decodeTo(QaCounter));
+var qaPageFlags = { after: Schema_exports.optionalKey(qaCliCounter), limit: Schema_exports.optionalKey(qaCliId) };
+var createOnce = (store, fields) => store.list().find((i) => i.parent === void 0 && i.discovery === void 0 && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace && JSON.stringify(i.pack) === JSON.stringify(fields.pack)) ?? store.create(fields);
 var runner = (store) => store.claimRunner().pipe(
   Effect_exports.map(() => (store.releaseRunner(), null)),
   Effect_exports.catchIf((e) => e.code === "store_locked", (e) => Effect_exports.succeed(e.context.owner))
@@ -27329,7 +29242,8 @@ var runner = (store) => store.claimRunner().pipe(
 var MOVING = ["queued", "running", "waiting-quota", "waiting-prerequisite"];
 var retention = (store, before) => {
   const items = store.list();
-  const live = items.filter((i) => i.status !== "shipped" && i.status !== "discovered" && i.status !== "dropped");
+  const qaAnchors = new Set(store.qaRetained());
+  const live = items.filter((i) => !["shipped", "completed", "discovered", "dropped"].includes(i.status));
   const links = (i) => [i.waitsOn, i.parent, i.discovery, ...i.after ?? []];
   const lastMerge = /* @__PURE__ */ new Map();
   for (const i of items.filter((i2) => i2.merged && live.some((l) => l.workspace === i2.workspace))) {
@@ -27338,6 +29252,7 @@ var retention = (store, before) => {
   }
   const old = items.filter((i) => !live.includes(i) && Date.parse(i.updated) < Date.parse(before));
   const why = (i) => {
+    if (qaAnchors.has(i.id)) return "retained by manual QA history";
     const by = live.find((l) => links(l).includes(i.id) || links(i).includes(l.id));
     if (by) return `#${by.id} (${by.status}) needs it`;
     if (lastMerge.get(i.workspace)?.id === i.id) return `the last merge into ${i.workspace}, which its in-flight items check the branch against`;
@@ -27433,7 +29348,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = resolve7(input.workspace ?? ".");
+      const path = resolve8(input.workspace ?? ".");
       if (!existsSync5(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
@@ -27441,7 +29356,7 @@ var COMMANDS = [
       const conventions = input.conventions === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Schema_exports.NonEmptyString)))(input.conventions).pipe(
         Effect_exports.mapError((e) => usageError("init", `--conventions must be a JSON array of non-empty strings: ${e.message}`))
       );
-      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve7(input.cartridges);
+      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve8(input.cartridges);
       if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
       const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...gates ? { gates } : {}, ...conventions ? { conventions } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
       const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
@@ -27450,14 +29365,17 @@ var COMMANDS = [
   }),
   command({
     name: "cartridges",
-    summary: "The cartridge pack a project's work runs: discovery's and delivery's cartridges, each step's profile, duty, what it receives and the shape it returns. Without a pack of its own, the project runs the default software pack; save `.pack` to a file, change it, and plug it in with `mw init --cartridges <file>`. --check validates a pack file against the console's contract without registering it.",
+    summary: "Inspect the project pack or --item's pinned pack. --check validates a file. --update <file> --item <id> queues a function-pack replacement at the next node boundary without changing completed or in-flight nodes. New work reads the project pack afresh; start/discover can override it per task with --cartridges.",
     input: Schema_exports.Struct({
       workspace: Workspace,
-      check: optional3("a cartridge pack file to validate instead")
+      check: optional3("a cartridge pack file to validate instead"),
+      item: Schema_exports.optionalKey(Id2),
+      update: optional3("replacement function pack file; requires --item")
     }),
     output: Schema_exports.Struct({
       source: Schema_exports.String.annotate({ description: '"default", or the pack file' }),
       pack: Pack,
+      update: Schema_exports.optionalKey(Fact),
       lane: Schema_exports.Struct({
         discovery: Schema_exports.Array(Schema_exports.String).annotate({ description: 'each step as "cartridge / job (profile)", in order' }),
         delivery: Schema_exports.Array(Schema_exports.String)
@@ -27466,13 +29384,17 @@ var COMMANDS = [
     }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = input.check ? resolve7(input.check) : projectFor(yield* readProjects(registry), resolve7(input.workspace ?? "."))?.cartridges;
-      const pack = path ? yield* loadPack(path) : SOFTWARE;
-      const lane = laneOf(path ? pack : void 0);
-      const line = (s) => `${s.cartridge} / ${s.job} (${s.job === "verify" ? "made well" : s.profile})`;
+      if (input.update && input.item === void 0 || input.check && (input.update || input.item !== void 0)) return yield* usageError("cartridges", "Use --check alone, --item to inspect, or --update <file> --item <id>.");
+      const pinned = input.item === void 0 ? void 0 : yield* found2(yield* Store, input.item);
+      const path = input.check || input.update ? resolve8(input.check ?? input.update) : pinned ? void 0 : projectFor(yield* readProjects(registry), resolve8(input.workspace ?? "."))?.cartridges;
+      const pack = path ? yield* loadPack(path) : pinned?.pack ?? SOFTWARE;
+      const update2 = input.update ? yield* requestPackUpdate(input.item, pack) : void 0;
+      const lane = laneOf(pack);
+      const line = (s) => `${s.cartridge} / ${s.job} (${s.profile})`;
       return {
-        source: path ?? "default",
+        source: path ?? (pinned ? `item:${pinned.id}` : "default"),
         pack,
+        ...update2 ? { update: update2 } : {},
         lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
         next: input.check ? [{ run: `mw init --cartridges ${quote2(path)}`, why: "plug it into this project; new work runs it" }] : [{ run: "mw cartridges | jq .pack > pack.json", why: "start a pack of your own from this one" }]
       };
@@ -27481,7 +29403,7 @@ var COMMANDS = [
   command({
     name: "discover",
     summary: "Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.",
-    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run"), autonomy: AutonomyInput }),
+    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run"), autonomy: AutonomyInput, cartridges: optional3("override the project cartridge pack for this run") }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
@@ -27491,9 +29413,9 @@ var COMMANDS = [
     }),
     run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
       const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
-      const pack = yield* packFor(workspace);
+      const pack = yield* input.cartridges ? loadPack(resolve8(input.cartridges)) : packFor(workspace);
       const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
-      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0].job, autonomy, ...pack ? { pack } : {} });
+      const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source, workspace, job: laneOf(pack).discovery[0]?.job ?? "", autonomy, ...pack ? { pack } : {}, ...pack?.runtime === "functions" ? { flow: { loop: "discovery", accepted: [] } } : {} });
       return { item: view(item), next: yield* wake(item.id) };
     })
   }),
@@ -27512,7 +29434,7 @@ var COMMANDS = [
   command({
     name: "start",
     summary: "Add one work item straight to the delivery queue.",
-    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective"), autonomy: AutonomyInput }),
+    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective"), autonomy: AutonomyInput, cartridges: optional3("override the project cartridge pack for this task") }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
@@ -27521,7 +29443,7 @@ var COMMANDS = [
       return { source, ...yield* registered(input.workspace) };
     }),
     run: (input, { source, path: workspace, project }) => Effect_exports.gen(function* () {
-      const pack = yield* packFor(workspace);
+      const pack = yield* input.cartridges ? loadPack(resolve8(input.cartridges)) : packFor(workspace);
       const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
       const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...pack ? { pack } : {} });
       return { item: view(item), next: yield* wake(item.id) };
@@ -27553,7 +29475,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
-      return input.id === void 0 ? board(store) : view(yield* found(store, input.id), store.runner() !== null);
+      return input.id === void 0 ? board(store) : view(yield* found2(store, input.id), store.runner() !== null);
     })
   }),
   command({
@@ -27565,8 +29487,22 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
-      const item = yield* found(store, input.id);
+      const item = yield* found2(store, input.id);
       return { ...view(item, store.runner() !== null), item: { ...item }, events: store.events(item.id).map((e) => ({ ...e })) };
+    })
+  }),
+  command({
+    name: "context",
+    summary: "Compact agent context: task intent, current node/state, saved revision, bounded questions/answers, evidence links and next inputs with owner and authority. The same projection as GET /api/v1/items/{id}, without running a server. Read-only.",
+    args: ["id"],
+    input: Schema_exports.Struct({ id: Id2 }),
+    output: Fact,
+    outputJsonSchema: API_SCHEMAS.Context,
+    idempotent: true,
+    run: (input) => Effect_exports.gen(function* () {
+      const store = yield* Store;
+      const item = yield* found2(store, input.id);
+      return contextOf(store, item.id);
     })
   }),
   command({
@@ -27578,7 +29514,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const store = yield* Store;
-      const item = yield* found(store, input.id);
+      const item = yield* found2(store, input.id);
       return lensOf(store, item.id, input.lens ?? "ux", nextFor(item));
     })
   }),
@@ -27650,7 +29586,7 @@ var COMMANDS = [
   }),
   command({
     name: "ui",
-    summary: "The web interface: a read-only page on this machine. At / is the Gazette sheet: what waits on the operator (each with the exact command to copy), every item's steps as rings, what runs now with its live output, repainted as the record moves. At /console is the full console: each item's pipeline with time, tokens and NQ questions per step, a timeline of every agent call, and each item's idea, plan, checks, diff, NQ exchanges and calls. Both read the JSON API under /api. Prints its address as one JSON line, then serves until interrupted; reach it from another computer with an SSH tunnel or a forwarded port. --install provisions it as an always-on background service of this user that starts at boot and restarts on failure (a systemd user unit on Linux, with lingering where allowed; a LaunchAgent on macOS), running this same build with the MW_* variables set now; running it again changes nothing. --status says whether it is installed, running and answering, and its address. --uninstall stops it and removes every file --install wrote.",
+    summary: "The live work display at / (also /runs), with contextual discovery at /api/v1 and explicit operator submission/answer operations protected by Origin and X-MW-CSRF. Set MW_UI_ORIGINS to exact trusted proxy origins when forwarding. Observers remain read-only. /gazette retains the earlier Gazette and /console the detailed console; legacy read APIs are unchanged. Prints its address as one JSON line, then serves until interrupted. --install provisions an always-on background service of this user (systemd on Linux, LaunchAgent on macOS), running this build with the current MW_* variables; --status inspects it and --uninstall removes it.",
     input: Schema_exports.Struct({
       port: Schema_exports.optionalKey(Schema_exports.NumberFromString.pipe(Schema_exports.decodeTo(Schema_exports.Int.check(Schema_exports.isBetween({ minimum: 0, maximum: 65535 })))).annotate({ description: "defaults to 4747; 0 picks a free one" })),
       host: optional3("the address to listen on; defaults to 127.0.0.1 (this machine only); 0.0.0.0 serves the network"),
@@ -27663,7 +29599,7 @@ var COMMANDS = [
       const actions = ["install", "uninstall", "status"].filter((a) => input[a]);
       if (actions.length > 1) return usageError("ui", `Give one of --install, --uninstall or --status, not ${actions.map((a) => `--${a}`).join(" and ")}.`);
       if (actions[0]) return service3(thisHost(), actions[0], { ...input.port !== void 0 ? { port: input.port } : {}, ...input.host !== void 0 ? { host: input.host } : {} });
-      return serve(storePath, nextFor, input.host ?? "127.0.0.1", input.port ?? 4747);
+      return serve(storePath, nextFor, input.host ?? "127.0.0.1", input.port ?? 4747, void 0, (store, id2) => Effect_exports.runPromise(wake(id2).pipe(Effect_exports.provideService(Store, store))));
     }
   }),
   command({
@@ -27683,7 +29619,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve7(input.out ?? resolve7(dirname8(storePath), "replay.html"));
+      const out = resolve8(input.out ?? resolve8(dirname8(storePath), "replay.html"));
       writeFileSync8(out, staticPage(yield* Store, nextFor));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
     })
@@ -27696,7 +29632,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve7(input.out ?? resolve7(dirname8(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve8(input.out ?? resolve8(dirname8(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -27711,7 +29647,7 @@ var COMMANDS = [
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync5(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
       const lines4 = files.flatMap((f) => readFileSync9(join12(dir, f), "utf8").split("\n").filter(Boolean));
-      return { dir: resolve7(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve7(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
+      return { dir: resolve8(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve8(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
   command({
@@ -27767,13 +29703,13 @@ var COMMANDS = [
       const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync5);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
-      if (!dryRun) {
+      const { items: _, ...records } = yield* Effect_exports.try({ try: () => store.prune(ids, before, dryRun, () => {
         for (const f of files) rmSync7(f, { recursive: true, force: true });
         if (existsSync5(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
-      }
-      const { items: _, ...records } = store.prune(ids, before, dryRun);
+      }), catch: qaStorageError });
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
-      const also = kept.length ? `; ${kept.length} older finished item(s) stay because work in flight needs them` : "";
+      const qaKept = kept.filter((item) => item.why === "retained by manual QA history").length;
+      const also = kept.length ? `; ${kept.length} older finished item(s) stay (${qaKept} retained by manual QA history; ${kept.length - qaKept} needed by work in flight)` : "";
       return {
         before,
         dryRun,
@@ -27786,6 +29722,122 @@ var COMMANDS = [
         next: dryRun && ids.length + records.events ? [{ run: `mw prune --before ${before}`, why: "remove them; nothing still moving or waiting on the operator is touched" }] : []
       };
     }).pipe(Effect_exports.scoped)
+  }),
+  command({
+    name: "qa-case-create",
+    summary: "Create immutable revision 1 of manual QA instructions on an existing workItem/workspace. No work is scheduled. The JSON file is the same body as POST /api/v1/qa/cases.",
+    input: Schema_exports.Struct({ "input-file": qaInputFile("QaCreateCaseInput") }),
+    output: QaAccepted,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted,
+    idempotent: true,
+    run: (input) => readQaInput(input).pipe(Effect_exports.flatMap(qaCreateCase))
+  }),
+  command({
+    name: "qa-case-revise",
+    summary: "Append complete replacement instructions. JSON revision is expected currentRevision; stale drafts are durably retained as conflicts. POST /api/v1/qa/cases/{caseId}/revisions.",
+    args: ["caseId"],
+    input: Schema_exports.Struct({ caseId: qaCliId, "input-file": qaInputFile("QaReviseCaseInput") }),
+    output: QaAccepted,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted,
+    idempotent: true,
+    run: (input) => readQaInput(input).pipe(Effect_exports.flatMap((body) => qaReviseCase(input.caseId, body)))
+  }),
+  command({
+    name: "qa-cases",
+    summary: "List latest QA case instructions, ascending ID, with AND filters. q is a case-insensitive literal substring of title/area/change. Defaults: after 0, limit 50 (maximum 100).",
+    input: Schema_exports.Struct({ workspace: Schema_exports.optionalKey(Schema_exports.String), "work-item": Schema_exports.optionalKey(qaCliId), q: Schema_exports.optionalKey(Schema_exports.String), area: Schema_exports.optionalKey(Schema_exports.String), ...qaPageFlags }),
+    output: QaCaseList,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaCaseList,
+    idempotent: true,
+    run: ({ "work-item": workItem, ...filters }) => qaCases({ ...filters, ...workItem === void 0 ? {} : { workItem } })
+  }),
+  command({
+    name: "qa-case",
+    summary: "Read current or explicitly pinned immutable instructions; a case has no global pass.",
+    args: ["caseId"],
+    input: Schema_exports.Struct({ caseId: qaCliId, revision: Schema_exports.optionalKey(qaCliId) }),
+    output: QaCaseDetail,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaCaseDetail,
+    idempotent: true,
+    run: ({ caseId, ...filters }) => qaCase(caseId, filters)
+  }),
+  command({
+    name: "qa-run-start",
+    summary: "Pin ordered case revisions and explicit application/environment/version on existing work. Every new entry starts untested, including old revisions. POST /api/v1/qa/runs.",
+    input: Schema_exports.Struct({ "input-file": qaInputFile("QaStartRunInput") }),
+    output: QaAccepted,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted,
+    idempotent: true,
+    run: (input) => readQaInput(input).pipe(Effect_exports.flatMap(qaStartRun))
+  }),
+  command({
+    name: "qa-runs",
+    summary: "List immutable run summaries, ascending ID, with AND filters. Defaults: after 0, limit 50 (maximum 100).",
+    input: Schema_exports.Struct({ workspace: Schema_exports.optionalKey(Schema_exports.String), "work-item": Schema_exports.optionalKey(qaCliId), "case-id": Schema_exports.optionalKey(qaCliId), ...qaPageFlags }),
+    output: QaRunList,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaRunList,
+    idempotent: true,
+    run: ({ "work-item": workItem, "case-id": caseId, ...filters }) => qaRuns({ ...filters, ...workItem === void 0 ? {} : { workItem }, ...caseId === void 0 ? {} : { caseId } })
+  }),
+  command({
+    name: "qa-run",
+    summary: "Read/resume a saved QA run, without a mutation. Entries expose pinned instructions, current revision/outdated flags, per-entry counter and latest explicit manual verdict.",
+    args: ["runId"],
+    input: Schema_exports.Struct({ runId: qaCliId }),
+    output: QaRunDetail,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaRunDetail,
+    idempotent: true,
+    run: ({ runId }) => qaRun(runId)
+  }),
+  command({
+    name: "qa-observe",
+    summary: "Append note/technical/historical evidence using expected entry revision. Never sets manual status; note requires reportedResult:null. POST /api/v1/qa/runs/{runId}/cases/{caseId}/observations.",
+    args: ["runId", "caseId"],
+    input: Schema_exports.Struct({ runId: qaCliId, caseId: qaCliId, "input-file": qaInputFile("QaObserveInput") }),
+    output: QaAccepted,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted,
+    idempotent: true,
+    run: (input) => readQaInput(input).pipe(Effect_exports.flatMap((body) => qaObserve(input.runId, input.caseId, body)))
+  }),
+  command({
+    name: "qa-verdict",
+    summary: "Explicit trusted-local operator manual declaration, not authentication. Requires operator enteredBy and operator-manual-verdict attestation; never autosave. POST /api/v1/qa/runs/{runId}/cases/{caseId}/verdicts.",
+    args: ["runId", "caseId"],
+    input: Schema_exports.Struct({ runId: qaCliId, caseId: qaCliId, "input-file": qaInputFile("QaVerdictInput") }),
+    output: QaAccepted,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted,
+    idempotent: true,
+    run: (input) => readQaInput(input).pipe(Effect_exports.flatMap((body) => qaVerdict(input.runId, input.caseId, body)))
+  }),
+  command({
+    name: "qa-observations",
+    summary: "Read append-only evidence with exact entrant/verifier/time and manual versus reported result provenance. Defaults: after 0, limit 50 (maximum 100).",
+    args: ["runId"],
+    input: Schema_exports.Struct({ runId: qaCliId, "case-id": Schema_exports.optionalKey(qaCliId), ...qaPageFlags }),
+    output: QaObservationList,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaObservationList,
+    idempotent: true,
+    run: ({ runId, "case-id": caseId, ...filters }) => qaObservations(runId, { ...filters, ...caseId === void 0 ? {} : { caseId } })
+  }),
+  command({
+    name: "qa-export",
+    summary: "Export complete pinned QA history, provenance, associations and rejected drafts. Defaults: selection all, format json. follow-ups selects current manual failed/needs-refinement only. Markdown is a JSON string field, not a file or plain-text stdout. GET /api/v1/qa/runs/{runId}/export.",
+    args: ["runId"],
+    input: Schema_exports.Struct({ runId: qaCliId, ...QaExportQuery.fields }),
+    output: QaExportResult,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaExportResult,
+    idempotent: true,
+    run: ({ runId, ...query }) => qaExport(runId, query)
+  }),
+  command({
+    name: "qa-link",
+    summary: "Explicitly associate an existing observation with existing same-workspace work, an opaque reference or a later compatible retest. No scheduling, observation counter increment or verdict change. POST /api/v1/qa/runs/{runId}/cases/{caseId}/links.",
+    args: ["runId", "caseId"],
+    input: Schema_exports.Struct({ runId: qaCliId, caseId: qaCliId, "input-file": qaInputFile("QaLinkInput") }),
+    output: QaAccepted,
+    outputJsonSchema: QA_JSON_SCHEMAS.QaAccepted,
+    idempotent: true,
+    run: (input) => readQaInput(input).pipe(Effect_exports.flatMap((body) => qaLink(input.runId, input.caseId, body)))
   })
 ];
 var fieldsOf = (c) => Object.entries(c.input.fields);
@@ -27814,7 +29866,7 @@ var jsonSchema = (schema) => {
 var manual = Effect_exports.gen(function* () {
   const store = yield* Store;
   const items = store.list();
-  const commands = COMMANDS.map((c) => ({ name: c.name, usage: usageOf(c), summary: c.summary, idempotent: c.idempotent ?? false, input: jsonSchema(Schema_exports.toType(c.input)), output: jsonSchema(c.output) }));
+  const commands = COMMANDS.map((c) => ({ name: c.name, usage: usageOf(c), summary: c.summary, idempotent: c.idempotent ?? false, input: jsonSchema(Schema_exports.toType(c.input)), output: c.outputJsonSchema ?? jsonSchema(c.output) }));
   return {
     manual: "mw",
     about: "Made Well delivers software work items to production with coding agents: ideation, planning, implementation and verification, each a separate agent, shipping when every check passes. Discovery turns raw notes into candidate items; the operator promotes the ones to deliver.",
@@ -27858,7 +29910,7 @@ var program = Effect_exports.gen(function* () {
   const slot = [...positionals, ...Object.values(values2)].find((v) => typeof v === "string" && SLOT.test(v.trim()));
   if (slot) return yield* usageError(name, `Replace the placeholder ${slot} with the real value before running the command.`);
   const input = yield* Schema_exports.decodeUnknownEffect(c.input)(raw).pipe(
-    Effect_exports.mapError((e) => usageError(name, `${e.message}
+    Effect_exports.mapError((e) => name.startsWith("qa-") ? qaError(400, "invalid_input", { command: name, refresh: "mw" }) : usageError(name, `${e.message}
 Usage: ${usageOf(c)}`))
   );
   if (!c.prepare) return { store: false, effect: c.run(input, void 0) };
@@ -27900,7 +29952,7 @@ var signalled = Effect_exports.callback((resume) => {
   return Effect_exports.sync(() => process.off("SIGINT", on).off("SIGTERM", on));
 });
 var exit3 = await Effect_exports.runPromise(Effect_exports.raceFirst(program.pipe(Effect_exports.match({ onSuccess: (out) => ({ out, code: 0 }), onFailure: (e) => ({ out: errorJson(e), code: 1 }) })), signalled));
-var text = JSON.stringify(exit3.out) + "\n";
-if (exit3.code) process.stderr.write(text);
-else process.stdout.write(text);
+var text3 = JSON.stringify(exit3.out) + "\n";
+if (exit3.code) process.stderr.write(text3);
+else process.stdout.write(text3);
 process.exitCode = exit3.code;
