@@ -414,6 +414,8 @@ The answer goes to the responsible party as its assignment for the new round; pr
 
 The work item is the durable object, not the agent. Every transition is saved before the next job starts. Recovery is redriving the saved state: a worker that is killed resumes at the interrupted job, and a worker that exits with an error is redriven the same way. No reconciliation grants, ownership inspection or replacement paperwork.
 
+Explicit technical replanning requires exclusive runner ownership, including against the current process, across fresh eligibility checks and the atomic reset. Only an acquired claim is released, before the operation returns on success or failure. Applied replay remains harmless and ordinary retry is unchanged; see the [technical-replan guidance](README.md).
+
 ## Uninterrupted: prescribed cards, automatic swap
 
 Every job has a prescription. Prescriptions are a config file: each agent job maps to a tier, an access level and a budget; verification, which is Made Well's own code, has a budget only (each check's timeout). Each tier maps to an ordered list of cards spanning several provider accounts. A card is always harness + provider + model (+ effort). Quota belongs to the provider account, not the harness.

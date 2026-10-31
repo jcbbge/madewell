@@ -28,7 +28,7 @@ import { checkPrerequisites, prerequisiteForReference } from './prerequisites.ts
 import { existsSync, mkdirSync, readdirSync, readFileSync, lstatSync, readlinkSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { Clock, Effect, Queue, Result, Schema, Semaphore } from 'effect'
+import { Clock, Effect, Queue, Result, Scheduler, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, forLane, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
 import { resolveDecision, RUBRIC, type DecisionProviders } from './decision.ts'
@@ -1489,33 +1489,48 @@ export const retry = (id: number, options: { replan?: string } = {}) =>
 		if (options.replan !== undefined) {
 			if (sinceHold.some(e => e.kind === 'continuation-reset')) return
 		} else if (sinceHold.some(e => e.kind === 'retried' || e.kind === 'continuation-reset')) return
+		if (options.replan !== undefined) {
+			return yield* Effect.acquireUseRelease(
+				source.claimRunner({ exclusive: true }),
+				() => Effect.gen(function* () {
+					const current = source.get(id)
+					if (!current) return yield* notFound(id)
+					const events = source.events(id)
+					const sinceHold = events.slice(events.findLastIndex(e => e.kind === 'held') + 1)
+					if (sinceHold.some(e => e.kind === 'continuation-reset')) return
+					const unavailable = (reason: string) => new MadeWellError({ code: 'replan_unavailable', message: `Item #${id} cannot replan: ${reason}`, context: { id, status: current.status, job: current.job, reason }, next: [{ run: `mw status ${id}`, why: 'resolve the existing hold or obligation' }] })
+					const { store, item } = yield* held(id)
+					if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || (CHECK_HOLDS.includes(item.hold.code) && item.hold.code !== 'environment')) {
+						return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
+					}
+					const delivery = L(item).delivery
+					const planIndex = delivery.findIndex(s => s.job === 'plan')
+					const prior = delivery.slice(0, planIndex)
+					const reached = item.job === 'plan' || item.outputs.plan !== undefined || events.some(e => e.kind === 'handoff' && e.data.job === 'plan')
+					if (item.pack?.runtime === 'functions' || planIndex < 0 || !reached || prior.some(s => item.outputs[s.job] === undefined) || stepOf(L(item), item.job).loop === 'discovery') return yield* unavailable('Software delivery must have reached planning with its earlier obligations accepted.')
+					if (item.merged) return yield* unavailable('The change is already merged.')
+					if (item.waitsOn !== undefined || unshipped(store, item).length) return yield* unavailable('A prerequisite is outstanding.')
+					const exchanges = [item.exchange, ...Object.values(item.split ?? {}).map(t => t?.exchange)]
+					if (exchanges.some(x => x && x.status !== 'clear' && x.turns.filter(t => t.answer !== undefined).length >= MAX_TURNS)) return yield* unavailable('An unresolved exchange has reached its answered-turn bound.')
+					const removed = delivery.slice(planIndex).map(s => s.job)
+					const outputs = { ...item.outputs }
+					const supersededOutputs: Record<string, string> = {}
+					for (const job of [...removed, 'arbitrate', 'verify']) {
+						if (outputs[job] !== undefined) supersededOutputs[job] = outputs[job]!
+						delete outputs[job]
+					}
+					const superseded = { outputs: supersededOutputs, split: item.split, change: item.change, checks: item.checks, verification: item.verification, failure: item.failure, rework: item.rework, exchange: item.exchange, rejected: item.rejected, pickingUp: item.pickingUp, passed: item.passed, steer: item.steer, resetsAt: item.resetsAt, launches: item.launches, from: item.from }
+					store.atomic(() => {
+						store.save({ ...item, status: 'queued', job: 'plan', round: item.round + 1, launches: 0, from: planIndex ? { kind: 'job', job: delivery[planIndex - 1]!.job } : { kind: 'dispatcher' }, outputs, hold: undefined, base: undefined, split: undefined, change: undefined, checks: undefined, verification: undefined, failure: undefined, rework: undefined, exchange: undefined, rejected: undefined, pickingUp: undefined, passed: undefined, steer: undefined, resetsAt: undefined }, 'continuation-reset', { reason: options.replan, heldEvent: events.findLast(e => e.kind === 'held')?.seq, hold: item.hold, previousJob: item.job, previousRound: item.round, previousBase: item.base, newRound: item.round + 1, superseded })
+						store.note(id, 'retried', { job: 'plan', mode: 'replan' })
+					})
+				}),
+				() => Effect.sync(() => source.releaseRunner()),
+			).pipe(Effect.provideService(Scheduler.PreventSchedulerYield, true))
+		}
 		const { store, item } = yield* held(id)
 		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || (CHECK_HOLDS.includes(item.hold.code) && item.hold.code !== 'environment')) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
-		}
-		if (options.replan !== undefined) {
-			const delivery = L(item).delivery
-			const planIndex = delivery.findIndex(s => s.job === 'plan')
-			const prior = delivery.slice(0, planIndex)
-			const reached = item.job === 'plan' || item.outputs.plan !== undefined || events.some(e => e.kind === 'handoff' && e.data.job === 'plan')
-			if (item.pack?.runtime === 'functions' || planIndex < 0 || !reached || prior.some(s => item.outputs[s.job] === undefined) || stepOf(L(item), item.job).loop === 'discovery') return yield* unavailable('Software delivery must have reached planning with its earlier obligations accepted.')
-			if (item.merged) return yield* unavailable('The change is already merged.')
-			if (item.waitsOn !== undefined || unshipped(store, item).length) return yield* unavailable('A prerequisite is outstanding.')
-			const exchanges = [item.exchange, ...Object.values(item.split ?? {}).map(t => t?.exchange)]
-			if (exchanges.some(x => x && x.status !== 'clear' && x.turns.filter(t => t.answer !== undefined).length >= MAX_TURNS)) return yield* unavailable('An unresolved exchange has reached its answered-turn bound.')
-			const removed = delivery.slice(planIndex).map(s => s.job)
-			const outputs = { ...item.outputs }
-			const supersededOutputs: Record<string, string> = {}
-			for (const job of [...removed, 'arbitrate', 'verify']) {
-				if (outputs[job] !== undefined) supersededOutputs[job] = outputs[job]!
-				delete outputs[job]
-			}
-			const superseded = { outputs: supersededOutputs, split: item.split, change: item.change, checks: item.checks, verification: item.verification, failure: item.failure, rework: item.rework, exchange: item.exchange, rejected: item.rejected, pickingUp: item.pickingUp, passed: item.passed, steer: item.steer, resetsAt: item.resetsAt, launches: item.launches, from: item.from }
-			store.atomic(() => {
-				store.save({ ...item, status: 'queued', job: 'plan', round: item.round + 1, launches: 0, from: planIndex ? { kind: 'job', job: delivery[planIndex - 1]!.job } : { kind: 'dispatcher' }, outputs, hold: undefined, base: undefined, split: undefined, change: undefined, checks: undefined, verification: undefined, failure: undefined, rework: undefined, exchange: undefined, rejected: undefined, pickingUp: undefined, passed: undefined, steer: undefined, resetsAt: undefined }, 'continuation-reset', { reason: options.replan, heldEvent: events.findLast(e => e.kind === 'held')?.seq, hold: item.hold, previousJob: item.job, previousRound: item.round, previousBase: item.base, newRound: item.round + 1, superseded })
-				store.note(id, 'retried', { job: 'plan', mode: 'replan' })
-			})
-			return
 		}
 		// Ordinary retry keeps the existing environment redrive behavior.
 		const free = item.hold.code === 'environment' ? afterEnvironment(store, released(item), { kind: 'job', job: 'arbitrate' }, item.rework?.answer ?? item.hold.message) : released(item)

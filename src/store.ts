@@ -633,11 +633,11 @@ export function openStore(path: string) {
 			db.prepare('INSERT INTO accounts (account, resets_at) VALUES (?, ?) ON CONFLICT (account) DO UPDATE SET resets_at = MAX(resets_at, excluded.resets_at)').run(account, resetsAt)
 		},
 		/** One runner drives the store at a time. A dead runner's claim is taken over, and its loss recorded against the item it was on. */
-		claimRunner(): Effect.Effect<void, MadeWellError> {
+		claimRunner(options: { exclusive?: boolean } = {}): Effect.Effect<void, MadeWellError> {
 			return Effect.suspend(() => {
 				const owner = tx(() => {
 					const row = db.prepare('SELECT pid, since, item FROM runner WHERE id = 1').get() as { pid: number; since: string; item: number | null } | undefined
-					if (row && row.pid !== process.pid && alive(row.pid)) return row
+					if (row && alive(row.pid) && (options.exclusive || row.pid !== process.pid)) return row
 					if (row && row.pid !== process.pid) event(row.item ?? 0, 'runner-lost', { pid: row.pid, since: row.since, item: row.item })
 					db.prepare('INSERT INTO runner (id, pid, since) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET pid = excluded.pid, since = excluded.since, item = NULL').run(process.pid, new Date().toISOString())
 					// The same pid already holding the claim is this runner's new build, swapped in by reload.
@@ -648,10 +648,12 @@ export function openStore(path: string) {
 				const busy = owner.item === null ? undefined : read(owner.item)
 				return Effect.fail(new MadeWellError({
 					code: 'store_locked',
-					message: 'Another live runner owns this Made Well store.',
+					message: options.exclusive ? 'A live runner owns this Made Well store; technical replanning must wait.' : 'Another live runner owns this Made Well store.',
 					context: { store: path, owner: { pid: owner.pid, since: owner.since, item: busy ? { id: busy.id, title: busy.title, job: busy.job, status: busy.status } : null } },
 					cause: 'One runner drives a store at a time, so two runners never work the same item.',
-					next: [
+					next: options.exclusive ? [
+						{ run: busy ? `mw status ${busy.id}` : 'mw status', why: 'inspect the owner; retry the requested replan once current work reaches a quiet boundary and releases ownership' },
+					] : [
 						{ run: busy ? `mw status ${busy.id}` : 'mw status', why: 'see what the running owner is doing; queued work will reach it automatically' },
 						{ run: `kill ${owner.pid} && mw run`, why: 'only if that runner is hung: work resumes at the job that was interrupted' },
 					],
