@@ -18,7 +18,7 @@ export interface Provenance {
 	state: 'linked' | 'unavailable' | 'ambiguous'; acceptanceEvent: number | null; executionCall: number | null; repairCall: number | null; invocation: string | null; eventSeqs: number[]; reason: string | null
 }
 export interface WorkEvidence {
-	job: string; configured: boolean; state: 'yes' | 'no' | 'unknown' | 'blocked'; complete: boolean; reason: string | null
+	job: string; configured: boolean; state: 'yes' | 'no' | 'unknown' | 'blocked'; complete: boolean; reason: string | null; schemaDiagnostic: string | null
 	input: unknown | null; output: unknown | null; acceptedOutput: unknown | null; eventSeqs: number[]; provenance: Provenance
 	laterAttempts: { entries: Array<{ event: number; at: string; kind: string; outcome: string; call: number | null; invocation: string | null; evidence: string }>; total: number; omitted: number; trace: string }
 }
@@ -77,8 +77,8 @@ export function workEvidenceOf(store: Reader, item: Item) {
 		if (functions && !complete) prefix = false
 		const attempts = events.filter(e => e.seq > (receipt?.seq ?? 0) && e.data.job === job && (e.kind === 'call-finished' && e.data.kind === 'execute' || e.kind === 'trace-finished' && ['function', 'compose'].includes(String(e.data.kind)))).reverse()
 		const laterAttempts = { entries: attempts.slice(0, 10).map(e => ({ event: e.seq, at: e.at, kind: String(e.data.kind), outcome: e.data.outcome === 'ok' || e.data.status === 'returned' ? 'unaccepted' : String(e.data.outcome ?? e.data.status ?? 'unknown'), call: typeof e.data.call === 'number' ? e.data.call : null, invocation: typeof e.data.invocation === 'string' ? e.data.invocation : null, evidence: `/api/v1/items/${item.id}/evidence?kind=event&ref=${e.seq}` })), total: attempts.length, omitted: Math.max(0, attempts.length - 10), trace: `/api/trace/${item.id}?lens=ax` }
-		const reason = complete ? null : problem ?? shapeProblem ?? (!receipt ? 'An output is retained, but no accepted execution evidence establishes this function.' : !valid ? 'Earlier acceptance is retained as history; correction or a changed contract requires this function again.' : !matches ? 'The retained output differs from its accepted execution evidence.' : !structured ? 'The configured accepted prefix or this node’s structured receipt is incomplete.' : !artifacts ? 'Required software maker artifacts are absent.' : 'No completed output is accepted for this function.')
-		jobs[job] = { job, configured: true, state: complete ? 'yes' : problem ? 'blocked' : 'no', complete, reason, input: source.input, output, acceptedOutput: acceptedOutput ?? null, eventSeqs: receipts.map(e => e.seq), provenance: source.provenance, laterAttempts }
+		const reason = complete ? null : problem ?? (!receipt ? output === null ? 'No output or accepted execution evidence is recorded for this function.' : 'An output is retained, but no accepted execution evidence establishes this function.' : !valid ? 'Earlier acceptance is retained as history; correction or a changed contract requires this function again.' : !matches ? 'The retained output differs from its accepted execution evidence.' : shapeProblem ?? (!structured ? 'The configured accepted prefix or this node’s structured receipt is incomplete.' : !artifacts ? 'Required software maker artifacts are absent.' : 'No completed output is accepted for this function.'))
+		jobs[job] = { job, configured: true, state: complete ? 'yes' : problem ? 'blocked' : 'no', complete, reason, schemaDiagnostic: shapeProblem ?? null, input: source.input, output, acceptedOutput: acceptedOutput ?? null, eventSeqs: receipts.map(e => e.seq), provenance: source.provenance, laterAttempts }
 	}
 	const verification = item.verification, proof = events.findLast(e => e.kind === 'verified'), checks = item.checks?.checks ?? []
 	const verificationStart = events.findLast(e => e.kind === 'verify-started')
@@ -92,4 +92,22 @@ export function workEvidenceOf(store: Reader, item: Item) {
 	const completionMatches = !!item.completion && item.completion.nodes === steps.length && equal(item.completion.output, parsedOutput(item.outputs[steps.at(-1)?.job ?? ''])) && !!final && (discovery || final.data.nodes === steps.length && equal(final.data.output, item.completion.output))
 	const delivered = configuredComplete && (functions ? completionMatches : discovery ? events.some(e => e.kind === 'discovered') : verificationCurrent && !!item.shipped && events.some(e => e.kind === 'shipped'))
 	return { jobs, configuredComplete, verificationCurrent, delivered, noWorkPerformed: steps.length === 0, reason: steps.length === 0 ? 'No work was performed.' : delivered ? null : 'Current evidence incomplete.', historical: { status: item.status, verification: item.verification ?? null, shipment: item.shipped ?? null, completion: item.completion ?? null } }
+}
+
+// UX carries conclusions and locators, never invocation or historical bodies.
+export function workEvidenceSummaryOf(evidence: ReturnType<typeof workEvidenceOf>, item: number) {
+ const preview = (value: string | null) => value === null ? null : Array.from(value).slice(0, 120).join('')
+ const detail = `/api/trace/${item}?lens=ax`
+ return {
+  configuredComplete: evidence.configuredComplete, verificationCurrent: evidence.verificationCurrent,
+  delivered: evidence.delivered, noWorkPerformed: evidence.noWorkPerformed, reason: preview(evidence.reason), detail,
+  jobs: Object.values(evidence.jobs).map((job, ordinal) => ({
+   key: `job:${ordinal}`, job: preview(job.job), labelTruncated: Array.from(job.job).length > 120,
+   configured: job.configured, state: job.state, complete: job.complete, reason: preview(job.reason),
+   reasonTruncated: job.reason !== null && Array.from(job.reason).length > 120,
+   provenance: { state: job.provenance.state, acceptanceEvent: job.provenance.acceptanceEvent, executionCall: job.provenance.executionCall, repairCall: job.provenance.repairCall },
+   laterAttempts: { total: job.laterAttempts.total, detail },
+   evidence: { detail, acceptance: job.provenance.acceptanceEvent === null ? null : `/api/v1/items/${item}/evidence?kind=event&ref=${job.provenance.acceptanceEvent}`, call: job.provenance.executionCall === null ? null : `/api/call/${job.provenance.executionCall}`, repair: job.provenance.repairCall === null ? null : `/api/call/${job.provenance.repairCall}` },
+  })),
+ }
 }

@@ -82,26 +82,36 @@ export const EVIDENCE_SCRIPT = String.raw`
 const evidenceNode=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
 const evidenceText=(n,text)=>{text=String(text??'');if(n.textContent!==text){const top=n.scrollTop,left=n.scrollLeft;n.textContent=text;n.scrollTop=top;n.scrollLeft=left}};
 function exactEvidence(parent,key,label,url){
- let d=[...parent.children].find(n=>n.dataset.evidenceKey===key);if(d)return d;
- d=evidenceNode('details');d.dataset.evidenceKey=key;d.dataset.key=key;const summary=evidenceNode('summary',label),body=evidenceNode('div');d.append(summary,body);
- const load=async()=>{try{const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error('Evidence unavailable (HTTP '+response.status+').');const value=await response.json();body.replaceChildren();if(!value.available){body.append(evidenceNode('p','Saved evidence unavailable.'));return}const data=value.data;const pre=evidenceNode('pre',data.answer!==undefined?data.answer:JSON.stringify(data,null,2));pre.tabIndex=0;pre.setAttribute('aria-label',label);body.append(pre)}catch(e){body.replaceChildren(evidenceNode('p',e.message));const retry=evidenceNode('button','Try again');retry.type='button';retry.onclick=load;body.append(retry)}};
- let loaded=false;d.addEventListener('toggle',()=>{if(d.open&&!loaded){loaded=true;void load()}});parent.append(d);return d;
+ let d=[...parent.children].find(n=>n.dataset.evidenceKey===key);
+ if(d){d._updateEvidence(label,url);return d}
+ d=evidenceNode('details');d.dataset.evidenceKey=key;d.dataset.key=key;
+ const summary=evidenceNode('summary',label),body=evidenceNode('div');d.append(summary,body);
+ let loaded=false,generation=0;
+ const retry=(text)=>{const button=evidenceNode('button',text);button.type='button';button.onclick=()=>{loaded=true;void load()};body.append(button)};
+ const load=async()=>{const version=generation,target=d._evidenceUrl;body.replaceChildren(evidenceNode('p','Loading saved evidence…'));try{const response=await fetch(target,{cache:'no-store'});if(version!==generation)return;if(!response.ok)throw new Error('Evidence unavailable (HTTP '+response.status+').');const value=await response.json();if(version!==generation)return;body.replaceChildren();if(!value.available){body.append(evidenceNode('p','Saved evidence unavailable or changed.'));retry('Refresh evidence');return}const data=value.data;const pre=evidenceNode('pre',data.answer!==undefined?data.answer:JSON.stringify(data,null,2));pre.tabIndex=0;pre.setAttribute('aria-label',d._evidenceLabel);body.append(pre)}catch(e){if(version!==generation)return;body.replaceChildren(evidenceNode('p',e.message));retry('Try again')}};
+ d._updateEvidence=(nextLabel,nextUrl)=>{const changed=d._evidenceUrl!==undefined&&d._evidenceUrl!==nextUrl;d._evidenceUrl=nextUrl;d._evidenceLabel=nextLabel;d.dataset.evidenceUrl=nextUrl;d.dataset.evidenceLabel=nextLabel;evidenceText(summary,nextLabel);if(changed){generation++;loaded=false;body.replaceChildren(evidenceNode('p','Saved evidence changed.'));retry('Refresh evidence')}};
+ d._updateEvidence(label,url);d.addEventListener('toggle',()=>{if(d.open&&!loaded){loaded=true;void load()}});parent.append(d);return d;
 }
 function currentWork(parent,summary,item){
  let root=[...parent.children].find(n=>n.dataset.currentWork===String(item));if(!root){root=evidenceNode('section');root.dataset.currentWork=String(item);root.append(evidenceNode('h3','Current work'));parent.append(root)}
- const entries=summary?.entries??[],keep=new Set(entries.map(e=>e.id));
+ const entries=summary?.entries??[],keep=new Set(entries.map(e=>e.key));
  for(const n of [...root.children])if(n.dataset.handoff&&!keep.has(n.dataset.handoff))n.remove();
- let empty=root.querySelector('[data-no-handoff]');if(!entries.length){if(!empty){empty=evidenceNode('p','No current handoff.');empty.dataset.noHandoff='';root.append(empty)}}else empty?.remove();
- for(const entry of entries){let card=[...root.children].find(n=>n.dataset.handoff===entry.id);if(!card){card=evidenceNode('section');card.dataset.handoff=entry.id;for(const key of ['role','duty','owed']){const p=evidenceNode('p');p.dataset.field=key;card.append(p)}root.append(card)}
+ let empty=root.querySelector('[data-no-handoff]');if(!entries.length){if(!empty){empty=evidenceNode('p');empty.dataset.noHandoff='';root.append(empty)}evidenceText(empty,summary?.entriesTotal?'Active handoffs omitted from this preview. Inspect full evidence.':'No current handoff.')}else empty?.remove();
+ let summaryNote=root.querySelector('[data-summary-note]');if(!summaryNote){summaryNote=evidenceNode('p');summaryNote.dataset.summaryNote='';root.append(summaryNote)}
+ evidenceText(summaryNote,(summary?.truncated?'Preview shortened. ':'')+(summary?.entriesOmitted?summary.entriesOmitted+' active handoffs omitted. ':'')+(summary?.questionsOmitted?summary.questionsOmitted+' questions omitted. ':''));
+ if(summary?.evidence?.detail){let link=root.querySelector('[data-full-evidence]');if(!link){link=evidenceNode('a','Inspect full evidence');link.dataset.fullEvidence='';root.append(link)}if(link.getAttribute('href')!==summary.evidence.detail)link.href=summary.evidence.detail}
+ for(const entry of entries){let card=[...root.children].find(n=>n.dataset.handoff===entry.key);if(!card){card=evidenceNode('section');card.dataset.handoff=entry.key;for(const key of ['role','duty','owed']){const p=evidenceNode('p');p.dataset.field=key;card.append(p)}root.append(card)}
   evidenceText(card.querySelector('[data-field=role]'),entry.profile+' · '+entry.job+' · '+(entry.mode==='configured-next'?'Configured next; handoff not established':entry.exchangeStatus));
   evidenceText(card.querySelector('[data-field=duty]'),entry.duty+(entry.dutyTruncated?'…':''));
   evidenceText(card.querySelector('[data-field=owed]'),entry.unresolvedCount+' outstanding obligation'+(entry.unresolvedCount===1?'':'s'));
-  exactEvidence(card,entry.id+':output','Expected output & complete handoff',entry.expectedOutput.detail);
-  const questionKeys=new Set();for(const q of summary.questions??[]){if(!entry.questionIds.includes(q.id))continue;const key=entry.id+':question:'+q.id;questionKeys.add(key);let row=[...card.children].find(n=>n.dataset.question===key);if(!row){row=evidenceNode('div');row.dataset.question=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,q.text+(q.textTruncated?'…':'')+' · '+q.ownerRole+(q.blockingRole?' · needed by '+q.blockingRole:'')+' · '+q.resolution);for(const r of q.resolutions)exactEvidence(row,key+':answer:'+r.answerId,'Saved resolution · '+r.by+' · '+r.answerId,r.detail);if(q.resolutionsOmitted)exactEvidence(row,key+':more','All saved resolutions',entry.evidence.detail)}
+  exactEvidence(card,entry.key+':output','Expected output & complete handoff',entry.expectedOutput.detail);
+  const questionKeys=new Set();for(const state of entry.questionStates??[]){const q=(summary.questions??[]).find(q=>q.key===state.key);if(!q)continue;const key=entry.key+':question:'+q.key;questionKeys.add(key);let row=[...card.children].find(n=>n.dataset.question===key);if(!row){row=evidenceNode('div');row.dataset.question=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,q.text+(q.textTruncated?'…':'')+' · '+q.ownerRole+(q.blockingRole?' · needed by '+q.blockingRole:'')+' · '+state.resolution);
+   const answers=new Set();for(const [i,r] of (state.resolutions??[]).entries()){const answerKey=key+':answer:'+i;answers.add(answerKey);exactEvidence(row,answerKey,'Saved resolution · '+r.by+' · '+r.answerId,r.detail)}if(state.resolutionsOmitted){answers.add(key+':more');exactEvidence(row,key+':more','All '+state.resolutionsTotal+' saved resolutions',entry.evidence.detail)}for(const disclosure of [...row.children])if(disclosure.dataset.evidenceKey&&!answers.has(disclosure.dataset.evidenceKey))disclosure.remove();
+  }
   for(const row of [...card.children])if(row.dataset.question&&!questionKeys.has(row.dataset.question))row.remove();
-  const inputKeys=new Set();for(const input of entry.inputs??[]){const o=input.observation,key=entry.id+':input:'+input.id+':'+(o?.event??'unchecked');inputKeys.add(key);let row=[...card.children].find(n=>n.dataset.input===key);if(!row){row=evidenceNode('div');row.dataset.input=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,input.id+' · '+(o?'Observed '+(o.ok?'available':'unavailable')+' at '+o.at+' · '+o.job+' · '+(o.name??'unknown worktree')+' · '+(o.dir??'unknown directory'):input.state==='not-checked'?'Not checked':'Unknown')+' · Current availability unknown');exactEvidence(row,key+':detail','Recorded input evidence',input.evidence)}
+  const inputKeys=new Set();for(const input of entry.inputs??[]){const o=input.observation,key=entry.key+':input:'+input.key;inputKeys.add(key);let row=[...card.children].find(n=>n.dataset.input===key);if(!row){row=evidenceNode('div');row.dataset.input=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,input.id+' · '+(o?'Observed '+(o.ok?'available':'unavailable')+' at '+o.at+' · '+o.job+' · '+(o.name??'unknown worktree')+' · '+(o.dir??'unknown directory'):input.state==='not-checked'?'Not checked':'Unknown')+' · Current availability unknown');exactEvidence(row,key+':detail','Recorded input evidence',input.evidence)}
   for(const row of [...card.children])if(row.dataset.input&&!inputKeys.has(row.dataset.input))row.remove();
-  let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(summary.questionsOmitted?summary.questionsOmitted+' more questions. ':'')+'Exact details are available above.');
+  let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.truncated?'Preview shortened. ':'')+(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(entry.questionsOmitted?entry.questionsOmitted+' more assigned questions. ':'')+'Exact details are available above.');
  }
  return root;
 }
@@ -109,11 +119,10 @@ function patchEvidence(old,fresh){
  if(old.nodeType!==fresh.nodeType||old.nodeName!==fresh.nodeName){old.replaceWith(fresh);return fresh}
  if(old.nodeType===3){if(old.nodeValue!==fresh.nodeValue)old.nodeValue=fresh.nodeValue;return old}
  const top=old.scrollTop,left=old.scrollLeft;
+ if(old.dataset.evidenceKey&&old.dataset.evidenceKey===fresh.dataset.evidenceKey){old._updateEvidence(fresh._evidenceLabel,fresh._evidenceUrl);return old}
  if(fresh._fill){old._fill=fresh._fill;old._filled=fresh._filled}
  for(const a of [...old.attributes])if(!fresh.hasAttribute(a.name)&&a.name!=='open')old.removeAttribute(a.name);
  for(const a of [...fresh.attributes])if(a.name!=='open'&&old.getAttribute(a.name)!==a.value)old.setAttribute(a.name,a.value);
- // An exact disclosure is bound to immutable evidence identity; keep its fetched body and handlers.
- if(old.dataset.evidenceKey&&old.dataset.evidenceKey===fresh.dataset.evidenceKey)return old;
  const key=n=>n.nodeType===1?(n.dataset.handoff||n.dataset.key||n.dataset.question||n.dataset.input||n.dataset.field||null):null;
  let cursor=old.firstChild;
  for(const child of [...fresh.childNodes]){const k=key(child);let existing=k?[...old.childNodes].find(n=>key(n)===k):cursor&& !key(cursor)?cursor:null;if(existing){if(existing!==cursor)old.insertBefore(existing,cursor);existing=patchEvidence(existing,child);cursor=existing.nextSibling}else{old.insertBefore(child,cursor)}}

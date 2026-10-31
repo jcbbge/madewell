@@ -6,7 +6,7 @@ import { Effect } from 'effect'
 import { answer, nextFor, promote } from './engine.ts'
 import { ERRORS, MadeWellError } from './errors.ts'
 import { laneOf, loadPack } from './lane.ts'
-import { currentHandoffOf, evidenceDetailOf, evidenceUrl, messageReferencesOf, type AnswerReference } from './handoff-view.ts'
+import { currentHandoffOf, displayPreview, evidenceDetailOf, evidenceUrl, messageReferencesOf, type AnswerReference } from './handoff-view.ts'
 import { otlpOf } from './otlp.ts'
 import { projectsPath, readProjects } from './project.ts'
 import { QA_JSON_SCHEMAS, qaCase, qaCases, qaCreateCase, qaError, qaExport, qaLink, qaObservations, qaObserve, qaReviseCase, qaRun, qaRuns, qaStartRun, qaVerdict } from './qa.ts'
@@ -50,7 +50,7 @@ const messagesOf = (item: Item, events: readonly Event[], store: Store['Service'
 		const text = e.data.answer ?? (e.kind === 'ruling' && typeof e.data.prerequisite === 'number' ? store.get(e.data.prerequisite)?.objective : undefined)
 		if (['nq-answer', 'nq-corrected', 'steered', 'ruling', 'nq-decided', 'nq-reused'].includes(e.kind) && (typeof text === 'string' || e.kind === 'nq-reused')) {
 			const references = messageReferencesOf(store, item, e), role = String(e.data.originator ?? e.data.by ?? 'unknown')
-			messages.push({ id: `event:${e.seq}`, at: e.at, role, actor: { role, job: typeof e.data.job === 'string' ? e.data.job : null }, kind: e.kind === 'nq-decided' ? 'decision' : e.kind === 'nq-reused' ? 'reuse' : 'answer', text: e.kind === 'nq-reused' ? 'Reused answer' + (references.length ? ': ' + references.slice(0, 5).map(r => r.answerId).join(', ') : ' (target unknown)') : String(text), event: e.seq, references: exact ? references : references.slice(0, 5).map(r => ({ ...r, question: r.question.slice(0, 240) })), referencesTotal: references.length, referencesOmitted: exact ? 0 : Math.max(0, references.length - 5), evidence: evidenceUrl(item.id, 'event', e.seq) })
+			messages.push({ id: `event:${e.seq}`, at: e.at, role, actor: { role, job: typeof e.data.job === 'string' ? e.data.job : null }, kind: e.kind === 'nq-decided' ? 'decision' : e.kind === 'nq-reused' ? 'reuse' : 'answer', text: e.kind === 'nq-reused' ? 'Reused answer' + (references.length ? ': ' + references.slice(0, 5).map(r => r.answerId).join(', ') : ' (target unknown)') : String(text), event: e.seq, references: exact ? references : references.slice(0, 5).map(r => ({ ...r, question: displayPreview(r.question, 240) })), referencesTotal: references.length, referencesOmitted: exact ? 0 : Math.max(0, references.length - 5), evidence: evidenceUrl(item.id, 'event', e.seq) })
 		}
 	}
 	return messages
@@ -66,7 +66,10 @@ export const contextOf = (store: Store['Service'], id: number) => {
 	let remaining = 12_000 - JSON.stringify(currentHandoff).length - 2
 	const selected: Message[] = []
 	for (const m of history.slice(-20).reverse()) {
-		const entry = { ...m, text: m.text.slice(0, 2000), truncated: m.text.length > 2000 }
+		const entry: Message = { ...m, at: displayPreview(m.at), role: displayPreview(m.role), text: displayPreview(m.text, 2000),
+			...(m.actor ? { actor: { role: displayPreview(m.actor.role), job: m.actor.job === null ? null : displayPreview(m.actor.job) } } : {}),
+			...(m.references ? { references: m.references.map(r => ({ ...r, question: displayPreview(r.question, 240), by: displayPreview(r.by), job: r.job === null ? null : displayPreview(r.job), source: r.source ? { ...r.source, at: displayPreview(r.source.at) } : null })) } : {}),
+			truncated: Array.from(m.text).length > 2000 || [m.at, m.role, m.actor?.role ?? '', m.actor?.job ?? ''].some(v => Array.from(v).length > 120) || (m.referencesTotal ?? 0) > (m.references?.length ?? 0) || !!m.references?.some(r => Array.from(r.question).length >= 240 || [r.by, r.job ?? '', r.source?.at ?? ''].some(v => Array.from(v).length > 120)) }
 		const size = JSON.stringify(entry).length + 1
 		if (size > remaining) break
 		remaining -= size; selected.unshift(entry)
@@ -76,7 +79,7 @@ export const contextOf = (store: Store['Service'], id: number) => {
 		const cause = /--cause ([\w-]+)/.exec(n.run)?.[1]
 		const read = n.run.startsWith('mw ') && ['context', 'trace', 'show', 'status', 'holds', 'next', 'stats', 'watch', 'export', 'replay'].includes(command)
 		return {
-			owner: read ? 'observer' : 'operator', authority: read ? 'read-only' : 'explicit-operator-action', reason: n.why, command: n.run,
+			owner: read ? 'observer' : 'operator', authority: read ? 'read-only' : 'explicit-operator-action', reason: displayPreview(n.why, 240), command: n.run,
 			transport: command === 'answer' ? 'http' : 'cli',
 			...(command === 'answer' ? { method: 'POST', href: `${ROOT}/items/${id}/answers` } : {}),
 			inputs: (command === 'answer' ? { revision, text: null, ...(cause ? { cause } : {}), requestId: null } : { id }) as Record<string, unknown>,
@@ -84,15 +87,33 @@ export const contextOf = (store: Store['Service'], id: number) => {
 		}
 	})
 	if (item.status === 'candidate' && item.discovery !== undefined) actions.unshift({ owner: 'operator', authority: 'explicit-operator-action', reason: 'Start this task and its prerequisites through the configured delivery steps.', command: `mw promote ${item.discovery} ${id}`, transport: 'http', method: 'POST', href: `${ROOT}/items/${id}/start`, inputs: { revision, requestId: null }, preconditions: { revision, status: item.status, holdCode: null } })
-	return {
+	const context = {
 		apiVersion: '1',
-		item: { id, title: item.title, objective: item.objective, source: item.source.slice(0, 8000), sourceTruncated: item.source.length > 8000, workspace: item.workspace },
-		position: { status: item.status, node: item.job, round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery'), accepted: item.flow?.accepted ?? [] },
+		item: { id, title: displayPreview(item.title), objective: displayPreview(item.objective, 240), source: displayPreview(item.source, 8000), sourceTruncated: Array.from(item.source).length > 8000, workspace: displayPreview(item.workspace) },
+		position: { status: item.status, node: displayPreview(item.job), round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery'), accepted: (item.flow?.accepted ?? []).slice(0, 20).map(v => displayPreview(v)), acceptedTotal: item.flow?.accepted.length ?? 0, acceptedOmitted: Math.max(0, (item.flow?.accepted.length ?? 0) - 20) },
 		revision, evidence: { event: events.at(-1)?.seq ?? 0, record: `/api/item/${id}`, trace: `/api/trace/${id}?lens=ax`, conversation: `${ROOT}/items/${id}/conversation`, otlp: `${ROOT}/items/${id}/otlp`, qaCases: `${ROOT}/qa/cases?workItem=${id}`, qaRuns: `${ROOT}/qa/runs?workItem=${id}`, cli: { record: `mw show ${id}`, trace: `mw trace ${id} --lens ax`, context: `mw context ${id}` } },
-		currentHandoff, answer: policy, conversation: selected, conversationTruncated: selected.length < history.length || selected.some((m) => m.truncated),
-		next: actions,
+		currentHandoff, answer: { ...policy, reason: displayPreview(policy.reason, 240) }, conversation: selected, conversationTruncated: selected.length < history.length || selected.some((m) => m.truncated),
+		next: actions, actionsTotal: actions.length, actionsOmitted: 0, truncated: false,
 		observation: { owner: 'observer', authority: 'read-only', reason: actions.length ? 'Relay the operator decision; do not answer on their behalf.' : 'Read saved evidence; no automatic retry, repair or steering is authorized.', method: 'GET', href: `${ROOT}/items/${id}`, command: `mw context ${id}` },
 	}
+
+	const account = () => {
+		context.actionsOmitted = context.actionsTotal - actions.length
+		context.position.acceptedOmitted = context.position.acceptedTotal - context.position.accepted.length
+		context.conversationTruncated ||= selected.length < history.length || selected.some(m => m.truncated)
+		context.truncated ||= context.item.sourceTruncated || context.currentHandoff.truncated || context.conversationTruncated || context.actionsOmitted > 0 || context.position.acceptedOmitted > 0 || context.answer.reason !== policy.reason || context.item.title !== item.title || context.item.objective !== item.objective || context.item.workspace !== item.workspace || context.position.node !== item.job || context.position.accepted.some((v, i) => v !== item.flow?.accepted[i]) || actions.some(a => Array.from(a.reason).length >= 240)
+	}
+	account()
+	while (Buffer.byteLength(JSON.stringify(context), 'utf8') > 24576) {
+		context.truncated = true
+		if (selected.length) selected.shift()
+		else if (context.item.source) { context.item.source = displayPreview(context.item.source, Math.floor(Array.from(context.item.source).length / 2)); context.item.sourceTruncated = true }
+		else if (actions.length) actions.pop()
+		else if (context.position.accepted.length) context.position.accepted.pop()
+		else break // The fixed envelope and separately bounded handoff fit without optional bodies.
+		account()
+	}
+	return context
 }
 
 // Explicit schemas for this version only; the legacy routes and CLI keep their existing contracts.
@@ -110,29 +131,33 @@ const revisionSchema = { type: 'string', pattern: '^[a-f0-9]{64}$' }
 const arbitrary = { type: 'object', additionalProperties: true }
 const sourceSchema = object({ item: integer, event: integer, at: str })
 const answerReferenceSchema = object({ question: str, answerId: str, canonicalId: nullable(str), resolved: bool, by: str, job: nullable(str), source: nullable(sourceSchema), detail: str })
-const handoffInputSchema = object({ id: str, state: { enum: ['recorded-available', 'recorded-unavailable', 'not-checked', 'unknown'] }, currentAvailability: { const: 'unknown' }, declaration: nullable(arbitrary), observation: nullable(arbitrary), evidence: str })
-const handoffQuestionSchema = object({ id: str, text: str, textTruncated: bool, ownerRole: str, blockingRole: nullable(str), resolution: { enum: ['resolved', 'unresolved'] }, resolutions: array(answerReferenceSchema), resolutionsTotal: integer, resolutionsOmitted: integer })
-const handoffEntrySchema = object({ id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ['agent', 'command', 'group', 'engine'] }, mode: { enum: ['current', 'configured-next'] }, exchangeStatus: str, round: integer, questionIds: array(str), unresolvedCount: integer, expectedOutput: object({ state: { enum: ['configured', 'unspecified'] }, detail: str, pointer: str }), inputs: array(handoffInputSchema), inputsTotal: integer, inputsOmitted: integer, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array(integer) }), truncated: bool })
-const handoffSchema = object({ entries: array(handoffEntrySchema), questions: array(handoffQuestionSchema), questionsTotal: integer, questionsOmitted: integer, evidence: object({ detail: str }), truncated: bool })
+const fullHandoffInputSchema = object({ id: str, state: { enum: ['recorded-available', 'recorded-unavailable', 'not-checked', 'unknown'] }, currentAvailability: { const: 'unknown' }, declaration: nullable(arbitrary), observation: nullable(arbitrary), evidence: str })
+const fullHandoffQuestionSchema = object({ id: str, text: str, textTruncated: bool, ownerRole: str, blockingRole: nullable(str), resolution: { enum: ['resolved', 'unresolved'] }, resolutions: array(answerReferenceSchema), resolutionsTotal: integer, resolutionsOmitted: integer })
+const fullHandoffEntrySchema = object({ id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ['agent', 'command', 'group', 'engine'] }, mode: { enum: ['current', 'configured-next'] }, exchangeStatus: str, round: integer, questionIds: array(str), unresolvedCount: integer, expectedOutput: object({ state: { enum: ['configured', 'unspecified'] }, detail: str, pointer: str }), inputs: array(fullHandoffInputSchema), inputsTotal: integer, inputsOmitted: integer, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array(integer) }), truncated: bool })
+const compactQuestionSchema = object({ key: str, id: str, text: str, textTruncated: bool, ownerRole: str, blockingRole: nullable(str), truncated: bool })
+const compactQuestionStateSchema = object({ key: str, resolution: { enum: ['resolved', 'unresolved'] }, resolutions: array(answerReferenceSchema), resolutionsTotal: integer, resolutionsOmitted: integer, truncated: bool })
+const compactInputSchema = object({ key: str, id: str, state: { enum: ['recorded-available', 'recorded-unavailable', 'not-checked', 'unknown'] }, currentAvailability: { const: 'unknown' }, observation: nullable(object({ event: integer, item: nullable(integer), ok: bool, at: str, job: str, name: nullable(str), dir: nullable(str) })), evidence: str, truncated: bool })
+const compactEntrySchema = object({ key: str, id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ['agent', 'command', 'group', 'engine'] }, mode: { enum: ['current', 'configured-next'] }, exchangeStatus: str, round: integer, questionStates: array(compactQuestionStateSchema), questionsTotal: integer, questionsOmitted: integer, unresolvedCount: integer, expectedOutput: object({ state: { enum: ['configured', 'unspecified'] }, detail: str, pointer: str }), inputs: array(compactInputSchema), inputsTotal: integer, inputsOmitted: integer, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array(integer) }), truncated: bool })
+const handoffSchema = object({ entries: array(compactEntrySchema), entriesTotal: integer, entriesOmitted: integer, questions: array(compactQuestionSchema), questionsTotal: integer, questionsOmitted: integer, evidence: object({ detail: str }), truncated: bool })
 const messageSchema = object({ id: str, at: str, role: str, kind: str, text: str, event: nullable(integer), truncated: bool, actor: object({ role: str, job: nullable(str) }), references: array(answerReferenceSchema), referencesTotal: integer, referencesOmitted: integer, evidence: str }, ['id', 'at', 'role', 'kind', 'text', 'event'])
 const eventDetailSchema = object({ event: object({ seq: integer, item: integer, at: str, kind: str, data: arbitrary }), references: array(answerReferenceSchema), messages: array(messageSchema) })
 const answerDetailSchema = object({ requestedId: str, canonicalId: str, question: str, answer: str, by: str, job: str, source: nullable(sourceSchema) })
-const handoffDetailSchema = object({ entry: handoffEntrySchema, questions: array(handoffQuestionSchema), declarations: array(object({ call: integer, scope: str, projectInputs: {} })), observations: array(arbitrary), outputSchema: nullable(arbitrary) })
+const handoffDetailSchema = object({ entry: fullHandoffEntrySchema, questions: array(fullHandoffQuestionSchema), declarations: array(object({ call: integer, scope: str, projectInputs: {} })), observations: array(arbitrary), outputSchema: nullable(arbitrary) })
 
 const actionSchema = object({ owner: str, authority: str, reason: str, command: str, transport: str, method: str, href: str, inputs: { type: 'object', additionalProperties: true }, preconditions: object({ revision: revisionSchema, status: str, holdCode: nullable(str) }) }, ['owner', 'authority', 'reason', 'command', 'transport', 'inputs', 'preconditions'])
 const attributesSchema = array(object({ key: str, value: { oneOf: [object({ stringValue: str }), object({ intValue: { type: 'string', pattern: '^-?[0-9]+$' } }), object({ doubleValue: { type: 'number' } })] } }))
 export const API_SCHEMAS = {
 	...QA_JSON_SCHEMAS,
 	CurrentHandoff: handoffSchema,
-	Evidence: { anyOf: [object({ apiVersion: { const: '1' }, item: integer, kind: { enum: ['event', 'answer', 'handoff'] }, ref: str, available: { const: false }, data: { type: 'null' } }), ...(['event', 'answer', 'handoff'] as const).map(kind => object({ apiVersion: { const: '1' }, item: integer, kind: { const: kind }, ref: str, available: { const: true }, data: kind === 'event' ? eventDetailSchema : kind === 'answer' ? answerDetailSchema : handoffDetailSchema }))] },
+	Evidence: { anyOf: [object({ apiVersion: { const: '1' }, item: integer, kind: { enum: ['event', 'answer', 'handoff', 'handoff-slot'] }, ref: str, available: { const: false }, data: { type: 'null' } }), ...(['event', 'answer', 'handoff', 'handoff-slot'] as const).map(kind => object({ apiVersion: { const: '1' }, item: integer, kind: { const: kind }, ref: str, available: { const: true }, data: kind === 'event' ? eventDetailSchema : kind === 'answer' ? answerDetailSchema : handoffDetailSchema }))] },
 	Submit: object({ requestId: requestIdSchema, workspace: textInput(4096), title: textInput(300), objective: textInput(2000), source: textInput(TEXT_LIMIT), mode: { enum: ['discovery', 'delivery'] } }, ['requestId', 'workspace', 'objective', 'source']),
 	Answer: object({ requestId: requestIdSchema, revision: revisionSchema, text: textInput(TEXT_LIMIT), cause: { enum: ['implementation', 'test', 'pre-existing'] } }, ['requestId', 'revision', 'text']),
 	Start: object({ requestId: requestIdSchema, revision: revisionSchema }),
 	Context: object({
 		apiVersion: { const: '1' }, item: object({ id: integer, title: str, objective: str, source: str, sourceTruncated: bool, workspace: str }),
-		position: object({ status: str, node: str, round: integer, loop: str, accepted: array(str) }), revision: revisionSchema,
+		position: object({ status: str, node: str, round: integer, loop: str, accepted: array(str), acceptedTotal: integer, acceptedOmitted: integer }), revision: revisionSchema,
 		evidence: object({ event: integer, record: str, trace: str, conversation: str, otlp: str, qaCases: str, qaRuns: str, cli: object({ record: str, trace: str, context: str }) }), answer: object({ allowed: bool, causeRequired: bool, causes: array(str), reason: str }),
-		currentHandoff: ref('CurrentHandoff'), conversation: array(messageSchema), conversationTruncated: bool, next: array(actionSchema), observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str }),
+		currentHandoff: ref('CurrentHandoff'), conversation: array(messageSchema), conversationTruncated: bool, next: array(actionSchema), actionsTotal: integer, actionsOmitted: integer, truncated: bool, observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str }),
 	}),
 	Conversation: object({ apiVersion: { const: '1' }, item: integer, revision: revisionSchema, messages: array(messageSchema), nextAfter: nullable(integer), hasMore: bool }),
 	Accepted: object({ apiVersion: { const: '1' }, accepted: { const: true }, requestId: requestIdSchema, receipt: object({ item: integer, revision: revisionSchema, event: integer, replayed: bool }), context: nullable(ref('Context')), warnings: array(str) }),
@@ -172,7 +197,7 @@ export const OPENAPI = {
 		[`${ROOT}/items/{id}/answers`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], post: operation('answerWork', ref('Accepted'), 'Answer') },
 		[`${ROOT}/items/{id}/start`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], post: operation('startSelectedTask', ref('Accepted'), 'Start') },
 		[`${ROOT}/items/{id}/conversation`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], get: { ...operation('readConversation', ref('Conversation')), parameters: [{ name: 'after', in: 'query', schema: integer, description: 'Last seen event seq; absent starts with source. Pages contain up to 50 messages.' }] } },
-		[`${ROOT}/items/{id}/evidence`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], get: { ...operation('readEvidence', ref('Evidence')), parameters: [{ name: 'kind', in: 'query', required: true, schema: { enum: ['event', 'answer', 'handoff'] } }, { name: 'ref', in: 'query', required: true, schema: str, description: 'Exact event sequence, sequence:index answer identity or configured job. Unknown/repeated selectors are refused; unavailable saved targets return available:false.' }] } },
+		[`${ROOT}/items/{id}/evidence`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], get: { ...operation('readEvidence', ref('Evidence')), parameters: [{ name: 'kind', in: 'query', required: true, schema: { enum: ['event', 'answer', 'handoff', 'handoff-slot'] } }, { name: 'ref', in: 'query', required: true, schema: str, description: 'Exact event sequence, sequence:index answer identity, configured job, or handoff-slot zero-based slot:SHA-256 digest of the complete current handoff JSON. A changed slot/digest is unavailable. Unknown/repeated selectors are refused; unavailable saved targets return available:false.' }] } },
 		[`${ROOT}/items/{id}/otlp`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], get: operation('exportOtlp', ref('Otlp')) },
 		[`${ROOT}/qa/cases`]: { get: qaOperation('qaCases', 'QaCaseList', undefined, 'QaCasesQuery'), post: qaOperation('qaCreateCase', 'QaAccepted', 'QaCreateCaseInput') },
 		[`${ROOT}/qa/cases/{caseId}`]: { get: qaOperation('qaCase', 'QaCaseDetail', undefined, 'QaCaseQuery', ['caseId']) },
@@ -361,8 +386,8 @@ export const createApi = (options: ApiOptions) => {
 				const item = found(store, target!)
 				if (match[2] === 'evidence') {
 					const params = url.searchParams, kind = params.get('kind'), ref = params.get('ref')
-					if ([...params.keys()].some(k => !['kind', 'ref'].includes(k)) || params.getAll('kind').length !== 1 || params.getAll('ref').length !== 1 || !['event', 'answer', 'handoff'].includes(kind ?? '') || !ref || kind === 'event' && (!/^[1-9]\d*$/.test(ref) || !Number.isSafeInteger(Number(ref))) || kind === 'answer' && (!/^[1-9]\d*:(0|[1-9]\d*)$/.test(ref) || ref.split(':').some(n => !Number.isSafeInteger(Number(n)))) || kind === 'handoff' && !/^[a-z0-9][a-z0-9-]*$/.test(ref)) throw fail(400, 'invalid_selector', 'Provide exactly one valid kind and ref; unknown or repeated parameters are refused.')
-					const data = evidenceDetailOf(store!, item, kind as 'event' | 'answer' | 'handoff', ref)
+					if ([...params.keys()].some(k => !['kind', 'ref'].includes(k)) || params.getAll('kind').length !== 1 || params.getAll('ref').length !== 1 || !['event', 'answer', 'handoff', 'handoff-slot'].includes(kind ?? '') || !ref || kind === 'event' && (!/^[1-9]\d*$/.test(ref) || !Number.isSafeInteger(Number(ref))) || kind === 'answer' && (!/^[1-9]\d*:(0|[1-9]\d*)$/.test(ref) || ref.split(':').some(n => !Number.isSafeInteger(Number(n)))) || kind === 'handoff' && !/^[a-z0-9][a-z0-9-]*$/.test(ref) || kind === 'handoff-slot' && (!/^(0|[1-9]\d*):[a-f0-9]{64}$/.test(ref) || !Number.isSafeInteger(Number(ref.split(':')[0])))) throw fail(400, 'invalid_selector', 'Provide exactly one valid kind and ref; unknown or repeated parameters are refused.')
+					const data = evidenceDetailOf(store!, item, kind as 'event' | 'answer' | 'handoff' | 'handoff-slot', ref)
 					if (kind === 'event' && data && 'event' in data) Object.assign(data, { messages: messagesOf(item, [data.event], store!, true).filter(m => m.kind !== 'source') })
 					return send(res, { apiVersion: '1', item: item.id, kind, ref, available: data !== null, data })
 				}
@@ -370,7 +395,7 @@ export const createApi = (options: ApiOptions) => {
 				if (match[2] === 'conversation') {
 					const after = url.searchParams.has('after') ? Number(url.searchParams.get('after')) : -1
 					if (!Number.isSafeInteger(after) || after < -1) throw fail(400, 'invalid_cursor', 'after must be an event sequence number.')
-					const messages = messagesOf(item, store!.events(item.id), store!).filter((m) => after < 0 || (m.event ?? 0) > after)
+					const messages = messagesOf(item, store!.events(item.id), store!, true).filter((m) => after < 0 || (m.event ?? 0) > after)
 					const page = messages.slice(0, 50)
 					return send(res, { apiVersion: '1', item: item.id, revision: revisionOf(item), messages: page, nextAfter: page.at(-1)?.event ?? null, hasMore: messages.length > page.length })
 				}

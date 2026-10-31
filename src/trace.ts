@@ -1,7 +1,7 @@
 // One append-only trace in the existing event store. Lenses and renderers never move work.
 import { randomUUID } from 'node:crypto'
 import { Cause, Effect, Exit } from 'effect'
-import { workEvidenceOf } from './work-evidence.ts'
+import { workEvidenceOf, workEvidenceSummaryOf } from './work-evidence.ts'
 import { currentHandoffOf } from './handoff-view.ts'
 import { laneOf, stepOf } from './lane.ts'
 import type { Next } from './errors.ts'
@@ -167,7 +167,14 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 		item: id, title: item.title, objective: item.objective, workEvidence, currentHandoff, done, needsYou, state,
 		next, proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
 	}
-	if (lens === 'ux') return { lens, depth: 30_000, ...ux }
+	if (lens === 'ux') {
+		const result = item.completion?.output && typeof item.completion.output === 'object' && 'result' in item.completion.output ? item.completion.output.result : null
+		const points = typeof result === 'string' ? Array.from(result) : []
+		return { lens, depth: 30_000, ...ux, workEvidence: workEvidenceSummaryOf(workEvidence, id), proof: { ...ux.proof,
+			completion: item.completion ? { nodes: item.completion.nodes, result: typeof result === 'string' ? points.slice(0, 1200).join('') : null, resultTruncated: points.length > 1200, detail: `/api/trace/${id}?lens=ax` } : null,
+			shipped: item.shipped ? { recorded: true, detail: `/api/trace/${id}?lens=ax` } : null,
+		} }
+	}
 	const lane = laneOf(item.pack)
 	const step = stepOf(lane, item.job)
 	const dx = {

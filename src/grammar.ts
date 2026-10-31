@@ -39,7 +39,7 @@ export interface GrammarStep {
 	readonly configured: boolean
 	readonly input: unknown | null
 	readonly output: unknown | null
-	readonly evidence: { readonly eventSeqs: ReadonlyArray<number>; readonly trace: string; readonly provenance?: unknown; readonly laterAttempts?: unknown; readonly acceptedOutput?: unknown }
+	readonly evidence: { readonly eventSeqs: ReadonlyArray<number>; readonly trace: string; readonly provenance?: unknown; readonly laterAttempts?: unknown; readonly acceptedOutput?: unknown; readonly invocation?: unknown }
 	readonly reason: string | null
 	readonly metrics: { readonly calls: number; readonly durationMs: number | null; readonly tokens: number | null; readonly unreportedUsage: number }
 }
@@ -95,7 +95,14 @@ function stepView(item: Item, job: string, label: string, active: boolean, heads
 		if (item.status === 'held') { state = 'blocked'; reason = item.hold?.message ?? 'The item is held.' }
 		else if (active && ['running', 'waiting-quota'].includes(item.status)) state = 'running'
 	}
-	return { job, label, state, complete: evidence?.complete ?? false, configured: !!evidence, input: evidence?.input ?? null, output: evidence?.output ?? null, evidence: { eventSeqs: evidence?.eventSeqs ?? [], trace: `/api/trace/${item.id}?lens=ax`, provenance: evidence?.provenance ?? null, laterAttempts: evidence?.laterAttempts ?? null, acceptedOutput: evidence?.acceptedOutput ?? null }, reason, metrics: metricsFor(heads, item.id, [job]) }
+	if (evidence && !evidence.complete && current && !active) reason = (reason ?? '') + ' The runner is stopped.'
+	const step = stepOf(laneOf(item.pack), job), invocation = evidence?.input ?? null
+	let input = invocation
+	if (!step.run && !step.children && invocation && typeof invocation === 'object') {
+		const captured = invocation as Record<string, unknown>
+		input = Object.fromEntries(['call', 'started', 'outcome', 'packet', 'returnedOutput', 'record'].map(key => [key, captured[key]]))
+	}
+	return { job, label, state, complete: evidence?.complete ?? false, configured: !!evidence, input, output: evidence?.output ?? null, evidence: { eventSeqs: evidence?.eventSeqs ?? [], trace: `/api/trace/${item.id}?lens=ax`, provenance: evidence?.provenance ?? null, laterAttempts: evidence?.laterAttempts ?? null, acceptedOutput: evidence?.acceptedOutput ?? null, invocation }, reason, metrics: metricsFor(heads, item.id, [job]) }
 }
 
 function readinessOf(store: Pick<WorkStore, 'get'>, item: Item, active: boolean, delivered: boolean): GrammarReadiness {
@@ -154,7 +161,7 @@ export function grammarOf(store: WorkStore, id: number): GrammarView | undefined
 		const viewed = phases.map(([job, label, jobs]): GrammarStep => {
 			const nodes = jobs.map((j) => stepView(child, j, j, !!runner, heads, workEvidence.jobs[j]))
 			const state = nodes.every((n) => n.state === 'yes') ? 'yes' : nodes.find((n) => n.state === 'blocked')?.state ?? nodes.find((n) => n.state === 'running')?.state ?? (nodes.some((n) => n.state === 'unknown') ? 'unknown' : 'no')
-			return { job, label, state, complete: state === 'yes', configured: nodes.every((n) => n.configured), input: Object.fromEntries(nodes.map((n) => [n.job, n.input])), output: Object.fromEntries(nodes.map((n) => [n.job, n.output])), evidence: { eventSeqs: nodes.flatMap((n) => n.evidence.eventSeqs), trace: `/api/trace/${child.id}?lens=ax`, provenance: Object.fromEntries(nodes.map(n => [n.job, n.evidence.provenance])), laterAttempts: Object.fromEntries(nodes.map(n => [n.job, n.evidence.laterAttempts])), acceptedOutput: Object.fromEntries(nodes.map(n => [n.job, n.evidence.acceptedOutput])) }, reason: nodes.find((n) => n.state !== 'yes')?.reason ?? null, metrics: metricsFor(heads, child.id, jobs) }
+			return { job, label, state, complete: state === 'yes', configured: nodes.every((n) => n.configured), input: Object.fromEntries(nodes.map((n) => [n.job, n.input])), output: Object.fromEntries(nodes.map((n) => [n.job, n.output])), evidence: { eventSeqs: nodes.flatMap((n) => n.evidence.eventSeqs), trace: `/api/trace/${child.id}?lens=ax`, provenance: Object.fromEntries(nodes.map(n => [n.job, n.evidence.provenance])), laterAttempts: Object.fromEntries(nodes.map(n => [n.job, n.evidence.laterAttempts])), acceptedOutput: Object.fromEntries(nodes.map(n => [n.job, n.evidence.acceptedOutput])), invocation: Object.fromEntries(nodes.map(n => [n.job, n.evidence.invocation ?? null])) }, reason: nodes.find((n) => n.state !== 'yes')?.reason ?? null, metrics: metricsFor(heads, child.id, jobs) }
 		})
 		const checks = child.checks?.checks ?? []
 		const verification = child.verification

@@ -1,4 +1,5 @@
 // Compact read surface over existing NQ records. Nothing here establishes fresh environment readiness.
+import { createHash } from 'node:crypto'
 import { buildAnswerHistory } from './handoff-history.ts'
 import { deliverableShape, laneOf, lastJson, stepOf } from './lane.ts'
 import { questionKey, workQuestions } from './nq-obligations.ts'
@@ -45,7 +46,7 @@ export interface HandoffEntry {
 	expectedOutput: { state: 'configured' | 'unspecified'; detail: string; pointer: string }
 	inputs: HandoffInput[]; inputsTotal: number; inputsOmitted: number; declarationsKnown: boolean; evidence: { detail: string; eventSeqs: number[] }; truncated: boolean
 }
-function fullHandoffOf(store: Reader, item: Item, job: string) {
+export function fullHandoffOf(store: Reader, item: Item, job: string) {
 	const lane = laneOf(item.pack), step = stepOf(lane, job), track = item.split?.[job as 'implement' | 'test-plan'], exchange = track?.exchange ?? (item.job === job ? item.exchange : undefined)
 	const events = ancestryEvents(store, item), own = events.filter(e => e.item === item.id && e.data.job === job)
 	const boundary = own.findLast(e => e.kind === 'handoff'), history = buildAnswerHistory(events, job)
@@ -74,32 +75,88 @@ function fullHandoffOf(store: Reader, item: Item, job: string) {
 	const entry: HandoffEntry = { id: `item:${item.id}:job:${job}:round:${item.round}:handoff:${boundary?.seq ?? 'configured'}`, job, profile: step.profile, duty: step.duty, dutyTruncated: false, kind, mode: item.status === 'candidate' || kind === 'agent' && !exchange ? 'configured-next' : 'current', exchangeStatus: kind === 'agent' ? exchange?.status ?? 'not-established' : 'not-applicable', round: item.round, questionIds: assigned.map(q => q.id), unresolvedCount: assigned.filter(q => q.resolution === 'unresolved').length, expectedOutput: { state: deliverableShape(lane, job, item.autonomy === 'full') ? 'configured' : 'unspecified', detail: evidenceUrl(item.id, 'handoff', job), pointer: '/data/outputSchema' }, inputs, inputsTotal: inputs.length, inputsOmitted: 0, declarationsKnown: !!declaration, evidence: { detail: evidenceUrl(item.id, 'handoff', job), eventSeqs: own.filter(e => ['handoff', 'nq-clear'].includes(e.kind)).map(e => e.seq) }, truncated: false }
 	return { entry, questions, declarations, observations, outputSchema: deliverableShape(lane, job, item.autonomy === 'full') ?? null }
 }
-export function currentHandoffOf(store: Reader, item: Item) {
-	const lane = laneOf(item.pack), terminal = ['shipped', 'completed', 'discovered', 'dropped'].includes(item.status)
-	const tracks = lane.delivery.filter(s => item.split?.[s.job as 'implement' | 'test-plan'] && !item.split[s.job as 'implement' | 'test-plan']!.done).map(s => s.job)
-	const jobs = terminal ? [] : tracks.length ? tracks : [...lane.discovery, ...lane.delivery, ...(lane.arbiter ? [lane.arbiter] : [])].some(s => s.job === item.job) ? [item.job] : []
-	const full = jobs.map(job => fullHandoffOf(store, item, job))
-	const entries = full.map(({ entry }) => ({ ...entry, duty: entry.duty.slice(0, 240), dutyTruncated: entry.duty.length > 240, inputs: entry.inputs.slice(0, 5), inputsOmitted: Math.max(0, entry.inputsTotal - 5), evidence: { ...entry.evidence, eventSeqs: entry.evidence.eventSeqs.slice(-2) }, truncated: entry.duty.length > 240 || entry.inputsTotal > 5 }))
-	// Per-maker filtering is applied before combining questions; never borrow the other maker's private history.
-	const questions: HandoffQuestion[] = (full[0]?.questions ?? []).map(q => {
-		const variants = full.map(f => f.questions.find(other => other.id === q.id)!).filter(Boolean)
-		const resolutions = q.resolutions.filter(r => variants.every(other => other.resolutions.some(saved => saved.answerId === r.answerId)))
-		return { ...q, resolutions, resolutionsTotal: resolutions.length, resolution: resolutions.length ? 'resolved' : 'unresolved' }
-	})
-	const summary = { entries, questions: questions.slice(0, 10).map(q => ({ ...q, text: q.text.slice(0, 240), textTruncated: q.text.length > 240, resolutions: q.resolutions.slice(0, 2).map(r => ({ ...r, question: r.question.slice(0, 240) })), resolutionsOmitted: Math.max(0, q.resolutionsTotal - 2) })), questionsTotal: questions.length, questionsOmitted: Math.max(0, questions.length - 10), evidence: { detail: `/api/trace/${item.id}?lens=ax` }, truncated: false }
-	while (JSON.stringify(summary).length > 6000) {
-		const input = entries.toReversed().find(e => e.inputs.length)
-		if (input) { input.inputs.pop(); input.inputsOmitted++; input.truncated = true }
-		else if (summary.questions.length) { summary.questions.pop(); summary.questionsOmitted++ }
-		else { for (const e of entries) { e.duty = ''; e.dutyTruncated = true; e.questionIds = []; e.evidence.eventSeqs = [] }; break }
-		summary.truncated = true
-	}
-	summary.truncated ||= summary.questionsOmitted > 0 || entries.some(e => e.truncated) || summary.questions.some(q => q.textTruncated || q.resolutionsOmitted > 0)
-	return summary
+// Display strings are previews; keys and digest-checked links carry identity.
+export const displayPreview = (value: string, limit = 120) => Array.from(value).slice(0, limit).join('')
+const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex')
+const configuredSteps = (item: Item) => { const lane = laneOf(item.pack); return [...lane.discovery, ...lane.delivery, ...(lane.arbiter ? [lane.arbiter] : [])] }
+export interface CompactQuestion {
+ key: string; id: string; text: string; textTruncated: boolean; ownerRole: string; blockingRole: string | null; truncated: boolean
 }
-export function evidenceDetailOf(store: Reader, item: Item, kind: 'event' | 'answer' | 'handoff', ref: string) {
-	if (kind === 'answer') return answerReferenceOf(store, item, ref)
-	if (kind === 'event') { const event = ancestryEvents(store, item).find(e => e.seq === Number(ref)); return event ? { event, references: messageReferencesOf(store, item, event) } : null }
-	const lane = laneOf(item.pack)
-	return [...lane.discovery, ...lane.delivery, ...(lane.arbiter ? [lane.arbiter] : [])].some(s => s.job === ref) ? fullHandoffOf(store, item, ref) : null
+export interface CompactQuestionState {
+ key: string; resolution: 'resolved' | 'unresolved'; resolutions: AnswerReference[]; resolutionsTotal: number; resolutionsOmitted: number; truncated: boolean
+}
+export interface CompactInput {
+ key: string; id: string; state: HandoffInput['state']; currentAvailability: 'unknown';
+ observation: { event: number; item: number | null; ok: boolean; at: string; job: string; name: string | null; dir: string | null } | null;
+ evidence: string; truncated: boolean
+}
+export interface CompactEntry {
+ key: string; id: string; job: string; profile: string; duty: string; dutyTruncated: boolean;
+ kind: HandoffEntry['kind']; mode: HandoffEntry['mode']; exchangeStatus: string; round: number;
+ questionStates: CompactQuestionState[]; questionsTotal: number; questionsOmitted: number; unresolvedCount: number;
+ expectedOutput: HandoffEntry['expectedOutput']; inputs: CompactInput[]; inputsTotal: number; inputsOmitted: number;
+ declarationsKnown: boolean; evidence: HandoffEntry['evidence']; truncated: boolean
+}
+export function currentHandoffOf(store: Reader, item: Item) {
+ const lane = laneOf(item.pack), terminal = ['shipped', 'completed', 'discovered', 'dropped'].includes(item.status)
+ const steps = configuredSteps(item)
+ const tracks = lane.delivery.filter(s => item.split?.[s.job as 'implement' | 'test-plan'] && !item.split[s.job as 'implement' | 'test-plan']!.done).map(s => s.job)
+ const jobs = terminal ? [] : tracks.length ? tracks : steps.some(s => s.job === item.job) ? [item.job] : []
+ const full = jobs.map(job => fullHandoffOf(store, item, job))
+ const allQuestions = full[0]?.questions ?? []
+ const questionKeys = new Map(allQuestions.map((q, i) => [q.id, `q:${i}:${digest(q.id)}`]))
+ const questions: CompactQuestion[] = allQuestions.slice(0, 10).map(q => ({ key: questionKeys.get(q.id)!, id: displayPreview(q.id), text: displayPreview(q.text, 240), textTruncated: Array.from(q.text).length > 240, ownerRole: displayPreview(q.ownerRole), blockingRole: q.blockingRole === null ? null : displayPreview(q.blockingRole), truncated: [q.id, q.ownerRole, q.blockingRole ?? ''].some(v => Array.from(v).length > 120) || Array.from(q.text).length > 240 }))
+ const entries: CompactEntry[] = full.map(f => {
+  const e = f.entry, slot = steps.findIndex(s => s.job === e.job), detail = evidenceUrl(item.id, 'handoff-slot', `${slot}:${digest(f)}`)
+  const retained = new Set(questions.map(q => q.key))
+  const assigned = f.questions.filter(q => e.questionIds.includes(q.id))
+  const questionStates: CompactQuestionState[] = assigned.filter(q => retained.has(questionKeys.get(q.id)!)).map(q => ({ key: questionKeys.get(q.id)!, resolution: q.resolution, resolutions: q.resolutions.slice(0, 2).map(r => ({ question: displayPreview(r.question, 240), answerId: displayPreview(r.answerId), canonicalId: r.canonicalId === null ? null : displayPreview(r.canonicalId), resolved: r.resolved, by: displayPreview(r.by), job: r.job === null ? null : displayPreview(r.job), source: r.source ? { item: r.source.item, event: r.source.event, at: displayPreview(r.source.at) } : null, detail })), resolutionsTotal: q.resolutionsTotal, resolutionsOmitted: Math.max(0, q.resolutionsTotal - 2), truncated: q.resolutionsTotal > 2 || q.resolutions.some(r => Array.from(r.question).length > 240 || [r.answerId, r.canonicalId ?? '', r.by, r.job ?? '', r.source?.at ?? ''].some(v => Array.from(v).length > 120)) }))
+  const inputs: CompactInput[] = e.inputs.slice(0, 5).map((input, i) => {
+   const o = input.observation
+   const text = (key: string) => o?.[key] === null || o?.[key] === undefined ? null : displayPreview(String(o[key]))
+   return { key: `i:${i}:${digest([input.id, o?.event ?? null, input.declaration?.call ?? null])}`, id: displayPreview(input.id), state: input.state, currentAvailability: 'unknown', observation: o ? { event: Number(o.event), item: typeof o.item === 'number' ? o.item : null, ok: o.ok === true, at: text('at') ?? '', job: text('job') ?? '', name: text('name'), dir: text('dir') } : null, evidence: o ? evidenceUrl(item.id, 'event', Number(o.event)) : detail, truncated: Array.from(input.id).length > 120 || !!input.declaration || !!o }
+  })
+  return { key: `h:${slot}:${digest(e.id)}`, id: displayPreview(e.id), job: displayPreview(e.job), profile: displayPreview(e.profile), duty: displayPreview(e.duty, 240), dutyTruncated: Array.from(e.duty).length > 240, kind: e.kind, mode: e.mode, exchangeStatus: displayPreview(e.exchangeStatus), round: e.round, questionStates, questionsTotal: assigned.length, questionsOmitted: assigned.length - questionStates.length, unresolvedCount: e.unresolvedCount, expectedOutput: { state: e.expectedOutput.state, detail, pointer: '/data/outputSchema' }, inputs, inputsTotal: e.inputsTotal, inputsOmitted: e.inputsTotal - inputs.length, declarationsKnown: e.declarationsKnown, evidence: { detail, eventSeqs: e.evidence.eventSeqs.slice(-2) }, truncated: e.evidence.eventSeqs.length > 2 || [e.id, e.job, e.profile, e.exchangeStatus].some(v => Array.from(v).length > 120) || Array.from(e.duty).length > 240 }
+ })
+ const summary = { entries, entriesTotal: entries.length, entriesOmitted: 0, questions, questionsTotal: allQuestions.length, questionsOmitted: allQuestions.length - questions.length, evidence: { detail: `/api/trace/${item.id}?lens=ax` }, truncated: false }
+ const account = () => {
+  summary.entriesOmitted = summary.entriesTotal - entries.length
+  summary.questionsOmitted = summary.questionsTotal - questions.length
+  const visible = new Set(questions.map(q => q.key))
+  for (const e of entries) {
+   e.questionStates = e.questionStates.filter(q => visible.has(q.key))
+   e.questionsOmitted = e.questionsTotal - e.questionStates.length
+   e.inputsOmitted = e.inputsTotal - e.inputs.length
+   e.truncated ||= e.questionsOmitted > 0 || e.inputsOmitted > 0 || e.inputs.some(i => i.truncated) || e.questionStates.some(q => q.truncated)
+  }
+  summary.truncated ||= summary.entriesOmitted > 0 || summary.questionsOmitted > 0 || entries.some(e => e.truncated) || questions.some(q => q.truncated)
+ }
+ const oversized = () => { const json = JSON.stringify(summary); return json.length > 6000 || Buffer.byteLength(json, 'utf8') > 6000 }
+ account()
+ while (oversized()) {
+  summary.truncated = true
+  const withInput = entries.toReversed().find(e => e.inputs.length)
+  if (withInput) { withInput.inputs.pop(); withInput.truncated = true }
+  else if (questions.length) questions.pop()
+  else {
+   const verbose = entries.toReversed().find(e => e.duty || e.id || e.evidence.eventSeqs.length)
+   if (verbose) { verbose.duty = ''; verbose.dutyTruncated = true; verbose.id = ''; verbose.evidence.eventSeqs = []; verbose.truncated = true }
+   else entries.pop()
+  }
+  account()
+ }
+ return summary
+}
+export function evidenceDetailOf(store: Reader, item: Item, kind: 'event' | 'answer' | 'handoff' | 'handoff-slot', ref: string) {
+ if (kind === 'answer') return answerReferenceOf(store, item, ref)
+ if (kind === 'event') { const event = ancestryEvents(store, item).find(e => e.seq === Number(ref)); return event ? { event, references: messageReferencesOf(store, item, event) } : null }
+ const steps = configuredSteps(item)
+ if (kind === 'handoff-slot') {
+  if (!/^(0|[1-9]\d*):[a-f0-9]{64}$/.test(ref)) return null
+  const [rawSlot, hash] = ref.split(':'), slot = Number(rawSlot)
+  if (!Number.isSafeInteger(slot) || !steps[slot]) return null
+  const full = fullHandoffOf(store, item, steps[slot]!.job)
+  return digest(full) === hash ? full : null
+ }
+ return steps.some(s => s.job === ref) ? fullHandoffOf(store, item, ref) : null
 }
