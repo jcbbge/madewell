@@ -172,7 +172,7 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 		const points = typeof result === 'string' ? Array.from(result) : []
 		return { lens, depth: 30_000, ...ux, workEvidence: workEvidenceSummaryOf(workEvidence, id), proof: { ...ux.proof,
 			completion: item.completion ? { nodes: item.completion.nodes, result: typeof result === 'string' ? points.slice(0, 1200).join('') : null, resultTruncated: points.length > 1200, detail: `/api/trace/${id}?lens=ax` } : null,
-			shipped: item.shipped ? { recorded: true, detail: `/api/trace/${id}?lens=ax` } : null,
+			shipped: item.shipped ? { recorded: true, main: typeof item.shipped.main === 'string' && item.shipped.main.length > 0 && item.shipped.main.length <= 128 ? item.shipped.main : null, detail: `/api/trace/${id}?lens=ax` } : null,
 		} }
 	}
 	const lane = laneOf(item.pack)
