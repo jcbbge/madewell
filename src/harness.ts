@@ -173,16 +173,32 @@ const intakePrompt = (prompt: string): string => {
 	try {
 		const packet = JSON.parse(prompt)
 		if (get(packet, 'you.call') !== 'intake') return prompt
+		if (!packet || typeof packet !== 'object' || Array.isArray(packet)) return prompt
+		let compact = packet
+		let changed = false
+		const history = get(packet, 'ownArtifactHistory') as Record<string, unknown> | undefined
+		if (history && typeof history === 'object' && !Array.isArray(history) && Array.isArray(history.entries)) {
+			const entries = history.entries.map((entry: unknown) => {
+				if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return entry
+				const { patch: _patch, ...descriptor } = entry as Record<string, unknown>
+				return descriptor
+			})
+			compact = { ...compact, ownArtifactHistory: { ...history, entries } }
+			changed = true
+		}
 		const snapshot = get(packet, 'snapshot') as Record<string, unknown> | undefined
 		const contents = snapshot?.contents
-		if (!contents || typeof contents !== 'object' || Array.isArray(contents)) return prompt
-		const deferred = Object.fromEntries(Object.entries(contents).map(([path, body]) => [path,
-			typeof body === 'string' ? {
-				path, characters: body.length,
-				readDuringExecution: 'Read this exact path in the execute job\'s checkout or snapshot.contents in its complete execution packet. Source bodies are intentionally deferred at no-tool intake, not missing prerequisites. Do not ask the originator or operator to provide them before confirming the handoff.',
-			} : body,
-		]))
-		return JSON.stringify({ ...packet, snapshot: { ...snapshot, contents: deferred } }, null, 2)
+		if (contents && typeof contents === 'object' && !Array.isArray(contents)) {
+			const deferred = Object.fromEntries(Object.entries(contents).map(([path, body]) => [path,
+				typeof body === 'string' ? {
+					path, characters: body.length,
+					readDuringExecution: 'Read this exact path in the execute job\'s checkout or snapshot.contents in its complete execution packet. Source bodies are intentionally deferred at no-tool intake, not missing prerequisites. Do not ask the originator or operator to provide them before confirming the handoff.',
+				} : body,
+			]))
+			compact = { ...compact, snapshot: { ...snapshot, contents: deferred } }
+			changed = true
+		}
+		return changed ? JSON.stringify(compact, null, 2) : prompt
 	} catch { return prompt }
 }
 

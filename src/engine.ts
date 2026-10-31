@@ -21,7 +21,7 @@
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { createHash } from 'node:crypto'
-import { ownArtifact, preserveArtifact, savedArtifacts, continuationArtifacts, continuationBoundary, contentHash } from './artifact-evidence.ts'
+import { ownArtifactHistory, ownArtifact, preserveArtifact, savedArtifacts, continuationArtifacts, continuationBoundary, contentHash } from './artifact-evidence.ts'
 import { referenceDiscovery } from './packet-references.ts'
 import { answerHistory, decisionProblem, questionsOwedBy, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
 import { checkPrerequisites, prerequisiteForReference } from './prerequisites.ts'
@@ -1722,6 +1722,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 			...(snap ? { snapshot: snap } : {}),
 			...(saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {}),
 			...compact,
+			...(receiving && isMaker(job) ? { ownArtifactHistory: ownArtifactHistory(store.events(item.id), item.id, job, (parts.you as { call?: string } | undefined)?.call === 'execute') } : {}),
 		}, null, 2)
 	})
 

@@ -38,3 +38,41 @@ export function ownArtifact(store: Pick<EvidenceStore, 'events'>, item: Item, ro
 	const plan = contentHash(item.outputs.plan ?? '')
 	return continuationArtifacts(store.events(item.id)).findLast(a => a.role === role && a.base === base && (explicitlyCarried ? a.sha256 === explicitlyCarried : a.plan === plan))
 }
+
+export type ArtifactHistoryReason = 'invalid-provenance' | 'missing-patch' | 'invalid-patch' | 'hash-mismatch' | 'byte-length-mismatch'
+type ArtifactHistoryProvenance = Pick<SavedArtifact, 'base' | 'plan' | 'partial' | 'sha256' | 'bytes'>
+export type ArtifactHistoryEntry = { readonly event: number; readonly role: SavedArtifact['role']; readonly referenceOnly: true } & (
+	| (ArtifactHistoryProvenance & { readonly status: 'available'; readonly provenance: 'verified'; readonly patch?: string })
+	| (Partial<ArtifactHistoryProvenance> & { readonly status: 'unavailable'; readonly provenance: 'unverified'; readonly reason: ArtifactHistoryReason })
+)
+export interface OwnArtifactHistory {
+	readonly instruction: string
+	readonly entries: ReadonlyArray<ArtifactHistoryEntry>
+}
+
+/** Recorded content integrity grants reference access, never continuation authority. */
+export function ownArtifactHistory(events: ReadonlyArray<Event>, itemId: number, role: SavedArtifact['role'], includePatches: boolean): OwnArtifactHistory {
+	const entries = events.filter(e => e.item === itemId && e.kind === 'artifact-saved' && (role === 'implement' || role === 'test-plan') && e.data.role === role)
+		.sort((a, b) => a.seq - b.seq).map((e): ArtifactHistoryEntry => {
+			const d = e.data
+			const provenance: Partial<ArtifactHistoryProvenance> = {
+				...(typeof d.base === 'string' && d.base.trim().length > 0 ? { base: d.base } : {}),
+				...(typeof d.plan === 'string' && /^[0-9a-f]{64}$/.test(d.plan) ? { plan: d.plan } : {}),
+				...(typeof d.partial === 'boolean' ? { partial: d.partial } : {}),
+				...(typeof d.sha256 === 'string' && /^[0-9a-f]{64}$/.test(d.sha256) ? { sha256: d.sha256 } : {}),
+				...(typeof d.bytes === 'number' && Number.isSafeInteger(d.bytes) && d.bytes >= 0 ? { bytes: d.bytes } : {}),
+			}
+			const identity = { event: e.seq, role, referenceOnly: true as const }
+			const reason: ArtifactHistoryReason | undefined = Object.keys(provenance).length !== 5 ? 'invalid-provenance'
+				: d.patch === undefined || d.patch === null ? 'missing-patch'
+				: typeof d.patch !== 'string' ? 'invalid-patch'
+				: contentHash(d.patch) !== provenance.sha256 ? 'hash-mismatch'
+				: Buffer.byteLength(d.patch) !== provenance.bytes ? 'byte-length-mismatch' : undefined
+			if (reason) return { ...identity, ...provenance, status: 'unavailable', provenance: 'unverified', reason }
+			return { ...identity, ...provenance as ArtifactHistoryProvenance, status: 'available', provenance: 'verified', ...(includePatches ? { patch: d.patch as string } : {}) }
+		})
+	return {
+		instruction: 'Historical entries are reference-only. Availability and verified content integrity do not authorize applying or resuming them. Available exact patch bodies are supplied at ownArtifactHistory.entries[].patch in the complete execution packet. Their deferral at intake is not a missing prerequisite. Required unavailable evidence goes through the existing NQ exchange.',
+		entries,
+	}
+}
