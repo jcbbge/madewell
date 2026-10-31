@@ -16,6 +16,8 @@ const Hold = Schema.Struct({ code: Schema.String, message: Schema.String, contex
  * prints this table in its manual.
  */
 export const ERRORS = {
+	prepared_input_failed: { means: 'A prepared resource could not be captured or safely extracted.', context: Schema.Struct({ dir: Schema.String, phase: Schema.Literals(['capture', 'assess', 'extract']), paths: Schema.Array(Schema.String), reason: Schema.String }) },
+	replan_unavailable: { means: 'Technical replanning is unavailable for this item state.', context: Schema.Struct({ id: Id, status: Schema.String, job: Schema.String, reason: Schema.String }) },
 	usage: {
 		means: 'The command line is wrong: an unknown command or option, missing input, or a <placeholder> left unfilled. `mw` prints every command with its input schema.',
 		context: Schema.Struct({ command: Schema.NullOr(Schema.String) }),

@@ -601,13 +601,13 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'retry',
-		summary: 'Run a held item again from where it stopped.',
+		summary: 'Run a held item again from where it stopped. With --replan <reason>, eligible unmerged technical holds return to fresh planning on the same task, retaining history.',
 		args: ['id'],
-		input: Schema.Struct({ id: Id }),
+		input: Schema.Struct({ id: Id, replan: Schema.optionalKey(Schema.String) }),
 		output: Created,
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
-			yield* retry(input.id)
+			yield* retry(input.id, { replan: input.replan })
 			return { item: view((yield* Store).get(input.id)!), next: yield* wake(input.id) }
 		}),
 	}),

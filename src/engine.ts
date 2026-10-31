@@ -21,7 +21,7 @@
 // Usage limits never stop the work. The call moves to the next card on another account, and when every
 // account is out, the item waits for the earliest reset and carries on by itself.
 import { createHash } from 'node:crypto'
-import { ownArtifact, preserveArtifact, savedArtifacts, contentHash } from './artifact-evidence.ts'
+import { ownArtifact, preserveArtifact, savedArtifacts, continuationArtifacts, continuationBoundary, contentHash } from './artifact-evidence.ts'
 import { referenceDiscovery } from './packet-references.ts'
 import { answerHistory, decisionProblem, questionsOwedBy, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
 import { checkPrerequisites, prerequisiteForReference } from './prerequisites.ts'
@@ -46,7 +46,7 @@ import {
 } from './lane.ts'
 import { DEFAULT_AUTONOMY, Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { observe } from './trace.ts'
-import { capture, changes, covers, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
+import { capturePreparationBaseline, type PreparationBaseline, capture, changes, covers, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
 
 const MAX_LAUNCHES = 3
@@ -169,6 +169,18 @@ const deliverableOf = (item: Item, job: Job) => {
 /** Accepted outputs are already validated. Do not retroactively reject a durable plan on a schema upgrade. */
 const planOf = (item: Item) => deliverableOf(item, 'plan') as Plan | undefined
 
+const technicalReset = (store: StoreService, item: Item, job: Job) => {
+	if (job !== 'plan') return undefined
+	const event = store.events(item.id).findLast(e => e.kind === 'continuation-reset' && e.data.newRound === item.round)
+	return event ? {
+		event: event.seq,
+		reason: event.data.reason,
+		hold: event.data.hold,
+		previousRound: event.data.previousRound,
+		round: event.data.newRound,
+	} : undefined
+}
+
 /** What the originator hands over to a job. A job's deliverable already in the receiver's packet is pointed at, not repeated. */
 function handoffOf(item: Item, job: Job, t: Track): string {
 	if (job === 'arbitrate') return item.failure ?? ''
@@ -251,7 +263,8 @@ const step = Effect.fn('mw.step')(function* (id: number, job: Job, config: Engin
 	const x = t.exchange
 	if (!x) {
 		// The operator's word at the checkpoint before this step travels with its hand-off.
-		const handoff = item.steer ? `${handoffOf(item, job, t)}\n\nThe operator's word at the checkpoint before this step: ${item.steer}` : handoffOf(item, job, t)
+		const reset = technicalReset(store, item, job)
+		const handoff = reset ? `Technical replanning (continuation-reset event ${reset.event}), not an arbiter ruling. Reason: ${String(reset.reason)}\nPrior technical hold: ${JSON.stringify(reset.hold)}` : item.steer ? `${handoffOf(item, job, t)}\n\nThe operator's word at the checkpoint before this step: ${item.steer}` : handoffOf(item, job, t)
 		saveTrack(store, id, job, { exchange: { from: t.from, handoff, status: 'awaiting-receiver', turns: [] } }, 'handoff', { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job })
 	} else if (x.status === 'awaiting-receiver') {
 		yield* intake(id, job, config)
@@ -378,7 +391,8 @@ const decisionGuidance = Effect.fn('mw.decisionGuidance')(function* (item: Item,
 	const saved = store.events(item.id).findLast((e) => e.kind === 'decision-resolution' && e.data.key === key)
 	if (saved) return saved.data.resolution
 	const resolution = yield* resolveDecision({
-		item: itemFacts(item), mode, job, stage: stepOf(L(item), job).cartridge,
+		item: itemFacts(item),
+			mode, job, stage: stepOf(L(item), job).cartridge,
 		profile: mode === 'nq' ? profileOf(item, x.from) : stepOf(L(item), job).profile,
 		question: mode === 'nq' ? x.turns.at(-1)!.questions.join('\n') : stepOf(L(item), job).duty,
 		context,
@@ -497,7 +511,7 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (deliverableShape(L(item), job, auto(item))?.required as string[] | undefined) ?? [],
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
 		...jobTree(item, job),
-		...(maker ? { onFail: (dir: string, head: string) => keepPartial(dir, item, job as Maker, head) } : {}),
+		...(maker ? { onFail: (dir: string, head: string, baseline?: PreparationBaseline) => keepPartial(dir, item, job as Maker, head, baseline) } : {}),
 		packet: (dir) => packet(item, job, dir, { ...executeParts(item, job, t, x), ...(decisionResolution ? { decisionResolution } : {}) }),
 	}, (dir, call) => accept(id, job, dir, call))
 })
@@ -532,8 +546,8 @@ const jobTree = (item: Item, job: Job): Pick<CallSpec, 'at' | 'prepare'> => ({
 			}
 			if (isMaker(job)) {
 				const partial = patchPath(home, `${job as Maker}.partial`)
-				yield* restorePartial(item, job, item.base!.commit, partial)
-				return yield* applyPatch(dir, partial)
+				if (yield* restorePartial(item, job, item.base!.commit, partial)) yield* applyPatch(dir, partial)
+				return
 			}
 		}),
 })
@@ -548,7 +562,7 @@ const restorePartial = (item: Item, role: Maker, base: string, path: string) => 
 		return true
 	}
 	// Before this feature, the disk partial was the only copy. Preserve legacy behavior with an explicit limitation.
-	if (item.pack?.contracts?.acceptance !== '1' && existsSync(path) && !savedArtifacts(store.events(item.id)).some(a => a.role === role)) {
+	if (!continuationBoundary(store.events(item.id)) && item.pack?.contracts?.acceptance !== '1' && existsSync(path) && !savedArtifacts(store.events(item.id)).some(a => a.role === role)) {
 		store.note(item.id, 'legacy-partial-resumed', { job: role, sha256: contentHash(readFileSync(path)), provenance: 'Historical base/plan metadata unavailable; legacy disk continuation.' })
 		return true
 	}
@@ -570,7 +584,7 @@ interface CallSpec {
 	readonly at?: string
 	readonly prepare?: (dir: string) => Effect.Effect<void, MadeWellError, Store>
 	/** Runs in the worktree when the call fails, with its HEAD as prepared: what a maker made is measured from there. */
-	readonly onFail?: (dir: string, head: string) => Effect.Effect<void, MadeWellError, Store>
+	readonly onFail?: (dir: string, head: string, baseline?: PreparationBaseline) => Effect.Effect<void, MadeWellError, Store>
 	readonly packet: (dir: string) => Effect.Effect<string, MadeWellError, Store>
 }
 
@@ -582,6 +596,7 @@ interface Called {
 	readonly card: Card
 	/** The worktree before the call, for a making call. */
 	readonly before?: State
+	readonly preparationBaseline?: PreparationBaseline
 }
 
 /**
@@ -605,6 +620,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			if (failed && spec.kind === 'originator') return void hold(store, store.get(id)!, 'prepare_failed', failed.message, failed.context)
 			if (failed) return void (yield* launchFailed(id, job, spec.kind, spec.card, failed.message, failed.context))
 		}
+		const preparationBaseline = !functions && isMaker(job) && spec.kind === 'execute' && spec.access !== 'none' ? yield* capturePreparationBaseline(wt.path) : undefined
 		if (!functions && spec.prepare) yield* spec.prepare(wt.path)
 		const prompt = yield* spec.packet(wt.path)
 		const budget = budgetFor(p, job)
@@ -646,7 +662,10 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		store.note(id, 'call-finished', { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...(call.error ? { error: call.error.slice(0, 2000) } : {}) })
 		endLive(live)
 		if (!res.ok) {
-			if (spec.onFail) yield* spec.onFail(wt.path, head)
+			if (spec.onFail) {
+				const extraction = yield* Effect.result(spec.onFail(wt.path, head, preparationBaseline))
+				if (Result.isFailure(extraction)) store.note(id, 'partial-extraction-failed', { job, call: callId, outcome: call.outcome, reason: call.error, diagnostic: extraction.failure })
+			}
 			if ('limit' in res) yield* recordLimit(id, job, spec.card, res.limit, spec.kind)
 			else yield* launchFailed(id, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {})
 			return undefined
@@ -658,7 +677,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 			holdFor(store, id, left.failure, job)
 			return undefined
 		}
-		const called: Called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...(before ? { before } : {}) }
+		const called: Called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...(before ? { before } : {}), ...(preparationBaseline ? { preparationBaseline } : {}) }
 		return after ? yield* after(wt.path, called) : (called as A)
 	}))
 
@@ -746,8 +765,12 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	if (v.ok && v.dropped?.length) store.note(id, 'discovery-dropped', { call: call.callId, candidates: v.dropped })
 	// What the maker made is measured from its worktree as Made Well prepared it: the item's base, or the kept change committed on it.
 	const from = answered.before?.head ?? item.base!.commit
-	const keep = isMaker(job) ? keepPartial(dir, item, job, from) : Effect.void
-	const refused = (reason: string) => Effect.andThen(keep, refuse(id, job, call, reason))
+	const keep = (outcome: string, reason: string) => Effect.gen(function* () {
+		if (!isMaker(job)) return
+		const extraction = yield* Effect.result(keepPartial(dir, item, job, from, answered.preparationBaseline))
+		if (Result.isFailure(extraction)) store.note(id, 'partial-extraction-failed', { job, call: call.callId, outcome, reason, diagnostic: extraction.failure })
+	})
+	const refused = (reason: string) => Effect.andThen(keep('refused', reason), refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
 	const value = v.value
 	const unanswered = decisionProblem(store, item, job, value, ledger(store, id, job))
@@ -768,20 +791,20 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 		}
 	}
 	if (isMaker(job) || job === 'arbitrate') {
-		yield* guardMain(store, item).pipe(Effect.tapError((e) => Effect.andThen(keep, Effect.sync(() => store.rejectCall(call.callId, e.message)))))
+		yield* guardMain(store, item).pipe(Effect.tapError((e) => Effect.andThen(keep('guard-error', e.message), Effect.sync(() => store.rejectCall(call.callId, e.message)))))
 	}
 	let artifacts: Partial<Item> = {}
 	if (isMaker(job) && !blockedOf(L(item), job, value)) {
 		const base = from
 		if (job === 'implement') {
-			const scoped = yield* Effect.result(scopeCheck(dir, base, plan!.scope))
+			const scoped = yield* Effect.result(scopeCheck(dir, base, plan!.scope, answered.preparationBaseline))
 			if (Result.isFailure(scoped)) {
 				if (scoped.failure.code !== 'out_of_scope') return yield* scoped.failure
 				const { outside } = scoped.failure.context as { outside: string[] }
 				return yield* refused(`You changed files outside the plan's scope: ${outside.join(', ')}. Your checkout still holds them: revert them, or report {"blocked": ...} if the plan cannot be done within its scope.`)
 			}
 		}
-		const { files, patch } = yield* takeChange(dir, base)
+		const { files, patch } = yield* takeChange(dir, base, answered.preparationBaseline)
 		if (job === 'implement' && !files.length) return yield* refused('You reported the plan done, but your checkout has no change.')
 		const product = files.filter((f) => covers(plan!.scope, f))
 		if (job === 'test-plan' && product.length) return yield* refused(`Checks may not touch the plan's scope, which is product code: ${product.join(', ')}. Write check files at other paths.`)
@@ -900,9 +923,9 @@ const afterEnvironment = (store: StoreService, item: Item, by: Origin, answer: s
 }
 
 /** A maker's unfinished work leaves with it, so the next call picks up where it stopped. Measured from the worktree's prepared HEAD. */
-const keepPartial = (dir: string, item: Item, job: Maker, from: string) =>
+const keepPartial = (dir: string, item: Item, job: Maker, from: string, baseline?: PreparationBaseline) =>
 	Effect.gen(function* () {
-		const { patch } = yield* takeChange(dir, from)
+		const { patch } = yield* takeChange(dir, from, baseline)
 		const store = yield* Store
 		const path = patchPath(itemHome(store.path, item.id), `${job}.partial`)
 		preserveArtifact(store, item, job, patch, from, true)
@@ -1112,7 +1135,7 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	}
 	const passed = run.results.every((r) => r.exitCode === 0)
 	const verification = { on: run.on, commit: run.commit, results: run.results, passed }
-	const artifacts = savedArtifacts(store.events(id)).filter(a => !a.partial)
+	const artifacts = continuationArtifacts(store.events(id)).filter(a => !a.partial)
 	store.note(id, 'verification-artifacts', { on: run.on, commit: run.commit, checks: contentHash(JSON.stringify(checks)), sources: run.sources, artifacts: L(item).makers.flatMap(role => { const a = artifacts.findLast(a => a.role === role); return a ? [{ role, event: a.event, sha256: a.sha256, base: a.base, plan: a.plan }] : [] }) })
 	const summary = run.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }))
 	const fixed = { ...(run.fixed.length ? { fixed: run.fixed } : {}), ...(run.flaky.length ? { flaky: run.flaky } : {}) }
@@ -1454,16 +1477,47 @@ export const go = (id: number) =>
 	})
 
 /** Releases a held item to run again from where it stopped. Repeating it before the item holds again changes nothing. */
-export const retry = (id: number) =>
+export const retry = (id: number, options: { replan?: string } = {}) =>
 	Effect.gen(function* () {
-		const events = (yield* Store).events(id)
-		if (events.slice(events.findLastIndex((e) => e.kind === 'held') + 1).some((e) => e.kind === 'retried')) return
+		const source = yield* Store
+		const events = source.events(id)
+		const current = source.get(id)
+		if (!current) return yield* notFound(id)
+		const unavailable = (reason: string) => new MadeWellError({ code: 'replan_unavailable', message: `Item #${id} cannot replan: ${reason}`, context: { id, status: current.status, job: current.job, reason }, next: [{ run: `mw status ${id}`, why: 'resolve the existing hold or obligation' }] })
+		if (options.replan !== undefined && !options.replan.trim()) return yield* unavailable('A nonblank reason is required.')
+		const sinceHold = events.slice(events.findLastIndex(e => e.kind === 'held') + 1)
+		if (options.replan !== undefined) {
+			if (sinceHold.some(e => e.kind === 'continuation-reset')) return
+		} else if (sinceHold.some(e => e.kind === 'retried' || e.kind === 'continuation-reset')) return
 		const { store, item } = yield* held(id)
 		if (item.status === 'paused' || NQ_HOLDS.includes(item.hold.code) || (CHECK_HOLDS.includes(item.hold.code) && item.hold.code !== 'environment')) {
 			return yield* new MadeWellError({ code: 'answer_required', message: `Item #${id} is waiting on your answer, not a retry.`, context: { id, hold: item.hold }, next: nextFor(item) })
 		}
-		// An environment hold runs the failed step again in a fresh worktree, never the arbiter: the step is read from the record
-		// as it stands now, so one an older runner left at the arbiter, or at a verify of checks their author never got to correct, is redriven right.
+		if (options.replan !== undefined) {
+			const delivery = L(item).delivery
+			const planIndex = delivery.findIndex(s => s.job === 'plan')
+			const prior = delivery.slice(0, planIndex)
+			const reached = item.job === 'plan' || item.outputs.plan !== undefined || events.some(e => e.kind === 'handoff' && e.data.job === 'plan')
+			if (item.pack?.runtime === 'functions' || planIndex < 0 || !reached || prior.some(s => item.outputs[s.job] === undefined) || stepOf(L(item), item.job).loop === 'discovery') return yield* unavailable('Software delivery must have reached planning with its earlier obligations accepted.')
+			if (item.merged) return yield* unavailable('The change is already merged.')
+			if (item.waitsOn !== undefined || unshipped(store, item).length) return yield* unavailable('A prerequisite is outstanding.')
+			const exchanges = [item.exchange, ...Object.values(item.split ?? {}).map(t => t?.exchange)]
+			if (exchanges.some(x => x && x.status !== 'clear' && x.turns.filter(t => t.answer !== undefined).length >= MAX_TURNS)) return yield* unavailable('An unresolved exchange has reached its answered-turn bound.')
+			const removed = delivery.slice(planIndex).map(s => s.job)
+			const outputs = { ...item.outputs }
+			const supersededOutputs: Record<string, string> = {}
+			for (const job of [...removed, 'arbitrate', 'verify']) {
+				if (outputs[job] !== undefined) supersededOutputs[job] = outputs[job]!
+				delete outputs[job]
+			}
+			const superseded = { outputs: supersededOutputs, split: item.split, change: item.change, checks: item.checks, verification: item.verification, failure: item.failure, rework: item.rework, exchange: item.exchange, rejected: item.rejected, pickingUp: item.pickingUp, passed: item.passed, steer: item.steer, resetsAt: item.resetsAt, launches: item.launches, from: item.from }
+			store.atomic(() => {
+				store.save({ ...item, status: 'queued', job: 'plan', round: item.round + 1, launches: 0, from: planIndex ? { kind: 'job', job: delivery[planIndex - 1]!.job } : { kind: 'dispatcher' }, outputs, hold: undefined, base: undefined, split: undefined, change: undefined, checks: undefined, verification: undefined, failure: undefined, rework: undefined, exchange: undefined, rejected: undefined, pickingUp: undefined, passed: undefined, steer: undefined, resetsAt: undefined }, 'continuation-reset', { reason: options.replan, heldEvent: events.findLast(e => e.kind === 'held')?.seq, hold: item.hold, previousJob: item.job, previousRound: item.round, previousBase: item.base, newRound: item.round + 1, superseded })
+				store.note(id, 'retried', { job: 'plan', mode: 'replan' })
+			})
+			return
+		}
+		// Ordinary retry keeps the existing environment redrive behavior.
 		const free = item.hold.code === 'environment' ? afterEnvironment(store, released(item), { kind: 'job', job: 'arbitrate' }, item.rework?.answer ?? item.hold.message) : released(item)
 		store.save(free, 'retried', { job: free.job })
 	})
@@ -1618,7 +1672,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 		const originalDiscovery = discoveryContextFor(store, item, job)
 		const received = withReceived ? receivedBy(item, job) : undefined
 		const discoveryContext = originalDiscovery && item.pack?.contracts?.discovery === '1' ? referenceDiscovery(originalDiscovery, item.source, received) : originalDiscovery
-		const continuationOptions = item.rework ? savedArtifacts(store.events(item.id)).filter(a => a.base === item.base?.commit && (!isMaker(job) || a.role === job)).map(({ patch: _patch, ...ref }) => ref) : []
+		const continuationOptions = item.rework ? continuationArtifacts(store.events(item.id)).filter(a => a.base === item.base?.commit && (!isMaker(job) || a.role === job)).map(({ patch: _patch, ...ref }) => ref) : []
 		const dispositions = item.rework && item.from.kind === 'job' && item.from.job === 'arbitrate' ? lastJson(item.outputs.arbitrate ?? '')?.dispositions : undefined
 		const repairConditions = Array.isArray(dispositions) ? dispositions.filter(d => !isMaker(historyJob) || d.cause === (historyJob === 'implement' ? 'implementation' : 'test') || d.cause === 'environment' || d.cause === 'pre-existing') : []
 		const softwareThinking = L(item).pack.runtime !== 'functions' && !isMaker(job)
@@ -1639,6 +1693,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 		const workQuestionsForPhase = item.pack?.contracts?.handoff === '1' ? questionsOwedBy(store, item, historyJob).map(q => ({ ...q, resolved: questionResolved(q, saved.answers) })) : []
 		return JSON.stringify({
 			item: itemFacts(item),
+			...(technicalReset(store, item, job) ? { technicalReset: technicalReset(store, item, job) } : {}),
 			...(workQuestionsForPhase.length ? { questionsToSettle: workQuestionsForPhase } : {}),
 			...(projectInputs?.length ? { projectInputs } : {}),
 			...(attempted ? { yourLastRefusedDeliverable: { job: historyJob, call: attempted.id, output: attempted.output, reason: refused!.error } } : {}),

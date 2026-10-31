@@ -16,7 +16,8 @@ export interface SavedArtifact {
 /** Managed evidence survives disposable worktree and item-home cleanup. */
 export function preserveArtifact(store: EvidenceStore, item: Item, role: SavedArtifact['role'], patch: string, base: string, partial = false): SavedArtifact {
 	const artifact: SavedArtifact = { role, base, plan: contentHash(item.outputs.plan ?? ''), sha256: contentHash(patch), bytes: Buffer.byteLength(patch), patch, partial }
-	const last = store.events(item.id).findLast(e => e.kind === 'artifact-saved' && e.data.role === role)
+	const events = store.events(item.id)
+	const last = events.findLast(e => e.seq > continuationBoundary(events) && e.kind === 'artifact-saved' && e.data.role === role)
 	if (!last || ['sha256', 'base', 'plan', 'partial'].some(k => last.data[k] !== artifact[k as keyof SavedArtifact])) store.note(item.id, 'artifact-saved', { ...artifact, round: item.round })
 	return artifact
 }
@@ -29,8 +30,11 @@ export function savedArtifacts(events: ReadonlyArray<Event>): ReadonlyArray<Save
 	})
 }
 
+export const continuationBoundary = (events: ReadonlyArray<Event>) => events.findLast(e => e.kind === 'continuation-reset')?.seq ?? 0
+export const continuationArtifacts = (events: ReadonlyArray<Event>) => savedArtifacts(events).filter(a => a.event > continuationBoundary(events))
+
 /** An unchanged fixed contract can resume only its own role's bytes on the same base. */
 export function ownArtifact(store: Pick<EvidenceStore, 'events'>, item: Item, role: SavedArtifact['role'], base: string, explicitlyCarried?: string) {
 	const plan = contentHash(item.outputs.plan ?? '')
-	return savedArtifacts(store.events(item.id)).findLast(a => a.role === role && a.base === base && (explicitlyCarried ? a.sha256 === explicitlyCarried : a.plan === plan))
+	return continuationArtifacts(store.events(item.id)).findLast(a => a.role === role && a.base === base && (explicitlyCarried ? a.sha256 === explicitlyCarried : a.plan === plan))
 }

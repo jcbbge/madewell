@@ -1,6 +1,7 @@
 // Made Well's control of the product workspace. The law is enforced here, not requested of agents:
 // each job gets its own git worktree, read-only calls are proved read-only, branches are watched, the
 // change is held to its declared scope, and everything a job leaves behind is found and torn down.
+import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
 import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -180,9 +181,51 @@ export const headGuard = Effect.fn('mw.headGuard')(function* (repo: string, ref:
 export const covers = (scope: ReadonlyArray<string>, file: string) =>
 	scope.some((d) => (d.endsWith('/') || d.endsWith('/**') ? file.startsWith(d.replace(/\*\*$/, '')) : file === d))
 
+/** Only untracked, non-ignored resources supplied by preparation, before maker restoration. */
+export type PreparationBaseline = Readonly<Record<string, string>>
+
+const preparedFailure = (dir: string, phase: 'capture' | 'assess' | 'extract', paths: ReadonlyArray<string>, reason: string) =>
+	fail('prepared_input_failed', 'Prepared inputs cannot be safely captured or extracted.', { dir, phase, paths, reason }, [{ run: `git -C ${dir} status --short`, why: 'inspect supplied resources and correct preparation before retrying' }])
+
+const preparedFingerprint = (dir: string, path: string, phase: 'capture' | 'assess') => Effect.try({
+	try: () => {
+		const full = join(dir, path)
+		let stat
+		try { stat = lstatSync(full) } catch (error) {
+			if (phase === 'assess' && (error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+			throw error
+		}
+		if (stat.isSymbolicLink()) return `link:${readlinkSync(full)}`
+		if (stat.isFile()) return `file:${stat.mode & 0o111 ? '755' : '644'}:${createHash('sha256').update(readFileSync(full)).digest('hex')}`
+		if (phase === 'assess') return `replacement:${stat.mode}`
+		throw new TypeError('Unsupported prepared resource type')
+	},
+	catch: () => preparedFailure(dir, phase, [path], 'Unsupported or unreadable prepared resource.'),
+})
+
+export const capturePreparationBaseline = Effect.fn('mw.capturePreparationBaseline')(function* (dir: string) {
+	const baseline: Record<string, string> = {}
+	for (const path of lines(yield* git(dir, 'ls-files', '--others', '--exclude-standard', '-z'))) {
+		baseline[path] = (yield* preparedFingerprint(dir, path, 'capture'))!
+	}
+	return Object.freeze(baseline) as PreparationBaseline
+})
+
+export const assessChange = Effect.fn('mw.assessChange')(function* (dir: string, base: string, baseline?: PreparationBaseline) {
+	const paths = new Set([...lines(yield* git(dir, 'diff', '--name-only', '--no-renames', '-z', base)), ...lines(yield* git(dir, 'ls-files', '--others', '--exclude-standard', '-z'))])
+	const unchanged: string[] = []
+	const resources: { path: string; reason: string }[] = []
+	for (const [path, fingerprint] of Object.entries(baseline ?? {})) {
+		const current = yield* preparedFingerprint(dir, path, 'assess')
+		if (current === fingerprint) { unchanged.push(path); paths.delete(path) }
+		else { paths.add(path); resources.push({ path, reason: current === undefined ? 'removed' : 'changed or replaced' }) }
+	}
+	return { files: [...paths].sort(), unchanged: unchanged.sort(), resources }
+})
+
 /** Every file the workspace changed since `base` (committed, uncommitted or new); fails on any outside `declared`. A declared entry ending in "/" or "/**" covers its directory. */
-export const scopeCheck = Effect.fn('mw.scopeCheck')(function* (dir: string, base: string, declared: ReadonlyArray<string>) {
-	const changed = [...new Set([...lines(yield* git(dir, 'diff', '--name-only', '--no-renames', '-z', base)), ...lines(yield* git(dir, 'ls-files', '--others', '--exclude-standard', '-z'))])].sort()
+export const scopeCheck = Effect.fn('mw.scopeCheck')(function* (dir: string, base: string, declared: ReadonlyArray<string>, baseline?: PreparationBaseline) {
+	const { files: changed } = yield* assessChange(dir, base, baseline)
 	const outside = changed.filter((f) => !covers(declared, f))
 	if (outside.length) {
 		return yield* fail('out_of_scope', `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: 'see the whole change against its base' }])

@@ -9,7 +9,7 @@ import type { Check } from './lane.ts'
 import type { Gate } from './project.ts'
 import { Store, type CheckResult } from './store.ts'
 import { observe } from './trace.ts'
-import { git } from './workspace.ts'
+import { assessChange, git, type PreparationBaseline } from './workspace.ts'
 import { runGroup, type Budget } from './worker.ts'
 
 const lines = (out: string) => out.split('\0').filter(Boolean)
@@ -47,7 +47,17 @@ export const branchOf = Effect.fn('mw.branchOf')(function* (repo: string) {
 export const revParse = (repo: string, ref: string) => Effect.map(git(repo, 'rev-parse', '--verify', `${ref}^{commit}`), (s) => s.trim())
 
 /** Everything changed in `dir` since `base` (committed, staged, unstaged and new, ignored files excepted), as a binary patch. */
-export const takeChange = Effect.fn('mw.takeChange')(function* (dir: string, base: string) {
+export const takeChange = Effect.fn('mw.takeChange')(function* (dir: string, base: string, baseline?: PreparationBaseline) {
+	if (baseline) {
+		const assessment = yield* assessChange(dir, base, baseline)
+		if (assessment.resources.length) return yield* new MadeWellError({ code: 'prepared_input_failed', message: 'Changed prepared inputs cannot be represented by a base-relative maker patch.', context: { dir, phase: 'extract', paths: assessment.resources.map(r => r.path), reason: 'Supplied resources changed, disappeared or were replaced.' }, next: [{ run: `git -C ${dir} status --short`, why: 'restore the supplied resources or correct preparation before retrying' }] })
+		yield* git(dir, 'add', '-A')
+		if (!assessment.files.length) return { files: [], patch: '' }
+		const paths = assessment.files.map(path => `:(literal)${path}`)
+		const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '-z', base, '--', ...paths))
+		const patch = files.length ? yield* git(dir, 'diff', '--cached', '--binary', '--no-renames', base, '--', ...paths) : ''
+		return { files, patch }
+	}
 	yield* git(dir, 'add', '-A')
 	const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '-z', base))
 	const patch = files.length ? yield* git(dir, 'diff', '--cached', '--binary', '--no-renames', base) : ''
