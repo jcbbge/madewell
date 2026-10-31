@@ -1,8 +1,10 @@
 // The prescribed demo grammar and a read-only view of its existing work record.
 import { Schema } from 'effect'
 import { Decision } from './decision.ts'
-import { isMaker, laneOf, lastJson, malformed, shapeOf, SOFTWARE, stepOf, type Pack } from './lane.ts'
-import type { CallHead, Event, Item, Store } from './store.ts'
+import { isMaker, laneOf, lastJson, shapeOf, SOFTWARE, stepOf, type Pack } from './lane.ts'
+import { workEvidenceOf, type WorkEvidence } from './work-evidence.ts'
+import { currentHandoffOf } from './handoff-view.ts'
+import type { CallHead, Item, Store } from './store.ts'
 import { totalTokens } from './telemetry.ts'
 
 type WorkStore = Pick<Store['Service'], 'get' | 'list' | 'events' | 'callHeads' | 'call' | 'runner'>
@@ -37,7 +39,7 @@ export interface GrammarStep {
 	readonly configured: boolean
 	readonly input: unknown | null
 	readonly output: unknown | null
-	readonly evidence: { readonly eventSeqs: ReadonlyArray<number>; readonly trace: string }
+	readonly evidence: { readonly eventSeqs: ReadonlyArray<number>; readonly trace: string; readonly provenance?: unknown; readonly laterAttempts?: unknown; readonly acceptedOutput?: unknown }
 	readonly reason: string | null
 	readonly metrics: { readonly calls: number; readonly durationMs: number | null; readonly tokens: number | null; readonly unreportedUsage: number }
 }
@@ -49,6 +51,7 @@ export interface GrammarReadiness {
 	readonly waitingOn: ReadonlyArray<number>
 }
 export interface GrammarTask {
+	readonly currentHandoff: ReturnType<typeof currentHandoffOf>
 	readonly id: number
 	readonly title: string
 	readonly status: Item['status']
@@ -67,7 +70,7 @@ export interface GrammarTask {
 	readonly updated: string
 }
 export interface GrammarView {
-	readonly discovery: { readonly id: number; readonly title: string; readonly source: string; readonly status: Item['status']; readonly currentJob: string; readonly steps: ReadonlyArray<GrammarStep>; readonly complete: boolean; readonly completedStepCount: number; readonly requiredStepCount: number; readonly taskListProduced: boolean; readonly candidateIds: ReadonlyArray<number>; readonly updated: string }
+	readonly discovery: { readonly currentHandoff: ReturnType<typeof currentHandoffOf>; readonly id: number; readonly title: string; readonly source: string; readonly status: Item['status']; readonly currentJob: string; readonly steps: ReadonlyArray<GrammarStep>; readonly complete: boolean; readonly completedStepCount: number; readonly requiredStepCount: number; readonly taskListProduced: boolean; readonly candidateIds: ReadonlyArray<number>; readonly updated: string }
 	readonly tasks: ReadonlyArray<GrammarTask>
 	readonly runner: { readonly active: boolean; readonly pid: number | null }
 	readonly observedAt: string
@@ -77,18 +80,6 @@ export interface GrammarView {
 }
 
 const parsed = (raw: string | undefined): unknown | null => raw === undefined || !raw.trim() ? null : lastJson(raw) ?? { text: raw }
-const blocked = (output: unknown): string | null => output && typeof output === 'object' && 'blocked' in output && typeof output.blocked === 'string' ? output.blocked : null
-const accepted = (events: ReadonlyArray<Event>, job: string) => events.filter((e) => e.kind === 'accepted' && e.data.job === job || e.kind === 'handed-off' && e.data.from === job || job === 'discover' && e.kind === 'discovered')
-const invalidatedAt = (events: ReadonlyArray<Event>, job: string): number => Math.max(0, ...events.filter((e) => {
-	if (e.kind === 'cartridges-applied') {
-		const before = e.data.from as Pack | undefined, after = e.data.to as Pack | undefined
-		return !!before && !!after && JSON.stringify(stepOf(laneOf(before), job)) !== JSON.stringify(stepOf(laneOf(after), job))
-	}
-	if (job === 'verify') return ['main-moved', 'replan', 'rebased', 'ruling'].includes(e.kind)
-	if (['plan', 'implement', 'test-plan'].includes(job) && ['replan', 'rebased'].includes(e.kind)) return true
-	if (e.kind !== 'ruling') return false
-	return e.data.cause === 'implementation' && ['plan', 'implement', 'test-plan'].includes(job) || e.data.cause === 'test' && job === 'test-plan'
-}).map((e) => e.seq))
 
 function metricsFor(heads: ReadonlyArray<CallHead>, item: number, jobs: ReadonlyArray<string>): GrammarStep['metrics'] {
 	const calls = heads.filter((c) => c.item === item && jobs.includes(c.job))
@@ -97,30 +88,14 @@ function metricsFor(heads: ReadonlyArray<CallHead>, item: number, jobs: Readonly
 		unreportedUsage: calls.filter((c) => c.tokens === null).length }
 }
 
-function stepView(item: Item, events: ReadonlyArray<Event>, job: string, label: string, active: boolean, discovery: boolean, input: unknown | null, heads: ReadonlyArray<CallHead>, acceptedCallOutput: unknown | undefined): GrammarStep {
-	const lane = laneOf(item.pack)
-	const configured = (discovery ? lane.discovery : lane.delivery).some((s) => s.job === job)
-	const output = parsed(item.outputs[job])
-	const proof = accepted(events, job)
-	const last = proof.at(-1)?.seq ?? 0
-	const valid = last > invalidatedAt(events, job)
-	const receipt = proof.at(-1)
-	const acceptedOutput = receipt && 'output' in receipt.data ? receipt.data.output : acceptedCallOutput
-	const matches = acceptedOutput === undefined || JSON.stringify(acceptedOutput) === JSON.stringify(output)
-	const problem = blocked(output)
-	const shapeProblem = discovery && configured && output !== null && !problem ? malformed(lane, job, item.outputs[job]!) : undefined
-	const track = item.split?.[job as 'implement' | 'test-plan']
-	const current = item.job === job || !!track && !track.done
-	let state: GrammarState = 'unknown'
-	let reason: string | null = null
-	if (!configured) reason = 'This function is not separately configured in the pinned pack.'
-	else if (problem && current) { state = 'blocked'; reason = problem }
-	else if (current && item.status === 'held') { state = 'blocked'; reason = item.hold?.message ?? 'The item is held.' }
-	else if (output !== null && !problem && !shapeProblem && valid && matches && (job !== 'implement' || !!item.change) && (job !== 'test-plan' || !!item.checks?.checks.length)) state = 'yes'
-	else if (current && active && ['running', 'waiting-quota'].includes(item.status)) { state = 'running'; reason = item.status === 'waiting-quota' ? 'Waiting for a prescribed account to reset.' : null }
-	else if (output !== null && !proof.length) reason = 'An output is retained, but no accepted execution evidence establishes this function.'
-	else { state = 'no'; reason = !matches ? 'The retained output differs from its accepted execution evidence.' : shapeProblem ?? (current && !active && item.status === 'running' ? 'The runner is stopped; this function has not completed.' : last && !valid ? 'Earlier acceptance is retained as history; correction or a changed contract requires this function again.' : 'No completed output is accepted for this function.') }
-	return { job, label, state, complete: state === 'yes', configured, input, output, evidence: { eventSeqs: proof.map((e) => e.seq), trace: `/api/trace/${item.id}?lens=ax` }, reason, metrics: metricsFor(heads, item.id, [job]) }
+function stepView(item: Item, job: string, label: string, active: boolean, heads: ReadonlyArray<CallHead>, evidence: WorkEvidence | undefined): GrammarStep {
+	const current = item.job === job || !!item.split?.[job as 'implement' | 'test-plan'] && !item.split[job as 'implement' | 'test-plan']!.done
+	let state: GrammarState = evidence?.state ?? 'unknown', reason = evidence?.reason ?? 'This function is not separately configured in the pinned pack.'
+	if (evidence && !evidence.complete && current) {
+		if (item.status === 'held') { state = 'blocked'; reason = item.hold?.message ?? 'The item is held.' }
+		else if (active && ['running', 'waiting-quota'].includes(item.status)) state = 'running'
+	}
+	return { job, label, state, complete: evidence?.complete ?? false, configured: !!evidence, input: evidence?.input ?? null, output: evidence?.output ?? null, evidence: { eventSeqs: evidence?.eventSeqs ?? [], trace: `/api/trace/${item.id}?lens=ax`, provenance: evidence?.provenance ?? null, laterAttempts: evidence?.laterAttempts ?? null, acceptedOutput: evidence?.acceptedOutput ?? null }, reason, metrics: metricsFor(heads, item.id, [job]) }
 }
 
 function readinessOf(store: Pick<WorkStore, 'get'>, item: Item, active: boolean, delivered: boolean): GrammarReadiness {
@@ -169,44 +144,27 @@ export function grammarOf(store: WorkStore, id: number): GrammarView | undefined
 	if (!discovery) return undefined
 	const runner = store.runner()
 	const heads = store.callHeads()
-	const inputFor = (owner: Item, job: string) => {
-		const head = heads.findLast((c) => c.item === owner.id && c.job === job && c.kind === 'execute')
-		const call = head ? store.call(head.id) : undefined
-		return call ? { call: call.id, started: call.started, outcome: call.outcome, packet: parsed(call.prompt), returnedOutput: parsed(call.output ?? undefined), record: `/api/call/${call.id}` } : null
-	}
-	const acceptedOutputFor = (history: ReadonlyArray<Event>, job: string): unknown | undefined => {
-		const proof = accepted(history, job).at(-1)
-		const finished = proof && history.findLast((e) => e.seq <= proof.seq && e.kind === 'call-finished' && e.data.job === job && e.data.kind === 'execute' && e.data.outcome === 'ok')
-		const repaired = finished && proof && history.findLast(e => e.seq > finished.seq && e.seq <= proof.seq && e.kind === 'repaired' && e.data.job === job && e.data.call === finished.data.call && e.data.ok === true)
-		const callId = repaired?.data.repair ?? finished?.data.call
-		const call = typeof callId === 'number' ? store.call(callId) : undefined
-		return call ? parsed(call.output ?? undefined) : undefined
-	}
 	const children = store.list().filter((c) => c.discovery === item.id)
 	const tasks = children.map((child): GrammarTask => {
-		const history = store.events(child.id)
+		const history = store.events(child.id), workEvidence = workEvidenceOf(store, child)
 		const phases = [
 			['ideation', 'ideation()', ['ideate', 'challenge']], ['planning', 'planning()', ['plan']],
 			['implementation', 'implementation()', ['implement']],
 		] as const
 		const viewed = phases.map(([job, label, jobs]): GrammarStep => {
-			const nodes = jobs.map((j) => stepView(child, history, j, j, !!runner, false, inputFor(child, j), heads, acceptedOutputFor(history, j)))
+			const nodes = jobs.map((j) => stepView(child, j, j, !!runner, heads, workEvidence.jobs[j]))
 			const state = nodes.every((n) => n.state === 'yes') ? 'yes' : nodes.find((n) => n.state === 'blocked')?.state ?? nodes.find((n) => n.state === 'running')?.state ?? (nodes.some((n) => n.state === 'unknown') ? 'unknown' : 'no')
-			return { job, label, state, complete: state === 'yes', configured: nodes.every((n) => n.configured), input: Object.fromEntries(nodes.map((n) => [n.job, n.input])), output: Object.fromEntries(nodes.map((n) => [n.job, n.output])), evidence: { eventSeqs: nodes.flatMap((n) => n.evidence.eventSeqs), trace: `/api/trace/${child.id}?lens=ax` }, reason: nodes.find((n) => n.state !== 'yes')?.reason ?? null, metrics: metricsFor(heads, child.id, jobs) }
+			return { job, label, state, complete: state === 'yes', configured: nodes.every((n) => n.configured), input: Object.fromEntries(nodes.map((n) => [n.job, n.input])), output: Object.fromEntries(nodes.map((n) => [n.job, n.output])), evidence: { eventSeqs: nodes.flatMap((n) => n.evidence.eventSeqs), trace: `/api/trace/${child.id}?lens=ax`, provenance: Object.fromEntries(nodes.map(n => [n.job, n.evidence.provenance])), laterAttempts: Object.fromEntries(nodes.map(n => [n.job, n.evidence.laterAttempts])), acceptedOutput: Object.fromEntries(nodes.map(n => [n.job, n.evidence.acceptedOutput])) }, reason: nodes.find((n) => n.state !== 'yes')?.reason ?? null, metrics: metricsFor(heads, child.id, jobs) }
 		})
 		const checks = child.checks?.checks ?? []
 		const verification = child.verification
 		const verifyProof = history.filter((e) => e.kind === 'verified')
-		const latestProof = verifyProof.at(-1)
-		const made = stepView(child, history, 'test-plan', 'tests', !!runner, false, inputFor(child, 'test-plan'), heads, acceptedOutputFor(history, 'test-plan'))
-		const testsCreated = made.state === 'yes' && checks.length > 0
-		const verified = !!verification?.passed && !!verification.commit && latestProof?.data.commit === verification.commit && latestProof.data.on === verification.on
-			&& testsCreated && checks.every((check) => verification.results.some((r) => r.id === check.id && r.doneWhen === check.doneWhen && r.run === check.run && r.exitCode === 0))
-			&& verification.results.length > 0 && verification.results.every((r) => r.exitCode === 0) && latestProof.seq > invalidatedAt(history, 'verify')
+		const testsCreated = !!workEvidence.jobs['test-plan']?.complete && checks.length > 0
+		const verified = workEvidence.verificationCurrent
 		viewed.push({ job: 'verification', label: 'verification()', state: verified ? 'yes' : child.status === 'held' && ['verify', 'arbitrate'].includes(child.job) ? 'blocked' : !!runner && child.job === 'verify' && child.status === 'running' ? 'running' : 'no', complete: verified, configured: laneOf(child.pack).delivery.some((s) => s.job === 'verify'), input: history.findLast((e) => e.kind === 'verify-started')?.data ?? null, output: verification ?? null, evidence: { eventSeqs: verifyProof.map((e) => e.seq), trace: `/api/trace/${child.id}?lens=ax` }, reason: verified ? 'Saved verification applies to the recorded candidate; current deployment has not been rechecked.' : child.hold?.message ?? 'No current passing verification is recorded.', metrics: metricsFor(heads, child.id, ['verify']) })
-		const shipped = history.some((e) => e.kind === 'shipped')
-		const delivered = child.status === 'shipped' && !!child.shipped && shipped && verified && viewed.every((p) => p.complete)
-		return { id: child.id, title: child.title, status: child.status, currentJob: child.job, currentPhase: child.job === 'arbitrate' ? 'verification' : stepOf(laneOf(child.pack), child.job).cartridge, enteredDelivery: history.some((e) => e.kind === 'handoff' || e.kind === 'call-started'), phases: viewed, testsCreated, testCount: checks.length,
+		if (child.pack?.runtime === 'functions') viewed.splice(0, viewed.length, ...laneOf(child.pack)[child.flow?.loop ?? 'delivery'].map(s => stepView(child, s.job, s.job, !!runner, heads, workEvidence.jobs[s.job])))
+		const delivered = workEvidence.delivered
+		return { currentHandoff: currentHandoffOf(store, child), id: child.id, title: child.title, status: child.status, currentJob: child.job, currentPhase: child.job === 'arbitrate' ? 'verification' : stepOf(laneOf(child.pack), child.job).cartridge, enteredDelivery: history.some((e) => e.kind === 'handoff' || e.kind === 'call-started'), phases: viewed, testsCreated, testCount: checks.length,
 			verification: { passed: verification ? verified ? true : verification.passed ? null : false : null, on: verification?.on ?? null, commit: verification?.commit ?? null, results: verification?.results ?? [] },
 			delivered, shipment: child.shipped ?? null, blocker: child.hold ?? null, readiness: readinessOf(store, child, !!runner, delivered), after: child.after ?? [], updated: child.updated }
 	})
@@ -218,10 +176,11 @@ export function grammarOf(store: WorkStore, id: number): GrammarView | undefined
 		if (x.item !== y.item && Date.parse(x.started) < Date.parse(y.started) + y.ms && Date.parse(y.started) < Date.parse(x.started) + x.ms) overlaps.add([x.item, y.item].sort((l, r) => l - r).join(':'))
 	}
 	const allEvents = [...events, ...children.flatMap((c) => store.events(c.id))].sort((a, b) => a.seq - b.seq)
-	const discoverySteps = DISCOVERY_FUNCTIONS.map(([job, label]) => stepView(item, events, job, label, !!runner, true, inputFor(item, job), heads, acceptedOutputFor(events, job)))
+	const workEvidence = workEvidenceOf(store, item)
+	const discoverySteps = DISCOVERY_FUNCTIONS.map(([job, label]) => stepView(item, job, label, !!runner, heads, workEvidence.jobs[job]))
 	const completedStepCount = discoverySteps.filter((step) => step.complete).length
 	const candidates = parsed(item.outputs.discover)
-	return { discovery: { id: item.id, title: item.title, source: item.source, status: item.status, currentJob: item.job,
+	return { discovery: { currentHandoff: currentHandoffOf(store, item), id: item.id, title: item.title, source: item.source, status: item.status, currentJob: item.job,
 		steps: discoverySteps, complete: completedStepCount === DISCOVERY_FUNCTIONS.length, completedStepCount, requiredStepCount: DISCOVERY_FUNCTIONS.length,
 		taskListProduced: events.some((e) => e.kind === 'discovered') && discoverySteps.find((step) => step.job === 'discover')!.complete && !!candidates && typeof candidates === 'object' && 'items' in candidates && Array.isArray(candidates.items), candidateIds: children.map((c) => c.id), updated: item.updated },
 		tasks, runner: { active: !!runner, pid: runner?.pid ?? null }, observedAt: new Date().toISOString(), lastEventAt: allEvents.at(-1)?.at ?? null,

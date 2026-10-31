@@ -1,6 +1,8 @@
 // One append-only trace in the existing event store. Lenses and renderers never move work.
 import { randomUUID } from 'node:crypto'
 import { Cause, Effect, Exit } from 'effect'
+import { workEvidenceOf } from './work-evidence.ts'
+import { currentHandoffOf } from './handoff-view.ts'
 import { laneOf, stepOf } from './lane.ts'
 import type { Next } from './errors.ts'
 import type { Store } from './store.ts'
@@ -156,13 +158,14 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 			result: finished?.data.result ?? null, error: finished?.data.error ?? null, tools: [...tools.values()], entries,
 		}
 	})
-	const done = item.status === 'shipped' || item.status === 'discovered' || item.status === 'completed'
+	const workEvidence = workEvidenceOf(store, item), currentHandoff = currentHandoffOf(store, item)
+	const done = workEvidence.delivered
 	const needsYou = item.status === 'held' || item.status === 'paused' || item.status === 'candidate'
 	const live = invocations.filter((i) => i.status === 'running')
 	const state = done ? item.status : needsYou ? 'needs-you' : item.status.startsWith('waiting-') ? 'waiting' : live.length ? 'working' : item.status === 'dropped' ? 'stopped' : runner ? 'queued' : 'not-running'
 	const ux = {
-		item: id, title: item.title, objective: item.objective, done, needsYou, state,
-		next, proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: item.verification.passed, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
+		item: id, title: item.title, objective: item.objective, workEvidence, currentHandoff, done, needsYou, state,
+		next, proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
 	}
 	if (lens === 'ux') return { lens, depth: 30_000, ...ux }
 	const lane = laneOf(item.pack)
@@ -173,7 +176,7 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 		updates: events.filter((e) => e.kind.startsWith('cartridges-')),
 		metrics: { invocations: invocations.length, failed: invocations.filter((i) => i.status === 'failed' || i.call?.outcome === 'error').length, ms: invocations.reduce((n, i) => n + i.ms, 0), tokens: calls.some((c) => c.tokens) ? calls.reduce((n, c) => n + totalTokens(c.tokens), 0) : null, unreportedUsage: calls.filter((c) => !c.tokens).length },
 		stage: step.cartridge, job: item.job, profile: step.profile, round: item.round, corrections: item.corrections,
-		hold: item.hold ?? null, verification: item.verification ?? null,
+		hold: item.hold ?? null, verification: item.verification ? { ...item.verification, passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false } : null, historicalVerification: item.verification ?? null,
 		nq: item.exchange ?? null, tracks: item.split ?? null, quota: store.exhausted(), runner,
 		runnerEvents: store.allEvents().filter((e) => e.kind.startsWith('runner-') && (e.item === id || e.item === 0)),
 		invocations: invocations.map(({ entries: _, args: _args, result: _result, call, ...i }) => ({ ...i, call: call ? { id: call.id, outcome: call.outcome, flags: call.flags, error: call.error, tokens: call.tokens } : null })),

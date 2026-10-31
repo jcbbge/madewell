@@ -1,3 +1,4 @@
+import { workEvidenceOf } from './work-evidence.ts'
 // The console: one live view of the work, read straight from the store. `mw ui` serves the Gazette sheet (ui/gazette,
 // built into dist/gazette.html) at / and the console page at /console, with the read-only JSON API both read, on this
 // machine (a browser, an orb portal, or an SSH tunnel reaches it); `mw watch` draws the same model in a terminal, or
@@ -635,7 +636,7 @@ export const serve = (path: string, nextOf: NextOf, host: string, port: number, 
 				}
 				if (url.pathname === '/console') return html(res, CONSOLE)
 				if (url.pathname === '/favicon.ico') return void (res.writeHead(204), res.end())
-				if (url.pathname === '/api/runs') return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job })), at: new Date().toISOString() })
+				if (url.pathname === '/api/runs') return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job, completion: workEvidenceOf(store!, i).delivered, noWorkPerformed: workEvidenceOf(store!, i).noWorkPerformed })), at: new Date().toISOString() })
 				if (url.pathname === '/api/lab') {
 					if (req.method !== 'GET') return json(res, { error: 'method_not_allowed', message: 'The experiment console reads recorded evidence only.' }, 405)
 					return json(res, store ? jumpPackLab(store) : { observedAt: new Date().toISOString(), runner: { active: false, pid: null }, cases: [] })

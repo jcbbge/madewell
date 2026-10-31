@@ -45,6 +45,7 @@ p{margin:0 0 var(--space-2);max-width:68ch;text-wrap:pretty;overflow-wrap:anywhe
 .step{display:flex;align-items:baseline;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--line-color)}
 .step-name{overflow-wrap:anywhere;min-width:0}.step-state{margin-left:auto;text-align:right;flex-shrink:0;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted)}
 .step-state.done{color:var(--accent)}.step-state.attention{color:var(--warning)}
+[data-current-work]{min-width:0;overflow-wrap:anywhere}[data-current-work] p{white-space:pre-wrap}[data-current-work] section{margin-bottom:var(--space-3)}
 .technical{margin-top:var(--space-8);border-top:1px solid var(--line-color)}
 details{border-bottom:1px solid var(--line-color)}summary{padding:var(--space-3) var(--space-1);cursor:pointer;overflow-wrap:anywhere;transition:background-color 160ms ease-out}
 summary:hover{background:var(--side)}summary:active{background:var(--hover)}summary::marker{color:var(--muted)}
@@ -59,7 +60,7 @@ pre.error{color:var(--error);background:var(--error-bg)}
 .action{font:inherit;color:var(--accent);background:var(--paper);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--space-1) var(--space-3);cursor:pointer;transition:background-color 160ms ease-out}
 .action:hover{background:var(--hover)}.action:active{background:var(--selected)}.action:disabled{color:var(--muted);border-color:var(--line-color);background:var(--side);cursor:not-allowed}
 .action.primary{color:var(--paper);background:var(--accent)}.action.primary:hover{background:#194b39}.action.primary:disabled{color:var(--muted);background:var(--side)}
-.conversation,.composer{max-width:68ch}.conversation{margin-top:var(--space-8)}.messages{list-style:none;padding:0;margin:0}.message{padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}
+.conversation,.composer{max-width:68ch}.conversation{margin-top:var(--space-8)}.messages{list-style:none;padding:0;margin:0}.message{white-space:pre-wrap;padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}
 .message p,.returned-text{white-space:pre-wrap;overflow-wrap:anywhere}.message .system{margin-bottom:var(--space-1)}.message details{border:0}.message summary{padding-left:0}
 .field{display:block;margin:var(--space-3) 0}.field label{display:block;font-weight:500;margin-bottom:var(--space-1)}
 input,textarea,select{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--paper);border:1px solid #8a9a91;border-radius:var(--radius);padding:var(--space-2);caret-color:var(--accent)}
@@ -76,6 +77,50 @@ textarea{min-height:9rem;resize:vertical}input:read-only,textarea:read-only,sele
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 `
 
+// Shared literal-DOM evidence controls; stable nodes keep native focus and disclosure state.
+export const EVIDENCE_SCRIPT = String.raw`
+const evidenceNode=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+const evidenceText=(n,text)=>{text=String(text??'');if(n.textContent!==text){const top=n.scrollTop,left=n.scrollLeft;n.textContent=text;n.scrollTop=top;n.scrollLeft=left}};
+function exactEvidence(parent,key,label,url){
+ let d=[...parent.children].find(n=>n.dataset.evidenceKey===key);if(d)return d;
+ d=evidenceNode('details');d.dataset.evidenceKey=key;d.dataset.key=key;const summary=evidenceNode('summary',label),body=evidenceNode('div');d.append(summary,body);
+ const load=async()=>{try{const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw new Error('Evidence unavailable (HTTP '+response.status+').');const value=await response.json();body.replaceChildren();if(!value.available){body.append(evidenceNode('p','Saved evidence unavailable.'));return}const data=value.data;const pre=evidenceNode('pre',data.answer!==undefined?data.answer:JSON.stringify(data,null,2));pre.tabIndex=0;pre.setAttribute('aria-label',label);body.append(pre)}catch(e){body.replaceChildren(evidenceNode('p',e.message));const retry=evidenceNode('button','Try again');retry.type='button';retry.onclick=load;body.append(retry)}};
+ let loaded=false;d.addEventListener('toggle',()=>{if(d.open&&!loaded){loaded=true;void load()}});parent.append(d);return d;
+}
+function currentWork(parent,summary,item){
+ let root=[...parent.children].find(n=>n.dataset.currentWork===String(item));if(!root){root=evidenceNode('section');root.dataset.currentWork=String(item);root.append(evidenceNode('h3','Current work'));parent.append(root)}
+ const entries=summary?.entries??[],keep=new Set(entries.map(e=>e.id));
+ for(const n of [...root.children])if(n.dataset.handoff&&!keep.has(n.dataset.handoff))n.remove();
+ let empty=root.querySelector('[data-no-handoff]');if(!entries.length){if(!empty){empty=evidenceNode('p','No current handoff.');empty.dataset.noHandoff='';root.append(empty)}}else empty?.remove();
+ for(const entry of entries){let card=[...root.children].find(n=>n.dataset.handoff===entry.id);if(!card){card=evidenceNode('section');card.dataset.handoff=entry.id;for(const key of ['role','duty','owed']){const p=evidenceNode('p');p.dataset.field=key;card.append(p)}root.append(card)}
+  evidenceText(card.querySelector('[data-field=role]'),entry.profile+' · '+entry.job+' · '+(entry.mode==='configured-next'?'Configured next; handoff not established':entry.exchangeStatus));
+  evidenceText(card.querySelector('[data-field=duty]'),entry.duty+(entry.dutyTruncated?'…':''));
+  evidenceText(card.querySelector('[data-field=owed]'),entry.unresolvedCount+' outstanding obligation'+(entry.unresolvedCount===1?'':'s'));
+  exactEvidence(card,entry.id+':output','Expected output & complete handoff',entry.expectedOutput.detail);
+  const questionKeys=new Set();for(const q of summary.questions??[]){if(!entry.questionIds.includes(q.id))continue;const key=entry.id+':question:'+q.id;questionKeys.add(key);let row=[...card.children].find(n=>n.dataset.question===key);if(!row){row=evidenceNode('div');row.dataset.question=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,q.text+(q.textTruncated?'…':'')+' · '+q.ownerRole+(q.blockingRole?' · needed by '+q.blockingRole:'')+' · '+q.resolution);for(const r of q.resolutions)exactEvidence(row,key+':answer:'+r.answerId,'Saved resolution · '+r.by+' · '+r.answerId,r.detail);if(q.resolutionsOmitted)exactEvidence(row,key+':more','All saved resolutions',entry.evidence.detail)}
+  for(const row of [...card.children])if(row.dataset.question&&!questionKeys.has(row.dataset.question))row.remove();
+  const inputKeys=new Set();for(const input of entry.inputs??[]){const o=input.observation,key=entry.id+':input:'+input.id+':'+(o?.event??'unchecked');inputKeys.add(key);let row=[...card.children].find(n=>n.dataset.input===key);if(!row){row=evidenceNode('div');row.dataset.input=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,input.id+' · '+(o?'Observed '+(o.ok?'available':'unavailable')+' at '+o.at+' · '+o.job+' · '+(o.name??'unknown worktree')+' · '+(o.dir??'unknown directory'):input.state==='not-checked'?'Not checked':'Unknown')+' · Current availability unknown');exactEvidence(row,key+':detail','Recorded input evidence',input.evidence)}
+  for(const row of [...card.children])if(row.dataset.input&&!inputKeys.has(row.dataset.input))row.remove();
+  let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(summary.questionsOmitted?summary.questionsOmitted+' more questions. ':'')+'Exact details are available above.');
+ }
+ return root;
+}
+function patchEvidence(old,fresh){
+ if(old.nodeType!==fresh.nodeType||old.nodeName!==fresh.nodeName){old.replaceWith(fresh);return fresh}
+ if(old.nodeType===3){if(old.nodeValue!==fresh.nodeValue)old.nodeValue=fresh.nodeValue;return old}
+ const top=old.scrollTop,left=old.scrollLeft;
+ if(fresh._fill){old._fill=fresh._fill;old._filled=fresh._filled}
+ for(const a of [...old.attributes])if(!fresh.hasAttribute(a.name)&&a.name!=='open')old.removeAttribute(a.name);
+ for(const a of [...fresh.attributes])if(a.name!=='open'&&old.getAttribute(a.name)!==a.value)old.setAttribute(a.name,a.value);
+ // An exact disclosure is bound to immutable evidence identity; keep its fetched body and handlers.
+ if(old.dataset.evidenceKey&&old.dataset.evidenceKey===fresh.dataset.evidenceKey)return old;
+ const key=n=>n.nodeType===1?(n.dataset.handoff||n.dataset.key||n.dataset.question||n.dataset.input||n.dataset.field||null):null;
+ let cursor=old.firstChild;
+ for(const child of [...fresh.childNodes]){const k=key(child);let existing=k?[...old.childNodes].find(n=>key(n)===k):cursor&& !key(cursor)?cursor:null;if(existing){if(existing!==cursor)old.insertBefore(existing,cursor);existing=patchEvidence(existing,child);cursor=existing.nextSibling}else{old.insertBefore(child,cursor)}}
+ while(cursor){const next=cursor.nextSibling;cursor.remove();cursor=next}old.scrollTop=top;old.scrollLeft=left;return old;
+}
+`
+
 export const MONITOR = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Made Well · Your work</title>
@@ -85,6 +130,7 @@ export const MONITOR = String.raw`<!doctype html>
 <header class="app-header"><h1>Made Well</h1><a href="/" aria-current="page">Work</a><a href="/qa">Manual QA</a><button class="action" id="new-work" type="button">New work</button><span id="connection" role="status">Connecting to your work…</span></header>
 <div class="workspace"><aside class="work-list"><h2>Your tasks</h2><p id="list-summary">Loading…</p><nav aria-label="Your tasks" id="runs"></nav></aside><main><article id="detail" tabindex="-1"><p class="system">Loading your work…</p></article></main></div>
 <script>
+${EVIDENCE_SCRIPT}
 const list=document.querySelector('#runs'),detail=document.querySelector('#detail'),connection=document.querySelector('#connection'),listSummary=document.querySelector('#list-summary');
 let selected=Number(location.hash.slice(1))||null,composing=location.hash==='#new',fetching=false,listKey='',renderKey='';
 let newWorkView=null;
@@ -109,7 +155,8 @@ function saveDraft(key,d){
 }
 function action(text,run,primary=false){const b=el('button',text,'action'+(primary?' primary':''));b.type='button';b.onclick=run;return b}
 function message(parent,m,key){
- const li=el('li',undefined,'message');li.append(el('p',(m.kind==='source'?'Original request':m.kind==='question'?'Question':'Answer')+' · '+m.role+(m.at?' · '+time(m.at):''),'system'));
+ let existing=[...parent.children].find(n=>n.dataset.message===m.id);const signature=json(m);if(existing?.dataset.signature===signature)return existing;
+ const li=el('li',undefined,'message');li.dataset.message=m.id;li.dataset.signature=signature;li.append(el('p',(m.kind==='source'?'Original request':m.kind==='question'?'Question':m.kind==='decision'?'Decision':m.kind==='reuse'?'Reused answer':'Answer')+' · '+m.role+(m.at?' · '+time(m.at):''),'system'));
  const long=m.text.length>600||m.truncated;
  li.append(el('p',long?m.text.slice(0,600)+'…':m.text));
  if(long)disclosure(li,'message:'+key+':'+m.id,'Read full message',async b=>{
@@ -118,7 +165,10 @@ function message(parent,m,key){
    const page=await get('/api/v1/items/'+key+'/conversation'+(m.kind==='source'?'':'?after='+Math.max(0,m.event-1)));
    const full=page.messages.find(x=>x.id===m.id);if(!full)throw new Error('The saved message is no longer available.');b.replaceChildren(el('p',full.text));
   }catch(e){b.replaceChildren(el('p',e.message,'feedback error'),action('Try again',load))}};await load();
- });parent.append(li);
+ });
+ for(const r of m.references??[]){li.append(el('p','Source: '+r.by+' · '+r.answerId+(r.resolved?'':' · unresolved'),'system'));exactEvidence(li,'answer:'+key+':'+r.answerId,'Read exact saved answer',r.detail)}
+ if(m.evidence)exactEvidence(li,'event:'+key+':'+m.event,m.referencesOmitted?'All '+m.referencesTotal+' answer references':'Exact event evidence',m.evidence);
+ if(existing)patchEvidence(existing,li);else parent.append(li);return existing??li;
 }
 // A pending request is immutable until acceptance or a definite rejection is known.
 // Drafts are local only; all accepted messages and work state belong to the API.
@@ -206,8 +256,8 @@ function conversation(id,context){
   conversations.set(id,{id,root,messages,reply,key:''});
  }
  const view=conversations.get(id),k=json([context.item.source,context.item.sourceTruncated,context.conversation,context.conversationTruncated]);
- if(view.key!==k){view.key=k;view.messages.replaceChildren();message(view.messages,{id:'source:'+id,kind:'source',role:'operator',text:context.item.source,truncated:context.item.sourceTruncated},id);for(const m of context.conversation)message(view.messages,m,id);
-  if(context.conversationTruncated)view.messages.append(el('li','Showing recent messages. Open the full conversation for earlier evidence.','draft-note'))}
+ if(view.key!==k){view.key=k;message(view.messages,{id:'source:'+id,kind:'source',role:'operator',text:context.item.source,truncated:context.item.sourceTruncated},id);for(const m of context.conversation)message(view.messages,m,id);
+  const keep=new Set(['source:'+id,...context.conversation.map(m=>m.id)]);for(const n of [...view.messages.children])if(n.dataset.message&&!keep.has(n.dataset.message))n.remove();let note=view.messages.querySelector('.draft-note');if(context.conversationTruncated&&!note)view.messages.append(el('li','Showing recent messages. Open the full conversation for earlier evidence.','draft-note'));else if(!context.conversationTruncated)note?.remove()}
  view.reply.update(context);return view.root;
 }
 function showNewWork(){
@@ -219,13 +269,15 @@ function showNewWork(){
 }
 function section(parent,title,value,error=false){const p=el('pre',typeof value==='string'?value:json(value),error?'error':undefined);p.tabIndex=0;p.setAttribute('aria-label',title);parent.append(el('h3',title),p)}
 function disclosure(parent,key,title,fill,hint){
- const d=el('details'),s=el('summary',title),b=el('div',undefined,'disclosure-body');let filled=false;
- d.dataset.key=key;d.open=expanded.has(key);if(hint)s.append(el('span',hint,'hint'));d.append(s,b);
- const populate=()=>{if(!filled){fill(b);filled=true}};if(d.open)populate();
+ const d=el('details'),s=el('summary',title),b=el('div',undefined,'disclosure-body');
+ d.dataset.key=key;d._fill=fill;d._filled=false;d.open=expanded.has(key);if(hint)s.append(el('span',hint,'hint'));d.append(s,b);
+ const populate=()=>{if(!d._filled){d._fill(d.lastElementChild);d._filled=true}};if(d.open)populate();
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open){expanded.add(key);populate()}else expanded.delete(key)});parent.append(d);return d;
 }
 function overview(v){
  const status=v.itemRecord.status;
+ if(v.workEvidence?.noWorkPerformed)return {title:'No work performed',text:'No steps were set up, so no work was performed.',tone:'quiet'};
+ if(['completed','shipped','discovered'].includes(status)&&!v.done)return {title:status==='shipped'?'Recorded as delivered; current evidence incomplete':'Recorded as completed; current evidence incomplete',text:'The saved lifecycle remains available in the evidence below.',tone:'attention'};
  if(status==='completed')return {title:'Completed',text:v.proof.completion?.nodes===0?'No steps were set up, so no work was performed.':'The steps for this task are finished. Only the work listed below is included.',tone:v.proof.completion?.nodes===0?'quiet':''};
  if(status==='shipped')return {title:'Delivered',text:'The work was delivered. Its recorded checks and delivery details are available below.'};
  if(status==='discovered')return {title:'Tasks ready',text:'The input has been turned into tasks.',next:'Open a proposed task to start its delivery.'};
@@ -259,14 +311,16 @@ function render(v,context){
  const nodes=el('ol',undefined,'steps');
  function node(n,parent){
   const li=el('li'),row=el('div',undefined,'step');
-  const done=Object.hasOwn(v.itemRecord.outputs,n.job)||(v.pack.runtime!=='functions'&&n.job==='verify'&&v.proof.verification?.passed===true);
+  const done=v.workEvidence?.jobs[n.job]?.complete===true;
   const current=n.job===v.job||active.some(i=>i.job===n.job);
   const state=done?'Done':current?(v.hold?'Needs attention':v.state==='working'?'In progress':'Not started'):'Not started';
   row.append(el('span',friendly(n.job),'step-name'),el('span',state,'step-state '+(done?'done':current&&v.hold?'attention':'')));li.append(row);
+  const proof=v.workEvidence?.jobs[n.job];if(proof){disclosure(li,'accepted:'+v.item+':'+n.job,'Accepted result',b=>{section(b,'Accepted result',proof.acceptedOutput);section(b,'Retained output',proof.output);if(proof.provenance.state!=='linked')b.append(el('p','Invocation not recorded · '+proof.provenance.reason));section(b,'Recorded invocation input',proof.input);section(b,'Acceptance and provenance',proof.provenance)});for(const attempt of proof.laterAttempts.entries)exactEvidence(li,'later:'+v.item+':'+attempt.event,'Later attempt · '+attempt.outcome+' · '+attempt.at,attempt.evidence);if(proof.laterAttempts.omitted){const link=el('a','All '+proof.laterAttempts.total+' attempts');link.href=proof.laterAttempts.trace;li.append(link)}}
   if(n.children?.length){const children=el('ol',undefined,'steps');for(const child of n.children)node(child,children);li.append(children)}parent.append(li);
  }
  for(const c of v.pack[v.itemRecord.flow?.loop??v.phase]??[])for(const n of c.steps??[])node(n,nodes);
  if(nodes.children.length)head.append(nodes);else head.append(el('p','No steps have been set up for this task.','muted'));
+ currentWork(head,v.currentHandoff,v.item);
  const thread=conversation(v.item,context);
  const tech=disclosure(tail,'technical:'+v.item,'Activity & technical details',b=>{
   const m=el('dl',undefined,'metrics');for(const [name,value]of [['Calls recorded',v.metrics.invocations],['Failed calls',v.metrics.failed],['Total call time',duration(v.metrics.ms)],['Reported tokens',v.metrics.tokens===null?'Not reported':v.metrics.tokens.toLocaleString()]]){const pair=el('div');pair.append(el('dt',name),el('dd',String(value)));m.append(pair)}b.append(m);
@@ -291,7 +345,7 @@ function render(v,context){
  tail.append(el('p','New work and replies are your instructions to Made Well. Progress and conversation come from the saved work record.','read-note'));
  detail.className='';
  // Never detach the live composer during polling: selection, IME and focus stay native.
- if(thread.parentElement===detail){detail.firstElementChild.replaceWith(head);detail.lastElementChild.replaceWith(tail)}
+ if(thread.parentElement===detail){patchEvidence(detail.firstElementChild,head);patchEvidence(detail.lastElementChild,tail)}
  else detail.replaceChildren(head,thread,tail);
  for(const d of detail.querySelectorAll('details')){const saved=scroll.get(d.dataset.key);if(saved)[...d.querySelectorAll('pre')].forEach((p,i)=>{if(saved[i]){p.scrollTop=saved[i][0];p.scrollLeft=saved[i][1]}})}
  if(focused!==document.body&&focused?.isConnected)focused.focus({preventScroll:true});
@@ -302,7 +356,7 @@ async function refresh(){if(fetching)return;fetching=true;try{
  if(!composing&&selected===null&&board.items.length)selected=(board.items.find(i=>i.status==='held'||i.status==='paused')??board.items[0]).id;
  const key=json([selected,composing,board.items]);if(key!==listKey){const focused=document.activeElement?.dataset.item;list.replaceChildren();listKey=key;
   const attention=board.items.filter(i=>i.status==='held'||i.status==='paused').length;listSummary.textContent=board.items.length+' '+(board.items.length===1?'task':'tasks')+(attention?' · '+attention+' '+(attention===1?'needs':'need')+' attention':'');
-  for(const i of board.items){const b=el('button');b.dataset.item=String(i.id);b.setAttribute('aria-current',String(!composing&&selected===i.id));b.append(el('span',i.title,'task-name'),el('span',labels[i.status]??i.status,'task-state'));b.onclick=()=>{composing=false;selected=i.id;location.hash=String(i.id);refresh()};list.append(b);if(focused===String(i.id))b.focus({preventScroll:true})}
+  for(const i of board.items){const b=el('button');b.dataset.item=String(i.id);b.setAttribute('aria-current',String(!composing&&selected===i.id));b.append(el('span',i.title,'task-name'),el('span',(['completed','shipped','discovered'].includes(i.status)&&!i.completion?(i.noWorkPerformed?'No work performed':'Recorded completion; evidence incomplete'):labels[i.status]??i.status),'task-state'));b.onclick=()=>{composing=false;selected=i.id;location.hash=String(i.id);refresh()};list.append(b);if(focused===String(i.id))b.focus({preventScroll:true})}
  }
  if(composing)showNewWork();
  else if(!board.items.length){detail.className='empty';detail.replaceChildren(el('h2','A place for your next task.'),el('p','Choose New work to describe what you want done. Follow its progress here, from the first step to the result.','muted'));renderKey=''}
