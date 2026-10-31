@@ -38,11 +38,76 @@ const schemas = {
 	route: Schema.Struct({ ...common, dependencies: Schema.Array(Dependency), preparation: Schema.Array(Preparation) }),
 	discover: Schema.Struct({ ...common, items: Schema.Array(Schema.Struct({ ...Candidate, after: Schema.Array(Schema.Int) })), dependencyIds: Refs, preparationIds: Refs, questionIds: Refs }),
 } as const
+const HandoffSourceRefs = Refs.annotate({ description: 'Evidence references: cite evidence[].id values declared in this contribution or an earlier accepted contribution. Never invent IDs or substitute observation IDs, requirement IDs, raw locators, URLs or physical paths. Put each actual locator in evidence[].ref and cite its declared id here.' })
+const HandoffEvidence = Schema.Struct({
+	...Evidence.fields,
+	id: Evidence.fields.id.annotate({ description: 'Declared evidence identity used by sources references in this contribution or later contributions.' }),
+	ref: Evidence.fields.ref.annotate({ description: 'Actual source locator, such as a URL or physical path; this is not the identity cited by sources. Cite evidence[].id instead.' }),
+})
+const HandoffQuestion = Schema.Struct({
+	...Question.fields,
+	id: Question.fields.id.annotate({ description: 'Declared question identity referenced by questionRefs and confirmation questionIds. Preserve existing question ownership and blocking-role rules.' }),
+	sources: HandoffSourceRefs,
+})
+const HandoffClaim = { ...Claim, sources: HandoffSourceRefs }
+const HandoffArtifact = Schema.Struct({
+	...Artifact.fields,
+	id: Artifact.fields.id.annotate({ description: 'Declared artifact identity belonging to its candidate producer; dependency artifactId references this identity.' }),
+	sources: HandoffSourceRefs,
+})
+const HandoffRequirementRefs = Refs.annotate({ description: 'References to declared classify.requirements[].id values, not intent IDs, evidence IDs or candidate keys.' })
+const HandoffRequirement = {
+	...Requirement,
+	id: Requirement.id.annotate({ description: 'Declared requirement identity in classify.requirements, referenced by requirementIds.' }),
+	sources: HandoffSourceRefs,
+}
+const HandoffIntentDisposition = Schema.Struct({
+	...IntentDisposition.fields,
+	intentId: IntentDisposition.fields.intentId.annotate({ description: 'Reference to a declared Declare intent[].id value accounted for by this disposition.' }),
+	sources: HandoffSourceRefs,
+})
+const HandoffCandidate = {
+	...Candidate,
+	key: Candidate.key.annotate({ description: 'Task identity declared by one-thing.candidates[].key and retained by confirmation; dependencies and preparation reference this candidate key.' }),
+	requirementIds: HandoffRequirementRefs,
+	artifacts: Schema.Array(HandoffArtifact),
+}
+const HandoffQuestionRefs = QuestionRefs.annotate({ description: 'Declared questions[].id values from this contribution or earlier accepted contributions where supported. Retain accepted candidate bindings at confirmation; newly declared route/confirmation questions can be added. Preserve question ownership and blocking-role rules. Use [] when none apply.' })
+const HandoffDependency = Schema.Struct({
+	...Dependency.fields,
+	id: Dependency.fields.id.annotate({ description: 'Route dependency identity retained in confirmation.dependencyIds.' }),
+	producer: Dependency.fields.producer.annotate({ description: 'Producer task key declared in one-thing.candidates[].key.' }),
+	consumer: Dependency.fields.consumer.annotate({ description: 'Consumer task key declared in one-thing.candidates[].key.' }),
+	sources: HandoffSourceRefs,
+	artifactId: Dependency.fields.artifactId.annotate({ description: 'Null or a declared artifacts[].id belonging to the named producer candidate; not an evidence ID, locator or consumer artifact.' }),
+})
+const HandoffPreparation = Schema.Struct({
+	...Preparation.fields,
+	id: Preparation.fields.id.annotate({ description: 'Route preparation identity retained in confirmation.preparationIds.' }),
+	candidate: Preparation.fields.candidate.annotate({ description: 'Preparing task key declared in one-thing.candidates[].key; names task-delivered readiness, not an environment name.' }),
+	before: Preparation.fields.before.annotate({ description: 'Another declared one-thing.candidates[].key that receives the preparing task readiness; never runtime timing prose or an environment name.' }),
+	sources: HandoffSourceRefs,
+})
+const handoffCommon = {
+	...common,
+	sources: HandoffSourceRefs,
+	evidence: Schema.Array(HandoffEvidence),
+	questions: Schema.Array(HandoffQuestion),
+}
 const handoffSchemas = {
-	...schemas,
-	classify: Schema.Struct({ ...common, requirements: Schema.Array(Schema.Struct({ ...Requirement, intentIds: Refs.annotate({ description: 'One or more Declare.intent[].id values accounted for by this requirement.' }) })), intentDispositions: Schema.Array(IntentDisposition).annotate({ description: 'Explicitly account for declared intents that do not become requirements, with a reason and evidence IDs. Use [] when all intents map to requirements.' }) }),
-	'one-thing': Schema.Struct({ ...common, candidates: Schema.Array(Schema.Struct({ ...Candidate, questionRefs: QuestionRefs })) }),
-	discover: Schema.Struct({ ...common, items: Schema.Array(Schema.Struct({ ...Candidate, questionRefs: QuestionRefs, after: Schema.Array(Schema.Int) })), dependencyIds: Refs, preparationIds: Refs, questionIds: Refs }),
+	declare: Schema.Struct({ ...handoffCommon, intent: Schema.Array(Schema.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: 'Declared intent identity in Declare intent[], referenced by requirements[].intentIds or intentDispositions[].intentId.' }), authority: Schema.Literals(['explicit', 'interpretation']) })) }),
+	'look-first': Schema.Struct({ ...handoffCommon, observations: Schema.Array(Schema.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: 'Declared observation identity in look-first.observations; not an evidence identity for sources.' }) })) }),
+	classify: Schema.Struct({ ...handoffCommon, requirements: Schema.Array(Schema.Struct({ ...HandoffRequirement, intentIds: Refs.annotate({ description: 'One or more declared Declare intent[].id values accounted for by this requirement.' }) })), intentDispositions: Schema.Array(HandoffIntentDisposition).annotate({ description: 'Explicitly account for declared intents that do not become requirements, with a reason and evidence IDs. Use [] when all intents map to requirements.' }) }),
+	lenses: Schema.Struct({ ...handoffCommon, tradeoffs: Schema.Array(Schema.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: 'Declared tradeoff identity in lenses.tradeoffs; not a requirement or evidence identity.' }), requirementIds: HandoffRequirementRefs })) }),
+	'one-thing': Schema.Struct({ ...handoffCommon, candidates: Schema.Array(Schema.Struct({ ...HandoffCandidate, questionRefs: HandoffQuestionRefs })) }),
+	route: Schema.Struct({ ...handoffCommon, dependencies: Schema.Array(HandoffDependency), preparation: Schema.Array(HandoffPreparation).annotate({ description: 'Cross-task preparation promises describe task-delivered readiness. Required producer-before-consumer ordering must also appear in route.dependencies and the matching confirmation after graph; preparation does not create scheduling edges. Use [] when no genuine cross-task preparation promise exists. This is separate from the engine-owned per-job environment prepare command. Environment references use input:<id> for registered projectInputs; they are not candidate keys or invented discovery identities.' }) }),
+	discover: Schema.Struct({
+		...handoffCommon,
+		items: Schema.Array(Schema.Struct({ ...HandoffCandidate, questionRefs: HandoffQuestionRefs, after: Schema.Array(Schema.Int).annotate({ description: 'Distinct one-based positions of earlier confirmed items matching accepted route.dependencies; retain the accepted dependency graph. Use [] when no earlier dependencies apply.' }) })),
+		dependencyIds: Refs.annotate({ description: 'Retained route.dependencies[].id values; use [] when no dependencies were declared.' }),
+		preparationIds: Refs.annotate({ description: 'Retained route.preparation[].id values; use [] when no preparation promises were declared.' }),
+		questionIds: Refs.annotate({ description: 'All declared questions[].id identities from earlier accepted contributions and supported current declarations, including newly declared confirmation questions. Use [] when none exist.' }),
+	}),
 } as const
 export interface DiscoveryContractOptions { readonly handoff?: boolean }
 export type DiscoveryContributions = { readonly [J in DiscoveryJob]: typeof schemas[J]['Type'] }
