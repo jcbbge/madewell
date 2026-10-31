@@ -1,0 +1,31 @@
+{
+  "name": "database",
+  "version": "1.0.0-experiment.1",
+  "description": "Experimental additive data requirements. Applicability depends on the selected task; no live database access is granted.",
+  "requirements": {
+    "look-first": [
+      {
+        "id": "data-context",
+        "text": "Where data is affected, establish the relevant schema, invariants and available fixture evidence. Preserve unknowns when no database or records are supplied."
+      }
+    ],
+    "planning": [
+      {
+        "id": "data-change-plan",
+        "text": "For applicable data changes, state ordering, compatibility, preservation requirements and recovery approach. Do not add migrations to work that does not require them."
+      }
+    ],
+    "implementation": [
+      {
+        "id": "scoped-data-action",
+        "text": "Perform only the planned data actions in the authorized environment. Record the actual affected artifact or database and its result; a test fixture is not a production change."
+      }
+    ],
+    "verification": [
+      {
+        "id": "data-preservation",
+        "text": "For affected data, execute checks for the declared invariants, intended change and preservation of unrelated records. Report the database or fixture identity used."
+      }
+    ]
+  }
+}

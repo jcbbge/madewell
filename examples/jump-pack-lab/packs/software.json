@@ -1,0 +1,39 @@
+{
+  "name": "software",
+  "version": "1.0.0-experiment.1",
+  "description": "Experimental software methods for the universal work grammar; no repository or deployment authority is implied.",
+  "methods": {
+    "look-first": {
+      "id": "inspect-software-context",
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Inspect supplied behavior, interfaces, code and existing checks relevant to the intended capability. If no application was supplied, retain that missing context instead of assigning the example to another project."
+    },
+    "lenses": {
+      "id": "software-consequences",
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Examine behavior, maintainability, compatibility and operation concerns applicable to this software work. Record conditional tradeoffs and preserve the sought capability without inventing a target architecture."
+    },
+    "planning": {
+      "id": "software-change-plan",
+      "profile": "planner",
+      "access": "read",
+      "duty": "Ground the plan in available software interfaces and conventions. State the changes, affected consumers, boundaries and executed evidence needed to establish the outcome. Incorporate all additional domain requirements in args.contract."
+    }
+  },
+  "requirements": {
+    "planning": [
+      {
+        "id": "behavior-and-scope",
+        "text": "Identify the intended behavior, relevant existing artifacts and affected consumers. Missing application context is a prerequisite, not permission to fabricate a repository."
+      }
+    ],
+    "verification": [
+      {
+        "id": "behavior-evidence",
+        "text": "Check the actual changed behavior and applicable consumers against the task's agreed completion conditions; distinguish executed evidence from proposed checks."
+      }
+    ]
+  }
+}

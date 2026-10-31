@@ -1,0 +1,107 @@
+{
+  "name": "generic",
+  "version": "1.0.0-experiment.4",
+  "description": "Proposed domain-neutral defaults for the isolated jump-pack experiment. This pack grants no authority to execute work.",
+  "methods": {
+    "declare": {
+      "id": "state-outcomes",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Prepare a provisional account of the intended outcomes from the raw material, with source references and actual scope. The input may be rough notes, a transcript or a discussion; it does not owe you a finished brief. Give each outcome a stable id and preserve it in the outcomes array. Separate what is sought from whether executing it is authorized."
+    },
+    "look-first": {
+      "id": "ground-context",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Inspect the available context and relevant local artifacts. Return what already exists, source references and missing evidence. No project, repository or industry rule is implied when none was supplied."
+    },
+    "classify": {
+      "id": "distinguish-statements",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Distinguish requests, observations, proposed alternatives, constraints and assumptions. Preserve contradictory statements and unresolved language; do not turn them into settled requirements."
+    },
+    "lenses": {
+      "id": "relevant-perspectives",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Examine consequences, feasibility and affected perspectives. For consequential choices, explain what advances world-class DX, memorable and lovable UX, and efficient, optimized AX, including costs. Use the governing rubric already supplied. Derive perspectives from the supplied context and state conditional tradeoffs without selecting unsupported domain rules."
+    },
+    "one-thing": {
+      "id": "retain-outcome-work",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Identify coherent candidate outcomes and their preparatory tasks. Retain an explicit candidate for each sought capability or result, even when it is unapproved or blocked. Preparation must not silently replace the outcome it supports. Keep ideation, planning, implementation and verification inside each task. Do not turn those phases into separate candidates unless a phase produces an independently owed result."
+    },
+    "route": {
+      "id": "ground-dependencies",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Establish genuine dependencies, external prerequisites and possible parallel work. Distinguish a task that can produce an uncertainty inventory from the later outcome that still requires those uncertainties to be resolved."
+    },
+    "confirm": {
+      "id": "reconcile-coverage",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Synthesize usable intent and a candidate list from the accumulated discovery outputs, with coverage links. Explain meaningful clarifications of provisional outcomes through their source and DX/UX/AX tradeoffs; keep original outcome identities as traceable anchors rather than silently renaming them. New outcomes may emerge during discovery: include them in outcomes and coverage, and identify each addition in intentChanges with sourceRefs and rationale. Retain original anchors, using explicit declined coverage with a reason where appropriate. There is no predetermined task count or wording to reproduce. Preserve the intended results as outcome candidates alongside prerequisites; use unresolved or declined only with an explicit reason. An unapproved candidate does not authorize execution. Candidate text must carry its purpose, boundaries, completion evidence and unresolved inputs."
+    },
+    "ideation": {
+      "id": "interpret-success",
+      "fallback": true,
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Establish what fulfilling this selected task means and choose an appropriate approach within its actual scope. Reuse settled context and retain unresolved prerequisites."
+    },
+    "planning": {
+      "id": "plan-action-and-proof",
+      "fallback": true,
+      "profile": "planner",
+      "access": "read",
+      "duty": "Return feasible actions, required inputs, boundaries and checks for the agreed outcome. Apply every contributing requirement in args.contract. Do not carry out the work."
+    },
+    "implementation": {
+      "id": "perform-agreed-action",
+      "fallback": true,
+      "profile": "implementer",
+      "access": "make",
+      "duty": "Carry out the accepted plan within the selected task's scope. Return actual artifacts and failures. Do not invent completed actions or certify your own result as independently verified."
+    },
+    "verification": {
+      "id": "check-actual-result",
+      "fallback": true,
+      "profile": "test architect",
+      "access": "read",
+      "duty": "Independently compare the actual result with the agreed outcome and contributing requirements. Report the checks performed, evidence and any failure or unresolved condition. Valid output shape alone is not a passing verdict."
+    }
+  },
+  "requirements": {
+    "confirm": [
+      {
+        "id": "outcome-coverage",
+        "text": "Account for every declared outcome. Tasks that only clarify, compare or inventory evidence cannot by themselves discharge a sought capability. Preserve meaningful candidate ids and outcomeRefs."
+      }
+    ],
+    "implementation": [
+      {
+        "id": "work-authority",
+        "text": "Execution authority comes from the selected work item. Loading or composing this pack grants no permission to publish, contact people, change live systems or spend money.",
+        "constraints": {
+          "authority-source": "selected-work"
+        }
+      }
+    ],
+    "verification": [
+      {
+        "id": "actual-evidence",
+        "text": "Completion claims must name the actual result and supporting checks. Missing evidence remains unresolved. Historical or shape acceptance is not current result verification."
+      }
+    ]
+  }
+}

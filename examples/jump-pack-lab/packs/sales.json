@@ -1,0 +1,33 @@
+{
+  "name": "sales",
+  "version": "1.0.0-experiment.1",
+  "description": "Experimental sales method and additive qualification/handoff requirements; no outreach authority is implied.",
+  "methods": {
+    "planning": {
+      "id": "sales-action-plan",
+      "profile": "planner",
+      "access": "read",
+      "duty": "Plan the selected sales result using the supplied buyer context, offer and relationship. Define the appropriate qualification or next-step evidence, keeping a proposed action distinct from permission to contact anyone."
+    }
+  },
+  "requirements": {
+    "planning": [
+      {
+        "id": "qualification-and-handoff",
+        "text": "Where a response or handoff is part of the task, identify the intended recipient context, qualifying information and next step. Do not invent buyer intent or an agreement."
+      }
+    ],
+    "implementation": [
+      {
+        "id": "actual-contact-scope",
+        "text": "Carry out only the selected scope: drafting is not sending, an attempted contact is not a conversation, and a conversation is not a closed agreement."
+      }
+    ],
+    "verification": [
+      {
+        "id": "sales-outcome-evidence",
+        "text": "Check the actual response, handoff or agreement required by the selected task. A local draft may be verified as a draft without claiming that outreach occurred or a prospect converted."
+      }
+    ]
+  }
+}

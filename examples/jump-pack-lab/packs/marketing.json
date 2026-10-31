@@ -1,0 +1,45 @@
+{
+  "name": "marketing",
+  "version": "1.0.0-experiment.1",
+  "description": "Experimental marketing methods. Drafting, publication and campaign outcomes remain distinct task scopes.",
+  "methods": {
+    "classify": {
+      "id": "marketing-intent",
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Separate the requested marketing outcome from audience observations, proposed messages, channel ideas and unverified claims. Preserve missing audience, offer or timing information as unknowns."
+    },
+    "lenses": {
+      "id": "audience-and-claims",
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Examine audience relevance, clarity, credibility, accessibility and appropriate measurement for the supplied task. Do not invent customer evidence or turn audience research into a substitute for the requested outcome."
+    },
+    "ideation": {
+      "id": "marketing-approach",
+      "profile": "ideator",
+      "access": "read",
+      "duty": "Choose an approach to the selected marketing result using supplied audience, offer, brand and channel constraints. A local draft remains a draft; a launch task retains its launch outcome."
+    },
+    "planning": {
+      "id": "marketing-action-plan",
+      "profile": "planner",
+      "access": "read",
+      "duty": "Plan the selected marketing artifact or action, its factual inputs, channel constraints and completion checks. Incorporate sales handoff requirements when present, without silently authorizing distribution."
+    }
+  },
+  "requirements": {
+    "planning": [
+      {
+        "id": "audience-and-purpose",
+        "text": "State the supplied audience, intended response and boundaries. Keep absent facts, links, dates and claims explicit rather than filling them with invented values."
+      }
+    ],
+    "verification": [
+      {
+        "id": "marketing-result",
+        "text": "Check the actual artifact or campaign action against the stated audience, factual constraints and requested response. Do not claim measured impact when only a draft or instrumentation exists."
+      }
+    ]
+  }
+}
