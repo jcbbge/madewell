@@ -237,3 +237,137 @@ test('saved artifact provenance keeps standing facts private to each real maker 
 		}
 	} finally { t.cleanup() }
 })
+
+// These are valid historical version-1 records, injected without rerunning today's registration guard.
+function legacyFact(t: ReturnType<typeof setup>, key: string, source: { reference: string; event?: number }, extra: Record<string, unknown> = {}) {
+	t.store.note(t.item.id, 'context-fact', { version: 1, operation: typeof extra.revision === 'number' && extra.revision > 1 ? 'update' : 'set', requestId: `historical-${key}`, nonsecret: true, fact: {
+		key, revision: 1, text: `Retained historical context for ${key}.`, jobs: ['plan', 'implement', 'test-plan'], scope: 'item',
+		enteredBy: { kind: 'operator', label: 'Historical operator' }, source, item: t.item.id, workspace: t.workspace, status: 'active', ...extra,
+	} })
+	return t.store.events(t.item.id).at(-1)!
+}
+function legacyArtifact(t: ReturnType<typeof setup>, role: 'implement' | 'test-plan') {
+	const base = execFileSync('git', ['-C', t.workspace, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+	preserveArtifact(t.store, t.item, role, `Actual retained ${role} artifact bytes.`, base)
+	const event = t.store.events(t.item.id).at(-1)!
+	assert.equal(event.kind, 'artifact-saved')
+	assert.equal(event.data.role, role)
+	assert.equal(event.data.job, undefined, 'the real artifact producer retains its role without a job field')
+	return event
+}
+function rawFactHistory(t: ReturnType<typeof setup>, through: number) {
+	const code = "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(process.argv[1],{readOnly:true});try{process.stdout.write(JSON.stringify(db.prepare('SELECT seq,at,kind,data FROM events WHERE item = ? AND seq <= ? ORDER BY seq').all(Number(process.argv[2]),Number(process.argv[3]))))}finally{db.close()}"
+	const result = spawnSync(process.execPath, ['-e', code, t.store.path, String(t.item.id), String(through)], { encoding: 'utf8' })
+	assert.equal(result.status, 0, result.stderr)
+	return result.stdout
+}
+
+test('legacy context provenance: role-only artifacts stay private in maker and originator packets after SQLite reopen without rewriting history', async () => {
+	const privateText = { implement: 'LEGACY-IMPLEMENT-PRIVATE', 'test-plan': 'LEGACY-CHECKER-PRIVATE' }
+	const t = setup((request, attempt) => {
+		if (!['implement', 'test-plan'].includes(request.job)) return undefined
+		const role = request.job as 'implement' | 'test-plan', other = role === 'implement' ? 'test-plan' : 'implement'
+		const facts = JSON.parse(request.prompt).contextFacts as { key: string; text: string; sourceJob?: string }[]
+		assert.ok(facts?.some(fact => fact.key === `legacy-${role}` && fact.text === privateText[role] && fact.sourceJob === role), `${request.kind} retains this maker's own historical context`)
+		assert.equal(request.prompt.includes(privateText[other]), false, `${request.kind} cannot expose the opposing maker's historical context`)
+		if (request.kind === 'intake' && attempt === 1) return { ...clear, unclear: [`Which retained candidate should ${role} use?`] }
+		if (request.kind === 'execute' && role === 'test-plan') return { checks: [{ id: 'C1', doneWhen: 'D1', run: 'test "$(cat value.txt)" = new' }] }
+		return undefined
+	})
+	try {
+		for (const role of ['implement', 'test-plan'] as const) {
+			const artifact = legacyArtifact(t, role)
+			const event = legacyFact(t, `legacy-${role}`, { reference: 'The original role-only maker artifact.', event: artifact.seq }, { text: privateText[role] })
+			assert.equal(Object.hasOwn(event.data.fact as object, 'sourceJob'), false, 'exercise the actual old-format gap')
+		}
+		const through = t.store.events(t.item.id).at(-1)!.seq, original = rawFactHistory(t, through)
+		t.restart()
+		for (const [role, other] of [['implement', 'test-plan'], ['test-plan', 'implement']] as const) {
+			assert.equal(contextFactsFor(t.store, t.item, role, Date.now()).find(fact => fact.key === `legacy-${role}`)?.sourceJob, role)
+			assert.ok(contextFactsFor(t.store, t.item, other, Date.now()).every(fact => fact.key !== `legacy-${role}`))
+			assert.ok(contextFactsFor(t.store, t.item, 'plan', Date.now(), other).every(fact => fact.key !== `legacy-${role}`))
+		}
+		const result = await t.run(drive(t.item.id, { prescriptions }))
+		assert.equal(result.status, 'paused', JSON.stringify(result.hold))
+		assert.equal(result.verification?.passed, true)
+		for (const role of ['implement', 'test-plan']) assert.equal(t.calls.filter(call => call.job === role && call.kind === 'originator').length, 1, 'the planner originator serves each receiving maker through the same visibility boundary')
+		assert.equal(rawFactHistory(t, through), original, 'the exact original SQLite event text stays unchanged after projection and execution')
+	} finally { t.cleanup() }
+})
+
+test('legacy context provenance: public-source updates and old copy chains retain private origin for visibility and new mutations', async () => {
+	const t = setup()
+	try {
+		const chains = (['implement', 'test-plan'] as const).map(role => {
+			const artifact = legacyArtifact(t, role), key = `legacy-chain-${role}`
+			const first = legacyFact(t, key, { reference: 'Original private maker output.', event: artifact.seq })
+			const update = legacyFact(t, key, { reference: 'A later public-looking operator citation.' }, { revision: 2, previousEvent: first.seq })
+			const copy = legacyFact(t, `${key}-copy`, { reference: 'An old copied standing fact.', event: update.seq })
+			const last = legacyFact(t, `${key}-copy-again`, { reference: 'A second old copy of the same standing fact.', event: copy.seq })
+			return { role, key, entries: [update, copy, last] }
+		})
+		const through = t.store.events(t.item.id).at(-1)!.seq, original = rawFactHistory(t, through)
+		t.restart()
+		for (const { role, key, entries } of chains) {
+			const other = role === 'implement' ? 'test-plan' : 'implement'
+			for (const event of entries) {
+				const fact = event.data.fact as { key: string; revision: number }
+				assert.equal(contextFactsFor(t.store, t.item, role, Date.now()).find(visible => visible.key === fact.key)?.sourceJob, role)
+				assert.ok(contextFactsFor(t.store, t.item, other, Date.now()).every(visible => visible.key !== fact.key))
+				assert.ok(contextFactsFor(t.store, t.item, 'plan', Date.now(), other).every(visible => visible.key !== fact.key))
+				await assert.rejects(t.run(contextFact(t.item.id, registration(`${fact.key}-new-update-leak`, { key: fact.key, operation: 'update', revision: fact.revision, jobs: [other], source: { reference: 'A new public-looking update.' } }))), /context_fact_maker_isolation/)
+				await assert.rejects(t.run(contextFact(t.item.id, registration(`${fact.key}-new-copy-leak`, { key: `${fact.key}-new-copy`, jobs: [other], source: { reference: 'A new copy of retained context.', event: event.seq } }))), /context_fact_maker_isolation/)
+			}
+			const ownCopy = await t.run(contextFact(t.item.id, registration(`${key}-valid-own-copy`, { key: `${key}-valid-own-copy`, jobs: ['plan', role], source: { reference: 'Copy for the original maker only.', event: entries.at(-1)!.seq } })))
+			assert.equal(contextFactsFor(t.store, t.item, role, Date.now()).find(fact => fact.event === ownCopy.event)?.sourceJob, role)
+			const ownUpdate = await t.run(contextFact(t.item.id, registration(`${key}-valid-own-update`, { key, operation: 'update', revision: 2, jobs: ['plan', role], source: { reference: 'A narrowed update for the original maker only.' } })))
+			assert.equal(contextFactsFor(t.store, t.item, role, Date.now()).find(fact => fact.event === ownUpdate.event)?.sourceJob, role)
+		}
+		assert.equal(rawFactHistory(t, through), original)
+	} finally { t.cleanup() }
+})
+
+test('legacy context provenance: conflicting maker lineage and missing historical references fail closed for reads, updates and copies', async () => {
+	const t = setup()
+	try {
+		const implementation = legacyArtifact(t, 'implement'), checks = legacyArtifact(t, 'test-plan')
+		const privateChecks = legacyFact(t, 'mixed-private-lineage', { reference: 'Actual checker output.', event: checks.seq })
+		const mixed = legacyFact(t, 'mixed-private-lineage', { reference: 'Actual implementation output.', event: implementation.seq }, { revision: 2, previousEvent: privateChecks.seq })
+		const conflicting = legacyFact(t, 'conflicting-saved-role', { reference: 'Actual implementation output.', event: implementation.seq }, { sourceJob: 'test-plan' })
+		const missing = legacyFact(t, 'missing-private-source', { reference: 'Unavailable historical producer.', event: 1_000_000 })
+		const missingPrevious = legacyFact(t, 'missing-previous-source', { reference: 'A public-looking replacement citation.' }, { previousEvent: 1_000_001 })
+		const through = t.store.events(t.item.id).at(-1)!.seq, original = rawFactHistory(t, through)
+		t.restart()
+		for (const event of [mixed, conflicting, missing, missingPrevious]) {
+			const fact = event.data.fact as { key: string; revision: number }
+			for (const role of ['implement', 'test-plan']) {
+				assert.ok(contextFactsFor(t.store, t.item, role, Date.now()).every(visible => visible.key !== fact.key), `${fact.key} has no safe private reader`)
+				assert.ok(contextFactsFor(t.store, t.item, 'plan', Date.now(), role).every(visible => visible.key !== fact.key))
+				await assert.rejects(t.run(contextFact(t.item.id, registration(`${fact.key}-${role}-update`, { key: fact.key, operation: 'update', revision: fact.revision, jobs: [role], source: { reference: 'Replace the citation with public prose.' } }))), /context_fact_maker_isolation/)
+				await assert.rejects(t.run(contextFact(t.item.id, registration(`${fact.key}-${role}-copy`, { key: `${fact.key}-${role}-copy`, jobs: [role], source: { reference: 'Copy the retained ambiguous origin.', event: event.seq } }))), /context_fact_maker_isolation/)
+			}
+		}
+		assert.equal(rawFactHistory(t, through), original)
+	} finally { t.cleanup() }
+})
+
+test('legacy context provenance: an unclassified retained producer is withheld while explicit public facts remain available', async () => {
+	const t = setup()
+	try {
+		t.store.note(t.item.id, 'legacy-unattributed-output', { output: 'Retained output with unavailable authorship.' })
+		const unknown = t.store.events(t.item.id).at(-1)!
+		const privateFact = legacyFact(t, 'unknown-retained-author', { reference: 'This old record has no recoverable producer identity.', event: unknown.seq })
+		const publicFact = legacyFact(t, 'explicit-public-context', { reference: 'Explicit operator context with no private producer citation.' })
+		const through = t.store.events(t.item.id).at(-1)!.seq, original = rawFactHistory(t, through)
+		t.restart()
+		for (const role of ['implement', 'test-plan']) {
+			const visible = contextFactsFor(t.store, t.item, role, Date.now())
+			assert.ok(visible.every(fact => fact.key !== 'unknown-retained-author'))
+			assert.ok(visible.some(fact => fact.event === publicFact.seq), 'an explicit public fact does not require an invented private origin')
+			assert.ok(contextFactsFor(t.store, t.item, 'plan', Date.now(), role).every(fact => fact.key !== 'unknown-retained-author'))
+			await assert.rejects(t.run(contextFact(t.item.id, registration(`unknown-${role}-update`, { key: 'unknown-retained-author', operation: 'update', revision: 1, jobs: [role] }))), /context_fact_maker_isolation/)
+			await assert.rejects(t.run(contextFact(t.item.id, registration(`unknown-${role}-copy`, { key: `unknown-${role}-copy`, jobs: [role], source: { reference: 'Copy unclassified historical context.', event: privateFact.seq } }))), /context_fact_maker_isolation/)
+		}
+		assert.equal(rawFactHistory(t, through), original)
+	} finally { t.cleanup() }
+})

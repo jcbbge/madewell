@@ -25768,29 +25768,57 @@ var decodeContextFactCommand = (input, id2) => {
     throw failure(id2, 400, "invalid_context_fact");
   }
 };
-function contextFactRecords(store, id2) {
+function contextFactRecords(store, id2, events2 = store.events(id2)) {
   const latest = /* @__PURE__ */ new Map();
-  for (const event of store.events(id2)) {
+  const bySequence = new Map(events2.map((event) => [event.seq, event]));
+  for (const event of events2) {
     if (event.kind !== "context-fact" || event.data.version !== 1) continue;
     try {
       const fact = Schema_exports.decodeUnknownSync(StoredFact)(event.data.fact, { onExcessProperty: "error" });
-      if (fact.item === id2) latest.set(fact.key, { ...fact, event: event.seq, at: event.at });
+      if (fact.item === id2) {
+        const origin = sourceJobOf(event, bySequence);
+        latest.set(fact.key, { ...fact, ...origin ? { sourceJob: origin } : {}, event: event.seq, at: event.at });
+      }
     } catch {
     }
   }
   return [...latest.values()];
 }
-var opposing = (sourceJob, reader) => isMaker(reader) && isMaker(sourceJob ?? "") && reader !== sourceJob;
-var sourceJobOf = (event) => {
-  if (event?.kind === "artifact-saved" && (event.data.role === "implement" || event.data.role === "test-plan")) return event.data.role;
-  if (typeof event?.data.job === "string") return event.data.job;
-  if (event?.kind === "context-fact" && event.data.version === 1) {
-    try {
-      return Schema_exports.decodeUnknownSync(StoredFact)(event.data.fact).sourceJob;
-    } catch {
+var opposing = (sourceJob, reader) => isMaker(reader) && (sourceJob === null || isMaker(sourceJob ?? "") && reader !== sourceJob);
+var sourceJobOf = (event, events2) => {
+  const pending2 = event ? [event] : [], visited = /* @__PURE__ */ new Set(), makers = /* @__PURE__ */ new Set();
+  let job, unavailable = false;
+  const retain = (origin) => {
+    if (origin) {
+      job ??= origin;
+      if (isMaker(origin)) makers.add(origin);
     }
+  };
+  while (pending2.length) {
+    const current = pending2.pop();
+    if (visited.has(current.seq)) continue;
+    visited.add(current.seq);
+    if (current.kind === "artifact-saved" && (current.data.role === "implement" || current.data.role === "test-plan")) retain(current.data.role);
+    if (typeof current.data.job === "string") retain(current.data.job);
+    if (current.kind === "context-fact" && current.data.version === 1) {
+      try {
+        const fact = Schema_exports.decodeUnknownSync(StoredFact)(current.data.fact);
+        if (fact.item !== current.item) {
+          unavailable = true;
+          continue;
+        }
+        retain(fact.sourceJob);
+        for (const ref2 of [fact.source.event, fact.previousEvent, fact.revocation?.source.event]) if (ref2 !== void 0) {
+          const source2 = ref2 < current.seq ? events2.get(ref2) : void 0;
+          if (source2) pending2.push(source2);
+          else unavailable = true;
+        }
+      } catch {
+        unavailable = true;
+      }
+    } else if (typeof current.data.job !== "string" && !(current.kind === "artifact-saved" && (current.data.role === "implement" || current.data.role === "test-plan"))) unavailable = true;
   }
-  return void 0;
+  return unavailable || makers.size > 1 ? null : makers.values().next().value ?? job;
 };
 function contextFactsFor(store, item, job, now2, receiver = job) {
   const ancestors = /* @__PURE__ */ new Map([[item.id, { item, distance: 0 }]]);
@@ -25802,12 +25830,17 @@ function contextFactsFor(store, item, job, now2, receiver = job) {
     }
   }
   const selected = /* @__PURE__ */ new Map();
-  for (const owner of ancestors.values()) for (const fact of contextFactRecords(store, owner.item.id)) {
-    if (fact.workspace !== item.workspace || owner.distance > 0 && fact.scope !== "descendants") continue;
-    const prior = selected.get(fact.key);
-    if (!prior || owner.distance < prior.distance || owner.distance === prior.distance && fact.event > prior.fact.event) selected.set(fact.key, { fact, distance: owner.distance });
+  const origins = /* @__PURE__ */ new Map();
+  for (const owner of ancestors.values()) {
+    const history2 = store.events(owner.item.id), events2 = new Map(history2.map((event) => [event.seq, event]));
+    for (const fact of contextFactRecords(store, owner.item.id, history2)) {
+      origins.set(fact.event, sourceJobOf(events2.get(fact.event), events2));
+      if (fact.workspace !== item.workspace || owner.distance > 0 && fact.scope !== "descendants") continue;
+      const prior = selected.get(fact.key);
+      if (!prior || owner.distance < prior.distance || owner.distance === prior.distance && fact.event > prior.fact.event) selected.set(fact.key, { fact, distance: owner.distance });
+    }
   }
-  return [...selected.values()].map(({ fact }) => fact).filter((fact) => fact.jobs.includes(job) && fact.jobs.includes(receiver) && !opposing(fact.sourceJob, job) && !opposing(fact.sourceJob, receiver)).map((fact) => {
+  return [...selected.values()].map(({ fact }) => fact).filter((fact) => fact.jobs.includes(job) && fact.jobs.includes(receiver) && !opposing(origins.get(fact.event), job) && !opposing(origins.get(fact.event), receiver)).map((fact) => {
     const status = fact.status === "revoked" ? "revoked" : fact.expiresAt !== void 0 && Date.parse(fact.expiresAt) <= now2 ? "expired" : "active";
     if (status === "active") return { ...fact, status };
     const { text: _text, ...tombstone } = fact;
@@ -25823,11 +25856,13 @@ function changeContextFact(store, id2, input) {
     const previous = contextFactRecords(store, id2).find((fact2) => fact2.key === input.key);
     if (input.revision !== (previous?.revision ?? 0)) throw failure(id2, 409, "context_fact_revision", { key: input.key, expected: input.revision, actual: previous?.revision ?? 0 });
     if (!Number.isSafeInteger(input.revision + 1)) throw failure(id2, 400, "context_fact_revision_exhausted");
-    const evidence = input.source.event === void 0 ? void 0 : store.events(id2).find((event) => event.seq === input.source.event);
+    const events2 = new Map(store.events(id2).map((event) => [event.seq, event]));
+    const evidence = input.source.event === void 0 ? void 0 : events2.get(input.source.event);
     if (input.source.event !== void 0 && !evidence) throw failure(id2, 400, "context_fact_source_missing", { event: input.source.event });
-    const incomingJob = sourceJobOf(evidence);
+    const incomingJob = sourceJobOf(evidence, events2);
+    const previousJob = previous ? sourceJobOf(events2.get(previous.event), events2) : void 0;
     const sourceJob = isMaker(previous?.sourceJob ?? "") ? previous.sourceJob : incomingJob ?? previous?.sourceJob;
-    const crossesMaker = (job) => opposing(sourceJob, job) || opposing(incomingJob, job);
+    const crossesMaker = (job) => opposing(previousJob, job) || opposing(sourceJob, job) || opposing(incomingJob, job);
     let fact;
     if (input.operation === "revoke") {
       if (!previous) throw failure(id2, 409, "context_fact_missing", { key: input.key });
