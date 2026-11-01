@@ -23467,6 +23467,18 @@ import { appendFileSync, closeSync, mkdtempSync, openSync, readSync, rmSync, wri
 import { tmpdir } from "node:os";
 import { join as join2 } from "node:path";
 var DEFAULT_BUDGET = { minutes: 30 };
+var resultMetadata = { raw: Schema_exports.optionalKey(Schema_exports.String), version: Schema_exports.optionalKey(Schema_exports.String) };
+var resultBudget = Schema_exports.Struct({ minutes: Schema_exports.Finite.check(Schema_exports.isGreaterThan(0)), tokens: Schema_exports.optionalKey(Schema_exports.Finite.check(Schema_exports.isGreaterThan(0))) });
+var CommandResult = Schema_exports.Union([
+  Schema_exports.Struct({ ok: Schema_exports.Literal(true), output: Schema_exports.String, ...resultMetadata }),
+  Schema_exports.Struct({ ok: Schema_exports.Literal(false), limit: Schema_exports.Struct({ account: Schema_exports.String, resetsAt: Schema_exports.NullOr(Schema_exports.Finite), message: Schema_exports.String }), ...resultMetadata }),
+  Schema_exports.Struct({ ok: Schema_exports.Literal(false), error: Schema_exports.String, overBudget: Schema_exports.optionalKey(Schema_exports.Struct({
+    exceeded: Schema_exports.Literals(["minutes", "tokens"]),
+    budget: resultBudget,
+    ms: Schema_exports.Finite.check(Schema_exports.isGreaterThanOrEqualTo(0)),
+    tokens: Schema_exports.NullOr(Schema_exports.Finite.check(Schema_exports.isGreaterThanOrEqualTo(0)))
+  })), ...resultMetadata })
+]);
 var Worker = class extends Context_exports.Service()("madewell/Worker") {
 };
 var GROUP = 'd=$1; shift; ( exec </dev/null >/dev/null 2>&1; read _ <&3; [ -z "$d" ] || rm -rf "$d"; kill -9 0 ) & exec "$@" 3<&-';
@@ -23583,12 +23595,18 @@ var commandWorker = (command2) => Layer_exports.succeed(Worker, {
     ({ dir, size: size7, fd }) => runGroup({ command: "sh", args: ["-c", command2], cwd: request3.cwd, env: process.env, input: "", stdin: fd, files: dir, budget: request3.budget ?? DEFAULT_BUDGET, onOutput: request3.onOutput, ...request3.live ? { live: request3.live } : {} }).pipe(
       Effect_exports.map(({ code, stdout, stderr, overBudget }) => {
         if (overBudget) return { ok: false, error: overBudgetError("The worker command", overBudget), overBudget, raw: stdout };
+        let value4;
         try {
-          return JSON.parse(stdout);
+          value4 = JSON.parse(stdout);
         } catch {
           const left = readSync(fd, Buffer.alloc(size7), 0, size7, null);
           const unread = left ? ` without reading its request on stdin (read ${size7 - left} of ${size7} bytes)` : "";
           return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2e3)}` };
+        }
+        try {
+          return Schema_exports.decodeUnknownSync(CommandResult)(value4);
+        } catch {
+          return { ok: false, error: `Worker command exited ${code} and printed an invalid WorkerResult. Expected {ok:true,output:string}, {ok:false,limit:{account:string,resetsAt:number|null,message:string}}, or {ok:false,error:string}. stderr: ${stderr.slice(-2e3)}`, raw: stdout };
         }
       })
     ),

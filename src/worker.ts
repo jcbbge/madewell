@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { appendFileSync, closeSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Context, Effect, Layer } from 'effect'
+import { Context, Effect, Layer, Schema } from 'effect'
 import type { Access, Card } from './cards.ts'
 import { MadeWellError } from './errors.ts'
 import type { Harness } from './harness.ts'
@@ -63,6 +63,17 @@ export type WorkerResult = (
 	| { readonly ok: false; readonly limit: UsageLimit; readonly raw?: string }
 	| { readonly ok: false; readonly error: string; readonly overBudget?: OverBudget; readonly raw?: string }
 ) & { readonly version?: string }
+
+const resultMetadata = { raw: Schema.optionalKey(Schema.String), version: Schema.optionalKey(Schema.String) }
+const resultBudget = Schema.Struct({ minutes: Schema.Finite.check(Schema.isGreaterThan(0)), tokens: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0))) })
+const CommandResult = Schema.Union([
+	Schema.Struct({ ok: Schema.Literal(true), output: Schema.String, ...resultMetadata }),
+	Schema.Struct({ ok: Schema.Literal(false), limit: Schema.Struct({ account: Schema.String, resetsAt: Schema.NullOr(Schema.Finite), message: Schema.String }), ...resultMetadata }),
+	Schema.Struct({ ok: Schema.Literal(false), error: Schema.String, overBudget: Schema.optionalKey(Schema.Struct({
+		exceeded: Schema.Literals(['minutes', 'tokens']), budget: resultBudget,
+		ms: Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), tokens: Schema.NullOr(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+	})), ...resultMetadata }),
+])
 
 export class Worker extends Context.Service<Worker, {
 	readonly run: (request: WorkerRequest) => Effect.Effect<WorkerResult, MadeWellError>
@@ -229,12 +240,18 @@ export const commandWorker = (command: string) =>
 					runGroup({ command: 'sh', args: ['-c', command], cwd: request.cwd, env: process.env, input: '', stdin: fd, files: dir, budget: request.budget ?? DEFAULT_BUDGET, onOutput: request.onOutput, ...(request.live ? { live: request.live } : {}) }).pipe(
 						Effect.map(({ code, stdout, stderr, overBudget }): WorkerResult => {
 							if (overBudget) return { ok: false, error: overBudgetError('The worker command', overBudget), overBudget, raw: stdout }
+							let value: unknown
 							try {
-								return JSON.parse(stdout) as WorkerResult
+								value = JSON.parse(stdout)
 							} catch {
 								const left = readSync(fd, Buffer.alloc(size), 0, size, null)
 								const unread = left ? ` without reading its request on stdin (read ${size - left} of ${size} bytes)` : ''
 								return { ok: false, error: `Worker command exited ${code}${unread} and printed no JSON result. stderr: ${stderr.slice(-2000)}` }
+							}
+							try {
+								return Schema.decodeUnknownSync(CommandResult)(value)
+							} catch {
+								return { ok: false, error: `Worker command exited ${code} and printed an invalid WorkerResult. Expected {ok:true,output:string}, {ok:false,limit:{account:string,resetsAt:number|null,message:string}}, or {ok:false,error:string}. stderr: ${stderr.slice(-2000)}`, raw: stdout }
 							}
 						}),
 					),
