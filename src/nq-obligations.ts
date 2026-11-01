@@ -6,7 +6,7 @@ import type { Item, Store } from './store.ts'
 type Reader = Pick<Store['Service'], 'get' | 'events'>
 export interface WorkQuestion { readonly id: string; readonly text: string; readonly ownerRole: string; readonly blockingRole: string | null }
 export interface PhaseDecision { readonly question: string; readonly questionId?: string; readonly decision: string; readonly why: string }
-export const questionKey = (text: string) => text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+export const questionKey = (text: string) => text.trim()
 const isQuestion = (value: unknown): value is WorkQuestion => {
 	if (!value || typeof value !== 'object') return false
 	const q = value as Record<string, unknown>

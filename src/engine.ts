@@ -23,7 +23,7 @@
 import { createHash } from 'node:crypto'
 import { ownArtifactHistory, ownArtifact, preserveArtifact, savedArtifacts, continuationArtifacts, continuationBoundary, contentHash } from './artifact-evidence.ts'
 import { referenceDiscovery } from './packet-references.ts'
-import { answerHistory, decisionProblem, questionsOwedBy, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
+import { answerHistory, decisionProblem, questionsOwedBy, questionKey, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
 import { checkPrerequisites, prerequisiteForReference } from './prerequisites.ts'
 import { childOrgans, checkIncomingPreparation, inspectPreparation, organOutputShape, organPacket, organsRequired, saveOrganReceipt, type OrganReceipt } from './organs.ts'
 import { gateRule, gateSourceAvailable, rumenRules, type RumenRule } from './rumen.ts'
@@ -381,7 +381,7 @@ const intake = Effect.fn('mw.intake')(function* (id: number, job: Job, config: E
 })
 
 /** A question's identity across hand-offs: its words, ignoring case, spacing and punctuation. */
-const sameQuestion = (q: string) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
+const sameQuestion = questionKey
 
 /** Decision boundaries only. Save the selected path before the next agent call; redrive reuses it. */
 const decisionGuidance = Effect.fn('mw.decisionGuidance')(function* (item: Item, job: Job, mode: 'forward' | 'nq', config: EngineConfig) {

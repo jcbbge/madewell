@@ -1099,10 +1099,15 @@ test('a receiver\'s questions go to whoever handed the work over; in the split e
 	}
 })
 
-test('a question is answered once: asked again at any later hand-off, in any case or punctuation, it is answered from the record and no agent is asked again', async () => {
+test('a question is answered once: later case and punctuation paraphrases explicitly reuse its saved answer', async () => {
 	const wordings: Partial<Record<Job, string>> = { ideate: 'Is an empty export an error?', challenge: 'is an empty export an error', plan: 'Is an empty export an ERROR?!', implement: 'Is an empty export, an error?' }
 	const t = setup((req, n) => {
-		if (req.kind === 'intake' && n === 1 && wordings[req.job]) return ask(wordings[req.job]!)
+		if (req.kind === 'intake' && n === 1 && wordings[req.job]) {
+			if (req.job === 'ideate') return ask(wordings[req.job]!)
+			const saved = JSON.parse(req.prompt).answeredBefore.find((answer: { question: string }) => answer.question === wordings.ideate)
+			assert.ok(saved, 'paraphrases reference an actual saved answer supplied to the receiver')
+			return { ...clear, reuse: [{ question: wordings[req.job]!, answerId: saved.id }] }
+		}
 		if (req.kind === 'originator') return reply('No: it prints an empty line.')
 		return undefined
 	}, 'full')

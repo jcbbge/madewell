@@ -23042,7 +23042,7 @@ ${suffix}`)) fresh2 = fresh2.slice(0, -suffix.length - 2);
 }
 
 // src/nq-obligations.ts
-var questionKey = (text4) => text4.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+var questionKey = (text4) => text4.trim();
 var isQuestion = (value4) => {
   if (!value4 || typeof value4 !== "object") return false;
   const q = value4;
@@ -26606,7 +26606,7 @@ var intake = Effect_exports.fn("mw.intake")(function* (id2, job, config) {
   }
   saveTrack(store, id2, job, { launches: 0, exchange: asked }, "nq-question", { job, receiver, originator: profileOf(item, x.from), questions, ...recalled.length ? { recalled } : {} });
 });
-var sameQuestion = (q) => q.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+var sameQuestion = questionKey;
 var decisionGuidance = Effect_exports.fn("mw.decisionGuidance")(function* (item, job, mode, config) {
   const store = yield* Store;
   const x = trackOf(item, job).exchange;
