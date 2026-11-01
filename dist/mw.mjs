@@ -23525,6 +23525,7 @@ var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callba
     stdout += line + end2;
     const n = o.tokensIn?.(line);
     if (n) tokens = (tokens ?? 0) + n;
+    if (o.budget?.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
   };
   const capture2 = (channel, chunk) => {
     try {
@@ -23540,7 +23541,6 @@ var runGroup = (o) => Effect_exports.clockWith((clock2) => Effect_exports.callba
     const lines4 = (partial + chunk).split("\n");
     partial = lines4.pop();
     for (const line of lines4) take4(line, "\n");
-    if (o.budget?.tokens !== void 0 && tokens !== null && tokens > o.budget.tokens) over("tokens");
   });
   child.stderr.setEncoding("utf8").on("data", (chunk) => (capture2("stderr", chunk), tee(chunk), stderr += chunk));
   child.stdin?.on("error", (e) => stdinError = e.message);

@@ -148,6 +148,7 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			stdout += line + end
 			const n = o.tokensIn?.(line)
 			if (n) tokens = (tokens ?? 0) + n
+			if (o.budget?.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
 		}
 		const capture = (channel: 'stdout' | 'stderr', chunk: string) => {
 			try { o.onOutput?.(channel, chunk) } catch (cause) {
@@ -161,7 +162,6 @@ export const runGroup = (o: { command: string; args: ReadonlyArray<string>; cwd:
 			const lines = (partial + chunk).split('\n')
 			partial = lines.pop()!
 			for (const line of lines) take(line, '\n')
-			if (o.budget?.tokens !== undefined && tokens !== null && tokens > o.budget.tokens) over('tokens')
 		})
 		child.stderr!.setEncoding('utf8').on('data', (chunk: string) => (capture('stderr', chunk), tee(chunk), (stderr += chunk)))
 		child.stdin?.on('error', (e) => (stdinError = e.message))
