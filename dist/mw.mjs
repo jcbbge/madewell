@@ -7,7 +7,7 @@ var __export = (target, all4) => {
 
 // src/cli.ts
 import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync13, realpathSync as realpathSync4, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync13, realpathSync as realpathSync5, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname9, join as join12, resolve as resolve13 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -25381,9 +25381,9 @@ var renderTrace = (view2, renderer) => typeof renderer !== "function" ? Effect_e
 // src/workspace.ts
 import { createHash as createHash8 } from "node:crypto";
 import { execFile as execFile2 } from "node:child_process";
-import { existsSync, lstatSync as lstatSync2, readdirSync as readdirSync2, readFileSync as readFileSync6, readlinkSync as readlinkSync2, rmSync as rmSync3, statSync as statSync3 } from "node:fs";
+import { existsSync, lstatSync as lstatSync2, readdirSync as readdirSync2, readFileSync as readFileSync6, readlinkSync as readlinkSync2, realpathSync as realpathSync3, rmSync as rmSync3, statSync as statSync3 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname4, isAbsolute as isAbsolute3, join as join6, relative as relative3, resolve as resolve6 } from "node:path";
+import { dirname as dirname4, isAbsolute as isAbsolute3, join as join6, relative as relative3, resolve as resolve6, sep as sep3 } from "node:path";
 var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI.md", ".cursorrules"];
 var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
 var worktreesRoot = () => join6(process.env.MW_STORE ? dirname4(process.env.MW_STORE) : process.env.MW_HOME ?? join6(homedir2(), ".local", "share", "madewell"), "worktrees");
@@ -25425,7 +25425,12 @@ var removeWorktree = (repo, path) => Effect_exports.gen(function* () {
   yield* Effect_exports.ignore(git(repo, "worktree", "prune"));
 });
 var snapshot2 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
-  const outside = files.filter((f) => isAbsolute3(f) || relative3(dir, resolve6(dir, f)).startsWith(".."));
+  const root = realpathSync3(dir);
+  const escapes = (from, path) => {
+    const rel2 = relative3(from, path);
+    return rel2 === ".." || rel2.startsWith(`..${sep3}`) || isAbsolute3(rel2);
+  };
+  const outside = files.filter((f) => isAbsolute3(f) || escapes(resolve6(dir), resolve6(dir, f)) || existsSync(join6(dir, f)) && escapes(root, realpathSync3(join6(dir, f))));
   if (outside.length) return yield* fail9("path_outside_workspace", "A snapshot can only read files inside the workspace.", { dir, outside }, []);
   const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
   const tracked = lines2(yield* git(dir, "ls-files", "-z"));
@@ -25873,7 +25878,7 @@ import { createHash as createHash11 } from "node:crypto";
 
 // src/project.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync8, writeFileSync as writeFileSync4 } from "node:fs";
-import { dirname as dirname6, join as join8, sep as sep3 } from "node:path";
+import { dirname as dirname6, join as join8, sep as sep4 } from "node:path";
 var Text5 = Schema_exports.NonEmptyString.check(Schema_exports.makeFilter((value4) => !!value4.trim() && !value4.includes("\0"), { toJsonSchema: () => [{}, true] }));
 var Gate = Schema_exports.Struct({
   id: Schema_exports.optionalKey(Text5.annotate({ description: "stable identity for this mechanical rule; omitted identities derive from its command and glob" })),
@@ -25919,7 +25924,7 @@ var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
     }))
   );
 });
-var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep3)).sort((a, b) => b.path.length - a.path.length)[0];
+var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep4)).sort((a, b) => b.path.length - a.path.length)[0];
 var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project, replace = false) {
   const projects = yield* readProjects(path);
   const merged = replace ? project : { ...projects.find((p) => p.path === project.path), ...project };
@@ -30278,8 +30283,8 @@ $('refresh').addEventListener('click',refresh);window.addEventListener('popstate
 
 // src/jump-pack-lab.ts
 import { createHash as createHash15 } from "node:crypto";
-import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync11, readSync as readSync2, realpathSync as realpathSync3, statSync as statSync4 } from "node:fs";
-import { extname, isAbsolute as isAbsolute4, relative as relative5, resolve as resolve11, sep as sep4 } from "node:path";
+import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync11, readSync as readSync2, realpathSync as realpathSync4, statSync as statSync4 } from "node:fs";
+import { extname, isAbsolute as isAbsolute4, relative as relative5, resolve as resolve11, sep as sep5 } from "node:path";
 var parsed2 = (raw) => typeof raw === "string" ? lastJson(raw) ?? raw : raw ?? null;
 var record3 = (value4) => value4 && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
 var deliveryJobs = ["ideation", "planning", "implementation", "verification"];
@@ -30288,8 +30293,8 @@ function workArtifact(item, verification) {
   const path = resolve11(item.workspace, verification.artifact);
   const absent = (message) => ({ path, content: null, available: false, hashMatches: null, message });
   try {
-    const root = realpathSync3(item.workspace), actual = realpathSync3(path), within = relative5(root, actual);
-    if (within === ".." || within.startsWith(`..${sep4}`) || isAbsolute4(within)) return absent("The recorded output is outside this task workspace; its content is unavailable here.");
+    const root = realpathSync4(item.workspace), actual = realpathSync4(path), within = relative5(root, actual);
+    if (within === ".." || within.startsWith(`..${sep5}`) || isAbsolute4(within)) return absent("The recorded output is outside this task workspace; its content is unavailable here.");
     const expected = Array.isArray(verification.evidence) ? verification.evidence.find((entry) => typeof entry === "string" && /^sha256:[a-f0-9]{64}$/.test(entry)) : void 0;
     const previewable = [".md", ".txt", ".json"].includes(extname(actual)) && statSync4(actual).size <= 65536;
     const bytes3 = previewable ? readFileSync11(actual) : null;
@@ -32519,7 +32524,7 @@ function reloadWatch() {
   return {
     wanted: () => wanted,
     stop: () => (clearInterval(timer), process.off("SIGHUP", want)),
-    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync4(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
+    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync5(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
   };
 }
 var signalled = Effect_exports.callback((resume) => {

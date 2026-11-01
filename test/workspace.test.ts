@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -237,4 +237,30 @@ test('provisioned resources are each torn down once, last first, and a failure i
 	} finally {
 		t.cleanup()
 	}
+})
+
+test('a snapshot rejects physical escapes but retains internal links, missing files and linked checkout roots', async () => {
+	const t = setup()
+	try {
+		const external = join(t.tmp, 'host-inputs')
+		mkdirSync(external)
+		writeFileSync(join(external, 'outside.txt'), 'Undeclared harmless host fixture.\n')
+		symlinkSync(join(external, 'outside.txt'), join(t.repo, 'outside-link.txt'))
+		symlinkSync(external, join(t.repo, 'outside-dir'))
+		symlinkSync('outside-link.txt', join(t.repo, 'outside-chain.txt'))
+		t.git('add', 'outside-link.txt', 'outside-dir', 'outside-chain.txt')
+		t.git('commit', '-qm', 'Track external link fixtures')
+		for (const file of ['outside-link.txt', 'outside-dir/outside.txt', 'outside-chain.txt']) {
+			const refused = await error(snapshot(t.repo, [file]))
+			assert.equal(refused.code, 'path_outside_workspace')
+			assert.deepEqual(refused.context, { dir: t.repo, outside: [file] })
+		}
+		symlinkSync('src/b.ts', join(t.repo, 'inside-link.ts'))
+		symlinkSync('src', join(t.repo, 'inside-dir'))
+		symlinkSync(t.repo, join(t.tmp, 'checkout-link'))
+		writeFileSync(join(t.repo, '..notes.txt'), 'A contained filename.\n')
+		const allowed = await run(snapshot(join(t.tmp, 'checkout-link'), ['inside-link.ts', 'inside-dir/b.ts', 'src/new.ts', '..notes.txt']))
+		assert.deepEqual(allowed.contents, { 'inside-link.ts': 'export {}\n', 'inside-dir/b.ts': 'export {}\n', 'src/new.ts': null, '..notes.txt': 'A contained filename.\n' })
+		assert.equal(allowed.head, t.git('rev-parse', 'HEAD'))
+	} finally { t.cleanup() }
 })

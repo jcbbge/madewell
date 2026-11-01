@@ -3,9 +3,9 @@
 // change is held to its declared scope, and everything a job leaves behind is found and torn down.
 import { createHash } from 'node:crypto'
 import { execFile } from 'node:child_process'
-import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, rmSync, statSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync, readFileSync, readlinkSync, realpathSync, rmSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { Effect } from 'effect'
 import { type ERRORS, type ErrorCode, MadeWellError, type Next } from './errors.ts'
 
@@ -78,7 +78,12 @@ const removeWorktree = (repo: string, path: string) =>
 
 /** What a packet carries about the workspace: HEAD, every tracked path, and the named files in full (null if absent). */
 export const snapshot = Effect.fn('mw.snapshot')(function* (dir: string, files: ReadonlyArray<string>) {
-	const outside = files.filter((f) => isAbsolute(f) || relative(dir, resolve(dir, f)).startsWith('..'))
+	const root = realpathSync(dir)
+	const escapes = (from: string, path: string) => {
+		const rel = relative(from, path)
+		return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)
+	}
+	const outside = files.filter((f) => isAbsolute(f) || escapes(resolve(dir), resolve(dir, f)) || (existsSync(join(dir, f)) && escapes(root, realpathSync(join(dir, f)))))
 	if (outside.length) return yield* fail('path_outside_workspace', 'A snapshot can only read files inside the workspace.', { dir, outside }, [])
 	const head = (yield* git(dir, 'rev-parse', 'HEAD')).trim()
 	const tracked = lines(yield* git(dir, 'ls-files', '-z'))
