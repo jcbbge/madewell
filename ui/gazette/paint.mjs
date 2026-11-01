@@ -59,7 +59,7 @@ export const painter = (T) => {
 			`<text class="centrevalue" x="${VIEW.cx}" y="${VIEW.cy + 14}" text-anchor="middle">${esc(c.value)}</text>` +
 			`<text class="centrewords" x="${VIEW.cx}" y="${VIEW.cy + 40}" text-anchor="middle">${esc(c.words)}</text>`
 		const label = p.rings.length
-			? p.rings.map((r) => `${r.item}, ${r.name}: ${r.fills.filter(Boolean).length} of ${n} steps`).join('; ') + `. ${c.value} ${c.words}.`
+			? p.rings.map((r) => `${r.item}, ${r.name}: ${r.fills.filter(Boolean).length} of ${r.total ?? n} steps`).join('; ') + `. ${c.value} ${c.words}.`
 			: `No items yet. ${c.value} ${c.words}.`
 		return `<svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" role="img" aria-label="${esc(label)}">` +
 			`<defs>${hatches()}</defs><g fill="${ink('ink')}">${keys.join('')}</g>${fills.join('')}` +

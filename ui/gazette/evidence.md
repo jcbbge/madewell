@@ -12,8 +12,9 @@ sheet is invented. (The teardown skill's evidence table, for a concept.)
 | Status for screen readers | `sheet.updated` | `model.at`, `model.needs.length` | concept |
 | Rings, one per item | `principal.rings[]` | `model.items[]` with `kind !== 'discovery'`, ordered: waits on you, moving, shipped, dropped; at most 8 | concept |
 | Ring name | `rings[].name` | `items[].id`, `items[].title` | concept |
-| Step names around the rim | `principal.steps[]` | `items[].steps[].job`, in plain words (`STEP_WORDS`) | concept |
-| A filled step | `rings[].fills[i]` | `items[].steps[i].state` and `items[].status`: done → sage; held, failed, or waiting while paused/held → vermilion; active with a runner, or waiting on quota or a prerequisite → slate-blue; active with no runner → vermilion; a dropped item's done steps → ochre | concept |
+| Step names around the rim | `principal.steps[]` | union of the visible items’ `steps[].job`, in first-seen order and plain words (`STEP_WORDS`) | concept |
+| Accessible step total | `rings[].total` | the individual item’s `steps.length`; shared slots for other packs do not increase its total | concept |
+| A filled step | `rings[].fills[i]` | the item step occupying shared job slot `i`, its state and `items[].status`: done → sage; held, failed, or waiting while paused/held → vermilion; active with a runner, or waiting on quota or a prerequisite → slate-blue; active with no runner → vermilion; a dropped item's done steps → ochre | concept |
 | Centre disc | `principal.centre` | `model.needs.length`; vermilion when more than none, Paper when none | concept |
 | Notice, one per wait | `notices[]` | `model.needs[]`: `item`, `title`, `code`, `message` (quoted verbatim), `questions`, `since`, `next[]` | concept |
 | Notice words ("It stopped at a checkpoint before building…") | `notices[].says` | `needs[].what`, `needs[].code`, the item's step in `waiting` state | concept |

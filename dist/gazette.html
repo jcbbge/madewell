@@ -202,13 +202,13 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
     const delivery = model.items.filter((i) => i.kind !== "discovery");
     const ranked = [...delivery].sort((a, b) => rank(a, needIds) - rank(b, needIds) || Date.parse(a.since) - Date.parse(b.since));
     const shown = ranked.slice(0, MAX_RINGS);
-    const steps = shown.reduce((longest, i) => i.steps.length > longest.length ? i.steps.map((s2) => s2.job) : longest, []);
+    const steps = [...new Set(shown.flatMap((item) => item.steps.map((step) => step.job)))];
     const rings = shown.map((item) => {
       const fills = steps.map((job) => {
         const step = item.steps.find((s2) => s2.job === job);
         return step ? inkOf(item, step, driven) : null;
       });
-      return { item: item.id, name: item.title, status: item.status, fills };
+      return { item: item.id, name: item.title, status: item.status, total: item.steps.length, fills };
     });
     const inksUsed = new Set(rings.flatMap((r) => r.fills).filter(Boolean));
     const waits = model.needs.length;
@@ -345,7 +345,7 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
       });
       const c = p.centre;
       const centre = `<circle cx="${VIEW.cx + KEY * 1.4}" cy="${VIEW.cy + KEY * 1.4}" r="${DISC}" fill="${ink("ink")}"/><circle cx="${VIEW.cx}" cy="${VIEW.cy}" r="${DISC}" fill="${ink(c.ink)}" stroke="${ink("ink")}" stroke-width=".8"/><text class="centrevalue" x="${VIEW.cx}" y="${VIEW.cy + 14}" text-anchor="middle">${esc(c.value)}</text><text class="centrewords" x="${VIEW.cx}" y="${VIEW.cy + 40}" text-anchor="middle">${esc(c.words)}</text>`;
-      const label = p.rings.length ? p.rings.map((r) => `${r.item}, ${r.name}: ${r.fills.filter(Boolean).length} of ${n} steps`).join("; ") + `. ${c.value} ${c.words}.` : `No items yet. ${c.value} ${c.words}.`;
+      const label = p.rings.length ? p.rings.map((r) => `${r.item}, ${r.name}: ${r.fills.filter(Boolean).length} of ${r.total ?? n} steps`).join("; ") + `. ${c.value} ${c.words}.` : `No items yet. ${c.value} ${c.words}.`;
       return `<svg viewBox="0 0 ${VIEW.w} ${VIEW.h}" role="img" aria-label="${esc(label)}"><defs>${hatches()}</defs><g fill="${ink("ink")}">${keys.join("")}</g>${fills.join("")}<g fill="none" stroke="${ink("ink")}" stroke-width=".8">${rules.join("")}</g>${words.join("")}${centre}</svg>`;
     }
     const disc = (i, text = "") => `<span class="disc" style="background:${ink(i)}">${esc(text)}</span>`;

@@ -144,13 +144,13 @@ export const blazonOf = (model, opts = {}) => {
 	const delivery = model.items.filter((i) => i.kind !== 'discovery')
 	const ranked = [...delivery].sort((a, b) => rank(a, needIds) - rank(b, needIds) || Date.parse(a.since) - Date.parse(b.since))
 	const shown = ranked.slice(0, MAX_RINGS)
-	const steps = shown.reduce((longest, i) => (i.steps.length > longest.length ? i.steps.map((s) => s.job) : longest), [])
+	const steps = [...new Set(shown.flatMap(item => item.steps.map(step => step.job)))]
 	const rings = shown.map((item) => {
 		const fills = steps.map((job) => {
 			const step = item.steps.find((s) => s.job === job)
 			return step ? inkOf(item, step, driven) : null
 		})
-		return { item: item.id, name: item.title, status: item.status, fills }
+		return { item: item.id, name: item.title, status: item.status, total: item.steps.length, fills }
 	})
 	const inksUsed = new Set(rings.flatMap((r) => r.fills).filter(Boolean))
 

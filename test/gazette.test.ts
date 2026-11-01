@@ -260,3 +260,25 @@ for (const condition of ['already unloaded', 'inspection denied']) test(`macOS u
 	assert.equal(readFileSync(unit, 'utf8'), manifest, 'an unconfirmed stop never authorizes manifest removal')
 })
 
+
+test('mixed Gazette packs retain every visible job and each item owns its accessible total', () => {
+	const m = model()
+	const item = m.items[0]
+	m.items = [
+		{ ...item, id: 11, title: 'Two steps', status: 'completed', since: '2026-10-25T12:00:00Z', steps: [{ job: 'plan', state: 'done' }, { job: 'verify', state: 'done' }] },
+		{ ...item, id: 12, title: 'Custom step', status: 'completed', since: '2026-10-25T12:01:00Z', steps: [{ job: 'perform', state: 'done' }] },
+		{ ...item, id: 13, title: 'Shared step', status: 'completed', since: '2026-10-25T12:02:00Z', steps: [{ job: 'plan', state: 'done' }] },
+		{ ...item, id: 14, title: 'Empty pack', status: 'completed', since: '2026-10-25T12:03:00Z', steps: [] },
+	]
+	m.needs = []; m.running = []
+	const b = blazonOf(m, { zone: 'UTC' })
+	assert.deepEqual(b.principal.steps, ['Plan', 'Verify', 'Perform'], 'shared labels are a stable union of job identities')
+	assert.deepEqual(b.principal.rings.map((ring: { item: number; total: number; fills: (string | null)[] }) => [ring.item, ring.total, ring.fills]), [
+		[11, 2, ['sage', 'sage', null]], [12, 1, [null, null, 'sage']], [13, 1, ['sage', null, null]], [14, 0, [null, null, null]],
+	])
+	const html = painter(T).sheet(b)
+	assert.match(html, /11, Two steps: 2 of 2 steps; 12, Custom step: 1 of 1 steps; 13, Shared step: 1 of 1 steps; 14, Empty pack: 0 of 0 steps/)
+	assert.match(html, />Perform<\/textPath>/)
+	assert.equal((html.match(/fill="url\(#h-sage\)"/g) ?? []).length, 4, 'the custom completed function has a painted segment too')
+	assert.doesNotMatch(html, /NaN|Infinity/)
+})
