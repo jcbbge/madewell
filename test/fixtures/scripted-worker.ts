@@ -2,7 +2,9 @@
 // deliverable, confirms every hand-off, reports its version as "scripted 1", and logs "<kind> <job> <profile>"
 // lines to $FAKE_LOG. The makers write their files into their worktree (the working directory), so Made
 // Well's own check run passes.
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { preparedOutput, type PreparationPacket } from './prepared-output.ts'
 
 const request = JSON.parse(readFileSync(0, 'utf8')) as { kind: string; job: string; profile: string; prompt: string }
 appendFileSync(process.env.FAKE_LOG!, `${request.kind} ${request.job} ${request.profile}\n`)
@@ -39,4 +41,9 @@ const asks = request.job === process.env.FAKE_ASK && !request.prompt.includes('"
 const answer = request.kind === 'intake' ? { understanding: asks ? 'mostly' : 'clear', unclear: asks ? ['CSV or PDF?'] : [], ambiguous: [], missing: [], notes: [] }
 	: request.kind === 'originator' ? (asks ? { answer: 'Only the operator can choose the format.', needsOperator: true } : { answer: 'as planned', needsOperator: false })
 	: deliverables[request.job]!()
-process.stdout.write(JSON.stringify({ ok: true, output: JSON.stringify(answer), version: 'scripted 1' }))
+const packet = JSON.parse(request.prompt) as PreparationPacket
+const files = request.kind === 'execute' && packet.organs
+	? execFileSync('git', ['--no-optional-locks', 'ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(path => path && existsSync(path) && statSync(path).isFile()).slice(0, 1)
+	: []
+const output = request.kind === 'execute' ? preparedOutput(packet, request.job, answer as Record<string, unknown>, files) : answer
+process.stdout.write(JSON.stringify({ ok: true, output: JSON.stringify(output), version: 'scripted 1' }))

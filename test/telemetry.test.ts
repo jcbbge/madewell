@@ -173,7 +173,9 @@ test('mw export writes one folder per call: brief, packet, answer, raw stream, t
 	const mw = mwIn(home)
 	mw('init', '--autonomy', 'full', '--ship', 'true')
 	mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
-	assert.equal(mw('run').code, 0)
+	const delivered = mw('run')
+	assert.equal(delivered.code, 0)
+	assert.equal(delivered.out.items[0].status, 'shipped', JSON.stringify(delivered.out.items[0]))
 
 	const out = join(home, 'out')
 	const exported = mw('export', '1', '--out', out)
@@ -191,6 +193,11 @@ test('mw export writes one folder per call: brief, packet, answer, raw stream, t
 	const record = JSON.parse(readFileSync(join(out, 'item.json'), 'utf8'))
 	assert.equal(record.item.status, 'shipped')
 	assert.equal(record.events.at(-1).kind, 'shipped')
+	const organs = record.events.filter((event: { kind: string }) => event.kind === 'organs-accepted')
+	assert.deepEqual(organs.map((event: { data: { job: string } }) => event.data.job).sort(), ['challenge', 'ideate', 'implement', 'plan', 'test-plan', 'verify'])
+	const planning = organs.find((event: { data: { job: string } }) => event.data.job === 'plan').data.receipt
+	assert.deepEqual(planning.next.map((next: { job: string }) => next.job).sort(), ['implement', 'test-plan'])
+	assert.ok(planning.ground.sources.every((source: { sha256: string }) => /^[a-f0-9]{64}$/.test(source.sha256)))
 
 	const missing = mw('export', '9')
 	assert.equal(missing.code, 1)

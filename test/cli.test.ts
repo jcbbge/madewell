@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { after, test } from 'node:test'
 import { API_SCHEMAS, contextOf } from '../src/api.ts'
+import { quote } from '../src/errors.ts'
 import { openStore } from '../src/store.ts'
 
 const root = realpathSync(mkdtempSync(join(tmpdir(), 'mw-cli-')))
@@ -684,18 +685,24 @@ test('function packs are registered, overridden, updated and discovered through 
 	mkdirSync(workspace)
 	const file = join(t.dir, 'functions.json')
 	const output = { type: 'object', required: ['value'], properties: { value: { type: 'number' } } }
-	const pack = { name: 'plain', runtime: 'functions', version: '1', discovery: [{ cartridge: 'capture', steps: [{ job: 'tasks', run: `echo '{"items":[{"title":"First task","objective":"Return three"},{"title":"Second task","objective":"Return three again"}]}'`, output: { type: 'object', required: ['items'] } }] }], delivery: [{ cartridge: 'work', steps: [{ job: 'one', run: `echo '{"value":3}'`, output }] }] }
+	const prepared = (job: string, value: unknown) => [process.execPath, join(import.meta.dirname, 'fixtures/prepared-output.ts'), job, JSON.stringify(value)].map(quote).join(' ')
+	const pack = { name: 'plain', runtime: 'functions', version: '1', discovery: [{ cartridge: 'capture', steps: [{ job: 'tasks', run: prepared('tasks', { items: [{ title: 'First task', objective: 'Return three' }, { title: 'Second task', objective: 'Return three again' }] }), output: { type: 'object', required: ['items'] } }] }], delivery: [{ cartridge: 'work', steps: [{ job: 'one', run: prepared('one', { value: 3 }), output }] }] }
 	writeFileSync(file, JSON.stringify(pack))
 	assert.equal(t.mw('cartridges', '--check', file).code, 0)
 	assert.equal(t.mw('init', '--workspace', workspace, '--cartridges', file).code, 0)
 	const start = () => t.mw('start', '--workspace', workspace, '--objective', 'Transform', '--source', 'approved').out.item
 	const item = start()
 	assert.equal(start().id, item.id)
-	writeFileSync(file, JSON.stringify({ ...pack, version: '2', delivery: [{ cartridge: 'work', steps: [{ job: 'two', run: `echo '{"value":7}'`, output }] }] }))
+	writeFileSync(file, JSON.stringify({ ...pack, version: '2', delivery: [{ cartridge: 'work', steps: [{ job: 'two', run: prepared('two', { value: 7 }), output }] }] }))
 	assert.equal(t.mw('cartridges', '--update', file, '--item', String(item.id)).out.update.state, 'pending')
 	assert.equal(t.mw('run').code, 0)
 	assert.equal(t.mw('show', String(item.id)).out.item.status, 'completed')
-	assert.deepEqual(t.mw('trace', String(item.id), '--lens', 'ax').out.proof.completion, { output: { value: 7 }, nodes: 1 })
+	const completed = t.mw('show', String(item.id)).out
+	const returned = JSON.parse(completed.item.outputs.two)
+	assert.equal(returned.value, 7)
+	assert.deepEqual(returned.organPreparation.next, [], 'the terminal producer prepares no invented consumer')
+	assert.ok(completed.events.some((event: { kind: string; data: { job?: string } }) => event.kind === 'organs-accepted' && event.data.job === 'two'))
+	assert.deepEqual(t.mw('trace', String(item.id), '--lens', 'ax').out.proof.completion, { output: returned, nodes: 1 })
 	assert.equal(t.mw('cartridges', '--item', String(item.id)).out.pack.version, '2')
 	assert.equal(t.mw('cartridges', '--update', file, '--item', String(item.id)).err.error, 'cartridges_invalid')
 	const empty = join(t.dir, 'empty.json')
@@ -705,6 +712,10 @@ test('function packs are registered, overridden, updated and discovered through 
 	const discovery = t.mw('discover', '--workspace', workspace, '--source', 'Two tasks').out.item
 	assert.equal(t.mw('run').code, 0)
 	assert.equal(t.mw('trace', String(overridden.id), '--lens', 'ax').out.proof.completion.nodes, 0)
+	const discovered = t.mw('show', String(discovery.id)).out
+	assert.equal(discovered.item.status, 'discovered')
+	assert.deepEqual(JSON.parse(discovered.item.outputs.tasks).organPreparation.next.map((next: { job: string }) => next.job), ['delivery'])
+	assert.ok(discovered.events.some((event: { kind: string }) => event.kind === 'organs-accepted'))
 	const candidates = t.mw('status').out.items.filter((i: { discovery: number }) => i.discovery === discovery.id)
 	assert.equal(candidates.length, 2)
 	assert.ok(candidates.every((i: { status: string }) => i.status === 'candidate'))
