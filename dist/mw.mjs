@@ -7,7 +7,7 @@ var __export = (target, all4) => {
 
 // src/cli.ts
 import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync13, realpathSync as realpathSync5, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync6, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync14, realpathSync as realpathSync5, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname9, join as join12, resolve as resolve13 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -28047,7 +28047,7 @@ function otlpOf(store, id2) {
 }
 
 // src/export.ts
-import { mkdirSync as mkdirSync6, writeFileSync as writeFileSync6 } from "node:fs";
+import { existsSync as existsSync4, mkdirSync as mkdirSync6, readFileSync as readFileSync10, writeFileSync as writeFileSync6 } from "node:fs";
 import { join as join10 } from "node:path";
 var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const item = store.get(id2);
@@ -28056,6 +28056,17 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const events2 = store.events(id2);
   yield* Effect_exports.try({
     try: () => {
+      const record4 = join10(dir, "item.json");
+      const conflict = (reason) => new MadeWellError({ code: "export_failed", message: `Cannot reuse ${dir} for the export of item #${id2}.`, context: { id: id2, dir, reason }, next: [{ run: `mw export ${id2} --out <fresh dir>`, why: "use a fresh folder to keep each task and its evidence together" }] });
+      if (existsSync4(record4)) {
+        let previous;
+        try {
+          previous = JSON.parse(readFileSync10(record4, "utf8"));
+        } catch {
+          throw conflict("Existing item.json is unreadable or invalid; its owning task cannot be confirmed.");
+        }
+        if (previous?.item?.id !== item.id || previous.item.workspace !== item.workspace || previous.item.created !== item.created) throw conflict("Existing item.json belongs to a different task or has no matching task identity.");
+      }
       mkdirSync6(dir, { recursive: true });
       writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: events2 }, null, 2));
       const destination = join10(dir, "artifacts");
@@ -28076,7 +28087,7 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
         for (const [name, text4] of files) writeFileSync6(join10(folder, name), text4);
       });
     },
-    catch: (e) => new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
+    catch: (e) => e instanceof MadeWellError ? e : new MadeWellError({ code: "export_failed", message: `Cannot write the export of item #${id2} to ${dir}.`, context: { id: id2, dir, reason: String(e) }, next: [{ run: `mw export ${id2} --out <writable dir>`, why: "export somewhere writable" }] })
   });
   return { dir, calls: calls.length };
 });
@@ -28931,7 +28942,7 @@ var createApi = (options) => {
 };
 
 // src/eval.ts
-import { readFileSync as readFileSync10 } from "node:fs";
+import { readFileSync as readFileSync11 } from "node:fs";
 import { resolve as resolve10 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = AGENT_JOBS;
@@ -29026,7 +29037,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
   const briefPath = o.brief === void 0 ? void 0 : resolve10(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync10(briefPath, "utf8"),
+    try: () => readFileSync11(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
@@ -29159,7 +29170,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
 
 // src/ui.ts
 import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
-import { closeSync as closeSync3, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync12, readSync as readSync3, rmSync as rmSync6, statSync as statSync5, writeFileSync as writeFileSync7 } from "node:fs";
+import { closeSync as closeSync3, existsSync as existsSync5, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync13, readSync as readSync3, rmSync as rmSync6, statSync as statSync5, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
 import { homedir as homedir3, hostname as hostname2 } from "node:os";
 import { basename as basename2, dirname as dirname8, join as join11, resolve as resolve12 } from "node:path";
@@ -30302,7 +30313,7 @@ $('refresh').addEventListener('click',refresh);window.addEventListener('popstate
 
 // src/jump-pack-lab.ts
 import { createHash as createHash15 } from "node:crypto";
-import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync11, readSync as readSync2, realpathSync as realpathSync4, statSync as statSync4 } from "node:fs";
+import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync12, readSync as readSync2, realpathSync as realpathSync4, statSync as statSync4 } from "node:fs";
 import { extname, isAbsolute as isAbsolute4, relative as relative5, resolve as resolve11, sep as sep5 } from "node:path";
 var parsed2 = (raw) => typeof raw === "string" ? lastJson(raw) ?? raw : raw ?? null;
 var record3 = (value4) => value4 && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
@@ -30316,7 +30327,7 @@ function workArtifact(item, verification) {
     if (within === ".." || within.startsWith(`..${sep5}`) || isAbsolute4(within)) return absent("The recorded output is outside this task workspace; its content is unavailable here.");
     const expected = Array.isArray(verification.evidence) ? verification.evidence.find((entry) => typeof entry === "string" && /^sha256:[a-f0-9]{64}$/.test(entry)) : void 0;
     const previewable = [".md", ".txt", ".json"].includes(extname(actual)) && statSync4(actual).size <= 65536;
-    const bytes3 = previewable ? readFileSync11(actual) : null;
+    const bytes3 = previewable ? readFileSync12(actual) : null;
     let hashMatches = null;
     if (typeof expected === "string") {
       const hash5 = createHash15("sha256");
@@ -31112,7 +31123,7 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read2 = (name) => existsSync4(patchPath(home, name)) ? readFileSync12(patchPath(home, name), "utf8") : "";
+  const read2 = (name) => existsSync5(patchPath(home, name)) ? readFileSync13(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
   let change = read2("change");
   if (!change && shipped) {
@@ -31144,8 +31155,8 @@ var itemDetail = (store, nextOf, id2) => {
 };
 var spansOf = (path, item) => {
   const file = spansPath(path);
-  if (!existsSync4(file)) return [];
-  const all4 = readFileSync12(file, "utf8").split("\n").flatMap((l) => {
+  if (!existsSync5(file)) return [];
+  const all4 = readFileSync13(file, "utf8").split("\n").flatMap((l) => {
     try {
       return l ? [JSON.parse(l)] : [];
     } catch {
@@ -31162,7 +31173,7 @@ var spansOf = (path, item) => {
 var storeWatcher = (path) => {
   let store;
   return (create = false) => {
-    if (!store && (create || existsSync4(path))) store = openStore(path);
+    if (!store && (create || existsSync5(path))) store = openStore(path);
     return store;
   };
 };
@@ -31194,7 +31205,7 @@ var staticPage = (store, nextOf) => {
 var GAZETTE = new URL("../dist/gazette.html", import.meta.url);
 var gazettePage = () => {
   try {
-    return readFileSync12(GAZETTE, "utf8");
+    return readFileSync13(GAZETTE, "utf8");
   } catch {
     return void 0;
   }
@@ -31219,7 +31230,7 @@ var serve = (path, nextOf, host, port, renderer, wake2) => Effect_exports.callba
       if (url.pathname === "/lab") return html(res, JUMP_PACK_PAGE);
       if (url.pathname === "/qa") return html(res, QA_NOTEBOOK);
       if (/^\/fonts\/ibm-plex-(sans|mono)-latin\.woff2$/.test(url.pathname)) {
-        const font = readFileSync12(new URL(`../ui${url.pathname}`, import.meta.url));
+        const font = readFileSync13(new URL(`../ui${url.pathname}`, import.meta.url));
         res.writeHead(200, { "content-type": "font/woff2", "cache-control": "public, max-age=86400" });
         return void res.end(font);
       }
@@ -31385,8 +31396,8 @@ var serviceStatus = (h) => {
   const base = { service: h.platform === "darwin" ? LABEL : `${SERVICE}.service`, platform: h.platform };
   if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
   const { unit } = servicePaths(h);
-  if (!existsSync4(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
-  const text4 = readFileSync12(unit, "utf8");
+  if (!existsSync5(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
+  const text4 = readFileSync13(unit, "utf8");
   const args2 = execStartOf(h, text4);
   const address = addressOf(args2);
   let running = false;
@@ -31415,7 +31426,7 @@ var installService = (h, s) => {
   if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
   const { unit } = servicePaths(h);
   const text4 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
-  const before = existsSync4(unit) ? readFileSync12(unit, "utf8") : void 0;
+  const before = existsSync5(unit) ? readFileSync13(unit, "utf8") : void 0;
   const wrote = [];
   if (before !== text4) {
     mkdirSync7(dirname8(unit), { recursive: true });
@@ -31447,14 +31458,14 @@ var uninstallService = (h) => {
   const paths = servicePaths(h);
   const removed = [];
   const next = inspectNext(h);
-  if (existsSync4(paths.unit)) {
+  if (existsSync5(paths.unit)) {
     if (h.platform === "darwin") h.run("launchctl", ["bootout", `gui/${h.uid}/${LABEL}`]);
     else h.run("systemctl", ["--user", "disable", "--now", SERVICE]);
     rmSync6(paths.unit, { force: true });
     removed.push(paths.unit);
     if (h.platform !== "darwin") must(h, "systemctl", ["--user", "daemon-reload"], next);
   }
-  if (paths.log && existsSync4(paths.log)) {
+  if (paths.log && existsSync5(paths.log)) {
     rmSync6(paths.log, { force: true });
     removed.push(paths.log);
   }
@@ -31810,13 +31821,13 @@ var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve13(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync13(path, "utf8"),
+    try: () => readFileSync14(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
 var readQaInput = Effect_exports.fn("mw.readQaInput")(function* (input) {
   const path = resolve13(input["input-file"]);
-  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync13(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
+  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync14(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
   return yield* Effect_exports.try({ try: () => qaParseJson(bytes3), catch: qaStorageError });
 });
 var qaInputFile = (schema) => Schema_exports.String.annotate({ description: `UTF-8 JSON file (maximum 65536 bytes), exact ${schema} body, with a caller-supplied requestId; no path IDs in the body. JSON Schema: ${JSON.stringify(QA_JSON_SCHEMAS[schema])}` });
@@ -31856,7 +31867,7 @@ var retention = (store, before) => {
   return { ids, kept };
 };
 var sizeOf = (path) => {
-  if (!existsSync5(path)) return 0;
+  if (!existsSync6(path)) return 0;
   const s = statSync6(path);
   return s.isDirectory() ? readdirSync5(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
 };
@@ -31939,7 +31950,7 @@ var COMMANDS = [
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
       const path = resolve13(input.workspace ?? ".");
-      if (!existsSync5(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
+      if (!existsSync6(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
       );
@@ -32111,7 +32122,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       if (!input["input-file"]) return yield* contextFacts(input.id);
       const value4 = yield* Effect_exports.try({
-        try: () => JSON.parse(readFileSync13(input["input-file"], "utf8")),
+        try: () => JSON.parse(readFileSync14(input["input-file"], "utf8")),
         catch: () => usageError("context-fact", "Cannot read a JSON context fact command from --input-file. No input was saved.")
       });
       return { ...yield* contextFact(input.id, value4) };
@@ -32257,8 +32268,8 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
-      const files = existsSync5(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync13(join12(dir, f), "utf8").split("\n").filter(Boolean));
+      const files = existsSync6(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
+      const lines4 = files.flatMap((f) => readFileSync14(join12(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve13(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve13(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
@@ -32312,12 +32323,12 @@ var COMMANDS = [
       }
       const { ids, kept } = retention(store, before);
       const home = dirname9(storePath);
-      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync5);
+      const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync6);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
       const { items: _, ...records } = yield* Effect_exports.try({ try: () => store.prune(ids, before, dryRun, () => {
         for (const f of files) rmSync7(f, { recursive: true, force: true });
-        if (existsSync5(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
+        if (existsSync6(join12(home, "exports")) && !readdirSync5(join12(home, "exports")).length) rmSync7(join12(home, "exports"), { recursive: true });
       }), catch: qaStorageError });
       const what = `${ids.length} finished item(s) with ${records.events} events and ${records.calls} calls, and ${files.length} file(s)`;
       const qaKept = kept.filter((item) => item.why === "retained by manual QA history").length;
@@ -32489,7 +32500,7 @@ var manual = Effect_exports.gen(function* () {
     $defs,
     state: {
       home: dirname9(registry),
-      store: existsSync5(storePath) ? storePath : null,
+      store: existsSync6(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
       next: yield* nextAction()
@@ -32530,7 +32541,7 @@ Usage: ${usageOf(c)}`))
   return { store: true, effect: c.run(input, prepared) };
 }).pipe(
   Effect_exports.flatMap(({ store, effect: effect2 }) => effect2.pipe(
-    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync5(storePath) ? storePath : ":memory:"), workerLayer))
+    Effect_exports.provide(Layer_exports.mergeAll(storeLayer(store || existsSync6(storePath) ? storePath : ":memory:"), workerLayer))
   ))
 );
 function reloadWatch() {

@@ -1,5 +1,5 @@
 // `mw export <item>` writes one folder per agent call, raw stream included: the postmortem and the eval dataset.
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Effect } from 'effect'
 import { MadeWellError } from './errors.ts'
@@ -21,6 +21,14 @@ export const exportItem = Effect.fn('mw.export')(function* (store: Source, id: n
 	const events = store.events(id)
 	yield* Effect.try({
 		try: () => {
+			const record = join(dir, 'item.json')
+			const conflict = (reason: string) => new MadeWellError({ code: 'export_failed', message: `Cannot reuse ${dir} for the export of item #${id}.`, context: { id, dir, reason }, next: [{ run: `mw export ${id} --out <fresh dir>`, why: 'use a fresh folder to keep each task and its evidence together' }] })
+			if (existsSync(record)) {
+				let previous: { item?: Item } | null
+				try { previous = JSON.parse(readFileSync(record, 'utf8')) as { item?: Item } | null }
+				catch { throw conflict('Existing item.json is unreadable or invalid; its owning task cannot be confirmed.') }
+				if (previous?.item?.id !== item.id || previous.item.workspace !== item.workspace || previous.item.created !== item.created) throw conflict('Existing item.json belongs to a different task or has no matching task identity.')
+			}
 			mkdirSync(dir, { recursive: true })
 			writeFileSync(join(dir, 'item.json'), JSON.stringify({ item, events }, null, 2))
 			const destination = join(dir, 'artifacts')
@@ -41,7 +49,7 @@ export const exportItem = Effect.fn('mw.export')(function* (store: Source, id: n
 				for (const [name, text] of files) writeFileSync(join(folder, name), text)
 			})
 		},
-		catch: (e) => new MadeWellError({ code: 'export_failed', message: `Cannot write the export of item #${id} to ${dir}.`, context: { id, dir, reason: String(e) }, next: [{ run: `mw export ${id} --out <writable dir>`, why: 'export somewhere writable' }] }),
+		catch: (e) => e instanceof MadeWellError ? e : new MadeWellError({ code: 'export_failed', message: `Cannot write the export of item #${id} to ${dir}.`, context: { id, dir, reason: String(e) }, next: [{ run: `mw export ${id} --out <writable dir>`, why: 'export somewhere writable' }] }),
 	})
 	return { dir, calls: calls.length }
 })
