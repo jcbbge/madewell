@@ -11,8 +11,12 @@
     "dist/gazette.html",
     "ui/fonts",
     "prescriptions.json",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "OPERATIONS.md",
+    "DESIGN.md",
     "FOUNDATION.md",
-    "dossiers/2026-10-31-ground-rumen.md"
+    "dossiers"
   ],
   "engines": {
     "node": ">=24.15"

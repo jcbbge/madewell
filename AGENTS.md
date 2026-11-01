@@ -2,6 +2,12 @@
 
 Read [`FOUNDATION.md`](FOUNDATION.md) before changing this application; it is operator law. The operator's standing authority (ruling 20) is to apply the three-question rubric: a choice that advances at least two of developer, user and agentic experience is implemented, tested and reflected in the foundation and supporting instructions. Do not ask the operator to settle routine design choices or preserve stale rules as blockers.
 
+## Agent entrypoint
+
+Use [OPERATIONS.md](OPERATIONS.md) for the practical who/what/when/where/why/how: installation, configuration, driver selection, everyday commands, recovery, evidence, upgrades and extension seams. Use [README.md](README.md) for the detailed CLI/API and cartridge contracts, and [DESIGN.md](DESIGN.md) when changing a view. This file and the Foundation govern behavior; the runbook explains how to carry it out.
+
+Before acting, identify the Made Well revision, target workspace and delivery branch, selected store/home, prescriptions and current runner owner. Keep the observer read-only; carry explicitly authorized maintenance or operator actions through their real command/API boundaries. Never infer paths from a previous lab or edit SQLite to manufacture a completion. Run only the affected checks; retain the actual command, result and any unverified boundary. Source checkout and packed runtime are different environments; both include this entrypoint and the operating guide.
+
 - **Preserve the grammar of work.** Capture input → generate tasks → complete tasks. Every task owes ideation, planning, implementation and verification; complexity changes depth, not those obligations. Software is one domain of this grammar. Arbitrary function-pack capability does not establish that the prescribed grammar was fulfilled. See the operator clarification and opt-in branch experiment in FOUNDATION.md.
 - **Every node is an input/output cartridge.** Function packs support zero/one/many agent or trusted command nodes and nested groups, without Git. Preserve accepted/attempted nodes across explicit boundary updates. Record configuration, calls, outputs and errors; completion never invents verification or shipping. See the README's function-pack contract.
 - **Every agent-to-agent interaction is an NQ exchange.** No hand-off skips intake; a new card is a new agent.

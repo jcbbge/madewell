@@ -10,20 +10,17 @@ From this checkout, install dependencies with `npm ci`, then initialize a new is
 
 ```sh
 npm run demo -- init --prescriptions /absolute/path/to/prescriptions.json
+npm run demo -- run
 npm run demo -- serve --port 4758
 ```
 
-Open `http://127.0.0.1:4758/grammar`. Keep that foreground server running in its terminal. In another terminal:
-
-```sh
-npm run demo -- run
-```
+Run the initial CLI-created discovery while the foreground server is stopped. Then open `http://127.0.0.1:4758/grammar` or `/` while `serve` runs. The foreground server owns the single runner claim and drives only browser-authorized roots and their linked work; a concurrent CLI `run` cannot acquire that claim. Use browser task selection/replies under `serve`, or stop it before CLI `run`/`promote`/`go`/`retry` followed by `run`. No context needs copying between phases.
 
 The default example asks for two independent TypeScript arithmetic modules. Workers use the supplied prescriptions and existing authenticated harnesses. There is no hardcoded model or provider in the demo. `--autonomy full` on initialization explicitly opts this sandbox into automatic task promotion and local shipping; the default retains checkpoints.
 
 The running demo now connects browser input to the existing driver. At `/`, **New work → Raw notes → discover tasks** saves the original input and starts discovery; a short technical brief is not required. Open a generated candidate and choose **Start task** to select it and its prerequisites. The foreground server then drives the saved work through its configured steps, with existing dependencies, parallelism and checkpoints. Replies also wake the driver. Explicit browser wakes are durable, so restarting this foreground server resumes those roots; it does not sweep unrelated queued experiments into execution. Stop the foreground server to stop its workers. No service or schedule is installed.
 
-For a transcript, initialize another root or add discovery to the existing sandbox:
+For a transcript through the CLI, stop the foreground server first, then initialize another root or add discovery to the existing sandbox:
 
 ```sh
 npm run demo -- discover --source-file /absolute/path/to/transcript.txt
@@ -49,12 +46,15 @@ The selected provider is Jev. The installed Switch/pi-ai adapter reads `TYPESAFE
 
 `test/grammar.test.ts` and `test/switch-evidence.test.ts` were authored independently of the implementation. They execute the actual engine and Switch loop with explicitly scripted test workers/deciders. Software integration writes real product/check files, executes real commands, ships local commits, reopens the store, and exercises correction while preserving the candidate. Browser acceptance must additionally exercise the live HTTP view, disclosures, polling, keyboard interaction, narrow layout and disconnected states.
 
-Run the registered gates:
+Build before CLI checks, then run the affected acceptance files:
 
 ```sh
+npm run bundle
 npm run typecheck
-npm test
+node --test test/grammar.test.ts test/switch-evidence.test.ts test/foreground-driver.test.ts
 ```
+
+`npm test` is an explicitly requested full-suite check, not the default for each change. Historical whole-suite results below describe those earlier runs; they are not a fresh pass for this checkout.
 
 On this Mac, the unmodified baseline CLI fixtures compare temporary paths literally; `TMPDIR=/private/tmp npm test` supplies a canonical path. The baseline orphan-process tests also assume Linux `setsid` and environment visibility through `ps`. These must be reported as platform limitations if they fail, rather than skipped or presented as demo regressions. An isolated Linux container with its own dependency installation can execute the unchanged full gate.
 

@@ -4,9 +4,11 @@ Made Well is a work OS: **capture raw input → generate tasks → complete task
 
 The software-delivery pack remains the installation default for compatibility. It is one configuration, not the definition of Made Well. Use a **function pack** below for a single operation, non-software work or a different composition; it needs no Git repository and adds no implicit planning, testing or shipping steps.
 
+New operators and agents: start with [OPERATIONS.md](OPERATIONS.md) for setup, execution modes, recovery and source ownership; [AGENTS.md](AGENTS.md) is the agent entrypoint.
+
 ## Ground, Rumen and preparation travel with the task
 
-New work carries three mandatory producer obligations in every accepted function output: **Ground** cites actual relevant material and findings; **Rumen** accounts for the selected project rules; **preparation** supplies a usable brief and required references for every next consumer. The engine checks the contract, retains its receipts with the work, and rechecks required material before the receiver executes. Workers can be replaced without copying context between them. See the [output contract and reference syntax](dossiers/2026-10-31-ground-rumen.md).
+New work carries three mandatory producer obligations in the console-owned `organPreparation` field of every accepted function output: **Ground** cites actual relevant material and findings; **Rumen** accounts for the selected project rules; **preparation** supplies a usable brief and required references for every next consumer. The engine checks the contract, retains its receipts with the work, and rechecks required material before the receiver executes. Workers can be replaced without copying context between them. See the [output contract and reference syntax](dossiers/2026-10-31-ground-rumen.md).
 
 Project gates remain mechanical fences; conventions remain judgment constraints. Optional `rumen` guidance in the existing project registration uses `{id, kind: "judge" | "sign" | "lexicon", text, jobs?}` for judgment, taste and vocabulary. A worker's rule accounting cannot award itself a passing fence. Software verification retains gate identity, actual command, matched files and execution-stage fingerprints, including explicit not-applicable evidence. Terminal function delivery executes compatible unscoped fences; a glob or `{files}` fence without a verified change set is explicitly unavailable and prevents completion.
 
@@ -14,11 +16,15 @@ The work and discovery views show Ground, Rumen and next-step preparation by con
 
 ## Install
 
-Requires Node 24.15 or later.
+Requires Node 24.15 or later. Build the checkout of the revision you intend to operate:
 
 ```sh
-npm install -g --install-links github:jcbbge/madewell
+npm ci
+npm run bundle
+node dist/mw.mjs cartridges --check builtin:grammar
 ```
+
+The [operating guide](OPERATIONS.md) covers source setup and a plain-copy packed runtime with no global CLI installation or cross-project runtime links. Its `mw` examples use a shell function pointing at the selected binary. Installing a GitHub default branch is not a substitute for choosing this delivered revision.
 
 ## Use
 
@@ -28,7 +34,7 @@ Put your notes in, from any project. That is the whole act:
 mw discover --source-file notes.md        # or: mw start --objective "<one line>" --source "<your words>"
 ```
 
-With the default software pack, Made Well discovers the work in the notes and pauses for you to choose what to deliver. Each promoted piece goes through ideation, planning, implementation and verification, then pauses before shipping: merged on main, pushed to its upstream, and deployed by your ship command if the project has one (`mw init --ship "<command>"`). The machine starts itself; no separate runner command is needed.
+With the default software pack, Made Well discovers the work in the notes and pauses for you to choose what to deliver. Each promoted piece goes through ideation, planning, implementation and verification, then pauses before shipping. Software delivery targets the branch checked out when its base is captured; choose the intended branch before work starts. After verification, Made Well advances that branch and runs the registered ship command, or pushes to its upstream when no ship command is configured. A configured ship command owns any required push. With neither command nor upstream, shipment means local delivery. Work-giving commands start a runner unless `MW_AUTORUN=0`; explicit foreground operation is covered in the operating guide.
 
 How involved you are is yours to choose, per project (`mw init --autonomy <level>`) or per run (`--autonomy` on `discover` and `start`):
 
