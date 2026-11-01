@@ -5,7 +5,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Effect } from 'effect'
 import { answer, nextFor, promote } from './engine.ts'
 import { ERRORS, MadeWellError } from './errors.ts'
-import { laneOf, loadPack } from './lane.ts'
+import { laneOf } from './lane.ts'
+import { resolvePackSelection } from './pack-selection.ts'
 import { currentHandoffOf, displayPreview, evidenceDetailOf, evidenceUrl, messageReferencesOf, type AnswerReference } from './handoff-view.ts'
 import { otlpOf } from './otlp.ts'
 import { projectsPath, readProjects } from './project.ts'
@@ -162,7 +163,7 @@ export const API_SCHEMAS = {
 	Conversation: object({ apiVersion: { const: '1' }, item: integer, revision: revisionSchema, messages: array(messageSchema), nextAfter: nullable(integer), hasMore: bool }),
 	Accepted: object({ apiVersion: { const: '1' }, accepted: { const: true }, requestId: requestIdSchema, receipt: object({ item: integer, revision: revisionSchema, event: integer, replayed: bool }), context: nullable(ref('Context')), warnings: array(str) }),
 	Problem: object({ type: str, title: str, status: integer, detail: str, instance: str, code: str, reason: str, context: { type: 'object', additionalProperties: true }, task: nullable(ref('Context')), next: array(object({ run: str, why: str })), recovery: object({ preserveDraft: { const: true }, retry: str }) }),
-	Projects: object({ apiVersion: { const: '1' }, projects: array(object({ workspace: str, autonomy: str, pack: str })) }),
+	Projects: object({ apiVersion: { const: '1' }, projects: array(object({ workspace: str, autonomy: str, pack: { ...str, description: 'Configured builtin:grammar selector, absolute cartridge pack file, or default; new items pin the complete resolved pack.' } })) }),
 	Session: object({ apiVersion: { const: '1' }, csrfToken: str, header: { const: 'X-MW-CSRF' }, maxBodyBytes: integer }),
 	Discovery: object({ apiVersion: { const: '1' }, openapi: str, session: str, projects: str, submit: str, qaCases: str, qaRuns: str, authority: str, telemetry: object({ format: str, exported: str, unavailable: array(str) }) }),
 	Otlp: object({ resourceSpans: array(object({ resource: object({ attributes: attributesSchema }), scopeSpans: array(object({ scope: object({ name: str }), spans: array(object({ traceId: { type: 'string', pattern: '^[a-f0-9]{32}$' }, spanId: { type: 'string', pattern: '^[a-f0-9]{16}$' }, name: str, kind: { const: 1 }, startTimeUnixNano: { type: 'string', pattern: '^[0-9]+$' }, endTimeUnixNano: { type: 'string', pattern: '^[0-9]+$' }, attributes: attributesSchema, status: object({ code: { enum: [1, 2] } }) })) })) })) }),
@@ -355,7 +356,7 @@ export const createApi = (options: ApiOptions) => {
 					let item: Item
 					if (target === undefined) {
 						const project = registered()
-						const pack = project.cartridges ? sync(loadPack(project.cartridges)) : undefined
+						const { pack } = sync(resolvePackSelection(project.cartridges))
 						const discovery = body.mode === 'discovery'
 						item = store!.create({ title: body.title ?? body.objective!, objective: body.objective!, source: body.source!, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...(pack ? { pack } : {}), ...(discovery ? { job: laneOf(pack).discovery[0]?.job ?? '', ...(pack?.runtime === 'functions' ? { flow: { loop: 'discovery', accepted: [] } } : {}) } : {}) })
 					} else {

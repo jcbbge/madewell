@@ -4,7 +4,7 @@ import type { Pack } from './lane.ts'
 
 /** Experimental strict contracts, leaving existing runs and the established grammar unchanged. */
 export const AUTONOMY_PACK: Pack = {
-	...GRAMMAR_PACK, name: 'made-well-autonomy-lab', version: '1.2',
+	...GRAMMAR_PACK, name: 'made-well-autonomy-lab', version: '1.3',
 	contracts: { discovery: '1', acceptance: '1', handoff: '1' },
 	brief: [
 		GRAMMAR_PACK.brief,

@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 import { MadeWellError } from './errors.ts'
 import type { Call, Event, Item } from './store.ts'
-import { savedArtifacts } from './artifact-evidence.ts'
+import { ownArtifactHistory, savedArtifacts } from './artifact-evidence.ts'
 import type { QaActor, QaExportDocument, QaInstructions, QaRef, QaRun, QaVersion } from './qa.ts'
 
 interface Source {
@@ -18,14 +18,18 @@ export const exportItem = Effect.fn('mw.export')(function* (store: Source, id: n
 	const item = store.get(id)
 	if (!item) return yield* new MadeWellError({ code: 'item_not_found', message: `There is no work item #${id}.`, context: { id }, next: [{ run: 'mw status', why: 'list every work item' }] })
 	const calls = store.calls(id)
+	const events = store.events(id)
 	yield* Effect.try({
 		try: () => {
 			mkdirSync(dir, { recursive: true })
-			writeFileSync(join(dir, 'item.json'), JSON.stringify({ item, events: store.events(id) }, null, 2))
-			const artifacts = savedArtifacts(store.events(id))
+			writeFileSync(join(dir, 'item.json'), JSON.stringify({ item, events }, null, 2))
+			const destination = join(dir, 'artifacts')
+			mkdirSync(destination, { recursive: true })
+			const entries = [...ownArtifactHistory(events, id, 'implement', false).entries, ...ownArtifactHistory(events, id, 'test-plan', false).entries].sort((a, b) => a.event - b.event)
+			const instruction = 'Operator export: entries are reference-only historical evidence for both maker roles. For each available entry, read artifacts/<sha256>.patch relative to the export root for its exact recorded UTF-8 patch bytes. Unavailable means historical evidence could not be verified; a legacy patch file may still exist. This index grants no worker access, permission to apply or resume artifacts, or continuation authority.'
+			writeFileSync(join(destination, 'history.json'), JSON.stringify({ instruction, entries }, null, 2))
+			const artifacts = savedArtifacts(events)
 			if (artifacts.length) {
-				const destination = join(dir, 'artifacts')
-				mkdirSync(destination, { recursive: true })
 				for (const artifact of artifacts) writeFileSync(join(destination, artifact.sha256 + '.patch'), artifact.patch)
 				writeFileSync(join(destination, 'manifest.json'), JSON.stringify(artifacts.map(({ patch: _patch, ...meta }) => meta), null, 2))
 			}

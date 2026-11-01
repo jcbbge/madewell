@@ -9,11 +9,11 @@ var __export = (target, all4) => {
 import { spawn as spawn3 } from "node:child_process";
 import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync12, realpathSync as realpathSync3, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve10 } from "node:path";
+import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve11 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
-// node_modules/effect/dist/Pipeable.js
+// ../../../../engine/node_modules/effect/dist/Pipeable.js
 var pipeArguments = (self, args2) => {
   switch (args2.length) {
     case 0:
@@ -57,7 +57,7 @@ var Class = /* @__PURE__ */ (function() {
   return PipeableBase;
 })();
 
-// node_modules/effect/dist/Function.js
+// ../../../../engine/node_modules/effect/dist/Function.js
 var dual = function(arity, body) {
   if (typeof arity === "function") {
     return function() {
@@ -132,7 +132,7 @@ function memoizeIdempotent(f) {
   };
 }
 
-// node_modules/effect/dist/Cause.js
+// ../../../../engine/node_modules/effect/dist/Cause.js
 var Cause_exports = {};
 __export(Cause_exports, {
   AsyncFiberError: () => AsyncFiberError2,
@@ -196,7 +196,7 @@ __export(Cause_exports, {
   squash: () => squash
 });
 
-// node_modules/effect/dist/Context.js
+// ../../../../engine/node_modules/effect/dist/Context.js
 var Context_exports = {};
 __export(Context_exports, {
   Reference: () => Reference,
@@ -224,7 +224,7 @@ __export(Context_exports, {
   pick: () => pick
 });
 
-// node_modules/effect/dist/internal/equal.js
+// ../../../../engine/node_modules/effect/dist/internal/equal.js
 var getAllObjectKeys = (obj) => {
   const keys3 = new Set(Reflect.ownKeys(obj));
   if (obj.constructor === Object) return keys3;
@@ -248,13 +248,13 @@ var getAllObjectKeys = (obj) => {
 var byReferenceInstances = /* @__PURE__ */ new WeakSet();
 var viewBytes = (view2) => new Uint8Array(view2.buffer, view2.byteOffset, view2.byteLength);
 
-// node_modules/effect/dist/internal/hash.js
+// ../../../../engine/node_modules/effect/dist/internal/hash.js
 var backEdges = 0;
 var addBackEdge = () => {
   backEdges++;
 };
 
-// node_modules/effect/dist/Predicate.js
+// ../../../../engine/node_modules/effect/dist/Predicate.js
 function isString(input) {
   return typeof input === "string";
 }
@@ -306,7 +306,7 @@ function isIterable(input) {
   return hasProperty(input, Symbol.iterator) || isString(input);
 }
 
-// node_modules/effect/dist/Hash.js
+// ../../../../engine/node_modules/effect/dist/Hash.js
 var symbol = "~effect/Hash";
 var hash = (self) => {
   switch (typeof self) {
@@ -430,7 +430,7 @@ var randomHashCache = /* @__PURE__ */ new WeakMap();
 var hashCache = /* @__PURE__ */ new WeakMap();
 var visitedObjects = /* @__PURE__ */ new WeakSet();
 
-// node_modules/effect/dist/Equal.js
+// ../../../../engine/node_modules/effect/dist/Equal.js
 var symbol2 = "~effect/Equal";
 function equals() {
   if (arguments.length === 1) {
@@ -600,7 +600,7 @@ var byReferenceUnsafe = (obj) => {
   return obj;
 };
 
-// node_modules/effect/dist/Redactable.js
+// ../../../../engine/node_modules/effect/dist/Redactable.js
 var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
 var isRedactable = (u) => hasProperty(u, symbolRedactable);
 function redact(u) {
@@ -622,7 +622,7 @@ var emptyContext = {
   }
 };
 
-// node_modules/effect/dist/Formatter.js
+// ../../../../engine/node_modules/effect/dist/Formatter.js
 function format(input, options) {
   const space = options?.space ?? 0;
   const ancestors = /* @__PURE__ */ new WeakSet();
@@ -774,7 +774,7 @@ function isJsonPrimitiveWrapper(object2) {
   return false;
 }
 
-// node_modules/effect/dist/Inspectable.js
+// ../../../../engine/node_modules/effect/dist/Inspectable.js
 var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 var toJson = (input) => {
   try {
@@ -841,7 +841,7 @@ var Class2 = class {
   }
 };
 
-// node_modules/effect/dist/internal/stackTraceLimit.js
+// ../../../../engine/node_modules/effect/dist/internal/stackTraceLimit.js
 var isStackTraceLimitWritable = () => {
   const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
   if (desc === void 0) {
@@ -858,7 +858,7 @@ var setStackTraceLimit = (value4) => {
   }
 };
 
-// node_modules/effect/dist/Utils.js
+// ../../../../engine/node_modules/effect/dist/Utils.js
 var SingleShotGen = class {
   constructor(self) {
     this.value = self;
@@ -910,7 +910,7 @@ var pickInternalCall = () => {
 };
 var internalCall = /* @__PURE__ */ pickInternalCall();
 
-// node_modules/effect/dist/internal/record.js
+// ../../../../engine/node_modules/effect/dist/internal/record.js
 function assignProperty(self, key2, value4) {
   if (key2 === "__proto__") {
     Object.defineProperty(self, key2, {
@@ -932,7 +932,7 @@ function assignProperties(self, source2) {
   }
 }
 
-// node_modules/effect/dist/internal/core.js
+// ../../../../engine/node_modules/effect/dist/internal/core.js
 var EffectTypeId = `~effect/Effect`;
 var ExitTypeId = `~effect/Exit`;
 var effectVariance = {
@@ -1346,13 +1346,13 @@ var done = (value4) => {
   return exitFail(Done(value4));
 };
 
-// node_modules/effect/dist/Effectable.js
+// ../../../../engine/node_modules/effect/dist/Effectable.js
 var Prototype2 = (options) => makePrimitiveProto({
   op: options.label,
   [evaluate]: options.evaluate
 });
 
-// node_modules/effect/dist/Equivalence.js
+// ../../../../engine/node_modules/effect/dist/Equivalence.js
 var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
 var isStrictEquivalent = (x, y) => x === y;
 var strictEqual = () => isStrictEquivalent;
@@ -1379,7 +1379,7 @@ function Array_(item) {
   });
 }
 
-// node_modules/effect/dist/internal/doNotation.js
+// ../../../../engine/node_modules/effect/dist/internal/doNotation.js
 var let_ = (map11) => dual(3, (self, name, f) => map11(self, (a) => ({
   ...a,
   [name]: f(a)
@@ -1392,7 +1392,7 @@ var bind = (map11, flatMap7) => dual(3, (self, name, f) => flatMap7(self, (a) =>
   [name]: b
 }))));
 
-// node_modules/effect/dist/internal/option.js
+// ../../../../engine/node_modules/effect/dist/internal/option.js
 var TypeId = "~effect/Option";
 var CommonProto = {
   [TypeId]: {
@@ -1458,7 +1458,7 @@ var SomeImpl = function(value4) {
 SomeImpl.prototype = SomeProto;
 var some = (value4) => new SomeImpl(value4);
 
-// node_modules/effect/dist/internal/result.js
+// ../../../../engine/node_modules/effect/dist/internal/result.js
 var TypeId2 = "~effect/Result";
 var CommonProto2 = {
   [TypeId2]: {
@@ -1528,7 +1528,7 @@ var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
 var getSuccess = (self) => isFailure(self) ? none : some(self.success);
 var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
-// node_modules/effect/dist/Order.js
+// ../../../../engine/node_modules/effect/dist/Order.js
 function make2(compare2) {
   return (self, that) => self === that ? 0 : compare2(self, that);
 }
@@ -1547,7 +1547,7 @@ var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
 var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
 var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
 
-// node_modules/effect/dist/Option.js
+// ../../../../engine/node_modules/effect/dist/Option.js
 var none2 = () => none;
 var some2 = some;
 var isOption2 = isOption;
@@ -1575,7 +1575,7 @@ var flatMap = /* @__PURE__ */ dual(2, (self, f) => isNone2(self) ? none2() : f(s
 var flatten = /* @__PURE__ */ flatMap(identity);
 var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
 
-// node_modules/effect/dist/Context.js
+// ../../../../engine/node_modules/effect/dist/Context.js
 var ServiceTypeId = "~effect/Context/Service";
 var Service = function() {
   function KeyClass() {
@@ -1805,13 +1805,13 @@ var omit = (...keys3) => (self) => withFlat(self, (map11) => {
 });
 var Reference = Service;
 
-// node_modules/effect/dist/internal/array.js
+// ../../../../engine/node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
-// node_modules/effect/dist/internal/count.js
+// ../../../../engine/node_modules/effect/dist/internal/count.js
 var normalize = (n) => n > 0 ? Math.floor(n) : 0;
 
-// node_modules/effect/dist/Result.js
+// ../../../../engine/node_modules/effect/dist/Result.js
 var Result_exports = {};
 __export(Result_exports, {
   Do: () => Do,
@@ -1966,10 +1966,10 @@ var tap = /* @__PURE__ */ dual(2, (self, f) => {
   return self;
 });
 
-// node_modules/effect/dist/Tuple.js
+// ../../../../engine/node_modules/effect/dist/Tuple.js
 var makeEquivalence2 = Tuple;
 
-// node_modules/effect/dist/Iterable.js
+// ../../../../engine/node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
   let i = 0;
   for (const a of self) {
@@ -2012,7 +2012,7 @@ var filter2 = /* @__PURE__ */ dual(2, (self, predicate) => ({
   }
 }));
 
-// node_modules/effect/dist/Record.js
+// ../../../../engine/node_modules/effect/dist/Record.js
 var has = /* @__PURE__ */ dual(2, (self, key2) => Object.hasOwn(self, key2));
 var map3 = /* @__PURE__ */ dual(2, (self, f) => {
   const out = {
@@ -2037,7 +2037,7 @@ var makeEquivalence3 = (equivalence) => {
   return (self, that) => is3(self, that) && is3(that, self);
 };
 
-// node_modules/effect/dist/Array.js
+// ../../../../engine/node_modules/effect/dist/Array.js
 var Array2 = globalThis.Array;
 var fromIterable = (collection) => Array2.isArray(collection) ? collection : Array2.from(collection);
 var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
@@ -2096,7 +2096,7 @@ var dedupe = (self) => {
   return out;
 };
 
-// node_modules/effect/dist/Duration.js
+// ../../../../engine/node_modules/effect/dist/Duration.js
 var TypeId4 = "~effect/Duration";
 var bigint0 = /* @__PURE__ */ BigInt(0);
 var bigint1 = /* @__PURE__ */ BigInt(1);
@@ -2486,7 +2486,7 @@ var format2 = (self) => {
   return pieces.join(" ");
 };
 
-// node_modules/effect/dist/Filter.js
+// ../../../../engine/node_modules/effect/dist/Filter.js
 var composePassthrough = /* @__PURE__ */ dual(2, (left, right) => (input) => {
   const leftOut = left(input);
   if (isFailure2(leftOut)) return fail2(input);
@@ -2499,7 +2499,14 @@ var toOption = (self) => (input) => {
   return isFailure2(result3) ? none2() : some2(result3.success);
 };
 
-// node_modules/effect/dist/Scheduler.js
+// ../../../../engine/node_modules/effect/dist/Scheduler.js
+var Scheduler_exports = {};
+__export(Scheduler_exports, {
+  MaxOpsBeforeYield: () => MaxOpsBeforeYield,
+  MixedScheduler: () => MixedScheduler,
+  PreventSchedulerYield: () => PreventSchedulerYield,
+  Scheduler: () => Scheduler
+});
 var Scheduler = /* @__PURE__ */ Reference("effect/Scheduler", {
   fiberCached: true,
   defaultValue: () => new MixedScheduler()
@@ -2643,7 +2650,7 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
-// node_modules/effect/dist/Tracer.js
+// ../../../../engine/node_modules/effect/dist/Tracer.js
 var Tracer_exports = {};
 __export(Tracer_exports, {
   CurrentTraceLevel: () => CurrentTraceLevel,
@@ -2659,7 +2666,7 @@ __export(Tracer_exports, {
   nativeTracer: () => nativeTracer
 });
 
-// node_modules/effect/dist/Data.js
+// ../../../../engine/node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
   Class: () => Class3,
@@ -2706,7 +2713,7 @@ function taggedMatch() {
 var Error3 = Error2;
 var TaggedError2 = TaggedError;
 
-// node_modules/effect/dist/encoding/EncodingError.js
+// ../../../../engine/node_modules/effect/dist/encoding/EncodingError.js
 var EncodingErrorTypeId = "~effect/encoding/EncodingError";
 var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
   /**
@@ -2721,7 +2728,7 @@ var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")
   [EncodingErrorTypeId] = EncodingErrorTypeId;
 };
 
-// node_modules/effect/dist/encoding/Hex.js
+// ../../../../engine/node_modules/effect/dist/encoding/Hex.js
 var encode = (input) => typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input);
 var random2 = (length) => {
   switch (length) {
@@ -2810,7 +2817,7 @@ var fromHexChar = (byte) => {
   throw new TypeError("Invalid input");
 };
 
-// node_modules/effect/dist/Tracer.js
+// ../../../../engine/node_modules/effect/dist/Tracer.js
 var ParentSpanKey = "effect/Tracer/ParentSpan";
 var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
   fiberCached: true
@@ -2899,10 +2906,10 @@ var NativeSpan = class {
   }
 };
 
-// node_modules/effect/dist/internal/metric.js
+// ../../../../engine/node_modules/effect/dist/internal/metric.js
 var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
 
-// node_modules/effect/dist/internal/references.js
+// ../../../../engine/node_modules/effect/dist/internal/references.js
 var CurrentErrorReporters = /* @__PURE__ */ Reference("effect/ErrorReporter/CurrentErrorReporters", {
   defaultValue: () => /* @__PURE__ */ new Set()
 });
@@ -2938,7 +2945,7 @@ var CurrentLogSpans = /* @__PURE__ */ Reference("effect/References/CurrentLogSpa
   defaultValue: () => []
 });
 
-// node_modules/effect/dist/internal/tracer.js
+// ../../../../engine/node_modules/effect/dist/internal/tracer.js
 var addSpanStackTrace = (options) => {
   if (options?.captureStackTrace === false) {
     return options;
@@ -2975,7 +2982,7 @@ var makeStackCleaner = (line) => (stack) => {
 };
 var spanCleaner = /* @__PURE__ */ makeStackCleaner(3);
 
-// node_modules/effect/dist/internal/effect.js
+// ../../../../engine/node_modules/effect/dist/internal/effect.js
 var Interrupt = class extends ReasonBase {
   constructor(fiberId3, annotations2 = constEmptyAnnotations) {
     super("Interrupt", annotations2, "Interrupted");
@@ -5111,8 +5118,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve11) => {
-      fiber3.addObserver((exit4) => resolve11(exit4));
+    return new Promise((resolve12) => {
+      fiber3.addObserver((exit4) => resolve12(exit4));
     });
   };
 };
@@ -5665,7 +5672,7 @@ var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   reporters.forEach((reporter) => reporter.report(opts));
 };
 
-// node_modules/effect/dist/Cause.js
+// ../../../../engine/node_modules/effect/dist/Cause.js
 var TypeId5 = CauseTypeId;
 var ReasonTypeId = CauseReasonTypeId;
 var isCause2 = isCause;
@@ -5728,7 +5735,7 @@ var StackTrace = class extends (/* @__PURE__ */ Service()("effect/Cause/StackTra
 var InterruptorStackTrace2 = class extends (/* @__PURE__ */ Service()("effect/Cause/InterruptorStackTrace")) {
 };
 
-// node_modules/effect/dist/Effect.js
+// ../../../../engine/node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
   Do: () => Do3,
@@ -5962,7 +5969,7 @@ __export(Effect_exports, {
   zipWith: () => zipWith2
 });
 
-// node_modules/effect/dist/Exit.js
+// ../../../../engine/node_modules/effect/dist/Exit.js
 var Exit_exports = {};
 __export(Exit_exports, {
   asVoid: () => asVoid2,
@@ -6021,7 +6028,7 @@ var getSuccess3 = exitGetSuccess;
 var getCause = exitGetCause;
 var findErrorOption3 = exitFindErrorOption;
 
-// node_modules/effect/dist/Layer.js
+// ../../../../engine/node_modules/effect/dist/Layer.js
 var Layer_exports = {};
 __export(Layer_exports, {
   CurrentMemoMap: () => CurrentMemoMap,
@@ -6070,7 +6077,7 @@ __export(Layer_exports, {
   withSpan: () => withSpan2
 });
 
-// node_modules/effect/dist/Deferred.js
+// ../../../../engine/node_modules/effect/dist/Deferred.js
 var TypeId6 = "~effect/Deferred";
 var DeferredProto = {
   [TypeId6]: {
@@ -6111,19 +6118,19 @@ var doneUnsafe = (self, effect2) => {
   return true;
 };
 
-// node_modules/effect/dist/References.js
+// ../../../../engine/node_modules/effect/dist/References.js
 var CurrentLogAnnotations2 = CurrentLogAnnotations;
 var CurrentLogSpans2 = CurrentLogSpans;
 var CurrentStackFrame2 = CurrentStackFrame;
 
-// node_modules/effect/dist/Scope.js
+// ../../../../engine/node_modules/effect/dist/Scope.js
 var Scope = scopeTag;
 var makeUnsafe3 = scopeMakeUnsafe;
 var provide = provideScope;
 var forkUnsafe2 = scopeForkUnsafe;
 var close = scopeClose;
 
-// node_modules/effect/dist/Layer.js
+// ../../../../engine/node_modules/effect/dist/Layer.js
 var TypeId7 = "~effect/Layer";
 var MemoMapTypeId = "~effect/Layer/MemoMap";
 var makeMemoMapEntry = (memoMap, layer) => {
@@ -6351,7 +6358,7 @@ var provideSpanStackFrame2 = (name, stack) => {
   }));
 };
 
-// node_modules/effect/dist/Clock.js
+// ../../../../engine/node_modules/effect/dist/Clock.js
 var Clock_exports = {};
 __export(Clock_exports, {
   Clock: () => Clock,
@@ -6366,7 +6373,7 @@ var currentTimeMillis2 = currentTimeMillis;
 var currentTimeNanos2 = currentTimeNanos;
 var monotonicTimeNanos2 = monotonicTimeNanos;
 
-// node_modules/effect/dist/internal/dateTime.js
+// ../../../../engine/node_modules/effect/dist/internal/dateTime.js
 var TypeId8 = "~effect/DateTime";
 var TimeZoneTypeId = "~effect/DateTime/TimeZone";
 var Proto2 = {
@@ -6757,7 +6764,7 @@ var formatIsoOffset = (self) => {
 };
 var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
 
-// node_modules/effect/dist/Number.js
+// ../../../../engine/node_modules/effect/dist/Number.js
 var Number3 = globalThis.Number;
 var remainder = /* @__PURE__ */ dual(2, (self, divisor) => {
   if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
@@ -6789,11 +6796,11 @@ function toScientificInteger(n) {
   return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1];
 }
 
-// node_modules/effect/dist/String.js
+// ../../../../engine/node_modules/effect/dist/String.js
 var String3 = globalThis.String;
 var trim = (self) => self.trim();
 
-// node_modules/effect/dist/Pull.js
+// ../../../../engine/node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
 var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure2) => failure2._tag === "Fail" && isDone2(failure2.error);
@@ -6822,7 +6829,7 @@ var matchEffect2 = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(s
   }
 }));
 
-// node_modules/effect/dist/Schedule.js
+// ../../../../engine/node_modules/effect/dist/Schedule.js
 var TypeId9 = "~effect/Schedule";
 var CurrentMetadata = /* @__PURE__ */ Reference("effect/Schedule/CurrentMetadata", {
   defaultValue: /* @__PURE__ */ constant({
@@ -6914,7 +6921,7 @@ var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(s
 })));
 var forever2 = /* @__PURE__ */ spaced(zero);
 
-// node_modules/effect/dist/ExecutionPlan.js
+// ../../../../engine/node_modules/effect/dist/ExecutionPlan.js
 var TypeId10 = "~effect/ExecutionPlan";
 var Proto3 = {
   [TypeId10]: TypeId10,
@@ -6943,11 +6950,11 @@ var CurrentMetadata2 = /* @__PURE__ */ Reference("effect/ExecutionPlan/CurrentMe
   })
 });
 
-// node_modules/effect/dist/internal/layer.js
+// ../../../../engine/node_modules/effect/dist/internal/layer.js
 var provideLayer = (self, layer, options) => scopedWith((scope3) => flatMap3(options?.local ? buildWithMemoMap(layer, makeMemoMapUnsafe(), scope3) : buildWithScope(layer, scope3), (context3) => provideContext(self, context3)));
 var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source2, options) => isContext(source2) ? provideContext(self, source2) : provideLayer(self, Array.isArray(source2) ? mergeAll2(...source2) : source2, options));
 
-// node_modules/effect/dist/internal/schedule.js
+// ../../../../engine/node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
 var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
@@ -7019,7 +7026,7 @@ var buildFromOptions = (options) => {
   return schedule2;
 };
 
-// node_modules/effect/dist/internal/executionPlan.js
+// ../../../../engine/node_modules/effect/dist/internal/executionPlan.js
 var makeEventEmitter = (onEvent, currentMetadata) => {
   let lastStepIndex = -1;
   let stepAttempt = 0;
@@ -7124,7 +7131,7 @@ var scheduleFromStep = (step2, first) => {
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
 
-// node_modules/effect/dist/MutableHashMap.js
+// ../../../../engine/node_modules/effect/dist/MutableHashMap.js
 var TypeId11 = "~effect/MutableHashMap";
 var MutableHashMapProto = {
   [TypeId11]: TypeId11,
@@ -7228,7 +7235,7 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
   return self;
 });
 
-// node_modules/effect/dist/Request.js
+// ../../../../engine/node_modules/effect/dist/Request.js
 var TypeId12 = "~effect/Request";
 var requestVariance = /* @__PURE__ */ byReferenceUnsafe({
   /* c8 ignore next */
@@ -7244,7 +7251,7 @@ var RequestPrototype = {
 };
 var makeEntry = (options) => options;
 
-// node_modules/effect/dist/internal/request.js
+// ../../../../engine/node_modules/effect/dist/internal/request.js
 var request = /* @__PURE__ */ dual(2, (self, resolver) => {
   const withResolver = (resolver2) => callback((resume) => {
     const entry = addEntry(resolver2, self, resume, getCurrentFiber());
@@ -7370,7 +7377,7 @@ function runBatch(batch) {
   return batch.run;
 }
 
-// node_modules/effect/dist/Metric.js
+// ../../../../engine/node_modules/effect/dist/Metric.js
 var CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes";
 var CurrentMetricAttributes = /* @__PURE__ */ Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({})
@@ -7446,7 +7453,7 @@ function attributesToRecord(attributes) {
   return attributes;
 }
 
-// node_modules/effect/dist/Effect.js
+// ../../../../engine/node_modules/effect/dist/Effect.js
 var TypeId14 = EffectTypeId;
 var isEffect2 = isEffect;
 var all3 = all2;
@@ -7833,7 +7840,7 @@ var flatMapEager2 = flatMapEager;
 var catchEager2 = catchEager;
 var fnUntracedEager2 = fnUntracedEager;
 
-// node_modules/effect/dist/BigDecimal.js
+// ../../../../engine/node_modules/effect/dist/BigDecimal.js
 var FINITE_INT_REGEXP = /^[+-]?\d+$/;
 var TypeId15 = "~effect/BigDecimal";
 var BigDecimalProto = {
@@ -7986,7 +7993,7 @@ var toExponential = (n) => {
 };
 var isZero2 = (n) => n.value === bigint03;
 
-// node_modules/effect/dist/Schema.js
+// ../../../../engine/node_modules/effect/dist/Schema.js
 var Schema_exports = {};
 __export(Schema_exports, {
   Any: () => Any2,
@@ -8359,7 +8366,7 @@ __export(Schema_exports, {
   withDecodingDefaultTypeKey: () => withDecodingDefaultTypeKey
 });
 
-// node_modules/effect/dist/BigInt.js
+// ../../../../engine/node_modules/effect/dist/BigInt.js
 var BigInt3 = globalThis.BigInt;
 var toNumber = (b) => {
   if (b > BigInt3(Number.MAX_SAFE_INTEGER) || b < BigInt3(Number.MIN_SAFE_INTEGER)) {
@@ -8368,7 +8375,7 @@ var toNumber = (b) => {
   return some2(Number(b));
 };
 
-// node_modules/effect/dist/ByteSize.js
+// ../../../../engine/node_modules/effect/dist/ByteSize.js
 var bigint04 = /* @__PURE__ */ BigInt(0);
 var bigint13 = /* @__PURE__ */ BigInt(1);
 var decimalBase = /* @__PURE__ */ BigInt(1e3);
@@ -8495,7 +8502,7 @@ var isByteSize = (input) => typeof input === "bigint" && input >= bigint04;
 var toBigInt = (self) => self;
 var toNumber2 = toNumber;
 
-// node_modules/effect/dist/Chunk.js
+// ../../../../engine/node_modules/effect/dist/Chunk.js
 var TypeId16 = "~effect/Chunk";
 function copy(src, srcPos, dest, destPos, len) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
@@ -8659,7 +8666,7 @@ var fromArrayUnsafe = (self) => self.length === 0 ? empty6() : self.length === 1
 });
 var size = (self) => self.length;
 
-// node_modules/effect/dist/DateTime.js
+// ../../../../engine/node_modules/effect/dist/DateTime.js
 var isDateTime2 = isDateTime;
 var isTimeZone2 = isTimeZone;
 var isTimeZoneOffset2 = isTimeZoneOffset;
@@ -8682,7 +8689,7 @@ var toEpochMillis2 = toEpochMillis;
 var formatIso2 = formatIso;
 var formatIsoZoned2 = formatIsoZoned;
 
-// node_modules/effect/dist/encoding/Base64.js
+// ../../../../engine/node_modules/effect/dist/encoding/Base64.js
 var encode2 = (input) => encodeBytes(typeof input === "string" ? encoder2.encode(input) : input);
 var decode2 = (str2) => {
   const stripped = stripCrlf(str2);
@@ -8761,7 +8768,7 @@ var getCode = (charCode) => {
   return codes[charCode];
 };
 
-// node_modules/effect/dist/internal/hashMap.js
+// ../../../../engine/node_modules/effect/dist/internal/hashMap.js
 var HashMapTypeId = "~effect/HashMap";
 var SHIFT = 5;
 var BUCKET_SIZE = 1 << SHIFT;
@@ -9396,14 +9403,14 @@ var keys2 = (self) => new HashMapIterator(self._root, identity);
 var entries = (self) => self[Symbol.iterator]();
 var size2 = (self) => self.size;
 
-// node_modules/effect/dist/HashMap.js
+// ../../../../engine/node_modules/effect/dist/HashMap.js
 var isHashMap2 = isHashMap;
 var fromIterable4 = fromIterable3;
 var entries2 = entries;
 var toEntries = (self) => Array.from(entries2(self));
 var size3 = size2;
 
-// node_modules/effect/dist/internal/hashSet.js
+// ../../../../engine/node_modules/effect/dist/internal/hashSet.js
 var HashSetTypeId = "~effect/HashSet";
 var hashSetSeed = /* @__PURE__ */ string(HashSetTypeId);
 var HashSetProto = {
@@ -9458,12 +9465,12 @@ var every2 = (self, predicate) => {
   return true;
 };
 
-// node_modules/effect/dist/HashSet.js
+// ../../../../engine/node_modules/effect/dist/HashSet.js
 var fromIterable6 = fromIterable5;
 var isHashSet2 = isHashSet;
 var size5 = size4;
 
-// node_modules/effect/dist/http/Cookies.js
+// ../../../../engine/node_modules/effect/dist/http/Cookies.js
 var TypeId17 = "~effect/http/Cookies";
 var isCookies = (u) => hasProperty(u, TypeId17);
 var CookieTypeId = "~effect/http/Cookies/Cookie";
@@ -9787,7 +9794,7 @@ var tryDecodeURIComponent = (str2) => {
   }
 };
 
-// node_modules/effect/dist/internal/redacted.js
+// ../../../../engine/node_modules/effect/dist/internal/redacted.js
 var redactedRegistry = /* @__PURE__ */ new WeakMap();
 var value = (self) => {
   if (redactedRegistry.has(self)) {
@@ -9797,7 +9804,7 @@ var value = (self) => {
   }
 };
 
-// node_modules/effect/dist/Redacted.js
+// ../../../../engine/node_modules/effect/dist/Redacted.js
 var TypeId18 = "~effect/Redacted";
 var isRedacted = (u) => hasProperty(u, TypeId18);
 var make12 = (value4, options) => {
@@ -9830,7 +9837,7 @@ var Proto5 = {
 var value2 = value;
 var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
-// node_modules/effect/dist/http/Headers.js
+// ../../../../engine/node_modules/effect/dist/http/Headers.js
 var TypeId19 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
 var isHeaders = (u) => hasProperty(u, TypeId19);
 var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.create(null), {
@@ -9931,10 +9938,10 @@ var CurrentRedactedNames = /* @__PURE__ */ Reference("effect/Headers/CurrentReda
   defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
 });
 
-// node_modules/effect/dist/http/internal/urlParams.js
+// ../../../../engine/node_modules/effect/dist/http/internal/urlParams.js
 var unwrap2 = (value4) => typeof value4 === "string" ? value4 : value2(value4);
 
-// node_modules/effect/dist/http/UrlParams.js
+// ../../../../engine/node_modules/effect/dist/http/UrlParams.js
 var TypeId20 = "~effect/http/UrlParams";
 var isUrlParams = (u) => hasProperty(u, TypeId20);
 var Proto7 = {
@@ -10032,7 +10039,7 @@ var CurrentRedactedNames2 = /* @__PURE__ */ Reference("effect/http/UrlParams/Cur
   defaultValue: () => ["AWSAccessKeyId", "Signature", "sig", "X-Goog-Signature"]
 });
 
-// node_modules/effect/dist/internal/graph.js
+// ../../../../engine/node_modules/effect/dist/internal/graph.js
 var TypeId21 = "~effect/Graph";
 var isGraph = (u) => hasProperty(u, TypeId21);
 var toImpl = (graph) => graph;
@@ -10156,7 +10163,7 @@ var hydrate = (snapshot3) => {
   return graph;
 };
 
-// node_modules/effect/dist/internal/schema/annotations.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/annotations.js
 function resolve(ast) {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
 }
@@ -10178,7 +10185,7 @@ var getExpected = /* @__PURE__ */ memoize((ast) => {
 });
 var annotationExcludedKeys = /* @__PURE__ */ new Set([SENTINELS_ANNOTATION_KEY, STRUCTURAL_ANNOTATION_KEY, "representation", "arbitraryConstraint", "toJsonSchema", "toCode", "toEquivalence", "toFormatter", "toCodec", "toCodecJson", "toCodecStringTree", "toCodecIso", "toCodecArbitrary"]);
 
-// node_modules/effect/dist/internal/schema/parser.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/parser.js
 var missing = /* @__PURE__ */ Symbol();
 var succeed7 = succeed4;
 var missingExit = /* @__PURE__ */ succeed7(missing);
@@ -10186,7 +10193,7 @@ var sameExit = /* @__PURE__ */ succeed7(missing);
 var toOption2 = (value4) => value4 === missing ? none2() : some2(value4);
 var fromOptionExit = (option3) => option3._tag === "None" ? missingExit : succeed7(option3.value);
 
-// node_modules/effect/dist/SchemaIssue.js
+// ../../../../engine/node_modules/effect/dist/SchemaIssue.js
 var TypeId22 = "~effect/SchemaIssue/Issue";
 function isIssue(u) {
   return hasProperty(u, TypeId22) && u[TypeId22] === TypeId22;
@@ -10529,7 +10536,7 @@ function findMessage(issue) {
   if (typeof message === "string") return message;
 }
 
-// node_modules/effect/dist/internal/schema/cause.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/cause.js
 function getSchemaIssue(cause) {
   let issue;
   for (const reason of cause.reasons) {
@@ -10550,7 +10557,7 @@ function getSchemaIssueOrThrow(cause, message) {
   return issue;
 }
 
-// node_modules/effect/dist/encoding/Base64Url.js
+// ../../../../engine/node_modules/effect/dist/encoding/Base64Url.js
 var encode3 = (input) => encode2(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 var decode3 = (str2) => {
   const stripped = str2.replace(/[\n\r]/g, "");
@@ -10578,7 +10585,7 @@ var decode3 = (str2) => {
 var decodeString3 = (str2) => map2(decode3(str2), (_) => decoder3.decode(_));
 var decoder3 = /* @__PURE__ */ new TextDecoder();
 
-// node_modules/effect/dist/SchemaGetter.js
+// ../../../../engine/node_modules/effect/dist/SchemaGetter.js
 var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
 function fail7(f) {
   return transformOptionalEffect((oe, options) => fail6(f(oe, options)));
@@ -10865,7 +10872,7 @@ function collectBracketPathEntries(isLeaf) {
   };
 }
 
-// node_modules/effect/dist/SchemaTransformation.js
+// ../../../../engine/node_modules/effect/dist/SchemaTransformation.js
 var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
@@ -11058,7 +11065,7 @@ function fromJsonString(options) {
 var fromFormData = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeFormData(), /* @__PURE__ */ encodeFormData());
 var fromURLSearchParams = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeURLSearchParams(), /* @__PURE__ */ encodeURLSearchParams());
 
-// node_modules/effect/dist/SchemaAST.js
+// ../../../../engine/node_modules/effect/dist/SchemaAST.js
 function makeGuard(tag2) {
   return (ast) => ast._tag === tag2;
 }
@@ -13182,7 +13189,7 @@ var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options)
 });
 var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough3());
 
-// node_modules/effect/dist/internal/schema/interpreter.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/interpreter.js
 var flatMapTransformation = (result3, current, f) => result3 === sameExit ? f(current) : flatMapEager2(result3, f);
 function compileTransformation(transformation) {
   if (transformation._tag === "Middleware") {
@@ -13339,7 +13346,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
   };
 }
 
-// node_modules/effect/dist/internal/schema/compilerRegistry.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/compilerRegistry.js
 var invalid3 = /* @__PURE__ */ Symbol();
 var cache = /* @__PURE__ */ new WeakMap();
 var compiler;
@@ -13365,10 +13372,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve11) {
+  constructor(ast, compiled, resolve12) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve11;
+    this.resolve = resolve12;
   }
   save(key2, value4) {
     Object.defineProperty(this, key2, {
@@ -13417,8 +13424,8 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve11, ast, operation2) {
-  const entry = resolve11(ast);
+function lazyParser(resolve12, ast, operation2) {
+  const entry = resolve12(ast);
   if (entry.compiled === void 0 || Object.hasOwn(entry, operation2)) {
     return entry[operation2];
   }
@@ -13433,7 +13440,7 @@ function resolve2(ast) {
   return entry;
 }
 
-// node_modules/effect/dist/SchemaParser.js
+// ../../../../engine/node_modules/effect/dist/SchemaParser.js
 function makeEffect(schema) {
   const ast = schema.ast;
   let parser;
@@ -13699,7 +13706,7 @@ function makeConstructorSync(ast) {
 var normalCompiler = (ast) => resolve2(ast).parser;
 var constructorCompiler = (ast) => resolve2(ast).makeEffect;
 
-// node_modules/effect/dist/internal/schema/make.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/make.js
 var TypeId25 = "~effect/Schema/Schema";
 var RebuildOptions = /* @__PURE__ */ Symbol();
 var SchemaProto = {
@@ -13760,7 +13767,7 @@ function make16(ast, options) {
   return self;
 }
 
-// node_modules/effect/dist/JsonPointer.js
+// ../../../../engine/node_modules/effect/dist/JsonPointer.js
 function escapeToken(token) {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -13790,7 +13797,7 @@ function formatUriFragment(path) {
   return path.reduce((fragment, token) => `${fragment}/${formatUriFragmentToken(token)}`, "#");
 }
 
-// node_modules/effect/dist/JsonSchema.js
+// ../../../../engine/node_modules/effect/dist/JsonSchema.js
 var META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema#";
 var META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 function isMetaSchemaUri(value4, uri) {
@@ -14150,7 +14157,7 @@ function convertLegacyId(source2, out, targetKey, dialect) {
   }
 }
 
-// node_modules/effect/dist/internal/schema/toCodec.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toCodec.js
 function toCodecJson(schema) {
   return make16(toCodecJsonAST(schema.ast), {
     schema
@@ -14358,11 +14365,11 @@ function toCodecArrayFromSingleASTStep(ast) {
   return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" || ast._tag === "Suspend" ? ast.recur(toCodecArrayFromSingleAST) : ast;
 }
 
-// node_modules/effect/dist/RegExp.js
+// ../../../../engine/node_modules/effect/dist/RegExp.js
 var RegExp2 = globalThis.RegExp;
 var escape = (string3) => string3.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-// node_modules/effect/dist/internal/errors.js
+// ../../../../engine/node_modules/effect/dist/internal/errors.js
 function errorWithPath(message, path) {
   if (path.length > 0) {
     message += `
@@ -14371,7 +14378,7 @@ function errorWithPath(message, path) {
   return new Error(message);
 }
 
-// node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
 function formatDefinitionReference(key2) {
   return `#/$defs/${formatUriFragmentToken(key2)}`;
 }
@@ -15020,7 +15027,7 @@ function toJsonSchemaDocument(document, options) {
   };
 }
 
-// node_modules/effect/dist/internal/schema/toRepresentation.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toRepresentation.js
 var defaultReferencePolicy = ({
   identifier: identifier3
 }) => identifier3;
@@ -15337,7 +15344,7 @@ function toRepresentations(asts, options) {
   }
 }
 
-// node_modules/effect/dist/internal/schema/standardSchema.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/standardSchema.js
 function makeStandardResult(exit4) {
   return isSuccess4(exit4) ? exit4.value : {
     issues: [{
@@ -15367,9 +15374,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve11) => {
+    return new Promise((resolve12) => {
       fiber3.addObserver((exit5) => {
-        resolve11(makeStandardResult(exit5));
+        resolve12(makeStandardResult(exit5));
       });
     });
   };
@@ -15437,7 +15444,7 @@ function toStandardJSONSchemaV1(self) {
   });
 }
 
-// node_modules/effect/dist/JsonPatch.js
+// ../../../../engine/node_modules/effect/dist/JsonPatch.js
 function get4(oldValue, newValue) {
   const patches = [];
   getLoop(oldValue, newValue, "", patches);
@@ -15618,7 +15625,7 @@ function rebuildFromStack(stack, newParent) {
   return acc;
 }
 
-// node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
   const get6 = encodeSync(serializer);
@@ -15635,7 +15642,7 @@ function toDifferJsonPatch(schema) {
   };
 }
 
-// node_modules/effect/dist/internal/schema/toEncoderXml.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toEncoderXml.js
 function toEncoderXml(codec, options) {
   const rootName = resolveIdentifier(codec.ast) ?? resolveTitle(codec.ast);
   const serialize = encodeEffect(toCodecStringTree(codec));
@@ -15734,7 +15741,7 @@ var xml = {
   }
 };
 
-// node_modules/effect/dist/internal/schema/toEquivalence.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toEquivalence.js
 var toEquivalence = /* @__PURE__ */ memoize((ast) => {
   return recur(ast);
 });
@@ -15918,7 +15925,7 @@ function causeEquivalence(error, defect) {
   return (a, b) => reasons(a.reasons, b.reasons);
 }
 
-// node_modules/effect/dist/internal/schema/toFormatter.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toFormatter.js
 function causeReasonToFormatter(error, defect) {
   return (reason) => {
     switch (reason._tag) {
@@ -16133,7 +16140,7 @@ function toFormatter(ast, options) {
   }
 }
 
-// node_modules/effect/dist/Struct.js
+// ../../../../engine/node_modules/effect/dist/Struct.js
 var pick2 = /* @__PURE__ */ dual(2, (self, keys3) => {
   return buildStruct(self, (k, v) => hasPropertyKey(keys3, k) ? [k, v] : void 0);
 });
@@ -16166,7 +16173,7 @@ function buildStruct(source2, f) {
   return out;
 }
 
-// node_modules/effect/dist/Optic.js
+// ../../../../engine/node_modules/effect/dist/Optic.js
 function makeIso(get6, set4) {
   return make17(primitiveNode("Iso", get6, set4));
 }
@@ -16512,7 +16519,7 @@ function id() {
   return identityIso;
 }
 
-// node_modules/effect/dist/internal/schema/toIso.js
+// ../../../../engine/node_modules/effect/dist/internal/schema/toIso.js
 function toIso(schema) {
   const serializer = toCodecIso(schema);
   return makeIso(encodeSync(serializer), decodeSync(serializer));
@@ -16524,13 +16531,13 @@ function toIsoFocus(_) {
   return id();
 }
 
-// node_modules/effect/dist/internal/schemaError.js
+// ../../../../engine/node_modules/effect/dist/internal/schemaError.js
 var SchemaErrorTypeId = "~effect/Schema/SchemaError";
 function isSchemaError(u) {
   return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
 }
 
-// node_modules/effect/dist/net/NetAddress.js
+// ../../../../engine/node_modules/effect/dist/net/NetAddress.js
 var TypeId26 = "~effect/net/NetAddress";
 var ipv4Value = (self) => self.value;
 var ipv6Words = (self) => self;
@@ -16974,7 +16981,7 @@ var unixPathAddress = (path) => {
   return Object.freeze(self);
 };
 
-// node_modules/effect/dist/net/Host.js
+// ../../../../engine/node_modules/effect/dist/net/Host.js
 var TypeId27 = "~effect/net/Host";
 var hostError = (input, message) => fail2(new NetAddressError({
   input,
@@ -17087,7 +17094,7 @@ var formatHostPort = (self) => {
   return host.includes(":") ? `[${host}]:${self.port}` : `${host}:${self.port}`;
 };
 
-// node_modules/effect/dist/net/Dns.js
+// ../../../../engine/node_modules/effect/dist/net/Dns.js
 var RecordTypeId = "~effect/net/Dns/DnsRecord";
 var isUint8 = (u) => Number.isInteger(u) && u >= 0 && u <= 255;
 var isUint16 = (u) => Number.isInteger(u) && u >= 0 && u <= 65535;
@@ -17254,7 +17261,7 @@ var formatRecord = (self) => {
   }
 };
 
-// node_modules/effect/dist/net/IpInterface.js
+// ../../../../engine/node_modules/effect/dist/net/IpInterface.js
 var TypeId28 = "~effect/net/IpInterface";
 var isIpv4Interface = (u) => isIpInterface(u) && isIpv4Address(u.address);
 var isIpv6Interface = (u) => isIpInterface(u) && isIpv6Address(u.address);
@@ -17316,7 +17323,7 @@ var ipv6FromString2 = (input, options) => flatMap2(parseAddressWithPrefix(input,
 var fromString3 = (input, options) => flatMap2(parseAddressWithPrefix(input, options), (parts2) => flatMap2(ipFromString(parts2.address), (address) => make18(address, parts2.prefixLength ?? width(address))));
 var format5 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// node_modules/effect/dist/net/IpNetwork.js
+// ../../../../engine/node_modules/effect/dist/net/IpNetwork.js
 var TypeId29 = "~effect/net/IpNetwork";
 var isIpv4Network = (u) => isIpNetwork(u) && isIpv4Address(u.address);
 var isIpv6Network = (u) => isIpNetwork(u) && isIpv6Address(u.address);
@@ -17385,7 +17392,7 @@ var fromString4 = (input) => {
 };
 var format6 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// node_modules/effect/dist/Schema.js
+// ../../../../engine/node_modules/effect/dist/Schema.js
 var TypeId30 = TypeId25;
 function declareConstructor() {
   return (typeParameters, run2, annotations2) => {
@@ -21195,7 +21202,7 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
-// node_modules/effect/dist/Fiber.js
+// ../../../../engine/node_modules/effect/dist/Fiber.js
 var Fiber_exports = {};
 __export(Fiber_exports, {
   await: () => await_,
@@ -21222,7 +21229,7 @@ var isFiber = (u) => hasProperty(u, FiberTypeId);
 var getCurrent = getCurrentFiber;
 var runIn = fiberRunIn;
 
-// node_modules/effect/dist/MutableList.js
+// ../../../../engine/node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
   head: void 0,
@@ -21328,7 +21335,7 @@ var take = (self) => {
   return message;
 };
 
-// node_modules/effect/dist/Queue.js
+// ../../../../engine/node_modules/effect/dist/Queue.js
 var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
@@ -21762,7 +21769,7 @@ var finalize = (self, exit4) => {
   openState.awaiters.clear();
 };
 
-// node_modules/effect/dist/Semaphore.js
+// ../../../../engine/node_modules/effect/dist/Semaphore.js
 var Semaphore_exports = {};
 __export(Semaphore_exports, {
   make: () => make23,
@@ -21890,17 +21897,18 @@ var release = /* @__PURE__ */ dual(2, (self, permits) => self.release(permits));
 var releaseAll = (self) => self.releaseAll;
 
 // src/api.ts
-import { createHash as createHash8, randomBytes, randomUUID as randomUUID3, timingSafeEqual } from "node:crypto";
+import { createHash as createHash10, randomBytes, randomUUID as randomUUID3, timingSafeEqual } from "node:crypto";
 
 // src/engine.ts
-import { createHash as createHash6 } from "node:crypto";
+import { createHash as createHash8 } from "node:crypto";
 
 // src/artifact-evidence.ts
 import { createHash } from "node:crypto";
 var contentHash = (text4) => createHash("sha256").update(text4).digest("hex");
 function preserveArtifact(store, item, role, patch, base, partial = false) {
   const artifact = { role, base, plan: contentHash(item.outputs.plan ?? ""), sha256: contentHash(patch), bytes: Buffer.byteLength(patch), patch, partial };
-  const last = store.events(item.id).findLast((e) => e.kind === "artifact-saved" && e.data.role === role);
+  const events2 = store.events(item.id);
+  const last = events2.findLast((e) => e.seq > continuationBoundary(events2) && e.kind === "artifact-saved" && e.data.role === role);
   if (!last || ["sha256", "base", "plan", "partial"].some((k) => last.data[k] !== artifact[k])) store.note(item.id, "artifact-saved", { ...artifact, round: item.round });
   return artifact;
 }
@@ -21911,9 +21919,31 @@ function savedArtifacts(events2) {
     return [{ role: d.role, base: d.base, plan: d.plan, sha256: String(d.sha256), bytes: Number(d.bytes), patch: d.patch, partial: d.partial === true, event: e.seq }];
   });
 }
+var continuationBoundary = (events2) => events2.findLast((e) => e.kind === "continuation-reset")?.seq ?? 0;
+var continuationArtifacts = (events2) => savedArtifacts(events2).filter((a) => a.event > continuationBoundary(events2));
 function ownArtifact(store, item, role, base, explicitlyCarried) {
   const plan = contentHash(item.outputs.plan ?? "");
-  return savedArtifacts(store.events(item.id)).findLast((a) => a.role === role && a.base === base && (explicitlyCarried ? a.sha256 === explicitlyCarried : a.plan === plan));
+  return continuationArtifacts(store.events(item.id)).findLast((a) => a.role === role && a.base === base && (explicitlyCarried ? a.sha256 === explicitlyCarried : a.plan === plan));
+}
+function ownArtifactHistory(events2, itemId, role, includePatches) {
+  const entries3 = events2.filter((e) => e.item === itemId && e.kind === "artifact-saved" && (role === "implement" || role === "test-plan") && e.data.role === role).sort((a, b) => a.seq - b.seq).map((e) => {
+    const d = e.data;
+    const provenance = {
+      ...typeof d.base === "string" && d.base.trim().length > 0 ? { base: d.base } : {},
+      ...typeof d.plan === "string" && /^[0-9a-f]{64}$/.test(d.plan) ? { plan: d.plan } : {},
+      ...typeof d.partial === "boolean" ? { partial: d.partial } : {},
+      ...typeof d.sha256 === "string" && /^[0-9a-f]{64}$/.test(d.sha256) ? { sha256: d.sha256 } : {},
+      ...typeof d.bytes === "number" && Number.isSafeInteger(d.bytes) && d.bytes >= 0 ? { bytes: d.bytes } : {}
+    };
+    const identity2 = { event: e.seq, role, referenceOnly: true };
+    const reason = Object.keys(provenance).length !== 5 ? "invalid-provenance" : d.patch === void 0 || d.patch === null ? "missing-patch" : typeof d.patch !== "string" ? "invalid-patch" : contentHash(d.patch) !== provenance.sha256 ? "hash-mismatch" : Buffer.byteLength(d.patch) !== provenance.bytes ? "byte-length-mismatch" : void 0;
+    if (reason) return { ...identity2, ...provenance, status: "unavailable", provenance: "unverified", reason };
+    return { ...identity2, ...provenance, status: "available", provenance: "verified", ...includePatches ? { patch: d.patch } : {} };
+  });
+  return {
+    instruction: "Historical entries are reference-only. Availability and verified content integrity do not authorize applying or resuming them. Available exact patch bodies are supplied at ownArtifactHistory.entries[].patch in the complete execution packet. Their deferral at intake is not a missing prerequisite. Required unavailable evidence goes through the existing NQ exchange.",
+    entries: entries3
+  };
 }
 
 // src/packet-references.ts
@@ -22016,6 +22046,8 @@ var quote2 = (s) => /^[\w@%+=:,./-]+$/.test(s) ? s : `'${s.replaceAll("'", `'\\'
 var Id = Schema_exports.Int;
 var Hold = Schema_exports.Struct({ code: Schema_exports.String, message: Schema_exports.String, context: Schema_exports.Record(Schema_exports.String, Schema_exports.Unknown) });
 var ERRORS = {
+  prepared_input_failed: { means: "A prepared resource could not be captured or safely extracted.", context: Schema_exports.Struct({ dir: Schema_exports.String, phase: Schema_exports.Literals(["capture", "assess", "extract"]), paths: Schema_exports.Array(Schema_exports.String), reason: Schema_exports.String }) },
+  replan_unavailable: { means: "Technical replanning is unavailable for this item state.", context: Schema_exports.Struct({ id: Id, status: Schema_exports.String, job: Schema_exports.String, reason: Schema_exports.String }) },
   usage: {
     means: "The command line is wrong: an unknown command or option, missing input, or a <placeholder> left unfilled. `mw` prints every command with its input schema.",
     context: Schema_exports.Struct({ command: Schema_exports.NullOr(Schema_exports.String) })
@@ -22202,11 +22234,76 @@ var schemas = {
   route: Schema_exports.Struct({ ...common, dependencies: Schema_exports.Array(Dependency), preparation: Schema_exports.Array(Preparation) }),
   discover: Schema_exports.Struct({ ...common, items: Schema_exports.Array(Schema_exports.Struct({ ...Candidate, after: Schema_exports.Array(Schema_exports.Int) })), dependencyIds: Refs, preparationIds: Refs, questionIds: Refs })
 };
+var HandoffSourceRefs = Refs.annotate({ description: "Evidence references: cite evidence[].id values declared in this contribution or an earlier accepted contribution. Never invent IDs or substitute observation IDs, requirement IDs, raw locators, URLs or physical paths. Put each actual locator in evidence[].ref and cite its declared id here." });
+var HandoffEvidence = Schema_exports.Struct({
+  ...Evidence.fields,
+  id: Evidence.fields.id.annotate({ description: "Declared evidence identity used by sources references in this contribution or later contributions." }),
+  ref: Evidence.fields.ref.annotate({ description: "Actual source locator, such as a URL or physical path; this is not the identity cited by sources. Cite evidence[].id instead." })
+});
+var HandoffQuestion = Schema_exports.Struct({
+  ...Question.fields,
+  id: Question.fields.id.annotate({ description: "Declared question identity referenced by questionRefs and confirmation questionIds. Preserve existing question ownership and blocking-role rules." }),
+  sources: HandoffSourceRefs
+});
+var HandoffClaim = { ...Claim, sources: HandoffSourceRefs };
+var HandoffArtifact = Schema_exports.Struct({
+  ...Artifact.fields,
+  id: Artifact.fields.id.annotate({ description: "Declared artifact identity belonging to its candidate producer; dependency artifactId references this identity." }),
+  sources: HandoffSourceRefs
+});
+var HandoffRequirementRefs = Refs.annotate({ description: "References to declared classify.requirements[].id values, not intent IDs, evidence IDs or candidate keys." });
+var HandoffRequirement = {
+  ...Requirement,
+  id: Requirement.id.annotate({ description: "Declared requirement identity in classify.requirements, referenced by requirementIds." }),
+  sources: HandoffSourceRefs
+};
+var HandoffIntentDisposition = Schema_exports.Struct({
+  ...IntentDisposition.fields,
+  intentId: IntentDisposition.fields.intentId.annotate({ description: "Reference to a declared Declare intent[].id value accounted for by this disposition." }),
+  sources: HandoffSourceRefs
+});
+var HandoffCandidate = {
+  ...Candidate,
+  key: Candidate.key.annotate({ description: "Task identity declared by one-thing.candidates[].key and retained by confirmation; dependencies and preparation reference this candidate key." }),
+  requirementIds: HandoffRequirementRefs,
+  artifacts: Schema_exports.Array(HandoffArtifact)
+};
+var HandoffQuestionRefs = QuestionRefs.annotate({ description: "Declared questions[].id values from this contribution or earlier accepted contributions where supported. Retain accepted candidate bindings at confirmation; newly declared route/confirmation questions can be added. Preserve question ownership and blocking-role rules. Use [] when none apply." });
+var HandoffDependency = Schema_exports.Struct({
+  ...Dependency.fields,
+  id: Dependency.fields.id.annotate({ description: "Route dependency identity retained in confirmation.dependencyIds." }),
+  producer: Dependency.fields.producer.annotate({ description: "Producer task key declared in one-thing.candidates[].key." }),
+  consumer: Dependency.fields.consumer.annotate({ description: "Consumer task key declared in one-thing.candidates[].key." }),
+  sources: HandoffSourceRefs,
+  artifactId: Dependency.fields.artifactId.annotate({ description: "Null or a declared artifacts[].id belonging to the named producer candidate; not an evidence ID, locator or consumer artifact." })
+});
+var HandoffPreparation = Schema_exports.Struct({
+  ...Preparation.fields,
+  id: Preparation.fields.id.annotate({ description: "Route preparation identity retained in confirmation.preparationIds." }),
+  candidate: Preparation.fields.candidate.annotate({ description: "Preparing task key declared in one-thing.candidates[].key; names task-delivered readiness, not an environment name." }),
+  before: Preparation.fields.before.annotate({ description: "Another declared one-thing.candidates[].key that receives the preparing task readiness; never runtime timing prose or an environment name." }),
+  sources: HandoffSourceRefs
+});
+var handoffCommon = {
+  ...common,
+  sources: HandoffSourceRefs,
+  evidence: Schema_exports.Array(HandoffEvidence),
+  questions: Schema_exports.Array(HandoffQuestion)
+};
 var handoffSchemas = {
-  ...schemas,
-  classify: Schema_exports.Struct({ ...common, requirements: Schema_exports.Array(Schema_exports.Struct({ ...Requirement, intentIds: Refs.annotate({ description: "One or more Declare.intent[].id values accounted for by this requirement." }) })), intentDispositions: Schema_exports.Array(IntentDisposition).annotate({ description: "Explicitly account for declared intents that do not become requirements, with a reason and evidence IDs. Use [] when all intents map to requirements." }) }),
-  "one-thing": Schema_exports.Struct({ ...common, candidates: Schema_exports.Array(Schema_exports.Struct({ ...Candidate, questionRefs: QuestionRefs })) }),
-  discover: Schema_exports.Struct({ ...common, items: Schema_exports.Array(Schema_exports.Struct({ ...Candidate, questionRefs: QuestionRefs, after: Schema_exports.Array(Schema_exports.Int) })), dependencyIds: Refs, preparationIds: Refs, questionIds: Refs })
+  declare: Schema_exports.Struct({ ...handoffCommon, intent: Schema_exports.Array(Schema_exports.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: "Declared intent identity in Declare intent[], referenced by requirements[].intentIds or intentDispositions[].intentId." }), authority: Schema_exports.Literals(["explicit", "interpretation"]) })) }),
+  "look-first": Schema_exports.Struct({ ...handoffCommon, observations: Schema_exports.Array(Schema_exports.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: "Declared observation identity in look-first.observations; not an evidence identity for sources." }) })) }),
+  classify: Schema_exports.Struct({ ...handoffCommon, requirements: Schema_exports.Array(Schema_exports.Struct({ ...HandoffRequirement, intentIds: Refs.annotate({ description: "One or more declared Declare intent[].id values accounted for by this requirement." }) })), intentDispositions: Schema_exports.Array(HandoffIntentDisposition).annotate({ description: "Explicitly account for declared intents that do not become requirements, with a reason and evidence IDs. Use [] when all intents map to requirements." }) }),
+  lenses: Schema_exports.Struct({ ...handoffCommon, tradeoffs: Schema_exports.Array(Schema_exports.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: "Declared tradeoff identity in lenses.tradeoffs; not a requirement or evidence identity." }), requirementIds: HandoffRequirementRefs })) }),
+  "one-thing": Schema_exports.Struct({ ...handoffCommon, candidates: Schema_exports.Array(Schema_exports.Struct({ ...HandoffCandidate, questionRefs: HandoffQuestionRefs })) }),
+  route: Schema_exports.Struct({ ...handoffCommon, dependencies: Schema_exports.Array(HandoffDependency), preparation: Schema_exports.Array(HandoffPreparation).annotate({ description: "Cross-task preparation promises describe task-delivered readiness. Required producer-before-consumer ordering must also appear in route.dependencies and the matching confirmation after graph; preparation does not create scheduling edges. Use [] when no genuine cross-task preparation promise exists. This is separate from the engine-owned per-job environment prepare command. Environment references use input:<id> for registered projectInputs; they are not candidate keys or invented discovery identities." }) }),
+  discover: Schema_exports.Struct({
+    ...handoffCommon,
+    items: Schema_exports.Array(Schema_exports.Struct({ ...HandoffCandidate, questionRefs: HandoffQuestionRefs, after: Schema_exports.Array(Schema_exports.Int).annotate({ description: "Distinct one-based positions of earlier confirmed items matching accepted route.dependencies; retain the accepted dependency graph. Use [] when no earlier dependencies apply." }) })),
+    dependencyIds: Refs.annotate({ description: "Retained route.dependencies[].id values; use [] when no dependencies were declared." }),
+    preparationIds: Refs.annotate({ description: "Retained route.preparation[].id values; use [] when no preparation promises were declared." }),
+    questionIds: Refs.annotate({ description: "All declared questions[].id identities from earlier accepted contributions and supported current declarations, including newly declared confirmation questions. Use [] when none exist." })
+  })
 };
 var DISCOVERY_CONTRIBUTION_SCHEMAS = Object.fromEntries(jobs.map((job) => [job, Schema_exports.toJsonSchemaDocument(schemas[job]).schema]));
 var handoffShapes = Object.fromEntries(jobs.map((job) => [job, Schema_exports.toJsonSchemaDocument(handoffSchemas[job]).schema]));
@@ -22216,18 +22313,18 @@ function parseDiscoveryContribution(job, value4, options = {}) {
   const parsed3 = Schema_exports.decodeUnknownResult((options.handoff ? handoffSchemas : schemas)[job])(value4, { errors: "all" });
   return Result_exports.isFailure(parsed3) ? failed([{ code: "shape", at: job, message: String(parsed3.failure) }]) : { ok: true, value: value4 };
 }
-function validateDiscoveryContribution(job, value4, accepted2 = {}, options = {}) {
+function validateDiscoveryContribution(job, value4, accepted = {}, options = {}) {
   const current = parseDiscoveryContribution(job, value4, options);
   if (!current.ok) return current;
   const issues = [];
   const issue = (code, at, message) => issues.push({ code, at, message });
   const prefix = {};
   for (const previous of jobs.slice(0, jobs.indexOf(job))) {
-    if (accepted2[previous] === void 0) {
+    if (accepted[previous] === void 0) {
       issue("missing-contribution", previous, "An earlier accepted contribution is missing.");
       continue;
     }
-    const parsed3 = parseDiscoveryContribution(previous, accepted2[previous], options);
+    const parsed3 = parseDiscoveryContribution(previous, accepted[previous], options);
     if (!parsed3.ok) issues.push(...parsed3.issues);
     else Object.assign(prefix, { [previous]: parsed3.value });
   }
@@ -22735,9 +22832,9 @@ function unfollowed(p, tracked) {
   }
   return misses.length ? `The plan creates files without following what the repo already settled. ${misses.join(" ")}` : void 0;
 }
-function validate3(lane, job, output, plan, tracked, autonomous = false, conventions = [], accepted2 = {}) {
+function validate3(lane, job, output, plan, tracked, autonomous = false, conventions = [], accepted = {}) {
   if (lane.pack.contracts?.discovery === "1" && job in DISCOVERY_CONTRIBUTION_SCHEMAS) {
-    const result3 = validateDiscoveryContribution(job, lastJson(output), accepted2, { handoff: lane.pack.contracts.handoff === "1" });
+    const result3 = validateDiscoveryContribution(job, lastJson(output), accepted, { handoff: lane.pack.contracts.handoff === "1" });
     return result3.ok ? { ok: true, value: result3.value } : { ok: false, reason: result3.reason };
   }
   if (lane.pack.runtime !== "functions" && job === "discover") {
@@ -22807,8 +22904,8 @@ var MAX_CORRECTIONS = 3;
 var blockedOf = (lane, job, value4) => typeof value4.blocked === "string" ? `The ${stepOf(lane, job).profile} (${job}) could not do the step as written: ${value4.blocked}` : void 0;
 function route(lane, job, value4, corrections) {
   if (job === "discover") return { to: "discovered", items: value4.items };
-  const blocked2 = blockedOf(lane, job, value4);
-  if (blocked2) return { to: "arbitrate", failure: blocked2 };
+  const blocked = blockedOf(lane, job, value4);
+  if (blocked) return { to: "arbitrate", failure: blocked };
   if (job === "plan") return { to: "split" };
   if (job === "test-plan" || job === "implement") return { to: "next", job: "verify" };
   if (job === "arbitrate") {
@@ -23372,18 +23469,34 @@ var intakePrompt = (prompt) => {
   try {
     const packet2 = JSON.parse(prompt);
     if (get5(packet2, "you.call") !== "intake") return prompt;
+    if (!packet2 || typeof packet2 !== "object" || Array.isArray(packet2)) return prompt;
+    let compact2 = packet2;
+    let changed = false;
+    const history2 = get5(packet2, "ownArtifactHistory");
+    if (history2 && typeof history2 === "object" && !Array.isArray(history2) && Array.isArray(history2.entries)) {
+      const entries3 = history2.entries.map((entry) => {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) return entry;
+        const { patch: _patch, ...descriptor } = entry;
+        return descriptor;
+      });
+      compact2 = { ...compact2, ownArtifactHistory: { ...history2, entries: entries3 } };
+      changed = true;
+    }
     const snapshot3 = get5(packet2, "snapshot");
     const contents = snapshot3?.contents;
-    if (!contents || typeof contents !== "object" || Array.isArray(contents)) return prompt;
-    const deferred = Object.fromEntries(Object.entries(contents).map(([path, body]) => [
-      path,
-      typeof body === "string" ? {
+    if (contents && typeof contents === "object" && !Array.isArray(contents)) {
+      const deferred = Object.fromEntries(Object.entries(contents).map(([path, body]) => [
         path,
-        characters: body.length,
-        readDuringExecution: "Read this exact path in the execute job's checkout or snapshot.contents in its complete execution packet. Source bodies are intentionally deferred at no-tool intake, not missing prerequisites. Do not ask the originator or operator to provide them before confirming the handoff."
-      } : body
-    ]));
-    return JSON.stringify({ ...packet2, snapshot: { ...snapshot3, contents: deferred } }, null, 2);
+        typeof body === "string" ? {
+          path,
+          characters: body.length,
+          readDuringExecution: "Read this exact path in the execute job's checkout or snapshot.contents in its complete execution packet. Source bodies are intentionally deferred at no-tool intake, not missing prerequisites. Do not ask the originator or operator to provide them before confirming the handoff."
+        } : body
+      ]));
+      compact2 = { ...compact2, snapshot: { ...snapshot3, contents: deferred } };
+      changed = true;
+    }
+    return changed ? JSON.stringify(compact2, null, 2) : prompt;
   } catch {
     return prompt;
   }
@@ -24180,7 +24293,7 @@ function openStore(path) {
           const conflictEvent = event(workItem, "qa-conflict", { operation: operation2, requestId: input.requestId, target, input, before: actual, after: actual, expected, actual, read: readLink }, at);
           return save({ accepted: false, error: { status: 409, reason: "stale_revision", facts: { ...target, workItem, expected, actual, expectedRevision: expected, actualRevision: actual, requestId: input.requestId, conflictEvent, read: readLink, refresh } } });
         };
-        const accepted2 = (workItem, resource, id3, caseId, before, revision, association) => {
+        const accepted = (workItem, resource, id3, caseId, before, revision, association) => {
           const links = { read: resource === "case" ? `/api/v1/qa/cases/${id3}` : `/api/v1/qa/runs/${id3}`, workItem: `/api/v1/items/${workItem}` };
           const receipt = { operation: operation2, resource, id: id3, caseId, revision, at };
           const seq = event(workItem, `qa-${operation2}`, { operation: operation2, requestId: input.requestId, target: resource === "case" ? { caseId: id3 } : { runId: id3, ...caseId === null ? {} : { caseId } }, input, before, after: revision, receipt, links, ...association ? { association } : {} }, at);
@@ -24192,7 +24305,7 @@ function openStore(path) {
           const id3 = Number(db.prepare("INSERT INTO qa_cases (work_item, workspace, current_revision, created_at) VALUES (?, ?, 1, ?)").run(i2.workItem, i2.workspace, at).lastInsertRowid);
           const revision = { caseId: id3, revision: 1, at, enteredBy: i2.enteredBy, instructions: i2.instructions };
           db.prepare("INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, 1, ?)").run(id3, JSON.stringify(revision));
-          return accepted2(i2.workItem, "case", id3, null, 0, 1);
+          return accepted(i2.workItem, "case", id3, null, 0, 1);
         }
         if (command2.operation === "reviseCase") {
           const c = qaCaseRow(command2.caseId);
@@ -24202,7 +24315,7 @@ function openStore(path) {
           if (!Number.isSafeInteger(revision.revision)) throw qaFailure(400, "invalid_input", { caseId: c.id, reason: "revision_exhausted" });
           db.prepare("INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, ?, ?)").run(c.id, revision.revision, JSON.stringify(revision));
           db.prepare("UPDATE qa_cases SET current_revision = ? WHERE id = ?").run(revision.revision, c.id);
-          return accepted2(c.workItem, "case", c.id, null, c.currentRevision, revision.revision);
+          return accepted(c.workItem, "case", c.id, null, c.currentRevision, revision.revision);
         }
         if (command2.operation === "startRun") {
           const i2 = command2.input;
@@ -24217,7 +24330,7 @@ function openStore(path) {
           const { requestId: _, ...fields } = i2;
           const run3 = { ...fields, id: id3, startedAt: at };
           db.prepare("UPDATE qa_runs SET doc = ? WHERE id = ?").run(JSON.stringify(run3), id3);
-          return accepted2(i2.workItem, "run", id3, null, 0, 0);
+          return accepted(i2.workItem, "run", id3, null, 0, 0);
         }
         const run2 = qaRunRow(command2.runId);
         qaAnchor(run2.workItem, run2.workspace);
@@ -24261,7 +24374,7 @@ function openStore(path) {
             if (cause instanceof MadeWellError && cause.code === "item_not_found" && i2.target.kind === "work-item") throw new MadeWellError({ code: "item_not_found", message: cause.message, context: { id: i2.target.workItem }, next: [{ run: refresh, why: "inspect source evidence and choose an existing same-workspace target" }] });
             throw cause;
           }
-          return accepted2(run2.workItem, "run-entry", run2.id, pin2.caseId, current, current, { enteredBy: i2.enteredBy, source: { runId: run2.id, ...pin2, observationId: i2.observationId }, target: linkedTarget });
+          return accepted(run2.workItem, "run-entry", run2.id, pin2.caseId, current, current, { enteredBy: i2.enteredBy, source: { runId: run2.id, ...pin2, observationId: i2.observationId }, target: linkedTarget });
         }
         if (!Number.isSafeInteger(current + 1)) throw qaFailure(400, "invalid_input", { runId: run2.id, caseId: pin2.caseId, reason: "revision_exhausted" });
         const i = command2.input;
@@ -24280,7 +24393,7 @@ function openStore(path) {
           ...command2.operation === "recordVerdict" ? { kind: "manual-verdict", claimedVerifier: command2.input.enteredBy, observedAt: at, reportedResult: null, verdict: command2.input.verdict } : { kind: command2.input.kind, claimedVerifier: command2.input.claimedVerifier, observedAt: command2.input.observedAt, reportedResult: command2.input.reportedResult, verdict: null }
         };
         db.prepare("UPDATE qa_observations SET doc = ? WHERE id = ?").run(JSON.stringify(observation), id2);
-        return accepted2(run2.workItem, "run-entry", run2.id, pin2.caseId, current, current + 1);
+        return accepted(run2.workItem, "run-entry", run2.id, pin2.caseId, current, current + 1);
       }));
     },
     /** Synchronous only: the command, its engine transitions and receipt share one SQLite lock/commit.
@@ -24393,11 +24506,11 @@ function openStore(path) {
       db.prepare("INSERT INTO accounts (account, resets_at) VALUES (?, ?) ON CONFLICT (account) DO UPDATE SET resets_at = MAX(resets_at, excluded.resets_at)").run(account, resetsAt);
     },
     /** One runner drives the store at a time. A dead runner's claim is taken over, and its loss recorded against the item it was on. */
-    claimRunner() {
+    claimRunner(options = {}) {
       return Effect_exports.suspend(() => {
         const owner = tx2(() => {
           const row = db.prepare("SELECT pid, since, item FROM runner WHERE id = 1").get();
-          if (row && row.pid !== process.pid && alive2(row.pid)) return row;
+          if (row && alive2(row.pid) && (options.exclusive || row.pid !== process.pid)) return row;
           if (row && row.pid !== process.pid) event(row.item ?? 0, "runner-lost", { pid: row.pid, since: row.since, item: row.item });
           db.prepare("INSERT INTO runner (id, pid, since) VALUES (1, ?, ?) ON CONFLICT (id) DO UPDATE SET pid = excluded.pid, since = excluded.since, item = NULL").run(process.pid, (/* @__PURE__ */ new Date()).toISOString());
           event(0, row?.pid === process.pid ? "runner-reloaded" : "runner-started", { pid: process.pid, ...process.env.MW_BUILD ? { build: process.env.MW_BUILD } : {}, ...row && row.pid !== process.pid ? { replaced: row.pid } : {} });
@@ -24407,10 +24520,12 @@ function openStore(path) {
         const busy = owner.item === null ? void 0 : read2(owner.item);
         return Effect_exports.fail(new MadeWellError({
           code: "store_locked",
-          message: "Another live runner owns this Made Well store.",
+          message: options.exclusive ? "A live runner owns this Made Well store; technical replanning must wait." : "Another live runner owns this Made Well store.",
           context: { store: path, owner: { pid: owner.pid, since: owner.since, item: busy ? { id: busy.id, title: busy.title, job: busy.job, status: busy.status } : null } },
           cause: "One runner drives a store at a time, so two runners never work the same item.",
-          next: [
+          next: options.exclusive ? [
+            { run: busy ? `mw status ${busy.id}` : "mw status", why: "inspect the owner; retry the requested replan once current work reaches a quiet boundary and releases ownership" }
+          ] : [
             { run: busy ? `mw status ${busy.id}` : "mw status", why: "see what the running owner is doing; queued work will reach it automatically" },
             { run: `kill ${owner.pid} && mw run`, why: "only if that runner is hung: work resumes at the job that was interrupted" }
           ]
@@ -24483,6 +24598,278 @@ var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
 
 // src/trace.ts
 import { randomUUID as randomUUID2 } from "node:crypto";
+
+// src/work-evidence.ts
+var parsedOutput = (raw) => raw?.trim() ? lastJson(raw) ?? { text: raw } : null;
+var equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+var invalidatedAt = (events2, job) => Math.max(0, ...events2.filter((e) => {
+  if (e.kind === "cartridges-applied") {
+    const before = e.data.from, after = e.data.to;
+    return !!before && !!after && !equal(stepOf(laneOf(before), job), stepOf(laneOf(after), job));
+  }
+  if (job === "verify") return ["main-moved", "replan", "rebased", "ruling"].includes(e.kind);
+  if (["plan", "implement", "test-plan"].includes(job) && ["replan", "rebased"].includes(e.kind)) return true;
+  return e.kind === "ruling" && (e.data.cause === "implementation" && ["plan", "implement", "test-plan"].includes(job) || e.data.cause === "test" && job === "test-plan");
+}).map((e) => e.seq));
+function sourceOf(store, item, events2, job, receipt) {
+  const provenance = { state: "unavailable", acceptanceEvent: receipt?.seq ?? null, executionCall: null, repairCall: null, invocation: null, eventSeqs: receipt ? [receipt.seq] : [], reason: "Invocation not recorded." };
+  const missing2 = (reason, ambiguous = false) => {
+    provenance.reason = reason;
+    provenance.state = ambiguous ? "ambiguous" : "unavailable";
+    return { provenance, input: null, effective: void 0 };
+  };
+  if (!receipt) return missing2("No acceptance boundary is recorded.");
+  const lower = Math.max(invalidatedAt(events2.filter((e) => e.seq < receipt.seq), job), ...events2.filter((e) => e.seq < receipt.seq && (e.kind === "accepted" && e.data.job === job || e.kind === "handed-off" && e.data.from === job)).map((e) => e.seq), 0);
+  const interval = events2.filter((e) => e.seq > lower && e.seq < receipt.seq && e.data.job === job);
+  const step2 = stepOf(laneOf(item.pack), job);
+  if (step2.run || step2.children) {
+    const starts = interval.filter((e) => e.kind === "trace-started" && e.data.kind === (step2.children ? "compose" : "function"));
+    const start = starts.at(-1);
+    if (!start) return missing2("Invocation not recorded.");
+    const ends = interval.filter((e) => e.kind === "trace-finished" && e.data.invocation === start.data.invocation);
+    if (ends.length !== 1) return missing2("Invocation return is missing or ambiguous.", ends.length > 1);
+    const end2 = ends[0], result3 = end2.data.result;
+    if (end2.data.status !== "returned" || !result3 || !equal(result3.value, receipt.data.output)) return missing2("The nearest invocation contradicts the accepted result.", true);
+    provenance.state = "linked";
+    provenance.reason = null;
+    provenance.invocation = String(start.data.invocation);
+    provenance.eventSeqs.push(start.seq, end2.seq);
+    return { provenance, input: start.data.args?.input ?? null, effective: result3.value };
+  }
+  const finished = interval.findLast((e) => e.kind === "call-finished" && e.data.kind === "execute");
+  const call = typeof finished?.data.call === "number" ? store.call(finished.data.call) : void 0;
+  if (!call) return missing2("Invocation not recorded.");
+  if (call.item !== item.id || call.job !== job || call.kind !== "execute") return missing2("Saved call ownership contradicts the receipt.", true);
+  provenance.executionCall = call.id;
+  provenance.eventSeqs.push(finished.seq);
+  const repairs = interval.filter((e) => e.kind === "repaired" && e.seq > finished.seq && e.data.call === call.id && e.data.ok === true);
+  const repair2 = repairs.at(-1);
+  const repairCall = typeof repair2?.data.repair === "number" ? store.call(repair2.data.repair) : void 0;
+  if (repair2 && (!repairCall || repairCall.item !== item.id || repairCall.job !== job || repairCall.kind !== "repair" || repairCall.outcome !== "ok")) return missing2("Repair linkage contradicts the execution.", true);
+  const effective = parsedOutput((repairCall ?? call).output);
+  if (!repairCall && call.outcome !== "ok" || "output" in receipt.data && !equal(effective, receipt.data.output)) return missing2("The nearest execution contradicts the accepted result.", true);
+  provenance.state = "linked";
+  provenance.reason = null;
+  if (repair2 && repairCall) {
+    provenance.repairCall = repairCall.id;
+    provenance.eventSeqs.push(repair2.seq);
+  }
+  return { provenance, effective, input: { call: call.id, started: call.started, outcome: call.outcome, packet: parsedOutput(call.prompt), returnedOutput: parsedOutput(call.output), effectiveOutput: effective, repair: repair2 ? { event: repair2.seq, call: repairCall.id, record: `/api/call/${repairCall.id}` } : null, record: `/api/call/${call.id}` } };
+}
+function workEvidenceOf(store, item) {
+  const events2 = [...store.events(item.id)], lane = laneOf(item.pack), functions = lane.pack.runtime === "functions";
+  const discovery2 = item.flow?.loop === "discovery" || item.discovery === void 0 && lane.discovery.some((s) => s.job === item.job);
+  const steps = discovery2 ? lane.discovery : lane.delivery;
+  const jobs4 = {};
+  let prefix = true;
+  for (const [index2, step2] of steps.entries()) {
+    const job = step2.job, output = parsedOutput(item.outputs[job]);
+    const receipts = events2.filter((e) => e.kind === "accepted" && e.data.job === job || !functions && (e.kind === "handed-off" && e.data.from === job || job === "discover" && e.kind === "discovered"));
+    const receipt = receipts.at(-1), source2 = sourceOf(store, item, events2, job, receipt);
+    const acceptedOutput = receipt && "output" in receipt.data ? receipt.data.output : source2.effective;
+    const problem = output && typeof output === "object" && "blocked" in output ? String(output.blocked) : null;
+    const shapeProblem = discovery2 && output !== null && !problem ? malformed(lane, job, item.outputs[job]) : void 0;
+    const valid = !!receipt && receipt.seq > invalidatedAt(events2, job);
+    const matches2 = acceptedOutput === void 0 || equal(acceptedOutput, output);
+    const artifacts = functions || (job !== "implement" || !!item.change) && (job !== "test-plan" || !!item.checks?.checks.length);
+    const structured = !functions || !!receipt && "output" in receipt.data && item.flow?.accepted[index2] === job && prefix;
+    const complete = output !== null && !problem && !shapeProblem && valid && matches2 && artifacts && structured;
+    if (functions && !complete) prefix = false;
+    const attempts = events2.filter((e) => e.seq > (receipt?.seq ?? 0) && e.data.job === job && (e.kind === "call-finished" && e.data.kind === "execute" || e.kind === "trace-finished" && ["function", "compose"].includes(String(e.data.kind)))).reverse();
+    const laterAttempts = { entries: attempts.slice(0, 10).map((e) => ({ event: e.seq, at: e.at, kind: String(e.data.kind), outcome: e.data.outcome === "ok" || e.data.status === "returned" ? "unaccepted" : String(e.data.outcome ?? e.data.status ?? "unknown"), call: typeof e.data.call === "number" ? e.data.call : null, invocation: typeof e.data.invocation === "string" ? e.data.invocation : null, evidence: `/api/v1/items/${item.id}/evidence?kind=event&ref=${e.seq}` })), total: attempts.length, omitted: Math.max(0, attempts.length - 10), trace: `/api/trace/${item.id}?lens=ax` };
+    const reason = complete ? null : problem ?? (!receipt ? output === null ? "No output or accepted execution evidence is recorded for this function." : "An output is retained, but no accepted execution evidence establishes this function." : !valid ? "Earlier acceptance is retained as history; correction or a changed contract requires this function again." : !matches2 ? "The retained output differs from its accepted execution evidence." : shapeProblem ?? (!structured ? "The configured accepted prefix or this node\u2019s structured receipt is incomplete." : !artifacts ? "Required software maker artifacts are absent." : "No completed output is accepted for this function."));
+    jobs4[job] = { job, configured: true, state: complete ? "yes" : problem ? "blocked" : "no", complete, reason, schemaDiagnostic: shapeProblem ?? null, input: source2.input, output, acceptedOutput: acceptedOutput ?? null, eventSeqs: receipts.map((e) => e.seq), provenance: source2.provenance, laterAttempts };
+  }
+  const verification = item.verification, proof = events2.findLast((e) => e.kind === "verified"), checks = item.checks?.checks ?? [];
+  const verificationStart = events2.findLast((e) => e.kind === "verify-started");
+  const recordedGates = Array.isArray(verificationStart?.data.gates) ? verificationStart.data.gates : [];
+  const receiptResults = Array.isArray(proof?.data.results) ? proof.data.results : [];
+  const makerConfigured = lane.delivery.some((s) => s.job === "test-plan");
+  const verificationCurrent = !functions && !!verification?.passed && !!verification.commit && proof?.data.commit === verification.commit && proof.data.on === verification.on && proof.seq > invalidatedAt(events2, "verify") && (!makerConfigured || !!jobs4["test-plan"]?.complete && checks.length > 0) && verification.results.length > 0 && verification.results.every((r) => r.exitCode === 0 && receiptResults.some((saved) => saved.id === r.id && saved.doneWhen === r.doneWhen && saved.exitCode === 0)) && recordedGates.every((run2) => verification.results.some((r) => r.run === run2 && r.exitCode === 0)) && checks.every((c) => verification.results.some((r) => r.id === c.id && r.doneWhen === c.doneWhen && r.run === c.run && r.exitCode === 0));
+  if (!functions && jobs4.verify) {
+    jobs4.verify.complete = verificationCurrent;
+    jobs4.verify.state = verificationCurrent ? "yes" : "no";
+    jobs4.verify.reason = verificationCurrent ? null : "No current passing verification is recorded.";
+  }
+  const configuredComplete = steps.length > 0 && steps.every((s) => jobs4[s.job]?.complete);
+  const final = events2.findLast((e) => e.kind === (discovery2 ? "discovered" : "completed"));
+  const completionMatches = !!item.completion && item.completion.nodes === steps.length && equal(item.completion.output, parsedOutput(item.outputs[steps.at(-1)?.job ?? ""])) && !!final && (discovery2 || final.data.nodes === steps.length && equal(final.data.output, item.completion.output));
+  const delivered = configuredComplete && (functions ? completionMatches : discovery2 ? events2.some((e) => e.kind === "discovered") : verificationCurrent && !!item.shipped && events2.some((e) => e.kind === "shipped"));
+  return { jobs: jobs4, configuredComplete, verificationCurrent, delivered, noWorkPerformed: steps.length === 0, reason: steps.length === 0 ? "No work was performed." : delivered ? null : "Current evidence incomplete.", historical: { status: item.status, verification: item.verification ?? null, shipment: item.shipped ?? null, completion: item.completion ?? null } };
+}
+function workEvidenceSummaryOf(evidence, item) {
+  const preview = (value4) => value4 === null ? null : Array.from(value4).slice(0, 120).join("");
+  const detail = `/api/trace/${item}?lens=ax`;
+  return {
+    configuredComplete: evidence.configuredComplete,
+    verificationCurrent: evidence.verificationCurrent,
+    delivered: evidence.delivered,
+    noWorkPerformed: evidence.noWorkPerformed,
+    reason: preview(evidence.reason),
+    detail,
+    jobs: Object.values(evidence.jobs).map((job, ordinal) => ({
+      key: `job:${ordinal}`,
+      job: preview(job.job),
+      labelTruncated: Array.from(job.job).length > 120,
+      configured: job.configured,
+      state: job.state,
+      complete: job.complete,
+      reason: preview(job.reason),
+      reasonTruncated: job.reason !== null && Array.from(job.reason).length > 120,
+      provenance: { state: job.provenance.state, acceptanceEvent: job.provenance.acceptanceEvent, executionCall: job.provenance.executionCall, repairCall: job.provenance.repairCall },
+      laterAttempts: { total: job.laterAttempts.total, detail },
+      evidence: { detail, acceptance: job.provenance.acceptanceEvent === null ? null : `/api/v1/items/${item}/evidence?kind=event&ref=${job.provenance.acceptanceEvent}`, call: job.provenance.executionCall === null ? null : `/api/call/${job.provenance.executionCall}`, repair: job.provenance.repairCall === null ? null : `/api/call/${job.provenance.repairCall}` }
+    }))
+  };
+}
+
+// src/handoff-view.ts
+import { createHash as createHash5 } from "node:crypto";
+var evidenceUrl = (item, kind, ref2) => `/api/v1/items/${item}/evidence?kind=${kind}&ref=${encodeURIComponent(ref2)}`;
+function ancestryEvents(store, item) {
+  const visited = /* @__PURE__ */ new Set(), events2 = [];
+  const visit = (owner) => {
+    if (!owner || visited.has(owner.id)) return;
+    visited.add(owner.id);
+    events2.push(...store.events(owner.id));
+    if (owner.discovery !== void 0) visit(store.get(owner.discovery));
+    if (owner.parent !== void 0) visit(store.get(owner.parent));
+  };
+  visit(item);
+  return events2.sort((a, b) => a.seq - b.seq);
+}
+function answerReferenceOf(store, item, ref2, job = "") {
+  const events2 = ancestryEvents(store, item), history2 = buildAnswerHistory(events2, job);
+  const answer2 = history2.answers.find((a) => a.id === ref2);
+  if (!answer2) return null;
+  const canonical = history2.packetAnswers().find((a) => a.id === ref2 || a.aliases?.some((alias) => alias.id === ref2));
+  const event = events2.find((e) => e.seq === Number(ref2.split(":")[0]));
+  return { requestedId: ref2, canonicalId: canonical.id, question: answer2.question, answer: answer2.answer, by: ["undefined", "null"].includes(answer2.by) ? "unknown" : answer2.by, job: answer2.job, source: event ? { item: event.item, event: event.seq, at: event.at } : null };
+}
+function messageReferencesOf(store, item, event) {
+  const reuse = Array.isArray(event.data.reuse) ? event.data.reuse : typeof event.data.answerId === "string" ? [{ question: String(event.data.question ?? ""), answerId: event.data.answerId }] : [];
+  const refs2 = reuse.length ? reuse : event.kind === "nq-decided" && Array.isArray(event.data.questions) ? event.data.questions.map((q, i) => ({ question: String(q), answerId: `${event.seq}:${i}` })) : [];
+  return refs2.map((r) => {
+    const saved = answerReferenceOf(store, item, r.answerId);
+    return { question: r.question, answerId: r.answerId, canonicalId: saved?.canonicalId ?? null, resolved: !!saved, by: saved?.by ?? "unknown", job: saved?.job ?? null, source: saved?.source ?? null, detail: evidenceUrl(item.id, "answer", r.answerId) };
+  });
+}
+function fullHandoffOf(store, item, job) {
+  const lane = laneOf(item.pack), step2 = stepOf(lane, job), track2 = item.split?.[job], exchange = track2?.exchange ?? (item.job === job ? item.exchange : void 0);
+  const events2 = ancestryEvents(store, item), own = events2.filter((e) => e.item === item.id && e.data.job === job);
+  const boundary = own.findLast((e) => e.kind === "handoff"), history2 = buildAnswerHistory(events2, job);
+  const questions = workQuestions(store, item).map((q) => {
+    const answers = history2.answers.filter((a) => {
+      const e = events2.find((e2) => e2.seq === Number(a.id.split(":")[0]));
+      return Array.isArray(e?.data.questionIds) && e.data.questionIds.includes(q.id) || questionKey(a.question) === questionKey(q.text);
+    });
+    const resolutions = answers.map((a) => ({ question: a.question, answerId: a.id, canonicalId: answerReferenceOf(store, item, a.id, job)?.canonicalId ?? null, resolved: true, by: ["undefined", "null"].includes(a.by) ? "unknown" : a.by, job: a.job, source: (() => {
+      const e = events2.find((e2) => e2.seq === Number(a.id.split(":")[0]));
+      return e ? { item: e.item, event: e.seq, at: e.at } : null;
+    })(), detail: evidenceUrl(item.id, "answer", a.id) }));
+    return { ...q, textTruncated: false, resolution: resolutions.length ? "resolved" : "unresolved", resolutions, resolutionsTotal: resolutions.length, resolutionsOmitted: 0 };
+  });
+  const declarations = [];
+  for (const e of own.filter((e2) => e2.kind === "call-finished" && ["intake", "execute"].includes(String(e2.data.kind)))) {
+    const call = typeof e.data.call === "number" ? store.call(e.data.call) : void 0;
+    if (!call || call.item !== item.id || call.job !== job) continue;
+    const packet2 = lastJson(call.prompt);
+    if (packet2 && "projectInputs" in packet2) declarations.push({ call: call.id, scope: packet2.round === item.round && (!boundary || e.seq > boundary.seq) ? "current-round" : "historical", projectInputs: packet2.projectInputs });
+  }
+  const observations = own.filter((e) => e.kind === "inputs-checked").flatMap((e) => Array.isArray(e.data.inputs) ? e.data.inputs.map((input) => ({ ...input, job, name: e.data.name ?? null, dir: e.data.dir ?? null, at: e.at, event: e.seq, item: e.item })) : []);
+  const declaration = declarations.findLast((d) => d.scope === "current-round") ?? declarations.at(-1);
+  const declared = Array.isArray(declaration?.projectInputs) ? declaration.projectInputs : [];
+  const inputs = observations.toReversed().map((o) => ({ id: String(o.id), state: o.ok === true ? "recorded-available" : "recorded-unavailable", currentAvailability: "unknown", declaration: declared.find((d) => d.id === o.id) ? { ...declared.find((d) => d.id === o.id), call: declaration.call, scope: declaration.scope } : null, observation: o, evidence: evidenceUrl(item.id, "event", o.event) }));
+  for (const d of declared) if (!observations.some((o) => o.id === d.id)) inputs.push({ id: String(d.id), state: "not-checked", currentAvailability: "unknown", declaration: { ...d, call: declaration.call, scope: declaration.scope }, observation: null, evidence: evidenceUrl(item.id, "handoff", job) });
+  const names = [job, step2.profile].map((s) => s.toLowerCase().trim()), assigned = questions.filter((q) => names.includes(q.ownerRole.toLowerCase().trim()) || q.blockingRole !== null && names.includes(q.blockingRole.toLowerCase().trim()));
+  const kind = step2.children ? "group" : step2.run ? "command" : job === "verify" && lane.pack.runtime !== "functions" ? "engine" : "agent";
+  const entry = { id: `item:${item.id}:job:${job}:round:${item.round}:handoff:${boundary?.seq ?? "configured"}`, job, profile: step2.profile, duty: step2.duty, dutyTruncated: false, kind, mode: item.status === "candidate" || kind === "agent" && !exchange ? "configured-next" : "current", exchangeStatus: kind === "agent" ? exchange?.status ?? "not-established" : "not-applicable", round: item.round, questionIds: assigned.map((q) => q.id), unresolvedCount: assigned.filter((q) => q.resolution === "unresolved").length, expectedOutput: { state: deliverableShape(lane, job, item.autonomy === "full") ? "configured" : "unspecified", detail: evidenceUrl(item.id, "handoff", job), pointer: "/data/outputSchema" }, inputs, inputsTotal: inputs.length, inputsOmitted: 0, declarationsKnown: !!declaration, evidence: { detail: evidenceUrl(item.id, "handoff", job), eventSeqs: own.filter((e) => ["handoff", "nq-clear"].includes(e.kind)).map((e) => e.seq) }, truncated: false };
+  return { entry, questions, declarations, observations, outputSchema: deliverableShape(lane, job, item.autonomy === "full") ?? null };
+}
+var displayPreview = (value4, limit = 120) => Array.from(value4).slice(0, limit).join("");
+var digest2 = (value4) => createHash5("sha256").update(JSON.stringify(value4)).digest("hex");
+var configuredSteps = (item) => {
+  const lane = laneOf(item.pack);
+  return [...lane.discovery, ...lane.delivery, ...lane.arbiter ? [lane.arbiter] : []];
+};
+function currentHandoffOf(store, item) {
+  const lane = laneOf(item.pack), terminal = ["shipped", "completed", "discovered", "dropped"].includes(item.status);
+  const steps = configuredSteps(item);
+  const tracks = lane.delivery.filter((s) => item.split?.[s.job] && !item.split[s.job].done).map((s) => s.job);
+  const jobs4 = terminal ? [] : tracks.length ? tracks : steps.some((s) => s.job === item.job) ? [item.job] : [];
+  const full = jobs4.map((job) => fullHandoffOf(store, item, job));
+  const allQuestions = full[0]?.questions ?? [];
+  const questionKeys = new Map(allQuestions.map((q, i) => [q.id, `q:${i}:${digest2(q.id)}`]));
+  const questions = allQuestions.slice(0, 10).map((q) => ({ key: questionKeys.get(q.id), id: displayPreview(q.id), text: displayPreview(q.text, 240), textTruncated: Array.from(q.text).length > 240, ownerRole: displayPreview(q.ownerRole), blockingRole: q.blockingRole === null ? null : displayPreview(q.blockingRole), truncated: [q.id, q.ownerRole, q.blockingRole ?? ""].some((v) => Array.from(v).length > 120) || Array.from(q.text).length > 240 }));
+  const entries3 = full.map((f) => {
+    const e = f.entry, slot = steps.findIndex((s) => s.job === e.job), detail = evidenceUrl(item.id, "handoff-slot", `${slot}:${digest2(f)}`);
+    const retained = new Set(questions.map((q) => q.key));
+    const assigned = f.questions.filter((q) => e.questionIds.includes(q.id));
+    const questionStates = assigned.filter((q) => retained.has(questionKeys.get(q.id))).map((q) => ({ key: questionKeys.get(q.id), resolution: q.resolution, resolutions: q.resolutions.slice(0, 2).map((r) => ({ question: displayPreview(r.question, 240), answerId: displayPreview(r.answerId), canonicalId: r.canonicalId === null ? null : displayPreview(r.canonicalId), resolved: r.resolved, by: displayPreview(r.by), job: r.job === null ? null : displayPreview(r.job), source: r.source ? { item: r.source.item, event: r.source.event, at: displayPreview(r.source.at) } : null, detail })), resolutionsTotal: q.resolutionsTotal, resolutionsOmitted: Math.max(0, q.resolutionsTotal - 2), truncated: q.resolutionsTotal > 2 || q.resolutions.some((r) => Array.from(r.question).length > 240 || [r.answerId, r.canonicalId ?? "", r.by, r.job ?? "", r.source?.at ?? ""].some((v) => Array.from(v).length > 120)) }));
+    const inputs = e.inputs.slice(0, 5).map((input, i) => {
+      const o = input.observation;
+      const text4 = (key2) => o?.[key2] === null || o?.[key2] === void 0 ? null : displayPreview(String(o[key2]));
+      return { key: `i:${i}:${digest2([input.id, o?.event ?? null, input.declaration?.call ?? null])}`, id: displayPreview(input.id), state: input.state, currentAvailability: "unknown", observation: o ? { event: Number(o.event), item: typeof o.item === "number" ? o.item : null, ok: o.ok === true, at: text4("at") ?? "", job: text4("job") ?? "", name: text4("name"), dir: text4("dir") } : null, evidence: o ? evidenceUrl(item.id, "event", Number(o.event)) : detail, truncated: Array.from(input.id).length > 120 || !!input.declaration || !!o };
+    });
+    return { key: `h:${slot}:${digest2(e.id)}`, id: displayPreview(e.id), job: displayPreview(e.job), profile: displayPreview(e.profile), duty: displayPreview(e.duty, 240), dutyTruncated: Array.from(e.duty).length > 240, kind: e.kind, mode: e.mode, exchangeStatus: displayPreview(e.exchangeStatus), round: e.round, questionStates, questionsTotal: assigned.length, questionsOmitted: assigned.length - questionStates.length, unresolvedCount: e.unresolvedCount, expectedOutput: { state: e.expectedOutput.state, detail, pointer: "/data/outputSchema" }, inputs, inputsTotal: e.inputsTotal, inputsOmitted: e.inputsTotal - inputs.length, declarationsKnown: e.declarationsKnown, evidence: { detail, eventSeqs: e.evidence.eventSeqs.slice(-2) }, truncated: e.evidence.eventSeqs.length > 2 || [e.id, e.job, e.profile, e.exchangeStatus].some((v) => Array.from(v).length > 120) || Array.from(e.duty).length > 240 };
+  });
+  const summary = { entries: entries3, entriesTotal: entries3.length, entriesOmitted: 0, questions, questionsTotal: allQuestions.length, questionsOmitted: allQuestions.length - questions.length, evidence: { detail: `/api/trace/${item.id}?lens=ax` }, truncated: false };
+  const account = () => {
+    summary.entriesOmitted = summary.entriesTotal - entries3.length;
+    summary.questionsOmitted = summary.questionsTotal - questions.length;
+    const visible2 = new Set(questions.map((q) => q.key));
+    for (const e of entries3) {
+      e.questionStates = e.questionStates.filter((q) => visible2.has(q.key));
+      e.questionsOmitted = e.questionsTotal - e.questionStates.length;
+      e.inputsOmitted = e.inputsTotal - e.inputs.length;
+      e.truncated ||= e.questionsOmitted > 0 || e.inputsOmitted > 0 || e.inputs.some((i) => i.truncated) || e.questionStates.some((q) => q.truncated);
+    }
+    summary.truncated ||= summary.entriesOmitted > 0 || summary.questionsOmitted > 0 || entries3.some((e) => e.truncated) || questions.some((q) => q.truncated);
+  };
+  const oversized = () => {
+    const json2 = JSON.stringify(summary);
+    return json2.length > 6e3 || Buffer.byteLength(json2, "utf8") > 6e3;
+  };
+  account();
+  while (oversized()) {
+    summary.truncated = true;
+    const withInput = entries3.toReversed().find((e) => e.inputs.length);
+    if (withInput) {
+      withInput.inputs.pop();
+      withInput.truncated = true;
+    } else if (questions.length) questions.pop();
+    else {
+      const verbose = entries3.toReversed().find((e) => e.duty || e.id || e.evidence.eventSeqs.length);
+      if (verbose) {
+        verbose.duty = "";
+        verbose.dutyTruncated = true;
+        verbose.id = "";
+        verbose.evidence.eventSeqs = [];
+        verbose.truncated = true;
+      } else entries3.pop();
+    }
+    account();
+  }
+  return summary;
+}
+function evidenceDetailOf(store, item, kind, ref2) {
+  if (kind === "answer") return answerReferenceOf(store, item, ref2);
+  if (kind === "event") {
+    const event = ancestryEvents(store, item).find((e) => e.seq === Number(ref2));
+    return event ? { event, references: messageReferencesOf(store, item, event) } : null;
+  }
+  const steps = configuredSteps(item);
+  if (kind === "handoff-slot") {
+    if (!/^(0|[1-9]\d*):[a-f0-9]{64}$/.test(ref2)) return null;
+    const [rawSlot, hash3] = ref2.split(":"), slot = Number(rawSlot);
+    if (!Number.isSafeInteger(slot) || !steps[slot]) return null;
+    const full = fullHandoffOf(store, item, steps[slot].job);
+    return digest2(full) === hash3 ? full : null;
+  }
+  return steps.some((s) => s.job === ref2) ? fullHandoffOf(store, item, ref2) : null;
+}
+
+// src/trace.ts
 var TRACE_INTERVAL = 5e3;
 var SILENCE_INTERVAL = 6e4;
 var TOOL_RESULT_INTERVAL = 12e4;
@@ -24631,7 +25018,8 @@ function lensOf(store, id2, lens, next, now2 = Date.now()) {
       entries: entries3
     };
   });
-  const done3 = item.status === "shipped" || item.status === "discovered" || item.status === "completed";
+  const workEvidence = workEvidenceOf(store, item), currentHandoff = currentHandoffOf(store, item);
+  const done3 = workEvidence.delivered;
   const needsYou = item.status === "held" || item.status === "paused" || item.status === "candidate";
   const live = invocations.filter((i) => i.status === "running");
   const state = done3 ? item.status : needsYou ? "needs-you" : item.status.startsWith("waiting-") ? "waiting" : live.length ? "working" : item.status === "dropped" ? "stopped" : runner2 ? "queued" : "not-running";
@@ -24639,13 +25027,23 @@ function lensOf(store, id2, lens, next, now2 = Date.now()) {
     item: id2,
     title: item.title,
     objective: item.objective,
+    workEvidence,
+    currentHandoff,
     done: done3,
     needsYou,
     state,
     next,
-    proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: item.verification.passed, results: item.verification.results.map(({ id: id3, doneWhen, exitCode }) => ({ id: id3, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id2).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null }
+    proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false, results: item.verification.results.map(({ id: id3, doneWhen, exitCode }) => ({ id: id3, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id2).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null }
   };
-  if (lens === "ux") return { lens, depth: 3e4, ...ux };
+  if (lens === "ux") {
+    const result3 = item.completion?.output && typeof item.completion.output === "object" && "result" in item.completion.output ? item.completion.output.result : null;
+    const points = typeof result3 === "string" ? Array.from(result3) : [];
+    return { lens, depth: 3e4, ...ux, workEvidence: workEvidenceSummaryOf(workEvidence, id2), proof: {
+      ...ux.proof,
+      completion: item.completion ? { nodes: item.completion.nodes, result: typeof result3 === "string" ? points.slice(0, 1200).join("") : null, resultTruncated: points.length > 1200, detail: `/api/trace/${id2}?lens=ax` } : null,
+      shipped: item.shipped ? { recorded: true, main: typeof item.shipped.main === "string" && item.shipped.main.length > 0 && item.shipped.main.length <= 128 ? item.shipped.main : null, detail: `/api/trace/${id2}?lens=ax` } : null
+    } };
+  }
   const lane = laneOf(item.pack);
   const step2 = stepOf(lane, item.job);
   const dx = {
@@ -24662,7 +25060,8 @@ function lensOf(store, id2, lens, next, now2 = Date.now()) {
     round: item.round,
     corrections: item.corrections,
     hold: item.hold ?? null,
-    verification: item.verification ?? null,
+    verification: item.verification ? { ...item.verification, passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false } : null,
+    historicalVerification: item.verification ?? null,
     nq: item.exchange ?? null,
     tracks: item.split ?? null,
     quota: store.exhausted(),
@@ -24689,6 +25088,7 @@ var renderTrace = (view2, renderer) => typeof renderer !== "function" ? Effect_e
 );
 
 // src/workspace.ts
+import { createHash as createHash6 } from "node:crypto";
 import { execFile as execFile2 } from "node:child_process";
 import { existsSync, lstatSync, readdirSync as readdirSync2, readFileSync as readFileSync5, readlinkSync, rmSync as rmSync3, statSync as statSync2 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
@@ -24803,8 +25203,49 @@ var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref2, recorde
   ]);
 });
 var covers = (scope3, file) => scope3.some((d) => d.endsWith("/") || d.endsWith("/**") ? file.startsWith(d.replace(/\*\*$/, "")) : file === d);
-var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declared) {
-  const changed = [.../* @__PURE__ */ new Set([...lines2(yield* git(dir, "diff", "--name-only", "--no-renames", "-z", base)), ...lines2(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))])].sort();
+var preparedFailure = (dir, phase, paths, reason) => fail9("prepared_input_failed", "Prepared inputs cannot be safely captured or extracted.", { dir, phase, paths, reason }, [{ run: `git -C ${dir} status --short`, why: "inspect supplied resources and correct preparation before retrying" }]);
+var preparedFingerprint = (dir, path, phase) => Effect_exports.try({
+  try: () => {
+    const full = join6(dir, path);
+    let stat;
+    try {
+      stat = lstatSync(full);
+    } catch (error) {
+      if (phase === "assess" && error.code === "ENOENT") return void 0;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) return `link:${readlinkSync(full)}`;
+    if (stat.isFile()) return `file:${stat.mode & 73 ? "755" : "644"}:${createHash6("sha256").update(readFileSync5(full)).digest("hex")}`;
+    if (phase === "assess") return `replacement:${stat.mode}`;
+    throw new TypeError("Unsupported prepared resource type");
+  },
+  catch: () => preparedFailure(dir, phase, [path], "Unsupported or unreadable prepared resource.")
+});
+var capturePreparationBaseline = Effect_exports.fn("mw.capturePreparationBaseline")(function* (dir) {
+  const baseline = {};
+  for (const path of lines2(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))) {
+    baseline[path] = yield* preparedFingerprint(dir, path, "capture");
+  }
+  return Object.freeze(baseline);
+});
+var assessChange = Effect_exports.fn("mw.assessChange")(function* (dir, base, baseline) {
+  const paths = /* @__PURE__ */ new Set([...lines2(yield* git(dir, "diff", "--name-only", "--no-renames", "-z", base)), ...lines2(yield* git(dir, "ls-files", "--others", "--exclude-standard", "-z"))]);
+  const unchanged = [];
+  const resources = [];
+  for (const [path, fingerprint] of Object.entries(baseline ?? {})) {
+    const current = yield* preparedFingerprint(dir, path, "assess");
+    if (current === fingerprint) {
+      unchanged.push(path);
+      paths.delete(path);
+    } else {
+      paths.add(path);
+      resources.push({ path, reason: current === void 0 ? "removed" : "changed or replaced" });
+    }
+  }
+  return { files: [...paths].sort(), unchanged: unchanged.sort(), resources };
+});
+var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declared, baseline) {
+  const { files: changed } = yield* assessChange(dir, base, baseline);
   const outside = changed.filter((f) => !covers(declared, f));
   if (outside.length) {
     return yield* fail9("out_of_scope", `${outside.length} changed file(s) are outside the declared scope.`, { dir, base, declared, outside, changed }, [{ run: `git -C ${dir} diff --stat ${base}`, why: "see the whole change against its base" }]);
@@ -24867,7 +25308,17 @@ var branchOf = Effect_exports.fn("mw.branchOf")(function* (repo) {
   return { ref: ref2, commit: yield* revParse(repo, ref2) };
 });
 var revParse = (repo, ref2) => Effect_exports.map(git(repo, "rev-parse", "--verify", `${ref2}^{commit}`), (s) => s.trim());
-var takeChange = Effect_exports.fn("mw.takeChange")(function* (dir, base) {
+var takeChange = Effect_exports.fn("mw.takeChange")(function* (dir, base, baseline) {
+  if (baseline) {
+    const assessment = yield* assessChange(dir, base, baseline);
+    if (assessment.resources.length) return yield* new MadeWellError({ code: "prepared_input_failed", message: "Changed prepared inputs cannot be represented by a base-relative maker patch.", context: { dir, phase: "extract", paths: assessment.resources.map((r) => r.path), reason: "Supplied resources changed, disappeared or were replaced." }, next: [{ run: `git -C ${dir} status --short`, why: "restore the supplied resources or correct preparation before retrying" }] });
+    yield* git(dir, "add", "-A");
+    if (!assessment.files.length) return { files: [], patch: "" };
+    const paths = assessment.files.map((path) => `:(literal)${path}`);
+    const files2 = lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "-z", base, "--", ...paths));
+    const patch2 = files2.length ? yield* git(dir, "diff", "--cached", "--binary", "--no-renames", base, "--", ...paths) : "";
+    return { files: files2, patch: patch2 };
+  }
   yield* git(dir, "add", "-A");
   const files = lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "-z", base));
   const patch = files.length ? yield* git(dir, "diff", "--cached", "--binary", "--no-renames", base) : "";
@@ -24921,7 +25372,7 @@ $ ${check2.run}
 });
 
 // src/context-facts.ts
-import { createHash as createHash5 } from "node:crypto";
+import { createHash as createHash7 } from "node:crypto";
 var nonblank = (max5) => Schema_exports.String.check(Schema_exports.isMaxLength(max5), Schema_exports.makeFilter((value4) => !!value4.trim(), { toJsonSchema: () => [{}, true] }));
 var positive = Schema_exports.Int.check(Schema_exports.isGreaterThan(0));
 var key = nonblank(120).check(Schema_exports.makeFilter((value4) => /^[a-z][a-z0-9._-]*$/.test(value4), { toJsonSchema: () => [{ pattern: "^[a-z][a-z0-9._-]*$" }, true] }));
@@ -25012,7 +25463,7 @@ function contextFactsFor(store, item, job, now2, receiver = job) {
 }
 function changeContextFact(store, id2, input) {
   const canonical = (value4) => Array.isArray(value4) ? value4.map(canonical) : value4 && typeof value4 === "object" ? Object.fromEntries(Object.entries(value4).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key2, child]) => [key2, canonical(child)])) : value4;
-  const fingerprint = createHash5("sha256").update(JSON.stringify(canonical({ item: id2, input }))).digest("hex");
+  const fingerprint = createHash7("sha256").update(JSON.stringify(canonical({ item: id2, input }))).digest("hex");
   const receipt = store.operatorRequest(`context-fact:${input.requestId}`, fingerprint, () => {
     const item = store.get(id2);
     if (!item) throw new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "select an existing work item" }] });
@@ -25076,7 +25527,7 @@ function functionProgress(item, store) {
     required: required2,
     problem
   });
-  const invalid4 = flow.accepted.findIndex((accepted2, index2) => accepted2 !== steps[index2]?.job || typeof item.outputs[accepted2] !== "string" || !item.outputs[accepted2].trim());
+  const invalid4 = flow.accepted.findIndex((accepted, index2) => accepted !== steps[index2]?.job || typeof item.outputs[accepted] !== "string" || !item.outputs[accepted].trim());
   if (invalid4 >= 0) return result3(false, "repair", `Saved acceptance at position ${invalid4 + 1} does not match the configured function and its output.`, `Invalid accepted function prefix at position ${invalid4 + 1}.`);
   if (item.status === "candidate") return result3(false, "select", "This proposed task must be selected before delivery can start.");
   if (item.status === "held") return result3(false, "resume", item.hold?.message ?? "Resolve the recorded block before retrying this work.");
@@ -25101,7 +25552,7 @@ var Project = Schema_exports.Struct({
   prepare: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'shell command run in every fresh job worktree before the job, with MW_ITEM, MW_JOB, MW_NAME (unique per item and job, safe as a branch or database name), MW_WORKTREE, MW_PROJECT and MW_BASE set: it makes the worktree usable (dependencies, env, a database). Files it writes must be ignored by the repo. Its last JSON line may be {"provisioned": [{"kind", "id", "teardown"}]}: Made Well tears each down once. A failure holds the item before the job runs.' })),
   inputs: Schema_exports.optionalKey(Schema_exports.Array(Prerequisite).annotate({ description: "explicit required files, directories or executables checked after preparation for their receiving jobs; environment evidence refers to one as input:<id>" })),
   autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: checkpoints (the default), steps or full; FOUNDATION ruling 17" })),
-  cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the cartridge pack file this project's new work runs; without it, the default software pack" })),
+  cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the builtin:grammar selector or absolute cartridge pack file this project's new work runs; without it, the default software pack" })),
   conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.NonEmptyString).annotate({ description: `the rules this repo's work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.` })),
   gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
 }).check(Schema_exports.makeFilter((project) => new Set(project.inputs?.map((input) => input.id)).size === (project.inputs?.length ?? 0) || "Project input IDs must be unique.", { toJsonSchema: () => [{}, true] })).annotate({ identifier: "Project" });
@@ -25223,13 +25674,13 @@ var requestPackUpdate = Effect_exports.fn("mw.requestPackUpdate")(function* (id2
 function acceptFunction(store, id2, step2, output) {
   const item = store.get(id2);
   const flow = flowOf(item);
-  const accepted2 = [...flow.accepted, step2.job];
-  const next = laneOf(item.pack)[flow.loop][accepted2.length];
+  const accepted = [...flow.accepted, step2.job];
+  const next = laneOf(item.pack)[flow.loop][accepted.length];
   store.save({
     ...item,
     status: "running",
     outputs: { ...item.outputs, [step2.job]: output },
-    flow: { ...flow, accepted: accepted2 },
+    flow: { ...flow, accepted },
     job: next?.job ?? "",
     from: { kind: "job", job: step2.job },
     exchange: void 0,
@@ -25358,18 +25809,6 @@ var GRAMMAR_PACK = {
   delivery: SOFTWARE.delivery
 };
 var parsed = (raw) => raw === void 0 || !raw.trim() ? null : lastJson(raw) ?? { text: raw };
-var blocked = (output) => output && typeof output === "object" && "blocked" in output && typeof output.blocked === "string" ? output.blocked : null;
-var accepted = (events2, job) => events2.filter((e) => e.kind === "accepted" && e.data.job === job || e.kind === "handed-off" && e.data.from === job || job === "discover" && e.kind === "discovered");
-var invalidatedAt = (events2, job) => Math.max(0, ...events2.filter((e) => {
-  if (e.kind === "cartridges-applied") {
-    const before = e.data.from, after = e.data.to;
-    return !!before && !!after && JSON.stringify(stepOf(laneOf(before), job)) !== JSON.stringify(stepOf(laneOf(after), job));
-  }
-  if (job === "verify") return ["main-moved", "replan", "rebased", "ruling"].includes(e.kind);
-  if (["plan", "implement", "test-plan"].includes(job) && ["replan", "rebased"].includes(e.kind)) return true;
-  if (e.kind !== "ruling") return false;
-  return e.data.cause === "implementation" && ["plan", "implement", "test-plan"].includes(job) || e.data.cause === "test" && job === "test-plan";
-}).map((e) => e.seq));
 function metricsFor(heads, item, jobs4) {
   const calls = heads.filter((c) => c.item === item && jobs4.includes(c.job));
   return {
@@ -25379,39 +25818,23 @@ function metricsFor(heads, item, jobs4) {
     unreportedUsage: calls.filter((c) => c.tokens === null).length
   };
 }
-function stepView(item, events2, job, label3, active, discovery2, input, heads, acceptedCallOutput) {
-  const lane = laneOf(item.pack);
-  const configured = (discovery2 ? lane.discovery : lane.delivery).some((s) => s.job === job);
-  const output = parsed(item.outputs[job]);
-  const proof = accepted(events2, job);
-  const last = proof.at(-1)?.seq ?? 0;
-  const valid = last > invalidatedAt(events2, job);
-  const receipt = proof.at(-1);
-  const acceptedOutput = receipt && "output" in receipt.data ? receipt.data.output : acceptedCallOutput;
-  const matches2 = acceptedOutput === void 0 || JSON.stringify(acceptedOutput) === JSON.stringify(output);
-  const problem = blocked(output);
-  const shapeProblem = discovery2 && configured && output !== null && !problem ? malformed(lane, job, item.outputs[job]) : void 0;
-  const track2 = item.split?.[job];
-  const current = item.job === job || !!track2 && !track2.done;
-  let state = "unknown";
-  let reason = null;
-  if (!configured) reason = "This function is not separately configured in the pinned pack.";
-  else if (problem && current) {
-    state = "blocked";
-    reason = problem;
-  } else if (current && item.status === "held") {
-    state = "blocked";
-    reason = item.hold?.message ?? "The item is held.";
-  } else if (output !== null && !problem && !shapeProblem && valid && matches2 && (job !== "implement" || !!item.change) && (job !== "test-plan" || !!item.checks?.checks.length)) state = "yes";
-  else if (current && active && ["running", "waiting-quota"].includes(item.status)) {
-    state = "running";
-    reason = item.status === "waiting-quota" ? "Waiting for a prescribed account to reset." : null;
-  } else if (output !== null && !proof.length) reason = "An output is retained, but no accepted execution evidence establishes this function.";
-  else {
-    state = "no";
-    reason = !matches2 ? "The retained output differs from its accepted execution evidence." : shapeProblem ?? (current && !active && item.status === "running" ? "The runner is stopped; this function has not completed." : last && !valid ? "Earlier acceptance is retained as history; correction or a changed contract requires this function again." : "No completed output is accepted for this function.");
+function stepView(item, job, label3, active, heads, evidence) {
+  const current = item.job === job || !!item.split?.[job] && !item.split[job].done;
+  let state = evidence?.state ?? "unknown", reason = evidence?.reason ?? "This function is not separately configured in the pinned pack.";
+  if (evidence && !evidence.complete && current) {
+    if (item.status === "held") {
+      state = "blocked";
+      reason = item.hold?.message ?? "The item is held.";
+    } else if (active && ["running", "waiting-quota"].includes(item.status)) state = "running";
   }
-  return { job, label: label3, state, complete: state === "yes", configured, input, output, evidence: { eventSeqs: proof.map((e) => e.seq), trace: `/api/trace/${item.id}?lens=ax` }, reason, metrics: metricsFor(heads, item.id, [job]) };
+  if (evidence && !evidence.complete && current && !active) reason = (reason ?? "") + " The runner is stopped.";
+  const step2 = stepOf(laneOf(item.pack), job), invocation = evidence?.input ?? null;
+  let input = invocation;
+  if (!step2.run && !step2.children && invocation && typeof invocation === "object") {
+    const captured = invocation;
+    input = Object.fromEntries(["call", "started", "outcome", "packet", "returnedOutput", "record"].map((key2) => [key2, captured[key2]]));
+  }
+  return { job, label: label3, state, complete: evidence?.complete ?? false, configured: !!evidence, input, output: evidence?.output ?? null, evidence: { eventSeqs: evidence?.eventSeqs ?? [], trace: `/api/trace/${item.id}?lens=ax`, provenance: evidence?.provenance ?? null, laterAttempts: evidence?.laterAttempts ?? null, acceptedOutput: evidence?.acceptedOutput ?? null, invocation }, reason, metrics: metricsFor(heads, item.id, [job]) };
 }
 function readinessOf(store, item, active, delivered) {
   const waitingOn = [.../* @__PURE__ */ new Set([
@@ -25460,43 +25883,29 @@ function grammarOf(store, id2) {
   if (!discovery2) return void 0;
   const runner2 = store.runner();
   const heads = store.callHeads();
-  const inputFor = (owner, job) => {
-    const head3 = heads.findLast((c) => c.item === owner.id && c.job === job && c.kind === "execute");
-    const call = head3 ? store.call(head3.id) : void 0;
-    return call ? { call: call.id, started: call.started, outcome: call.outcome, packet: parsed(call.prompt), returnedOutput: parsed(call.output ?? void 0), record: `/api/call/${call.id}` } : null;
-  };
-  const acceptedOutputFor = (history2, job) => {
-    const proof = accepted(history2, job).at(-1);
-    const finished = proof && history2.findLast((e) => e.seq <= proof.seq && e.kind === "call-finished" && e.data.job === job && e.data.kind === "execute" && e.data.outcome === "ok");
-    const repaired = finished && proof && history2.findLast((e) => e.seq > finished.seq && e.seq <= proof.seq && e.kind === "repaired" && e.data.job === job && e.data.call === finished.data.call && e.data.ok === true);
-    const callId = repaired?.data.repair ?? finished?.data.call;
-    const call = typeof callId === "number" ? store.call(callId) : void 0;
-    return call ? parsed(call.output ?? void 0) : void 0;
-  };
   const children = store.list().filter((c) => c.discovery === item.id);
   const tasks = children.map((child) => {
-    const history2 = store.events(child.id);
+    const history2 = store.events(child.id), workEvidence2 = workEvidenceOf(store, child);
     const phases = [
       ["ideation", "ideation()", ["ideate", "challenge"]],
       ["planning", "planning()", ["plan"]],
       ["implementation", "implementation()", ["implement"]]
     ];
     const viewed = phases.map(([job, label3, jobs4]) => {
-      const nodes = jobs4.map((j) => stepView(child, history2, j, j, !!runner2, false, inputFor(child, j), heads, acceptedOutputFor(history2, j)));
+      const nodes = jobs4.map((j) => stepView(child, j, j, !!runner2, heads, workEvidence2.jobs[j]));
       const state = nodes.every((n) => n.state === "yes") ? "yes" : nodes.find((n) => n.state === "blocked")?.state ?? nodes.find((n) => n.state === "running")?.state ?? (nodes.some((n) => n.state === "unknown") ? "unknown" : "no");
-      return { job, label: label3, state, complete: state === "yes", configured: nodes.every((n) => n.configured), input: Object.fromEntries(nodes.map((n) => [n.job, n.input])), output: Object.fromEntries(nodes.map((n) => [n.job, n.output])), evidence: { eventSeqs: nodes.flatMap((n) => n.evidence.eventSeqs), trace: `/api/trace/${child.id}?lens=ax` }, reason: nodes.find((n) => n.state !== "yes")?.reason ?? null, metrics: metricsFor(heads, child.id, jobs4) };
+      return { job, label: label3, state, complete: state === "yes", configured: nodes.every((n) => n.configured), input: Object.fromEntries(nodes.map((n) => [n.job, n.input])), output: Object.fromEntries(nodes.map((n) => [n.job, n.output])), evidence: { eventSeqs: nodes.flatMap((n) => n.evidence.eventSeqs), trace: `/api/trace/${child.id}?lens=ax`, provenance: Object.fromEntries(nodes.map((n) => [n.job, n.evidence.provenance])), laterAttempts: Object.fromEntries(nodes.map((n) => [n.job, n.evidence.laterAttempts])), acceptedOutput: Object.fromEntries(nodes.map((n) => [n.job, n.evidence.acceptedOutput])), invocation: Object.fromEntries(nodes.map((n) => [n.job, n.evidence.invocation ?? null])) }, reason: nodes.find((n) => n.state !== "yes")?.reason ?? null, metrics: metricsFor(heads, child.id, jobs4) };
     });
     const checks = child.checks?.checks ?? [];
     const verification = child.verification;
     const verifyProof = history2.filter((e) => e.kind === "verified");
-    const latestProof = verifyProof.at(-1);
-    const made = stepView(child, history2, "test-plan", "tests", !!runner2, false, inputFor(child, "test-plan"), heads, acceptedOutputFor(history2, "test-plan"));
-    const testsCreated = made.state === "yes" && checks.length > 0;
-    const verified = !!verification?.passed && !!verification.commit && latestProof?.data.commit === verification.commit && latestProof.data.on === verification.on && testsCreated && checks.every((check2) => verification.results.some((r) => r.id === check2.id && r.doneWhen === check2.doneWhen && r.run === check2.run && r.exitCode === 0)) && verification.results.length > 0 && verification.results.every((r) => r.exitCode === 0) && latestProof.seq > invalidatedAt(history2, "verify");
+    const testsCreated = !!workEvidence2.jobs["test-plan"]?.complete && checks.length > 0;
+    const verified = workEvidence2.verificationCurrent;
     viewed.push({ job: "verification", label: "verification()", state: verified ? "yes" : child.status === "held" && ["verify", "arbitrate"].includes(child.job) ? "blocked" : !!runner2 && child.job === "verify" && child.status === "running" ? "running" : "no", complete: verified, configured: laneOf(child.pack).delivery.some((s) => s.job === "verify"), input: history2.findLast((e) => e.kind === "verify-started")?.data ?? null, output: verification ?? null, evidence: { eventSeqs: verifyProof.map((e) => e.seq), trace: `/api/trace/${child.id}?lens=ax` }, reason: verified ? "Saved verification applies to the recorded candidate; current deployment has not been rechecked." : child.hold?.message ?? "No current passing verification is recorded.", metrics: metricsFor(heads, child.id, ["verify"]) });
-    const shipped = history2.some((e) => e.kind === "shipped");
-    const delivered = child.status === "shipped" && !!child.shipped && shipped && verified && viewed.every((p) => p.complete);
+    if (child.pack?.runtime === "functions") viewed.splice(0, viewed.length, ...laneOf(child.pack)[child.flow?.loop ?? "delivery"].map((s) => stepView(child, s.job, s.job, !!runner2, heads, workEvidence2.jobs[s.job])));
+    const delivered = workEvidence2.delivered;
     return {
+      currentHandoff: currentHandoffOf(store, child),
       id: child.id,
       title: child.title,
       status: child.status,
@@ -25523,11 +25932,13 @@ function grammarOf(store, id2) {
     if (x.item !== y.item && Date.parse(x.started) < Date.parse(y.started) + y.ms && Date.parse(y.started) < Date.parse(x.started) + x.ms) overlaps.add([x.item, y.item].sort((l, r) => l - r).join(":"));
   }
   const allEvents = [...events2, ...children.flatMap((c) => store.events(c.id))].sort((a, b) => a.seq - b.seq);
-  const discoverySteps = DISCOVERY_FUNCTIONS.map(([job, label3]) => stepView(item, events2, job, label3, !!runner2, true, inputFor(item, job), heads, acceptedOutputFor(events2, job)));
+  const workEvidence = workEvidenceOf(store, item);
+  const discoverySteps = DISCOVERY_FUNCTIONS.map(([job, label3]) => stepView(item, job, label3, !!runner2, heads, workEvidence.jobs[job]));
   const completedStepCount = discoverySteps.filter((step2) => step2.complete).length;
   const candidates2 = parsed(item.outputs.discover);
   return {
     discovery: {
+      currentHandoff: currentHandoffOf(store, item),
       id: item.id,
       title: item.title,
       source: item.source,
@@ -25620,6 +26031,17 @@ var deliverableOf = (item, job) => {
   return out === void 0 ? void 0 : lastJson(out) ?? out;
 };
 var planOf = (item) => deliverableOf(item, "plan");
+var technicalReset = (store, item, job) => {
+  if (job !== "plan") return void 0;
+  const event = store.events(item.id).findLast((e) => e.kind === "continuation-reset" && e.data.newRound === item.round);
+  return event ? {
+    event: event.seq,
+    reason: event.data.reason,
+    hold: event.data.hold,
+    previousRound: event.data.previousRound,
+    round: event.data.newRound
+  } : void 0;
+};
 function handoffOf(item, job, t) {
   if (job === "arbitrate") return item.failure ?? "";
   if (t.from.kind === "dispatcher") return "The operator's objective and source, under item.";
@@ -25686,7 +26108,9 @@ var step = Effect_exports.fn("mw.step")(function* (id2, job, config) {
   const t = trackOf(item, job);
   const x = t.exchange;
   if (!x) {
-    const handoff = item.steer ? `${handoffOf(item, job, t)}
+    const reset = technicalReset(store, item, job);
+    const handoff = reset ? `Technical replanning (continuation-reset event ${reset.event}), not an arbiter ruling. Reason: ${String(reset.reason)}
+Prior technical hold: ${JSON.stringify(reset.hold)}` : item.steer ? `${handoffOf(item, job, t)}
 
 The operator's word at the checkpoint before this step: ${item.steer}` : handoffOf(item, job, t);
     saveTrack(store, id2, job, { exchange: { from: t.from, handoff, status: "awaiting-receiver", turns: [] } }, "handoff", { from: profileOf(item, t.from), to: stepOf(L(item), job).profile, job });
@@ -25713,13 +26137,13 @@ var runSplit = Effect_exports.fn("mw.split")(function* (id2, config) {
   yield* Effect_exports.all(makers.map(track2), { concurrency: "unbounded" });
   const item = store.get(id2);
   if (item.status === "held" || !makers.every((m) => item.split?.[m]?.done)) return;
-  const blocked2 = makers.flatMap((m) => {
+  const blocked = makers.flatMap((m) => {
     const failure2 = blockedOf(L(item), m, deliverableOf(item, m) ?? {});
     return failure2 ? [{ job: m, failure: failure2 }] : [];
   });
   const joined = { ...item, split: void 0, exchange: void 0, launches: 0, pickingUp: void 0, rejected: void 0 };
-  if (blocked2.length) {
-    store.save({ ...joined, job: "arbitrate", from: { kind: "job", job: blocked2[0].job }, failure: blocked2.map((b) => b.failure).join("\n\n") }, "failure", { from: blocked2.map((b) => b.job) });
+  if (blocked.length) {
+    store.save({ ...joined, job: "arbitrate", from: { kind: "job", job: blocked[0].job }, failure: blocked.map((b) => b.failure).join("\n\n") }, "failure", { from: blocked.map((b) => b.job) });
     return;
   }
   store.save({ ...joined, job: "verify", from: { kind: "job", job: "implement" } }, "handed-off", { from: makers, to: "verify" });
@@ -25789,7 +26213,7 @@ var decisionGuidance = Effect_exports.fn("mw.decisionGuidance")(function* (item,
   const reader = mode === "nq" && item.pack?.runtime !== "functions" ? x.from.kind === "job" ? x.from.job : L(item).delivery[0].job : job;
   const facts = contextFactsFor(store, item, reader, yield* Clock_exports.currentTimeMillis, job);
   const context3 = { ...mode === "nq" ? originatorParts(item, job, x, ledger(store, item.id, job)) : { received: receivedBy(item, job), handoff: x.handoff, turns: x.turns, notes: x.notes, answeredBefore: ledger(store, item.id, job) }, ...facts.length ? { contextFacts: facts } : {} };
-  const key2 = createHash6("sha256").update(JSON.stringify({ job, mode, round: item.round, context: context3 })).digest("hex");
+  const key2 = createHash8("sha256").update(JSON.stringify({ job, mode, round: item.round, context: context3 })).digest("hex");
   const saved = store.events(item.id).findLast((e) => e.kind === "decision-resolution" && e.data.key === key2);
   if (saved) return saved.data.resolution;
   const resolution = yield* resolveDecision({
@@ -25906,7 +26330,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config, decis
     required: deliverableShape(L(item), job, auto(item))?.required ?? [],
     ...job === "implement" && plan ? { scope: plan.scope } : {},
     ...jobTree(item, job),
-    ...maker ? { onFail: (dir, head3) => keepPartial(dir, item, job, head3) } : {},
+    ...maker ? { onFail: (dir, head3, baseline) => keepPartial(dir, item, job, head3, baseline) } : {},
     packet: (dir) => packet(item, job, dir, { ...executeParts(item, job, t, x), ...decisionResolution ? { decisionResolution } : {} })
   }, (dir, call) => accept(id2, job, dir, call));
 });
@@ -25934,8 +26358,8 @@ var jobTree = (item, job) => ({
     }
     if (isMaker(job)) {
       const partial = patchPath(home, `${job}.partial`);
-      yield* restorePartial(item, job, item.base.commit, partial);
-      return yield* applyPatch(dir, partial);
+      if (yield* restorePartial(item, job, item.base.commit, partial)) yield* applyPatch(dir, partial);
+      return;
     }
   })
 });
@@ -25948,7 +26372,7 @@ var restorePartial = (item, role, base, path) => Effect_exports.gen(function* ()
     store.note(item.id, "artifact-resumed", { job: role, event: own.event, sha256: own.sha256, base: own.base, plan: own.plan });
     return true;
   }
-  if (item.pack?.contracts?.acceptance !== "1" && existsSync3(path) && !savedArtifacts(store.events(item.id)).some((a) => a.role === role)) {
+  if (!continuationBoundary(store.events(item.id)) && item.pack?.contracts?.acceptance !== "1" && existsSync3(path) && !savedArtifacts(store.events(item.id)).some((a) => a.role === role)) {
     store.note(item.id, "legacy-partial-resumed", { job: role, sha256: contentHash(readFileSync8(path)), provenance: "Historical base/plan metadata unavailable; legacy disk continuation." });
     return true;
   }
@@ -25968,6 +26392,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     if (failed3 && spec.kind === "originator") return void hold(store, store.get(id2), "prepare_failed", failed3.message, failed3.context);
     if (failed3) return void (yield* launchFailed(id2, job, spec.kind, spec.card, failed3.message, failed3.context));
   }
+  const preparationBaseline = !functions && isMaker(job) && spec.kind === "execute" && spec.access !== "none" ? yield* capturePreparationBaseline(wt.path) : void 0;
   if (!functions && spec.prepare) yield* spec.prepare(wt.path);
   const prompt = yield* spec.packet(wt.path);
   const budget = budgetFor(p, job);
@@ -26016,7 +26441,10 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   store.note(id2, "call-finished", { call: callId, job, kind: spec.kind, profile: spec.profile, outcome: call.outcome, ms: call.ms, ...call.error ? { error: call.error.slice(0, 2e3) } : {} });
   endLive(live);
   if (!res.ok) {
-    if (spec.onFail) yield* spec.onFail(wt.path, head3);
+    if (spec.onFail) {
+      const extraction = yield* Effect_exports.result(spec.onFail(wt.path, head3, preparationBaseline));
+      if (Result_exports.isFailure(extraction)) store.note(id2, "partial-extraction-failed", { job, call: callId, outcome: call.outcome, reason: call.error, diagnostic: extraction.failure });
+    }
     if ("limit" in res) yield* recordLimit(id2, job, spec.card, res.limit, spec.kind);
     else yield* launchFailed(id2, job, spec.kind, spec.card, res.error, res.overBudget ? { overBudget: res.overBudget } : {});
     return void 0;
@@ -26027,7 +26455,7 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
     holdFor(store, id2, left.failure, job);
     return void 0;
   }
-  const called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...before ? { before } : {} };
+  const called = { kind: spec.kind, profile: spec.profile, output: res.output, callId, card: spec.card, ...before ? { before } : {}, ...preparationBaseline ? { preparationBaseline } : {} };
   return after ? yield* after(wt.path, called) : called;
 }));
 var REPAIR_TASK = "Your last answer could not be read: its JSON is malformed or does not match your reply format. Under yourAnswer is what you sent and under problem what is wrong with it. Reply with only that answer as one JSON object matching you.replyFormat: the same content, corrected, nothing added or dropped. Your work is done; this call only corrects the reply.";
@@ -26093,8 +26521,8 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     if (!result3.ok) return yield* refuse(id2, job, call, result3.reason);
     const unanswered2 = decisionProblem(store, item, job, result3.value, ledger(store, id2, job));
     if (unanswered2) return yield* refuse(id2, job, call, unanswered2);
-    const blocked2 = blockedOf(L(item), job, result3.value);
-    if (blocked2) return hold(store, store.get(id2), "function_failed", blocked2, { job, call: call.callId });
+    const blocked = blockedOf(L(item), job, result3.value);
+    if (blocked) return hold(store, store.get(id2), "function_failed", blocked, { job, call: call.callId });
     const acceptance = yield* checkFunction(item, stepOf(L(item), job), result3.value);
     if (!acceptance.ok) return yield* refuse(id2, job, call, acceptance.reason);
     return store.atomic(() => {
@@ -26106,8 +26534,12 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   store.note(id2, "trace-decode", { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...!v.ok ? { reason: v.reason } : {} });
   if (v.ok && v.dropped?.length) store.note(id2, "discovery-dropped", { call: call.callId, candidates: v.dropped });
   const from = answered.before?.head ?? item.base.commit;
-  const keep = isMaker(job) ? keepPartial(dir, item, job, from) : Effect_exports.void;
-  const refused = (reason) => Effect_exports.andThen(keep, refuse(id2, job, call, reason));
+  const keep = (outcome, reason) => Effect_exports.gen(function* () {
+    if (!isMaker(job)) return;
+    const extraction = yield* Effect_exports.result(keepPartial(dir, item, job, from, answered.preparationBaseline));
+    if (Result_exports.isFailure(extraction)) store.note(id2, "partial-extraction-failed", { job, call: call.callId, outcome, reason, diagnostic: extraction.failure });
+  });
+  const refused = (reason) => Effect_exports.andThen(keep("refused", reason), refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
   const value4 = v.value;
   const unanswered = decisionProblem(store, item, job, value4, ledger(store, id2, job));
@@ -26128,20 +26560,20 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     }
   }
   if (isMaker(job) || job === "arbitrate") {
-    yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep, Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
+    yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep("guard-error", e.message), Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
   }
   let artifacts = {};
   if (isMaker(job) && !blockedOf(L(item), job, value4)) {
     const base = from;
     if (job === "implement") {
-      const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope));
+      const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope, answered.preparationBaseline));
       if (Result_exports.isFailure(scoped3)) {
         if (scoped3.failure.code !== "out_of_scope") return yield* scoped3.failure;
         const { outside } = scoped3.failure.context;
         return yield* refused(`You changed files outside the plan's scope: ${outside.join(", ")}. Your checkout still holds them: revert them, or report {"blocked": ...} if the plan cannot be done within its scope.`);
       }
     }
-    const { files, patch } = yield* takeChange(dir, base);
+    const { files, patch } = yield* takeChange(dir, base, answered.preparationBaseline);
     if (job === "implement" && !files.length) return yield* refused("You reported the plan done, but your checkout has no change.");
     const product = files.filter((f) => covers(plan.scope, f));
     if (job === "test-plan" && product.length) return yield* refused(`Checks may not touch the plan's scope, which is product code: ${product.join(", ")}. Write check files at other paths.`);
@@ -26243,10 +26675,10 @@ function applyRoute(store, id2, job, value4, fields) {
 }
 var failedStep = (store, item) => {
   const lane = L(item);
-  const blocked2 = lane.makers.filter((m) => blockedOf(lane, m, deliverableOf(item, m) ?? {}));
+  const blocked = lane.makers.filter((m) => blockedOf(lane, m, deliverableOf(item, m) ?? {}));
   const from = store.events(item.id).findLast((e) => e.kind === "failure")?.data.from;
-  if (Array.isArray(from)) return blocked2.length ? blocked2 : from;
-  return blocked2[0] ?? from ?? "verify";
+  if (Array.isArray(from)) return blocked.length ? blocked : from;
+  return blocked[0] ?? from ?? "verify";
 };
 var afterEnvironment = (store, item, by, answer2) => {
   const failed3 = failedStep(store, item);
@@ -26255,8 +26687,8 @@ var afterEnvironment = (store, item, by, answer2) => {
   if (typeof failed3 === "string") return { ...base, job: failed3 };
   return { ...base, job: failed3[0], split: Object.fromEntries(failed3.map((m) => [m, { from: by, launches: 0 }])) };
 };
-var keepPartial = (dir, item, job, from) => Effect_exports.gen(function* () {
-  const { patch } = yield* takeChange(dir, from);
+var keepPartial = (dir, item, job, from, baseline) => Effect_exports.gen(function* () {
+  const { patch } = yield* takeChange(dir, from, baseline);
   const store = yield* Store;
   const path = patchPath(itemHome(store.path, item.id), `${job}.partial`);
   preserveArtifact(store, item, job, patch, from, true);
@@ -26437,7 +26869,7 @@ Plan again from the branch as it is now.`
   }
   const passed = run2.results.every((r) => r.exitCode === 0);
   const verification = { on: run2.on, commit: run2.commit, results: run2.results, passed };
-  const artifacts = savedArtifacts(store.events(id2)).filter((a) => !a.partial);
+  const artifacts = continuationArtifacts(store.events(id2)).filter((a) => !a.partial);
   store.note(id2, "verification-artifacts", { on: run2.on, commit: run2.commit, checks: contentHash(JSON.stringify(checks)), sources: run2.sources, artifacts: L(item).makers.flatMap((role) => {
     const a = artifacts.findLast((a2) => a2.role === role);
     return a ? [{ role, event: a.event, sha256: a.sha256, base: a.base, plan: a.plan }] : [];
@@ -26579,9 +27011,9 @@ var holdTurns = (store, item, job, context3) => {
 };
 var unshipped = (store, item) => (item.after ?? []).filter((id2) => !["shipped", "completed"].includes(store.get(id2)?.status ?? ""));
 var stuck = (store, item) => {
-  const blocked2 = (id2) => ((p) => !p || p.status === "held" || p.status === "paused" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
-  const fixBlocked = (id2) => store.get(id2)?.status !== "dropped" && blocked2(id2);
-  return item.waitsOn !== void 0 && fixBlocked(item.waitsOn) || unshipped(store, item).some(blocked2);
+  const blocked = (id2) => ((p) => !p || p.status === "held" || p.status === "paused" || p.status === "candidate" || p.status === "dropped" || stuck(store, p))(store.get(id2));
+  const fixBlocked = (id2) => store.get(id2)?.status !== "dropped" && blocked(id2);
+  return item.waitsOn !== void 0 && fixBlocked(item.waitsOn) || unshipped(store, item).some(blocked);
 };
 var openPrerequisite = (store, item, answer2, by) => {
   const pre = store.create({
@@ -26737,9 +27169,56 @@ var go = (id2) => Effect_exports.gen(function* () {
   }
   store.save({ ...released(item), passed: String(item.hold.context.key) }, "go", { job: item.job, at: item.hold.context.key });
 });
-var retry3 = (id2) => Effect_exports.gen(function* () {
-  const events2 = (yield* Store).events(id2);
-  if (events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1).some((e) => e.kind === "retried")) return;
+var retry3 = (id2, options = {}) => Effect_exports.gen(function* () {
+  const source2 = yield* Store;
+  const events2 = source2.events(id2);
+  const current = source2.get(id2);
+  if (!current) return yield* notFound2(id2);
+  const unavailable = (reason) => new MadeWellError({ code: "replan_unavailable", message: `Item #${id2} cannot replan: ${reason}`, context: { id: id2, status: current.status, job: current.job, reason }, next: [{ run: `mw status ${id2}`, why: "resolve the existing hold or obligation" }] });
+  if (options.replan !== void 0 && !options.replan.trim()) return yield* unavailable("A nonblank reason is required.");
+  const sinceHold = events2.slice(events2.findLastIndex((e) => e.kind === "held") + 1);
+  if (options.replan !== void 0) {
+    if (sinceHold.some((e) => e.kind === "continuation-reset")) return;
+  } else if (sinceHold.some((e) => e.kind === "retried" || e.kind === "continuation-reset")) return;
+  if (options.replan !== void 0) {
+    return yield* Effect_exports.acquireUseRelease(
+      source2.claimRunner({ exclusive: true }),
+      () => Effect_exports.gen(function* () {
+        const current2 = source2.get(id2);
+        if (!current2) return yield* notFound2(id2);
+        const events3 = source2.events(id2);
+        const sinceHold2 = events3.slice(events3.findLastIndex((e) => e.kind === "held") + 1);
+        if (sinceHold2.some((e) => e.kind === "continuation-reset")) return;
+        const unavailable2 = (reason) => new MadeWellError({ code: "replan_unavailable", message: `Item #${id2} cannot replan: ${reason}`, context: { id: id2, status: current2.status, job: current2.job, reason }, next: [{ run: `mw status ${id2}`, why: "resolve the existing hold or obligation" }] });
+        const { store: store2, item: item2 } = yield* held(id2);
+        if (item2.status === "paused" || NQ_HOLDS.includes(item2.hold.code) || CHECK_HOLDS.includes(item2.hold.code) && item2.hold.code !== "environment") {
+          return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item2.hold }, next: nextFor(item2) });
+        }
+        const delivery = L(item2).delivery;
+        const planIndex = delivery.findIndex((s) => s.job === "plan");
+        const prior = delivery.slice(0, planIndex);
+        const reached = item2.job === "plan" || item2.outputs.plan !== void 0 || events3.some((e) => e.kind === "handoff" && e.data.job === "plan");
+        if (item2.pack?.runtime === "functions" || planIndex < 0 || !reached || prior.some((s) => item2.outputs[s.job] === void 0) || stepOf(L(item2), item2.job).loop === "discovery") return yield* unavailable2("Software delivery must have reached planning with its earlier obligations accepted.");
+        if (item2.merged) return yield* unavailable2("The change is already merged.");
+        if (item2.waitsOn !== void 0 || unshipped(store2, item2).length) return yield* unavailable2("A prerequisite is outstanding.");
+        const exchanges = [item2.exchange, ...Object.values(item2.split ?? {}).map((t) => t?.exchange)];
+        if (exchanges.some((x) => x && x.status !== "clear" && x.turns.filter((t) => t.answer !== void 0).length >= MAX_TURNS)) return yield* unavailable2("An unresolved exchange has reached its answered-turn bound.");
+        const removed = delivery.slice(planIndex).map((s) => s.job);
+        const outputs = { ...item2.outputs };
+        const supersededOutputs = {};
+        for (const job of [...removed, "arbitrate", "verify"]) {
+          if (outputs[job] !== void 0) supersededOutputs[job] = outputs[job];
+          delete outputs[job];
+        }
+        const superseded = { outputs: supersededOutputs, split: item2.split, change: item2.change, checks: item2.checks, verification: item2.verification, failure: item2.failure, rework: item2.rework, exchange: item2.exchange, rejected: item2.rejected, pickingUp: item2.pickingUp, passed: item2.passed, steer: item2.steer, resetsAt: item2.resetsAt, launches: item2.launches, from: item2.from };
+        store2.atomic(() => {
+          store2.save({ ...item2, status: "queued", job: "plan", round: item2.round + 1, launches: 0, from: planIndex ? { kind: "job", job: delivery[planIndex - 1].job } : { kind: "dispatcher" }, outputs, hold: void 0, base: void 0, split: void 0, change: void 0, checks: void 0, verification: void 0, failure: void 0, rework: void 0, exchange: void 0, rejected: void 0, pickingUp: void 0, passed: void 0, steer: void 0, resetsAt: void 0 }, "continuation-reset", { reason: options.replan, heldEvent: events3.findLast((e) => e.kind === "held")?.seq, hold: item2.hold, previousJob: item2.job, previousRound: item2.round, previousBase: item2.base, newRound: item2.round + 1, superseded });
+          store2.note(id2, "retried", { job: "plan", mode: "replan" });
+        });
+      }),
+      () => Effect_exports.sync(() => source2.releaseRunner())
+    ).pipe(Effect_exports.provideService(Scheduler_exports.PreventSchedulerYield, true));
+  }
   const { store, item } = yield* held(id2);
   if (item.status === "paused" || NQ_HOLDS.includes(item.hold.code) || CHECK_HOLDS.includes(item.hold.code) && item.hold.code !== "environment") {
     return yield* new MadeWellError({ code: "answer_required", message: `Item #${id2} is waiting on your answer, not a retry.`, context: { id: id2, hold: item.hold }, next: nextFor(item) });
@@ -26856,7 +27335,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
   const originalDiscovery = discoveryContextFor(store, item, job);
   const received = withReceived ? receivedBy(item, job) : void 0;
   const discoveryContext = originalDiscovery && item.pack?.contracts?.discovery === "1" ? referenceDiscovery(originalDiscovery, item.source, received) : originalDiscovery;
-  const continuationOptions = item.rework ? savedArtifacts(store.events(item.id)).filter((a) => a.base === item.base?.commit && (!isMaker(job) || a.role === job)).map(({ patch: _patch, ...ref2 }) => ref2) : [];
+  const continuationOptions = item.rework ? continuationArtifacts(store.events(item.id)).filter((a) => a.base === item.base?.commit && (!isMaker(job) || a.role === job)).map(({ patch: _patch, ...ref2 }) => ref2) : [];
   const dispositions = item.rework && item.from.kind === "job" && item.from.job === "arbitrate" ? lastJson(item.outputs.arbitrate ?? "")?.dispositions : void 0;
   const repairConditions = Array.isArray(dispositions) ? dispositions.filter((d) => !isMaker(historyJob) || d.cause === (historyJob === "implement" ? "implementation" : "test") || d.cause === "environment" || d.cause === "pre-existing") : [];
   const softwareThinking = L(item).pack.runtime !== "functions" && !isMaker(job);
@@ -26877,6 +27356,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
   const workQuestionsForPhase = item.pack?.contracts?.handoff === "1" ? questionsOwedBy(store, item, historyJob).map((q) => ({ ...q, resolved: questionResolved(q, saved.answers) })) : [];
   return JSON.stringify({
     item: itemFacts(item),
+    ...technicalReset(store, item, job) ? { technicalReset: technicalReset(store, item, job) } : {},
     ...workQuestionsForPhase.length ? { questionsToSettle: workQuestionsForPhase } : {},
     ...projectInputs?.length ? { projectInputs } : {},
     ...attempted ? { yourLastRefusedDeliverable: { job: historyJob, call: attempted.id, output: attempted.output, reason: refused.error } } : {},
@@ -26889,7 +27369,8 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
     ...withReceived ? { received } : {},
     ...snap ? { snapshot: snap } : {},
     ...saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {},
-    ...compact2
+    ...compact2,
+    ...receiving && isMaker(job) ? { ownArtifactHistory: ownArtifactHistory(store.events(item.id), item.id, job, parts2.you?.call === "execute") } : {}
   }, null, 2);
 });
 var whereYouAre = (step2) => step2.loop === "discovery" ? `Made Well's discovery (${step2.cartridge})` : `Made Well's delivery lane (${step2.cartridge})`;
@@ -26954,15 +27435,56 @@ var executeParts = (item, job, t, x) => ({
   ...t.pickingUp ? { pickingUp: t.pickingUp } : {}
 });
 
-// src/otlp.ts
-import { createHash as createHash7 } from "node:crypto";
+// src/pack-selection.ts
 import { resolve as resolve6 } from "node:path";
+
+// src/autonomy-pack.ts
+var AUTONOMY_PACK = {
+  ...GRAMMAR_PACK,
+  name: "made-well-autonomy-lab",
+  version: "1.3",
+  contracts: { discovery: "1", acceptance: "1", handoff: "1" },
+  brief: [
+    GRAMMAR_PACK.brief,
+    "NQ governs every handoff of the same durable task. The receiver identifies what is unclear, ambiguous or missing; the sender clarifies, and the receiver confirms. Reuse recorded answers. Thinking phases make their own decisions; implementation follows the fixed plan. No separate task is created for a phase or a clarification.",
+    "Classify accounts for every Declare intent through requirements[].intentIds or a sourced intentDispositions entry (provided, context, deferred or superseded). Candidate questionRefs assign later questions to the tasks that must settle them. A planner starts planning to resolve its own choices and records decisions with questionId; accepted decisions become reusable NQ answers before implementation receives that output.",
+    'Discovery contributions use discoveryContract:"1". Put actual source locators in evidence:[{id,ref}]. Nested sources arrays cite those evidence IDs from this or earlier accepted contributions, never raw paths or locators. Keep exact source references and distinguish explicit requirements from interpretations. Each function contributes new structured findings; earlier records remain addressable. Questions are new entries with an owner and blocking role, not copies of earlier questions. If yourLastRefusedDeliverable is present, it is your receiving job\u2019s exact previous attempt, not accepted work; correct the stated defect from that input rather than asking someone to paste it again.',
+    "Task decomposition must publish useful prerequisites early. Useful prerequisite artifacts can be delivered independently before the integrated work that depends on them. Every artifact task retains ideation, planning, implementation and independent verification. Bound their depth and scope. Do not create tasks that compete for the same files or force all preparatory work to wait for final shipment.",
+    "Every route edge names a genuine delivered artifact or prerequisite. Only task-delivered readiness exists. Record preparation promises that the actual after graph honors; never promise within-task parallelism the scheduler cannot express. Confirm preserves all accepted requirement, candidate, artifact, dependency, preparation and question identities.",
+    'Product checks, engine execution provenance, final live checks and operator manual judgment have separate evidence owners. Product doneWhen entries declare evidence:{evaluator:"candidate-check",availableAfter:"implementation",inputs:[{kind:"candidate"|"plan"|"environment",ref:"available input"}]}. Environment references use input:<id> from projectInputs and are checked after preparation before the receiving executor runs. No private maker report, future shipment or proof of historical nonexecution is a candidate checker input. Missing input returns through NQ; never invent availability.',
+    "On correction, diagnose failed conditions individually in arbiter dispositions. The planner may explicitly retain a maker\u2019s own compatible artifact with resume:[{role,sha256}] from continuationOptions; a changed plan otherwise starts clean. Repair the named conditions without rebuilding unaffected work. Independent checks still all run on the final candidate. For a bounded artifact, keep thinking concise and proportional; a function obligation does not require a new committee or a long essay.",
+    "DX/UX/AX decisions describe predicted gains/costs and the observable result that would test them. Do not present the prediction itself as measured success. Domain-specific methods and artifact requirements come from explicit cartridges or raw task context."
+  ].filter(Boolean).join("\n\n"),
+  discovery: GRAMMAR_PACK.discovery.map((c) => ({ ...c, steps: c.steps.map((s) => ({
+    ...s,
+    ...s.job === "discover" ? {} : { output: discoveryContributionShape(s.job, { handoff: true }) },
+    task: [s.task, 'Return this function\u2019s discoveryContract:"1" contribution. Preserve earlier accepted identities through references. At confirm(), emit the exact executable after edges accepted by route; no silent filtering or reconstruction.'].filter(Boolean).join("\n\n")
+  })) }))
+};
+
+// src/pack-selection.ts
+var resolvePackSelection = Effect_exports.fn("mw.resolvePackSelection")(function* (selection2) {
+  if (selection2 === void 0) return { source: "default", pack: void 0 };
+  if (selection2 === "builtin:grammar") return { source: selection2, pack: AUTONOMY_PACK };
+  if (selection2.startsWith("builtin:")) return yield* new MadeWellError({
+    code: "cartridges_invalid",
+    message: `Unknown built-in cartridge selector ${selection2}.`,
+    context: { path: selection2, problems: ["Unknown built-in cartridge selector. Supported selector: builtin:grammar."] },
+    next: [{ run: "mw cartridges --check builtin:grammar", why: "inspect the supported built-in grammar pack" }]
+  });
+  const source2 = resolve6(selection2);
+  return { source: source2, pack: yield* loadPack(source2) };
+});
+
+// src/otlp.ts
+import { createHash as createHash9 } from "node:crypto";
+import { resolve as resolve7 } from "node:path";
 var record2 = (value4) => value4 !== null && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
 var label = (value4) => typeof value4 === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_.:@+-]{0,127}$/.test(value4) ? value4 : void 0;
 var text = (key2, value4) => ({ key: key2, value: { stringValue: value4 } });
 var integer = (key2, value4) => ({ key: key2, value: { intValue: String(value4) } });
 var identifier2 = (parts2, length) => {
-  const hex = createHash7("sha256").update(JSON.stringify(parts2)).digest("hex").slice(0, length);
+  const hex = createHash9("sha256").update(JSON.stringify(parts2)).digest("hex").slice(0, length);
   return /^0+$/.test(hex) ? `${hex.slice(0, -1)}1` : hex;
 };
 var unixNano = (at) => {
@@ -26986,7 +27508,7 @@ function otlpOf(store, id2) {
     if (event.kind === "trace-call" && typeof event.data.call === "number") links.set(invocation, event.data.call);
   }
   const calls = new Map(store.calls(id2).map((call) => [call.id, call]));
-  const traceId = identifier2(["madewell.otlp.trace.v1", resolve6(store.path), id2, item.created], 32);
+  const traceId = identifier2(["madewell.otlp.trace.v1", resolve7(store.path), id2, item.created], 32);
   const spans = [];
   for (const [invocation, start] of starts) {
     const finish = finishes.get(invocation);
@@ -27039,14 +27561,18 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const item = store.get(id2);
   if (!item) return yield* new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] });
   const calls = store.calls(id2);
+  const events2 = store.events(id2);
   yield* Effect_exports.try({
     try: () => {
       mkdirSync6(dir, { recursive: true });
-      writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: store.events(id2) }, null, 2));
-      const artifacts = savedArtifacts(store.events(id2));
+      writeFileSync6(join10(dir, "item.json"), JSON.stringify({ item, events: events2 }, null, 2));
+      const destination = join10(dir, "artifacts");
+      mkdirSync6(destination, { recursive: true });
+      const entries3 = [...ownArtifactHistory(events2, id2, "implement", false).entries, ...ownArtifactHistory(events2, id2, "test-plan", false).entries].sort((a, b) => a.event - b.event);
+      const instruction = "Operator export: entries are reference-only historical evidence for both maker roles. For each available entry, read artifacts/<sha256>.patch relative to the export root for its exact recorded UTF-8 patch bytes. Unavailable means historical evidence could not be verified; a legacy patch file may still exist. This index grants no worker access, permission to apply or resume artifacts, or continuation authority.";
+      writeFileSync6(join10(destination, "history.json"), JSON.stringify({ instruction, entries: entries3 }, null, 2));
+      const artifacts = savedArtifacts(events2);
       if (artifacts.length) {
-        const destination = join10(dir, "artifacts");
-        mkdirSync6(destination, { recursive: true });
         for (const artifact of artifacts) writeFileSync6(join10(destination, artifact.sha256 + ".patch"), artifact.patch);
         writeFileSync6(join10(destination, "manifest.json"), JSON.stringify(artifacts.map(({ patch: _patch, ...meta }) => meta), null, 2));
       }
@@ -27461,7 +27987,7 @@ var qaExport = Effect_exports.fn("mw.qaExport")(function* (runId, query = {}) {
 var ROOT = "/api/v1";
 var BODY_LIMIT = 65536;
 var TEXT_LIMIT = 32768;
-var hash2 = (value4) => createHash8("sha256").update(value4).digest("hex");
+var hash2 = (value4) => createHash10("sha256").update(value4).digest("hex");
 var revisionOf = (item) => hash2(JSON.stringify(item));
 var fail10 = (status, reason, message, facts = {}) => new MadeWellError({
   code: "api_request",
@@ -27489,12 +28015,15 @@ var answerPolicy = (item) => {
     reason: options.length ? options.map((n) => n.why).join("; ") : item.hold?.message ?? `The item is ${item.status}; it is not waiting for an answer.`
   };
 };
-var messagesOf = (item, events2, store) => {
+var messagesOf = (item, events2, store, exact = false) => {
   const messages = [{ id: `source:${item.id}`, at: item.created, role: "operator", kind: "source", text: item.source, event: events2.find((e) => e.kind === "created")?.seq ?? null }];
   for (const e of events2) {
-    if (e.kind === "nq-question" && Array.isArray(e.data.questions)) messages.push({ id: `event:${e.seq}`, at: e.at, role: String(e.data.receiver ?? "agent"), kind: "question", text: e.data.questions.map(String).join("\n"), event: e.seq });
+    if (e.kind === "nq-question" && Array.isArray(e.data.questions)) messages.push({ id: `event:${e.seq}`, at: e.at, role: String(e.data.receiver ?? "unknown"), kind: "question", text: e.data.questions.map(String).join("\n"), event: e.seq });
     const text4 = e.data.answer ?? (e.kind === "ruling" && typeof e.data.prerequisite === "number" ? store.get(e.data.prerequisite)?.objective : void 0);
-    if (["nq-answer", "nq-corrected", "steered", "ruling"].includes(e.kind) && typeof text4 === "string") messages.push({ id: `event:${e.seq}`, at: e.at, role: String(e.data.originator ?? e.data.by ?? "agent"), kind: "answer", text: text4, event: e.seq });
+    if (["nq-answer", "nq-corrected", "steered", "ruling", "nq-decided", "nq-reused"].includes(e.kind) && (typeof text4 === "string" || e.kind === "nq-reused")) {
+      const references = messageReferencesOf(store, item, e), role = String(e.data.originator ?? e.data.by ?? "unknown");
+      messages.push({ id: `event:${e.seq}`, at: e.at, role, actor: { role, job: typeof e.data.job === "string" ? e.data.job : null }, kind: e.kind === "nq-decided" ? "decision" : e.kind === "nq-reused" ? "reuse" : "answer", text: e.kind === "nq-reused" ? "Reused answer" + (references.length ? ": " + references.slice(0, 5).map((r) => r.answerId).join(", ") : " (target unknown)") : String(text4), event: e.seq, references: exact ? references : references.slice(0, 5).map((r) => ({ ...r, question: displayPreview(r.question, 240) })), referencesTotal: references.length, referencesOmitted: exact ? 0 : Math.max(0, references.length - 5), evidence: evidenceUrl(item.id, "event", e.seq) });
+    }
   }
   return messages;
 };
@@ -27504,13 +28033,23 @@ var contextOf = (store, id2) => {
   const revision = revisionOf(item);
   const policy = answerPolicy(item);
   const history2 = messagesOf(item, events2, store).filter((m) => m.kind !== "source");
-  let remaining = 12e3;
+  const currentHandoff = currentHandoffOf(store, item);
+  let remaining = 12e3 - JSON.stringify(currentHandoff).length - 2;
   const selected = [];
   for (const m of history2.slice(-20).reverse()) {
-    if (!remaining) break;
-    const text4 = m.text.slice(0, Math.min(2e3, remaining));
-    remaining -= text4.length;
-    selected.unshift({ ...m, text: text4, truncated: text4.length < m.text.length });
+    const entry = {
+      ...m,
+      at: displayPreview(m.at),
+      role: displayPreview(m.role),
+      text: displayPreview(m.text, 2e3),
+      ...m.actor ? { actor: { role: displayPreview(m.actor.role), job: m.actor.job === null ? null : displayPreview(m.actor.job) } } : {},
+      ...m.references ? { references: m.references.map((r) => ({ ...r, question: displayPreview(r.question, 240), by: displayPreview(r.by), job: r.job === null ? null : displayPreview(r.job), source: r.source ? { ...r.source, at: displayPreview(r.source.at) } : null })) } : {},
+      truncated: Array.from(m.text).length > 2e3 || [m.at, m.role, m.actor?.role ?? "", m.actor?.job ?? ""].some((v) => Array.from(v).length > 120) || (m.referencesTotal ?? 0) > (m.references?.length ?? 0) || !!m.references?.some((r) => Array.from(r.question).length >= 240 || [r.by, r.job ?? "", r.source?.at ?? ""].some((v) => Array.from(v).length > 120))
+    };
+    const size7 = JSON.stringify(entry).length + 1;
+    if (size7 > remaining) break;
+    remaining -= size7;
+    selected.unshift(entry);
   }
   const actions = nextFor(item).map((n) => {
     const command2 = n.run.split(" ")[1];
@@ -27519,7 +28058,7 @@ var contextOf = (store, id2) => {
     return {
       owner: read2 ? "observer" : "operator",
       authority: read2 ? "read-only" : "explicit-operator-action",
-      reason: n.why,
+      reason: displayPreview(n.why, 240),
       command: n.run,
       transport: command2 === "answer" ? "http" : "cli",
       ...command2 === "answer" ? { method: "POST", href: `${ROOT}/items/${id2}/answers` } : {},
@@ -27528,18 +28067,41 @@ var contextOf = (store, id2) => {
     };
   });
   if (item.status === "candidate" && item.discovery !== void 0) actions.unshift({ owner: "operator", authority: "explicit-operator-action", reason: "Start this task and its prerequisites through the configured delivery steps.", command: `mw promote ${item.discovery} ${id2}`, transport: "http", method: "POST", href: `${ROOT}/items/${id2}/start`, inputs: { revision, requestId: null }, preconditions: { revision, status: item.status, holdCode: null } });
-  return {
+  const context3 = {
     apiVersion: "1",
-    item: { id: id2, title: item.title, objective: item.objective, source: item.source.slice(0, 8e3), sourceTruncated: item.source.length > 8e3, workspace: item.workspace },
-    position: { status: item.status, node: item.job, round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? "discovery" : "delivery"), accepted: item.flow?.accepted ?? [] },
+    item: { id: id2, title: displayPreview(item.title), objective: displayPreview(item.objective, 240), source: displayPreview(item.source, 8e3), sourceTruncated: Array.from(item.source).length > 8e3, workspace: displayPreview(item.workspace) },
+    position: { status: item.status, node: displayPreview(item.job), round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? "discovery" : "delivery"), accepted: (item.flow?.accepted ?? []).slice(0, 20).map((v) => displayPreview(v)), acceptedTotal: item.flow?.accepted.length ?? 0, acceptedOmitted: Math.max(0, (item.flow?.accepted.length ?? 0) - 20) },
     revision,
     evidence: { event: events2.at(-1)?.seq ?? 0, record: `/api/item/${id2}`, trace: `/api/trace/${id2}?lens=ax`, conversation: `${ROOT}/items/${id2}/conversation`, otlp: `${ROOT}/items/${id2}/otlp`, qaCases: `${ROOT}/qa/cases?workItem=${id2}`, qaRuns: `${ROOT}/qa/runs?workItem=${id2}`, cli: { record: `mw show ${id2}`, trace: `mw trace ${id2} --lens ax`, context: `mw context ${id2}` } },
-    answer: policy,
+    currentHandoff,
+    answer: { ...policy, reason: displayPreview(policy.reason, 240) },
     conversation: selected,
     conversationTruncated: selected.length < history2.length || selected.some((m) => m.truncated),
     next: actions,
+    actionsTotal: actions.length,
+    actionsOmitted: 0,
+    truncated: false,
     observation: { owner: "observer", authority: "read-only", reason: actions.length ? "Relay the operator decision; do not answer on their behalf." : "Read saved evidence; no automatic retry, repair or steering is authorized.", method: "GET", href: `${ROOT}/items/${id2}`, command: `mw context ${id2}` }
   };
+  const account = () => {
+    context3.actionsOmitted = context3.actionsTotal - actions.length;
+    context3.position.acceptedOmitted = context3.position.acceptedTotal - context3.position.accepted.length;
+    context3.conversationTruncated ||= selected.length < history2.length || selected.some((m) => m.truncated);
+    context3.truncated ||= context3.item.sourceTruncated || context3.currentHandoff.truncated || context3.conversationTruncated || context3.actionsOmitted > 0 || context3.position.acceptedOmitted > 0 || context3.answer.reason !== policy.reason || context3.item.title !== item.title || context3.item.objective !== item.objective || context3.item.workspace !== item.workspace || context3.position.node !== item.job || context3.position.accepted.some((v, i) => v !== item.flow?.accepted[i]) || actions.some((a) => Array.from(a.reason).length >= 240);
+  };
+  account();
+  while (Buffer.byteLength(JSON.stringify(context3), "utf8") > 24576) {
+    context3.truncated = true;
+    if (selected.length) selected.shift();
+    else if (context3.item.source) {
+      context3.item.source = displayPreview(context3.item.source, Math.floor(Array.from(context3.item.source).length / 2));
+      context3.item.sourceTruncated = true;
+    } else if (actions.length) actions.pop();
+    else if (context3.position.accepted.length) context3.position.accepted.pop();
+    else break;
+    account();
+  }
+  return context3;
 };
 var str = { type: "string" };
 var integer2 = { type: "integer", minimum: 0 };
@@ -27551,30 +28113,50 @@ var ref = (name) => ({ $ref: `#/components/schemas/${name}` });
 var textInput = (maxLength) => ({ type: "string", minLength: 1, maxLength, pattern: "\\S" });
 var requestIdSchema = { type: "string", pattern: "^[A-Za-z0-9_-]{16,128}$" };
 var revisionSchema = { type: "string", pattern: "^[a-f0-9]{64}$" };
-var messageSchema = object({ id: str, at: str, role: str, kind: str, text: str, event: nullable(integer2), truncated: bool }, ["id", "at", "role", "kind", "text", "event"]);
+var arbitrary = { type: "object", additionalProperties: true };
+var sourceSchema = object({ item: integer2, event: integer2, at: str });
+var answerReferenceSchema = object({ question: str, answerId: str, canonicalId: nullable(str), resolved: bool, by: str, job: nullable(str), source: nullable(sourceSchema), detail: str });
+var fullHandoffInputSchema = object({ id: str, state: { enum: ["recorded-available", "recorded-unavailable", "not-checked", "unknown"] }, currentAvailability: { const: "unknown" }, declaration: nullable(arbitrary), observation: nullable(arbitrary), evidence: str });
+var fullHandoffQuestionSchema = object({ id: str, text: str, textTruncated: bool, ownerRole: str, blockingRole: nullable(str), resolution: { enum: ["resolved", "unresolved"] }, resolutions: array2(answerReferenceSchema), resolutionsTotal: integer2, resolutionsOmitted: integer2 });
+var fullHandoffEntrySchema = object({ id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ["agent", "command", "group", "engine"] }, mode: { enum: ["current", "configured-next"] }, exchangeStatus: str, round: integer2, questionIds: array2(str), unresolvedCount: integer2, expectedOutput: object({ state: { enum: ["configured", "unspecified"] }, detail: str, pointer: str }), inputs: array2(fullHandoffInputSchema), inputsTotal: integer2, inputsOmitted: integer2, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array2(integer2) }), truncated: bool });
+var compactQuestionSchema = object({ key: str, id: str, text: str, textTruncated: bool, ownerRole: str, blockingRole: nullable(str), truncated: bool });
+var compactQuestionStateSchema = object({ key: str, resolution: { enum: ["resolved", "unresolved"] }, resolutions: array2(answerReferenceSchema), resolutionsTotal: integer2, resolutionsOmitted: integer2, truncated: bool });
+var compactInputSchema = object({ key: str, id: str, state: { enum: ["recorded-available", "recorded-unavailable", "not-checked", "unknown"] }, currentAvailability: { const: "unknown" }, observation: nullable(object({ event: integer2, item: nullable(integer2), ok: bool, at: str, job: str, name: nullable(str), dir: nullable(str) })), evidence: str, truncated: bool });
+var compactEntrySchema = object({ key: str, id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ["agent", "command", "group", "engine"] }, mode: { enum: ["current", "configured-next"] }, exchangeStatus: str, round: integer2, questionStates: array2(compactQuestionStateSchema), questionsTotal: integer2, questionsOmitted: integer2, unresolvedCount: integer2, expectedOutput: object({ state: { enum: ["configured", "unspecified"] }, detail: str, pointer: str }), inputs: array2(compactInputSchema), inputsTotal: integer2, inputsOmitted: integer2, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array2(integer2) }), truncated: bool });
+var handoffSchema = object({ entries: array2(compactEntrySchema), entriesTotal: integer2, entriesOmitted: integer2, questions: array2(compactQuestionSchema), questionsTotal: integer2, questionsOmitted: integer2, evidence: object({ detail: str }), truncated: bool });
+var messageSchema = object({ id: str, at: str, role: str, kind: str, text: str, event: nullable(integer2), truncated: bool, actor: object({ role: str, job: nullable(str) }), references: array2(answerReferenceSchema), referencesTotal: integer2, referencesOmitted: integer2, evidence: str }, ["id", "at", "role", "kind", "text", "event"]);
+var eventDetailSchema = object({ event: object({ seq: integer2, item: integer2, at: str, kind: str, data: arbitrary }), references: array2(answerReferenceSchema), messages: array2(messageSchema) });
+var answerDetailSchema = object({ requestedId: str, canonicalId: str, question: str, answer: str, by: str, job: str, source: nullable(sourceSchema) });
+var handoffDetailSchema = object({ entry: fullHandoffEntrySchema, questions: array2(fullHandoffQuestionSchema), declarations: array2(object({ call: integer2, scope: str, projectInputs: {} })), observations: array2(arbitrary), outputSchema: nullable(arbitrary) });
 var actionSchema = object({ owner: str, authority: str, reason: str, command: str, transport: str, method: str, href: str, inputs: { type: "object", additionalProperties: true }, preconditions: object({ revision: revisionSchema, status: str, holdCode: nullable(str) }) }, ["owner", "authority", "reason", "command", "transport", "inputs", "preconditions"]);
 var attributesSchema = array2(object({ key: str, value: { oneOf: [object({ stringValue: str }), object({ intValue: { type: "string", pattern: "^-?[0-9]+$" } }), object({ doubleValue: { type: "number" } })] } }));
 var API_SCHEMAS = {
   ...QA_JSON_SCHEMAS,
+  CurrentHandoff: handoffSchema,
+  Evidence: { anyOf: [object({ apiVersion: { const: "1" }, item: integer2, kind: { enum: ["event", "answer", "handoff", "handoff-slot"] }, ref: str, available: { const: false }, data: { type: "null" } }), ...["event", "answer", "handoff", "handoff-slot"].map((kind) => object({ apiVersion: { const: "1" }, item: integer2, kind: { const: kind }, ref: str, available: { const: true }, data: kind === "event" ? eventDetailSchema : kind === "answer" ? answerDetailSchema : handoffDetailSchema }))] },
   Submit: object({ requestId: requestIdSchema, workspace: textInput(4096), title: textInput(300), objective: textInput(2e3), source: textInput(TEXT_LIMIT), mode: { enum: ["discovery", "delivery"] } }, ["requestId", "workspace", "objective", "source"]),
   Answer: object({ requestId: requestIdSchema, revision: revisionSchema, text: textInput(TEXT_LIMIT), cause: { enum: ["implementation", "test", "pre-existing"] } }, ["requestId", "revision", "text"]),
   Start: object({ requestId: requestIdSchema, revision: revisionSchema }),
   Context: object({
     apiVersion: { const: "1" },
     item: object({ id: integer2, title: str, objective: str, source: str, sourceTruncated: bool, workspace: str }),
-    position: object({ status: str, node: str, round: integer2, loop: str, accepted: array2(str) }),
+    position: object({ status: str, node: str, round: integer2, loop: str, accepted: array2(str), acceptedTotal: integer2, acceptedOmitted: integer2 }),
     revision: revisionSchema,
     evidence: object({ event: integer2, record: str, trace: str, conversation: str, otlp: str, qaCases: str, qaRuns: str, cli: object({ record: str, trace: str, context: str }) }),
     answer: object({ allowed: bool, causeRequired: bool, causes: array2(str), reason: str }),
+    currentHandoff: ref("CurrentHandoff"),
     conversation: array2(messageSchema),
     conversationTruncated: bool,
     next: array2(actionSchema),
+    actionsTotal: integer2,
+    actionsOmitted: integer2,
+    truncated: bool,
     observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str })
   }),
   Conversation: object({ apiVersion: { const: "1" }, item: integer2, revision: revisionSchema, messages: array2(messageSchema), nextAfter: nullable(integer2), hasMore: bool }),
   Accepted: object({ apiVersion: { const: "1" }, accepted: { const: true }, requestId: requestIdSchema, receipt: object({ item: integer2, revision: revisionSchema, event: integer2, replayed: bool }), context: nullable(ref("Context")), warnings: array2(str) }),
   Problem: object({ type: str, title: str, status: integer2, detail: str, instance: str, code: str, reason: str, context: { type: "object", additionalProperties: true }, task: nullable(ref("Context")), next: array2(object({ run: str, why: str })), recovery: object({ preserveDraft: { const: true }, retry: str }) }),
-  Projects: object({ apiVersion: { const: "1" }, projects: array2(object({ workspace: str, autonomy: str, pack: str })) }),
+  Projects: object({ apiVersion: { const: "1" }, projects: array2(object({ workspace: str, autonomy: str, pack: { ...str, description: "Configured builtin:grammar selector, absolute cartridge pack file, or default; new items pin the complete resolved pack." } })) }),
   Session: object({ apiVersion: { const: "1" }, csrfToken: str, header: { const: "X-MW-CSRF" }, maxBodyBytes: integer2 }),
   Discovery: object({ apiVersion: { const: "1" }, openapi: str, session: str, projects: str, submit: str, qaCases: str, qaRuns: str, authority: str, telemetry: object({ format: str, exported: str, unavailable: array2(str) }) }),
   Otlp: object({ resourceSpans: array2(object({ resource: object({ attributes: attributesSchema }), scopeSpans: array2(object({ scope: object({ name: str }), spans: array2(object({ traceId: { type: "string", pattern: "^[a-f0-9]{32}$" }, spanId: { type: "string", pattern: "^[a-f0-9]{16}$" }, name: str, kind: { const: 1 }, startTimeUnixNano: { type: "string", pattern: "^[0-9]+$" }, endTimeUnixNano: { type: "string", pattern: "^[0-9]+$" }, attributes: attributesSchema, status: object({ code: { enum: [1, 2] } }) })) })) })) })
@@ -27619,6 +28201,7 @@ var OPENAPI = {
     [`${ROOT}/items/{id}/answers`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], post: operation("answerWork", ref("Accepted"), "Answer") },
     [`${ROOT}/items/{id}/start`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], post: operation("startSelectedTask", ref("Accepted"), "Start") },
     [`${ROOT}/items/{id}/conversation`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], get: { ...operation("readConversation", ref("Conversation")), parameters: [{ name: "after", in: "query", schema: integer2, description: "Last seen event seq; absent starts with source. Pages contain up to 50 messages." }] } },
+    [`${ROOT}/items/{id}/evidence`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], get: { ...operation("readEvidence", ref("Evidence")), parameters: [{ name: "kind", in: "query", required: true, schema: { enum: ["event", "answer", "handoff", "handoff-slot"] } }, { name: "ref", in: "query", required: true, schema: str, description: "Exact event sequence, sequence:index answer identity, configured job, or handoff-slot zero-based slot:SHA-256 digest of the complete current handoff JSON. A changed slot/digest is unavailable. Unknown/repeated selectors are refused; unavailable saved targets return available:false." }] } },
     [`${ROOT}/items/{id}/otlp`]: { parameters: [{ name: "id", in: "path", required: true, schema: { type: "integer", minimum: 1 } }], get: operation("exportOtlp", ref("Otlp")) },
     [`${ROOT}/qa/cases`]: { get: qaOperation("qaCases", "QaCaseList", void 0, "QaCasesQuery"), post: qaOperation("qaCreateCase", "QaAccepted", "QaCreateCaseInput") },
     [`${ROOT}/qa/cases/{caseId}`]: { get: qaOperation("qaCase", "QaCaseDetail", void 0, "QaCaseQuery", ["caseId"]) },
@@ -27645,7 +28228,7 @@ var validateBody = (value4, kind) => {
   }
   return body;
 };
-var readBody = (req) => new Promise((resolve11, reject) => {
+var readBody = (req) => new Promise((resolve12, reject) => {
   let size7 = 0;
   const chunks = [];
   const timer = setTimeout(() => finish(fail10(408, "body_timeout", "Request body did not arrive within 10 seconds.")), 1e4);
@@ -27658,7 +28241,7 @@ var readBody = (req) => new Promise((resolve11, reject) => {
     if (error) {
       req.resume();
       reject(error);
-    } else resolve11(value4);
+    } else resolve12(value4);
   };
   const broken = () => finish(fail10(400, "body_interrupted", "Request body was interrupted; retry the same request ID and exact input."));
   const data = (chunk) => {
@@ -27755,7 +28338,7 @@ var createApi = (options) => {
           if (!existing) store.close();
         }
       }
-      const match8 = /^\/api\/v1\/items\/([1-9]\d*)(?:\/(answers|start|conversation|otlp))?$/.exec(url.pathname);
+      const match8 = /^\/api\/v1\/items\/([1-9]\d*)(?:\/(answers|start|conversation|otlp|evidence))?$/.exec(url.pathname);
       target = match8 ? Number(match8[1]) : void 0;
       if (target !== void 0 && !Number.isSafeInteger(target)) throw fail10(400, "invalid_id", "Item ID must be a positive safe integer.");
       const write2 = url.pathname === `${ROOT}/items` || match8?.[2] === "answers" || match8?.[2] === "start";
@@ -27787,7 +28370,7 @@ var createApi = (options) => {
           let item;
           if (target === void 0) {
             const project = registered2();
-            const pack = project.cartridges ? sync4(loadPack(project.cartridges)) : void 0;
+            const { pack } = sync4(resolvePackSelection(project.cartridges));
             const discovery2 = body.mode === "discovery";
             item = store.create({ title: body.title ?? body.objective, objective: body.objective, source: body.source, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...pack ? { pack } : {}, ...discovery2 ? { job: laneOf(pack).discovery[0]?.job ?? "", ...pack?.runtime === "functions" ? { flow: { loop: "discovery", accepted: [] } } : {} } : {} });
           } else {
@@ -27819,11 +28402,18 @@ var createApi = (options) => {
       if (match8) {
         const store = options.open();
         const item = found(store, target);
+        if (match8[2] === "evidence") {
+          const params = url.searchParams, kind = params.get("kind"), ref2 = params.get("ref");
+          if ([...params.keys()].some((k) => !["kind", "ref"].includes(k)) || params.getAll("kind").length !== 1 || params.getAll("ref").length !== 1 || !["event", "answer", "handoff", "handoff-slot"].includes(kind ?? "") || !ref2 || kind === "event" && (!/^[1-9]\d*$/.test(ref2) || !Number.isSafeInteger(Number(ref2))) || kind === "answer" && (!/^[1-9]\d*:(0|[1-9]\d*)$/.test(ref2) || ref2.split(":").some((n) => !Number.isSafeInteger(Number(n)))) || kind === "handoff" && !/^[a-z0-9][a-z0-9-]*$/.test(ref2) || kind === "handoff-slot" && (!/^(0|[1-9]\d*):[a-f0-9]{64}$/.test(ref2) || !Number.isSafeInteger(Number(ref2.split(":")[0])))) throw fail10(400, "invalid_selector", "Provide exactly one valid kind and ref; unknown or repeated parameters are refused.");
+          const data = evidenceDetailOf(store, item, kind, ref2);
+          if (kind === "event" && data && "event" in data) Object.assign(data, { messages: messagesOf(item, [data.event], store, true).filter((m) => m.kind !== "source") });
+          return send(res, { apiVersion: "1", item: item.id, kind, ref: ref2, available: data !== null, data });
+        }
         if (match8[2] === "otlp") return send(res, otlpOf(store, item.id));
         if (match8[2] === "conversation") {
           const after = url.searchParams.has("after") ? Number(url.searchParams.get("after")) : -1;
           if (!Number.isSafeInteger(after) || after < -1) throw fail10(400, "invalid_cursor", "after must be an event sequence number.");
-          const messages = messagesOf(item, store.events(item.id), store).filter((m) => after < 0 || (m.event ?? 0) > after);
+          const messages = messagesOf(item, store.events(item.id), store, true).filter((m) => after < 0 || (m.event ?? 0) > after);
           const page2 = messages.slice(0, 50);
           return send(res, { apiVersion: "1", item: item.id, revision: revisionOf(item), messages: page2, nextAfter: page2.at(-1)?.event ?? null, hasMore: messages.length > page2.length });
         }
@@ -27847,7 +28437,7 @@ var createApi = (options) => {
 
 // src/eval.ts
 import { readFileSync as readFileSync9 } from "node:fs";
-import { resolve as resolve7 } from "node:path";
+import { resolve as resolve8 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = AGENT_JOBS;
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
@@ -27882,12 +28472,12 @@ var EvalReport = Schema_exports.Struct({
   next: Schema_exports.Array(Next)
 }).annotate({ identifier: "EvalReport" });
 var score = (kind, lane, job, r) => {
-  const accepted2 = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(lane, job, r.output);
+  const accepted = r.output === null ? { ok: false, reason: `The call ended ${r.outcome} with no answer.` } : kind === "intake" ? decode5(INTAKE, r.output) : kind === "originator" ? decode5(ORIGINATOR, r.output) : validate3(lane, job, r.output);
   return {
     outcome: r.outcome,
-    valid: accepted2.ok,
+    valid: accepted.ok,
     parses: r.output !== null && lastJson(r.output) !== void 0,
-    reason: accepted2.ok ? null : accepted2.reason,
+    reason: accepted.ok ? null : accepted.reason,
     flags: r.flags.map((f) => f.rule),
     seconds: r.ms / 1e3,
     tokens: r.tokens ? totalTokens(r.tokens) : null
@@ -27939,7 +28529,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   if (items.some((i) => !ITEM_IDS.test(i) || Number(i) < 1)) return yield* usage(`--item takes work item numbers separated by commas, such as --item 3,5; got "${o.item}".`);
   const ids = items.map(Number);
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
-  const briefPath = o.brief === void 0 ? void 0 : resolve7(o.brief);
+  const briefPath = o.brief === void 0 ? void 0 : resolve8(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
     try: () => readFileSync9(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
@@ -28076,7 +28666,7 @@ import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_proce
 import { closeSync as closeSync3, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync11, readSync as readSync3, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
 import { homedir as homedir3, hostname as hostname2 } from "node:os";
-import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve9 } from "node:path";
+import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve10 } from "node:path";
 
 // src/console.ts
 var CONSOLE = String.raw`<!doctype html>
@@ -28704,6 +29294,7 @@ p{margin:0 0 var(--space-2);max-width:68ch;text-wrap:pretty;overflow-wrap:anywhe
 .step{display:flex;align-items:baseline;gap:var(--space-3);padding:var(--space-2) 0;border-bottom:1px solid var(--line-color)}
 .step-name{overflow-wrap:anywhere;min-width:0}.step-state{margin-left:auto;text-align:right;flex-shrink:0;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted)}
 .step-state.done{color:var(--accent)}.step-state.attention{color:var(--warning)}
+[data-current-work]{min-width:0;overflow-wrap:anywhere}[data-current-work] p{white-space:pre-wrap}[data-current-work] section{margin-bottom:var(--space-3)}
 .technical{margin-top:var(--space-8);border-top:1px solid var(--line-color)}
 details{border-bottom:1px solid var(--line-color)}summary{padding:var(--space-3) var(--space-1);cursor:pointer;overflow-wrap:anywhere;transition:background-color 160ms ease-out}
 summary:hover{background:var(--side)}summary:active{background:var(--hover)}summary::marker{color:var(--muted)}
@@ -28718,7 +29309,7 @@ pre.error{color:var(--error);background:var(--error-bg)}
 .action{font:inherit;color:var(--accent);background:var(--paper);border:1px solid var(--accent);border-radius:var(--radius);padding:var(--space-1) var(--space-3);cursor:pointer;transition:background-color 160ms ease-out}
 .action:hover{background:var(--hover)}.action:active{background:var(--selected)}.action:disabled{color:var(--muted);border-color:var(--line-color);background:var(--side);cursor:not-allowed}
 .action.primary{color:var(--paper);background:var(--accent)}.action.primary:hover{background:#194b39}.action.primary:disabled{color:var(--muted);background:var(--side)}
-.conversation,.composer{max-width:68ch}.conversation{margin-top:var(--space-8)}.messages{list-style:none;padding:0;margin:0}.message{padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}
+.conversation,.composer{max-width:68ch}.conversation{margin-top:var(--space-8)}.messages{list-style:none;padding:0;margin:0}.message{white-space:pre-wrap;padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}
 .message p,.returned-text{white-space:pre-wrap;overflow-wrap:anywhere}.message .system{margin-bottom:var(--space-1)}.message details{border:0}.message summary{padding-left:0}
 .field{display:block;margin:var(--space-3) 0}.field label{display:block;font-weight:500;margin-bottom:var(--space-1)}
 input,textarea,select{width:100%;min-width:0;font:inherit;color:var(--ink);background:var(--paper);border:1px solid #8a9a91;border-radius:var(--radius);padding:var(--space-2);caret-color:var(--accent)}
@@ -28734,6 +29325,57 @@ textarea{min-height:9rem;resize:vertical}input:read-only,textarea:read-only,sele
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 `;
+var EVIDENCE_SCRIPT = String.raw`
+const evidenceNode=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n};
+const evidenceText=(n,text)=>{text=String(text??'');if(n.textContent!==text){const top=n.scrollTop,left=n.scrollLeft;n.textContent=text;n.scrollTop=top;n.scrollLeft=left}};
+function exactEvidence(parent,key,label,url){
+ let d=[...parent.children].find(n=>n.dataset.evidenceKey===key);
+ if(d){d._updateEvidence(label,url);return d}
+ d=evidenceNode('details');d.dataset.evidenceKey=key;d.dataset.key=key;
+ const summary=evidenceNode('summary',label),body=evidenceNode('div');d.append(summary,body);
+ let loaded=false,generation=0;
+ const retry=(text)=>{const button=evidenceNode('button',text);button.type='button';button.onclick=()=>{loaded=true;void load()};body.append(button)};
+ const load=async()=>{const version=generation,target=d._evidenceUrl;body.replaceChildren(evidenceNode('p','Loading saved evidence…'));try{const response=await fetch(target,{cache:'no-store'});if(version!==generation)return;if(!response.ok)throw new Error('Evidence unavailable (HTTP '+response.status+').');const value=await response.json();if(version!==generation)return;body.replaceChildren();if(!value.available){body.append(evidenceNode('p','Saved evidence unavailable or changed.'));retry('Refresh evidence');return}const data=value.data;const pre=evidenceNode('pre',data.answer!==undefined?data.answer:JSON.stringify(data,null,2));pre.tabIndex=0;pre.setAttribute('aria-label',d._evidenceLabel);body.append(pre)}catch(e){if(version!==generation)return;body.replaceChildren(evidenceNode('p',e.message));retry('Try again')}};
+ d._updateEvidence=(nextLabel,nextUrl)=>{const changed=d._evidenceUrl!==undefined&&d._evidenceUrl!==nextUrl;d._evidenceUrl=nextUrl;d._evidenceLabel=nextLabel;d.dataset.evidenceUrl=nextUrl;d.dataset.evidenceLabel=nextLabel;evidenceText(summary,nextLabel);if(changed){generation++;loaded=false;body.replaceChildren(evidenceNode('p','Saved evidence changed.'));retry('Refresh evidence')}};
+ d._updateEvidence(label,url);d.addEventListener('toggle',()=>{if(d.open&&!loaded){loaded=true;void load()}});parent.append(d);return d;
+}
+function currentWork(parent,summary,item){
+ let root=[...parent.children].find(n=>n.dataset.currentWork===String(item));if(!root){root=evidenceNode('section');root.dataset.currentWork=String(item);root.append(evidenceNode('h3','Current work'));parent.append(root)}
+ const entries=summary?.entries??[],keep=new Set(entries.map(e=>e.key));
+ for(const n of [...root.children])if(n.dataset.handoff&&!keep.has(n.dataset.handoff))n.remove();
+ let empty=root.querySelector('[data-no-handoff]');if(!entries.length){if(!empty){empty=evidenceNode('p');empty.dataset.noHandoff='';root.append(empty)}evidenceText(empty,summary?.entriesTotal?'Active handoffs omitted from this preview. Inspect full evidence.':'No current handoff.')}else empty?.remove();
+ let summaryNote=root.querySelector('[data-summary-note]');if(!summaryNote){summaryNote=evidenceNode('p');summaryNote.dataset.summaryNote='';root.append(summaryNote)}
+ evidenceText(summaryNote,(summary?.truncated?'Preview shortened. ':'')+(summary?.entriesOmitted?summary.entriesOmitted+' active handoffs omitted. ':'')+(summary?.questionsOmitted?summary.questionsOmitted+' questions omitted. ':''));
+ if(summary?.evidence?.detail){let link=root.querySelector('[data-full-evidence]');if(!link){link=evidenceNode('a','Inspect full evidence');link.dataset.fullEvidence='';root.append(link)}if(link.getAttribute('href')!==summary.evidence.detail)link.href=summary.evidence.detail}
+ for(const entry of entries){let card=[...root.children].find(n=>n.dataset.handoff===entry.key);if(!card){card=evidenceNode('section');card.dataset.handoff=entry.key;for(const key of ['role','duty','owed']){const p=evidenceNode('p');p.dataset.field=key;card.append(p)}root.append(card)}
+  evidenceText(card.querySelector('[data-field=role]'),entry.profile+' · '+entry.job+' · '+(entry.mode==='configured-next'?'Configured next; handoff not established':entry.exchangeStatus));
+  evidenceText(card.querySelector('[data-field=duty]'),entry.duty+(entry.dutyTruncated?'…':''));
+  evidenceText(card.querySelector('[data-field=owed]'),entry.unresolvedCount+' outstanding obligation'+(entry.unresolvedCount===1?'':'s'));
+  exactEvidence(card,entry.key+':output','Expected output & complete handoff',entry.expectedOutput.detail);
+  const questionKeys=new Set();for(const state of entry.questionStates??[]){const q=(summary.questions??[]).find(q=>q.key===state.key);if(!q)continue;const key=entry.key+':question:'+q.key;questionKeys.add(key);let row=[...card.children].find(n=>n.dataset.question===key);if(!row){row=evidenceNode('div');row.dataset.question=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,q.text+(q.textTruncated?'…':'')+' · '+q.ownerRole+(q.blockingRole?' · needed by '+q.blockingRole:'')+' · '+state.resolution);
+   const answers=new Set();for(const [i,r] of (state.resolutions??[]).entries()){const answerKey=key+':answer:'+i;answers.add(answerKey);exactEvidence(row,answerKey,'Saved resolution · '+r.by+' · '+r.answerId,r.detail)}if(state.resolutionsOmitted){answers.add(key+':more');exactEvidence(row,key+':more','All '+state.resolutionsTotal+' saved resolutions',entry.evidence.detail)}for(const disclosure of [...row.children])if(disclosure.dataset.evidenceKey&&!answers.has(disclosure.dataset.evidenceKey))disclosure.remove();
+  }
+  for(const row of [...card.children])if(row.dataset.question&&!questionKeys.has(row.dataset.question))row.remove();
+  const inputKeys=new Set();for(const input of entry.inputs??[]){const o=input.observation,key=entry.key+':input:'+input.key;inputKeys.add(key);let row=[...card.children].find(n=>n.dataset.input===key);if(!row){row=evidenceNode('div');row.dataset.input=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,input.id+' · '+(o?'Observed '+(o.ok?'available':'unavailable')+' at '+o.at+' · '+o.job+' · '+(o.name??'unknown worktree')+' · '+(o.dir??'unknown directory'):input.state==='not-checked'?'Not checked':'Unknown')+' · Current availability unknown');exactEvidence(row,key+':detail','Recorded input evidence',input.evidence)}
+  for(const row of [...card.children])if(row.dataset.input&&!inputKeys.has(row.dataset.input))row.remove();
+  let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.truncated?'Preview shortened. ':'')+(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(entry.questionsOmitted?entry.questionsOmitted+' more assigned questions. ':'')+'Exact details are available above.');
+ }
+ return root;
+}
+function patchEvidence(old,fresh){
+ if(old.nodeType!==fresh.nodeType||old.nodeName!==fresh.nodeName){old.replaceWith(fresh);return fresh}
+ if(old.nodeType===3){if(old.nodeValue!==fresh.nodeValue)old.nodeValue=fresh.nodeValue;return old}
+ const top=old.scrollTop,left=old.scrollLeft;
+ if(old.dataset.evidenceKey&&old.dataset.evidenceKey===fresh.dataset.evidenceKey){old._updateEvidence(fresh._evidenceLabel,fresh._evidenceUrl);return old}
+ if(fresh._fill){old._fill=fresh._fill;old._filled=fresh._filled}
+ for(const a of [...old.attributes])if(!fresh.hasAttribute(a.name)&&a.name!=='open')old.removeAttribute(a.name);
+ for(const a of [...fresh.attributes])if(a.name!=='open'&&old.getAttribute(a.name)!==a.value)old.setAttribute(a.name,a.value);
+ const key=n=>n.nodeType===1?(n.dataset.handoff||n.dataset.key||n.dataset.question||n.dataset.input||n.dataset.field||null):null;
+ let cursor=old.firstChild;
+ for(const child of [...fresh.childNodes]){const k=key(child);let existing=k?[...old.childNodes].find(n=>key(n)===k):cursor&& !key(cursor)?cursor:null;if(existing){if(existing!==cursor)old.insertBefore(existing,cursor);existing=patchEvidence(existing,child);cursor=existing.nextSibling}else{old.insertBefore(child,cursor)}}
+ while(cursor){const next=cursor.nextSibling;cursor.remove();cursor=next}old.scrollTop=top;old.scrollLeft=left;return old;
+}
+`;
 var MONITOR = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Made Well · Your work</title>
@@ -28743,6 +29385,7 @@ var MONITOR = String.raw`<!doctype html>
 <header class="app-header"><h1>Made Well</h1><a href="/" aria-current="page">Work</a><a href="/qa">Manual QA</a><button class="action" id="new-work" type="button">New work</button><span id="connection" role="status">Connecting to your work…</span></header>
 <div class="workspace"><aside class="work-list"><h2>Your tasks</h2><p id="list-summary">Loading…</p><nav aria-label="Your tasks" id="runs"></nav></aside><main><article id="detail" tabindex="-1"><p class="system">Loading your work…</p></article></main></div>
 <script>
+${EVIDENCE_SCRIPT}
 const list=document.querySelector('#runs'),detail=document.querySelector('#detail'),connection=document.querySelector('#connection'),listSummary=document.querySelector('#list-summary');
 let selected=Number(location.hash.slice(1))||null,composing=location.hash==='#new',fetching=false,listKey='',renderKey='';
 let newWorkView=null;
@@ -28767,7 +29410,8 @@ function saveDraft(key,d){
 }
 function action(text,run,primary=false){const b=el('button',text,'action'+(primary?' primary':''));b.type='button';b.onclick=run;return b}
 function message(parent,m,key){
- const li=el('li',undefined,'message');li.append(el('p',(m.kind==='source'?'Original request':m.kind==='question'?'Question':'Answer')+' · '+m.role+(m.at?' · '+time(m.at):''),'system'));
+ let existing=[...parent.children].find(n=>n.dataset.message===m.id);const signature=json(m);if(existing?.dataset.signature===signature)return existing;
+ const li=el('li',undefined,'message');li.dataset.message=m.id;li.dataset.signature=signature;li.append(el('p',(m.kind==='source'?'Original request':m.kind==='question'?'Question':m.kind==='decision'?'Decision':m.kind==='reuse'?'Reused answer':'Answer')+' · '+m.role+(m.at?' · '+time(m.at):''),'system'));
  const long=m.text.length>600||m.truncated;
  li.append(el('p',long?m.text.slice(0,600)+'…':m.text));
  if(long)disclosure(li,'message:'+key+':'+m.id,'Read full message',async b=>{
@@ -28776,7 +29420,10 @@ function message(parent,m,key){
    const page=await get('/api/v1/items/'+key+'/conversation'+(m.kind==='source'?'':'?after='+Math.max(0,m.event-1)));
    const full=page.messages.find(x=>x.id===m.id);if(!full)throw new Error('The saved message is no longer available.');b.replaceChildren(el('p',full.text));
   }catch(e){b.replaceChildren(el('p',e.message,'feedback error'),action('Try again',load))}};await load();
- });parent.append(li);
+ });
+ for(const r of m.references??[]){li.append(el('p','Source: '+r.by+' · '+r.answerId+(r.resolved?'':' · unresolved'),'system'));exactEvidence(li,'answer:'+key+':'+r.answerId,'Read exact saved answer',r.detail)}
+ if(m.evidence)exactEvidence(li,'event:'+key+':'+m.event,m.referencesOmitted?'All '+m.referencesTotal+' answer references':'Exact event evidence',m.evidence);
+ if(existing)patchEvidence(existing,li);else parent.append(li);return existing??li;
 }
 // A pending request is immutable until acceptance or a definite rejection is known.
 // Drafts are local only; all accepted messages and work state belong to the API.
@@ -28864,8 +29511,8 @@ function conversation(id,context){
   conversations.set(id,{id,root,messages,reply,key:''});
  }
  const view=conversations.get(id),k=json([context.item.source,context.item.sourceTruncated,context.conversation,context.conversationTruncated]);
- if(view.key!==k){view.key=k;view.messages.replaceChildren();message(view.messages,{id:'source:'+id,kind:'source',role:'operator',text:context.item.source,truncated:context.item.sourceTruncated},id);for(const m of context.conversation)message(view.messages,m,id);
-  if(context.conversationTruncated)view.messages.append(el('li','Showing recent messages. Open the full conversation for earlier evidence.','draft-note'))}
+ if(view.key!==k){view.key=k;message(view.messages,{id:'source:'+id,kind:'source',role:'operator',text:context.item.source,truncated:context.item.sourceTruncated},id);for(const m of context.conversation)message(view.messages,m,id);
+  const keep=new Set(['source:'+id,...context.conversation.map(m=>m.id)]);for(const n of [...view.messages.children])if(n.dataset.message&&!keep.has(n.dataset.message))n.remove();let note=view.messages.querySelector('.draft-note');if(context.conversationTruncated&&!note)view.messages.append(el('li','Showing recent messages. Open the full conversation for earlier evidence.','draft-note'));else if(!context.conversationTruncated)note?.remove()}
  view.reply.update(context);return view.root;
 }
 function showNewWork(){
@@ -28877,13 +29524,15 @@ function showNewWork(){
 }
 function section(parent,title,value,error=false){const p=el('pre',typeof value==='string'?value:json(value),error?'error':undefined);p.tabIndex=0;p.setAttribute('aria-label',title);parent.append(el('h3',title),p)}
 function disclosure(parent,key,title,fill,hint){
- const d=el('details'),s=el('summary',title),b=el('div',undefined,'disclosure-body');let filled=false;
- d.dataset.key=key;d.open=expanded.has(key);if(hint)s.append(el('span',hint,'hint'));d.append(s,b);
- const populate=()=>{if(!filled){fill(b);filled=true}};if(d.open)populate();
+ const d=el('details'),s=el('summary',title),b=el('div',undefined,'disclosure-body');
+ d.dataset.key=key;d._fill=fill;d._filled=false;d.open=expanded.has(key);if(hint)s.append(el('span',hint,'hint'));d.append(s,b);
+ const populate=()=>{if(!d._filled){d._fill(d.lastElementChild);d._filled=true}};if(d.open)populate();
  d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open){expanded.add(key);populate()}else expanded.delete(key)});parent.append(d);return d;
 }
 function overview(v){
  const status=v.itemRecord.status;
+ if(v.workEvidence?.noWorkPerformed)return {title:'No work performed',text:'No steps were set up, so no work was performed.',tone:'quiet'};
+ if(['completed','shipped','discovered'].includes(status)&&!v.done)return {title:status==='shipped'?'Recorded as delivered; current evidence incomplete':'Recorded as completed; current evidence incomplete',text:'The saved lifecycle remains available in the evidence below.',tone:'attention'};
  if(status==='completed')return {title:'Completed',text:v.proof.completion?.nodes===0?'No steps were set up, so no work was performed.':'The steps for this task are finished. Only the work listed below is included.',tone:v.proof.completion?.nodes===0?'quiet':''};
  if(status==='shipped')return {title:'Delivered',text:'The work was delivered. Its recorded checks and delivery details are available below.'};
  if(status==='discovered')return {title:'Tasks ready',text:'The input has been turned into tasks.',next:'Open a proposed task to start its delivery.'};
@@ -28917,14 +29566,16 @@ function render(v,context){
  const nodes=el('ol',undefined,'steps');
  function node(n,parent){
   const li=el('li'),row=el('div',undefined,'step');
-  const done=Object.hasOwn(v.itemRecord.outputs,n.job)||(v.pack.runtime!=='functions'&&n.job==='verify'&&v.proof.verification?.passed===true);
+  const done=v.workEvidence?.jobs[n.job]?.complete===true;
   const current=n.job===v.job||active.some(i=>i.job===n.job);
   const state=done?'Done':current?(v.hold?'Needs attention':v.state==='working'?'In progress':'Not started'):'Not started';
   row.append(el('span',friendly(n.job),'step-name'),el('span',state,'step-state '+(done?'done':current&&v.hold?'attention':'')));li.append(row);
+  const proof=v.workEvidence?.jobs[n.job];if(proof){disclosure(li,'accepted:'+v.item+':'+n.job,'Accepted result',b=>{section(b,'Accepted result',proof.acceptedOutput);section(b,'Retained output',proof.output);if(proof.provenance.state!=='linked')b.append(el('p','Invocation not recorded · '+proof.provenance.reason));section(b,'Recorded invocation input',proof.input);section(b,'Acceptance and provenance',proof.provenance)});for(const attempt of proof.laterAttempts.entries)exactEvidence(li,'later:'+v.item+':'+attempt.event,'Later attempt · '+attempt.outcome+' · '+attempt.at,attempt.evidence);if(proof.laterAttempts.omitted){const link=el('a','All '+proof.laterAttempts.total+' attempts');link.href=proof.laterAttempts.trace;li.append(link)}}
   if(n.children?.length){const children=el('ol',undefined,'steps');for(const child of n.children)node(child,children);li.append(children)}parent.append(li);
  }
  for(const c of v.pack[v.itemRecord.flow?.loop??v.phase]??[])for(const n of c.steps??[])node(n,nodes);
  if(nodes.children.length)head.append(nodes);else head.append(el('p','No steps have been set up for this task.','muted'));
+ currentWork(head,v.currentHandoff,v.item);
  const thread=conversation(v.item,context);
  const tech=disclosure(tail,'technical:'+v.item,'Activity & technical details',b=>{
   const m=el('dl',undefined,'metrics');for(const [name,value]of [['Calls recorded',v.metrics.invocations],['Failed calls',v.metrics.failed],['Total call time',duration(v.metrics.ms)],['Reported tokens',v.metrics.tokens===null?'Not reported':v.metrics.tokens.toLocaleString()]]){const pair=el('div');pair.append(el('dt',name),el('dd',String(value)));m.append(pair)}b.append(m);
@@ -28949,7 +29600,7 @@ function render(v,context){
  tail.append(el('p','New work and replies are your instructions to Made Well. Progress and conversation come from the saved work record.','read-note'));
  detail.className='';
  // Never detach the live composer during polling: selection, IME and focus stay native.
- if(thread.parentElement===detail){detail.firstElementChild.replaceWith(head);detail.lastElementChild.replaceWith(tail)}
+ if(thread.parentElement===detail){patchEvidence(detail.firstElementChild,head);patchEvidence(detail.lastElementChild,tail)}
  else detail.replaceChildren(head,thread,tail);
  for(const d of detail.querySelectorAll('details')){const saved=scroll.get(d.dataset.key);if(saved)[...d.querySelectorAll('pre')].forEach((p,i)=>{if(saved[i]){p.scrollTop=saved[i][0];p.scrollLeft=saved[i][1]}})}
  if(focused!==document.body&&focused?.isConnected)focused.focus({preventScroll:true});
@@ -28960,7 +29611,7 @@ async function refresh(){if(fetching)return;fetching=true;try{
  if(!composing&&selected===null&&board.items.length)selected=(board.items.find(i=>i.status==='held'||i.status==='paused')??board.items[0]).id;
  const key=json([selected,composing,board.items]);if(key!==listKey){const focused=document.activeElement?.dataset.item;list.replaceChildren();listKey=key;
   const attention=board.items.filter(i=>i.status==='held'||i.status==='paused').length;listSummary.textContent=board.items.length+' '+(board.items.length===1?'task':'tasks')+(attention?' · '+attention+' '+(attention===1?'needs':'need')+' attention':'');
-  for(const i of board.items){const b=el('button');b.dataset.item=String(i.id);b.setAttribute('aria-current',String(!composing&&selected===i.id));b.append(el('span',i.title,'task-name'),el('span',labels[i.status]??i.status,'task-state'));b.onclick=()=>{composing=false;selected=i.id;location.hash=String(i.id);refresh()};list.append(b);if(focused===String(i.id))b.focus({preventScroll:true})}
+  for(const i of board.items){const b=el('button');b.dataset.item=String(i.id);b.setAttribute('aria-current',String(!composing&&selected===i.id));b.append(el('span',i.title,'task-name'),el('span',(['completed','shipped','discovered'].includes(i.status)&&!i.completion?(i.noWorkPerformed?'No work performed':'Recorded completion; evidence incomplete'):labels[i.status]??i.status),'task-state'));b.onclick=()=>{composing=false;selected=i.id;location.hash=String(i.id);refresh()};list.append(b);if(focused===String(i.id))b.focus({preventScroll:true})}
  }
  if(composing)showNewWork();
  else if(!board.items.length){detail.className='empty';detail.replaceChildren(el('h2','A place for your next task.'),el('p','Choose New work to describe what you want done. Follow its progress here, from the first step to the result.','muted'));renderKey=''}
@@ -29020,6 +29671,7 @@ var GRAMMAR_PAGE = String.raw`<!doctype html>
 <p class="read-note" id="read-note">Read-only view of the same durable work record. Every completion checkmark requires current accepted evidence. Missing records are not complete. Recorded verification and shipment do not establish the current deployment.</p>
 </main>
 <script>
+${EVIDENCE_SCRIPT}
 const $=id=>document.getElementById(id),runSelect=$('run'),connection=$('connection');
 let selected=Number(new URL(location.href).searchParams.get('id'))||null,loading=false,runKey='',lastGood=null;
 const stepNodes=new Map(),taskNodes=new Map(),listNodes=new Map();
@@ -29029,13 +29681,13 @@ function setText(n,value){const text=value===null||value===undefined?'':String(v
 function answer(n,state,text){n.className='answer '+state;setText(n,(state==='yes'?'✓ ':'○ ')+(text||stateNames[state]||'NO · unknown'))}
 function dataText(value){return value===null||value===undefined?'Not recorded':typeof value==='string'?value:JSON.stringify(value,null,2)}
 function empty(title,text){$('empty').hidden=false;$('record').hidden=true;setText($('empty-title'),title);setText($('empty-text'),text)}
-function phaseNode(parent,key){let r=stepNodes.get(key);if(r)return r;const root=node('details','grammar-step'),summary=node('summary'),name=node('span','function-name'),state=node('span','answer'),body=node('div','disclosure-body'),reason=node('p','reason'),input=node('pre'),output=node('pre'),evidence=node('pre');root.dataset.step=key;input.tabIndex=output.tabIndex=evidence.tabIndex=0;summary.append(name,state);body.append(reason,node('h4',null,'Recorded invocation input'),input,node('h4',null,'Saved function output'),output,node('h4',null,'Recorded evidence'),evidence);root.append(summary,body);parent.append(root);r={root,name,state,reason,input,output,evidence};stepNodes.set(key,r);return r}
-function updatePhase(parent,key,s){const r=phaseNode(parent,key);setText(r.name,s.label);answer(r.state,s.state);setText(r.reason,s.reason);r.reason.hidden=!s.reason;setText(r.input,dataText(s.input));setText(r.output,dataText(s.output));setText(r.evidence,dataText({...s.evidence,metrics:s.metrics}));return r.root}
-function clearSelection(){stepNodes.clear();taskNodes.clear();listNodes.clear();$('discovery-steps').replaceChildren();$('delivery-tasks').replaceChildren();$('task-list').replaceChildren();$('raw-source').open=false}
+function phaseNode(parent,key){let r=stepNodes.get(key);if(r)return r;const root=node('details','grammar-step'),summary=node('summary'),name=node('span','function-name'),state=node('span','answer'),body=node('div','disclosure-body'),reason=node('p','reason'),input=node('pre'),output=node('pre'),evidence=node('pre');root.dataset.step=key;input.tabIndex=output.tabIndex=evidence.tabIndex=0;summary.append(name,state);body.append(reason,node('h4',null,'Recorded invocation input'),input,node('h4',null,'Accepted result'),output,node('h4',null,'Recorded evidence'),evidence);root.append(summary,body);parent.append(root);r={root,name,state,reason,input,output,evidence};stepNodes.set(key,r);return r}
+function updatePhase(parent,key,s){const r=phaseNode(parent,key);setText(r.name,s.label);answer(r.state,s.state);setText(r.reason,s.reason);r.reason.hidden=!s.reason;setText(r.input,dataText(s.input));setText(r.output,dataText(s.evidence?.acceptedOutput??s.output));let unavailable=r.root.querySelector('[data-invocation-unavailable]');const provenance=s.evidence?.provenance;const missing=provenance&&(provenance.state?provenance.state!=='linked':Object.values(provenance).some(p=>p?.state!=='linked'));if(missing){if(!unavailable){unavailable=node('p','system','Invocation not recorded');unavailable.dataset.invocationUnavailable='';r.input.before(unavailable)}}else unavailable?.remove();const later=s.evidence?.laterAttempts;for(const attempts of later?(later.entries?[later]:Object.values(later)):[])for(const attempt of attempts?.entries??[])exactEvidence(r.root.lastElementChild,'later:'+key+':'+attempt.event,'Later attempt · '+attempt.outcome+' · '+attempt.at,attempt.evidence);setText(r.evidence,dataText({...s.evidence,retainedOutput:s.output,metrics:s.metrics}));return r.root}
+function clearSelection(){stepNodes.clear();taskNodes.clear();listNodes.clear();$('discovery-steps').replaceChildren();$('delivery-tasks').replaceChildren();$('task-list').replaceChildren();$('raw-source').open=false;for(const n of document.querySelectorAll('[data-current-work]'))n.remove()}
 function select(id){if(id===selected)return;selected=id;lastGood=null;clearSelection();const url=new URL(location.href);if(id)url.searchParams.set('id',String(id));else url.searchParams.delete('id');history.replaceState(null,'',url);void refresh()}
 function taskNode(t){let r=taskNodes.get(t.id);if(r)return r;const root=node('section','task-card'),header=node('header'),title=node('h4'),done=node('strong','answer'),position=node('p','task-position'),readiness=node('p','task-readiness'),facts=node('div','facts'),entered=node('strong','answer'),tests=node('strong','answer'),verified=node('strong','answer'),blocker=node('div','notice'),blockTitle=node('h3',null,'What prevents completion?'),blockText=node('p'),grid=node('div','phase-grid'),details=node('details','task-evidence'),proof=node('pre');root.id='task-'+t.id;root.tabIndex=-1;title.id='task-title-'+t.id;root.setAttribute('aria-labelledby',title.id);header.append(title,done);for(const [label,value]of [['Entered delivery?',entered],['Tests created?',tests],['Verification passed?',verified]]){const p=node('p',null,label);p.append(value);facts.append(p)}blocker.append(blockTitle,blockText);proof.tabIndex=0;details.append(node('summary',null,'Inspect check results, version and shipment evidence'),proof);root.append(header,position,readiness,facts,blocker,grid,details);$('delivery-tasks').append(root);r={root,title,done,position,readiness,entered,tests,verified,blocker,blockText,grid,proof};taskNodes.set(t.id,r);return r}
-function updateTask(t){const r=taskNode(t);setText(r.title,'#'+t.id+' · '+t.title);answer(r.done,t.delivered?'yes':'no',t.delivered?'DELIVERED':'NOT DELIVERED');setText(r.position,'Current phase: '+(t.currentPhase||'not entered')+' · '+t.status+(t.currentJob?' · '+t.currentJob:''));setText(r.readiness,t.readiness.reason);answer(r.entered,t.enteredDelivery?'yes':'no');answer(r.tests,t.testsCreated?'yes':'no',t.testsCreated?'YES · '+t.testCount+' checks':'NO');answer(r.verified,t.verification.passed===true?'yes':t.verification.passed===false?'blocked':'no',t.verification.passed===true?'YES':t.verification.passed===false?'NO · failed':'NO · not recorded');r.blocker.hidden=!t.blocker;setText(r.blockText,t.blocker?t.blocker.message:'');for(const p of t.phases)updatePhase(r.grid,'task:'+t.id+':'+p.job,p);setText(r.proof,dataText({verification:t.verification,shipment:t.shipment,readiness:t.readiness,dependsOn:t.after,lastTaskUpdate:t.updated}));let li=listNodes.get(t.id);if(!li){li=node('li');const b=node('button','task-jump'),a=node('strong','answer');b.type='button';b.addEventListener('click',()=>{r.root.focus({preventScroll:true});r.root.scrollIntoView({block:'start'})});li.append(b,a);$('task-list').append(li);listNodes.set(t.id,li)}setText(li.firstElementChild,'#'+t.id+' · '+t.title);answer(li.lastElementChild,t.delivered?'yes':t.blocker?'blocked':'no',t.delivered?'DELIVERED':t.blocker?'HELD':t.enteredDelivery?'IN DELIVERY':'NOT STARTED')}
-function render(view){$('empty').hidden=true;$('record').hidden=false;setText($('work-title'),view.discovery.title);setText($('work-position'),'Discovery #'+view.discovery.id+' · '+view.discovery.status+(view.discovery.currentJob?' · '+view.discovery.currentJob:''));setText($('raw-text'),view.discovery.source);answer($('discovery-complete'),view.discovery.complete?'yes':'no',view.discovery.complete?'YES · complete':'NO · pending');setText($('discovery-count'),view.discovery.completedStepCount+' of '+view.discovery.requiredStepCount+' required functions complete.');answer($('task-list-produced'),view.discovery.taskListProduced?'yes':'no');answer($('all-delivered'),view.allDelivered?'yes':'no',view.allDelivered?'YES':view.tasks.length?'NO':'NO · no delivered tasks');answer($('runner-active'),view.runner.active?'yes':'no',view.runner.active?'YES':'NO · stopped');setText($('last-activity'),'Last recorded activity: '+(view.lastEventAt||'not recorded'));for(const s of view.discovery.steps)updatePhase($('discovery-steps'),'discovery:'+s.job,s);setText($('task-list-status'),view.discovery.taskListProduced?view.tasks.length+' generated task'+(view.tasks.length===1?'':'s')+'.':'Task list has not been produced.');setText($('parallel-status'),view.parallel.observed?'Overlapping task execution is recorded for '+view.parallel.pairs.map(p=>p.map(id=>'#'+id).join(' and ')).join('; ')+'.':'No overlapping task execution is established by the current record.');for(const t of view.tasks)updateTask(t);const ids=new Set(view.tasks.map(t=>t.id));for(const [id,r]of taskNodes)if(!ids.has(id)){r.root.remove();taskNodes.delete(id);listNodes.get(id)?.remove();listNodes.delete(id);for(const [k,s]of stepNodes)if(k.startsWith('task:'+id+':')){s.root.remove();stepNodes.delete(k)}}lastGood=view;setText(connection,'Connected · record read '+view.observedAt);connection.className=''}
+function updateTask(t){const r=taskNode(t);setText(r.title,'#'+t.id+' · '+t.title);answer(r.done,t.delivered?'yes':'no',t.delivered?'DELIVERED':'NOT DELIVERED');setText(r.position,'Current phase: '+(t.currentPhase||'not entered')+' · '+t.status+(t.currentJob?' · '+t.currentJob:''));setText(r.readiness,['shipped','completed'].includes(t.status)&&!t.delivered?'Recorded as '+(t.status==='shipped'?'delivered':'completed')+'; current evidence incomplete. '+t.readiness.reason:t.readiness.reason);const handoff=currentWork(r.root,t.currentHandoff,t.id);if(handoff.nextElementSibling!==r.grid)r.root.insertBefore(handoff,r.grid);answer(r.entered,t.enteredDelivery?'yes':'no');answer(r.tests,t.testsCreated?'yes':'no',t.testsCreated?'YES · '+t.testCount+' checks':'NO');answer(r.verified,t.verification.passed===true?'yes':t.verification.passed===false?'blocked':'no',t.verification.passed===true?'YES':t.verification.passed===false?'NO · failed':'NO · not recorded');r.blocker.hidden=!t.blocker;setText(r.blockText,t.blocker?t.blocker.message:'');for(const p of t.phases)updatePhase(r.grid,'task:'+t.id+':'+p.job,p);setText(r.proof,dataText({verification:t.verification,shipment:t.shipment,readiness:t.readiness,dependsOn:t.after,lastTaskUpdate:t.updated}));let li=listNodes.get(t.id);if(!li){li=node('li');const b=node('button','task-jump'),a=node('strong','answer');b.type='button';b.addEventListener('click',()=>{r.root.focus({preventScroll:true});r.root.scrollIntoView({block:'start'})});li.append(b,a);$('task-list').append(li);listNodes.set(t.id,li)}setText(li.firstElementChild,'#'+t.id+' · '+t.title);answer(li.lastElementChild,t.delivered?'yes':t.blocker?'blocked':'no',t.delivered?'DELIVERED':t.blocker?'HELD':t.enteredDelivery?'IN DELIVERY':'NOT STARTED')}
+function render(view){$('empty').hidden=true;$('record').hidden=false;setText($('work-title'),view.discovery.title);setText($('work-position'),'Discovery #'+view.discovery.id+' · '+view.discovery.status+(view.discovery.currentJob?' · '+view.discovery.currentJob:''));setText($('raw-text'),view.discovery.source);answer($('discovery-complete'),view.discovery.complete?'yes':'no',view.discovery.complete?'YES · complete':'NO · pending');setText($('discovery-count'),view.discovery.completedStepCount+' of '+view.discovery.requiredStepCount+' required functions complete.');answer($('task-list-produced'),view.discovery.taskListProduced?'yes':'no');answer($('all-delivered'),view.allDelivered?'yes':'no',view.allDelivered?'YES':view.tasks.length?'NO':'NO · no delivered tasks');answer($('runner-active'),view.runner.active?'yes':'no',view.runner.active?'YES':'NO · stopped');setText($('last-activity'),'Last recorded activity: '+(view.lastEventAt||'not recorded'));currentWork($('discovery-steps').parentElement,view.discovery.currentHandoff,view.discovery.id);for(const s of view.discovery.steps)updatePhase($('discovery-steps'),'discovery:'+s.job,s);setText($('task-list-status'),view.discovery.taskListProduced?view.tasks.length+' generated task'+(view.tasks.length===1?'':'s')+'.':'Task list has not been produced.');setText($('parallel-status'),view.parallel.observed?'Overlapping task execution is recorded for '+view.parallel.pairs.map(p=>p.map(id=>'#'+id).join(' and ')).join('; ')+'.':'No overlapping task execution is established by the current record.');for(const t of view.tasks)updateTask(t);const ids=new Set(view.tasks.map(t=>t.id));for(const [id,r]of taskNodes)if(!ids.has(id)){r.root.remove();taskNodes.delete(id);listNodes.get(id)?.remove();listNodes.delete(id);for(const [k,s]of stepNodes)if(k.startsWith('task:'+id+':')){s.root.remove();stepNodes.delete(k)}}lastGood=view;setText(connection,'Connected · record read '+view.observedAt);connection.className=''}
 async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok){let detail='';try{const body=await response.json();detail=body.message||body.error||''}catch{}throw new Error('HTTP '+response.status+(detail?' · '+detail:''))}return response.json()}
 async function refresh(){if(loading)return;loading=true;$('refresh').disabled=true;try{const runs=await json('/api/grammar');const options=runs.items||[];const key=JSON.stringify(options);if(key!==runKey){const focused=document.activeElement===runSelect;const value=String(selected||'');runSelect.replaceChildren();if(!options.length){const o=node('option',null,'No discovery runs recorded');o.value='';runSelect.append(o)}for(const x of options){const o=node('option',null,'#'+x.id+' · '+x.title+' · '+x.status);o.value=String(x.id);runSelect.append(o)}runKey=key;runSelect.value=value;if(focused)runSelect.focus({preventScroll:true})}runSelect.disabled=!options.length;if(!selected&&options.length){selected=options[options.length-1].id;runSelect.value=String(selected);const url=new URL(location.href);url.searchParams.set('id',String(selected));history.replaceState(null,'',url)}if(!selected){empty('No discovery work recorded.','Start a discovery run in this Made Well store to see its prescribed functions, outputs and generated tasks.');setText(connection,'Connected · no discovery runs');connection.className='';return}const requested=selected;const view=await json('/api/grammar/'+requested);if(selected!==requested)return;if(!view||!view.discovery)throw new Error('The selected work record has no discovery context.');if(view.discovery.id!==selected){selected=view.discovery.id;runSelect.value=String(selected);const url=new URL(location.href);url.searchParams.set('id',String(selected));history.replaceState(null,'',url)}render(view)}catch(error){connection.className='error';setText(connection,'Record unavailable · '+error.message+(lastGood?' · showing the last successful read':'') );if(!lastGood)empty('The work record is unavailable.','Refresh the record or choose another discovery run. No completion state is inferred from this connection failure.')}finally{loading=false;$('refresh').disabled=false}}
 runSelect.addEventListener('change',()=>select(Number(runSelect.value)||null));$('refresh').addEventListener('click',refresh);void refresh();setInterval(refresh,2000);
@@ -29116,15 +29768,15 @@ $('refresh').addEventListener('click',refresh);window.addEventListener('popstate
 </script></body></html>`;
 
 // src/jump-pack-lab.ts
-import { createHash as createHash9 } from "node:crypto";
+import { createHash as createHash11 } from "node:crypto";
 import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync10, readSync as readSync2, realpathSync as realpathSync2, statSync as statSync3 } from "node:fs";
-import { extname, isAbsolute as isAbsolute3, relative as relative3, resolve as resolve8, sep as sep3 } from "node:path";
+import { extname, isAbsolute as isAbsolute3, relative as relative3, resolve as resolve9, sep as sep3 } from "node:path";
 var parsed2 = (raw) => typeof raw === "string" ? lastJson(raw) ?? raw : raw ?? null;
 var record3 = (value4) => value4 && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
 var deliveryJobs = ["ideation", "planning", "implementation", "verification"];
 function workArtifact(item, verification) {
   if (typeof verification.artifact !== "string") return null;
-  const path = resolve8(item.workspace, verification.artifact);
+  const path = resolve9(item.workspace, verification.artifact);
   const absent = (message) => ({ path, content: null, available: false, hashMatches: null, message });
   try {
     const root = realpathSync2(item.workspace), actual = realpathSync2(path), within = relative3(root, actual);
@@ -29134,7 +29786,7 @@ function workArtifact(item, verification) {
     const bytes3 = previewable ? readFileSync10(actual) : null;
     let hashMatches = null;
     if (typeof expected === "string") {
-      const hash3 = createHash9("sha256");
+      const hash3 = createHash11("sha256");
       if (bytes3) hash3.update(bytes3);
       else {
         const file = openSync2(actual, "r"), buffer = Buffer.alloc(65536);
@@ -29168,7 +29820,7 @@ function jumpPackLab(store) {
       const history2 = store.events(owner.id);
       const lane = laneOf(owner.pack);
       return [...lane.discovery, ...lane.delivery].map((step2) => {
-        const accepted2 = history2.findLast((e) => e.kind === "accepted" && e.data.job === step2.job);
+        const accepted = history2.findLast((e) => e.kind === "accepted" && e.data.job === step2.job);
         const call = heads.findLast((c) => c.item === owner.id && c.job === step2.job && c.kind === "execute");
         const start = history2.findLast((e) => e.kind === "trace-started" && e.data.job === step2.job && ["execute", "function", "compose"].includes(String(e.data.kind)));
         const link2 = start ? history2.findLast((e) => e.kind === "trace-call" && e.data.invocation === start.data.invocation) : void 0;
@@ -29183,12 +29835,12 @@ function jumpPackLab(store) {
           job: step2.job,
           label: String(contract.label ?? `${step2.job}()`),
           loop: step2.loop,
-          state: rejectedWork ? "blocked" : accepted2 && owner.outputs[step2.job] !== void 0 ? "accepted" : current && owner.status === "held" ? "blocked" : current && owner.status === "running" && store.runner() ? "running" : "pending",
+          state: rejectedWork ? "blocked" : accepted && owner.outputs[step2.job] !== void 0 ? "accepted" : current && owner.status === "held" ? "blocked" : current && owner.status === "running" && store.runner() ? "running" : "pending",
           method: contract.method ?? null,
           requirements: contract.requirements ?? [],
           input: saved ? { call: saved.id, packet: parsed2(saved.prompt), started: saved.started, outcome: saved.outcome } : start?.data.args ?? null,
           output: parsed2(owner.outputs[step2.job]),
-          evidence: { acceptedEvent: accepted2?.seq ?? null, workReview: workReview?.data ?? null, coverageAudit: coverageAudit?.data ?? null, commandInvocation: start?.data.invocation ?? null, commandResult: end2?.data ?? null, hold: current ? owner.hold ?? null : null },
+          evidence: { acceptedEvent: accepted?.seq ?? null, workReview: workReview?.data ?? null, coverageAudit: coverageAudit?.data ?? null, commandInvocation: start?.data.invocation ?? null, commandResult: end2?.data ?? null, hold: current ? owner.hold ?? null : null },
           trace: `/api/trace/${owner.id}?lens=ax`
         };
       });
@@ -29243,7 +29895,7 @@ function jumpPackLab(store) {
       objective: item.objective,
       category: mode === "tool-check" ? "tool-check" : "work-example",
       mode,
-      inputKey: createHash9("sha256").update(item.source).digest("hex"),
+      inputKey: createHash11("sha256").update(item.source).digest("hex"),
       inputOrigin: typeof context3.inputOrigin === "string" ? context3.inputOrigin : mode === "tool-check" ? "Input for a check of the tool itself" : "Recorded example input",
       workTitle: typeof context3.workTitle === "string" ? context3.workTitle : item.title,
       testQuestion: typeof context3.testQuestion === "string" ? context3.testQuestion : String(declaration.data.hypothesis ?? ""),
@@ -30033,7 +30685,7 @@ var serve = (path, nextOf, host, port, renderer, wake2) => Effect_exports.callba
       }
       if (url.pathname === "/console") return html(res, CONSOLE);
       if (url.pathname === "/favicon.ico") return void (res.writeHead(204), res.end());
-      if (url.pathname === "/api/runs") return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job })), at: (/* @__PURE__ */ new Date()).toISOString() });
+      if (url.pathname === "/api/runs") return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job, completion: workEvidenceOf(store, i).delivered, noWorkPerformed: workEvidenceOf(store, i).noWorkPerformed })), at: (/* @__PURE__ */ new Date()).toISOString() });
       if (url.pathname === "/api/lab") {
         if (req.method !== "GET") return json(res, { error: "method_not_allowed", message: "The experiment console reads recorded evidence only." }, 405);
         return json(res, store ? jumpPackLab(store) : { observedAt: (/* @__PURE__ */ new Date()).toISOString(), runner: { active: false, pid: null }, cases: [] });
@@ -30105,7 +30757,7 @@ var thisHost = () => ({
   uid: process.getuid?.() ?? 0,
   env: process.env,
   node: process.execPath,
-  script: resolve9(process.argv[1] ?? ""),
+  script: resolve10(process.argv[1] ?? ""),
   run: (file, args2) => {
     try {
       return { code: 0, out: execFileSync2(file, args2, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), err: "" };
@@ -30581,7 +31233,7 @@ var found2 = (store, id2) => {
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve10(workspace ?? ".");
+  const path = resolve11(workspace ?? ".");
   const projects = yield* readProjects(registry);
   const project = projectFor(projects, path);
   if (project) return { path, project };
@@ -30607,18 +31259,18 @@ var wake = Effect_exports.fn("mw.wake")(function* (id2) {
 });
 var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
   const path = projectFor(yield* readProjects(registry), workspace)?.cartridges;
-  return path ? yield* loadPack(path) : void 0;
+  return (yield* resolvePackSelection(path)).pack;
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve10(input["source-file"]);
+  const path = resolve11(input["source-file"]);
   return Effect_exports.try({
     try: () => readFileSync12(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
 var readQaInput = Effect_exports.fn("mw.readQaInput")(function* (input) {
-  const path = resolve10(input["input-file"]);
+  const path = resolve11(input["input-file"]);
   const bytes3 = yield* Effect_exports.try({ try: () => readFileSync12(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
   return yield* Effect_exports.try({ try: () => qaParseJson(bytes3), catch: qaStorageError });
 });
@@ -30734,14 +31386,14 @@ var COMMANDS = [
       alert: optional3("shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set"),
       prepare: optional3("shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output"),
       inputs: optional3('required supplied inputs as JSON [{id,path,kind:"file"|"directory"|"executable",jobs?:[job],sha256?}]. Relative paths are inside the prepared worktree; absolute paths are explicit host bindings. They are checked before the receiving job and missing inputs enter its existing NQ exchange. [] removes them.'),
-      cartridges: optional3('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
+      cartridges: optional3('builtin:grammar or a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
       conventions: optional3(`the rules this repo's work follows that no gate catches, as a JSON array of strings, such as ["Colours come from the design tokens in src/tokens.css"]. Every plan turns each into a done-when item its checks prove, or says why it does not apply. Replaces the set given before; [] removes them.`),
       gates: optional3(`the repo's own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item's changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.`)
     }),
     output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = resolve10(input.workspace ?? ".");
+      const path = resolve11(input.workspace ?? ".");
       if (!existsSync5(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
@@ -30753,8 +31405,7 @@ var COMMANDS = [
         Effect_exports.mapError((e) => usageError("init", `--inputs must be a JSON array of explicit prerequisite bindings: ${e.message}`))
       );
       if (inputs) yield* Schema_exports.decodeUnknownEffect(Project)({ path, inputs }).pipe(Effect_exports.mapError((e) => usageError("init", `Invalid --inputs: ${e.message}`)));
-      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : resolve10(input.cartridges);
-      if (cartridges && cartridges !== "default") yield* loadPack(cartridges);
+      const cartridges = input.cartridges === void 0 || input.cartridges === "default" ? input.cartridges : (yield* resolvePackSelection(input.cartridges)).source;
       const saved = yield* saveProject(registry, { path, ...input.ship ? { ship: input.ship } : {}, ...input.alert ? { alert: input.alert } : {}, ...input.prepare ? { prepare: input.prepare } : {}, ...inputs ? { inputs } : {}, ...gates ? { gates } : {}, ...conventions ? { conventions } : {}, ...cartridges ? { cartridges } : {}, ...input.autonomy ? { autonomy: input.autonomy } : {} });
       const project = cartridges === "default" ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved;
       return { project, next: [{ run: `mw discover --workspace ${quote2(path)} --source-file <notes>`, why: "put the raw notes in: Made Well discovers the work and delivers it" }, { run: `mw start --workspace ${quote2(path)} --objective "<one line>" --source "<the operator's own words>"`, why: "deliver one piece of work straight away" }] };
@@ -30762,15 +31413,15 @@ var COMMANDS = [
   }),
   command({
     name: "cartridges",
-    summary: "Inspect the project pack or --item's pinned pack. --check validates a file. --update <file> --item <id> queues a function-pack replacement at the next node boundary without changing completed or in-flight nodes. New work reads the project pack afresh; start/discover can override it per task with --cartridges.",
+    summary: "Inspect the project pack or --item's pinned pack. --check validates builtin:grammar or a file. --update <selector-or-file> --item <id> queues a function-pack replacement at the next node boundary without changing completed or in-flight nodes. New work reads the project pack afresh; start/discover can override it per task with --cartridges.",
     input: Schema_exports.Struct({
       workspace: Workspace,
-      check: optional3("a cartridge pack file to validate instead"),
+      check: optional3("builtin:grammar or a cartridge pack file to validate instead"),
       item: Schema_exports.optionalKey(Id2),
-      update: optional3("replacement function pack file; requires --item")
+      update: optional3("replacement selector or function pack file; requires --item; existing function-pack-only update restrictions apply")
     }),
     output: Schema_exports.Struct({
-      source: Schema_exports.String.annotate({ description: '"default", or the pack file' }),
+      source: Schema_exports.String.annotate({ description: '"default", a symbolic selector, an absolute pack file, or item:<id> for the pinned pack' }),
       pack: Pack,
       update: Schema_exports.optionalKey(Fact),
       lane: Schema_exports.Struct({
@@ -30781,26 +31432,27 @@ var COMMANDS = [
     }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      if (input.update && input.item === void 0 || input.check && (input.update || input.item !== void 0)) return yield* usageError("cartridges", "Use --check alone, --item to inspect, or --update <file> --item <id>.");
+      if (input.update && input.item === void 0 || input.check && (input.update || input.item !== void 0)) return yield* usageError("cartridges", "Use --check alone, --item to inspect, or --update <selector-or-file> --item <id>.");
       const pinned = input.item === void 0 ? void 0 : yield* found2(yield* Store, input.item);
-      const path = input.check || input.update ? resolve10(input.check ?? input.update) : pinned ? void 0 : projectFor(yield* readProjects(registry), resolve10(input.workspace ?? "."))?.cartridges;
-      const pack = path ? yield* loadPack(path) : pinned?.pack ?? SOFTWARE;
+      const selection2 = input.check ?? input.update ?? (pinned ? void 0 : projectFor(yield* readProjects(registry), resolve11(input.workspace ?? "."))?.cartridges);
+      const resolved = yield* resolvePackSelection(selection2);
+      const pack = pinned && !input.update ? pinned.pack ?? SOFTWARE : resolved.pack ?? SOFTWARE;
       const update2 = input.update ? yield* requestPackUpdate(input.item, pack) : void 0;
       const lane = laneOf(pack);
       const line = (s) => `${s.cartridge} / ${s.job} (${s.profile})`;
       return {
-        source: path ?? (pinned ? `item:${pinned.id}` : "default"),
+        source: pinned && !input.update ? `item:${pinned.id}` : resolved.source,
         pack,
         ...update2 ? { update: update2 } : {},
         lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
-        next: input.check ? [{ run: `mw init --cartridges ${quote2(path)}`, why: "plug it into this project; new work runs it" }] : [{ run: "mw cartridges | jq .pack > pack.json", why: "start a pack of your own from this one" }]
+        next: input.check ? [{ run: `mw init --cartridges ${quote2(resolved.source)}`, why: "plug it into this project; new work runs it" }] : [{ run: "mw cartridges | jq .pack > pack.json", why: "start a pack of your own from this one" }]
       };
     })
   }),
   command({
     name: "discover",
     summary: "Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.",
-    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run"), autonomy: AutonomyInput, cartridges: optional3("override the project cartridge pack for this run") }),
+    input: Schema_exports.Struct({ ...Source, workspace: Workspace, title: optional3("a title for the discovery run"), autonomy: AutonomyInput, cartridges: optional3("override the project cartridge pack with builtin:grammar or a file for this run") }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
@@ -30810,7 +31462,7 @@ var COMMANDS = [
     }),
     run: (input, { source: source2, path: workspace, project }) => Effect_exports.gen(function* () {
       const title = input.title ?? `Discovery of ${input["source-file"] ? basename3(input["source-file"]) : "raw input"}`;
-      const pack = yield* input.cartridges ? loadPack(resolve10(input.cartridges)) : packFor(workspace);
+      const pack = yield* input.cartridges ? resolvePackSelection(input.cartridges).pipe(Effect_exports.map(({ pack: pack2 }) => pack2)) : packFor(workspace);
       const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
       const item = createOnce(yield* Store, { title, objective: "Turn the raw input into candidate work items.", source: source2, workspace, job: laneOf(pack).discovery[0]?.job ?? "", autonomy, ...pack ? { pack } : {}, ...pack?.runtime === "functions" ? { flow: { loop: "discovery", accepted: [] } } : {} });
       return { item: view(item), next: yield* wake(item.id) };
@@ -30831,7 +31483,7 @@ var COMMANDS = [
   command({
     name: "start",
     summary: "Add one work item straight to the delivery queue.",
-    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective"), autonomy: AutonomyInput, cartridges: optional3("override the project cartridge pack for this task") }),
+    input: Schema_exports.Struct({ objective: Schema_exports.String.annotate({ description: "one line: what done means" }), ...Source, workspace: Workspace, title: optional3("defaults to the objective"), autonomy: AutonomyInput, cartridges: optional3("override the project cartridge pack with builtin:grammar or a file for this task") }),
     output: Created,
     idempotent: true,
     prepare: (input) => Effect_exports.gen(function* () {
@@ -30840,7 +31492,7 @@ var COMMANDS = [
       return { source: source2, ...yield* registered(input.workspace) };
     }),
     run: (input, { source: source2, path: workspace, project }) => Effect_exports.gen(function* () {
-      const pack = yield* input.cartridges ? loadPack(resolve10(input.cartridges)) : packFor(workspace);
+      const pack = yield* input.cartridges ? resolvePackSelection(input.cartridges).pipe(Effect_exports.map(({ pack: pack2 }) => pack2)) : packFor(workspace);
       const autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY;
       const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source: source2, workspace, autonomy, ...pack ? { pack } : {} });
       return { item: view(item), next: yield* wake(item.id) };
@@ -30963,13 +31615,13 @@ var COMMANDS = [
   }),
   command({
     name: "retry",
-    summary: "Run a held item again from where it stopped.",
+    summary: "Run a held item again from where it stopped. With --replan <reason>, eligible unmerged technical holds return to fresh planning on the same task, retaining history.",
     args: ["id"],
-    input: Schema_exports.Struct({ id: Id2 }),
+    input: Schema_exports.Struct({ id: Id2, replan: Schema_exports.optionalKey(Schema_exports.String) }),
     output: Created,
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      yield* retry3(input.id);
+      yield* retry3(input.id, { replan: input.replan });
       return { item: view((yield* Store).get(input.id)), next: yield* wake(input.id) };
     })
   }),
@@ -31034,7 +31686,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve10(input.out ?? resolve10(dirname8(storePath), "replay.html"));
+      const out = resolve11(input.out ?? resolve11(dirname8(storePath), "replay.html"));
       writeFileSync8(out, staticPage(yield* Store, nextFor));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
     })
@@ -31047,7 +31699,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve10(input.out ?? resolve10(dirname8(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve11(input.out ?? resolve11(dirname8(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -31062,7 +31714,7 @@ var COMMANDS = [
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync5(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
       const lines4 = files.flatMap((f) => readFileSync12(join12(dir, f), "utf8").split("\n").filter(Boolean));
-      return { dir: resolve10(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve10(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
+      return { dir: resolve11(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve11(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
   command({

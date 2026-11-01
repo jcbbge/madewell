@@ -101,6 +101,23 @@ mw init --cartridges pack.json            # this project's new work runs it
 
 The software runtime can add steps before the plan, hold several discovery cartridges, and unplug checks. Only this runtime keeps five slots: `discover`, `plan`, `implement`, `test-plan` and `verify`. Its Git isolation, independent maker/check tracks and shipping guarantees remain intact. `mw cartridges --check pack.json` reports contract problems before anything runs.
 
+### Installed grammar onboarding
+
+The installed `mw` includes the prescribed grammar; no lab files or exported pack are needed, including from an unrelated working directory:
+
+```sh
+mw cartridges --check builtin:grammar
+mw init --cartridges builtin:grammar
+mw cartridges
+mw discover --source-file notes.txt
+```
+
+`builtin:grammar` is the selection alias for `made-well-autonomy-lab` version `1.3`, with discovery, acceptance and handoff contracts `1`, seven discovery obligations and four delivery cartridges. The version reconciles the existing deployed content; the name remains unchanged. This is opt-in, not a new default.
+
+Init, project inspection, explicit cartridge checks/updates, discover/start overrides and browser submissions share selection resolution. Init stores the symbolic selector literally; relative JSON file selections still become absolute paths and use existing validation. Omitted init selection preserves registration; `mw init --cartridges default` removes it and restores the default software pack. Other commands interpret `default` as a file name. Unknown `builtin:` selectors return actionable `cartridges_invalid` errors.
+
+New work pins the complete resolved pack. Existing item inspection (`mw cartridges --item <id>`) takes precedence over project configuration, including legacy items without a pin, which retain software behavior. Changing project selection never rewrites historical pins. `--update builtin:grammar --item <id>` resolves the selector but still obeys existing function-pack-only boundary-update restrictions; it does not authorize a software-pack live update. Valid file-based function-pack updates retain their existing behavior. Browser project reads report the configured selector, file or default; saved request replay returns its original receipt without resolving changed registration again.
+
 ### Optional decision cartridge
 
 The [three-legged rubric](dossiers/2026-10-24-three-legged-rubric.md) is the default: agents judge DX, UX and AX through their 3×3 matrices, and settled decisions must pass at least two legs. No external inference is needed.
@@ -339,18 +356,20 @@ Downstream `/qa` review clients can read `selection=all&format=json` for all lin
 
 ## Develop
 
-Node runs the TypeScript sources directly (`node src/cli.ts`). The install runs `dist/mw.mjs`, the sources bundled with Effect into one committed file; `npm test` rebuilds it, so commit it with your change.
+Node runs the TypeScript sources directly (`node src/cli.ts`). The install runs `dist/mw.mjs`, bundled with Effect. Regenerate the package assets with `npm run bundle` before CLI checks. Run affected test files or focused test-name selections and relevant typechecking; this feature has no whole-suite gate. Makers do not write or run their own acceptance checks; independent verification owns them. Commit only when explicitly requested.
 
 ```sh
 npm install
-npm test
+npm run bundle
+# Independent verification: select only affected files/names, for example:
+node --test test/packet-transport.test.ts
 npm run typecheck
 ```
 
 
 ## Isolated autonomy experiment
 
-`src/autonomy-pack.ts` exports an opt-in laboratory pack. Existing pinned packs keep their discovery and acceptance behavior. The seven discovery functions and four delivery phases remain the grammar.
+`src/autonomy-pack.ts` exports the opt-in pack installed as `builtin:grammar`. Existing pinned packs keep their discovery and acceptance behavior. The seven discovery functions and four delivery phases remain the grammar.
 
 Each discovery contribution declares `discoveryContract:"1"` and its own typed findings: intent, observations, requirements, tradeoffs, candidates, artifact dependencies and final confirmation. Stable IDs connect these records. Confirmation refuses missing requirements, changed candidates/artifacts, unknown IDs, invalid dependencies and routing that contradicts promised preparation. It never silently filters broken edges. IDs verify continuity; an independent reading of the raw source still has to evaluate semantic fidelity.
 
@@ -365,6 +384,11 @@ Receiving maker intake and execution packets additionally carry `ownArtifactHist
 Available entries have `{ event, role, referenceOnly: true, status: "available", provenance: "verified", base, plan, partial, sha256, bytes, patch? }`. Verified means recorded content integrity, never compatibility. The complete execution packet supplies the exact UTF-8 strings at `ownArtifactHistory.entries[].patch`, through the existing packet file or inline transport; workers read those bodies directly without an export, context fact, retrieval command or service. No-tool intake keeps descriptors and the collection instruction without patch bodies, independently of snapshot deferral.
 
 Unavailable entries have `{ event, role, referenceOnly: true, status: "unavailable", provenance: "unverified", reason }` and only individually well-formed recorded `base`, `plan`, `partial`, `sha256` and `bytes` fields. Reasons follow this precedence: `invalid-provenance`, `missing-patch`, `invalid-patch`, `hash-mismatch`, `byte-length-mismatch`. Valid empty patches remain available. Invalid evidence never exposes patch bodies or arbitrary event fields and does not itself hold, retry or reset work; required unavailable evidence returns through existing NQ. History predicts less manual transfer and more precise worker context; these benefits are not measured savings or acceptance evidence.
+
+
+Every `mw export` includes `artifacts/history.json` as `{ instruction, entries }`, even for empty or corrupt-only histories. Entries are the event-ordered union of descriptor-only `ownArtifactHistory` results for `implement` and `test-plan`, preserving repeated-content events, superseded plans/bases, pre-reset evidence, unavailable reasons and permissible provenance. The descriptor fields above remain unchanged; no patch bodies are embedded in the index.
+
+For each available entry, read `artifacts/<sha256>.patch` relative to the export root for the exact recorded UTF-8 bytes. The existing `savedArtifacts` decoder still owns legacy patch files and the conditionally created `manifest.json`. A legacy patch can coexist with an unavailable history descriptor because the decoders retain their distinct validation contracts; file existence does not upgrade availability. Raw `item.json`/events and per-call exports remain compatible. This operator-only export index grants no worker access, application/resume permission or continuation authority. Worker history remains restricted to receiving makers and their own role.
 
 
 For software maker execution, Made Well fingerprints untracked, non-ignored prepared inputs immediately after project preparation and before restoring maker artifacts. Regular-file bytes and executable mode, or symlink text and type, define identity; timestamps do not. Unchanged supplied resources are excluded from both artifact paths and patch bytes, even if staged. Restored maker files remain eligible. Changed, deleted or replaced supplied resources remain visible to scope assessment and extraction refuses them with `prepared_input_failed`: a base-relative patch cannot represent their prepared predecessor safely. Failed partial extraction records its diagnostic alongside the original failure and leaves the previous durable artifact intact.
@@ -395,3 +419,5 @@ This opt-in permits wording clarification while retaining candidate identities, 
 Register supplied physical inputs through `mw init --inputs '<JSON array>'`, using `{id,path,kind,jobs?,sha256?}`. Kinds are `file`, `directory` and `executable`; relative paths and their resolved targets stay inside the prepared workspace, while absolute host paths are explicit bindings. Plan environment references use `input:<id>` and must be bound for the actual `verify` job; add author jobs when they also need the resource. Preparation runs before the check. Missing input becomes the receiving agent's existing NQ question, with the expected path/type and observed failure. The answering originator is not blocked by the receiver's missing resource. Logical citations are not filesystem inputs. File availability does not prove a capability works; functional probes remain in the project's prepare command.
 
 Trusted command/group nodes use the same output, question, input and atomic-record checks without inventing an agent exchange for a command. Their failures use the existing owned function hold. Prepared resources use the existing aftercare lifecycle on success and failure. Older pinned contracts retain their original behavior.
+
+Portable grammar and history verification uses the built/packed executable from an unrelated isolated cwd, shared-decoder export assertions and focused existing packet-transport recipes. Local inline/file recipe execution checks exact large Unicode, CRLF and binary-diff-text bytes, descriptor-only intake, call isolation and bounded failure/interruption cleanup. These local checks do not establish live vendor interchangeability. Independent candidate verification supplies its own executed evidence; installation and real-project smoke in the plant application occur after delivery under the operator's agent. Neither package checks nor these predictions establish deployed plant acceptance or measured speedups.

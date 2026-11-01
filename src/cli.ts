@@ -20,8 +20,9 @@ import { itemHome } from './change.ts'
 import { answer, contextFact, contextFacts, drop, go, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
 import { ERRORS, MadeWellError, Next, errorJson, quote } from './errors.ts'
 import { EvalReport, JOBS, evaluate } from './eval.ts'
+import { resolvePackSelection } from './pack-selection.ts'
 import { requestPackUpdate } from './functions.ts'
-import { laneOf, loadPack, Pack, SOFTWARE, stepOf } from './lane.ts'
+import { laneOf, Pack, SOFTWARE, stepOf } from './lane.ts'
 import { Gate, Project, alertHolds, openHolds, projectFor, projectsPath, readProjects, saveProject, type OpenHold } from './project.ts'
 import { Prerequisite } from './prerequisites.ts'
 import { QA_JSON_SCHEMAS, QaAccepted, QaCaseDetail, QaCaseList, QaCounter, QaExportQuery, QaExportResult, QaId, QaObservationList, QaRunDetail, QaRunList, qaCase, qaCases, qaCreateCase, qaError, qaExport, qaLink, qaObservations, qaObserve, qaParseJson, qaReviseCase, qaRun, qaRuns, qaStartRun, qaStorageError, qaVerdict } from './qa.ts'
@@ -205,7 +206,7 @@ const wake = Effect.fn('mw.wake')(function* (id?: number) {
 /** The cartridge pack a workspace's project plugs in, or undefined for the default software pack. */
 const packFor = Effect.fn('mw.packFor')(function* (workspace: string) {
 	const path = projectFor(yield* readProjects(registry), workspace)?.cartridges
-	return path ? yield* loadPack(path) : undefined
+	return (yield* resolvePackSelection(path)).pack
 })
 
 const readSource = (input: { source?: string; 'source-file'?: string }) => {
@@ -371,7 +372,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			alert: optional('shell command run once per hold, with the hold as JSON on stdin and MW_ITEM, MW_TITLE, MW_HOLD, MW_MESSAGE set'),
 			prepare: optional('shell command that makes a fresh job worktree usable (dependencies, env, a database), run in each one before the job; see the Project schema for its environment and output'),
 			inputs: optional('required supplied inputs as JSON [{id,path,kind:"file"|"directory"|"executable",jobs?:[job],sha256?}]. Relative paths are inside the prepared worktree; absolute paths are explicit host bindings. They are checked before the receiving job and missing inputs enter its existing NQ exchange. [] removes them.'),
-			cartridges: optional('a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
+			cartridges: optional('builtin:grammar or a cartridge pack file (JSON) that replaces the default software lane for this project\'s new work; "default" goes back to it. `mw cartridges` prints the default pack to start from.'),
 			conventions: optional('the rules this repo\'s work follows that no gate catches, as a JSON array of strings, such as ["Colours come from the design tokens in src/tokens.css"]. Every plan turns each into a done-when item its checks prove, or says why it does not apply. Replaces the set given before; [] removes them.'),
 			gates: optional('the repo\'s own gates as JSON: [{"run": "<command; {files} becomes the matched changed files>", "glob": "*.css"}]. Made Well runs them on each item\'s changed files before its checks, keeps the files they fix, and a failing one goes to the arbiter. Replaces the set given before; [] removes them. Migrating from lefthook: one entry per pre-commit job, {staged_files} written as {files}.'),
 		}),
@@ -391,8 +392,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			)
 			if (inputs) yield* Schema.decodeUnknownEffect(Project)({ path, inputs }).pipe(Effect.mapError((e) => usageError('init', `Invalid --inputs: ${e.message}`)))
 			// A pack is checked against the console's contract before it is registered, so no work ever starts on one that does not plug in.
-			const cartridges = input.cartridges === undefined || input.cartridges === 'default' ? input.cartridges : resolve(input.cartridges)
-			if (cartridges && cartridges !== 'default') yield* loadPack(cartridges)
+			const cartridges = input.cartridges === undefined || input.cartridges === 'default' ? input.cartridges : (yield* resolvePackSelection(input.cartridges)).source
 			const saved = yield* saveProject(registry, { path, ...(input.ship ? { ship: input.ship } : {}), ...(input.alert ? { alert: input.alert } : {}), ...(input.prepare ? { prepare: input.prepare } : {}), ...(inputs ? { inputs } : {}), ...(gates ? { gates } : {}), ...(conventions ? { conventions } : {}), ...(cartridges ? { cartridges } : {}), ...(input.autonomy ? { autonomy: input.autonomy } : {}) })
 			const project = cartridges === 'default' ? yield* saveProject(registry, (({ cartridges: _, ...rest }) => rest)(saved), true) : saved
 			return { project, next: [{ run: `mw discover --workspace ${quote(path)} --source-file <notes>`, why: 'put the raw notes in: Made Well discovers the work and delivers it' }, { run: `mw start --workspace ${quote(path)} --objective "<one line>" --source "<the operator's own words>"`, why: 'deliver one piece of work straight away' }] }
@@ -400,15 +400,15 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	}),
 	command({
 		name: 'cartridges',
-		summary: 'Inspect the project pack or --item\'s pinned pack. --check validates a file. --update <file> --item <id> queues a function-pack replacement at the next node boundary without changing completed or in-flight nodes. New work reads the project pack afresh; start/discover can override it per task with --cartridges.',
+		summary: 'Inspect the project pack or --item\'s pinned pack. --check validates builtin:grammar or a file. --update <selector-or-file> --item <id> queues a function-pack replacement at the next node boundary without changing completed or in-flight nodes. New work reads the project pack afresh; start/discover can override it per task with --cartridges.',
 		input: Schema.Struct({
 			workspace: Workspace,
-			check: optional('a cartridge pack file to validate instead'),
+			check: optional('builtin:grammar or a cartridge pack file to validate instead'),
 			item: Schema.optionalKey(Id),
-			update: optional('replacement function pack file; requires --item'),
+			update: optional('replacement selector or function pack file; requires --item; existing function-pack-only update restrictions apply'),
 		}),
 		output: Schema.Struct({
-			source: Schema.String.annotate({ description: '"default", or the pack file' }),
+			source: Schema.String.annotate({ description: '"default", a symbolic selector, an absolute pack file, or item:<id> for the pinned pack' }),
 			pack: Pack,
 			update: Schema.optionalKey(Fact),
 			lane: Schema.Struct({
@@ -419,23 +419,24 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		idempotent: true,
 		run: (input) => Effect.gen(function* () {
-			if ((input.update && input.item === undefined) || (input.check && (input.update || input.item !== undefined))) return yield* usageError('cartridges', 'Use --check alone, --item to inspect, or --update <file> --item <id>.')
+			if ((input.update && input.item === undefined) || (input.check && (input.update || input.item !== undefined))) return yield* usageError('cartridges', 'Use --check alone, --item to inspect, or --update <selector-or-file> --item <id>.')
 			const pinned = input.item === undefined ? undefined : yield* found(yield* Store, input.item)
-			const path = input.check || input.update ? resolve((input.check ?? input.update)!) : pinned ? undefined : projectFor(yield* readProjects(registry), resolve(input.workspace ?? '.'))?.cartridges
-			const pack = path ? yield* loadPack(path) : pinned?.pack ?? SOFTWARE
+			const selection = input.check ?? input.update ?? (pinned ? undefined : projectFor(yield* readProjects(registry), resolve(input.workspace ?? '.'))?.cartridges)
+			const resolved = yield* resolvePackSelection(selection)
+			const pack = pinned && !input.update ? pinned.pack ?? SOFTWARE : resolved.pack ?? SOFTWARE
 			const update = input.update ? yield* requestPackUpdate(input.item!, pack) : undefined
 			const lane = laneOf(pack)
 			const line = (s: { cartridge: string; job: string; profile: string }) => `${s.cartridge} / ${s.job} (${s.profile})`
 			return {
-				source: path ?? (pinned ? `item:${pinned.id}` : 'default'), pack, ...(update ? { update } : {}), lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
-				next: input.check ? [{ run: `mw init --cartridges ${quote(path!)}`, why: 'plug it into this project; new work runs it' }] : [{ run: 'mw cartridges | jq .pack > pack.json', why: 'start a pack of your own from this one' }],
+				source: pinned && !input.update ? `item:${pinned.id}` : resolved.source, pack, ...(update ? { update } : {}), lane: { discovery: lane.discovery.map(line), delivery: lane.delivery.map(line) },
+				next: input.check ? [{ run: `mw init --cartridges ${quote(resolved.source)}`, why: 'plug it into this project; new work runs it' }] : [{ run: 'mw cartridges | jq .pack > pack.json', why: 'start a pack of your own from this one' }],
 			}
 		}),
 	}),
 	command({
 		name: 'discover',
 		summary: 'Turn raw input (notes, transcripts, meetings) into candidate work items, which wait for the operator to promote them.',
-		input: Schema.Struct({ ...Source, workspace: Workspace, title: optional('a title for the discovery run'), autonomy: AutonomyInput, cartridges: optional('override the project cartridge pack for this run') }),
+		input: Schema.Struct({ ...Source, workspace: Workspace, title: optional('a title for the discovery run'), autonomy: AutonomyInput, cartridges: optional('override the project cartridge pack with builtin:grammar or a file for this run') }),
 		output: Created,
 		idempotent: true,
 		prepare: (input) => Effect.gen(function* () {
@@ -445,7 +446,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 		}),
 		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
 			const title = input.title ?? `Discovery of ${input['source-file'] ? basename(input['source-file']) : 'raw input'}`
-			const pack = yield* (input.cartridges ? loadPack(resolve(input.cartridges)) : packFor(workspace))
+			const pack = yield* (input.cartridges ? resolvePackSelection(input.cartridges).pipe(Effect.map(({ pack }) => pack)) : packFor(workspace))
 			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY
 			const item = createOnce(yield* Store, { title, objective: 'Turn the raw input into candidate work items.', source, workspace, job: laneOf(pack).discovery[0]?.job ?? '', autonomy, ...(pack ? { pack } : {}), ...(pack?.runtime === 'functions' ? { flow: { loop: 'discovery', accepted: [] } } : {}) })
 			return { item: view(item), next: yield* wake(item.id) }
@@ -466,7 +467,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 	command({
 		name: 'start',
 		summary: 'Add one work item straight to the delivery queue.',
-		input: Schema.Struct({ objective: Schema.String.annotate({ description: 'one line: what done means' }), ...Source, workspace: Workspace, title: optional('defaults to the objective'), autonomy: AutonomyInput, cartridges: optional('override the project cartridge pack for this task') }),
+		input: Schema.Struct({ objective: Schema.String.annotate({ description: 'one line: what done means' }), ...Source, workspace: Workspace, title: optional('defaults to the objective'), autonomy: AutonomyInput, cartridges: optional('override the project cartridge pack with builtin:grammar or a file for this task') }),
 		output: Created,
 		idempotent: true,
 		prepare: (input) => Effect.gen(function* () {
@@ -475,7 +476,7 @@ const COMMANDS: ReadonlyArray<AnyCommand> = [
 			return { source, ...(yield* registered(input.workspace)) }
 		}),
 		run: (input, { source, path: workspace, project }) => Effect.gen(function* () {
-			const pack = yield* (input.cartridges ? loadPack(resolve(input.cartridges)) : packFor(workspace))
+			const pack = yield* (input.cartridges ? resolvePackSelection(input.cartridges).pipe(Effect.map(({ pack }) => pack)) : packFor(workspace))
 			const autonomy: Autonomy = input.autonomy ?? project.autonomy ?? DEFAULT_AUTONOMY
 			const item = createOnce(yield* Store, { title: input.title ?? input.objective, objective: input.objective, source, workspace, autonomy, ...(pack ? { pack } : {}) })
 			return { item: view(item), next: yield* wake(item.id) }
