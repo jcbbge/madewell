@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { Clock, Effect, Fiber, Layer, Schema } from 'effect'
 import { API_SCHEMAS, contextOf } from './api.ts'
+import { createWork } from './organs.ts'
 import { loadPrescriptions } from './cards.ts'
 import { itemHome } from './change.ts'
 import { answer, contextFact, contextFacts, drop, go, nextFor, promote, retry, runQueue, stuck } from './engine.ts'
@@ -231,7 +232,7 @@ const qaPageFlags = { after: Schema.optionalKey(qaCliCounter), limit: Schema.opt
 /** One item per request: a repeated `start` or `discover` returns the item the first one created. */
 const createOnce = (store: Store['Service'], fields: Parameters<Store['Service']['create']>[0]) =>
 	store.list().find((i) => i.parent === undefined && i.discovery === undefined && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace && JSON.stringify(i.pack) === JSON.stringify(fields.pack))
-	?? store.create(fields)
+	?? createWork(store, fields)
 
 /** The live runner's owner, or null. Asking takes and gives back the runner claim, so it is only asked when work can move. */
 const runner = (store: Store['Service']) =>

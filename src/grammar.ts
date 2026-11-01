@@ -4,6 +4,7 @@ import { Decision } from './decision.ts'
 import { isMaker, laneOf, lastJson, shapeOf, SOFTWARE, stepOf, type Pack } from './lane.ts'
 import { workEvidenceOf, type WorkEvidence } from './work-evidence.ts'
 import { currentHandoffOf } from './handoff-view.ts'
+import { organSummary } from './organs.ts'
 import type { CallHead, Item, Store } from './store.ts'
 import { totalTokens } from './telemetry.ts'
 
@@ -52,6 +53,8 @@ export interface GrammarReadiness {
 }
 export interface GrammarTask {
 	readonly currentHandoff: ReturnType<typeof currentHandoffOf>
+	readonly organs: ReturnType<typeof organSummary>
+	readonly organJobs: ReadonlyArray<string>
 	readonly id: number
 	readonly title: string
 	readonly status: Item['status']
@@ -70,7 +73,7 @@ export interface GrammarTask {
 	readonly updated: string
 }
 export interface GrammarView {
-	readonly discovery: { readonly currentHandoff: ReturnType<typeof currentHandoffOf>; readonly id: number; readonly title: string; readonly source: string; readonly status: Item['status']; readonly currentJob: string; readonly steps: ReadonlyArray<GrammarStep>; readonly complete: boolean; readonly completedStepCount: number; readonly requiredStepCount: number; readonly taskListProduced: boolean; readonly candidateIds: ReadonlyArray<number>; readonly updated: string }
+	readonly discovery: { readonly currentHandoff: ReturnType<typeof currentHandoffOf>; readonly organs: ReturnType<typeof organSummary>; readonly organJobs: ReadonlyArray<string>; readonly id: number; readonly title: string; readonly source: string; readonly status: Item['status']; readonly currentJob: string; readonly steps: ReadonlyArray<GrammarStep>; readonly complete: boolean; readonly completedStepCount: number; readonly requiredStepCount: number; readonly taskListProduced: boolean; readonly candidateIds: ReadonlyArray<number>; readonly updated: string }
 	readonly tasks: ReadonlyArray<GrammarTask>
 	readonly runner: { readonly active: boolean; readonly pid: number | null }
 	readonly observedAt: string
@@ -171,7 +174,7 @@ export function grammarOf(store: WorkStore, id: number): GrammarView | undefined
 		viewed.push({ job: 'verification', label: 'verification()', state: verified ? 'yes' : child.status === 'held' && ['verify', 'arbitrate'].includes(child.job) ? 'blocked' : !!runner && child.job === 'verify' && child.status === 'running' ? 'running' : 'no', complete: verified, configured: laneOf(child.pack).delivery.some((s) => s.job === 'verify'), input: history.findLast((e) => e.kind === 'verify-started')?.data ?? null, output: verification ?? null, evidence: { eventSeqs: verifyProof.map((e) => e.seq), trace: `/api/trace/${child.id}?lens=ax` }, reason: verified ? 'Saved verification applies to the recorded candidate; current deployment has not been rechecked.' : child.hold?.message ?? 'No current passing verification is recorded.', metrics: metricsFor(heads, child.id, ['verify']) })
 		if (child.pack?.runtime === 'functions') viewed.splice(0, viewed.length, ...laneOf(child.pack)[child.flow?.loop ?? 'delivery'].map(s => stepView(child, s.job, s.job, !!runner, heads, workEvidence.jobs[s.job])))
 		const delivered = workEvidence.delivered
-		return { currentHandoff: currentHandoffOf(store, child), id: child.id, title: child.title, status: child.status, currentJob: child.job, currentPhase: child.job === 'arbitrate' ? 'verification' : stepOf(laneOf(child.pack), child.job).cartridge, enteredDelivery: history.some((e) => e.kind === 'handoff' || e.kind === 'call-started'), phases: viewed, testsCreated, testCount: checks.length,
+		return { currentHandoff: currentHandoffOf(store, child), organs: organSummary(store, child), organJobs: laneOf(child.pack)[child.flow?.loop ?? 'delivery'].map(step => step.job), id: child.id, title: child.title, status: child.status, currentJob: child.job, currentPhase: child.job === 'arbitrate' ? 'verification' : stepOf(laneOf(child.pack), child.job).cartridge, enteredDelivery: history.some((e) => e.kind === 'handoff' || e.kind === 'call-started'), phases: viewed, testsCreated, testCount: checks.length,
 			verification: { passed: verification ? verified ? true : verification.passed ? null : false : null, on: verification?.on ?? null, commit: verification?.commit ?? null, results: verification?.results ?? [] },
 			delivered, shipment: child.shipped ?? null, blocker: child.hold ?? null, readiness: readinessOf(store, child, !!runner, delivered), after: child.after ?? [], updated: child.updated }
 	})
@@ -187,7 +190,7 @@ export function grammarOf(store: WorkStore, id: number): GrammarView | undefined
 	const discoverySteps = DISCOVERY_FUNCTIONS.map(([job, label]) => stepView(item, job, label, !!runner, heads, workEvidence.jobs[job]))
 	const completedStepCount = discoverySteps.filter((step) => step.complete).length
 	const candidates = parsed(item.outputs.discover)
-	return { discovery: { currentHandoff: currentHandoffOf(store, item), id: item.id, title: item.title, source: item.source, status: item.status, currentJob: item.job,
+	return { discovery: { currentHandoff: currentHandoffOf(store, item), organs: organSummary(store, item), organJobs: laneOf(item.pack).discovery.map(step => step.job), id: item.id, title: item.title, source: item.source, status: item.status, currentJob: item.job,
 		steps: discoverySteps, complete: completedStepCount === DISCOVERY_FUNCTIONS.length, completedStepCount, requiredStepCount: DISCOVERY_FUNCTIONS.length,
 		taskListProduced: events.some((e) => e.kind === 'discovered') && discoverySteps.find((step) => step.job === 'discover')!.complete && !!candidates && typeof candidates === 'object' && 'items' in candidates && Array.isArray(candidates.items), candidateIds: children.map((c) => c.id), updated: item.updated },
 		tasks, runner: { active: !!runner, pid: runner?.pid ?? null }, observedAt: new Date().toISOString(), lastEventAt: allEvents.at(-1)?.at ?? null,

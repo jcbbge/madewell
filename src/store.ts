@@ -12,6 +12,7 @@ import type { Card } from './cards.ts'
 import { MadeWellError, type Next } from './errors.ts'
 import { laneOf, type Check, type Cause, type Job, type Maker, type Pack } from './lane.ts'
 import type { Resource, TeardownRecord } from './workspace.ts'
+import type { GateReceipt } from './rumen.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 import type { QaAccepted, QaCase, QaCaseRevision, QaCommand, QaConflict, QaLink, QaLinkView, QaObservation, QaOutcome, QaQuery, QaReadResult, QaRun, QaSnapshot } from './qa.ts'
 
@@ -85,6 +86,8 @@ export interface Provisioned extends Resource {
 }
 
 export interface Item {
+	/** Mandatory work-owned Ground, Rumen and producer preparation; absent only on legacy records. */
+	readonly organs?: { readonly version: '1'; readonly origin?: { readonly item: number; readonly job: string; readonly outputHash: string; readonly target: 'delivery' | 'prerequisite' } }
 	readonly id: number
 	readonly title: string
 	readonly objective: string
@@ -120,7 +123,7 @@ export interface Item {
 	/** The test architect's checks; their files live in Made Well's home until the item ships. */
 	readonly checks?: { readonly checks: ReadonlyArray<Check>; readonly files: ReadonlyArray<string> }
 	/** Made Well's run of the checks: the main commit it ran on, the commit it built there, and every result. */
-	readonly verification?: { readonly on: string; readonly commit: string; readonly results: ReadonlyArray<CheckResult>; readonly passed: boolean }
+	readonly verification?: { readonly on: string; readonly commit: string; readonly results: ReadonlyArray<CheckResult>; readonly gateReceipts?: ReadonlyArray<GateReceipt>; readonly passed: boolean }
 	/** The verified commit Made Well brought onto the branch. */
 	readonly merged?: { readonly ref: string; readonly commit: string }
 	readonly provisioned?: ReadonlyArray<Provisioned>
@@ -544,7 +547,7 @@ export function openStore(path: string) {
 		},
 		/** A phase's accepted output, transition and reusable NQ decisions commit together. */
 		atomic<T>(run: () => T): T { return tx(run) },
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy' | 'flow'>>): Item {
+		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy' | 'flow' | 'organs'>>): Item {
 			const created = tx(() => {
 				const now = new Date().toISOString()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')

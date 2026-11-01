@@ -1,5 +1,6 @@
 // The open cartridge runtime. The engine still owns NQ, quota, scheduling and saved-state recovery.
-import { Effect, Schema } from 'effect'
+import { createHash } from 'node:crypto'
+import { Effect, Result, Schema } from 'effect'
 import { MadeWellError } from './errors.ts'
 import { conforms, laneOf, lastJson, problemsOf, validate, type Pack, type Step } from './lane.ts'
 import { answerHistory, decisionProblem, questionsOwedBy, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
@@ -8,13 +9,17 @@ import { projectFor, projectsPath, readProjects } from './project.ts'
 import { Store, type Item } from './store.ts'
 import { observe } from './trace.ts'
 import { runGroup } from './worker.ts'
+import { checkIncomingPreparation, childOrgans, compositionPreparation, inspectPreparation, nextJobs, organPacket, organsRequired, saveOrganReceipt } from './organs.ts'
+import { gateRule, type GateReceipt } from './rumen.ts'
+import type { Project } from './project.ts'
 
-export const functionInput = (item: Item, step: Step, store?: Pick<Store['Service'], 'get'> & Partial<Pick<Store['Service'], 'events'>>) => {
+export const functionInput = (item: Item, step: Step, store?: Pick<Store['Service'], 'get'> & Partial<Pick<Store['Service'], 'events'>>, project?: Project) => {
 	const reader = store?.events ? { get: store.get, events: store.events } : undefined
 	const history = item.pack?.contracts?.handoff === '1' && reader ? answerHistory(reader, item, step.job) : undefined
 	const questions = history && reader ? questionsOwedBy(reader, item, step.job).map(q => ({ ...q, resolved: questionResolved(q, history.answers) })) : []
 	return {
 		item: { id: item.id, title: item.title, objective: item.objective, source: item.source },
+		...(reader && organsRequired(item) ? { organs: organPacket(reader, item, step.job, project) } : {}),
 		args: step.args ?? {},
 		...(questions.length ? { questionsToSettle: questions } : {}),
 		...(history?.answers.length ? { answeredBefore: history.packetAnswers() } : {}),
@@ -39,15 +44,45 @@ const flowOf = (item: Item) => item.flow ?? { loop: 'delivery' as const, accepte
 
 /** A trusted check can refuse a return, but cannot rewrite it or advance the work. */
 export const checkFunction = Effect.fn('mw.checkFunction')(function* (item: Item, step: Step, output: Record<string, unknown>) {
-	if (!step.check) return { ok: true as const }
+	const terminal = item.pack?.runtime === 'functions' && organsRequired(item) && step.loop === 'delivery' && flowOf(item).loop === 'delivery' && nextJobs(item, step.job, output).length === 0
+	if (!step.check && !terminal) return { ok: true as const }
 	const store = yield* Store
-	const input = functionInput(item, step, store)
-	return yield* observe(store, item.id, { job: step.job, kind: 'acceptance', args: { input, output, command: step.check, budget: step.budget ?? { minutes: 30 } } }, (onOutput) => Effect.gen(function* () {
-		const result = yield* runGroup({ command: 'sh', args: ['-c', step.check!], cwd: item.workspace, env: process.env, input: JSON.stringify({ input, output }), budget: step.budget ?? { minutes: 30 }, onOutput })
-		if (result.code !== 0) return yield* failed(item, step.job, `acceptance check exited ${result.code}: ${result.stderr}`)
+	const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
+	const input = functionInput(item, step, store, project)
+	const budget = step.budget ?? { minutes: 30 }, payload = JSON.stringify({ input, output })
+	return yield* Effect.gen(function* () {
+		if (step.check) yield* observe(store, item.id, { job: step.job, kind: 'acceptance', args: { input, output, command: step.check, budget } }, (onOutput) => Effect.gen(function* () {
+			const result = yield* runGroup({ command: 'sh', args: ['-c', step.check!], cwd: item.workspace, env: process.env, input: payload, budget, onOutput })
+			if (result.code !== 0 || result.overBudget) return yield* failed(item, step.job, `acceptance check exited ${result.overBudget ? 124 : result.code}: ${result.stderr}`)
+			return { passed: true }
+		}))
+		if (terminal) {
+			const gateReceipts: GateReceipt[] = [], unavailable: string[] = []
+			for (const [index, gate] of (project?.gates ?? []).entries()) {
+				const rule = gateRule(gate), id = `G${index + 1}`
+				const receipt = { id, rule: rule.id, definitionHash: rule.definitionHash, template: gate.run, files: [], sourceBefore: [], sourceAfter: [] }
+				if (gate.glob !== undefined || gate.run.includes('{files}')) {
+					gateReceipts.push({ ...receipt, command: null, outcome: 'unavailable', exitCode: null })
+					unavailable.push(`${id} requires a verified changed-file set for its glob or {files}; function execution has no such set.`)
+					continue
+				}
+				const run = yield* Effect.result(observe(store, item.id, { job: step.job, kind: 'gate', args: { id, rule: rule.id, definitionHash: rule.definitionHash, command: gate.run, budget, scope: 'unscoped-function-context' } }, onOutput =>
+					runGroup({ command: 'sh', args: ['-c', gate.run], cwd: item.workspace, env: { ...process.env, MW_ITEM: String(item.id), MW_JOB: step.job }, input: payload, budget, onOutput })))
+				if (Result.isFailure(run)) {
+					gateReceipts.push({ ...receipt, command: gate.run, outcome: 'unavailable', exitCode: null })
+					unavailable.push(`${id} could not execute: ${run.failure.message}`)
+				} else {
+					const result = run.success.result, exitCode = result.overBudget ? 124 : result.code ?? 1
+					gateReceipts.push({ ...receipt, command: gate.run, outcome: exitCode === 0 ? 'passed' : 'failed', exitCode })
+				}
+			}
+			store.note(item.id, 'function-fences', { job: step.job, outputHash: createHash('sha256').update(JSON.stringify(output)).digest('hex'), gateReceipts,
+				scope: 'unscoped-function-context', evidenceBoundary: 'Commands examined the supplied input/output and project context. No verified changed-file set or final candidate source fingerprint is claimed.', unavailable })
+			const failedGates = gateReceipts.filter(receipt => receipt.outcome !== 'passed')
+			if (failedGates.length) return yield* failed(item, step.job, `Terminal Rumen fences did not pass: ${failedGates.map(receipt => `${receipt.id} ${receipt.outcome}${receipt.exitCode === null ? '' : ` (exit ${receipt.exitCode})`}`).join(', ')}. ${unavailable.join(' ')}`, { gateReceipts })
+		}
 		return { ok: true as const }
-	})).pipe(
-		Effect.map(({ result }) => result),
+	}).pipe(
 		Effect.catchTag('MadeWellError', (error) => Effect.succeed({ ok: false as const, reason: error.message })),
 	)
 })
@@ -121,6 +156,7 @@ export const advanceFunctions = Effect.fn('mw.advanceFunctions')(function* (give
 			const handoff = item.pack?.contracts?.handoff === '1'
 			for (const [index, c] of candidates.items.entries()) ids.push(existing[index]?.id ?? store.create({ title: c.title, objective: c.objective, source: handoff ? item.source : c.text ?? item.source, workspace: item.workspace,
 				pack: item.pack, autonomy: item.autonomy, discovery: item.id, status: item.autonomy === 'full' ? 'queued' : 'candidate',
+				...(item.organs ? { organs: childOrgans(item, flow.accepted.at(-1)!, item.outputs[flow.accepted.at(-1)!]!, 'delivery') } : {}),
 				...(handoff ? { outputs: { discover: JSON.stringify({ ...(output.items as Record<string, unknown>[])[index], ...c }) } } : {}),
 				...(c.after?.length ? { after: c.after.map((position) => ids[position - 1]!) } : {}),
 				from: { kind: 'dispatcher' }, flow: { loop: 'delivery', accepted: [] },
@@ -137,7 +173,8 @@ export const advanceFunctions = Effect.fn('mw.advanceFunctions')(function* (give
 		return
 	}
 	if (item.job !== step.job || item.status === 'queued') item = store.save({ ...item, flow, job: step.job, status: 'running' }, 'running', { job: step.job })
-	const input = functionInput(item, step, store)
+	const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
+	const input = functionInput(item, step, store, project)
 	const problems = step.input ? conforms(step.input, input, 'input') : []
 	if (!problems.length && !step.run && !step.children) return step
 	const { invocation, result } = yield* observe(store, item.id, { job: step.job, kind: step.children ? 'compose' : 'function', args: { input, node: step, pack: { name: item.pack!.name, version: item.pack!.version ?? null } } }, (onOutput) => Effect.gen(function* () {
@@ -145,14 +182,18 @@ export const advanceFunctions = Effect.fn('mw.advanceFunctions')(function* (give
 		if (prepareCommand) {
 			const problem = yield* prepareCommand(item, step)
 			if (problem) return yield* failed(item, step.job, problem.message, problem.context)
-		} else if (item.pack?.contracts?.handoff === '1') {
-			const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
+		} else if (item.pack?.contracts?.handoff === '1' || organsRequired(item)) {
 			const inputs = checkPrerequisites(project?.inputs, step.job, item.workspace)
-			if (inputs.length) store.note(item.id, 'inputs-checked', { job: step.job, name: `item-${item.id}-${step.job}-function`, dir: item.workspace, inputs })
+			if (inputs.length || organsRequired(item)) store.note(item.id, 'inputs-checked', { job: step.job, name: `item-${item.id}-${step.job}-function`, dir: item.workspace, inputs })
 			const missing = inputs.filter(input => !input.ok)
 			if (missing.length) return yield* failed(item, step.job, `Required inputs are unavailable: ${missing.map(input => `${input.id} (${input.kind}) at ${input.path}: ${input.reason}`).join(' ')}`, { inputs })
 		}
-		const result = step.children ? { code: 0, stdout: JSON.stringify(input.received), stderr: '' }
+		if (organsRequired(item)) {
+			const ground = checkIncomingPreparation(store, item, step.job, item.workspace, project)
+			store.note(item.id, 'ground-checked', { job: step.job, ...ground })
+			if (!ground.ok) return yield* failed(item, step.job, 'Ground found changed or unavailable producer requirements.', ground)
+		}
+		const result = step.children ? { code: 0, stdout: JSON.stringify({ ...input.received, ...(organsRequired(item) ? { preparation: compositionPreparation(item, step.job, project) } : {}) }), stderr: '' }
 			: yield* runGroup({ command: 'sh', args: ['-c', step.run!], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step.budget ?? { minutes: 30 }, onOutput })
 		if (result.code !== 0) return yield* failed(item, step.job, `exit ${result.code}: ${result.stderr}`)
 		const acceptedPrefix = Object.fromEntries(Object.entries(item.outputs).flatMap(([key, raw]) => raw === undefined ? [] : [[key, lastJson(raw)]]))
@@ -161,12 +202,17 @@ export const advanceFunctions = Effect.fn('mw.advanceFunctions')(function* (give
 		const unanswered = decisionProblem(store, item, step.job, checked.value, answerHistory(store, item, step.job).answers)
 		if (unanswered) return yield* failed(item, step.job, unanswered)
 		if (typeof checked.value.blocked === 'string') return yield* failed(item, step.job, checked.value.blocked)
+		const output = JSON.stringify(checked.value)
+		const currentProject = organsRequired(item) ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : project
+		const organs = inspectPreparation(item, step.job, checked.value, output, item.workspace, currentProject, [], input.organs?.rules)
+		if (!organs.ok) return yield* failed(item, step.job, organs.reason)
 		const acceptance = yield* checkFunction(item, step, checked.value)
 		if (!acceptance.ok) return yield* failed(item, step.job, acceptance.reason)
-		return { output: JSON.stringify(checked.value), value: checked.value }
+		return { output, value: checked.value, receipt: organs.receipt }
 	}))
 	store.atomic(() => {
 		acceptFunction(store, item.id, step, result.output)
+		saveOrganReceipt(store, item, result.receipt, invocation)
 		recordPhaseDecisions(store, store.get(item.id)!, step.job, invocation, result.value)
 	})
 })

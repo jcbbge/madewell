@@ -9,11 +9,21 @@ import { observe } from './trace.ts'
 import { runGroup } from './worker.ts'
 import { Prerequisite } from './prerequisites.ts'
 
+const Text = Schema.NonEmptyString.check(Schema.makeFilter(value => !!value.trim() && !value.includes('\0'), { toJsonSchema: () => [{}, true] }))
+
 export const Gate = Schema.Struct({
+	id: Schema.optionalKey(Text.annotate({ description: 'stable identity for this mechanical rule; omitted identities derive from its command and glob' })),
 	run: Schema.NonEmptyString.annotate({ description: 'shell command run from the repo root; {files} becomes the matched changed files, quoted. Exit 0 passes; files it rewrites among them (a formatter\'s fixes) are kept in the change.' }),
 	glob: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'which changed files it runs on, such as "*.{ts,tsx}"; a glob without "/" matches the file name at any depth. Without it, every changed file. No match, no run.' })),
 }).annotate({ identifier: 'Gate' })
 export type Gate = typeof Gate.Type
+
+export const RumenGuidance = Schema.Struct({
+	id: Text,
+	kind: Schema.Literals(['judge', 'sign', 'lexicon']),
+	text: Text,
+	jobs: Schema.optionalKey(Schema.Array(Text).check(Schema.isMinLength(1), Schema.makeFilter(jobs => new Set(jobs).size === jobs.length || 'Guidance job names must be unique.', { toJsonSchema: () => [{}, true] }))),
+}).annotate({ identifier: 'RumenGuidance' })
 
 export const Project = Schema.Struct({
 	path: Schema.String.annotate({ description: 'the project\'s absolute workspace path' }),
@@ -25,7 +35,15 @@ export const Project = Schema.Struct({
 	cartridges: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'the builtin:grammar selector or absolute cartridge pack file this project\'s new work runs; without it, the default software pack' })),
 	conventions: Schema.optionalKey(Schema.Array(Schema.NonEmptyString).annotate({ description: 'the rules this repo\'s work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.' })),
 	gates: Schema.optionalKey(Schema.Array(Gate).annotate({ description: 'the repo\'s own gates (linters, formatters), run by Made Well on each item\'s changed files before its checks; they replace a git hook manager such as lefthook' })),
-}).check(Schema.makeFilter(project => new Set(project.inputs?.map(input => input.id)).size === (project.inputs?.length ?? 0) || 'Project input IDs must be unique.', { toJsonSchema: () => [{}, true] })).annotate({ identifier: 'Project' })
+	rumen: Schema.optionalKey(Schema.Array(RumenGuidance).annotate({ description: 'selected project judgment rubrics, taste concerns and vocabulary; mechanical fences remain in gates. Each applicable phase accounts for these without inventing mechanical acceptance.' })),
+}).check(
+	Schema.makeFilter(project => new Set(project.inputs?.map(input => input.id)).size === (project.inputs?.length ?? 0) || 'Project input IDs must be unique.', { toJsonSchema: () => [{}, true] }),
+	Schema.makeFilter(project => new Set(project.rumen?.map(rule => rule.id)).size === (project.rumen?.length ?? 0) || 'Rumen guidance IDs must be unique.', { toJsonSchema: () => [{}, true] }),
+	Schema.makeFilter(project => {
+		const ids = project.gates?.flatMap(gate => gate.id === undefined ? [] : [gate.id]) ?? []
+		return new Set(ids).size === ids.length || 'Explicit gate IDs must be unique.'
+	}, { toJsonSchema: () => [{}, true] }),
+).annotate({ identifier: 'Project' })
 export type Project = typeof Project.Type
 
 const Registry = Schema.fromJsonString(Schema.Array(Project))
@@ -39,7 +57,7 @@ export const readProjects = Effect.fn('mw.readProjects')(function* (path: string
 	return yield* Schema.decodeUnknownEffect(Registry)(readFileSync(path, 'utf8')).pipe(
 		Effect.mapError((e) => new MadeWellError({
 			code: 'projects_invalid', message: `The project registry ${path} is not valid.`, context: { path, problems: String(e) },
-			cause: 'It must be a JSON array of {path, ship?, alert?, prepare?, inputs?: [{id, path, kind, jobs?, sha256?}], autonomy?, cartridges?, conventions?: [string], gates?: [{run, glob?}]}.',
+			cause: 'It must be a JSON array of {path, ship?, alert?, prepare?, inputs?: [{id, path, kind, jobs?, sha256?}], autonomy?, cartridges?, conventions?: [string], gates?: [{id?, run, glob?}], rumen?: [{id, kind: judge|sign|lexicon, text, jobs?}]}.',
 			next: [{ run: `cat ${path}`, why: 'fix the entries named in context.problems' }],
 		})),
 	)

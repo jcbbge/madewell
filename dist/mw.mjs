@@ -7,13 +7,13 @@ var __export = (target, all4) => {
 
 // src/cli.ts
 import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync12, realpathSync as realpathSync3, rmSync as rmSync7, statSync as statSync5, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync5, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync13, realpathSync as realpathSync4, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
-import { basename as basename3, dirname as dirname8, join as join12, resolve as resolve11 } from "node:path";
+import { basename as basename3, dirname as dirname9, join as join12, resolve as resolve13 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
-// ../../../../engine/node_modules/effect/dist/Pipeable.js
+// ../../engine/node_modules/effect/dist/Pipeable.js
 var pipeArguments = (self, args2) => {
   switch (args2.length) {
     case 0:
@@ -57,7 +57,7 @@ var Class = /* @__PURE__ */ (function() {
   return PipeableBase;
 })();
 
-// ../../../../engine/node_modules/effect/dist/Function.js
+// ../../engine/node_modules/effect/dist/Function.js
 var dual = function(arity, body) {
   if (typeof arity === "function") {
     return function() {
@@ -132,7 +132,7 @@ function memoizeIdempotent(f) {
   };
 }
 
-// ../../../../engine/node_modules/effect/dist/Cause.js
+// ../../engine/node_modules/effect/dist/Cause.js
 var Cause_exports = {};
 __export(Cause_exports, {
   AsyncFiberError: () => AsyncFiberError2,
@@ -196,7 +196,7 @@ __export(Cause_exports, {
   squash: () => squash
 });
 
-// ../../../../engine/node_modules/effect/dist/Context.js
+// ../../engine/node_modules/effect/dist/Context.js
 var Context_exports = {};
 __export(Context_exports, {
   Reference: () => Reference,
@@ -224,7 +224,7 @@ __export(Context_exports, {
   pick: () => pick
 });
 
-// ../../../../engine/node_modules/effect/dist/internal/equal.js
+// ../../engine/node_modules/effect/dist/internal/equal.js
 var getAllObjectKeys = (obj) => {
   const keys3 = new Set(Reflect.ownKeys(obj));
   if (obj.constructor === Object) return keys3;
@@ -248,13 +248,13 @@ var getAllObjectKeys = (obj) => {
 var byReferenceInstances = /* @__PURE__ */ new WeakSet();
 var viewBytes = (view2) => new Uint8Array(view2.buffer, view2.byteOffset, view2.byteLength);
 
-// ../../../../engine/node_modules/effect/dist/internal/hash.js
+// ../../engine/node_modules/effect/dist/internal/hash.js
 var backEdges = 0;
 var addBackEdge = () => {
   backEdges++;
 };
 
-// ../../../../engine/node_modules/effect/dist/Predicate.js
+// ../../engine/node_modules/effect/dist/Predicate.js
 function isString(input) {
   return typeof input === "string";
 }
@@ -306,7 +306,7 @@ function isIterable(input) {
   return hasProperty(input, Symbol.iterator) || isString(input);
 }
 
-// ../../../../engine/node_modules/effect/dist/Hash.js
+// ../../engine/node_modules/effect/dist/Hash.js
 var symbol = "~effect/Hash";
 var hash = (self) => {
   switch (typeof self) {
@@ -430,7 +430,7 @@ var randomHashCache = /* @__PURE__ */ new WeakMap();
 var hashCache = /* @__PURE__ */ new WeakMap();
 var visitedObjects = /* @__PURE__ */ new WeakSet();
 
-// ../../../../engine/node_modules/effect/dist/Equal.js
+// ../../engine/node_modules/effect/dist/Equal.js
 var symbol2 = "~effect/Equal";
 function equals() {
   if (arguments.length === 1) {
@@ -600,7 +600,7 @@ var byReferenceUnsafe = (obj) => {
   return obj;
 };
 
-// ../../../../engine/node_modules/effect/dist/Redactable.js
+// ../../engine/node_modules/effect/dist/Redactable.js
 var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
 var isRedactable = (u) => hasProperty(u, symbolRedactable);
 function redact(u) {
@@ -622,7 +622,7 @@ var emptyContext = {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/Formatter.js
+// ../../engine/node_modules/effect/dist/Formatter.js
 function format(input, options) {
   const space = options?.space ?? 0;
   const ancestors = /* @__PURE__ */ new WeakSet();
@@ -774,7 +774,7 @@ function isJsonPrimitiveWrapper(object2) {
   return false;
 }
 
-// ../../../../engine/node_modules/effect/dist/Inspectable.js
+// ../../engine/node_modules/effect/dist/Inspectable.js
 var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 var toJson = (input) => {
   try {
@@ -841,7 +841,7 @@ var Class2 = class {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/stackTraceLimit.js
+// ../../engine/node_modules/effect/dist/internal/stackTraceLimit.js
 var isStackTraceLimitWritable = () => {
   const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
   if (desc === void 0) {
@@ -858,7 +858,7 @@ var setStackTraceLimit = (value4) => {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/Utils.js
+// ../../engine/node_modules/effect/dist/Utils.js
 var SingleShotGen = class {
   constructor(self) {
     this.value = self;
@@ -910,7 +910,7 @@ var pickInternalCall = () => {
 };
 var internalCall = /* @__PURE__ */ pickInternalCall();
 
-// ../../../../engine/node_modules/effect/dist/internal/record.js
+// ../../engine/node_modules/effect/dist/internal/record.js
 function assignProperty(self, key2, value4) {
   if (key2 === "__proto__") {
     Object.defineProperty(self, key2, {
@@ -932,7 +932,7 @@ function assignProperties(self, source2) {
   }
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/core.js
+// ../../engine/node_modules/effect/dist/internal/core.js
 var EffectTypeId = `~effect/Effect`;
 var ExitTypeId = `~effect/Exit`;
 var effectVariance = {
@@ -1096,10 +1096,10 @@ var dedupeReasons = (self, that) => {
   const buckets = /* @__PURE__ */ new Map();
   const out = [];
   for (const reason of self.concat(that)) {
-    const hash3 = hash(reason);
-    const bucket = buckets.get(hash3);
+    const hash5 = hash(reason);
+    const bucket = buckets.get(hash5);
     if (bucket === void 0) {
-      buckets.set(hash3, [reason]);
+      buckets.set(hash5, [reason]);
     } else if (bucket.some((previous) => equals(previous, reason))) {
       continue;
     } else {
@@ -1346,13 +1346,13 @@ var done = (value4) => {
   return exitFail(Done(value4));
 };
 
-// ../../../../engine/node_modules/effect/dist/Effectable.js
+// ../../engine/node_modules/effect/dist/Effectable.js
 var Prototype2 = (options) => makePrimitiveProto({
   op: options.label,
   [evaluate]: options.evaluate
 });
 
-// ../../../../engine/node_modules/effect/dist/Equivalence.js
+// ../../engine/node_modules/effect/dist/Equivalence.js
 var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
 var isStrictEquivalent = (x, y) => x === y;
 var strictEqual = () => isStrictEquivalent;
@@ -1379,7 +1379,7 @@ function Array_(item) {
   });
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/doNotation.js
+// ../../engine/node_modules/effect/dist/internal/doNotation.js
 var let_ = (map11) => dual(3, (self, name, f) => map11(self, (a) => ({
   ...a,
   [name]: f(a)
@@ -1392,7 +1392,7 @@ var bind = (map11, flatMap7) => dual(3, (self, name, f) => flatMap7(self, (a) =>
   [name]: b
 }))));
 
-// ../../../../engine/node_modules/effect/dist/internal/option.js
+// ../../engine/node_modules/effect/dist/internal/option.js
 var TypeId = "~effect/Option";
 var CommonProto = {
   [TypeId]: {
@@ -1458,7 +1458,7 @@ var SomeImpl = function(value4) {
 SomeImpl.prototype = SomeProto;
 var some = (value4) => new SomeImpl(value4);
 
-// ../../../../engine/node_modules/effect/dist/internal/result.js
+// ../../engine/node_modules/effect/dist/internal/result.js
 var TypeId2 = "~effect/Result";
 var CommonProto2 = {
   [TypeId2]: {
@@ -1528,7 +1528,7 @@ var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
 var getSuccess = (self) => isFailure(self) ? none : some(self.success);
 var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
-// ../../../../engine/node_modules/effect/dist/Order.js
+// ../../engine/node_modules/effect/dist/Order.js
 function make2(compare2) {
   return (self, that) => self === that ? 0 : compare2(self, that);
 }
@@ -1547,7 +1547,7 @@ var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
 var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
 var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
 
-// ../../../../engine/node_modules/effect/dist/Option.js
+// ../../engine/node_modules/effect/dist/Option.js
 var none2 = () => none;
 var some2 = some;
 var isOption2 = isOption;
@@ -1575,7 +1575,7 @@ var flatMap = /* @__PURE__ */ dual(2, (self, f) => isNone2(self) ? none2() : f(s
 var flatten = /* @__PURE__ */ flatMap(identity);
 var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
 
-// ../../../../engine/node_modules/effect/dist/Context.js
+// ../../engine/node_modules/effect/dist/Context.js
 var ServiceTypeId = "~effect/Context/Service";
 var Service = function() {
   function KeyClass() {
@@ -1805,13 +1805,13 @@ var omit = (...keys3) => (self) => withFlat(self, (map11) => {
 });
 var Reference = Service;
 
-// ../../../../engine/node_modules/effect/dist/internal/array.js
+// ../../engine/node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
-// ../../../../engine/node_modules/effect/dist/internal/count.js
+// ../../engine/node_modules/effect/dist/internal/count.js
 var normalize = (n) => n > 0 ? Math.floor(n) : 0;
 
-// ../../../../engine/node_modules/effect/dist/Result.js
+// ../../engine/node_modules/effect/dist/Result.js
 var Result_exports = {};
 __export(Result_exports, {
   Do: () => Do,
@@ -1966,10 +1966,10 @@ var tap = /* @__PURE__ */ dual(2, (self, f) => {
   return self;
 });
 
-// ../../../../engine/node_modules/effect/dist/Tuple.js
+// ../../engine/node_modules/effect/dist/Tuple.js
 var makeEquivalence2 = Tuple;
 
-// ../../../../engine/node_modules/effect/dist/Iterable.js
+// ../../engine/node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
   let i = 0;
   for (const a of self) {
@@ -2012,7 +2012,7 @@ var filter2 = /* @__PURE__ */ dual(2, (self, predicate) => ({
   }
 }));
 
-// ../../../../engine/node_modules/effect/dist/Record.js
+// ../../engine/node_modules/effect/dist/Record.js
 var has = /* @__PURE__ */ dual(2, (self, key2) => Object.hasOwn(self, key2));
 var map3 = /* @__PURE__ */ dual(2, (self, f) => {
   const out = {
@@ -2037,7 +2037,7 @@ var makeEquivalence3 = (equivalence) => {
   return (self, that) => is3(self, that) && is3(that, self);
 };
 
-// ../../../../engine/node_modules/effect/dist/Array.js
+// ../../engine/node_modules/effect/dist/Array.js
 var Array2 = globalThis.Array;
 var fromIterable = (collection) => Array2.isArray(collection) ? collection : Array2.from(collection);
 var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
@@ -2050,10 +2050,10 @@ function isCanonicalArrayIndex(key2) {
 }
 var findFirst2 = findFirst;
 var hashBucketsAdd = (buckets, value4) => {
-  const hash3 = hash(value4);
-  const bucket = buckets.get(hash3);
+  const hash5 = hash(value4);
+  const bucket = buckets.get(hash5);
   if (bucket === void 0) {
-    buckets.set(hash3, [value4]);
+    buckets.set(hash5, [value4]);
     return true;
   }
   for (const previous of bucket) {
@@ -2096,7 +2096,7 @@ var dedupe = (self) => {
   return out;
 };
 
-// ../../../../engine/node_modules/effect/dist/Duration.js
+// ../../engine/node_modules/effect/dist/Duration.js
 var TypeId4 = "~effect/Duration";
 var bigint0 = /* @__PURE__ */ BigInt(0);
 var bigint1 = /* @__PURE__ */ BigInt(1);
@@ -2486,7 +2486,7 @@ var format2 = (self) => {
   return pieces.join(" ");
 };
 
-// ../../../../engine/node_modules/effect/dist/Filter.js
+// ../../engine/node_modules/effect/dist/Filter.js
 var composePassthrough = /* @__PURE__ */ dual(2, (left, right) => (input) => {
   const leftOut = left(input);
   if (isFailure2(leftOut)) return fail2(input);
@@ -2499,7 +2499,7 @@ var toOption = (self) => (input) => {
   return isFailure2(result3) ? none2() : some2(result3.success);
 };
 
-// ../../../../engine/node_modules/effect/dist/Scheduler.js
+// ../../engine/node_modules/effect/dist/Scheduler.js
 var Scheduler_exports = {};
 __export(Scheduler_exports, {
   MaxOpsBeforeYield: () => MaxOpsBeforeYield,
@@ -2650,7 +2650,7 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
-// ../../../../engine/node_modules/effect/dist/Tracer.js
+// ../../engine/node_modules/effect/dist/Tracer.js
 var Tracer_exports = {};
 __export(Tracer_exports, {
   CurrentTraceLevel: () => CurrentTraceLevel,
@@ -2666,7 +2666,7 @@ __export(Tracer_exports, {
   nativeTracer: () => nativeTracer
 });
 
-// ../../../../engine/node_modules/effect/dist/Data.js
+// ../../engine/node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
   Class: () => Class3,
@@ -2713,7 +2713,7 @@ function taggedMatch() {
 var Error3 = Error2;
 var TaggedError2 = TaggedError;
 
-// ../../../../engine/node_modules/effect/dist/encoding/EncodingError.js
+// ../../engine/node_modules/effect/dist/encoding/EncodingError.js
 var EncodingErrorTypeId = "~effect/encoding/EncodingError";
 var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
   /**
@@ -2728,7 +2728,7 @@ var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")
   [EncodingErrorTypeId] = EncodingErrorTypeId;
 };
 
-// ../../../../engine/node_modules/effect/dist/encoding/Hex.js
+// ../../engine/node_modules/effect/dist/encoding/Hex.js
 var encode = (input) => typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input);
 var random2 = (length) => {
   switch (length) {
@@ -2817,7 +2817,7 @@ var fromHexChar = (byte) => {
   throw new TypeError("Invalid input");
 };
 
-// ../../../../engine/node_modules/effect/dist/Tracer.js
+// ../../engine/node_modules/effect/dist/Tracer.js
 var ParentSpanKey = "effect/Tracer/ParentSpan";
 var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
   fiberCached: true
@@ -2906,10 +2906,10 @@ var NativeSpan = class {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/metric.js
+// ../../engine/node_modules/effect/dist/internal/metric.js
 var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
 
-// ../../../../engine/node_modules/effect/dist/internal/references.js
+// ../../engine/node_modules/effect/dist/internal/references.js
 var CurrentErrorReporters = /* @__PURE__ */ Reference("effect/ErrorReporter/CurrentErrorReporters", {
   defaultValue: () => /* @__PURE__ */ new Set()
 });
@@ -2945,7 +2945,7 @@ var CurrentLogSpans = /* @__PURE__ */ Reference("effect/References/CurrentLogSpa
   defaultValue: () => []
 });
 
-// ../../../../engine/node_modules/effect/dist/internal/tracer.js
+// ../../engine/node_modules/effect/dist/internal/tracer.js
 var addSpanStackTrace = (options) => {
   if (options?.captureStackTrace === false) {
     return options;
@@ -2982,7 +2982,7 @@ var makeStackCleaner = (line) => (stack) => {
 };
 var spanCleaner = /* @__PURE__ */ makeStackCleaner(3);
 
-// ../../../../engine/node_modules/effect/dist/internal/effect.js
+// ../../engine/node_modules/effect/dist/internal/effect.js
 var Interrupt = class extends ReasonBase {
   constructor(fiberId3, annotations2 = constEmptyAnnotations) {
     super("Interrupt", annotations2, "Interrupted");
@@ -5118,8 +5118,8 @@ var runPromiseExitWith = (context3) => {
   const runFork3 = runForkWith(context3);
   return (effect2, options) => {
     const fiber3 = runFork3(effect2, options);
-    return new Promise((resolve12) => {
-      fiber3.addObserver((exit4) => resolve12(exit4));
+    return new Promise((resolve14) => {
+      fiber3.addObserver((exit4) => resolve14(exit4));
     });
   };
 };
@@ -5672,7 +5672,7 @@ var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   reporters.forEach((reporter) => reporter.report(opts));
 };
 
-// ../../../../engine/node_modules/effect/dist/Cause.js
+// ../../engine/node_modules/effect/dist/Cause.js
 var TypeId5 = CauseTypeId;
 var ReasonTypeId = CauseReasonTypeId;
 var isCause2 = isCause;
@@ -5735,7 +5735,7 @@ var StackTrace = class extends (/* @__PURE__ */ Service()("effect/Cause/StackTra
 var InterruptorStackTrace2 = class extends (/* @__PURE__ */ Service()("effect/Cause/InterruptorStackTrace")) {
 };
 
-// ../../../../engine/node_modules/effect/dist/Effect.js
+// ../../engine/node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
   Do: () => Do3,
@@ -5969,7 +5969,7 @@ __export(Effect_exports, {
   zipWith: () => zipWith2
 });
 
-// ../../../../engine/node_modules/effect/dist/Exit.js
+// ../../engine/node_modules/effect/dist/Exit.js
 var Exit_exports = {};
 __export(Exit_exports, {
   asVoid: () => asVoid2,
@@ -6028,7 +6028,7 @@ var getSuccess3 = exitGetSuccess;
 var getCause = exitGetCause;
 var findErrorOption3 = exitFindErrorOption;
 
-// ../../../../engine/node_modules/effect/dist/Layer.js
+// ../../engine/node_modules/effect/dist/Layer.js
 var Layer_exports = {};
 __export(Layer_exports, {
   CurrentMemoMap: () => CurrentMemoMap,
@@ -6077,7 +6077,7 @@ __export(Layer_exports, {
   withSpan: () => withSpan2
 });
 
-// ../../../../engine/node_modules/effect/dist/Deferred.js
+// ../../engine/node_modules/effect/dist/Deferred.js
 var TypeId6 = "~effect/Deferred";
 var DeferredProto = {
   [TypeId6]: {
@@ -6118,19 +6118,19 @@ var doneUnsafe = (self, effect2) => {
   return true;
 };
 
-// ../../../../engine/node_modules/effect/dist/References.js
+// ../../engine/node_modules/effect/dist/References.js
 var CurrentLogAnnotations2 = CurrentLogAnnotations;
 var CurrentLogSpans2 = CurrentLogSpans;
 var CurrentStackFrame2 = CurrentStackFrame;
 
-// ../../../../engine/node_modules/effect/dist/Scope.js
+// ../../engine/node_modules/effect/dist/Scope.js
 var Scope = scopeTag;
 var makeUnsafe3 = scopeMakeUnsafe;
 var provide = provideScope;
 var forkUnsafe2 = scopeForkUnsafe;
 var close = scopeClose;
 
-// ../../../../engine/node_modules/effect/dist/Layer.js
+// ../../engine/node_modules/effect/dist/Layer.js
 var TypeId7 = "~effect/Layer";
 var MemoMapTypeId = "~effect/Layer/MemoMap";
 var makeMemoMapEntry = (memoMap, layer) => {
@@ -6358,7 +6358,7 @@ var provideSpanStackFrame2 = (name, stack) => {
   }));
 };
 
-// ../../../../engine/node_modules/effect/dist/Clock.js
+// ../../engine/node_modules/effect/dist/Clock.js
 var Clock_exports = {};
 __export(Clock_exports, {
   Clock: () => Clock,
@@ -6373,7 +6373,7 @@ var currentTimeMillis2 = currentTimeMillis;
 var currentTimeNanos2 = currentTimeNanos;
 var monotonicTimeNanos2 = monotonicTimeNanos;
 
-// ../../../../engine/node_modules/effect/dist/internal/dateTime.js
+// ../../engine/node_modules/effect/dist/internal/dateTime.js
 var TypeId8 = "~effect/DateTime";
 var TimeZoneTypeId = "~effect/DateTime/TimeZone";
 var Proto2 = {
@@ -6764,7 +6764,7 @@ var formatIsoOffset = (self) => {
 };
 var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
 
-// ../../../../engine/node_modules/effect/dist/Number.js
+// ../../engine/node_modules/effect/dist/Number.js
 var Number3 = globalThis.Number;
 var remainder = /* @__PURE__ */ dual(2, (self, divisor) => {
   if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
@@ -6796,11 +6796,11 @@ function toScientificInteger(n) {
   return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1];
 }
 
-// ../../../../engine/node_modules/effect/dist/String.js
+// ../../engine/node_modules/effect/dist/String.js
 var String3 = globalThis.String;
 var trim = (self) => self.trim();
 
-// ../../../../engine/node_modules/effect/dist/Pull.js
+// ../../engine/node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
 var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure2) => failure2._tag === "Fail" && isDone2(failure2.error);
@@ -6829,7 +6829,7 @@ var matchEffect2 = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(s
   }
 }));
 
-// ../../../../engine/node_modules/effect/dist/Schedule.js
+// ../../engine/node_modules/effect/dist/Schedule.js
 var TypeId9 = "~effect/Schedule";
 var CurrentMetadata = /* @__PURE__ */ Reference("effect/Schedule/CurrentMetadata", {
   defaultValue: /* @__PURE__ */ constant({
@@ -6921,7 +6921,7 @@ var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(s
 })));
 var forever2 = /* @__PURE__ */ spaced(zero);
 
-// ../../../../engine/node_modules/effect/dist/ExecutionPlan.js
+// ../../engine/node_modules/effect/dist/ExecutionPlan.js
 var TypeId10 = "~effect/ExecutionPlan";
 var Proto3 = {
   [TypeId10]: TypeId10,
@@ -6950,11 +6950,11 @@ var CurrentMetadata2 = /* @__PURE__ */ Reference("effect/ExecutionPlan/CurrentMe
   })
 });
 
-// ../../../../engine/node_modules/effect/dist/internal/layer.js
+// ../../engine/node_modules/effect/dist/internal/layer.js
 var provideLayer = (self, layer, options) => scopedWith((scope3) => flatMap3(options?.local ? buildWithMemoMap(layer, makeMemoMapUnsafe(), scope3) : buildWithScope(layer, scope3), (context3) => provideContext(self, context3)));
 var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source2, options) => isContext(source2) ? provideContext(self, source2) : provideLayer(self, Array.isArray(source2) ? mergeAll2(...source2) : source2, options));
 
-// ../../../../engine/node_modules/effect/dist/internal/schedule.js
+// ../../engine/node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
 var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
@@ -7026,7 +7026,7 @@ var buildFromOptions = (options) => {
   return schedule2;
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/executionPlan.js
+// ../../engine/node_modules/effect/dist/internal/executionPlan.js
 var makeEventEmitter = (onEvent, currentMetadata) => {
   let lastStepIndex = -1;
   let stepAttempt = 0;
@@ -7131,7 +7131,7 @@ var scheduleFromStep = (step2, first) => {
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
 
-// ../../../../engine/node_modules/effect/dist/MutableHashMap.js
+// ../../engine/node_modules/effect/dist/MutableHashMap.js
 var TypeId11 = "~effect/MutableHashMap";
 var MutableHashMapProto = {
   [TypeId11]: TypeId11,
@@ -7166,8 +7166,8 @@ var get2 = /* @__PURE__ */ dual(2, (self, key2) => {
   } else if (isSimpleKey(key2)) {
     return none2();
   }
-  const hash3 = hash(key2);
-  const bucket = self.buckets.get(hash3);
+  const hash5 = hash(key2);
+  const bucket = self.buckets.get(hash5);
   if (bucket === void 0) {
     return none2();
   }
@@ -7189,10 +7189,10 @@ var set = /* @__PURE__ */ dual(3, (self, key2, value4) => {
     self.backing.set(key2, value4);
     return self;
   }
-  const hash3 = hash(key2);
-  const bucket = self.buckets.get(hash3);
+  const hash5 = hash(key2);
+  const bucket = self.buckets.get(hash5);
   if (bucket === void 0) {
-    self.buckets.set(hash3, [key2]);
+    self.buckets.set(hash5, [key2]);
     self.backing.set(key2, value4);
     return self;
   }
@@ -7216,8 +7216,8 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
     self.backing.delete(key_);
     return self;
   }
-  const hash3 = hash(key_);
-  const bucket = self.buckets.get(hash3);
+  const hash5 = hash(key_);
+  const bucket = self.buckets.get(hash5);
   if (bucket === void 0) {
     return self;
   }
@@ -7230,12 +7230,12 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
     }
   }
   if (bucket.length === 0) {
-    self.buckets.delete(hash3);
+    self.buckets.delete(hash5);
   }
   return self;
 });
 
-// ../../../../engine/node_modules/effect/dist/Request.js
+// ../../engine/node_modules/effect/dist/Request.js
 var TypeId12 = "~effect/Request";
 var requestVariance = /* @__PURE__ */ byReferenceUnsafe({
   /* c8 ignore next */
@@ -7251,7 +7251,7 @@ var RequestPrototype = {
 };
 var makeEntry = (options) => options;
 
-// ../../../../engine/node_modules/effect/dist/internal/request.js
+// ../../engine/node_modules/effect/dist/internal/request.js
 var request = /* @__PURE__ */ dual(2, (self, resolver) => {
   const withResolver = (resolver2) => callback((resume) => {
     const entry = addEntry(resolver2, self, resume, getCurrentFiber());
@@ -7377,7 +7377,7 @@ function runBatch(batch) {
   return batch.run;
 }
 
-// ../../../../engine/node_modules/effect/dist/Metric.js
+// ../../engine/node_modules/effect/dist/Metric.js
 var CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes";
 var CurrentMetricAttributes = /* @__PURE__ */ Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({})
@@ -7453,7 +7453,7 @@ function attributesToRecord(attributes) {
   return attributes;
 }
 
-// ../../../../engine/node_modules/effect/dist/Effect.js
+// ../../engine/node_modules/effect/dist/Effect.js
 var TypeId14 = EffectTypeId;
 var isEffect2 = isEffect;
 var all3 = all2;
@@ -7840,7 +7840,7 @@ var flatMapEager2 = flatMapEager;
 var catchEager2 = catchEager;
 var fnUntracedEager2 = fnUntracedEager;
 
-// ../../../../engine/node_modules/effect/dist/BigDecimal.js
+// ../../engine/node_modules/effect/dist/BigDecimal.js
 var FINITE_INT_REGEXP = /^[+-]?\d+$/;
 var TypeId15 = "~effect/BigDecimal";
 var BigDecimalProto = {
@@ -7993,7 +7993,7 @@ var toExponential = (n) => {
 };
 var isZero2 = (n) => n.value === bigint03;
 
-// ../../../../engine/node_modules/effect/dist/Schema.js
+// ../../engine/node_modules/effect/dist/Schema.js
 var Schema_exports = {};
 __export(Schema_exports, {
   Any: () => Any2,
@@ -8366,7 +8366,7 @@ __export(Schema_exports, {
   withDecodingDefaultTypeKey: () => withDecodingDefaultTypeKey
 });
 
-// ../../../../engine/node_modules/effect/dist/BigInt.js
+// ../../engine/node_modules/effect/dist/BigInt.js
 var BigInt3 = globalThis.BigInt;
 var toNumber = (b) => {
   if (b > BigInt3(Number.MAX_SAFE_INTEGER) || b < BigInt3(Number.MIN_SAFE_INTEGER)) {
@@ -8375,7 +8375,7 @@ var toNumber = (b) => {
   return some2(Number(b));
 };
 
-// ../../../../engine/node_modules/effect/dist/ByteSize.js
+// ../../engine/node_modules/effect/dist/ByteSize.js
 var bigint04 = /* @__PURE__ */ BigInt(0);
 var bigint13 = /* @__PURE__ */ BigInt(1);
 var decimalBase = /* @__PURE__ */ BigInt(1e3);
@@ -8502,7 +8502,7 @@ var isByteSize = (input) => typeof input === "bigint" && input >= bigint04;
 var toBigInt = (self) => self;
 var toNumber2 = toNumber;
 
-// ../../../../engine/node_modules/effect/dist/Chunk.js
+// ../../engine/node_modules/effect/dist/Chunk.js
 var TypeId16 = "~effect/Chunk";
 function copy(src, srcPos, dest, destPos, len) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
@@ -8666,7 +8666,7 @@ var fromArrayUnsafe = (self) => self.length === 0 ? empty6() : self.length === 1
 });
 var size = (self) => self.length;
 
-// ../../../../engine/node_modules/effect/dist/DateTime.js
+// ../../engine/node_modules/effect/dist/DateTime.js
 var isDateTime2 = isDateTime;
 var isTimeZone2 = isTimeZone;
 var isTimeZoneOffset2 = isTimeZoneOffset;
@@ -8689,7 +8689,7 @@ var toEpochMillis2 = toEpochMillis;
 var formatIso2 = formatIso;
 var formatIsoZoned2 = formatIsoZoned;
 
-// ../../../../engine/node_modules/effect/dist/encoding/Base64.js
+// ../../engine/node_modules/effect/dist/encoding/Base64.js
 var encode2 = (input) => encodeBytes(typeof input === "string" ? encoder2.encode(input) : input);
 var decode2 = (str2) => {
   const stripped = stripCrlf(str2);
@@ -8768,7 +8768,7 @@ var getCode = (charCode) => {
   return codes[charCode];
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/hashMap.js
+// ../../engine/node_modules/effect/dist/internal/hashMap.js
 var HashMapTypeId = "~effect/HashMap";
 var SHIFT = 5;
 var BUCKET_SIZE = 1 << SHIFT;
@@ -8780,8 +8780,8 @@ var popcount = (n) => {
   n = (n & 858993459) + (n >>> 2 & 858993459);
   return (n + (n >>> 4) & 252645135) * 16843009 >>> 24;
 };
-var mask = (hash3, shift) => hash3 >>> shift & BITMAP_INDEX_MASK;
-var bitpos = (hash3, shift) => 1 << mask(hash3, shift);
+var mask = (hash5, shift) => hash5 >>> shift & BITMAP_INDEX_MASK;
+var bitpos = (hash5, shift) => 1 << mask(hash5, shift);
 var index = (bitmap, bit) => popcount(bitmap & bit - 1);
 function mergeLeaves(edit, shift, hash1, node1, hash22, node2) {
   if (shift > 32) {
@@ -8835,9 +8835,9 @@ var EmptyNode = class extends Node {
   has(_shift, _hash, _key) {
     return false;
   }
-  set(edit, _shift, hash3, key2, value4, added) {
+  set(edit, _shift, hash5, key2, value4, added) {
     added.value = true;
-    return new LeafNode(edit, hash3, key2, value4);
+    return new LeafNode(edit, hash5, key2, value4);
   }
   remove(_edit, _shift, _hash, _key, _removed) {
     return this;
@@ -8855,28 +8855,28 @@ var LeafNode = class _LeafNode extends Node {
   hash;
   key;
   value;
-  constructor(edit, hash3, key2, value4) {
+  constructor(edit, hash5, key2, value4) {
     super();
     this.edit = edit;
-    this.hash = hash3;
+    this.hash = hash5;
     this.key = key2;
     this.value = value4;
   }
   get size() {
     return 1;
   }
-  get(_shift, hash3, key2) {
-    if (this.hash === hash3 && equals(this.key, key2)) {
+  get(_shift, hash5, key2) {
+    if (this.hash === hash5 && equals(this.key, key2)) {
       return some2(this.value);
     }
     return none2();
   }
-  has(_shift, hash3, key2) {
-    return this.hash === hash3 && equals(this.key, key2);
+  has(_shift, hash5, key2) {
+    return this.hash === hash5 && equals(this.key, key2);
   }
-  set(edit, shift, hash3, key2, value4, added) {
+  set(edit, shift, hash5, key2, value4, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    if (this.hash === hash3 && equals(this.key, key2)) {
+    if (this.hash === hash5 && equals(this.key, key2)) {
       if (equals(this.value, value4)) {
         return this;
       }
@@ -8884,23 +8884,23 @@ var LeafNode = class _LeafNode extends Node {
         this.value = value4;
         return this;
       }
-      return new _LeafNode(edit, hash3, key2, value4);
+      return new _LeafNode(edit, hash5, key2, value4);
     }
     added.value = true;
-    if (this.hash === hash3) {
-      return new CollisionNode(edit, hash3, [[this.key, this.value], [key2, value4]]);
+    if (this.hash === hash5) {
+      return new CollisionNode(edit, hash5, [[this.key, this.value], [key2, value4]]);
     }
-    const newBit = bitpos(hash3, shift);
+    const newBit = bitpos(hash5, shift);
     const existingBit = bitpos(this.hash, shift);
     if (newBit === existingBit) {
-      return new IndexedNode(edit, newBit, [this.set(edit, shift + SHIFT, hash3, key2, value4, added)]);
+      return new IndexedNode(edit, newBit, [this.set(edit, shift + SHIFT, hash5, key2, value4, added)]);
     }
     const bitmap = newBit | existingBit;
-    const nodes = newBit >>> 0 < existingBit >>> 0 ? [new _LeafNode(edit, hash3, key2, value4), this] : [this, new _LeafNode(edit, hash3, key2, value4)];
+    const nodes = newBit >>> 0 < existingBit >>> 0 ? [new _LeafNode(edit, hash5, key2, value4), this] : [this, new _LeafNode(edit, hash5, key2, value4)];
     return new IndexedNode(edit, bitmap, nodes);
   }
-  remove(_edit, _shift, hash3, key2, removed) {
-    if (this.hash === hash3 && equals(this.key, key2)) {
+  remove(_edit, _shift, hash5, key2, removed) {
+    if (this.hash === hash5 && equals(this.key, key2)) {
       removed.value = true;
       return void 0;
     }
@@ -8915,17 +8915,17 @@ var CollisionNode = class _CollisionNode extends Node {
   edit;
   hash;
   entries;
-  constructor(edit, hash3, entries3) {
+  constructor(edit, hash5, entries3) {
     super();
     this.edit = edit;
-    this.hash = hash3;
+    this.hash = hash5;
     this.entries = entries3;
   }
   get size() {
     return this.entries.length;
   }
-  get(_shift, hash3, key2) {
-    if (this.hash !== hash3) {
+  get(_shift, hash5, key2) {
+    if (this.hash !== hash5) {
       return none2();
     }
     for (const [k, v] of this.entries) {
@@ -8935,8 +8935,8 @@ var CollisionNode = class _CollisionNode extends Node {
     }
     return none2();
   }
-  has(_shift, hash3, key2) {
-    if (this.hash !== hash3) {
+  has(_shift, hash5, key2) {
+    if (this.hash !== hash5) {
       return false;
     }
     for (const [k] of this.entries) {
@@ -8946,11 +8946,11 @@ var CollisionNode = class _CollisionNode extends Node {
     }
     return false;
   }
-  set(edit, shift, hash3, key2, value4, added) {
+  set(edit, shift, hash5, key2, value4, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    if (this.hash !== hash3) {
+    if (this.hash !== hash5) {
       added.value = true;
-      return mergeLeaves(edit, shift, this.hash, this, hash3, new LeafNode(edit, hash3, key2, value4));
+      return mergeLeaves(edit, shift, this.hash, this, hash5, new LeafNode(edit, hash5, key2, value4));
     }
     for (let i = 0; i < this.entries.length; i++) {
       if (equals(this.entries[i][0], key2)) {
@@ -8973,9 +8973,9 @@ var CollisionNode = class _CollisionNode extends Node {
     }
     return new _CollisionNode(edit, this.hash, [...this.entries, [key2, value4]]);
   }
-  remove(edit, _shift, hash3, key2, removed) {
+  remove(edit, _shift, hash5, key2, removed) {
     if (this.canEdit(edit)) this._hash = void 0;
-    if (this.hash !== hash3) {
+    if (this.hash !== hash5) {
       return this;
     }
     const idx = this.entries.findIndex(([k]) => equals(k, key2));
@@ -9025,29 +9025,29 @@ var IndexedNode = class _IndexedNode extends Node {
     }
     return this._size;
   }
-  get(shift, hash3, key2) {
-    const bit = bitpos(hash3, shift);
+  get(shift, hash5, key2) {
+    const bit = bitpos(hash5, shift);
     if ((this.bitmap & bit) === 0) {
       return none2();
     }
     const idx = index(this.bitmap, bit);
-    return this.children[idx].get(shift + SHIFT, hash3, key2);
+    return this.children[idx].get(shift + SHIFT, hash5, key2);
   }
-  has(shift, hash3, key2) {
-    const bit = bitpos(hash3, shift);
+  has(shift, hash5, key2) {
+    const bit = bitpos(hash5, shift);
     if ((this.bitmap & bit) === 0) {
       return false;
     }
     const idx = index(this.bitmap, bit);
-    return this.children[idx].has(shift + SHIFT, hash3, key2);
+    return this.children[idx].has(shift + SHIFT, hash5, key2);
   }
-  set(edit, shift, hash3, key2, value4, added) {
+  set(edit, shift, hash5, key2, value4, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const bit = bitpos(hash3, shift);
+    const bit = bitpos(hash5, shift);
     const idx = index(this.bitmap, bit);
     if ((this.bitmap & bit) !== 0) {
       const child = this.children[idx];
-      const newChild = child.set(edit, shift + SHIFT, hash3, key2, value4, added);
+      const newChild = child.set(edit, shift + SHIFT, hash5, key2, value4, added);
       if (child === newChild) {
         return this;
       }
@@ -9060,7 +9060,7 @@ var IndexedNode = class _IndexedNode extends Node {
       return new _IndexedNode(edit, this.bitmap, newChildren);
     } else {
       added.value = true;
-      const newChild = new LeafNode(edit, hash3, key2, value4);
+      const newChild = new LeafNode(edit, hash5, key2, value4);
       const newBitmap = this.bitmap | bit;
       if (this.canEdit(edit)) {
         this.children.splice(idx, 0, newChild);
@@ -9079,15 +9079,15 @@ var IndexedNode = class _IndexedNode extends Node {
       return new _IndexedNode(edit, newBitmap, newChildren);
     }
   }
-  remove(edit, shift, hash3, key2, removed) {
+  remove(edit, shift, hash5, key2, removed) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const bit = bitpos(hash3, shift);
+    const bit = bitpos(hash5, shift);
     if ((this.bitmap & bit) === 0) {
       return this;
     }
     const idx = index(this.bitmap, bit);
     const child = this.children[idx];
-    const newChild = child.remove(edit, shift + SHIFT, hash3, key2, removed);
+    const newChild = child.remove(edit, shift + SHIFT, hash5, key2, removed);
     if (!removed.value) {
       return this;
     }
@@ -9155,22 +9155,22 @@ var ArrayNode = class _ArrayNode extends Node {
     }
     return this._size;
   }
-  get(shift, hash3, key2) {
-    const idx = mask(hash3, shift);
+  get(shift, hash5, key2) {
+    const idx = mask(hash5, shift);
     const child = this.children[idx];
-    return child ? child.get(shift + SHIFT, hash3, key2) : none2();
+    return child ? child.get(shift + SHIFT, hash5, key2) : none2();
   }
-  has(shift, hash3, key2) {
-    const idx = mask(hash3, shift);
+  has(shift, hash5, key2) {
+    const idx = mask(hash5, shift);
     const child = this.children[idx];
-    return child ? child.has(shift + SHIFT, hash3, key2) : false;
+    return child ? child.has(shift + SHIFT, hash5, key2) : false;
   }
-  set(edit, shift, hash3, key2, value4, added) {
+  set(edit, shift, hash5, key2, value4, added) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const idx = mask(hash3, shift);
+    const idx = mask(hash5, shift);
     const child = this.children[idx];
     if (child) {
-      const newChild = child.set(edit, shift + SHIFT, hash3, key2, value4, added);
+      const newChild = child.set(edit, shift + SHIFT, hash5, key2, value4, added);
       if (child === newChild) {
         return this;
       }
@@ -9183,7 +9183,7 @@ var ArrayNode = class _ArrayNode extends Node {
       return new _ArrayNode(edit, this.count, newChildren);
     } else {
       added.value = true;
-      const newChild = new LeafNode(edit, hash3, key2, value4);
+      const newChild = new LeafNode(edit, hash5, key2, value4);
       if (this.canEdit(edit)) {
         this.children[idx] = newChild;
         this.count++;
@@ -9195,14 +9195,14 @@ var ArrayNode = class _ArrayNode extends Node {
       return new _ArrayNode(edit, this.count + 1, newChildren);
     }
   }
-  remove(edit, shift, hash3, key2, removed) {
+  remove(edit, shift, hash5, key2, removed) {
     if (this.canEdit(edit)) this._hash = void 0;
-    const idx = mask(hash3, shift);
+    const idx = mask(hash5, shift);
     const child = this.children[idx];
     if (!child) {
       return this;
     }
-    const newChild = child.remove(edit, shift + SHIFT, hash3, key2, removed);
+    const newChild = child.remove(edit, shift + SHIFT, hash5, key2, removed);
     if (!removed.value) {
       return this;
     }
@@ -9360,9 +9360,9 @@ var fromIterable3 = (entries3) => {
     value: false
   };
   for (const [key2, value4] of entries3) {
-    const hash3 = hash(key2);
+    const hash5 = hash(key2);
     added.value = false;
-    root = root.set(NaN, 0, hash3, key2, value4, added);
+    root = root.set(NaN, 0, hash5, key2, value4, added);
     if (added.value) {
       size7++;
     }
@@ -9377,13 +9377,13 @@ var has3 = /* @__PURE__ */ dual(2, (self, key2) => {
   const impl = self;
   return impl._root.has(0, hash(key2), key2);
 });
-var setHash = (self, key2, hash3, value4) => {
+var setHash = (self, key2, hash5, value4) => {
   const impl = self;
   const added = {
     value: false
   };
   const edit = impl._editable ? impl._edit : NaN;
-  const newRoot = impl._root.set(edit, 0, hash3, key2, value4, added);
+  const newRoot = impl._root.set(edit, 0, hash5, key2, value4, added);
   if (impl._editable) {
     impl._root = newRoot;
     if (added.value) {
@@ -9403,14 +9403,14 @@ var keys2 = (self) => new HashMapIterator(self._root, identity);
 var entries = (self) => self[Symbol.iterator]();
 var size2 = (self) => self.size;
 
-// ../../../../engine/node_modules/effect/dist/HashMap.js
+// ../../engine/node_modules/effect/dist/HashMap.js
 var isHashMap2 = isHashMap;
 var fromIterable4 = fromIterable3;
 var entries2 = entries;
 var toEntries = (self) => Array.from(entries2(self));
 var size3 = size2;
 
-// ../../../../engine/node_modules/effect/dist/internal/hashSet.js
+// ../../engine/node_modules/effect/dist/internal/hashSet.js
 var HashSetTypeId = "~effect/HashSet";
 var hashSetSeed = /* @__PURE__ */ string(HashSetTypeId);
 var HashSetProto = {
@@ -9465,12 +9465,12 @@ var every2 = (self, predicate) => {
   return true;
 };
 
-// ../../../../engine/node_modules/effect/dist/HashSet.js
+// ../../engine/node_modules/effect/dist/HashSet.js
 var fromIterable6 = fromIterable5;
 var isHashSet2 = isHashSet;
 var size5 = size4;
 
-// ../../../../engine/node_modules/effect/dist/http/Cookies.js
+// ../../engine/node_modules/effect/dist/http/Cookies.js
 var TypeId17 = "~effect/http/Cookies";
 var isCookies = (u) => hasProperty(u, TypeId17);
 var CookieTypeId = "~effect/http/Cookies/Cookie";
@@ -9794,7 +9794,7 @@ var tryDecodeURIComponent = (str2) => {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/redacted.js
+// ../../engine/node_modules/effect/dist/internal/redacted.js
 var redactedRegistry = /* @__PURE__ */ new WeakMap();
 var value = (self) => {
   if (redactedRegistry.has(self)) {
@@ -9804,7 +9804,7 @@ var value = (self) => {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/Redacted.js
+// ../../engine/node_modules/effect/dist/Redacted.js
 var TypeId18 = "~effect/Redacted";
 var isRedacted = (u) => hasProperty(u, TypeId18);
 var make12 = (value4, options) => {
@@ -9837,7 +9837,7 @@ var Proto5 = {
 var value2 = value;
 var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
-// ../../../../engine/node_modules/effect/dist/http/Headers.js
+// ../../engine/node_modules/effect/dist/http/Headers.js
 var TypeId19 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
 var isHeaders = (u) => hasProperty(u, TypeId19);
 var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.create(null), {
@@ -9938,10 +9938,10 @@ var CurrentRedactedNames = /* @__PURE__ */ Reference("effect/Headers/CurrentReda
   defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
 });
 
-// ../../../../engine/node_modules/effect/dist/http/internal/urlParams.js
+// ../../engine/node_modules/effect/dist/http/internal/urlParams.js
 var unwrap2 = (value4) => typeof value4 === "string" ? value4 : value2(value4);
 
-// ../../../../engine/node_modules/effect/dist/http/UrlParams.js
+// ../../engine/node_modules/effect/dist/http/UrlParams.js
 var TypeId20 = "~effect/http/UrlParams";
 var isUrlParams = (u) => hasProperty(u, TypeId20);
 var Proto7 = {
@@ -10039,7 +10039,7 @@ var CurrentRedactedNames2 = /* @__PURE__ */ Reference("effect/http/UrlParams/Cur
   defaultValue: () => ["AWSAccessKeyId", "Signature", "sig", "X-Goog-Signature"]
 });
 
-// ../../../../engine/node_modules/effect/dist/internal/graph.js
+// ../../engine/node_modules/effect/dist/internal/graph.js
 var TypeId21 = "~effect/Graph";
 var isGraph = (u) => hasProperty(u, TypeId21);
 var toImpl = (graph) => graph;
@@ -10080,17 +10080,17 @@ var ProtoGraph = {
     return false;
   },
   [symbol]() {
-    let hash3 = graphSeed;
-    hash3 = hash3 ^ string(this.type);
-    hash3 = hash3 ^ number(this.nodes.size);
-    hash3 = hash3 ^ number(this.edges.size);
+    let hash5 = graphSeed;
+    hash5 = hash5 ^ string(this.type);
+    hash5 = hash5 ^ number(this.nodes.size);
+    hash5 = hash5 ^ number(this.edges.size);
     for (const [nodeIndex, nodeData] of this.nodes) {
-      hash3 ^= combine(hash(nodeIndex), hash(nodeData));
+      hash5 ^= combine(hash(nodeIndex), hash(nodeData));
     }
     for (const [edgeIndex, edgeData] of this.edges) {
-      hash3 ^= combine(hash(edgeIndex), edgeHash(this.type, edgeData));
+      hash5 ^= combine(hash(edgeIndex), edgeHash(this.type, edgeData));
     }
-    return optimize(hash3);
+    return optimize(hash5);
   },
   toJSON() {
     return {
@@ -10163,7 +10163,7 @@ var hydrate = (snapshot3) => {
   return graph;
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/annotations.js
+// ../../engine/node_modules/effect/dist/internal/schema/annotations.js
 function resolve(ast) {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
 }
@@ -10185,7 +10185,7 @@ var getExpected = /* @__PURE__ */ memoize((ast) => {
 });
 var annotationExcludedKeys = /* @__PURE__ */ new Set([SENTINELS_ANNOTATION_KEY, STRUCTURAL_ANNOTATION_KEY, "representation", "arbitraryConstraint", "toJsonSchema", "toCode", "toEquivalence", "toFormatter", "toCodec", "toCodecJson", "toCodecStringTree", "toCodecIso", "toCodecArbitrary"]);
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/parser.js
+// ../../engine/node_modules/effect/dist/internal/schema/parser.js
 var missing = /* @__PURE__ */ Symbol();
 var succeed7 = succeed4;
 var missingExit = /* @__PURE__ */ succeed7(missing);
@@ -10193,7 +10193,7 @@ var sameExit = /* @__PURE__ */ succeed7(missing);
 var toOption2 = (value4) => value4 === missing ? none2() : some2(value4);
 var fromOptionExit = (option3) => option3._tag === "None" ? missingExit : succeed7(option3.value);
 
-// ../../../../engine/node_modules/effect/dist/SchemaIssue.js
+// ../../engine/node_modules/effect/dist/SchemaIssue.js
 var TypeId22 = "~effect/SchemaIssue/Issue";
 function isIssue(u) {
   return hasProperty(u, TypeId22) && u[TypeId22] === TypeId22;
@@ -10536,7 +10536,7 @@ function findMessage(issue) {
   if (typeof message === "string") return message;
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/cause.js
+// ../../engine/node_modules/effect/dist/internal/schema/cause.js
 function getSchemaIssue(cause) {
   let issue;
   for (const reason of cause.reasons) {
@@ -10557,7 +10557,7 @@ function getSchemaIssueOrThrow(cause, message) {
   return issue;
 }
 
-// ../../../../engine/node_modules/effect/dist/encoding/Base64Url.js
+// ../../engine/node_modules/effect/dist/encoding/Base64Url.js
 var encode3 = (input) => encode2(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 var decode3 = (str2) => {
   const stripped = str2.replace(/[\n\r]/g, "");
@@ -10585,7 +10585,7 @@ var decode3 = (str2) => {
 var decodeString3 = (str2) => map2(decode3(str2), (_) => decoder3.decode(_));
 var decoder3 = /* @__PURE__ */ new TextDecoder();
 
-// ../../../../engine/node_modules/effect/dist/SchemaGetter.js
+// ../../engine/node_modules/effect/dist/SchemaGetter.js
 var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
 function fail7(f) {
   return transformOptionalEffect((oe, options) => fail6(f(oe, options)));
@@ -10872,7 +10872,7 @@ function collectBracketPathEntries(isLeaf) {
   };
 }
 
-// ../../../../engine/node_modules/effect/dist/SchemaTransformation.js
+// ../../engine/node_modules/effect/dist/SchemaTransformation.js
 var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
@@ -11065,7 +11065,7 @@ function fromJsonString(options) {
 var fromFormData = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeFormData(), /* @__PURE__ */ encodeFormData());
 var fromURLSearchParams = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeURLSearchParams(), /* @__PURE__ */ encodeURLSearchParams());
 
-// ../../../../engine/node_modules/effect/dist/SchemaAST.js
+// ../../engine/node_modules/effect/dist/SchemaAST.js
 function makeGuard(tag2) {
   return (ast) => ast._tag === tag2;
 }
@@ -11376,15 +11376,15 @@ var TemplateLiteral = class extends ASTNodeImpl {
   }
 };
 function templateLiteralParser(parts2) {
-  const normalize3 = memoize((encoded) => {
+  const normalize4 = memoize((encoded) => {
     if (encoded._tag !== "Union") return encoded;
-    const types = mapOrSame(encoded.types, normalize3);
+    const types = mapOrSame(encoded.types, normalize4);
     return (encoded.options?.mode ?? "anyOf") === "anyOf" && types === encoded.types ? encoded : new Union(types, encoded.options === void 0 ? void 0 : {
       ...encoded.options,
       mode: "anyOf"
     }, encoded.annotations, encoded.checks, void 0, encoded.context);
   });
-  const template = new TemplateLiteral(parts2.map((part) => normalize3(toEncoded(part))));
+  const template = new TemplateLiteral(parts2.map((part) => normalize4(toEncoded(part))));
   const tuple2 = new Arrays(false, parts2.map(partFromString), []);
   return decodeTo(template, tuple2, templateLiteralTransformation(template));
 }
@@ -13189,7 +13189,7 @@ var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options)
 });
 var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough3());
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/interpreter.js
+// ../../engine/node_modules/effect/dist/internal/schema/interpreter.js
 var flatMapTransformation = (result3, current, f) => result3 === sameExit ? f(current) : flatMapEager2(result3, f);
 function compileTransformation(transformation) {
   if (transformation._tag === "Middleware") {
@@ -13346,7 +13346,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
   };
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/compilerRegistry.js
+// ../../engine/node_modules/effect/dist/internal/schema/compilerRegistry.js
 var invalid3 = /* @__PURE__ */ Symbol();
 var cache = /* @__PURE__ */ new WeakMap();
 var compiler;
@@ -13372,10 +13372,10 @@ var InterpretedEntry = class {
 var CompilerEntry = class extends InterpretedEntry {
   compiled;
   resolve;
-  constructor(ast, compiled, resolve12) {
+  constructor(ast, compiled, resolve14) {
     super(ast);
     this.compiled = compiled;
-    this.resolve = resolve12;
+    this.resolve = resolve14;
   }
   save(key2, value4) {
     Object.defineProperty(this, key2, {
@@ -13424,8 +13424,8 @@ function withDecode(fastDecode, decodeEffect3) {
     return (detailed ??= decodeEffect3())(input, options);
   };
 }
-function lazyParser(resolve12, ast, operation2) {
-  const entry = resolve12(ast);
+function lazyParser(resolve14, ast, operation2) {
+  const entry = resolve14(ast);
   if (entry.compiled === void 0 || Object.hasOwn(entry, operation2)) {
     return entry[operation2];
   }
@@ -13440,7 +13440,7 @@ function resolve2(ast) {
   return entry;
 }
 
-// ../../../../engine/node_modules/effect/dist/SchemaParser.js
+// ../../engine/node_modules/effect/dist/SchemaParser.js
 function makeEffect(schema) {
   const ast = schema.ast;
   let parser;
@@ -13706,7 +13706,7 @@ function makeConstructorSync(ast) {
 var normalCompiler = (ast) => resolve2(ast).parser;
 var constructorCompiler = (ast) => resolve2(ast).makeEffect;
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/make.js
+// ../../engine/node_modules/effect/dist/internal/schema/make.js
 var TypeId25 = "~effect/Schema/Schema";
 var RebuildOptions = /* @__PURE__ */ Symbol();
 var SchemaProto = {
@@ -13767,7 +13767,7 @@ function make16(ast, options) {
   return self;
 }
 
-// ../../../../engine/node_modules/effect/dist/JsonPointer.js
+// ../../engine/node_modules/effect/dist/JsonPointer.js
 function escapeToken(token) {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -13797,7 +13797,7 @@ function formatUriFragment(path) {
   return path.reduce((fragment, token) => `${fragment}/${formatUriFragmentToken(token)}`, "#");
 }
 
-// ../../../../engine/node_modules/effect/dist/JsonSchema.js
+// ../../engine/node_modules/effect/dist/JsonSchema.js
 var META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema#";
 var META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 function isMetaSchemaUri(value4, uri) {
@@ -14157,7 +14157,7 @@ function convertLegacyId(source2, out, targetKey, dialect) {
   }
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toCodec.js
+// ../../engine/node_modules/effect/dist/internal/schema/toCodec.js
 function toCodecJson(schema) {
   return make16(toCodecJsonAST(schema.ast), {
     schema
@@ -14365,11 +14365,11 @@ function toCodecArrayFromSingleASTStep(ast) {
   return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" || ast._tag === "Suspend" ? ast.recur(toCodecArrayFromSingleAST) : ast;
 }
 
-// ../../../../engine/node_modules/effect/dist/RegExp.js
+// ../../engine/node_modules/effect/dist/RegExp.js
 var RegExp2 = globalThis.RegExp;
 var escape = (string3) => string3.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-// ../../../../engine/node_modules/effect/dist/internal/errors.js
+// ../../engine/node_modules/effect/dist/internal/errors.js
 function errorWithPath(message, path) {
   if (path.length > 0) {
     message += `
@@ -14378,7 +14378,7 @@ function errorWithPath(message, path) {
   return new Error(message);
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
+// ../../engine/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
 function formatDefinitionReference(key2) {
   return `#/$defs/${formatUriFragmentToken(key2)}`;
 }
@@ -15027,7 +15027,7 @@ function toJsonSchemaDocument(document, options) {
   };
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toRepresentation.js
+// ../../engine/node_modules/effect/dist/internal/schema/toRepresentation.js
 var defaultReferencePolicy = ({
   identifier: identifier3
 }) => identifier3;
@@ -15344,7 +15344,7 @@ function toRepresentations(asts, options) {
   }
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/standardSchema.js
+// ../../engine/node_modules/effect/dist/internal/schema/standardSchema.js
 function makeStandardResult(exit4) {
   return isSuccess4(exit4) ? exit4.value : {
     issues: [{
@@ -15374,9 +15374,9 @@ function toStandardSchemaV1(self, options) {
     if (exit4) {
       return makeStandardResult(exit4);
     }
-    return new Promise((resolve12) => {
+    return new Promise((resolve14) => {
       fiber3.addObserver((exit5) => {
-        resolve12(makeStandardResult(exit5));
+        resolve14(makeStandardResult(exit5));
       });
     });
   };
@@ -15444,7 +15444,7 @@ function toStandardJSONSchemaV1(self) {
   });
 }
 
-// ../../../../engine/node_modules/effect/dist/JsonPatch.js
+// ../../engine/node_modules/effect/dist/JsonPatch.js
 function get4(oldValue, newValue) {
   const patches = [];
   getLoop(oldValue, newValue, "", patches);
@@ -15625,7 +15625,7 @@ function rebuildFromStack(stack, newParent) {
   return acc;
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
+// ../../engine/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
   const get6 = encodeSync(serializer);
@@ -15642,7 +15642,7 @@ function toDifferJsonPatch(schema) {
   };
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toEncoderXml.js
+// ../../engine/node_modules/effect/dist/internal/schema/toEncoderXml.js
 function toEncoderXml(codec, options) {
   const rootName = resolveIdentifier(codec.ast) ?? resolveTitle(codec.ast);
   const serialize = encodeEffect(toCodecStringTree(codec));
@@ -15741,7 +15741,7 @@ var xml = {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toEquivalence.js
+// ../../engine/node_modules/effect/dist/internal/schema/toEquivalence.js
 var toEquivalence = /* @__PURE__ */ memoize((ast) => {
   return recur(ast);
 });
@@ -15925,7 +15925,7 @@ function causeEquivalence(error, defect) {
   return (a, b) => reasons(a.reasons, b.reasons);
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toFormatter.js
+// ../../engine/node_modules/effect/dist/internal/schema/toFormatter.js
 function causeReasonToFormatter(error, defect) {
   return (reason) => {
     switch (reason._tag) {
@@ -16140,7 +16140,7 @@ function toFormatter(ast, options) {
   }
 }
 
-// ../../../../engine/node_modules/effect/dist/Struct.js
+// ../../engine/node_modules/effect/dist/Struct.js
 var pick2 = /* @__PURE__ */ dual(2, (self, keys3) => {
   return buildStruct(self, (k, v) => hasPropertyKey(keys3, k) ? [k, v] : void 0);
 });
@@ -16173,7 +16173,7 @@ function buildStruct(source2, f) {
   return out;
 }
 
-// ../../../../engine/node_modules/effect/dist/Optic.js
+// ../../engine/node_modules/effect/dist/Optic.js
 function makeIso(get6, set4) {
   return make17(primitiveNode("Iso", get6, set4));
 }
@@ -16519,7 +16519,7 @@ function id() {
   return identityIso;
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schema/toIso.js
+// ../../engine/node_modules/effect/dist/internal/schema/toIso.js
 function toIso(schema) {
   const serializer = toCodecIso(schema);
   return makeIso(encodeSync(serializer), decodeSync(serializer));
@@ -16531,13 +16531,13 @@ function toIsoFocus(_) {
   return id();
 }
 
-// ../../../../engine/node_modules/effect/dist/internal/schemaError.js
+// ../../engine/node_modules/effect/dist/internal/schemaError.js
 var SchemaErrorTypeId = "~effect/Schema/SchemaError";
 function isSchemaError(u) {
   return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
 }
 
-// ../../../../engine/node_modules/effect/dist/net/NetAddress.js
+// ../../engine/node_modules/effect/dist/net/NetAddress.js
 var TypeId26 = "~effect/net/NetAddress";
 var ipv4Value = (self) => self.value;
 var ipv6Words = (self) => self;
@@ -16981,7 +16981,7 @@ var unixPathAddress = (path) => {
   return Object.freeze(self);
 };
 
-// ../../../../engine/node_modules/effect/dist/net/Host.js
+// ../../engine/node_modules/effect/dist/net/Host.js
 var TypeId27 = "~effect/net/Host";
 var hostError = (input, message) => fail2(new NetAddressError({
   input,
@@ -16992,10 +16992,10 @@ var labelPattern = /^[a-z0-9_](?:[a-z0-9_-]{0,61}[a-z0-9_])?$/;
 var numericLabel = /^(?:\d+|0x[0-9a-f]*)$/;
 var validateDomainName = (name) => {
   if (name === ".") return void 0;
-  const relative4 = name.endsWith(".") ? name.slice(0, -1) : name;
-  if (relative4.length === 0) return "domain name must not be empty";
-  if (relative4.length > 253) return "domain name must be at most 253 characters";
-  const labels = relative4.split(".");
+  const relative6 = name.endsWith(".") ? name.slice(0, -1) : name;
+  if (relative6.length === 0) return "domain name must not be empty";
+  if (relative6.length > 253) return "domain name must be at most 253 characters";
+  const labels = relative6.split(".");
   for (const label3 of labels) {
     if (label3.length === 0) return "domain name labels must not be empty";
     if (label3.length > 63) return "domain name labels must be at most 63 characters";
@@ -17094,7 +17094,7 @@ var formatHostPort = (self) => {
   return host.includes(":") ? `[${host}]:${self.port}` : `${host}:${self.port}`;
 };
 
-// ../../../../engine/node_modules/effect/dist/net/Dns.js
+// ../../engine/node_modules/effect/dist/net/Dns.js
 var RecordTypeId = "~effect/net/Dns/DnsRecord";
 var isUint8 = (u) => Number.isInteger(u) && u >= 0 && u <= 255;
 var isUint16 = (u) => Number.isInteger(u) && u >= 0 && u <= 65535;
@@ -17261,7 +17261,7 @@ var formatRecord = (self) => {
   }
 };
 
-// ../../../../engine/node_modules/effect/dist/net/IpInterface.js
+// ../../engine/node_modules/effect/dist/net/IpInterface.js
 var TypeId28 = "~effect/net/IpInterface";
 var isIpv4Interface = (u) => isIpInterface(u) && isIpv4Address(u.address);
 var isIpv6Interface = (u) => isIpInterface(u) && isIpv6Address(u.address);
@@ -17323,7 +17323,7 @@ var ipv6FromString2 = (input, options) => flatMap2(parseAddressWithPrefix(input,
 var fromString3 = (input, options) => flatMap2(parseAddressWithPrefix(input, options), (parts2) => flatMap2(ipFromString(parts2.address), (address) => make18(address, parts2.prefixLength ?? width(address))));
 var format5 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../../../engine/node_modules/effect/dist/net/IpNetwork.js
+// ../../engine/node_modules/effect/dist/net/IpNetwork.js
 var TypeId29 = "~effect/net/IpNetwork";
 var isIpv4Network = (u) => isIpNetwork(u) && isIpv4Address(u.address);
 var isIpv6Network = (u) => isIpNetwork(u) && isIpv6Address(u.address);
@@ -17392,7 +17392,7 @@ var fromString4 = (input) => {
 };
 var format6 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../../../engine/node_modules/effect/dist/Schema.js
+// ../../engine/node_modules/effect/dist/Schema.js
 var TypeId30 = TypeId25;
 function declareConstructor() {
   return (typeParameters, run2, annotations2) => {
@@ -21202,7 +21202,7 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
-// ../../../../engine/node_modules/effect/dist/Fiber.js
+// ../../engine/node_modules/effect/dist/Fiber.js
 var Fiber_exports = {};
 __export(Fiber_exports, {
   await: () => await_,
@@ -21229,7 +21229,7 @@ var isFiber = (u) => hasProperty(u, FiberTypeId);
 var getCurrent = getCurrentFiber;
 var runIn = fiberRunIn;
 
-// ../../../../engine/node_modules/effect/dist/MutableList.js
+// ../../engine/node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
   head: void 0,
@@ -21335,7 +21335,7 @@ var take = (self) => {
   return message;
 };
 
-// ../../../../engine/node_modules/effect/dist/Queue.js
+// ../../engine/node_modules/effect/dist/Queue.js
 var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
@@ -21769,7 +21769,7 @@ var finalize = (self, exit4) => {
   openState.awaiters.clear();
 };
 
-// ../../../../engine/node_modules/effect/dist/Semaphore.js
+// ../../engine/node_modules/effect/dist/Semaphore.js
 var Semaphore_exports = {};
 __export(Semaphore_exports, {
   make: () => make23,
@@ -21897,10 +21897,10 @@ var release = /* @__PURE__ */ dual(2, (self, permits) => self.release(permits));
 var releaseAll = (self) => self.releaseAll;
 
 // src/api.ts
-import { createHash as createHash10, randomBytes, randomUUID as randomUUID3, timingSafeEqual } from "node:crypto";
+import { createHash as createHash14, randomBytes, randomUUID as randomUUID3, timingSafeEqual } from "node:crypto";
 
 // src/engine.ts
-import { createHash as createHash8 } from "node:crypto";
+import { createHash as createHash12 } from "node:crypto";
 
 // src/artifact-evidence.ts
 import { createHash } from "node:crypto";
@@ -23179,13 +23179,279 @@ function checkPrerequisites(inputs, job, dir) {
   });
 }
 
+// src/organs.ts
+import { createHash as createHash5 } from "node:crypto";
+import { lstatSync, readFileSync as readFileSync3, readlinkSync, realpathSync as realpathSync2, statSync as statSync2 } from "node:fs";
+import { dirname, isAbsolute as isAbsolute2, normalize as normalize3, relative as relative2, resolve as resolve4, sep as sep2 } from "node:path";
+
+// src/rumen.ts
+import { createHash as createHash4 } from "node:crypto";
+var hash2 = (value4) => createHash4("sha256").update(JSON.stringify(value4)).digest("hex");
+function gateRule(gate) {
+  const definitionHash = hash2({ kind: "fence", run: gate.run, glob: gate.glob ?? null });
+  return {
+    id: `gate:${gate.id ?? definitionHash}`,
+    kind: "fence",
+    text: gate.run,
+    definitionHash,
+    evidenceOwner: "engine",
+    run: gate.run,
+    ...gate.glob === void 0 ? {} : { glob: gate.glob }
+  };
+}
+function rumenRules(project, job) {
+  const gates = (project?.gates ?? []).map(gateRule);
+  const conventions = [...new Set(project?.conventions ?? [])].map((text4) => ({
+    id: `convention:${hash2(text4)}`,
+    kind: "judge",
+    text: text4,
+    definitionHash: hash2({ kind: "judge", text: text4 }),
+    evidenceOwner: "independent-review"
+  }));
+  const guidance = (project?.rumen ?? []).filter((rule) => rule.jobs === void 0 || rule.jobs.includes(job)).map((rule) => ({
+    id: `guidance:${rule.id}`,
+    kind: rule.kind,
+    text: rule.text,
+    definitionHash: hash2({ kind: rule.kind, text: rule.text, jobs: rule.jobs === void 0 ? null : [...rule.jobs].sort() }),
+    evidenceOwner: rule.kind === "judge" ? "independent-review" : rule.kind === "sign" ? "operator" : "project"
+  }));
+  return [...new Map([...gates, ...conventions, ...guidance].map((rule) => [rule.id, rule])).values()];
+}
+function hasFunctionFenceProof(events2, job, output, rules) {
+  const proof = events2.findLast((event) => event.kind === "function-fences" && event.data.job === job);
+  const receipts = Array.isArray(proof?.data.gateReceipts) ? proof.data.gateReceipts : void 0;
+  const fences = rules.filter((rule) => rule.kind === "fence");
+  return !!receipts && proof.data.outputHash === createHash4("sha256").update(output).digest("hex") && fences.every((rule) => receipts.some((receipt) => receipt.rule === rule.id && receipt.definitionHash === rule.definitionHash && receipt.command === rule.run && receipt.outcome === "passed" && receipt.exitCode === 0)) && receipts.every((receipt) => fences.some((rule) => rule.id === receipt.rule && rule.definitionHash === receipt.definitionHash) && receipt.outcome === "passed" && receipt.exitCode === 0);
+}
+
+// src/work-boundary.ts
+var equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+var invalidatedAt = (events2, job) => Math.max(0, ...events2.filter((e) => {
+  if (e.kind === "cartridges-applied") {
+    const before = e.data.from, after = e.data.to;
+    return !!before && !!after && !equal(stepOf(laneOf(before), job), stepOf(laneOf(after), job));
+  }
+  if (job === "verify") return ["main-moved", "replan", "rebased", "ruling"].includes(e.kind);
+  if (["plan", "implement", "test-plan"].includes(job) && ["replan", "rebased"].includes(e.kind)) return true;
+  return e.kind === "ruling" && (e.data.cause === "implementation" && ["plan", "implement", "test-plan"].includes(job) || e.data.cause === "test" && job === "test-plan");
+}).map((e) => e.seq));
+
+// src/organs.ts
+var hash3 = (value4) => createHash5("sha256").update(value4).digest("hex");
+var Text4 = Schema_exports.NonEmptyString.check(Schema_exports.makeFilter((value4) => !!value4.trim() && !value4.includes("\0"), { toJsonSchema: () => [{}, true] }));
+var Preparation2 = Schema_exports.Struct({
+  ground: Schema_exports.Struct({ intent: Text4, sources: Schema_exports.Array(Schema_exports.Struct({ ref: Text4, finding: Text4 })).check(Schema_exports.isMinLength(1)) }),
+  rumen: Schema_exports.Array(Schema_exports.Struct({ rule: Text4, disposition: Schema_exports.Literals(["addressed", "not-applicable"]), evidence: Text4 })),
+  next: Schema_exports.Array(Schema_exports.Struct({ job: Text4, brief: Text4, requires: Schema_exports.Array(Text4).check(Schema_exports.isMinLength(1)) }))
+});
+var createWork = (store, fields) => store.create({ ...fields, organs: { version: "1" } });
+var organsRequired = (item) => item.organs?.version === "1";
+var childOrgans = (parent, job, output, target = "delivery") => parent.organs ? { version: "1", origin: { item: parent.id, job, outputHash: hash3(output), target } } : void 0;
+function organOutputShape(item, original) {
+  if (!organsRequired(item)) return original;
+  const add4 = (shape) => {
+    if (Array.isArray(shape.anyOf)) return { ...shape, anyOf: shape.anyOf.map((branch) => add4(branch)) };
+    const properties = shape.properties ?? {};
+    if ("blocked" in properties) return shape;
+    return { ...shape, type: "object", properties: { ...properties, preparation: shapeOf(Preparation2) }, required: [.../* @__PURE__ */ new Set([...shape.required ?? [], "preparation"])] };
+  };
+  return add4(original ?? { type: "object" });
+}
+function nextJobs(item, job, output) {
+  const lane = laneOf(item.pack), step2 = stepOf(lane, job);
+  if (lane.pack.runtime === "functions") {
+    const steps = step2.loop === "discovery" ? lane.discovery : lane.delivery;
+    const next = steps[steps.findIndex((s) => s.job === job) + 1];
+    return next ? [next.job] : step2.loop === "discovery" && !(Array.isArray(output?.items) && output.items.length === 0) ? ["delivery"] : [];
+  }
+  if (job === "verify") return [];
+  if (job === "arbitrate" && !output) return ["plan", ...lane.makers.includes("test-plan") ? ["test-plan"] : [], "verify"];
+  const target = route(lane, job, output ?? {}, item.corrections);
+  if (target.to === "discovered") return target.items?.length === 0 ? [] : ["delivery"];
+  if (target.to === "split") return [...lane.makers];
+  if (target.to === "next" || target.to === "rework") return [target.job];
+  if (target.to === "prerequisite") return ["prerequisite", "verify"];
+  if (target.to === "environment") return lane.makers.filter((m) => typeof lastJson(item.outputs[m] ?? "")?.blocked === "string").length ? lane.makers.filter((m) => typeof lastJson(item.outputs[m] ?? "")?.blocked === "string") : ["verify"];
+  if (target.to === "arbitrate") return ["arbitrate"];
+  return [];
+}
+var permittedOutputs = (item, job) => {
+  const from = isMaker(job) ? item.split?.[job]?.from ?? item.from : item.from;
+  const originator = from.kind === "job" && (!isMaker(job) || !isMaker(from.job)) ? [from.job] : [];
+  return /* @__PURE__ */ new Set([...stepOf(laneOf(item.pack), job).receives, ...originator]);
+};
+function fileMaterial(root, file, links = []) {
+  if (links.length >= 40) throw new Error("Ground file reference has a cyclic or excessive symlink chain.");
+  const inside = relative2(root, file);
+  if (isAbsolute2(inside) || inside === ".." || inside.startsWith(".." + sep2)) throw new Error("Ground file reference leaves the workspace; declare a permitted project input.");
+  const segments = inside.split(sep2);
+  let current = root;
+  for (const [index2, segment] of segments.entries()) {
+    current = resolve4(current, segment);
+    if (lstatSync(current).isSymbolicLink()) {
+      const target = readlinkSync(current);
+      if (normalize3(target) !== target) throw new Error("Ground needs a canonical symlink target; cite the actual file or a declared prepared input instead of a path that cancels intermediate components.");
+      return fileMaterial(root, resolve4(dirname(current), target, ...segments.slice(index2 + 1)), [...links, relative2(root, current)]);
+    }
+  }
+  return { file: current, paths: [.../* @__PURE__ */ new Set([...links, relative2(root, current)])] };
+}
+function material(item, job, ref2, dir, project, own, inputJob = job) {
+  if (ref2 === "source") return { ref: ref2, sha256: hash3(item.source) };
+  if (ref2.startsWith("output:")) {
+    const name = ref2.slice(7);
+    const raw = own?.job === name ? own.output : permittedOutputs(item, job).has(name) ? item.outputs[name] : void 0;
+    if (typeof raw !== "string") throw new Error(`Ground reference ${ref2} is not an available output permitted to ${job}.`);
+    return { ref: ref2, sha256: hash3(raw) };
+  }
+  if (ref2.startsWith("input:")) {
+    const id2 = ref2.slice(6), checked = checkPrerequisites(project?.inputs, inputJob, dir).find((input) => input.id === id2);
+    if (!checked?.ok) throw new Error(`Ground reference ${ref2} is not a ready declared input for ${job}${checked?.reason ? `: ${checked.reason}` : "."}`);
+    const stat = statSync2(checked.path);
+    const binding = project.inputs.find((input) => input.id === id2);
+    return { ref: ref2, sha256: hash3(stat.isDirectory() ? JSON.stringify({ binding: binding.path, kind: "directory" }) : readFileSync3(checked.path)) };
+  }
+  if (!ref2.startsWith("file:")) throw new Error(`Unknown Ground reference ${ref2}; use source, output:<job>, file:<relative path>, or input:<id>.`);
+  const path = ref2.slice(5), root = realpathSync2(dir);
+  if (!path || isAbsolute2(path)) throw new Error(`Ground file reference ${ref2} must be relative to the receiving workspace.`);
+  if (normalize3(path) !== path) throw new Error(`Ground file reference ${ref2} must use its canonical relative path.`);
+  const file = resolve4(root, path), lexical = relative2(root, file);
+  if (lexical === ".." || lexical.startsWith(".." + sep2)) throw new Error(`Ground file reference ${ref2} leaves the workspace.`);
+  const resolved = fileMaterial(root, file), physical = resolved.file, inside = relative2(root, physical);
+  if (!statSync2(physical).isFile()) throw new Error(`Ground file reference ${ref2} must name a readable file.`);
+  return { ref: ref2, sha256: hash3(readFileSync3(physical)), path: inside, paths: resolved.paths };
+}
+function inspectPreparation(item, job, output, raw, dir, project, tracked = [], selectedRules) {
+  if (!organsRequired(item) || typeof output.blocked === "string") return { ok: true };
+  const decoded = Schema_exports.decodeUnknownResult(Preparation2)(output.preparation);
+  if (Result_exports.isFailure(decoded)) return { ok: false, reason: `Ground, Rumen and next-step preparation are mandatory: ${decoded.failure.message}` };
+  const p = decoded.success, rules = rumenRules(project, job), expected = nextJobs(item, job, output);
+  const definitions = (inventory) => JSON.stringify(inventory.map((rule) => [rule.id, rule.definitionHash]));
+  if (selectedRules === void 0 || definitions(selectedRules) !== definitions(rules)) return { ok: false, reason: "Rumen definitions changed or are unavailable since this execution was prepared. Re-ground against the actual selected rules before accepting the output." };
+  const unique = (values2) => new Set(values2).size === values2.length;
+  if (!unique(p.ground.sources.map((s) => s.ref))) return { ok: false, reason: "Ground source references must be unique." };
+  if (!unique(p.rumen.map((r) => r.rule)) || p.rumen.length !== rules.length || rules.some((rule) => !p.rumen.some((r) => r.rule === rule.id))) return { ok: false, reason: "Rumen must account for every selected rule exactly once, without invented rule identities." };
+  if (p.rumen.some((r) => r.disposition === "not-applicable" && rules.find((rule) => rule.id === r.rule)?.kind === "fence")) return { ok: false, reason: "Only engine verification determines mechanical fence applicability; carry the fence forward as addressed, without awarding it a pass." };
+  if (!unique(p.next.map((n) => n.job)) || p.next.length !== expected.length || expected.some((job2) => !p.next.some((n) => n.job === job2))) return { ok: false, reason: `Next-step preparation must supply exactly these consumers: ${expected.join(", ") || "(terminal: empty next list)"}.` };
+  if (laneOf(item.pack).pack.runtime !== "functions" && ["plan", "implement", "test-plan", "arbitrate"].includes(job) && tracked.length && !p.ground.sources.some((s) => s.ref.startsWith("file:"))) return { ok: false, reason: "Ground must cite at least one actual repository file for this software phase; task prose alone does not ground the implementation." };
+  try {
+    const sources = p.ground.sources.map((s) => ({ ...material(item, job, s.ref, dir, project), finding: s.finding }));
+    const next = p.next.map((n) => {
+      if (!unique(n.requires)) throw new Error(`Preparation for ${n.job} repeats a required reference.`);
+      if (!n.requires.includes(`output:${job}`)) throw new Error(`Preparation for ${n.job} must carry output:${job}, the producer's actual deliverable.`);
+      for (const ref2 of n.requires) {
+        if (ref2.startsWith("output:") && ref2 !== `output:${job}` && (n.job === "delivery" || n.job === "prerequisite" || !stepOf(laneOf(item.pack), n.job).receives.includes(ref2.slice(7)))) throw new Error(`Preparation for ${n.job} cannot supply ${ref2}: that output is outside the consumer's permitted inputs.`);
+      }
+      const consumer = n.job === "delivery" ? laneOf(item.pack).delivery[0]?.job ?? job : n.job === "prerequisite" ? "plan" : n.job;
+      return { job: n.job, brief: n.brief, requires: n.requires.map((ref2) => material(item, job, ref2, dir, project, { job, output: raw }, consumer)) };
+    });
+    return { ok: true, receipt: { version: "1", job, round: item.round, outputHash: hash3(raw), ground: { intent: p.ground.intent, sources }, rumen: rules.map((rule) => ({ ...rule, ...p.rumen.find((r) => r.rule === rule.id) })), next } };
+  } catch (error) {
+    return { ok: false, reason: `Ground could not prepare the work: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+function saveOrganReceipt(store, item, receipt, call) {
+  if (receipt) store.note(item.id, "organs-accepted", { job: receipt.job, receipt, call });
+}
+function organReceipts(store, item) {
+  const events2 = store.events(item.id);
+  return events2.flatMap((event) => {
+    const r = event.kind === "organs-accepted" ? event.data.receipt : void 0;
+    return r?.version === "1" && event.seq > invalidatedAt(events2, r.job) && typeof item.outputs[r.job] === "string" && r.outputHash === hash3(item.outputs[r.job]) ? [{ ...r, event: event.seq }] : [];
+  });
+}
+function originPreparation(store, item, job) {
+  const origin = item.organs?.origin;
+  const first = origin?.target === "prerequisite" ? "plan" : laneOf(item.pack).delivery[0]?.job;
+  if (!origin || job !== first) return void 0;
+  const parent = store.get(origin.item);
+  const receipt = parent && organReceipts(store, parent).findLast((r) => r.job === origin.job && r.outputHash === origin.outputHash);
+  const outgoing = receipt?.next.find((next) => next.job === origin.target);
+  return { origin, parent, receipt, outgoing };
+}
+function organPacket(store, item, job, project) {
+  if (!organsRequired(item)) return void 0;
+  const permitted = permittedOutputs(item, job), receipts = organReceipts(store, item);
+  const incoming = receipts.filter((r) => permitted.has(r.job)).flatMap((r) => r.next.filter((n) => n.job === job).map((n) => ({ from: r.job, event: r.event, ...n })));
+  const origin = originPreparation(store, item, job);
+  const inherited = origin?.outgoing ? [{ ...origin.outgoing, job, from: origin.origin.job, fromItem: origin.origin.item, event: origin.receipt.event }] : [];
+  return {
+    version: "1",
+    required: true,
+    rules: rumenRules(project, job),
+    nextJobs: nextJobs(item, job),
+    incoming: [...inherited, ...incoming],
+    instruction: "The work is durable; you are a disposable tool. Complete only this phase, ground its findings in actual material, account for every selected Rumen rule, and prepare every configured next consumer in preparation. Never self-certify a mechanical gate. Source hashes prove material identity, not semantic correctness. Intake has no tools; inspect sources during execution. Missing sender-owned material returns through this same NQ exchange."
+  };
+}
+function checkIncomingPreparation(store, item, job, dir, project, producers) {
+  if (!organsRequired(item)) return { ok: true, checked: [] };
+  const allowed = new Set(producers ?? permittedOutputs(item, job)), checked = [];
+  const receipts = organReceipts(store, item), events2 = store.events(item.id);
+  const loop = stepOf(laneOf(item.pack), job).loop, steps = laneOf(item.pack)[loop];
+  const inherited = originPreparation(store, item, job);
+  if (inherited) {
+    if (!inherited.parent || !inherited.receipt || !inherited.outgoing) checked.push({ ref: `item:${inherited.origin.item}:output:${inherited.origin.job}`, producer: inherited.origin.job, ok: false, reason: "The parent preparation is unavailable, changed or missing its actual next consumer." });
+    else for (const expected of inherited.outgoing.requires) {
+      try {
+        const actual = material(inherited.parent, inherited.origin.job, expected.ref, dir, project, { job: inherited.origin.job, output: inherited.parent.outputs[inherited.origin.job] }, job);
+        const ok = actual.sha256 === expected.sha256 && actual.path === expected.path && JSON.stringify(actual.paths) === JSON.stringify(expected.paths);
+        checked.push({ ref: expected.ref, producer: inherited.origin.job, ok, reason: ok ? null : "Required parent material changed since discovery or prerequisite preparation." });
+      } catch (error) {
+        checked.push({ ref: expected.ref, producer: inherited.origin.job, ok: false, reason: error instanceof Error ? error.message : String(error) });
+      }
+    }
+  }
+  for (const producer of allowed) {
+    const configured = steps.some((step2) => step2.job === producer) || laneOf(item.pack).arbiter?.job === producer;
+    const accepted = events2.some((event) => event.kind === "organs-accepted" && event.data.job === producer || event.kind === "accepted" && event.data.job === producer || event.kind === "handed-off" && event.data.from === producer || producer === "arbitrate" && event.kind === "ruling" && event.data.by === "arbiter");
+    const blocked = typeof lastJson(item.outputs[producer] ?? "")?.blocked === "string";
+    if (configured && accepted && !blocked && item.outputs[producer] !== void 0 && !receipts.some((r) => r.job === producer)) checked.push({ ref: `output:${producer}`, producer, ok: false, reason: "The accepted predecessor has no current matching Ground/Rumen/preparation receipt." });
+  }
+  for (const receipt of receipts.filter((r) => allowed.has(r.job))) {
+    const from = isMaker(job) ? item.split?.[job]?.from ?? item.from : item.from;
+    if (from.kind === "job" && from.job === receipt.job && !receipt.next.some((next) => next.job === job)) checked.push({ ref: `output:${receipt.job}`, producer: receipt.job, ok: false, reason: "The actual originator did not prepare this configured consumer." });
+    for (const next of receipt.next.filter((n) => n.job === job)) for (const expected of next.requires) {
+      try {
+        const actual = material(item, receipt.job, expected.ref, dir, project, { job: receipt.job, output: item.outputs[receipt.job] }, job);
+        const ok = actual.sha256 === expected.sha256 && actual.path === expected.path && JSON.stringify(actual.paths) === JSON.stringify(expected.paths);
+        checked.push({ ref: expected.ref, producer: receipt.job, ok, reason: ok ? null : "Required material changed since the producer prepared this handoff." });
+      } catch (error) {
+        checked.push({ ref: expected.ref, producer: receipt.job, ok: false, reason: error instanceof Error ? error.message : String(error) });
+      }
+    }
+  }
+  return { ok: checked.every((c) => c.ok), checked };
+}
+function compositionPreparation(item, job, project) {
+  const step2 = stepOf(laneOf(item.pack), job), refs2 = step2.receives.map((name) => `output:${name}`);
+  return {
+    ground: { intent: item.objective, sources: (refs2.length ? refs2 : ["source"]).map((ref2) => ({ ref: ref2, finding: "Engine composition retains this actual input; semantic claims remain in the accepted child outputs." })) },
+    rumen: rumenRules(project, job).map((rule) => ({ rule: rule.id, disposition: "addressed", evidence: "Carried through engine composition; mechanical proof remains engine-owned, and judgment remains attributable to child evidence." })),
+    next: nextJobs(item, job).map((next) => ({ job: next, brief: `Use the accepted ${job} composition for ${item.objective}.`, requires: [`output:${job}`] }))
+  };
+}
+function organSummary(store, item) {
+  const receipts = organReceipts(store, item), current = receipts.filter((r, index2) => receipts.findLastIndex((other) => other.job === r.job) === index2);
+  const terminal = item.pack?.runtime === "functions" && item.flow?.loop !== "discovery" ? laneOf(item.pack).delivery.at(-1)?.job : void 0;
+  return {
+    required: organsRequired(item),
+    version: item.organs?.version ?? null,
+    legacy: !organsRequired(item),
+    phases: current.slice(-12).map((r) => ({ job: r.job.slice(0, 120), ground: true, rumen: r.job !== terminal || hasFunctionFenceProof(store.events(item.id), r.job, item.outputs[r.job], r.rumen), nextPrepared: true, event: r.event, rules: r.rumen.length, next: r.next.slice(0, 4).map((n) => n.job.slice(0, 120)), currentAvailability: "unknown" })),
+    total: current.length,
+    omitted: Math.max(0, current.length - 12),
+    detail: `/api/trace/${item.id}?lens=ax`
+  };
+}
+
 // src/engine.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync8, lstatSync as lstatSync2, readlinkSync as readlinkSync2, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync9, lstatSync as lstatSync3, readlinkSync as readlinkSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
 import { tmpdir as tmpdir3 } from "node:os";
-import { dirname as dirname6, join as join9 } from "node:path";
+import { dirname as dirname7, join as join9, relative as relative4, resolve as resolve7 } from "node:path";
 
 // src/cards.ts
-import { readFileSync as readFileSync3 } from "node:fs";
+import { readFileSync as readFileSync4 } from "node:fs";
 
 // src/harness.ts
 import { execFile } from "node:child_process";
@@ -23666,7 +23932,7 @@ var Prescriptions = Schema_exports.Struct({
 var DEFAULT_PARALLEL = 3;
 var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   const text4 = yield* Effect_exports.try({
-    try: () => readFileSync3(path, "utf8"),
+    try: () => readFileSync4(path, "utf8"),
     catch: (e) => new MadeWellError({ code: "prescriptions_unreadable", message: `Cannot read prescriptions file ${path}.`, context: { path, reason: String(e) }, next: [{ run: `ls -l ${path}`, why: "check the file exists and is readable" }, { run: `MW_PRESCRIPTIONS=<readable prescriptions file> mw run`, why: "point Made Well at a prescriptions file it can read" }] })
   });
   const value4 = yield* Effect_exports.try({
@@ -23725,20 +23991,21 @@ function pickCard(cards, exhausted, now2) {
 }
 
 // src/change.ts
-import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync6, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
-import { basename, dirname as dirname4, join as join7, matchesGlob as matchesGlob2 } from "node:path";
+import { createHash as createHash9 } from "node:crypto";
+import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync7, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { basename, dirname as dirname5, join as join7, matchesGlob as matchesGlob2 } from "node:path";
 
 // src/store.ts
 import { mkdirSync as mkdirSync2 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname as dirname2, join as join5 } from "node:path";
+import { dirname as dirname3, join as join5 } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 // src/telemetry.ts
-import { createHash as createHash4 } from "node:crypto";
-import { appendFileSync as appendFileSync2, mkdirSync, readdirSync, readFileSync as readFileSync4 } from "node:fs";
+import { createHash as createHash6 } from "node:crypto";
+import { appendFileSync as appendFileSync2, mkdirSync, readdirSync, readFileSync as readFileSync5 } from "node:fs";
 import { hostname } from "node:os";
-import { dirname, join as join4, matchesGlob, resolve as resolve4 } from "node:path";
+import { dirname as dirname2, join as join4, matchesGlob, resolve as resolve5 } from "node:path";
 import { fileURLToPath } from "node:url";
 var WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "create_file", "undo_edit", "file_change", "edit", "write"];
 var lines = (raw) => raw.split("\n").flatMap((l) => {
@@ -23750,7 +24017,7 @@ var lines = (raw) => raw.split("\n").flatMap((l) => {
   }
 });
 var bytes2 = (v) => v === void 0 || v === null ? 0 : Buffer.byteLength(typeof v === "string" ? v : JSON.stringify(v));
-var digest = (v) => createHash4("sha256").update(JSON.stringify(v ?? null)).digest("hex").slice(0, 16);
+var digest = (v) => createHash6("sha256").update(JSON.stringify(v ?? null)).digest("hex").slice(0, 16);
 var num = (v) => typeof v === "number" && Number.isFinite(v) ? v : 0;
 var timeOf = (e) => {
   const t = e.mw_at ?? e.timestamp ?? e.message?.timestamp;
@@ -23891,10 +24158,10 @@ var build2;
 var buildOf = () => {
   if (build2 !== void 0) return build2;
   try {
-    const here = dirname(fileURLToPath(import.meta.url));
-    const hash3 = createHash4("sha256");
-    for (const f of readdirSync(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash3.update(f).update(readFileSync4(join4(here, f)));
-    build2 = hash3.digest("hex").slice(0, 12);
+    const here = dirname2(fileURLToPath(import.meta.url));
+    const hash5 = createHash6("sha256");
+    for (const f of readdirSync(here).filter((f2) => /\.(ts|mjs)$/.test(f2)).sort()) hash5.update(f).update(readFileSync5(join4(here, f)));
+    build2 = hash5.digest("hex").slice(0, 12);
   } catch {
     build2 = null;
   }
@@ -23906,14 +24173,14 @@ function telemetry(storePath2) {
   const dir = process.env.MW_TELEMETRY;
   if (!dir || storePath2 === ":memory:") return void 0;
   const host = hostname();
-  const store = createHash4("sha256").update(resolve4(storePath2)).digest("hex").slice(0, 8);
-  const file = join4(resolve4(dir), `${host}-${store}.jsonl`);
+  const store = createHash6("sha256").update(resolve5(storePath2)).digest("hex").slice(0, 8);
+  const file = join4(resolve5(dir), `${host}-${store}.jsonl`);
   const full = [void 0, "", "full"].includes(process.env.MW_TELEMETRY_LEVEL);
   return {
     file,
     write(t, record4) {
       try {
-        mkdirSync(dirname(file), { recursive: true });
+        mkdirSync(dirname2(file), { recursive: true });
         appendFileSync2(file, JSON.stringify({ t, host, store, build: buildOf(), ...full ? record4 : metrics(record4) }, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
       } catch {
       }
@@ -23928,7 +24195,7 @@ var debugLayer = (file, sink) => Layer_exports.unwrap(Effect_exports.sync(() => 
     sink?.write("span", span2);
     if (!local) return;
     try {
-      mkdirSync(dirname(file), { recursive: true });
+      mkdirSync(dirname2(file), { recursive: true });
       appendFileSync2(file, JSON.stringify(span2, (_, v) => typeof v === "bigint" ? String(v) : v) + "\n");
     } catch {
     }
@@ -24073,7 +24340,7 @@ var qaGuard = (run2) => {
 };
 var qaCanonical = (value4) => Array.isArray(value4) ? value4.map(qaCanonical) : value4 && typeof value4 === "object" ? Object.fromEntries(Object.entries(value4).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key2, child]) => [key2, qaCanonical(child)])) : value4;
 function openStore(path) {
-  mkdirSync2(dirname2(path), { recursive: true });
+  mkdirSync2(dirname3(path), { recursive: true });
   const db = new DatabaseSync(path);
   db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
@@ -24590,7 +24857,7 @@ function openStore(path) {
 }
 var Store = class extends Context_exports.Service()("madewell/Store") {
 };
-var spansPath = (path) => join5(dirname2(path), "spans.jsonl");
+var spansPath = (path) => join5(dirname3(path), "spans.jsonl");
 var storeLayer = (path = defaultStorePath()) => Layer_exports.mergeAll(
   Layer_exports.effect(Store, Effect_exports.acquireRelease(Effect_exports.sync(() => openStore(path)), (s) => Effect_exports.sync(() => s.close()))),
   debugLayer(path === ":memory:" ? ":memory:" : spansPath(path), telemetry(path))
@@ -24601,16 +24868,34 @@ import { randomUUID as randomUUID2 } from "node:crypto";
 
 // src/work-evidence.ts
 var parsedOutput = (raw) => raw?.trim() ? lastJson(raw) ?? { text: raw } : null;
-var equal = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-var invalidatedAt = (events2, job) => Math.max(0, ...events2.filter((e) => {
-  if (e.kind === "cartridges-applied") {
-    const before = e.data.from, after = e.data.to;
-    return !!before && !!after && !equal(stepOf(laneOf(before), job), stepOf(laneOf(after), job));
+var equal2 = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+function gatesComplete(item, events2, start, proof) {
+  const verification = item.verification;
+  if (!verification) return false;
+  const templates = Array.isArray(start?.data.gates) ? start.data.gates : [];
+  const receipts = verification.gateReceipts, saved = proof?.data.gateReceipts, definitions = start?.data.gateRules;
+  const required2 = item.organs !== void 0 || receipts !== void 0 || saved !== void 0 || definitions !== void 0;
+  if (required2) {
+    if (!Array.isArray(receipts) || !Array.isArray(saved) || !Array.isArray(definitions) || !equal2(receipts, saved) || receipts.length !== definitions.length || receipts.length !== templates.length) return false;
+    return receipts.every((receipt, index2) => {
+      const definition = definitions[index2];
+      if (!receipt || !definition || typeof definition.run !== "string" || definition.kind !== "fence" || definition.glob !== void 0 && typeof definition.glob !== "string") return false;
+      if (receipt.id !== `G${index2 + 1}` || receipt.rule !== definition.id || receipt.definitionHash !== definition.definitionHash || definition.definitionHash !== gateRule({ run: definition.run, ...definition.glob === void 0 ? {} : { glob: definition.glob } }).definitionHash || receipt.template !== definition.run || receipt.template !== templates[index2]) return false;
+      if (!Array.isArray(receipt.files) || receipt.files.some((file) => typeof file !== "string") || new Set(receipt.files).size !== receipt.files.length || !Array.isArray(receipt.sourceBefore) || !Array.isArray(receipt.sourceAfter)) return false;
+      const result3 = verification.results.find((run2) => run2.id === receipt.id && run2.doneWhen === "(gate)");
+      if (receipt.outcome === "not-applicable") return receipt.files.length === 0 && receipt.command === null && receipt.exitCode === null && receipt.sourceBefore.length === 0 && receipt.sourceAfter.length === 0 && result3 === void 0;
+      const bound = (sources) => sources.length === receipt.files.length && sources.every((source2, at) => source2?.path === receipt.files[at] && typeof source2.sha256 === "string" && /^[a-f0-9]{64}$/.test(source2.sha256));
+      return receipt.outcome === "passed" && receipt.files.length > 0 && receipt.exitCode === 0 && receipt.command === receipt.template.replaceAll("{files}", receipt.files.map(quote2).join(" ")) && result3?.exitCode === 0 && result3.run === receipt.command && bound(receipt.sourceBefore) && bound(receipt.sourceAfter);
+    });
   }
-  if (job === "verify") return ["main-moved", "replan", "rebased", "ruling"].includes(e.kind);
-  if (["plan", "implement", "test-plan"].includes(job) && ["replan", "rebased"].includes(e.kind)) return true;
-  return e.kind === "ruling" && (e.data.cause === "implementation" && ["plan", "implement", "test-plan"].includes(job) || e.data.cause === "test" && job === "test-plan");
-}).map((e) => e.seq));
+  return templates.every((template, index2) => {
+    if (typeof template !== "string") return false;
+    const id2 = `G${index2 + 1}`, result3 = verification.results.find((run2) => run2.id === id2 && run2.doneWhen === "(gate)");
+    const invocations = events2.filter((event) => event.kind === "trace-started" && event.data.kind === "gate" && event.seq > (start?.seq ?? 0) && event.seq < (proof?.seq ?? Infinity) && event.data.args?.id === id2);
+    if (!result3) return invocations.length === 0;
+    return result3.exitCode === 0 && (template === result3.run || template.includes("{files}") && invocations.some((event) => event.data.args.run === result3.run));
+  });
+}
 function sourceOf(store, item, events2, job, receipt) {
   const provenance = { state: "unavailable", acceptanceEvent: receipt?.seq ?? null, executionCall: null, repairCall: null, invocation: null, eventSeqs: receipt ? [receipt.seq] : [], reason: "Invocation not recorded." };
   const missing2 = (reason, ambiguous = false) => {
@@ -24629,7 +24914,7 @@ function sourceOf(store, item, events2, job, receipt) {
     const ends = interval.filter((e) => e.kind === "trace-finished" && e.data.invocation === start.data.invocation);
     if (ends.length !== 1) return missing2("Invocation return is missing or ambiguous.", ends.length > 1);
     const end2 = ends[0], result3 = end2.data.result;
-    if (end2.data.status !== "returned" || !result3 || !equal(result3.value, receipt.data.output)) return missing2("The nearest invocation contradicts the accepted result.", true);
+    if (end2.data.status !== "returned" || !result3 || !equal2(result3.value, receipt.data.output)) return missing2("The nearest invocation contradicts the accepted result.", true);
     provenance.state = "linked";
     provenance.reason = null;
     provenance.invocation = String(start.data.invocation);
@@ -24647,7 +24932,7 @@ function sourceOf(store, item, events2, job, receipt) {
   const repairCall = typeof repair2?.data.repair === "number" ? store.call(repair2.data.repair) : void 0;
   if (repair2 && (!repairCall || repairCall.item !== item.id || repairCall.job !== job || repairCall.kind !== "repair" || repairCall.outcome !== "ok")) return missing2("Repair linkage contradicts the execution.", true);
   const effective = parsedOutput((repairCall ?? call).output);
-  if (!repairCall && call.outcome !== "ok" || "output" in receipt.data && !equal(effective, receipt.data.output)) return missing2("The nearest execution contradicts the accepted result.", true);
+  if (!repairCall && call.outcome !== "ok" || "output" in receipt.data && !equal2(effective, receipt.data.output)) return missing2("The nearest execution contradicts the accepted result.", true);
   provenance.state = "linked";
   provenance.reason = null;
   if (repair2 && repairCall) {
@@ -24670,22 +24955,24 @@ function workEvidenceOf(store, item) {
     const problem = output && typeof output === "object" && "blocked" in output ? String(output.blocked) : null;
     const shapeProblem = discovery2 && output !== null && !problem ? malformed(lane, job, item.outputs[job]) : void 0;
     const valid = !!receipt && receipt.seq > invalidatedAt(events2, job);
-    const matches2 = acceptedOutput === void 0 || equal(acceptedOutput, output);
+    const matches2 = acceptedOutput === void 0 || equal2(acceptedOutput, output);
     const artifacts = functions || (job !== "implement" || !!item.change) && (job !== "test-plan" || !!item.checks?.checks.length);
     const structured = !functions || !!receipt && "output" in receipt.data && item.flow?.accepted[index2] === job && prefix;
-    const complete = output !== null && !problem && !shapeProblem && valid && matches2 && artifacts && structured;
+    const organ = organReceipts(store, item).findLast((receipt2) => receipt2.job === job);
+    const terminalProof = !functions || discovery2 || index2 !== steps.length - 1 || !organsRequired(item) || hasFunctionFenceProof(events2, job, item.outputs[job] ?? "", organ?.rumen ?? []);
+    const organComplete = !organsRequired(item) || !!organ && terminalProof;
+    const complete = organComplete && output !== null && !problem && !shapeProblem && valid && matches2 && artifacts && structured;
     if (functions && !complete) prefix = false;
     const attempts = events2.filter((e) => e.seq > (receipt?.seq ?? 0) && e.data.job === job && (e.kind === "call-finished" && e.data.kind === "execute" || e.kind === "trace-finished" && ["function", "compose"].includes(String(e.data.kind)))).reverse();
     const laterAttempts = { entries: attempts.slice(0, 10).map((e) => ({ event: e.seq, at: e.at, kind: String(e.data.kind), outcome: e.data.outcome === "ok" || e.data.status === "returned" ? "unaccepted" : String(e.data.outcome ?? e.data.status ?? "unknown"), call: typeof e.data.call === "number" ? e.data.call : null, invocation: typeof e.data.invocation === "string" ? e.data.invocation : null, evidence: `/api/v1/items/${item.id}/evidence?kind=event&ref=${e.seq}` })), total: attempts.length, omitted: Math.max(0, attempts.length - 10), trace: `/api/trace/${item.id}?lens=ax` };
-    const reason = complete ? null : problem ?? (!receipt ? output === null ? "No output or accepted execution evidence is recorded for this function." : "An output is retained, but no accepted execution evidence establishes this function." : !valid ? "Earlier acceptance is retained as history; correction or a changed contract requires this function again." : !matches2 ? "The retained output differs from its accepted execution evidence." : shapeProblem ?? (!structured ? "The configured accepted prefix or this node\u2019s structured receipt is incomplete." : !artifacts ? "Required software maker artifacts are absent." : "No completed output is accepted for this function."));
+    const reason = complete ? null : !organComplete ? "Mandatory Ground, Rumen and next-step preparation are not accepted for this output." : problem ?? (!receipt ? output === null ? "No output or accepted execution evidence is recorded for this function." : "An output is retained, but no accepted execution evidence establishes this function." : !valid ? "Earlier acceptance is retained as history; correction or a changed contract requires this function again." : !matches2 ? "The retained output differs from its accepted execution evidence." : shapeProblem ?? (!structured ? "The configured accepted prefix or this node\u2019s structured receipt is incomplete." : !artifacts ? "Required software maker artifacts are absent." : "No completed output is accepted for this function."));
     jobs4[job] = { job, configured: true, state: complete ? "yes" : problem ? "blocked" : "no", complete, reason, schemaDiagnostic: shapeProblem ?? null, input: source2.input, output, acceptedOutput: acceptedOutput ?? null, eventSeqs: receipts.map((e) => e.seq), provenance: source2.provenance, laterAttempts };
   }
   const verification = item.verification, proof = events2.findLast((e) => e.kind === "verified"), checks = item.checks?.checks ?? [];
   const verificationStart = events2.findLast((e) => e.kind === "verify-started");
-  const recordedGates = Array.isArray(verificationStart?.data.gates) ? verificationStart.data.gates : [];
   const receiptResults = Array.isArray(proof?.data.results) ? proof.data.results : [];
   const makerConfigured = lane.delivery.some((s) => s.job === "test-plan");
-  const verificationCurrent = !functions && !!verification?.passed && !!verification.commit && proof?.data.commit === verification.commit && proof.data.on === verification.on && proof.seq > invalidatedAt(events2, "verify") && (!makerConfigured || !!jobs4["test-plan"]?.complete && checks.length > 0) && verification.results.length > 0 && verification.results.every((r) => r.exitCode === 0 && receiptResults.some((saved) => saved.id === r.id && saved.doneWhen === r.doneWhen && saved.exitCode === 0)) && recordedGates.every((run2) => verification.results.some((r) => r.run === run2 && r.exitCode === 0)) && checks.every((c) => verification.results.some((r) => r.id === c.id && r.doneWhen === c.doneWhen && r.run === c.run && r.exitCode === 0));
+  const verificationCurrent = (!organsRequired(item) || organReceipts(store, item).some((receipt) => receipt.job === "verify")) && !functions && !!verification?.passed && !!verification.commit && proof?.data.commit === verification.commit && proof.data.on === verification.on && proof.seq > invalidatedAt(events2, "verify") && (!makerConfigured || !!jobs4["test-plan"]?.complete && checks.length > 0) && verification.results.length > 0 && verification.results.every((r) => r.exitCode === 0 && receiptResults.some((saved) => saved.id === r.id && saved.doneWhen === r.doneWhen && saved.exitCode === 0)) && gatesComplete(item, events2, verificationStart, proof) && checks.every((c) => verification.results.some((r) => r.id === c.id && r.doneWhen === c.doneWhen && r.run === c.run && r.exitCode === 0));
   if (!functions && jobs4.verify) {
     jobs4.verify.complete = verificationCurrent;
     jobs4.verify.state = verificationCurrent ? "yes" : "no";
@@ -24693,7 +24980,7 @@ function workEvidenceOf(store, item) {
   }
   const configuredComplete = steps.length > 0 && steps.every((s) => jobs4[s.job]?.complete);
   const final = events2.findLast((e) => e.kind === (discovery2 ? "discovered" : "completed"));
-  const completionMatches = !!item.completion && item.completion.nodes === steps.length && equal(item.completion.output, parsedOutput(item.outputs[steps.at(-1)?.job ?? ""])) && !!final && (discovery2 || final.data.nodes === steps.length && equal(final.data.output, item.completion.output));
+  const completionMatches = !!item.completion && item.completion.nodes === steps.length && equal2(item.completion.output, parsedOutput(item.outputs[steps.at(-1)?.job ?? ""])) && !!final && (discovery2 || final.data.nodes === steps.length && equal2(final.data.output, item.completion.output));
   const delivered = configuredComplete && (functions ? completionMatches : discovery2 ? events2.some((e) => e.kind === "discovered") : verificationCurrent && !!item.shipped && events2.some((e) => e.kind === "shipped"));
   return { jobs: jobs4, configuredComplete, verificationCurrent, delivered, noWorkPerformed: steps.length === 0, reason: steps.length === 0 ? "No work was performed." : delivered ? null : "Current evidence incomplete.", historical: { status: item.status, verification: item.verification ?? null, shipment: item.shipped ?? null, completion: item.completion ?? null } };
 }
@@ -24724,7 +25011,7 @@ function workEvidenceSummaryOf(evidence, item) {
 }
 
 // src/handoff-view.ts
-import { createHash as createHash5 } from "node:crypto";
+import { createHash as createHash7 } from "node:crypto";
 var evidenceUrl = (item, kind, ref2) => `/api/v1/items/${item}/evidence?kind=${kind}&ref=${encodeURIComponent(ref2)}`;
 function ancestryEvents(store, item) {
   const visited = /* @__PURE__ */ new Set(), events2 = [];
@@ -24783,11 +25070,11 @@ function fullHandoffOf(store, item, job) {
   for (const d of declared) if (!observations.some((o) => o.id === d.id)) inputs.push({ id: String(d.id), state: "not-checked", currentAvailability: "unknown", declaration: { ...d, call: declaration.call, scope: declaration.scope }, observation: null, evidence: evidenceUrl(item.id, "handoff", job) });
   const names = [job, step2.profile].map((s) => s.toLowerCase().trim()), assigned = questions.filter((q) => names.includes(q.ownerRole.toLowerCase().trim()) || q.blockingRole !== null && names.includes(q.blockingRole.toLowerCase().trim()));
   const kind = step2.children ? "group" : step2.run ? "command" : job === "verify" && lane.pack.runtime !== "functions" ? "engine" : "agent";
-  const entry = { id: `item:${item.id}:job:${job}:round:${item.round}:handoff:${boundary?.seq ?? "configured"}`, job, profile: step2.profile, duty: step2.duty, dutyTruncated: false, kind, mode: item.status === "candidate" || kind === "agent" && !exchange ? "configured-next" : "current", exchangeStatus: kind === "agent" ? exchange?.status ?? "not-established" : "not-applicable", round: item.round, questionIds: assigned.map((q) => q.id), unresolvedCount: assigned.filter((q) => q.resolution === "unresolved").length, expectedOutput: { state: deliverableShape(lane, job, item.autonomy === "full") ? "configured" : "unspecified", detail: evidenceUrl(item.id, "handoff", job), pointer: "/data/outputSchema" }, inputs, inputsTotal: inputs.length, inputsOmitted: 0, declarationsKnown: !!declaration, evidence: { detail: evidenceUrl(item.id, "handoff", job), eventSeqs: own.filter((e) => ["handoff", "nq-clear"].includes(e.kind)).map((e) => e.seq) }, truncated: false };
-  return { entry, questions, declarations, observations, outputSchema: deliverableShape(lane, job, item.autonomy === "full") ?? null };
+  const entry = { id: `item:${item.id}:job:${job}:round:${item.round}:handoff:${boundary?.seq ?? "configured"}`, job, profile: step2.profile, duty: step2.duty, dutyTruncated: false, kind, mode: item.status === "candidate" || kind === "agent" && !exchange ? "configured-next" : "current", exchangeStatus: kind === "agent" ? exchange?.status ?? "not-established" : "not-applicable", round: item.round, questionIds: assigned.map((q) => q.id), unresolvedCount: assigned.filter((q) => q.resolution === "unresolved").length, expectedOutput: { state: organOutputShape(item, deliverableShape(lane, job, item.autonomy === "full")) ? "configured" : "unspecified", detail: evidenceUrl(item.id, "handoff", job), pointer: "/data/outputSchema" }, inputs, inputsTotal: inputs.length, inputsOmitted: 0, declarationsKnown: !!declaration, evidence: { detail: evidenceUrl(item.id, "handoff", job), eventSeqs: own.filter((e) => ["handoff", "nq-clear"].includes(e.kind)).map((e) => e.seq) }, truncated: false };
+  return { entry, questions, declarations, observations, outputSchema: organOutputShape(item, deliverableShape(lane, job, item.autonomy === "full")) ?? null };
 }
 var displayPreview = (value4, limit = 120) => Array.from(value4).slice(0, limit).join("");
-var digest2 = (value4) => createHash5("sha256").update(JSON.stringify(value4)).digest("hex");
+var digest2 = (value4) => createHash7("sha256").update(JSON.stringify(value4)).digest("hex");
 var configuredSteps = (item) => {
   const lane = laneOf(item.pack);
   return [...lane.discovery, ...lane.delivery, ...lane.arbiter ? [lane.arbiter] : []];
@@ -24861,10 +25148,10 @@ function evidenceDetailOf(store, item, kind, ref2) {
   const steps = configuredSteps(item);
   if (kind === "handoff-slot") {
     if (!/^(0|[1-9]\d*):[a-f0-9]{64}$/.test(ref2)) return null;
-    const [rawSlot, hash3] = ref2.split(":"), slot = Number(rawSlot);
+    const [rawSlot, hash5] = ref2.split(":"), slot = Number(rawSlot);
     if (!Number.isSafeInteger(slot) || !steps[slot]) return null;
     const full = fullHandoffOf(store, item, steps[slot].job);
-    return digest2(full) === hash3 ? full : null;
+    return digest2(full) === hash5 ? full : null;
   }
   return steps.some((s) => s.job === ref2) ? fullHandoffOf(store, item, ref2) : null;
 }
@@ -25088,14 +25375,14 @@ var renderTrace = (view2, renderer) => typeof renderer !== "function" ? Effect_e
 );
 
 // src/workspace.ts
-import { createHash as createHash6 } from "node:crypto";
+import { createHash as createHash8 } from "node:crypto";
 import { execFile as execFile2 } from "node:child_process";
-import { existsSync, lstatSync, readdirSync as readdirSync2, readFileSync as readFileSync5, readlinkSync, rmSync as rmSync3, statSync as statSync2 } from "node:fs";
+import { existsSync, lstatSync as lstatSync2, readdirSync as readdirSync2, readFileSync as readFileSync6, readlinkSync as readlinkSync2, rmSync as rmSync3, statSync as statSync3 } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import { dirname as dirname3, isAbsolute as isAbsolute2, join as join6, relative as relative2, resolve as resolve5 } from "node:path";
+import { dirname as dirname4, isAbsolute as isAbsolute3, join as join6, relative as relative3, resolve as resolve6 } from "node:path";
 var GUIDANCE = ["AGENTS.md", "AGENT.md", "CLAUDE.md", "CLAUDE.local.md", "GEMINI.md", ".cursorrules"];
 var TEARDOWN_TIMEOUT_MS = 5 * 6e4;
-var worktreesRoot = () => join6(process.env.MW_STORE ? dirname3(process.env.MW_STORE) : process.env.MW_HOME ?? join6(homedir2(), ".local", "share", "madewell"), "worktrees");
+var worktreesRoot = () => join6(process.env.MW_STORE ? dirname4(process.env.MW_STORE) : process.env.MW_HOME ?? join6(homedir2(), ".local", "share", "madewell"), "worktrees");
 var fail9 = (code, message, context3, next, cause) => new MadeWellError({ code, message, context: context3, next, ...cause ? { cause } : {} });
 var exec = (command2, args2, cwd, timeout3 = 0) => Effect_exports.promise(() => new Promise((done3) => execFile2(command2, args2, { cwd, timeout: timeout3, maxBuffer: 256 * 1024 * 1024 }, (error, stdout, stderr) => done3({ code: error ? typeof error.code === "number" ? error.code : 1 : 0, stdout, stderr }))));
 var git = (dir, ...args2) => exec("git", ["--no-optional-locks", "-C", dir, ...args2], dir).pipe(Effect_exports.flatMap(({ code, stdout, stderr }) => code === 0 ? Effect_exports.succeed(stdout) : Effect_exports.fail(fail9("git_failed", `git ${args2[0]} failed in ${dir}.`, { dir, args: args2, exitCode: code, stderr: stderr.trim() }, [{ run: `git -C ${dir} ${args2.join(" ")}`, why: "run it yourself to see the full error" }]))));
@@ -25105,11 +25392,11 @@ var worktree = Effect_exports.fn("mw.worktree")(function* (repo, base, name) {
   const path = join6(root, name);
   if (!/^[\w.-]+$/.test(name)) return yield* fail9("bad_worktree_name", `Worktree name "${name}" must be letters, digits, ".", "_" or "-".`, { name }, []);
   const above = [];
-  for (let dir = root; ; dir = dirname3(dir)) {
+  for (let dir = root; ; dir = dirname4(dir)) {
     above.push(...GUIDANCE.map((f) => join6(dir, f)).filter((f) => existsSync(f)));
-    if (dirname3(dir) === dir) break;
+    if (dirname4(dir) === dir) break;
   }
-  const inside = !relative2(resolve5(repo), root).startsWith("..");
+  const inside = !relative3(resolve6(repo), root).startsWith("..");
   if (above.length || inside) {
     return yield* fail9(
       "worktree_root_unclean",
@@ -25134,13 +25421,13 @@ var removeWorktree = (repo, path) => Effect_exports.gen(function* () {
   yield* Effect_exports.ignore(git(repo, "worktree", "prune"));
 });
 var snapshot2 = Effect_exports.fn("mw.snapshot")(function* (dir, files) {
-  const outside = files.filter((f) => isAbsolute2(f) || relative2(dir, resolve5(dir, f)).startsWith(".."));
+  const outside = files.filter((f) => isAbsolute3(f) || relative3(dir, resolve6(dir, f)).startsWith(".."));
   if (outside.length) return yield* fail9("path_outside_workspace", "A snapshot can only read files inside the workspace.", { dir, outside }, []);
   const head3 = (yield* git(dir, "rev-parse", "HEAD")).trim();
   const tracked = lines2(yield* git(dir, "ls-files", "-z"));
   const contents = Object.fromEntries(files.map((f) => {
     const p = join6(dir, f);
-    return [f, existsSync(p) && statSync2(p).isFile() ? readFileSync5(p, "utf8") : null];
+    return [f, existsSync(p) && statSync3(p).isFile() ? readFileSync6(p, "utf8") : null];
   }));
   return { head: head3, files: tracked, contents };
 });
@@ -25150,7 +25437,7 @@ var capture = Effect_exports.fn("mw.capture")(function* (dir, shared = true) {
   walk(dir, "", files);
   if (!shared) return { dir, head: head3, refs: {}, files };
   const refs2 = Object.fromEntries((yield* git(dir, "for-each-ref", "--format=%(refname) %(objectname)")).split("\n").filter(Boolean).map((l) => l.split(" ")));
-  const common4 = resolve5(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
+  const common4 = resolve6(dir, (yield* git(dir, "rev-parse", "--git-common-dir")).trim());
   for (const part of ["config", "info", "hooks"]) walk(common4, part, files, ".git/");
   delete files[".git/info/refs"];
   return { dir, head: head3, refs: refs2, files };
@@ -25159,14 +25446,14 @@ function walk(root, rel2, into2, label3 = "") {
   const p = join6(root, rel2);
   let s;
   try {
-    s = lstatSync(p, { bigint: true });
+    s = lstatSync2(p, { bigint: true });
   } catch {
     return;
   }
   if (s.isDirectory()) {
     for (const name of readdirSync2(p)) if (name !== ".git") walk(root, rel2 ? `${rel2}/${name}` : name, into2, label3);
   } else if (rel2) {
-    into2[label3 + rel2] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync(p)}` : ""}`;
+    into2[label3 + rel2] = `${s.mode}:${s.size}:${s.mtimeNs}${s.isSymbolicLink() ? `:${readlinkSync2(p)}` : ""}`;
   }
 }
 function changes(before, after) {
@@ -25209,13 +25496,13 @@ var preparedFingerprint = (dir, path, phase) => Effect_exports.try({
     const full = join6(dir, path);
     let stat;
     try {
-      stat = lstatSync(full);
+      stat = lstatSync2(full);
     } catch (error) {
       if (phase === "assess" && error.code === "ENOENT") return void 0;
       throw error;
     }
-    if (stat.isSymbolicLink()) return `link:${readlinkSync(full)}`;
-    if (stat.isFile()) return `file:${stat.mode & 73 ? "755" : "644"}:${createHash6("sha256").update(readFileSync5(full)).digest("hex")}`;
+    if (stat.isSymbolicLink()) return `link:${readlinkSync2(full)}`;
+    if (stat.isFile()) return `file:${stat.mode & 73 ? "755" : "644"}:${createHash8("sha256").update(readFileSync6(full)).digest("hex")}`;
     if (phase === "assess") return `replacement:${stat.mode}`;
     throw new TypeError("Unsupported prepared resource type");
   },
@@ -25286,15 +25573,15 @@ var teardown = Effect_exports.fn("mw.teardown")(function* (resources, cwd) {
 // src/change.ts
 var lines3 = (out) => out.split("\0").filter(Boolean);
 var tail = (s) => s.slice(-4e3);
-var itemHome = (storePath2, id2) => join7(dirname4(storePath2), "items", String(id2));
+var itemHome = (storePath2, id2) => join7(dirname5(storePath2), "items", String(id2));
 var patchPath = (home, name) => join7(home, `${name}.patch`);
 var writePatch = (path, patch) => {
-  mkdirSync3(dirname4(path), { recursive: true });
+  mkdirSync3(dirname5(path), { recursive: true });
   writeFileSync3(path, patch);
 };
 var readPatch = (path) => {
   try {
-    return readFileSync6(path, "utf8");
+    return readFileSync7(path, "utf8");
   } catch {
     return "";
   }
@@ -25336,19 +25623,45 @@ var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref2, from, t
 });
 var GATE = "(gate)";
 var runGates = Effect_exports.fn("mw.gates")(function* (item, dir, base, gates, change, budget, env, live) {
+  const store = yield* Store;
   const files = lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=d", "-z", base));
-  const runs = gates.flatMap((g, i) => {
-    const matched = g.glob ? files.filter((f) => matchesGlob2(g.glob.includes("/") ? f : basename(f), g.glob)) : files;
-    return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll("{files}", matched.map(quote2).join(" ")) }] : [];
+  const results2 = [], gateReceipts = [];
+  const fingerprint = (paths) => paths.map((path) => {
+    try {
+      return { path, sha256: createHash9("sha256").update(readFileSync7(join7(dir, path))).digest("hex") };
+    } catch {
+      return { path, sha256: null };
+    }
   });
-  if (!runs.length) return { results: [], fixed: [] };
-  const results2 = yield* runChecks2(item, dir, runs, budget, env, live);
+  for (const [index2, gate] of gates.entries()) {
+    const matched = gate.glob ? files.filter((file) => matchesGlob2(gate.glob.includes("/") ? file : basename(file), gate.glob)) : files;
+    const rule = gateRule(gate), id2 = `G${index2 + 1}`;
+    const command2 = matched.length ? gate.run.replaceAll("{files}", matched.map(quote2).join(" ")) : null;
+    const sourceBefore = fingerprint(matched);
+    const [result3] = command2 === null ? [] : yield* runChecks2(item, dir, [{ id: id2, doneWhen: GATE, run: command2 }], budget, env, live);
+    if (result3) results2.push(result3);
+    const receipt = {
+      id: id2,
+      rule: rule.id,
+      definitionHash: rule.definitionHash,
+      template: gate.run,
+      command: command2,
+      files: matched,
+      outcome: command2 === null ? "not-applicable" : !result3 ? "unavailable" : result3.exitCode === 0 ? "passed" : "failed",
+      exitCode: result3?.exitCode ?? null,
+      sourceBefore,
+      sourceAfter: fingerprint(matched)
+    };
+    gateReceipts.push(receipt);
+    store.note(item, "rumen-gate", { job: "verify", ...receipt });
+  }
+  if (!results2.length) return { results: results2, fixed: [], gateReceipts };
   const fixed = lines3(yield* git(dir, "diff", "--name-only", "-z", "--", ...files));
   if (fixed.length) {
     yield* git(dir, "add", "--", ...fixed);
     writePatch(change, yield* git(dir, "diff", "--cached", "--binary", "--no-renames", base));
   }
-  return { results: results2, fixed };
+  return { results: results2, fixed, gateReceipts };
 });
 var runChecks2 = Effect_exports.fn("mw.runChecks")(function* (item, dir, checks, budget, env, live) {
   const store = yield* Store;
@@ -25372,7 +25685,7 @@ $ ${check2.run}
 });
 
 // src/context-facts.ts
-import { createHash as createHash7 } from "node:crypto";
+import { createHash as createHash10 } from "node:crypto";
 var nonblank = (max5) => Schema_exports.String.check(Schema_exports.isMaxLength(max5), Schema_exports.makeFilter((value4) => !!value4.trim(), { toJsonSchema: () => [{}, true] }));
 var positive = Schema_exports.Int.check(Schema_exports.isGreaterThan(0));
 var key = nonblank(120).check(Schema_exports.makeFilter((value4) => /^[a-z][a-z0-9._-]*$/.test(value4), { toJsonSchema: () => [{ pattern: "^[a-z][a-z0-9._-]*$" }, true] }));
@@ -25463,7 +25776,7 @@ function contextFactsFor(store, item, job, now2, receiver = job) {
 }
 function changeContextFact(store, id2, input) {
   const canonical = (value4) => Array.isArray(value4) ? value4.map(canonical) : value4 && typeof value4 === "object" ? Object.fromEntries(Object.entries(value4).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key2, child]) => [key2, canonical(child)])) : value4;
-  const fingerprint = createHash7("sha256").update(JSON.stringify(canonical({ item: id2, input }))).digest("hex");
+  const fingerprint = createHash10("sha256").update(JSON.stringify(canonical({ item: id2, input }))).digest("hex");
   const receipt = store.operatorRequest(`context-fact:${input.requestId}`, fingerprint, () => {
     const item = store.get(id2);
     if (!item) throw new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "select an existing work item" }] });
@@ -25538,13 +25851,24 @@ function functionProgress(item, store) {
   return result3(true, step2 ? "run" : "finish", item.rejected ? `Correct this function\u2019s refused return: ${item.rejected}` : step2 ? "Earlier configured functions have their outputs saved; this function can proceed." : "All configured outputs are saved; the flow can be finalized.");
 }
 
+// src/functions.ts
+import { createHash as createHash11 } from "node:crypto";
+
 // src/project.ts
-import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync7, writeFileSync as writeFileSync4 } from "node:fs";
-import { dirname as dirname5, join as join8, sep as sep2 } from "node:path";
+import { existsSync as existsSync2, mkdirSync as mkdirSync4, readFileSync as readFileSync8, writeFileSync as writeFileSync4 } from "node:fs";
+import { dirname as dirname6, join as join8, sep as sep3 } from "node:path";
+var Text5 = Schema_exports.NonEmptyString.check(Schema_exports.makeFilter((value4) => !!value4.trim() && !value4.includes("\0"), { toJsonSchema: () => [{}, true] }));
 var Gate = Schema_exports.Struct({
+  id: Schema_exports.optionalKey(Text5.annotate({ description: "stable identity for this mechanical rule; omitted identities derive from its command and glob" })),
   run: Schema_exports.NonEmptyString.annotate({ description: "shell command run from the repo root; {files} becomes the matched changed files, quoted. Exit 0 passes; files it rewrites among them (a formatter's fixes) are kept in the change." }),
   glob: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: 'which changed files it runs on, such as "*.{ts,tsx}"; a glob without "/" matches the file name at any depth. Without it, every changed file. No match, no run.' }))
 }).annotate({ identifier: "Gate" });
+var RumenGuidance = Schema_exports.Struct({
+  id: Text5,
+  kind: Schema_exports.Literals(["judge", "sign", "lexicon"]),
+  text: Text5,
+  jobs: Schema_exports.optionalKey(Schema_exports.Array(Text5).check(Schema_exports.isMinLength(1), Schema_exports.makeFilter((jobs4) => new Set(jobs4).size === jobs4.length || "Guidance job names must be unique.", { toJsonSchema: () => [{}, true] })))
+}).annotate({ identifier: "RumenGuidance" });
 var Project = Schema_exports.Struct({
   path: Schema_exports.String.annotate({ description: "the project's absolute workspace path" }),
   ship: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "shell command run in the workspace once Made Well has brought a passing item onto main: deploy it" })),
@@ -25554,27 +25878,35 @@ var Project = Schema_exports.Struct({
   autonomy: Schema_exports.optionalKey(Schema_exports.Literals(["full", "checkpoints", "steps"]).annotate({ description: "how involved the operator is with new work: checkpoints (the default), steps or full; FOUNDATION ruling 17" })),
   cartridges: Schema_exports.optionalKey(Schema_exports.NonEmptyString.annotate({ description: "the builtin:grammar selector or absolute cartridge pack file this project's new work runs; without it, the default software pack" })),
   conventions: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.NonEmptyString).annotate({ description: `the rules this repo's work follows that no gate catches, such as "colours come from the design tokens in src/tokens.css". Every plan turns each into a done-when item its checks prove, or says why it does not apply.` })),
-  gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" }))
-}).check(Schema_exports.makeFilter((project) => new Set(project.inputs?.map((input) => input.id)).size === (project.inputs?.length ?? 0) || "Project input IDs must be unique.", { toJsonSchema: () => [{}, true] })).annotate({ identifier: "Project" });
+  gates: Schema_exports.optionalKey(Schema_exports.Array(Gate).annotate({ description: "the repo's own gates (linters, formatters), run by Made Well on each item's changed files before its checks; they replace a git hook manager such as lefthook" })),
+  rumen: Schema_exports.optionalKey(Schema_exports.Array(RumenGuidance).annotate({ description: "selected project judgment rubrics, taste concerns and vocabulary; mechanical fences remain in gates. Each applicable phase accounts for these without inventing mechanical acceptance." }))
+}).check(
+  Schema_exports.makeFilter((project) => new Set(project.inputs?.map((input) => input.id)).size === (project.inputs?.length ?? 0) || "Project input IDs must be unique.", { toJsonSchema: () => [{}, true] }),
+  Schema_exports.makeFilter((project) => new Set(project.rumen?.map((rule) => rule.id)).size === (project.rumen?.length ?? 0) || "Rumen guidance IDs must be unique.", { toJsonSchema: () => [{}, true] }),
+  Schema_exports.makeFilter((project) => {
+    const ids = project.gates?.flatMap((gate) => gate.id === void 0 ? [] : [gate.id]) ?? [];
+    return new Set(ids).size === ids.length || "Explicit gate IDs must be unique.";
+  }, { toJsonSchema: () => [{}, true] })
+).annotate({ identifier: "Project" });
 var Registry = Schema_exports.fromJsonString(Schema_exports.Array(Project));
-var projectsPath = (storePath2) => join8(dirname5(storePath2), "projects.json");
+var projectsPath = (storePath2) => join8(dirname6(storePath2), "projects.json");
 var readProjects = Effect_exports.fn("mw.readProjects")(function* (path) {
   if (!existsSync2(path)) return [];
-  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync7(path, "utf8")).pipe(
+  return yield* Schema_exports.decodeUnknownEffect(Registry)(readFileSync8(path, "utf8")).pipe(
     Effect_exports.mapError((e) => new MadeWellError({
       code: "projects_invalid",
       message: `The project registry ${path} is not valid.`,
       context: { path, problems: String(e) },
-      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, inputs?: [{id, path, kind, jobs?, sha256?}], autonomy?, cartridges?, conventions?: [string], gates?: [{run, glob?}]}.",
+      cause: "It must be a JSON array of {path, ship?, alert?, prepare?, inputs?: [{id, path, kind, jobs?, sha256?}], autonomy?, cartridges?, conventions?: [string], gates?: [{id?, run, glob?}], rumen?: [{id, kind: judge|sign|lexicon, text, jobs?}]}.",
       next: [{ run: `cat ${path}`, why: "fix the entries named in context.problems" }]
     }))
   );
 });
-var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep2)).sort((a, b) => b.path.length - a.path.length)[0];
+var projectFor = (projects, workspace) => projects.filter((p) => workspace === p.path || workspace.startsWith(p.path + sep3)).sort((a, b) => b.path.length - a.path.length)[0];
 var saveProject = Effect_exports.fn("mw.saveProject")(function* (path, project, replace = false) {
   const projects = yield* readProjects(path);
   const merged = replace ? project : { ...projects.find((p) => p.path === project.path), ...project };
-  mkdirSync4(dirname5(path), { recursive: true });
+  mkdirSync4(dirname6(path), { recursive: true });
   writeFileSync4(path, JSON.stringify([...projects.filter((p) => p.path !== project.path), merged], null, 2) + "\n");
   return merged;
 });
@@ -25603,7 +25935,7 @@ var sendAlerts = Effect_exports.fn("mw.alertHolds")(function* (registry2, holds)
     if (!command2) continue;
     yield* Effect_exports.uninterruptible(Effect_exports.gen(function* () {
       const env = { ...process.env, MW_ITEM: String(hold2.item), MW_TITLE: hold2.title, MW_HOLD: hold2.code, MW_MESSAGE: hold2.message };
-      const { result: result3 } = yield* observe(store, hold2.item, { job: store.get(hold2.item).job, kind: "alert", args: { command: command2, hold: hold2 } }, (onOutput) => runGroup({ command: "sh", args: ["-c", command2], cwd: dirname5(registry2), env, input: JSON.stringify(hold2), onOutput }));
+      const { result: result3 } = yield* observe(store, hold2.item, { job: store.get(hold2.item).job, kind: "alert", args: { command: command2, hold: hold2 } }, (onOutput) => runGroup({ command: "sh", args: ["-c", command2], cwd: dirname6(registry2), env, input: JSON.stringify(hold2), onOutput }));
       const exitCode = result3.code ?? 1;
       store.save(store.get(hold2.item), "alerted", { code: hold2.code, command: command2, exitCode, delivered: exitCode === 0, ...exitCode !== 0 ? { failure: "notification-failed", stderr: result3.stderr.slice(-2e3) } : {} });
     }));
@@ -25611,12 +25943,13 @@ var sendAlerts = Effect_exports.fn("mw.alertHolds")(function* (registry2, holds)
 });
 
 // src/functions.ts
-var functionInput = (item, step2, store) => {
+var functionInput = (item, step2, store, project) => {
   const reader = store?.events ? { get: store.get, events: store.events } : void 0;
   const history2 = item.pack?.contracts?.handoff === "1" && reader ? answerHistory(reader, item, step2.job) : void 0;
   const questions = history2 && reader ? questionsOwedBy(reader, item, step2.job).map((q) => ({ ...q, resolved: questionResolved(q, history2.answers) })) : [];
   return {
     item: { id: item.id, title: item.title, objective: item.objective, source: item.source },
+    ...reader && organsRequired(item) ? { organs: organPacket(reader, item, step2.job, project) } : {},
     args: step2.args ?? {},
     ...questions.length ? { questionsToSettle: questions } : {},
     ...history2?.answers.length ? { answeredBefore: history2.packetAnswers() } : {},
@@ -25642,15 +25975,50 @@ var failed2 = (item, job, reason, context3 = {}) => new MadeWellError({
 });
 var flowOf = (item) => item.flow ?? { loop: "delivery", accepted: [] };
 var checkFunction = Effect_exports.fn("mw.checkFunction")(function* (item, step2, output) {
-  if (!step2.check) return { ok: true };
+  const terminal = item.pack?.runtime === "functions" && organsRequired(item) && step2.loop === "delivery" && flowOf(item).loop === "delivery" && nextJobs(item, step2.job, output).length === 0;
+  if (!step2.check && !terminal) return { ok: true };
   const store = yield* Store;
-  const input = functionInput(item, step2, store);
-  return yield* observe(store, item.id, { job: step2.job, kind: "acceptance", args: { input, output, command: step2.check, budget: step2.budget ?? { minutes: 30 } } }, (onOutput) => Effect_exports.gen(function* () {
-    const result3 = yield* runGroup({ command: "sh", args: ["-c", step2.check], cwd: item.workspace, env: process.env, input: JSON.stringify({ input, output }), budget: step2.budget ?? { minutes: 30 }, onOutput });
-    if (result3.code !== 0) return yield* failed2(item, step2.job, `acceptance check exited ${result3.code}: ${result3.stderr}`);
+  const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+  const input = functionInput(item, step2, store, project);
+  const budget = step2.budget ?? { minutes: 30 }, payload = JSON.stringify({ input, output });
+  return yield* Effect_exports.gen(function* () {
+    if (step2.check) yield* observe(store, item.id, { job: step2.job, kind: "acceptance", args: { input, output, command: step2.check, budget } }, (onOutput) => Effect_exports.gen(function* () {
+      const result3 = yield* runGroup({ command: "sh", args: ["-c", step2.check], cwd: item.workspace, env: process.env, input: payload, budget, onOutput });
+      if (result3.code !== 0 || result3.overBudget) return yield* failed2(item, step2.job, `acceptance check exited ${result3.overBudget ? 124 : result3.code}: ${result3.stderr}`);
+      return { passed: true };
+    }));
+    if (terminal) {
+      const gateReceipts = [], unavailable = [];
+      for (const [index2, gate] of (project?.gates ?? []).entries()) {
+        const rule = gateRule(gate), id2 = `G${index2 + 1}`;
+        const receipt = { id: id2, rule: rule.id, definitionHash: rule.definitionHash, template: gate.run, files: [], sourceBefore: [], sourceAfter: [] };
+        if (gate.glob !== void 0 || gate.run.includes("{files}")) {
+          gateReceipts.push({ ...receipt, command: null, outcome: "unavailable", exitCode: null });
+          unavailable.push(`${id2} requires a verified changed-file set for its glob or {files}; function execution has no such set.`);
+          continue;
+        }
+        const run2 = yield* Effect_exports.result(observe(store, item.id, { job: step2.job, kind: "gate", args: { id: id2, rule: rule.id, definitionHash: rule.definitionHash, command: gate.run, budget, scope: "unscoped-function-context" } }, (onOutput) => runGroup({ command: "sh", args: ["-c", gate.run], cwd: item.workspace, env: { ...process.env, MW_ITEM: String(item.id), MW_JOB: step2.job }, input: payload, budget, onOutput })));
+        if (Result_exports.isFailure(run2)) {
+          gateReceipts.push({ ...receipt, command: gate.run, outcome: "unavailable", exitCode: null });
+          unavailable.push(`${id2} could not execute: ${run2.failure.message}`);
+        } else {
+          const result3 = run2.success.result, exitCode = result3.overBudget ? 124 : result3.code ?? 1;
+          gateReceipts.push({ ...receipt, command: gate.run, outcome: exitCode === 0 ? "passed" : "failed", exitCode });
+        }
+      }
+      store.note(item.id, "function-fences", {
+        job: step2.job,
+        outputHash: createHash11("sha256").update(JSON.stringify(output)).digest("hex"),
+        gateReceipts,
+        scope: "unscoped-function-context",
+        evidenceBoundary: "Commands examined the supplied input/output and project context. No verified changed-file set or final candidate source fingerprint is claimed.",
+        unavailable
+      });
+      const failedGates = gateReceipts.filter((receipt) => receipt.outcome !== "passed");
+      if (failedGates.length) return yield* failed2(item, step2.job, `Terminal Rumen fences did not pass: ${failedGates.map((receipt) => `${receipt.id} ${receipt.outcome}${receipt.exitCode === null ? "" : ` (exit ${receipt.exitCode})`}`).join(", ")}. ${unavailable.join(" ")}`, { gateReceipts });
+    }
     return { ok: true };
-  })).pipe(
-    Effect_exports.map(({ result: result3 }) => result3),
+  }).pipe(
     Effect_exports.catchTag("MadeWellError", (error) => Effect_exports.succeed({ ok: false, reason: error.message }))
   );
 });
@@ -25731,6 +26099,7 @@ var advanceFunctions = Effect_exports.fn("mw.advanceFunctions")(function* (given
         autonomy: item.autonomy,
         discovery: item.id,
         status: item.autonomy === "full" ? "queued" : "candidate",
+        ...item.organs ? { organs: childOrgans(item, flow.accepted.at(-1), item.outputs[flow.accepted.at(-1)], "delivery") } : {},
         ...handoff ? { outputs: { discover: JSON.stringify({ ...output.items[index2], ...c }) } } : {},
         ...c.after?.length ? { after: c.after.map((position) => ids[position - 1]) } : {},
         from: { kind: "dispatcher" },
@@ -25748,7 +26117,8 @@ var advanceFunctions = Effect_exports.fn("mw.advanceFunctions")(function* (given
     return;
   }
   if (item.job !== step2.job || item.status === "queued") item = store.save({ ...item, flow, job: step2.job, status: "running" }, "running", { job: step2.job });
-  const input = functionInput(item, step2, store);
+  const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+  const input = functionInput(item, step2, store, project);
   const problems = step2.input ? conforms(step2.input, input, "input") : [];
   if (!problems.length && !step2.run && !step2.children) return step2;
   const { invocation, result: result3 } = yield* observe(store, item.id, { job: step2.job, kind: step2.children ? "compose" : "function", args: { input, node: step2, pack: { name: item.pack.name, version: item.pack.version ?? null } } }, (onOutput) => Effect_exports.gen(function* () {
@@ -25756,14 +26126,18 @@ var advanceFunctions = Effect_exports.fn("mw.advanceFunctions")(function* (given
     if (prepareCommand) {
       const problem = yield* prepareCommand(item, step2);
       if (problem) return yield* failed2(item, step2.job, problem.message, problem.context);
-    } else if (item.pack?.contracts?.handoff === "1") {
-      const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+    } else if (item.pack?.contracts?.handoff === "1" || organsRequired(item)) {
       const inputs = checkPrerequisites(project?.inputs, step2.job, item.workspace);
-      if (inputs.length) store.note(item.id, "inputs-checked", { job: step2.job, name: `item-${item.id}-${step2.job}-function`, dir: item.workspace, inputs });
+      if (inputs.length || organsRequired(item)) store.note(item.id, "inputs-checked", { job: step2.job, name: `item-${item.id}-${step2.job}-function`, dir: item.workspace, inputs });
       const missing2 = inputs.filter((input2) => !input2.ok);
       if (missing2.length) return yield* failed2(item, step2.job, `Required inputs are unavailable: ${missing2.map((input2) => `${input2.id} (${input2.kind}) at ${input2.path}: ${input2.reason}`).join(" ")}`, { inputs });
     }
-    const result4 = step2.children ? { code: 0, stdout: JSON.stringify(input.received), stderr: "" } : yield* runGroup({ command: "sh", args: ["-c", step2.run], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step2.budget ?? { minutes: 30 }, onOutput });
+    if (organsRequired(item)) {
+      const ground = checkIncomingPreparation(store, item, step2.job, item.workspace, project);
+      store.note(item.id, "ground-checked", { job: step2.job, ...ground });
+      if (!ground.ok) return yield* failed2(item, step2.job, "Ground found changed or unavailable producer requirements.", ground);
+    }
+    const result4 = step2.children ? { code: 0, stdout: JSON.stringify({ ...input.received, ...organsRequired(item) ? { preparation: compositionPreparation(item, step2.job, project) } : {} }), stderr: "" } : yield* runGroup({ command: "sh", args: ["-c", step2.run], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step2.budget ?? { minutes: 30 }, onOutput });
     if (result4.code !== 0) return yield* failed2(item, step2.job, `exit ${result4.code}: ${result4.stderr}`);
     const acceptedPrefix = Object.fromEntries(Object.entries(item.outputs).flatMap(([key2, raw]) => raw === void 0 ? [] : [[key2, lastJson(raw)]]));
     const checked = validate3(laneOf(item.pack), step2.job, result4.stdout, void 0, void 0, item.autonomy === "full", [], acceptedPrefix);
@@ -25771,12 +26145,17 @@ var advanceFunctions = Effect_exports.fn("mw.advanceFunctions")(function* (given
     const unanswered = decisionProblem(store, item, step2.job, checked.value, answerHistory(store, item, step2.job).answers);
     if (unanswered) return yield* failed2(item, step2.job, unanswered);
     if (typeof checked.value.blocked === "string") return yield* failed2(item, step2.job, checked.value.blocked);
+    const output = JSON.stringify(checked.value);
+    const currentProject = organsRequired(item) ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : project;
+    const organs = inspectPreparation(item, step2.job, checked.value, output, item.workspace, currentProject, [], input.organs?.rules);
+    if (!organs.ok) return yield* failed2(item, step2.job, organs.reason);
     const acceptance = yield* checkFunction(item, step2, checked.value);
     if (!acceptance.ok) return yield* failed2(item, step2.job, acceptance.reason);
-    return { output: JSON.stringify(checked.value), value: checked.value };
+    return { output, value: checked.value, receipt: organs.receipt };
   }));
   store.atomic(() => {
     acceptFunction(store, item.id, step2, result3.output);
+    saveOrganReceipt(store, item, result3.receipt, invocation);
     recordPhaseDecisions(store, store.get(item.id), step2.job, invocation, result3.value);
   });
 });
@@ -25906,6 +26285,8 @@ function grammarOf(store, id2) {
     const delivered = workEvidence2.delivered;
     return {
       currentHandoff: currentHandoffOf(store, child),
+      organs: organSummary(store, child),
+      organJobs: laneOf(child.pack)[child.flow?.loop ?? "delivery"].map((step2) => step2.job),
       id: child.id,
       title: child.title,
       status: child.status,
@@ -25939,6 +26320,8 @@ function grammarOf(store, id2) {
   return {
     discovery: {
       currentHandoff: currentHandoffOf(store, item),
+      organs: organSummary(store, item),
+      organJobs: laneOf(item.pack).discovery.map((step2) => step2.job),
       id: item.id,
       title: item.title,
       source: item.source,
@@ -25976,7 +26359,7 @@ var INTAKE_TIER = "intake";
 var liveFile = (store, name) => {
   if (store.path === ":memory:") return void 0;
   try {
-    const dir = join9(dirname6(store.path), "live");
+    const dir = join9(dirname7(store.path), "live");
     mkdirSync5(dir, { recursive: true });
     const file = join9(dir, `${name}.log`);
     writeFileSync5(file, "");
@@ -25988,7 +26371,7 @@ var liveFile = (store, name) => {
 var endLive = (file) => file && rmSync5(file, { force: true });
 var endLiveOf = (store, id2) => {
   if (store.path === ":memory:") return;
-  const dir = join9(dirname6(store.path), "live");
+  const dir = join9(dirname7(store.path), "live");
   try {
     for (const f of readdirSync3(dir)) if (f.startsWith(`item-${id2}-`)) rmSync5(join9(dir, f), { force: true });
   } catch {
@@ -26080,7 +26463,7 @@ var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
   const store = yield* Store;
   if (item.pack?.runtime === "functions") {
     yield* Effect_exports.gen(function* () {
-      const node = yield* advanceFunctions(item, item.pack?.contracts?.handoff === "1" ? (current, node2) => prepareWorktree(current.id, node2.job, current.workspace, `item-${current.id}-${node2.job}-function`, "", true) : void 0);
+      const node = yield* advanceFunctions(item, item.pack?.contracts?.handoff === "1" || organsRequired(item) ? (current, node2) => prepareWorktree(current.id, node2.job, current.workspace, `item-${current.id}-${node2.job}-function`, "", true) : void 0);
       if (node) {
         const prescriptions = yield* forLane(config.prescriptions, L(store.get(item.id)));
         yield* step(item.id, node.job, { ...config, prescriptions });
@@ -26090,7 +26473,8 @@ var advance = Effect_exports.fn("mw.advance")(function* (item, config) {
   }
   if (!item.base) {
     const base = yield* branchOf(item.workspace);
-    const conventions = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.conventions ?? [];
+    const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+    const conventions = [.../* @__PURE__ */ new Set([...project?.conventions ?? [], ...organsRequired(item) ? project?.rumen?.filter((rule) => rule.kind === "judge" && (rule.jobs === void 0 || rule.jobs.includes("plan"))).map((rule) => rule.text) ?? [] : []])];
     store.save({ ...item, base, conventions: conventions.length ? conventions : void 0 }, "base", { ref: base.ref, main: base.commit, ...conventions.length ? { conventions } : {} });
     return;
   }
@@ -26213,7 +26597,7 @@ var decisionGuidance = Effect_exports.fn("mw.decisionGuidance")(function* (item,
   const reader = mode === "nq" && item.pack?.runtime !== "functions" ? x.from.kind === "job" ? x.from.job : L(item).delivery[0].job : job;
   const facts = contextFactsFor(store, item, reader, yield* Clock_exports.currentTimeMillis, job);
   const context3 = { ...mode === "nq" ? originatorParts(item, job, x, ledger(store, item.id, job)) : { received: receivedBy(item, job), handoff: x.handoff, turns: x.turns, notes: x.notes, answeredBefore: ledger(store, item.id, job) }, ...facts.length ? { contextFacts: facts } : {} };
-  const key2 = createHash8("sha256").update(JSON.stringify({ job, mode, round: item.round, context: context3 })).digest("hex");
+  const key2 = createHash12("sha256").update(JSON.stringify({ job, mode, round: item.round, context: context3 })).digest("hex");
   const saved = store.events(item.id).findLast((e) => e.kind === "decision-resolution" && e.data.key === key2);
   if (saved) return saved.data.resolution;
   const resolution = yield* resolveDecision({
@@ -26327,7 +26711,7 @@ var execute = Effect_exports.fn("mw.execute")(function* (id2, job, config, decis
     profile: stepOf(L(item), job).profile,
     access: prescriptionOf(config.prescriptions, job).access,
     card: x.card,
-    required: deliverableShape(L(item), job, auto(item))?.required ?? [],
+    required: organOutputShape(item, deliverableShape(L(item), job, auto(item)))?.required ?? [],
     ...job === "implement" && plan ? { scope: plan.scope } : {},
     ...jobTree(item, job),
     ...maker ? { onFail: (dir, head3, baseline) => keepPartial(dir, item, job, head3, baseline) } : {},
@@ -26341,7 +26725,7 @@ var jobTree = (item, job) => ({
     if (job === "arbitrate") return yield* candidate(item, dir);
     if (correcting(item, job)) {
       const store = yield* Store;
-      const change = contentHash(readFileSync8(patchPath(home, "change")));
+      const change = contentHash(readFileSync9(patchPath(home, "change")));
       const saved = store.events(item.id).findLast((e) => e.kind === "correction-base" && e.data.change === change && e.data.on === item.base.commit);
       const stable = item.verification?.commit ?? (typeof saved?.data.commit === "string" ? saved.data.commit : void 0);
       let base;
@@ -26373,7 +26757,7 @@ var restorePartial = (item, role, base, path) => Effect_exports.gen(function* ()
     return true;
   }
   if (!continuationBoundary(store.events(item.id)) && item.pack?.contracts?.acceptance !== "1" && existsSync3(path) && !savedArtifacts(store.events(item.id)).some((a) => a.role === role)) {
-    store.note(item.id, "legacy-partial-resumed", { job: role, sha256: contentHash(readFileSync8(path)), provenance: "Historical base/plan metadata unavailable; legacy disk continuation." });
+    store.note(item.id, "legacy-partial-resumed", { job: role, sha256: contentHash(readFileSync9(path)), provenance: "Historical base/plan metadata unavailable; legacy disk continuation." });
     return true;
   }
   rmSync5(path, { force: true });
@@ -26387,13 +26771,19 @@ var callAgent = (id2, job, config, spec, after) => Effect_exports.scoped(Effect_
   const p = config.prescriptions;
   const functions = item.pack?.runtime === "functions";
   const wt = functions ? { path: item.workspace, base: "" } : yield* worktree(item.workspace, spec.at ?? item.base.commit, `item-${id2}-${job}-${spec.kind}`);
-  if ((!functions || item.pack?.contracts?.handoff === "1") && spec.access !== "none") {
+  if ((!functions || item.pack?.contracts?.handoff === "1" || organsRequired(item)) && spec.access !== "none") {
     const failed3 = yield* prepareWorktree(id2, job, wt.path, `item-${id2}-${job}-${spec.kind}`, wt.base, spec.kind !== "originator");
     if (failed3 && spec.kind === "originator") return void hold(store, store.get(id2), "prepare_failed", failed3.message, failed3.context);
     if (failed3) return void (yield* launchFailed(id2, job, spec.kind, spec.card, failed3.message, failed3.context));
   }
   const preparationBaseline = !functions && isMaker(job) && spec.kind === "execute" && spec.access !== "none" ? yield* capturePreparationBaseline(wt.path) : void 0;
   if (!functions && spec.prepare) yield* spec.prepare(wt.path);
+  if (organsRequired(item) && spec.kind === "execute") {
+    const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace);
+    const ground = checkIncomingPreparation(store, item, job, wt.path, project);
+    store.note(id2, "ground-checked", { job, ...ground });
+    if (!ground.ok) return void (yield* launchFailed(id2, job, spec.kind, spec.card, "Ground found unavailable or changed material in the producer preparation; repair this handoff through NQ.", { job, ...ground }));
+  }
   const prompt = yield* spec.packet(wt.path);
   const budget = budgetFor(p, job);
   const harness = harnessOf(p, spec.card.harness);
@@ -26475,7 +26865,7 @@ var repair = (id2, job, call, shape, problem) => Effect_exports.gen(function* ()
   const started = /* @__PURE__ */ new Date();
   const brief = briefOf(L(store.get(id2)));
   store.note(id2, "trace-decode", { call: call.callId, job, ok: false, schema: shape, reason: problem });
-  const request3 = { kind: "repair", job, profile, card: call.card, access: "none", system: brief, prompt, item: id2, cwd: store.path === ":memory:" ? tmpdir3() : dirname6(store.path), budget: REPAIR_BUDGET };
+  const request3 = { kind: "repair", job, profile, card: call.card, access: "none", system: brief, prompt, item: id2, cwd: store.path === ":memory:" ? tmpdir3() : dirname7(store.path), budget: REPAIR_BUDGET };
   const { invocation, result: res } = yield* observe(store, id2, { job, kind: "repair", profile, harness: call.card.harness, args: { ...request3 } }, (onOutput) => worker.run({ ...request3, onOutput }).pipe(
     Effect_exports.withSpan(`mw.repair.${job}`, { attributes: { item: id2, job, harness: call.card.harness, model: call.card.model } })
   ));
@@ -26513,25 +26903,30 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const plan = planOf(item);
   const home = itemHome(store.path, id2);
   const problem = malformed(L(item), job, answered.output, auto(item));
-  const call = problem ? (yield* repair(id2, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered : answered;
+  const call = problem ? (yield* repair(id2, job, answered, organOutputShape(item, deliverableShape(L(item), job, auto(item))), problem)) ?? answered : answered;
   const acceptedPrefix = Object.fromEntries(Object.entries(item.outputs).flatMap(([key2, raw]) => raw === void 0 ? [] : [[key2, lastJson(raw)]]));
+  const organProject = organsRequired(item) ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : void 0;
+  const selectedRules = lastJson(store.call(answered.callId)?.prompt ?? "")?.organs?.rules;
   if (item.pack?.runtime === "functions") {
     const result3 = validate3(L(item), job, call.output, void 0, void 0, auto(item), [], acceptedPrefix);
     store.note(id2, "trace-decode", { call: call.callId, job, ok: result3.ok, ...!result3.ok ? { reason: result3.reason } : {} });
     if (!result3.ok) return yield* refuse(id2, job, call, result3.reason);
     const unanswered2 = decisionProblem(store, item, job, result3.value, ledger(store, id2, job));
     if (unanswered2) return yield* refuse(id2, job, call, unanswered2);
-    const blocked = blockedOf(L(item), job, result3.value);
-    if (blocked) return hold(store, store.get(id2), "function_failed", blocked, { job, call: call.callId });
+    const blocked2 = blockedOf(L(item), job, result3.value);
+    if (blocked2) return hold(store, store.get(id2), "function_failed", blocked2, { job, call: call.callId });
+    const organs2 = inspectPreparation(item, job, result3.value, JSON.stringify(result3.value), dir, organProject, [], selectedRules);
+    if (!organs2.ok) return yield* refuse(id2, job, call, organs2.reason);
     const acceptance = yield* checkFunction(item, stepOf(L(item), job), result3.value);
     if (!acceptance.ok) return yield* refuse(id2, job, call, acceptance.reason);
     return store.atomic(() => {
       acceptFunction(store, id2, stepOf(L(item), job), JSON.stringify(result3.value));
+      saveOrganReceipt(store, item, organs2.receipt, call.callId);
       recordPhaseDecisions(store, store.get(id2), job, call.callId, result3.value);
     });
   }
   const v = validate3(L(item), job, call.output, plan, job === "plan" ? (yield* snapshot2(dir, [])).files : void 0, auto(item), item.conventions, acceptedPrefix);
-  store.note(id2, "trace-decode", { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...!v.ok ? { reason: v.reason } : {} });
+  store.note(id2, "trace-decode", { call: call.callId, job, ok: v.ok, schema: organOutputShape(item, deliverableShape(L(item), job, auto(item))), ...!v.ok ? { reason: v.reason } : {} });
   if (v.ok && v.dropped?.length) store.note(id2, "discovery-dropped", { call: call.callId, candidates: v.dropped });
   const from = answered.before?.head ?? item.base.commit;
   const keep = (outcome, reason) => Effect_exports.gen(function* () {
@@ -26541,7 +26936,17 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   });
   const refused = (reason) => Effect_exports.andThen(keep("refused", reason), refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
-  const value4 = v.value;
+  if (organsRequired(item) && !isMaker(job) && answered.before?.head && (yield* revParse(dir, "HEAD")) !== answered.before.head) return yield* refused("A read-phase worker moved its prepared checkout HEAD. Its unpublished commits are disposable, not durable next-step material. Restore the prepared base and return the phase result on the work.");
+  const value4 = { ...v.value, ...lastJson(call.output)?.preparation !== void 0 ? { preparation: lastJson(call.output).preparation } : {} };
+  const organTracked = organsRequired(item) ? (yield* snapshot2(dir, [])).files : [];
+  const organs = inspectPreparation(item, job, value4, call.output, dir, organProject, organTracked, selectedRules);
+  if (!organs.ok) return yield* refused(organs.reason);
+  if (organs.receipt && !isMaker(job)) for (const source2 of [...organs.receipt.ground.sources, ...organs.receipt.next.flatMap((next) => next.requires)].filter((source3) => source3.ref.startsWith("file:"))) {
+    const paths = source2.paths ?? [relative4(resolve7(dir), resolve7(dir, source2.ref.slice(5)))];
+    if (paths.some((path) => !organTracked.includes(path))) return yield* refused(`Ground/preparation references disposable target material for ${source2.ref}. Cite actual durable repository files or a declared prepared input.`);
+    const changed = yield* git(dir, "diff", "--name-only", answered.before?.head ?? item.base.commit, "--", ...paths);
+    if (changed.trim()) return yield* refused(`Preparation references ${source2.ref} changed only in a disposable read-phase checkout. Preserve the result in the durable output or use a declared prepared input.`);
+  }
   const unanswered = decisionProblem(store, item, job, value4, ledger(store, id2, job));
   if (unanswered) return yield* refused(unanswered);
   if (job === "plan") {
@@ -26563,7 +26968,10 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep("guard-error", e.message), Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
   }
   let artifacts = {};
-  if (isMaker(job) && !blockedOf(L(item), job, value4)) {
+  const blocked = blockedOf(L(item), job, value4);
+  if (isMaker(job) && blocked) {
+    yield* keep("blocked", blocked);
+  } else if (isMaker(job)) {
     const base = from;
     if (job === "implement") {
       const scoped3 = yield* Effect_exports.result(scopeCheck(dir, base, plan.scope, answered.preparationBaseline));
@@ -26574,6 +26982,8 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
       }
     }
     const { files, patch } = yield* takeChange(dir, base, answered.preparationBaseline);
+    const disposable = organs.receipt?.next.flatMap((next) => next.requires).filter((source2) => source2.ref.startsWith("file:")).flatMap((source2) => source2.paths ?? [relative4(resolve7(dir), resolve7(dir, source2.ref.slice(5)))]).filter((path) => !organTracked.includes(path) && !files.includes(path)) ?? [];
+    if (disposable.length) return yield* refused(`Next-step preparation references files not retained in the durable maker patch: ${disposable.join(", ")}. Supply declared prepared inputs or actual extracted work.`);
     if (job === "implement" && !files.length) return yield* refused("You reported the plan done, but your checkout has no change.");
     const product = files.filter((f) => covers(plan.scope, f));
     if (job === "test-plan" && product.length) return yield* refused(`Checks may not touch the plan's scope, which is product code: ${product.join(", ")}. Write check files at other paths.`);
@@ -26582,8 +26992,8 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     artifacts = job === "implement" ? { change: { files } } : { checks: { checks: value4.checks, files } };
     const stray = yield* Effect_exports.result(leftovers(dir, call.before));
     if (Result_exports.isFailure(stray)) store.save(store.get(id2), "worktree-leftovers", { job, files: stray.failure.context.files });
+    rmSync5(patchPath(home, `${job}.partial`), { force: true });
   }
-  if (isMaker(job)) rmSync5(patchPath(home, `${job}.partial`), { force: true });
   const now2 = store.get(id2);
   const provisioned = [...now2.provisioned ?? [], ...(value4.provisioned ?? []).map((r) => ({ kind: r.kind, id: r.id, teardown: r.teardown, job }))];
   const fields = { outputs: { ...now2.outputs, [job]: call.output }, provisioned, ...artifacts, steer: void 0 };
@@ -26592,6 +27002,7 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
     if (isMaker(job) && now2.split?.[job]) saveTrack(store, id2, job, { ...settled, done: true }, "accepted", { job }, fields);
     else applyRoute(store, id2, job, value4, { ...fields, ...settled });
     recordPhaseDecisions(store, store.get(id2), job, call.callId, value4);
+    saveOrganReceipt(store, item, organs.receipt, call.callId);
   });
   yield* aftercare(id2, job);
 });
@@ -26615,7 +27026,8 @@ function applyRoute(store, id2, job, value4, fields) {
           outputs: { discover: JSON.stringify(c) },
           ...after ? { after: after.map((p) => ids[p - 1]) } : {},
           ...current.pack ? { pack: current.pack } : {},
-          ...current.autonomy ? { autonomy: current.autonomy } : {}
+          ...current.autonomy ? { autonomy: current.autonomy } : {},
+          ...current.organs ? { organs: childOrgans(current, job, current.outputs[job]) } : {}
         }).id);
       }
       store.save({ ...current, status: "discovered" }, "discovered", { candidates: ids, ...auto(current) ? { promoted: true } : {} });
@@ -26723,9 +27135,9 @@ var prepareWorktree = Effect_exports.fn("mw.prepare")(function* (id2, job, dir, 
 ${said}` : ""}`, context: { job, workspace: item.workspace, name, command: project.prepare, exitCode: r.code, stdout: r.stdout.slice(-4e3), stderr: r.stderr.slice(-4e3) } };
 });
 function checkPreparedInputs(store, item, job, dir, name, inputs, receiving) {
-  if (!receiving || !inputs?.length) return void 0;
+  if (!receiving || !inputs?.length && !organsRequired(item)) return void 0;
   const checked = checkPrerequisites(inputs, job, dir);
-  if (!checked.length) return void 0;
+  if (!checked.length && !organsRequired(item)) return void 0;
   store.note(item.id, "inputs-checked", { job, name, dir, inputs: checked });
   const missing2 = checked.filter((input) => !input.ok);
   return missing2.length ? {
@@ -26806,22 +27218,32 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
   const budget = budgetFor(config.prescriptions, "verify");
   const env = { ...process.env, MW_ITEM: String(id2) };
   const live = liveFile(store, `item-${id2}-verify`);
-  store.note(id2, "verify-started", { gates: gates.map((g) => g.run), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...live ? { live } : {} });
+  store.note(id2, "verify-started", { gates: gates.map((g) => g.run), gateRules: gates.map(gateRule), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...live ? { live } : {} });
   const run2 = yield* Effect_exports.scoped(Effect_exports.gen(function* () {
     const wt = yield* worktree(item.workspace, item.base.ref, `item-${id2}-verify`);
     const failed4 = yield* prepareWorktree(id2, "verify", wt.path, `item-${id2}-verify`, wt.base);
     if (failed4) return { kind: "unprepared", ...failed4 };
     const change = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "change")));
     if (Result_exports.isFailure(change)) return { kind: "conflict", by: "implement", on: wt.base, error: change.failure };
+    if (organsRequired(item)) {
+      const ground = checkIncomingPreparation(store, item, "verify", wt.path, project, ["implement"]);
+      store.note(id2, "ground-checked", { job: "verify", ...ground });
+      if (!ground.ok) return { kind: "unprepared", message: "Ground found changed or unavailable implementation handoff material.", context: { job: "verify", ...ground } };
+    }
     const gated = yield* runGates(id2, wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
-    preserveArtifact(store, item, "implement", readFileSync8(patchPath(home, "change"), "utf8"), wt.base);
+    preserveArtifact(store, item, "implement", readFileSync9(patchPath(home, "change"), "utf8"), wt.base);
     const built = yield* commit(wt.path, commitMessage(item));
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
+    if (organsRequired(item)) {
+      const ground = checkIncomingPreparation(store, item, "verify", wt.path, project, ["test-plan"]);
+      store.note(id2, "ground-checked", { job: "verify", ...ground });
+      if (!ground.ok) return { kind: "unprepared", message: "Ground found changed or unavailable check-author handoff material.", context: { job: "verify", ...ground } };
+    }
     const fingerprint = () => (item.checks?.files ?? []).map((path) => {
       try {
         const file = join9(wt.path, path);
-        return { path, sha256: contentHash(lstatSync2(file).isSymbolicLink() ? readlinkSync2(file) : readFileSync8(file)) };
+        return { path, sha256: contentHash(lstatSync3(file).isSymbolicLink() ? readlinkSync3(file) : readFileSync9(file)) };
       } catch {
         return { path, sha256: null };
       }
@@ -26838,7 +27260,7 @@ ${r2.output}` };
     const flaky = again.filter((r) => r.exitCode === 0).map((r) => r.id);
     const unchanged = JSON.stringify(sources) === JSON.stringify(fingerprint());
     const integrity = unchanged ? [] : [{ id: "artifact-integrity", doneWhen: GATE, run: "(check source stability)", exitCode: 1, ms: 0, output: "Independent check source changed during verification. A passing result cannot attest the retained check bytes." }];
-    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, flaky, sources, results: [...gated.results, ...results2, ...integrity] };
+    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, gateReceipts: gated.gateReceipts, flaky, sources, results: [...gated.results, ...results2, ...integrity] };
   })).pipe(Effect_exports.ensuring(Effect_exports.sync(() => endLive(live))));
   if (run2.kind === "unprepared") return hold(store, store.get(id2), "prepare_failed", run2.message, run2.context);
   yield* aftercare(id2, "verify");
@@ -26867,8 +27289,9 @@ Plan again from the branch as it is now.`
     }, "rebased", { conflict: run2.by, from: now2.base.commit, ref: now2.base.ref, reason: why.slice(0, 2e3) });
     return;
   }
+  if (run2.gateReceipts.some((r) => r.outcome === "unavailable" || r.outcome === "passed" && [...r.sourceBefore, ...r.sourceAfter].some((source2) => source2.sha256 === null))) return hold(store, now2, "environment", "Rumen could not retain readable material identities for a required mechanical fence.", { job: "verify", gateReceipts: run2.gateReceipts });
   const passed = run2.results.every((r) => r.exitCode === 0);
-  const verification = { on: run2.on, commit: run2.commit, results: run2.results, passed };
+  const verification = { on: run2.on, commit: run2.commit, results: run2.results, gateReceipts: run2.gateReceipts, passed };
   const artifacts = continuationArtifacts(store.events(id2)).filter((a) => !a.partial);
   store.note(id2, "verification-artifacts", { on: run2.on, commit: run2.commit, checks: contentHash(JSON.stringify(checks)), sources: run2.sources, artifacts: L(item).makers.flatMap((role) => {
     const a = artifacts.findLast((a2) => a2.role === role);
@@ -26877,7 +27300,20 @@ Plan again from the branch as it is now.`
   const summary = run2.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }));
   const fixed = { ...run2.fixed.length ? { fixed: run2.fixed } : {}, ...run2.flaky.length ? { flaky: run2.flaky } : {} };
   if (passed) {
-    store.save({ ...now2, verification }, "verified", { on: run2.on, commit: run2.commit, results: summary, ...fixed });
+    const output = JSON.stringify({ on: run2.on, commit: run2.commit, checks: summary, gateReceipts: run2.gateReceipts, passed });
+    const receipt = organsRequired(item) ? {
+      version: "1",
+      job: "verify",
+      round: now2.round,
+      outputHash: contentHash(output),
+      ground: { intent: now2.objective, sources: [{ ref: `candidate:${run2.commit}`, sha256: contentHash(run2.commit), finding: "The engine executed checks against this candidate; check-source identity was retained and checked for mutation." }, ...run2.sources.flatMap((source2) => source2.sha256 ? [{ ref: `check:${source2.path}`, sha256: source2.sha256, finding: "Independent check source executed by the engine." }] : [])] },
+      rumen: rumenRules(project, "verify").map((rule) => ({ ...rule, disposition: "addressed", evidence: rule.kind === "fence" ? JSON.stringify(run2.gateReceipts.filter((gate) => gate.rule === rule.id)) : "Carried from producer rule accounting; candidate check results are retained separately. This is not a new automated semantic judgment." })),
+      next: []
+    } : void 0;
+    store.atomic(() => {
+      store.save({ ...now2, verification, ...receipt ? { outputs: { ...now2.outputs, verify: output } } : {} }, "verified", { on: run2.on, commit: run2.commit, results: summary, gateReceipts: run2.gateReceipts, ...fixed });
+      saveOrganReceipt(store, now2, receipt, `verify:${run2.commit}`);
+    });
     return;
   }
   const prepared = store.events(id2).findLast((e) => e.kind === "prepared" && e.data.job === "verify");
@@ -27029,7 +27465,8 @@ Failure:
 ${item.failure ?? ""}`,
     rework: { cause: "pre-existing", answer: answer2 },
     ...item.pack ? { pack: item.pack } : {},
-    ...item.autonomy ? { autonomy: item.autonomy } : {}
+    ...item.autonomy ? { autonomy: item.autonomy } : {},
+    ...item.organs ? { organs: typeof item.outputs.arbitrate === "string" && by.kind === "job" && by.job === "arbitrate" ? childOrgans(item, "arbitrate", item.outputs.arbitrate, "prerequisite") : { version: "1" } } : {}
   });
   store.save({ ...item, status: "waiting-prerequisite", waitsOn: pre.id, failure: void 0, exchange: void 0, corrections: item.corrections + 1 }, "ruling", { cause: "pre-existing", prerequisite: pre.id, by: profileOf(item, by) });
 };
@@ -27339,7 +27776,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
   const dispositions = item.rework && item.from.kind === "job" && item.from.job === "arbitrate" ? lastJson(item.outputs.arbitrate ?? "")?.dispositions : void 0;
   const repairConditions = Array.isArray(dispositions) ? dispositions.filter((d) => !isMaker(historyJob) || d.cause === (historyJob === "implement" ? "implementation" : "test") || d.cause === "environment" || d.cause === "pre-existing") : [];
   const softwareThinking = L(item).pack.runtime !== "functions" && !isMaker(job);
-  const project = softwareThinking || item.pack?.contracts?.handoff === "1" ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : void 0;
+  const project = softwareThinking || item.pack?.contracts?.handoff === "1" || organsRequired(item) ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : void 0;
   const projectInputs = project?.inputs?.filter((input) => input.jobs === void 0 || input.jobs.includes(job) && input.jobs.includes(historyJob) || job === "plan" && historyJob === "plan" && input.jobs.includes("verify"));
   const deliveryContract = softwareThinking ? {
     owner: "Made Well",
@@ -27356,6 +27793,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
   const workQuestionsForPhase = item.pack?.contracts?.handoff === "1" ? questionsOwedBy(store, item, historyJob).map((q) => ({ ...q, resolved: questionResolved(q, saved.answers) })) : [];
   return JSON.stringify({
     item: itemFacts(item),
+    ...receiving && organsRequired(item) ? { organs: organPacket(store, item, job, project) } : {},
     ...technicalReset(store, item, job) ? { technicalReset: technicalReset(store, item, job) } : {},
     ...workQuestionsForPhase.length ? { questionsToSettle: workQuestionsForPhase } : {},
     ...projectInputs?.length ? { projectInputs } : {},
@@ -27365,7 +27803,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
     ...discoveryContext ? { discoveryContext } : {},
     ...continuationOptions.length ? { continuationOptions } : {},
     ...repairConditions.length ? { repairConditions } : {},
-    ...item.pack?.runtime === "functions" ? { function: { ...functionInput(item, stepOf(L(item), job), store), node: stepOf(L(item), job), pack: { name: item.pack.name, version: item.pack.version ?? null } } } : {},
+    ...item.pack?.runtime === "functions" ? { function: { ...functionInput(item, stepOf(L(item), job), store, project), node: stepOf(L(item), job), pack: { name: item.pack.name, version: item.pack.version ?? null } } } : {},
     ...withReceived ? { received } : {},
     ...snap ? { snapshot: snap } : {},
     ...saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {},
@@ -27402,7 +27840,7 @@ var you = (item, job, kind) => {
 var INTAKE_TASK = (job, originator) => `This is intake, before you do the ${job} job: judge this packet alone, and change nothing. You have no tools and no checkout in this call, by design: the ${job} job itself runs later in your own checkout of the repo, with your tools. State your understanding in one or two sentences: what was handed to you and what you must deliver. Then answer the three questions. What is unclear? What is ambiguous? Do I have everything I need to proceed? A question is only what the ${originator} must answer from its hand-off before you can do the job: the hand-off contradicts itself, leaves out something only its sender knows, or asks for something your job cannot decide. Each one goes to the ${originator}. Never a question: a decision your own job settles (your duty says what you decide: settle it in the job by the three governing questions), anything you will read in the repo yourself, file access or a checkout, a reading you can state and act on, or a request to confirm. An assumption you will act on is a note, one line each: notes travel with the work and do not block it. Never ask a question answered in earlierTurns or answeredBefore: every answer on this item is on the record and binds you, and Made Well answers a repeat from it. Empty lists confirm you are ready. Reply now with the intake object described by you.replyFormat, even after your questions are answered. The ${job} job's own deliverable, described by you.laterDeliverable, is for a later call: do not return it now.`;
 var handoffView = (item, job, x) => x.from.kind === "job" && stepOf(L(item), job).receives.includes(x.from.job) && x.handoff === item.outputs[x.from.job] ? `The ${profileOf(item, x.from)}'s deliverable, under received.${x.from.job}.` : x.handoff;
 var receiverParts = (item, job, x, kind, answered) => ({
-  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + " If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies the verbatim answer once under answeredBefore, with aliases and saved-answer references in the exchange, and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.", laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+  you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + " If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies the verbatim answer once under answeredBefore, with aliases and saved-answer references in the exchange, and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.", laterDeliverable: organOutputShape(item, deliverableShape(L(item), job, auto(item))), replyFormat: shapeOf(INTAKE) },
   ...jobEvidence(item, job),
   handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
   earlierTurns: x.turns,
@@ -27426,7 +27864,7 @@ var originatorParts = (item, job, x, answered) => ({
   answeredBefore: answered
 });
 var executeParts = (item, job, t, x) => ({
-  you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: deliverableShape(L(item), job, auto(item)) },
+  you: { ...you(item, job, "execute"), ...taskOf(item, job) ? { task: taskOf(item, job) } : {}, replyFormat: organOutputShape(item, deliverableShape(L(item), job, auto(item))) },
   ...jobEvidence(item, job),
   exchange: { from: profileOf(item, x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
   ...item.outputs[job] !== void 0 && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {},
@@ -27436,7 +27874,7 @@ var executeParts = (item, job, t, x) => ({
 });
 
 // src/pack-selection.ts
-import { resolve as resolve6 } from "node:path";
+import { resolve as resolve8 } from "node:path";
 
 // src/autonomy-pack.ts
 var AUTONOMY_PACK = {
@@ -27472,19 +27910,19 @@ var resolvePackSelection = Effect_exports.fn("mw.resolvePackSelection")(function
     context: { path: selection2, problems: ["Unknown built-in cartridge selector. Supported selector: builtin:grammar."] },
     next: [{ run: "mw cartridges --check builtin:grammar", why: "inspect the supported built-in grammar pack" }]
   });
-  const source2 = resolve6(selection2);
+  const source2 = resolve8(selection2);
   return { source: source2, pack: yield* loadPack(source2) };
 });
 
 // src/otlp.ts
-import { createHash as createHash9 } from "node:crypto";
-import { resolve as resolve7 } from "node:path";
+import { createHash as createHash13 } from "node:crypto";
+import { resolve as resolve9 } from "node:path";
 var record2 = (value4) => value4 !== null && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
 var label = (value4) => typeof value4 === "string" && /^[a-zA-Z0-9][a-zA-Z0-9_.:@+-]{0,127}$/.test(value4) ? value4 : void 0;
 var text = (key2, value4) => ({ key: key2, value: { stringValue: value4 } });
 var integer = (key2, value4) => ({ key: key2, value: { intValue: String(value4) } });
 var identifier2 = (parts2, length) => {
-  const hex = createHash9("sha256").update(JSON.stringify(parts2)).digest("hex").slice(0, length);
+  const hex = createHash13("sha256").update(JSON.stringify(parts2)).digest("hex").slice(0, length);
   return /^0+$/.test(hex) ? `${hex.slice(0, -1)}1` : hex;
 };
 var unixNano = (at) => {
@@ -27508,7 +27946,7 @@ function otlpOf(store, id2) {
     if (event.kind === "trace-call" && typeof event.data.call === "number") links.set(invocation, event.data.call);
   }
   const calls = new Map(store.calls(id2).map((call) => [call.id, call]));
-  const traceId = identifier2(["madewell.otlp.trace.v1", resolve7(store.path), id2, item.created], 32);
+  const traceId = identifier2(["madewell.otlp.trace.v1", resolve9(store.path), id2, item.created], 32);
   const spans = [];
   for (const [invocation, start] of starts) {
     const finish = finishes.get(invocation);
@@ -27987,8 +28425,8 @@ var qaExport = Effect_exports.fn("mw.qaExport")(function* (runId, query = {}) {
 var ROOT = "/api/v1";
 var BODY_LIMIT = 65536;
 var TEXT_LIMIT = 32768;
-var hash2 = (value4) => createHash10("sha256").update(value4).digest("hex");
-var revisionOf = (item) => hash2(JSON.stringify(item));
+var hash4 = (value4) => createHash14("sha256").update(value4).digest("hex");
+var revisionOf = (item) => hash4(JSON.stringify(item));
 var fail10 = (status, reason, message, facts = {}) => new MadeWellError({
   code: "api_request",
   message,
@@ -28074,6 +28512,7 @@ var contextOf = (store, id2) => {
     revision,
     evidence: { event: events2.at(-1)?.seq ?? 0, record: `/api/item/${id2}`, trace: `/api/trace/${id2}?lens=ax`, conversation: `${ROOT}/items/${id2}/conversation`, otlp: `${ROOT}/items/${id2}/otlp`, qaCases: `${ROOT}/qa/cases?workItem=${id2}`, qaRuns: `${ROOT}/qa/runs?workItem=${id2}`, cli: { record: `mw show ${id2}`, trace: `mw trace ${id2} --lens ax`, context: `mw context ${id2}` } },
     currentHandoff,
+    organs: organSummary(store, item),
     answer: { ...policy, reason: displayPreview(policy.reason, 240) },
     conversation: selected,
     conversationTruncated: selected.length < history2.length || selected.some((m) => m.truncated),
@@ -28124,6 +28563,7 @@ var compactQuestionStateSchema = object({ key: str, resolution: { enum: ["resolv
 var compactInputSchema = object({ key: str, id: str, state: { enum: ["recorded-available", "recorded-unavailable", "not-checked", "unknown"] }, currentAvailability: { const: "unknown" }, observation: nullable(object({ event: integer2, item: nullable(integer2), ok: bool, at: str, job: str, name: nullable(str), dir: nullable(str) })), evidence: str, truncated: bool });
 var compactEntrySchema = object({ key: str, id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ["agent", "command", "group", "engine"] }, mode: { enum: ["current", "configured-next"] }, exchangeStatus: str, round: integer2, questionStates: array2(compactQuestionStateSchema), questionsTotal: integer2, questionsOmitted: integer2, unresolvedCount: integer2, expectedOutput: object({ state: { enum: ["configured", "unspecified"] }, detail: str, pointer: str }), inputs: array2(compactInputSchema), inputsTotal: integer2, inputsOmitted: integer2, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array2(integer2) }), truncated: bool });
 var handoffSchema = object({ entries: array2(compactEntrySchema), entriesTotal: integer2, entriesOmitted: integer2, questions: array2(compactQuestionSchema), questionsTotal: integer2, questionsOmitted: integer2, evidence: object({ detail: str }), truncated: bool });
+var organsSchema = object({ required: bool, version: nullable({ const: "1" }), legacy: bool, phases: array2(object({ job: str, ground: bool, rumen: bool, nextPrepared: bool, event: integer2, rules: integer2, next: array2(str), currentAvailability: { const: "unknown" } })), total: integer2, omitted: integer2, detail: str });
 var messageSchema = object({ id: str, at: str, role: str, kind: str, text: str, event: nullable(integer2), truncated: bool, actor: object({ role: str, job: nullable(str) }), references: array2(answerReferenceSchema), referencesTotal: integer2, referencesOmitted: integer2, evidence: str }, ["id", "at", "role", "kind", "text", "event"]);
 var eventDetailSchema = object({ event: object({ seq: integer2, item: integer2, at: str, kind: str, data: arbitrary }), references: array2(answerReferenceSchema), messages: array2(messageSchema) });
 var answerDetailSchema = object({ requestedId: str, canonicalId: str, question: str, answer: str, by: str, job: str, source: nullable(sourceSchema) });
@@ -28145,6 +28585,7 @@ var API_SCHEMAS = {
     evidence: object({ event: integer2, record: str, trace: str, conversation: str, otlp: str, qaCases: str, qaRuns: str, cli: object({ record: str, trace: str, context: str }) }),
     answer: object({ allowed: bool, causeRequired: bool, causes: array2(str), reason: str }),
     currentHandoff: ref("CurrentHandoff"),
+    organs: organsSchema,
     conversation: array2(messageSchema),
     conversationTruncated: bool,
     next: array2(actionSchema),
@@ -28228,7 +28669,7 @@ var validateBody = (value4, kind) => {
   }
   return body;
 };
-var readBody = (req) => new Promise((resolve12, reject) => {
+var readBody = (req) => new Promise((resolve14, reject) => {
   let size7 = 0;
   const chunks = [];
   const timer = setTimeout(() => finish(fail10(408, "body_timeout", "Request body did not arrive within 10 seconds.")), 1e4);
@@ -28241,7 +28682,7 @@ var readBody = (req) => new Promise((resolve12, reject) => {
     if (error) {
       req.resume();
       reject(error);
-    } else resolve12(value4);
+    } else resolve14(value4);
   };
   const broken = () => finish(fail10(400, "body_interrupted", "Request body was interrupted; retry the same request ID and exact input."));
   const data = (chunk) => {
@@ -28356,7 +28797,7 @@ var createApi = (options) => {
       if (write2) {
         const bodyKind = target === void 0 ? "Submit" : match8?.[2] === "start" ? "Start" : "Answer";
         const body = validateBody(await readBody(req), bodyKind);
-        const fingerprint = hash2(JSON.stringify([url.pathname, ...Object.keys(API_SCHEMAS[bodyKind].properties).map((key2) => [key2, body[key2] ?? null])]));
+        const fingerprint = hash4(JSON.stringify([url.pathname, ...Object.keys(API_SCHEMAS[bodyKind].properties).map((key2) => [key2, body[key2] ?? null])]));
         const registered2 = () => {
           const projects = sync4(readProjects(projectsPath(options.path)));
           const project = projects.find((p) => p.path === body.workspace);
@@ -28372,7 +28813,7 @@ var createApi = (options) => {
             const project = registered2();
             const { pack } = sync4(resolvePackSelection(project.cartridges));
             const discovery2 = body.mode === "discovery";
-            item = store.create({ title: body.title ?? body.objective, objective: body.objective, source: body.source, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...pack ? { pack } : {}, ...discovery2 ? { job: laneOf(pack).discovery[0]?.job ?? "", ...pack?.runtime === "functions" ? { flow: { loop: "discovery", accepted: [] } } : {} } : {} });
+            item = createWork(store, { title: body.title ?? body.objective, objective: body.objective, source: body.source, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...pack ? { pack } : {}, ...discovery2 ? { job: laneOf(pack).discovery[0]?.job ?? "", ...pack?.runtime === "functions" ? { flow: { loop: "discovery", accepted: [] } } : {} } : {} });
           } else {
             item = found(store, target);
             if (revisionOf(item) !== body.revision) throw fail10(409, "stale_revision", "The saved task changed. Refresh its context and review the question before sending a new request; your draft is not discarded.", { id: target, expected: body.revision, actual: revisionOf(item) });
@@ -28436,8 +28877,8 @@ var createApi = (options) => {
 };
 
 // src/eval.ts
-import { readFileSync as readFileSync9 } from "node:fs";
-import { resolve as resolve8 } from "node:path";
+import { readFileSync as readFileSync10 } from "node:fs";
+import { resolve as resolve10 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = AGENT_JOBS;
 var UNKNOWN_RESET_MS2 = 60 * 6e4;
@@ -28529,9 +28970,9 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   if (items.some((i) => !ITEM_IDS.test(i) || Number(i) < 1)) return yield* usage(`--item takes work item numbers separated by commas, such as --item 3,5; got "${o.item}".`);
   const ids = items.map(Number);
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
-  const briefPath = o.brief === void 0 ? void 0 : resolve8(o.brief);
+  const briefPath = o.brief === void 0 ? void 0 : resolve10(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync9(briefPath, "utf8"),
+    try: () => readFileSync10(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
@@ -28663,10 +29104,10 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
 
 // src/ui.ts
 import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
-import { closeSync as closeSync3, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync11, readSync as readSync3, rmSync as rmSync6, statSync as statSync4, writeFileSync as writeFileSync7 } from "node:fs";
+import { closeSync as closeSync3, existsSync as existsSync4, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync12, readSync as readSync3, rmSync as rmSync6, statSync as statSync5, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
 import { homedir as homedir3, hostname as hostname2 } from "node:os";
-import { basename as basename2, dirname as dirname7, join as join11, resolve as resolve10 } from "node:path";
+import { basename as basename2, dirname as dirname8, join as join11, resolve as resolve12 } from "node:path";
 
 // src/console.ts
 var CONSOLE = String.raw`<!doctype html>
@@ -29295,6 +29736,10 @@ p{margin:0 0 var(--space-2);max-width:68ch;text-wrap:pretty;overflow-wrap:anywhe
 .step-name{overflow-wrap:anywhere;min-width:0}.step-state{margin-left:auto;text-align:right;flex-shrink:0;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted)}
 .step-state.done{color:var(--accent)}.step-state.attention{color:var(--warning)}
 [data-current-work]{min-width:0;overflow-wrap:anywhere}[data-current-work] p{white-space:pre-wrap}[data-current-work] section{margin-bottom:var(--space-3)}
+.work-organs{min-width:0;margin:var(--space-4) 0;overflow-wrap:anywhere}.work-organs>h3{margin-top:var(--space-3)}
+.organ-checks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);margin:var(--space-2) 0}.organ-checks p{margin:0;font-size:var(--text-small)}
+.organ-state{font:var(--text-small)/var(--line) var(--font-system);margin-left:var(--space-1);color:var(--muted)}.organ-state[data-state=yes]{color:var(--accent)}.organ-state[data-state=unknown]{color:var(--warning)}
+.organ-phases{list-style:none;margin:0;padding:0}.organ-phases>li{padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}.organ-phases>li:last-child{border:0}.organ-phase-title{font:var(--text-small)/var(--line) var(--font-system);margin:0}.organ-phases details{margin-top:var(--space-1)}
 .technical{margin-top:var(--space-8);border-top:1px solid var(--line-color)}
 details{border-bottom:1px solid var(--line-color)}summary{padding:var(--space-3) var(--space-1);cursor:pointer;overflow-wrap:anywhere;transition:background-color 160ms ease-out}
 summary:hover{background:var(--side)}summary:active{background:var(--hover)}summary::marker{color:var(--muted)}
@@ -29360,6 +29805,37 @@ function currentWork(parent,summary,item){
   for(const row of [...card.children])if(row.dataset.input&&!inputKeys.has(row.dataset.input))row.remove();
   let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.truncated?'Preview shortened. ':'')+(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(entry.questionsOmitted?entry.questionsOmitted+' more assigned questions. ':'')+'Exact details are available above.');
  }
+ return root;
+}
+function workOrgans(parent,summary,item,jobs,currentJob){
+ let root=[...parent.children].find(n=>n.dataset.workOrgans===String(item));
+ if(!root){root=evidenceNode('section');root.className='work-organs';root.dataset.workOrgans=String(item);root.dataset.key='organs:'+item;
+  const title=evidenceNode('h3','Ground, Rumen and preparation'),scope=evidenceNode('p'),checks=evidenceNode('div'),note=evidenceNode('p'),details=evidenceNode('details'),body=evidenceNode('div'),rows=evidenceNode('ol');
+  scope.className=note.className='system';scope.dataset.organScope='';checks.className='organ-checks';checks.dataset.organChecks='';note.dataset.organNote='';
+  for(const [key,label]of [['ground','Every step grounded?'],['rumen','Rules accounted for?'],['nextPrepared','Next steps prepared?']]){const p=evidenceNode('p',label),value=evidenceNode('strong');value.dataset.organCheck=key;value.className='organ-state';p.append(value);checks.append(p)}
+  details.dataset.key='organs:'+item+':details';body.className='disclosure-body';rows.className='organ-phases';rows.dataset.organPhases='';body.append(evidenceNode('p','Ground records source identity and findings. Rule accounting is distinct from actual check execution; inspect verification for executed results.'),rows);details.append(evidenceNode('summary','Inspect each step and its accepted evidence'),body);root.append(title,scope,checks,note,details);parent.append(root);
+ }
+ const phases=Array.isArray(summary?.phases)?summary.phases:[],expected=[...new Set((jobs??[]).filter(job=>typeof job==='string'&&job))];
+ if(typeof currentJob==='string'&&currentJob&&!expected.includes(currentJob))expected.push(currentJob);
+ const legacy=summary?.legacy===true,recorded=summary?.required===true&&!legacy;
+ const phaseFor=job=>phases.find(phase=>phase.job===job);
+ const stateFor=(phase,key)=>!recorded?'unknown':phase?.[key]===true&&Number.isSafeInteger(phase.event)&&phase.event>0?'yes':'no';
+ const setState=(value,state)=>{value.dataset.state=state;evidenceText(value,state==='yes'?'YES':state==='no'?'NO · pending':legacy?'UNKNOWN · legacy':'UNKNOWN · unavailable')};
+ for(const value of root.querySelector('[data-organ-checks]').querySelectorAll('[data-organ-check]')){
+  const key=value.dataset.organCheck,states=expected.map(job=>stateFor(phaseFor(job),key));setState(value,!states.length||states.includes('unknown')?'unknown':states.every(state=>state==='yes')?'yes':'no');
+ }
+ evidenceText(root.querySelector('[data-organ-scope]'),'Across all '+expected.length+' configured or active steps'+(currentJob?' · Current step: '+currentJob:'.'));
+ evidenceText(root.querySelector('[data-organ-note]'),!summary?'Ground/Rumen evidence is unavailable. Current resource availability is unknown; no completion is inferred.':legacy?'This work predates mandatory organ receipts. Historical completion remains visible; Ground/Rumen evidence is unknown.':'Saved acceptance evidence. Current resource availability is unknown until execution rechecks it.'+(summary.omitted?' '+summary.omitted+' accepted receipts are outside this preview.':''));
+ const all=[...new Set([...expected,...phases.map(phase=>phase.job)])],rows=root.querySelector('[data-organ-phases]'),keep=new Set(all);
+ for(const row of [...rows.children])if(!keep.has(row.dataset.organJob))row.remove();
+ for(const job of all){const phase=phaseFor(job);let row=[...rows.children].find(node=>node.dataset.organJob===job);
+  if(!row){row=evidenceNode('li');row.dataset.organJob=job;row.dataset.key='organ-job:'+job;const title=evidenceNode('p'),checks=evidenceNode('div'),note=evidenceNode('p');title.className='organ-phase-title';title.dataset.organTitle='';checks.className='organ-checks';note.className='system';note.dataset.organDetail='';for(const [key,label]of [['ground','Ground'],['rumen','Rumen'],['nextPrepared','Next step']]){const p=evidenceNode('p',label),value=evidenceNode('strong');value.className='organ-state';value.dataset.organCheck=key;p.append(value);checks.append(p)}row.append(title,checks,note);rows.append(row)}
+  evidenceText(row.querySelector('[data-organ-title]'),job+(job===currentJob?' · current':''));for(const value of row.querySelectorAll('[data-organ-check]'))setState(value,stateFor(phase,value.dataset.organCheck));
+  evidenceText(row.querySelector('[data-organ-detail]'),phase?(phase.rules+' declared rules · '+(phase.next?.length?'Prepared for '+phase.next.join(', '):'No later step required')+' · Current availability unknown'):legacy?'No mandatory organ evidence was recorded.':'No current accepted preparation is recorded for this step.');
+  const event=phase?.event,existing=[...row.children].find(node=>node.dataset.evidenceKey);
+  if(recorded&&Number.isSafeInteger(event)&&event>0)exactEvidence(row,'organ-event:'+item+':'+job,'Read accepted Ground, Rumen and handoff evidence','/api/v1/items/'+item+'/evidence?kind=event&ref='+event);else existing?.remove();
+ }
+ let link=root.querySelector('[data-organ-record]');if(!link){link=evidenceNode('a','Inspect the same work record');link.dataset.organRecord='';root.lastElementChild.lastElementChild.append(link)}link.href=summary?.detail??'/api/trace/'+item+'?lens=ax';
  return root;
 }
 function patchEvidence(old,fresh){
@@ -29563,8 +30039,9 @@ function render(v,context){
   const last=active.map(i=>i.heartbeat?.at??i.started).sort().at(-1);head.append(el('p','Last activity at '+time(last),'system'));
  }
  head.append(el('h3','Steps'));
- const nodes=el('ol',undefined,'steps');
+ const nodes=el('ol',undefined,'steps'),organJobs=[];
  function node(n,parent){
+  organJobs.push(n.job);
   const li=el('li'),row=el('div',undefined,'step');
   const done=v.workEvidence?.jobs[n.job]?.complete===true;
   const current=n.job===v.job||active.some(i=>i.job===n.job);
@@ -29576,6 +30053,7 @@ function render(v,context){
  for(const c of v.pack[v.itemRecord.flow?.loop??v.phase]??[])for(const n of c.steps??[])node(n,nodes);
  if(nodes.children.length)head.append(nodes);else head.append(el('p','No steps have been set up for this task.','muted'));
  currentWork(head,v.currentHandoff,v.item);
+ workOrgans(head,context.organs,v.item,organJobs,v.job);
  const thread=conversation(v.item,context);
  const tech=disclosure(tail,'technical:'+v.item,'Activity & technical details',b=>{
   const m=el('dl',undefined,'metrics');for(const [name,value]of [['Calls recorded',v.metrics.invocations],['Failed calls',v.metrics.failed],['Total call time',duration(v.metrics.ms)],['Reported tokens',v.metrics.tokens===null?'Not reported':v.metrics.tokens.toLocaleString()]]){const pair=el('div');pair.append(el('dt',name),el('dd',String(value)));m.append(pair)}b.append(m);
@@ -29663,7 +30141,7 @@ var GRAMMAR_PAGE = String.raw`<!doctype html>
 <div class="run-picker"><div><label for="run">Discovery run</label><select id="run" aria-describedby="read-note"><option value="">Loading recorded runs…</option></select></div><button class="action" id="refresh" type="button">Refresh record</button></div>
 <div id="empty" class="empty" hidden><h2 id="empty-title"></h2><p id="empty-text"></p></div>
 <div id="record" hidden>
-<section class="overview" aria-labelledby="work-title"><h2 id="work-title"></h2><p id="work-position" class="system"></p><p class="completion">Discovery complete?<strong class="answer" id="discovery-complete"></strong><span class="completion-count" id="discovery-count"></span></p><div class="facts"><p>Task list produced?<strong class="answer" id="task-list-produced"></strong></p><p>Every task delivered?<strong class="answer" id="all-delivered"></strong></p><p>Runner active?<strong class="answer" id="runner-active"></strong></p></div><p class="system" id="last-activity"></p></section>
+<section class="overview" aria-labelledby="work-title"><h2 id="work-title"></h2><p id="work-position" class="system"></p><p class="completion">Discovery complete?<strong class="answer" id="discovery-complete"></strong><span class="completion-count" id="discovery-count"></span></p><div class="facts"><p>Task list produced?<strong class="answer" id="task-list-produced"></strong></p><p>Every task delivered?<strong class="answer" id="all-delivered"></strong></p><p>Runner active?<strong class="answer" id="runner-active"></strong></p></div><p class="system" id="last-activity"></p><div id="discovery-organs"></div></section>
 <section class="grammar-section" aria-labelledby="capture-heading"><h3 id="capture-heading">Step 1): Capture Raw Input</h3><div class="discovery-layout"><div id="discovery-steps"></div><details class="source" id="raw-source"><summary>Raw input · exact recorded text</summary><pre id="raw-text" tabindex="0"></pre></details></div></section>
 <section class="grammar-section" aria-labelledby="tasks-heading"><h3 id="tasks-heading">Step 2) generate task list</h3><p id="task-list-status"></p><ul class="task-list" id="task-list"></ul></section>
 <section class="grammar-section" aria-labelledby="delivery-heading"><h3 id="delivery-heading">Step 3) complete the fucking task list</h3><p id="parallel-status" class="muted"></p><div id="delivery-tasks"></div></section>
@@ -29683,11 +30161,11 @@ function dataText(value){return value===null||value===undefined?'Not recorded':t
 function empty(title,text){$('empty').hidden=false;$('record').hidden=true;setText($('empty-title'),title);setText($('empty-text'),text)}
 function phaseNode(parent,key){let r=stepNodes.get(key);if(r)return r;const root=node('details','grammar-step'),summary=node('summary'),name=node('span','function-name'),state=node('span','answer'),body=node('div','disclosure-body'),reason=node('p','reason'),input=node('pre'),output=node('pre'),evidence=node('pre');root.dataset.step=key;input.tabIndex=output.tabIndex=evidence.tabIndex=0;summary.append(name,state);body.append(reason,node('h4',null,'Recorded invocation input'),input,node('h4',null,'Accepted result'),output,node('h4',null,'Recorded evidence'),evidence);root.append(summary,body);parent.append(root);r={root,name,state,reason,input,output,evidence};stepNodes.set(key,r);return r}
 function updatePhase(parent,key,s){const r=phaseNode(parent,key);setText(r.name,s.label);answer(r.state,s.state);setText(r.reason,s.reason);r.reason.hidden=!s.reason;setText(r.input,dataText(s.input));setText(r.output,dataText(s.evidence?.acceptedOutput??s.output));let unavailable=r.root.querySelector('[data-invocation-unavailable]');const provenance=s.evidence?.provenance;const missing=provenance&&(provenance.state?provenance.state!=='linked':Object.values(provenance).some(p=>p?.state!=='linked'));if(missing){if(!unavailable){unavailable=node('p','system','Invocation not recorded');unavailable.dataset.invocationUnavailable='';r.input.before(unavailable)}}else unavailable?.remove();const later=s.evidence?.laterAttempts;for(const attempts of later?(later.entries?[later]:Object.values(later)):[])for(const attempt of attempts?.entries??[])exactEvidence(r.root.lastElementChild,'later:'+key+':'+attempt.event,'Later attempt · '+attempt.outcome+' · '+attempt.at,attempt.evidence);setText(r.evidence,dataText({...s.evidence,retainedOutput:s.output,metrics:s.metrics}));return r.root}
-function clearSelection(){stepNodes.clear();taskNodes.clear();listNodes.clear();$('discovery-steps').replaceChildren();$('delivery-tasks').replaceChildren();$('task-list').replaceChildren();$('raw-source').open=false;for(const n of document.querySelectorAll('[data-current-work]'))n.remove()}
+function clearSelection(){stepNodes.clear();taskNodes.clear();listNodes.clear();$('discovery-steps').replaceChildren();$('delivery-tasks').replaceChildren();$('task-list').replaceChildren();$('raw-source').open=false;for(const n of document.querySelectorAll('[data-current-work],[data-work-organs]'))n.remove()}
 function select(id){if(id===selected)return;selected=id;lastGood=null;clearSelection();const url=new URL(location.href);if(id)url.searchParams.set('id',String(id));else url.searchParams.delete('id');history.replaceState(null,'',url);void refresh()}
 function taskNode(t){let r=taskNodes.get(t.id);if(r)return r;const root=node('section','task-card'),header=node('header'),title=node('h4'),done=node('strong','answer'),position=node('p','task-position'),readiness=node('p','task-readiness'),facts=node('div','facts'),entered=node('strong','answer'),tests=node('strong','answer'),verified=node('strong','answer'),blocker=node('div','notice'),blockTitle=node('h3',null,'What prevents completion?'),blockText=node('p'),grid=node('div','phase-grid'),details=node('details','task-evidence'),proof=node('pre');root.id='task-'+t.id;root.tabIndex=-1;title.id='task-title-'+t.id;root.setAttribute('aria-labelledby',title.id);header.append(title,done);for(const [label,value]of [['Entered delivery?',entered],['Tests created?',tests],['Verification passed?',verified]]){const p=node('p',null,label);p.append(value);facts.append(p)}blocker.append(blockTitle,blockText);proof.tabIndex=0;details.append(node('summary',null,'Inspect check results, version and shipment evidence'),proof);root.append(header,position,readiness,facts,blocker,grid,details);$('delivery-tasks').append(root);r={root,title,done,position,readiness,entered,tests,verified,blocker,blockText,grid,proof};taskNodes.set(t.id,r);return r}
-function updateTask(t){const r=taskNode(t);setText(r.title,'#'+t.id+' · '+t.title);answer(r.done,t.delivered?'yes':'no',t.delivered?'DELIVERED':'NOT DELIVERED');setText(r.position,'Current phase: '+(t.currentPhase||'not entered')+' · '+t.status+(t.currentJob?' · '+t.currentJob:''));setText(r.readiness,['shipped','completed'].includes(t.status)&&!t.delivered?'Recorded as '+(t.status==='shipped'?'delivered':'completed')+'; current evidence incomplete. '+t.readiness.reason:t.readiness.reason);const handoff=currentWork(r.root,t.currentHandoff,t.id);if(handoff.nextElementSibling!==r.grid)r.root.insertBefore(handoff,r.grid);answer(r.entered,t.enteredDelivery?'yes':'no');answer(r.tests,t.testsCreated?'yes':'no',t.testsCreated?'YES · '+t.testCount+' checks':'NO');answer(r.verified,t.verification.passed===true?'yes':t.verification.passed===false?'blocked':'no',t.verification.passed===true?'YES':t.verification.passed===false?'NO · failed':'NO · not recorded');r.blocker.hidden=!t.blocker;setText(r.blockText,t.blocker?t.blocker.message:'');for(const p of t.phases)updatePhase(r.grid,'task:'+t.id+':'+p.job,p);setText(r.proof,dataText({verification:t.verification,shipment:t.shipment,readiness:t.readiness,dependsOn:t.after,lastTaskUpdate:t.updated}));let li=listNodes.get(t.id);if(!li){li=node('li');const b=node('button','task-jump'),a=node('strong','answer');b.type='button';b.addEventListener('click',()=>{r.root.focus({preventScroll:true});r.root.scrollIntoView({block:'start'})});li.append(b,a);$('task-list').append(li);listNodes.set(t.id,li)}setText(li.firstElementChild,'#'+t.id+' · '+t.title);answer(li.lastElementChild,t.delivered?'yes':t.blocker?'blocked':'no',t.delivered?'DELIVERED':t.blocker?'HELD':t.enteredDelivery?'IN DELIVERY':'NOT STARTED')}
-function render(view){$('empty').hidden=true;$('record').hidden=false;setText($('work-title'),view.discovery.title);setText($('work-position'),'Discovery #'+view.discovery.id+' · '+view.discovery.status+(view.discovery.currentJob?' · '+view.discovery.currentJob:''));setText($('raw-text'),view.discovery.source);answer($('discovery-complete'),view.discovery.complete?'yes':'no',view.discovery.complete?'YES · complete':'NO · pending');setText($('discovery-count'),view.discovery.completedStepCount+' of '+view.discovery.requiredStepCount+' required functions complete.');answer($('task-list-produced'),view.discovery.taskListProduced?'yes':'no');answer($('all-delivered'),view.allDelivered?'yes':'no',view.allDelivered?'YES':view.tasks.length?'NO':'NO · no delivered tasks');answer($('runner-active'),view.runner.active?'yes':'no',view.runner.active?'YES':'NO · stopped');setText($('last-activity'),'Last recorded activity: '+(view.lastEventAt||'not recorded'));currentWork($('discovery-steps').parentElement,view.discovery.currentHandoff,view.discovery.id);for(const s of view.discovery.steps)updatePhase($('discovery-steps'),'discovery:'+s.job,s);setText($('task-list-status'),view.discovery.taskListProduced?view.tasks.length+' generated task'+(view.tasks.length===1?'':'s')+'.':'Task list has not been produced.');setText($('parallel-status'),view.parallel.observed?'Overlapping task execution is recorded for '+view.parallel.pairs.map(p=>p.map(id=>'#'+id).join(' and ')).join('; ')+'.':'No overlapping task execution is established by the current record.');for(const t of view.tasks)updateTask(t);const ids=new Set(view.tasks.map(t=>t.id));for(const [id,r]of taskNodes)if(!ids.has(id)){r.root.remove();taskNodes.delete(id);listNodes.get(id)?.remove();listNodes.delete(id);for(const [k,s]of stepNodes)if(k.startsWith('task:'+id+':')){s.root.remove();stepNodes.delete(k)}}lastGood=view;setText(connection,'Connected · record read '+view.observedAt);connection.className=''}
+function updateTask(t){const r=taskNode(t);setText(r.title,'#'+t.id+' · '+t.title);answer(r.done,t.delivered?'yes':'no',t.delivered?'DELIVERED':'NOT DELIVERED');setText(r.position,'Current phase: '+(t.currentPhase||'not entered')+' · '+t.status+(t.currentJob?' · '+t.currentJob:''));setText(r.readiness,['shipped','completed'].includes(t.status)&&!t.delivered?'Recorded as '+(t.status==='shipped'?'delivered':'completed')+'; current evidence incomplete. '+t.readiness.reason:t.readiness.reason);const organs=workOrgans(r.root,t.organs,t.id,t.organJobs,t.currentJob);if(organs.nextElementSibling!==r.grid)r.root.insertBefore(organs,r.grid);const handoff=currentWork(r.root,t.currentHandoff,t.id);if(handoff.nextElementSibling!==organs)r.root.insertBefore(handoff,organs);answer(r.entered,t.enteredDelivery?'yes':'no');answer(r.tests,t.testsCreated?'yes':'no',t.testsCreated?'YES · '+t.testCount+' checks':'NO');answer(r.verified,t.verification.passed===true?'yes':t.verification.passed===false?'blocked':'no',t.verification.passed===true?'YES':t.verification.passed===false?'NO · failed':'NO · not recorded');r.blocker.hidden=!t.blocker;setText(r.blockText,t.blocker?t.blocker.message:'');for(const p of t.phases)updatePhase(r.grid,'task:'+t.id+':'+p.job,p);setText(r.proof,dataText({verification:t.verification,shipment:t.shipment,readiness:t.readiness,dependsOn:t.after,lastTaskUpdate:t.updated}));let li=listNodes.get(t.id);if(!li){li=node('li');const b=node('button','task-jump'),a=node('strong','answer');b.type='button';b.addEventListener('click',()=>{r.root.focus({preventScroll:true});r.root.scrollIntoView({block:'start'})});li.append(b,a);$('task-list').append(li);listNodes.set(t.id,li)}setText(li.firstElementChild,'#'+t.id+' · '+t.title);answer(li.lastElementChild,t.delivered?'yes':t.blocker?'blocked':'no',t.delivered?'DELIVERED':t.blocker?'HELD':t.enteredDelivery?'IN DELIVERY':'NOT STARTED')}
+function render(view){$('empty').hidden=true;$('record').hidden=false;setText($('work-title'),view.discovery.title);setText($('work-position'),'Discovery #'+view.discovery.id+' · '+view.discovery.status+(view.discovery.currentJob?' · '+view.discovery.currentJob:''));setText($('raw-text'),view.discovery.source);answer($('discovery-complete'),view.discovery.complete?'yes':'no',view.discovery.complete?'YES · complete':'NO · pending');setText($('discovery-count'),view.discovery.completedStepCount+' of '+view.discovery.requiredStepCount+' required functions complete.');answer($('task-list-produced'),view.discovery.taskListProduced?'yes':'no');answer($('all-delivered'),view.allDelivered?'yes':'no',view.allDelivered?'YES':view.tasks.length?'NO':'NO · no delivered tasks');answer($('runner-active'),view.runner.active?'yes':'no',view.runner.active?'YES':'NO · stopped');setText($('last-activity'),'Last recorded activity: '+(view.lastEventAt||'not recorded'));workOrgans($('discovery-organs'),view.discovery.organs,view.discovery.id,view.discovery.organJobs,view.discovery.currentJob);currentWork($('discovery-steps').parentElement,view.discovery.currentHandoff,view.discovery.id);for(const s of view.discovery.steps)updatePhase($('discovery-steps'),'discovery:'+s.job,s);setText($('task-list-status'),view.discovery.taskListProduced?view.tasks.length+' generated task'+(view.tasks.length===1?'':'s')+'.':'Task list has not been produced.');setText($('parallel-status'),view.parallel.observed?'Overlapping task execution is recorded for '+view.parallel.pairs.map(p=>p.map(id=>'#'+id).join(' and ')).join('; ')+'.':'No overlapping task execution is established by the current record.');for(const t of view.tasks)updateTask(t);const ids=new Set(view.tasks.map(t=>t.id));for(const [id,r]of taskNodes)if(!ids.has(id)){r.root.remove();taskNodes.delete(id);listNodes.get(id)?.remove();listNodes.delete(id);for(const [k,s]of stepNodes)if(k.startsWith('task:'+id+':')){s.root.remove();stepNodes.delete(k)}}lastGood=view;setText(connection,'Connected · record read '+view.observedAt);connection.className=''}
 async function json(url){const response=await fetch(url,{cache:'no-store',headers:{Accept:'application/json'}});if(!response.ok){let detail='';try{const body=await response.json();detail=body.message||body.error||''}catch{}throw new Error('HTTP '+response.status+(detail?' · '+detail:''))}return response.json()}
 async function refresh(){if(loading)return;loading=true;$('refresh').disabled=true;try{const runs=await json('/api/grammar');const options=runs.items||[];const key=JSON.stringify(options);if(key!==runKey){const focused=document.activeElement===runSelect;const value=String(selected||'');runSelect.replaceChildren();if(!options.length){const o=node('option',null,'No discovery runs recorded');o.value='';runSelect.append(o)}for(const x of options){const o=node('option',null,'#'+x.id+' · '+x.title+' · '+x.status);o.value=String(x.id);runSelect.append(o)}runKey=key;runSelect.value=value;if(focused)runSelect.focus({preventScroll:true})}runSelect.disabled=!options.length;if(!selected&&options.length){selected=options[options.length-1].id;runSelect.value=String(selected);const url=new URL(location.href);url.searchParams.set('id',String(selected));history.replaceState(null,'',url)}if(!selected){empty('No discovery work recorded.','Start a discovery run in this Made Well store to see its prescribed functions, outputs and generated tasks.');setText(connection,'Connected · no discovery runs');connection.className='';return}const requested=selected;const view=await json('/api/grammar/'+requested);if(selected!==requested)return;if(!view||!view.discovery)throw new Error('The selected work record has no discovery context.');if(view.discovery.id!==selected){selected=view.discovery.id;runSelect.value=String(selected);const url=new URL(location.href);url.searchParams.set('id',String(selected));history.replaceState(null,'',url)}render(view)}catch(error){connection.className='error';setText(connection,'Record unavailable · '+error.message+(lastGood?' · showing the last successful read':'') );if(!lastGood)empty('The work record is unavailable.','Refresh the record or choose another discovery run. No completion state is inferred from this connection failure.')}finally{loading=false;$('refresh').disabled=false}}
 runSelect.addEventListener('change',()=>select(Number(runSelect.value)||null));$('refresh').addEventListener('click',refresh);void refresh();setInterval(refresh,2000);
@@ -29768,35 +30246,35 @@ $('refresh').addEventListener('click',refresh);window.addEventListener('popstate
 </script></body></html>`;
 
 // src/jump-pack-lab.ts
-import { createHash as createHash11 } from "node:crypto";
-import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync10, readSync as readSync2, realpathSync as realpathSync2, statSync as statSync3 } from "node:fs";
-import { extname, isAbsolute as isAbsolute3, relative as relative3, resolve as resolve9, sep as sep3 } from "node:path";
+import { createHash as createHash15 } from "node:crypto";
+import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync11, readSync as readSync2, realpathSync as realpathSync3, statSync as statSync4 } from "node:fs";
+import { extname, isAbsolute as isAbsolute4, relative as relative5, resolve as resolve11, sep as sep4 } from "node:path";
 var parsed2 = (raw) => typeof raw === "string" ? lastJson(raw) ?? raw : raw ?? null;
 var record3 = (value4) => value4 && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
 var deliveryJobs = ["ideation", "planning", "implementation", "verification"];
 function workArtifact(item, verification) {
   if (typeof verification.artifact !== "string") return null;
-  const path = resolve9(item.workspace, verification.artifact);
+  const path = resolve11(item.workspace, verification.artifact);
   const absent = (message) => ({ path, content: null, available: false, hashMatches: null, message });
   try {
-    const root = realpathSync2(item.workspace), actual = realpathSync2(path), within = relative3(root, actual);
-    if (within === ".." || within.startsWith(`..${sep3}`) || isAbsolute3(within)) return absent("The recorded output is outside this task workspace; its content is unavailable here.");
+    const root = realpathSync3(item.workspace), actual = realpathSync3(path), within = relative5(root, actual);
+    if (within === ".." || within.startsWith(`..${sep4}`) || isAbsolute4(within)) return absent("The recorded output is outside this task workspace; its content is unavailable here.");
     const expected = Array.isArray(verification.evidence) ? verification.evidence.find((entry) => typeof entry === "string" && /^sha256:[a-f0-9]{64}$/.test(entry)) : void 0;
-    const previewable = [".md", ".txt", ".json"].includes(extname(actual)) && statSync3(actual).size <= 65536;
-    const bytes3 = previewable ? readFileSync10(actual) : null;
+    const previewable = [".md", ".txt", ".json"].includes(extname(actual)) && statSync4(actual).size <= 65536;
+    const bytes3 = previewable ? readFileSync11(actual) : null;
     let hashMatches = null;
     if (typeof expected === "string") {
-      const hash3 = createHash11("sha256");
-      if (bytes3) hash3.update(bytes3);
+      const hash5 = createHash15("sha256");
+      if (bytes3) hash5.update(bytes3);
       else {
         const file = openSync2(actual, "r"), buffer = Buffer.alloc(65536);
         try {
-          for (let size7; (size7 = readSync2(file, buffer)) > 0; ) hash3.update(buffer.subarray(0, size7));
+          for (let size7; (size7 = readSync2(file, buffer)) > 0; ) hash5.update(buffer.subarray(0, size7));
         } finally {
           closeSync2(file);
         }
       }
-      hashMatches = hash3.digest("hex") === expected.slice(7);
+      hashMatches = hash5.digest("hex") === expected.slice(7);
     }
     if (!previewable) return { path, content: null, available: true, hashMatches, message: hashMatches === false ? "This output has changed since it was checked." : "The output exists. This view can only preview small text files." };
     const content = bytes3.toString("utf8");
@@ -29895,7 +30373,7 @@ function jumpPackLab(store) {
       objective: item.objective,
       category: mode === "tool-check" ? "tool-check" : "work-example",
       mode,
-      inputKey: createHash11("sha256").update(item.source).digest("hex"),
+      inputKey: createHash15("sha256").update(item.source).digest("hex"),
       inputOrigin: typeof context3.inputOrigin === "string" ? context3.inputOrigin : mode === "tool-check" ? "Input for a check of the tool itself" : "Recorded example input",
       workTitle: typeof context3.workTitle === "string" ? context3.workTitle : item.title,
       testQuestion: typeof context3.testQuestion === "string" ? context3.testQuestion : String(declaration.data.hypothesis ?? ""),
@@ -30256,10 +30734,10 @@ var inFlight = (events2) => {
   }
   return [...open.values()];
 };
-var liveDir = (path) => join11(dirname7(path), "live");
+var liveDir = (path) => join11(dirname8(path), "live");
 var liveFiles = (path) => {
   try {
-    return readdirSync4(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => ({ name: f, bytes: statSync4(join11(liveDir(path), f)).size }));
+    return readdirSync4(liveDir(path)).filter((f) => f.endsWith(".log")).map((f) => ({ name: f, bytes: statSync5(join11(liveDir(path), f)).size }));
   } catch {
     return [];
   }
@@ -30579,7 +31057,7 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read2 = (name) => existsSync4(patchPath(home, name)) ? readFileSync11(patchPath(home, name), "utf8") : "";
+  const read2 = (name) => existsSync4(patchPath(home, name)) ? readFileSync12(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
   let change = read2("change");
   if (!change && shipped) {
@@ -30614,7 +31092,7 @@ var itemDetail = (store, nextOf, id2) => {
 var spansOf = (path, item) => {
   const file = spansPath(path);
   if (!existsSync4(file)) return [];
-  const all4 = readFileSync11(file, "utf8").split("\n").flatMap((l) => {
+  const all4 = readFileSync12(file, "utf8").split("\n").flatMap((l) => {
     try {
       return l ? [JSON.parse(l)] : [];
     } catch {
@@ -30649,7 +31127,7 @@ var staticPage = (store, nextOf) => {
 var GAZETTE = new URL("../dist/gazette.html", import.meta.url);
 var gazettePage = () => {
   try {
-    return readFileSync11(GAZETTE, "utf8");
+    return readFileSync12(GAZETTE, "utf8");
   } catch {
     return void 0;
   }
@@ -30674,7 +31152,7 @@ var serve = (path, nextOf, host, port, renderer, wake2) => Effect_exports.callba
       if (url.pathname === "/lab") return html(res, JUMP_PACK_PAGE);
       if (url.pathname === "/qa") return html(res, QA_NOTEBOOK);
       if (/^\/fonts\/ibm-plex-(sans|mono)-latin\.woff2$/.test(url.pathname)) {
-        const font = readFileSync11(new URL(`../ui${url.pathname}`, import.meta.url));
+        const font = readFileSync12(new URL(`../ui${url.pathname}`, import.meta.url));
         res.writeHead(200, { "content-type": "font/woff2", "cache-control": "public, max-age=86400" });
         return void res.end(font);
       }
@@ -30757,7 +31235,7 @@ var thisHost = () => ({
   uid: process.getuid?.() ?? 0,
   env: process.env,
   node: process.execPath,
-  script: resolve10(process.argv[1] ?? ""),
+  script: resolve12(process.argv[1] ?? ""),
   run: (file, args2) => {
     try {
       return { code: 0, out: execFileSync2(file, args2, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }), err: "" };
@@ -30841,7 +31319,7 @@ var serviceStatus = (h) => {
   if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
   const { unit } = servicePaths(h);
   if (!existsSync4(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
-  const text4 = readFileSync11(unit, "utf8");
+  const text4 = readFileSync12(unit, "utf8");
   const args2 = execStartOf(h, text4);
   const address = addressOf(args2);
   let running = false;
@@ -30870,10 +31348,10 @@ var installService = (h, s) => {
   if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
   const { unit } = servicePaths(h);
   const text4 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
-  const before = existsSync4(unit) ? readFileSync11(unit, "utf8") : void 0;
+  const before = existsSync4(unit) ? readFileSync12(unit, "utf8") : void 0;
   const wrote = [];
   if (before !== text4) {
-    mkdirSync7(dirname7(unit), { recursive: true });
+    mkdirSync7(dirname8(unit), { recursive: true });
     writeFileSync7(unit, text4);
     wrote.push(unit);
   }
@@ -31233,7 +31711,7 @@ var found2 = (store, id2) => {
   return item ? Effect_exports.succeed(item) : Effect_exports.fail(new MadeWellError({ code: "item_not_found", message: `There is no work item #${id2}.`, context: { id: id2 }, next: [{ run: "mw status", why: "list every work item" }] }));
 };
 var registered = Effect_exports.fn("mw.registered")(function* (workspace) {
-  const path = resolve11(workspace ?? ".");
+  const path = resolve13(workspace ?? ".");
   const projects = yield* readProjects(registry);
   const project = projectFor(projects, path);
   if (project) return { path, project };
@@ -31251,7 +31729,7 @@ var wake = Effect_exports.fn("mw.wake")(function* (id2) {
   if (process.env.MW_AUTORUN === "0") return [{ run: "mw run", why: "deliver it: the operator starts the runner (MW_AUTORUN=0)" }];
   const movable = store.list().some((i) => i.parent === void 0 && MOVING.includes(i.status) && !stuck(store, i));
   if (!movable || (yield* runner(store))) return watch2;
-  const home = dirname8(store.path);
+  const home = dirname9(store.path);
   mkdirSync8(home, { recursive: true });
   const log2 = openSync4(join12(home, "runner.log"), "a");
   spawn3(process.execPath, [process.argv[1], "run"], { detached: true, stdio: ["ignore", log2, log2], cwd: home, env: process.env }).unref();
@@ -31263,22 +31741,22 @@ var packFor = Effect_exports.fn("mw.packFor")(function* (workspace) {
 });
 var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
-  const path = resolve11(input["source-file"]);
+  const path = resolve13(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync12(path, "utf8"),
+    try: () => readFileSync13(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
 var readQaInput = Effect_exports.fn("mw.readQaInput")(function* (input) {
-  const path = resolve11(input["input-file"]);
-  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync12(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
+  const path = resolve13(input["input-file"]);
+  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync13(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
   return yield* Effect_exports.try({ try: () => qaParseJson(bytes3), catch: qaStorageError });
 });
 var qaInputFile = (schema) => Schema_exports.String.annotate({ description: `UTF-8 JSON file (maximum 65536 bytes), exact ${schema} body, with a caller-supplied requestId; no path IDs in the body. JSON Schema: ${JSON.stringify(QA_JSON_SCHEMAS[schema])}` });
 var qaCliId = Schema_exports.String.check(Schema_exports.isPattern(/^[1-9]\d*$/)).pipe(Schema_exports.decodeTo(Schema_exports.NumberFromString), Schema_exports.decodeTo(QaId));
 var qaCliCounter = Schema_exports.String.check(Schema_exports.isPattern(/^(0|[1-9]\d*)$/)).pipe(Schema_exports.decodeTo(Schema_exports.NumberFromString), Schema_exports.decodeTo(QaCounter));
 var qaPageFlags = { after: Schema_exports.optionalKey(qaCliCounter), limit: Schema_exports.optionalKey(qaCliId) };
-var createOnce = (store, fields) => store.list().find((i) => i.parent === void 0 && i.discovery === void 0 && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace && JSON.stringify(i.pack) === JSON.stringify(fields.pack)) ?? store.create(fields);
+var createOnce = (store, fields) => store.list().find((i) => i.parent === void 0 && i.discovery === void 0 && i.title === fields.title && i.objective === fields.objective && i.source === fields.source && i.workspace === fields.workspace && JSON.stringify(i.pack) === JSON.stringify(fields.pack)) ?? createWork(store, fields);
 var runner = (store) => store.claimRunner().pipe(
   Effect_exports.map(() => (store.releaseRunner(), null)),
   Effect_exports.catchIf((e) => e.code === "store_locked", (e) => Effect_exports.succeed(e.context.owner))
@@ -31312,7 +31790,7 @@ var retention = (store, before) => {
 };
 var sizeOf = (path) => {
   if (!existsSync5(path)) return 0;
-  const s = statSync5(path);
+  const s = statSync6(path);
   return s.isDirectory() ? readdirSync5(path).reduce((n, f) => n + sizeOf(join12(path, f)), 0) : s.size;
 };
 var nextAction = Effect_exports.fn("mw.next")(function* () {
@@ -31393,7 +31871,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ project: Project, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const path = resolve11(input.workspace ?? ".");
+      const path = resolve13(input.workspace ?? ".");
       if (!existsSync5(path)) return yield* new MadeWellError({ code: "workspace_missing", message: `There is no directory ${path}.`, context: { workspace: path }, next: [{ run: "pwd", why: "run mw init from the project directory, or pass its path with --workspace" }] });
       const gates = input.gates === void 0 ? void 0 : yield* Schema_exports.decodeUnknownEffect(Schema_exports.fromJsonString(Schema_exports.Array(Gate)))(input.gates).pipe(
         Effect_exports.mapError((e) => usageError("init", `--gates must be a JSON array of {run, glob?}: ${e.message}`))
@@ -31434,7 +31912,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       if (input.update && input.item === void 0 || input.check && (input.update || input.item !== void 0)) return yield* usageError("cartridges", "Use --check alone, --item to inspect, or --update <selector-or-file> --item <id>.");
       const pinned = input.item === void 0 ? void 0 : yield* found2(yield* Store, input.item);
-      const selection2 = input.check ?? input.update ?? (pinned ? void 0 : projectFor(yield* readProjects(registry), resolve11(input.workspace ?? "."))?.cartridges);
+      const selection2 = input.check ?? input.update ?? (pinned ? void 0 : projectFor(yield* readProjects(registry), resolve13(input.workspace ?? "."))?.cartridges);
       const resolved = yield* resolvePackSelection(selection2);
       const pack = pinned && !input.update ? pinned.pack ?? SOFTWARE : resolved.pack ?? SOFTWARE;
       const update2 = input.update ? yield* requestPackUpdate(input.item, pack) : void 0;
@@ -31566,7 +32044,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       if (!input["input-file"]) return yield* contextFacts(input.id);
       const value4 = yield* Effect_exports.try({
-        try: () => JSON.parse(readFileSync12(input["input-file"], "utf8")),
+        try: () => JSON.parse(readFileSync13(input["input-file"], "utf8")),
         catch: () => usageError("context-fact", "Cannot read a JSON context fact command from --input-file. No input was saved.")
       });
       return { ...yield* contextFact(input.id, value4) };
@@ -31686,7 +32164,7 @@ var COMMANDS = [
     input: Schema_exports.Struct({ out: optional3("defaults to replay.html beside the store") }),
     output: Schema_exports.Struct({ replay: Schema_exports.String, next: Schema_exports.Array(Next) }),
     run: (input) => Effect_exports.gen(function* () {
-      const out = resolve11(input.out ?? resolve11(dirname8(storePath), "replay.html"));
+      const out = resolve13(input.out ?? resolve13(dirname9(storePath), "replay.html"));
       writeFileSync8(out, staticPage(yield* Store, nextFor));
       return { replay: out, next: [{ run: `open ${quote2(out)}`, why: "read the whole run: every item, its pipeline, calls and NQ exchanges" }] };
     })
@@ -31699,7 +32177,7 @@ var COMMANDS = [
     output: Schema_exports.Struct({ export: Schema_exports.String, calls: Schema_exports.Number, next: Schema_exports.Array(Next) }),
     idempotent: true,
     run: (input) => Effect_exports.gen(function* () {
-      const exported = yield* exportItem(yield* Store, input.id, resolve11(input.out ?? resolve11(dirname8(storePath), "exports", String(input.id))));
+      const exported = yield* exportItem(yield* Store, input.id, resolve13(input.out ?? resolve13(dirname9(storePath), "exports", String(input.id))));
       return { export: exported.dir, calls: exported.calls, next: [{ run: `ls ${quote2(exported.dir)}`, why: "one folder per call: brief, packet, answer, raw stream, tools.json and flags.json" }] };
     })
   }),
@@ -31713,8 +32191,8 @@ var COMMANDS = [
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync5(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync12(join12(dir, f), "utf8").split("\n").filter(Boolean));
-      return { dir: resolve11(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve11(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
+      const lines4 = files.flatMap((f) => readFileSync13(join12(dir, f), "utf8").split("\n").filter(Boolean));
+      return { dir: resolve13(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve13(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
   command({
@@ -31766,7 +32244,7 @@ var COMMANDS = [
         }));
       }
       const { ids, kept } = retention(store, before);
-      const home = dirname8(storePath);
+      const home = dirname9(storePath);
       const files = [...ids.flatMap((id2) => [join12(home, "exports", String(id2)), itemHome(storePath, id2)]), ...ids.length ? [join12(home, "replay.html")] : []].filter(existsSync5);
       const storeBytes = () => sizeOf(storePath) + sizeOf(`${storePath}-wal`);
       const start = storeBytes() + files.reduce((n, f) => n + sizeOf(f), 0);
@@ -31943,7 +32421,7 @@ var manual = Effect_exports.gen(function* () {
     errors: Object.fromEntries(Object.entries(ERRORS).map(([code, e]) => [code, { means: e.means, context: jsonSchema(e.context) }])),
     $defs,
     state: {
-      home: dirname8(registry),
+      home: dirname9(registry),
       store: existsSync5(storePath) ? storePath : null,
       projects: yield* readProjects(registry),
       items: Object.fromEntries([...new Set(items.map((i) => i.status))].map((s) => [s, items.filter((i) => i.status === s).length])),
@@ -31992,7 +32470,7 @@ function reloadWatch() {
   const self = fileURLToPath2(import.meta.url);
   const stamp = () => {
     try {
-      const s = statSync5(self);
+      const s = statSync6(self);
       return `${s.mtimeMs}:${s.size}:${s.ino}`;
     } catch {
       return void 0;
@@ -32010,7 +32488,7 @@ function reloadWatch() {
   return {
     wanted: () => wanted,
     stop: () => (clearInterval(timer), process.off("SIGHUP", want)),
-    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync3(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
+    exec: () => process.execve(process.execPath, [process.execPath, ...process.execArgv, realpathSync4(process.argv[1]), ...process.argv.slice(2)], { ...process.env, MW_BUILD: stamp() ?? "" })
   };
 }
 var signalled = Effect_exports.callback((resume) => {

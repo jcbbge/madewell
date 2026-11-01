@@ -25,9 +25,11 @@ import { ownArtifactHistory, ownArtifact, preserveArtifact, savedArtifacts, cont
 import { referenceDiscovery } from './packet-references.ts'
 import { answerHistory, decisionProblem, questionsOwedBy, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
 import { checkPrerequisites, prerequisiteForReference } from './prerequisites.ts'
+import { childOrgans, checkIncomingPreparation, inspectPreparation, organOutputShape, organPacket, organsRequired, saveOrganReceipt, type OrganReceipt } from './organs.ts'
+import { gateRule, rumenRules, type RumenRule } from './rumen.ts'
 import { existsSync, mkdirSync, readdirSync, readFileSync, lstatSync, readlinkSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import { Clock, Effect, Queue, Result, Scheduler, Schema, Semaphore } from 'effect'
 import { budgetFor, cardsFor, DEFAULT_PARALLEL, forLane, harnessOf, INTAKE_ACCESS, prescriptionOf, pickCard, type Access, type Card, type Prescriptions } from './cards.ts'
 import { applyPatch, bringOnto, branchOf, commit, GATE, itemHome, patchPath, removeHome, revParse, runChecks, runGates, takeChange, writePatch } from './change.ts'
@@ -229,7 +231,7 @@ const advance = Effect.fn('mw.advance')(function* (item: Item, config: EngineCon
 	const store = yield* Store
 	if (item.pack?.runtime === 'functions') {
 		yield* Effect.gen(function* () {
-			const node = yield* advanceFunctions(item, item.pack?.contracts?.handoff === '1'
+			const node = yield* advanceFunctions(item, item.pack?.contracts?.handoff === '1' || organsRequired(item)
 				? (current, node) => prepareWorktree(current.id, node.job, current.workspace, `item-${current.id}-${node.job}-function`, '', true)
 				: undefined)
 			if (node) {
@@ -242,7 +244,8 @@ const advance = Effect.fn('mw.advance')(function* (item: Item, config: EngineCon
 	if (!item.base) {
 		// The branch the item starts from, and ships to. Only Made Well's ship may move it from here on.
 		const base = yield* branchOf(item.workspace)
-		const conventions = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)?.conventions ?? []
+		const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
+		const conventions = [...new Set([...(project?.conventions ?? []), ...(organsRequired(item) ? project?.rumen?.filter(rule => rule.kind === 'judge' && (rule.jobs === undefined || rule.jobs.includes('plan'))).map(rule => rule.text) ?? [] : [])])]
 		store.save({ ...item, base, conventions: conventions.length ? conventions : undefined }, 'base', { ref: base.ref, main: base.commit, ...(conventions.length ? { conventions } : {}) })
 		return
 	}
@@ -508,7 +511,7 @@ const execute = Effect.fn('mw.execute')(function* (id: number, job: Job, config:
 	const plan = planOf(item)
 	const maker = item.pack?.runtime !== 'functions' && isMaker(job)
 	yield* callAgent(id, job, config, {
-		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (deliverableShape(L(item), job, auto(item))?.required as string[] | undefined) ?? [],
+		kind: 'execute', profile: stepOf(L(item), job).profile, access: prescriptionOf(config.prescriptions, job).access, card: x.card, required: (organOutputShape(item, deliverableShape(L(item), job, auto(item)))?.required as string[] | undefined) ?? [],
 		...(job === 'implement' && plan ? { scope: plan.scope } : {}),
 		...jobTree(item, job),
 		...(maker ? { onFail: (dir: string, head: string, baseline?: PreparationBaseline) => keepPartial(dir, item, job as Maker, head, baseline) } : {}),
@@ -614,7 +617,7 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		const functions = item.pack?.runtime === 'functions'
 		const wt = functions ? { path: item.workspace, base: '' } : yield* worktree(item.workspace, spec.at ?? item.base!.commit, `item-${id}-${job}-${spec.kind}`)
 		// A call with no access never sees its worktree, so it gets nothing prepared.
-		if ((!functions || item.pack?.contracts?.handoff === '1') && spec.access !== 'none') {
+		if ((!functions || item.pack?.contracts?.handoff === '1' || organsRequired(item)) && spec.access !== 'none') {
 			const failed = yield* prepareWorktree(id, job, wt.path, `item-${id}-${job}-${spec.kind}`, wt.base, spec.kind !== 'originator')
 			// The receiver's broken worktree is its question to the originator; the originator's has nobody above it.
 			if (failed && spec.kind === 'originator') return void hold(store, store.get(id)!, 'prepare_failed', failed.message, failed.context)
@@ -622,6 +625,12 @@ const callAgent = <A = Called>(id: number, job: Job, config: EngineConfig, spec:
 		}
 		const preparationBaseline = !functions && isMaker(job) && spec.kind === 'execute' && spec.access !== 'none' ? yield* capturePreparationBaseline(wt.path) : undefined
 		if (!functions && spec.prepare) yield* spec.prepare(wt.path)
+		if (organsRequired(item) && spec.kind === 'execute') {
+			const project = projectFor(yield* readProjects(projectsPath(store.path)), item.workspace)
+			const ground = checkIncomingPreparation(store, item, job, wt.path, project)
+			store.note(id, 'ground-checked', { job, ...ground })
+			if (!ground.ok) return void (yield* launchFailed(id, job, spec.kind, spec.card, 'Ground found unavailable or changed material in the producer preparation; repair this handoff through NQ.', { job, ...ground }))
+		}
 		const prompt = yield* spec.packet(wt.path)
 		const budget = budgetFor(p, job)
 		const harness = harnessOf(p, spec.card.harness)
@@ -742,8 +751,10 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	const home = itemHome(store.path, id)
 	// A malformed answer is re-asked as it is, by Made Well's own code: the work in the checkout stands.
 	const problem = malformed(L(item), job, answered.output, auto(item))
-	const call = problem ? ((yield* repair(id, job, answered, deliverableShape(L(item), job, auto(item)), problem)) ?? answered) : answered
+	const call = problem ? ((yield* repair(id, job, answered, organOutputShape(item, deliverableShape(L(item), job, auto(item))), problem)) ?? answered) : answered
 	const acceptedPrefix = Object.fromEntries(Object.entries(item.outputs).flatMap(([key, raw]) => raw === undefined ? [] : [[key, lastJson(raw)]]))
+	const organProject = organsRequired(item) ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : undefined
+	const selectedRules = (lastJson(store.call(answered.callId)?.prompt ?? '')?.organs as { rules?: RumenRule[] } | undefined)?.rules
 	if (item.pack?.runtime === 'functions') {
 		const result = validate(L(item), job, call.output, undefined, undefined, auto(item), [], acceptedPrefix)
 		store.note(id, 'trace-decode', { call: call.callId, job, ok: result.ok, ...(!result.ok ? { reason: result.reason } : {}) })
@@ -752,16 +763,19 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 		if (unanswered) return yield* refuse(id, job, call, unanswered)
 		const blocked = blockedOf(L(item), job, result.value)
 		if (blocked) return hold(store, store.get(id)!, 'function_failed', blocked, { job, call: call.callId })
+		const organs = inspectPreparation(item, job, result.value, JSON.stringify(result.value), dir, organProject, [], selectedRules)
+		if (!organs.ok) return yield* refuse(id, job, call, organs.reason)
 		const acceptance = yield* checkFunction(item, stepOf(L(item), job), result.value)
 		if (!acceptance.ok) return yield* refuse(id, job, call, acceptance.reason)
 		return store.atomic(() => {
 			acceptFunction(store, id, stepOf(L(item), job), JSON.stringify(result.value))
+			saveOrganReceipt(store, item, organs.receipt, call.callId)
 			recordPhaseDecisions(store, store.get(id)!, job, call.callId, result.value)
 		})
 	}
 	// A plan is held to what its base already holds: the files tracked in its own checkout.
 	const v = validate(L(item), job, call.output, plan, job === 'plan' ? (yield* snapshot(dir, [])).files : undefined, auto(item), item.conventions, acceptedPrefix)
-	store.note(id, 'trace-decode', { call: call.callId, job, ok: v.ok, schema: deliverableShape(L(item), job, auto(item)), ...(!v.ok ? { reason: v.reason } : {}) })
+	store.note(id, 'trace-decode', { call: call.callId, job, ok: v.ok, schema: organOutputShape(item, deliverableShape(L(item), job, auto(item))), ...(!v.ok ? { reason: v.reason } : {}) })
 	if (v.ok && v.dropped?.length) store.note(id, 'discovery-dropped', { call: call.callId, candidates: v.dropped })
 	// What the maker made is measured from its worktree as Made Well prepared it: the item's base, or the kept change committed on it.
 	const from = answered.before?.head ?? item.base!.commit
@@ -772,7 +786,17 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	})
 	const refused = (reason: string) => Effect.andThen(keep('refused', reason), refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
-	const value = v.value
+	if (organsRequired(item) && !isMaker(job) && answered.before?.head && (yield* revParse(dir, 'HEAD')) !== answered.before.head) return yield* refused('A read-phase worker moved its prepared checkout HEAD. Its unpublished commits are disposable, not durable next-step material. Restore the prepared base and return the phase result on the work.')
+	const value: Record<string, unknown> = { ...v.value, ...(lastJson(call.output)?.preparation !== undefined ? { preparation: lastJson(call.output)!.preparation } : {}) }
+	const organTracked = organsRequired(item) ? (yield* snapshot(dir, [])).files : []
+	const organs = inspectPreparation(item, job, value, call.output, dir, organProject, organTracked, selectedRules)
+	if (!organs.ok) return yield* refused(organs.reason)
+	if (organs.receipt && !isMaker(job)) for (const source of [...organs.receipt.ground.sources, ...organs.receipt.next.flatMap(next => next.requires)].filter(source => source.ref.startsWith('file:'))) {
+		const paths = source.paths ?? [relative(resolve(dir), resolve(dir, source.ref.slice(5)))]
+		if (paths.some(path => !organTracked.includes(path))) return yield* refused(`Ground/preparation references disposable target material for ${source.ref}. Cite actual durable repository files or a declared prepared input.`)
+		const changed = yield* git(dir, 'diff', '--name-only', answered.before?.head ?? item.base!.commit, '--', ...paths)
+		if (changed.trim()) return yield* refused(`Preparation references ${source.ref} changed only in a disposable read-phase checkout. Preserve the result in the durable output or use a declared prepared input.`)
+	}
 	const unanswered = decisionProblem(store, item, job, value, ledger(store, id, job))
 	if (unanswered) return yield* refused(unanswered)
 	if (job === 'plan') {
@@ -808,6 +832,8 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 			}
 		}
 		const { files, patch } = yield* takeChange(dir, base, answered.preparationBaseline)
+		const disposable = organs.receipt?.next.flatMap(next => next.requires).filter(source => source.ref.startsWith('file:')).flatMap(source => source.paths ?? [relative(resolve(dir), resolve(dir, source.ref.slice(5)))]).filter(path => !organTracked.includes(path) && !files.includes(path)) ?? []
+		if (disposable.length) return yield* refused(`Next-step preparation references files not retained in the durable maker patch: ${disposable.join(', ')}. Supply declared prepared inputs or actual extracted work.`)
 		if (job === 'implement' && !files.length) return yield* refused('You reported the plan done, but your checkout has no change.')
 		const product = files.filter((f) => covers(plan!.scope, f))
 		if (job === 'test-plan' && product.length) return yield* refused(`Checks may not touch the plan's scope, which is product code: ${product.join(', ')}. Write check files at other paths.`)
@@ -829,6 +855,7 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 		if (isMaker(job) && now.split?.[job]) saveTrack(store, id, job, { ...settled, done: true }, 'accepted', { job }, fields)
 		else applyRoute(store, id, job, value, { ...fields, ...settled })
 		recordPhaseDecisions(store, store.get(id)!, job, call.callId, value)
+		saveOrganReceipt(store, item, organs.receipt, call.callId)
 	})
 	yield* aftercare(id, job)
 })
@@ -848,6 +875,7 @@ function applyRoute(store: StoreService, id: number, job: Job, value: Record<str
 					title: c.title, objective: c.objective, kind: c.kind, workspace: current.workspace, status: auto(current) ? 'queued' : 'candidate', discovery: current.id,
 					source: current.source, from: by, outputs: { discover: JSON.stringify(c) }, ...(after ? { after: after.map((p) => ids[p - 1]!) } : {}),
 					...(current.pack ? { pack: current.pack } : {}), ...(current.autonomy ? { autonomy: current.autonomy } : {}),
+					...(current.organs ? { organs: childOrgans(current, job, current.outputs[job]!) } : {}),
 				}).id)
 			}
 			store.save({ ...current, status: 'discovered' }, 'discovered', { candidates: ids, ...(auto(current) ? { promoted: true } : {}) })
@@ -978,9 +1006,9 @@ const prepareWorktree = Effect.fn('mw.prepare')(function* (id: number, job: Job,
 
 /** A missing supplied resource is evidence for the receiver's existing NQ exchange, on this task. */
 function checkPreparedInputs(store: StoreService, item: Item, job: Job, dir: string, name: string, inputs: Parameters<typeof checkPrerequisites>[0], receiving: boolean) {
-	if (!receiving || !inputs?.length) return undefined
+	if (!receiving || !inputs?.length && !organsRequired(item)) return undefined
 	const checked = checkPrerequisites(inputs, job, dir)
-	if (!checked.length) return undefined
+	if (!checked.length && !organsRequired(item)) return undefined
 	store.note(item.id, 'inputs-checked', { job, name, dir, inputs: checked })
 	const missing = checked.filter(input => !input.ok)
 	return missing.length ? {
@@ -1085,19 +1113,29 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 	const budget = budgetFor(config.prescriptions, 'verify')
 	const env = { ...process.env, MW_ITEM: String(id) }
 	const live = liveFile(store, `item-${id}-verify`)
-	store.note(id, 'verify-started', { gates: gates.map((g) => g.run), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...(live ? { live } : {}) })
+	store.note(id, 'verify-started', { gates: gates.map((g) => g.run), gateRules: gates.map(gateRule), checks: checks.map((c) => ({ id: c.id, doneWhen: c.doneWhen, run: c.run })), ...(live ? { live } : {}) })
 	const run = yield* Effect.scoped(Effect.gen(function* () {
 		const wt = yield* worktree(item.workspace, item.base!.ref, `item-${id}-verify`)
 		const failed = yield* prepareWorktree(id, 'verify', wt.path, `item-${id}-verify`, wt.base)
 		if (failed) return { kind: 'unprepared', ...failed } as const
 		const change = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'change')))
 		if (Result.isFailure(change)) return { kind: 'conflict', by: 'implement', on: wt.base, error: change.failure } as const
+		if (organsRequired(item)) {
+			const ground = checkIncomingPreparation(store, item, 'verify', wt.path, project, ['implement'])
+			store.note(id, 'ground-checked', { job: 'verify', ...ground })
+			if (!ground.ok) return { kind: 'unprepared', message: 'Ground found changed or unavailable implementation handoff material.', context: { job: 'verify', ...ground } } as const
+		}
 		// The project's gates run on the change alone, before the check files are applied; their fixes join the change.
 		const gated = yield* runGates(id, wt.path, wt.base, gates, patchPath(home, 'change'), budget, env, live)
 		preserveArtifact(store, item, 'implement', readFileSync(patchPath(home, 'change'), 'utf8'), wt.base)
 		const built = yield* commit(wt.path, commitMessage(item))
 		const applied = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'checks')))
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
+		if (organsRequired(item)) {
+			const ground = checkIncomingPreparation(store, item, 'verify', wt.path, project, ['test-plan'])
+			store.note(id, 'ground-checked', { job: 'verify', ...ground })
+			if (!ground.ok) return { kind: 'unprepared', message: 'Ground found changed or unavailable check-author handoff material.', context: { job: 'verify', ...ground } } as const
+		}
 		const fingerprint = () => (item.checks?.files ?? []).map(path => {
 			try { const file = join(wt.path, path); return { path, sha256: contentHash(lstatSync(file).isSymbolicLink() ? readlinkSync(file) : readFileSync(file)) } }
 			catch { return { path, sha256: null } }
@@ -1113,7 +1151,7 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		const flaky = again.filter((r) => r.exitCode === 0).map((r) => r.id)
 		const unchanged = JSON.stringify(sources) === JSON.stringify(fingerprint())
 		const integrity = unchanged ? [] : [{ id: 'artifact-integrity', doneWhen: GATE, run: '(check source stability)', exitCode: 1, ms: 0, output: 'Independent check source changed during verification. A passing result cannot attest the retained check bytes.' }]
-		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, flaky, sources, results: [...gated.results, ...results, ...integrity] } as const
+		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, gateReceipts: gated.gateReceipts, flaky, sources, results: [...gated.results, ...results, ...integrity] } as const
 	})).pipe(Effect.ensuring(Effect.sync(() => endLive(live))))
 	// Verify is Made Well's own step, not an agent's: a worktree it cannot prepare holds for the operator.
 	if (run.kind === 'unprepared') return hold(store, store.get(id)!, 'prepare_failed', run.message, run.context)
@@ -1136,14 +1174,22 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		}, 'rebased', { conflict: run.by, from: now.base!.commit, ref: now.base!.ref, reason: why.slice(0, 2000) })
 		return
 	}
+	if (run.gateReceipts.some(r => r.outcome === 'unavailable' || r.outcome === 'passed' && [...r.sourceBefore, ...r.sourceAfter].some(source => source.sha256 === null))) return hold(store, now, 'environment', 'Rumen could not retain readable material identities for a required mechanical fence.', { job: 'verify', gateReceipts: run.gateReceipts })
 	const passed = run.results.every((r) => r.exitCode === 0)
-	const verification = { on: run.on, commit: run.commit, results: run.results, passed }
+	const verification = { on: run.on, commit: run.commit, results: run.results, gateReceipts: run.gateReceipts, passed }
 	const artifacts = continuationArtifacts(store.events(id)).filter(a => !a.partial)
 	store.note(id, 'verification-artifacts', { on: run.on, commit: run.commit, checks: contentHash(JSON.stringify(checks)), sources: run.sources, artifacts: L(item).makers.flatMap(role => { const a = artifacts.findLast(a => a.role === role); return a ? [{ role, event: a.event, sha256: a.sha256, base: a.base, plan: a.plan }] : [] }) })
 	const summary = run.results.map((r) => ({ id: r.id, doneWhen: r.doneWhen, exitCode: r.exitCode, ms: r.ms }))
 	const fixed = { ...(run.fixed.length ? { fixed: run.fixed } : {}), ...(run.flaky.length ? { flaky: run.flaky } : {}) }
 	if (passed) {
-		store.save({ ...now, verification }, 'verified', { on: run.on, commit: run.commit, results: summary, ...fixed })
+		const output = JSON.stringify({ on: run.on, commit: run.commit, checks: summary, gateReceipts: run.gateReceipts, passed })
+		const receipt: OrganReceipt | undefined = organsRequired(item) ? { version: '1', job: 'verify', round: now.round, outputHash: contentHash(output),
+			ground: { intent: now.objective, sources: [{ ref: `candidate:${run.commit}`, sha256: contentHash(run.commit), finding: 'The engine executed checks against this candidate; check-source identity was retained and checked for mutation.' }, ...run.sources.flatMap(source => source.sha256 ? [{ ref: `check:${source.path}`, sha256: source.sha256, finding: 'Independent check source executed by the engine.' }] : [])] },
+			rumen: rumenRules(project, 'verify').map(rule => ({ ...rule, disposition: 'addressed' as const, evidence: rule.kind === 'fence' ? JSON.stringify(run.gateReceipts.filter(gate => gate.rule === rule.id)) : 'Carried from producer rule accounting; candidate check results are retained separately. This is not a new automated semantic judgment.' })), next: [] } : undefined
+		store.atomic(() => {
+			store.save({ ...now, verification, ...(receipt ? { outputs: { ...now.outputs, verify: output } } : {}) }, 'verified', { on: run.on, commit: run.commit, results: summary, gateReceipts: run.gateReceipts, ...fixed })
+			saveOrganReceipt(store, now, receipt, `verify:${run.commit}`)
+		})
 		return
 	}
 	// The environment's evidence, so the arbiter can tell a failure of the work from a failure of the machine it ran on.
@@ -1323,6 +1369,7 @@ const openPrerequisite = (store: StoreService, item: Item, answer: string, by: O
 		title: `Pre-existing defect blocking #${item.id}`, objective: answer, workspace: item.workspace, job: 'plan', parent: item.id, from: by,
 		source: `Found while verifying #${item.id} (${item.title}). The ${profileOf(item, by)}'s ruling: ${answer}\n\nFailure:\n${item.failure ?? ''}`,
 		rework: { cause: 'pre-existing', answer }, ...(item.pack ? { pack: item.pack } : {}), ...(item.autonomy ? { autonomy: item.autonomy } : {}),
+		...(item.organs ? { organs: typeof item.outputs.arbitrate === 'string' && by.kind === 'job' && by.job === 'arbitrate' ? childOrgans(item, 'arbitrate', item.outputs.arbitrate, 'prerequisite') : { version: '1' as const } } : {}),
 	})
 	store.save({ ...item, status: 'waiting-prerequisite', waitsOn: pre.id, failure: undefined, exchange: undefined, corrections: item.corrections + 1 }, 'ruling', { cause: 'pre-existing', prerequisite: pre.id, by: profileOf(item, by) })
 }
@@ -1694,7 +1741,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 		const dispositions = item.rework && item.from.kind === 'job' && item.from.job === 'arbitrate' ? lastJson(item.outputs.arbitrate ?? '')?.dispositions : undefined
 		const repairConditions = Array.isArray(dispositions) ? dispositions.filter(d => !isMaker(historyJob) || d.cause === (historyJob === 'implement' ? 'implementation' : 'test') || d.cause === 'environment' || d.cause === 'pre-existing') : []
 		const softwareThinking = L(item).pack.runtime !== 'functions' && !isMaker(job)
-		const project = softwareThinking || item.pack?.contracts?.handoff === '1' ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : undefined
+		const project = softwareThinking || item.pack?.contracts?.handoff === '1' || organsRequired(item) ? projectFor(yield* readProjects(projectsPath(store.path)), item.workspace) : undefined
 		const projectInputs = project?.inputs?.filter(input => input.jobs === undefined || input.jobs.includes(job) && input.jobs.includes(historyJob) || job === 'plan' && historyJob === 'plan' && input.jobs.includes('verify'))
 		const deliveryContract = softwareThinking ? {
 			owner: 'Made Well',
@@ -1711,6 +1758,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 		const workQuestionsForPhase = item.pack?.contracts?.handoff === '1' ? questionsOwedBy(store, item, historyJob).map(q => ({ ...q, resolved: questionResolved(q, saved.answers) })) : []
 		return JSON.stringify({
 			item: itemFacts(item),
+			...(receiving && organsRequired(item) ? { organs: organPacket(store, item, job, project) } : {}),
 			...(technicalReset(store, item, job) ? { technicalReset: technicalReset(store, item, job) } : {}),
 			...(workQuestionsForPhase.length ? { questionsToSettle: workQuestionsForPhase } : {}),
 			...(projectInputs?.length ? { projectInputs } : {}),
@@ -1720,7 +1768,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 			...(discoveryContext ? { discoveryContext } : {}),
 			...(continuationOptions.length ? { continuationOptions } : {}),
 			...(repairConditions.length ? { repairConditions } : {}),
-			...(item.pack?.runtime === 'functions' ? { function: { ...functionInput(item, stepOf(L(item), job), store), node: stepOf(L(item), job), pack: { name: item.pack.name, version: item.pack.version ?? null } } } : {}),
+			...(item.pack?.runtime === 'functions' ? { function: { ...functionInput(item, stepOf(L(item), job), store, project), node: stepOf(L(item), job), pack: { name: item.pack.name, version: item.pack.version ?? null } } } : {}),
 			...(withReceived ? { received } : {}),
 			...(snap ? { snapshot: snap } : {}),
 			...(saved.answers.length ? { answeredBefore: saved.packetAnswers() } : {}),
@@ -1775,7 +1823,7 @@ const handoffView = (item: Item, job: Job, x: Exchange) =>
 		: x.handoff
 
 const receiverParts = (item: Item, job: Job, x: Exchange, kind: 'intake', answered: ReturnType<typeof ledger>) => ({
-	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + ' If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies the verbatim answer once under answeredBefore, with aliases and saved-answer references in the exchange, and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.', laterDeliverable: deliverableShape(L(item), job, auto(item)), replyFormat: shapeOf(INTAKE) },
+	you: { ...you(item, job, kind), task: INTAKE_TASK(job, profileOf(item, x.from)) + ' If a question is already settled in answeredBefore, including in different words, return reuse with the question and its saved answerId instead of asking it. Made Well supplies the verbatim answer once under answeredBefore, with aliases and saved-answer references in the exchange, and remembers the wording. Do not reopen settled decisions; a genuinely changed fact must say what changed.', laterDeliverable: organOutputShape(item, deliverableShape(L(item), job, auto(item))), replyFormat: shapeOf(INTAKE) },
 	...jobEvidence(item, job),
 	handoff: { from: profileOf(item, x.from), content: handoffView(item, job, x) },
 	earlierTurns: x.turns,
@@ -1804,7 +1852,7 @@ const originatorParts = (item: Item, job: Job, x: Exchange, answered: ReturnType
 })
 
 const executeParts = (item: Item, job: Job, t: Track, x: Exchange) => ({
-	you: { ...you(item, job, 'execute'), ...(taskOf(item, job) ? { task: taskOf(item, job) } : {}), replyFormat: deliverableShape(L(item), job, auto(item)) },
+	you: { ...you(item, job, 'execute'), ...(taskOf(item, job) ? { task: taskOf(item, job) } : {}), replyFormat: organOutputShape(item, deliverableShape(L(item), job, auto(item))) },
 	...jobEvidence(item, job),
 	exchange: { from: profileOf(item, x.from), handoff: handoffView(item, job, x), turns: x.turns, understanding: x.understanding, notes: x.notes },
 	...(item.outputs[job] !== undefined && item.rework ? { yourPreviousDeliverable: deliverableOf(item, job) } : {}),

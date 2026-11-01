@@ -1,12 +1,14 @@
 // What Made Well itself does to the product repo: it records the branch an item starts from, takes each
 // maker's work out of its worktree as a patch kept in Made Well's home, builds the candidate commit, runs
 // the project's gates and the item's checks against it, and brings the verified commit onto the branch. No agent does any of it.
+import { createHash } from 'node:crypto'
 import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, matchesGlob } from 'node:path'
 import { Effect } from 'effect'
 import { MadeWellError, quote } from './errors.ts'
 import type { Check } from './lane.ts'
 import type { Gate } from './project.ts'
+import { gateRule, type GateReceipt, type GateSource } from './rumen.ts'
 import { Store, type CheckResult } from './store.ts'
 import { observe } from './trace.ts'
 import { assessChange, git, type PreparationBaseline } from './workspace.ts'
@@ -92,19 +94,35 @@ export const GATE = '(gate)'
  * (a formatter's fixes) are staged and written back to the item's change, so they ship and a redrive keeps them.
  */
 export const runGates = Effect.fn('mw.gates')(function* (item: number, dir: string, base: string, gates: ReadonlyArray<Gate>, change: string, budget: Budget, env: NodeJS.ProcessEnv, live?: string) {
+	const store = yield* Store
 	const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=d', '-z', base))
-	const runs = gates.flatMap((g, i) => {
-		const matched = g.glob ? files.filter((f) => matchesGlob(g.glob!.includes('/') ? f : basename(f), g.glob!)) : files
-		return matched.length ? [{ id: `G${i + 1}`, doneWhen: GATE, run: g.run.replaceAll('{files}', matched.map(quote).join(' ')) }] : []
+	const results: CheckResult[] = [], gateReceipts: GateReceipt[] = []
+	const fingerprint = (paths: ReadonlyArray<string>): GateSource[] => paths.map(path => {
+		try { return { path, sha256: createHash('sha256').update(readFileSync(join(dir, path))).digest('hex') } }
+		catch { return { path, sha256: null } }
 	})
-	if (!runs.length) return { results: [], fixed: [] }
-	const results = yield* runChecks(item, dir, runs, budget, env, live)
+	for (const [index, gate] of gates.entries()) {
+		const matched = gate.glob ? files.filter(file => matchesGlob(gate.glob!.includes('/') ? file : basename(file), gate.glob!)) : files
+		const rule = gateRule(gate), id = `G${index + 1}`
+		const command = matched.length ? gate.run.replaceAll('{files}', matched.map(quote).join(' ')) : null
+		const sourceBefore = fingerprint(matched)
+		const [result] = command === null ? [] : yield* runChecks(item, dir, [{ id, doneWhen: GATE, run: command }], budget, env, live)
+		if (result) results.push(result)
+		const receipt: GateReceipt = {
+			id, rule: rule.id, definitionHash: rule.definitionHash, template: gate.run, command, files: matched,
+			outcome: command === null ? 'not-applicable' : !result ? 'unavailable' : result.exitCode === 0 ? 'passed' : 'failed',
+			exitCode: result?.exitCode ?? null, sourceBefore, sourceAfter: fingerprint(matched),
+		}
+		gateReceipts.push(receipt)
+		store.note(item, 'rumen-gate', { job: 'verify', ...receipt })
+	}
+	if (!results.length) return { results, fixed: [], gateReceipts }
 	const fixed = lines(yield* git(dir, 'diff', '--name-only', '-z', '--', ...files))
 	if (fixed.length) {
 		yield* git(dir, 'add', '--', ...fixed)
 		writePatch(change, yield* git(dir, 'diff', '--cached', '--binary', '--no-renames', base))
 	}
-	return { results, fixed }
+	return { results, fixed, gateReceipts }
 })
 
 /** Runs each check from the repo root in its own process group, under the budget, and records what it did. Each command and its output stream to `live` as they run. */

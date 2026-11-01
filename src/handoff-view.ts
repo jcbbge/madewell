@@ -2,6 +2,7 @@
 import { createHash } from 'node:crypto'
 import { buildAnswerHistory } from './handoff-history.ts'
 import { deliverableShape, laneOf, lastJson, stepOf } from './lane.ts'
+import { organOutputShape } from './organs.ts'
 import { questionKey, workQuestions } from './nq-obligations.ts'
 import type { Event, Item, Store } from './store.ts'
 
@@ -72,8 +73,8 @@ export function fullHandoffOf(store: Reader, item: Item, job: string) {
 	for (const d of declared) if (!observations.some(o => o.id === d.id)) inputs.push({ id: String(d.id), state: 'not-checked', currentAvailability: 'unknown', declaration: { ...d, call: declaration!.call, scope: declaration!.scope }, observation: null, evidence: evidenceUrl(item.id, 'handoff', job) })
 	const names = [job, step.profile].map(s => s.toLowerCase().trim()), assigned = questions.filter(q => names.includes(q.ownerRole.toLowerCase().trim()) || q.blockingRole !== null && names.includes(q.blockingRole.toLowerCase().trim()))
 	const kind = step.children ? 'group' : step.run ? 'command' : job === 'verify' && lane.pack.runtime !== 'functions' ? 'engine' : 'agent'
-	const entry: HandoffEntry = { id: `item:${item.id}:job:${job}:round:${item.round}:handoff:${boundary?.seq ?? 'configured'}`, job, profile: step.profile, duty: step.duty, dutyTruncated: false, kind, mode: item.status === 'candidate' || kind === 'agent' && !exchange ? 'configured-next' : 'current', exchangeStatus: kind === 'agent' ? exchange?.status ?? 'not-established' : 'not-applicable', round: item.round, questionIds: assigned.map(q => q.id), unresolvedCount: assigned.filter(q => q.resolution === 'unresolved').length, expectedOutput: { state: deliverableShape(lane, job, item.autonomy === 'full') ? 'configured' : 'unspecified', detail: evidenceUrl(item.id, 'handoff', job), pointer: '/data/outputSchema' }, inputs, inputsTotal: inputs.length, inputsOmitted: 0, declarationsKnown: !!declaration, evidence: { detail: evidenceUrl(item.id, 'handoff', job), eventSeqs: own.filter(e => ['handoff', 'nq-clear'].includes(e.kind)).map(e => e.seq) }, truncated: false }
-	return { entry, questions, declarations, observations, outputSchema: deliverableShape(lane, job, item.autonomy === 'full') ?? null }
+	const entry: HandoffEntry = { id: `item:${item.id}:job:${job}:round:${item.round}:handoff:${boundary?.seq ?? 'configured'}`, job, profile: step.profile, duty: step.duty, dutyTruncated: false, kind, mode: item.status === 'candidate' || kind === 'agent' && !exchange ? 'configured-next' : 'current', exchangeStatus: kind === 'agent' ? exchange?.status ?? 'not-established' : 'not-applicable', round: item.round, questionIds: assigned.map(q => q.id), unresolvedCount: assigned.filter(q => q.resolution === 'unresolved').length, expectedOutput: { state: organOutputShape(item, deliverableShape(lane, job, item.autonomy === 'full')) ? 'configured' : 'unspecified', detail: evidenceUrl(item.id, 'handoff', job), pointer: '/data/outputSchema' }, inputs, inputsTotal: inputs.length, inputsOmitted: 0, declarationsKnown: !!declaration, evidence: { detail: evidenceUrl(item.id, 'handoff', job), eventSeqs: own.filter(e => ['handoff', 'nq-clear'].includes(e.kind)).map(e => e.seq) }, truncated: false }
+	return { entry, questions, declarations, observations, outputSchema: organOutputShape(item, deliverableShape(lane, job, item.autonomy === 'full')) ?? null }
 }
 // Display strings are previews; keys and digest-checked links carry identity.
 export const displayPreview = (value: string, limit = 120) => Array.from(value).slice(0, limit).join('')

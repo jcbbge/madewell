@@ -4,6 +4,14 @@ Made Well is a work OS: **capture raw input → generate tasks → complete task
 
 The software-delivery pack remains the installation default for compatibility. It is one configuration, not the definition of Made Well. Use a **function pack** below for a single operation, non-software work or a different composition; it needs no Git repository and adds no implicit planning, testing or shipping steps.
 
+## Ground, Rumen and preparation travel with the task
+
+New work carries three mandatory producer obligations in every accepted function output: **Ground** cites actual relevant material and findings; **Rumen** accounts for the selected project rules; **preparation** supplies a usable brief and required references for every next consumer. The engine checks the contract, retains its receipts with the work, and rechecks required material before the receiver executes. Workers can be replaced without copying context between them. See the [output contract and reference syntax](dossiers/2026-10-31-ground-rumen.md).
+
+Project gates remain mechanical fences; conventions remain judgment constraints. Optional `rumen` guidance in the existing project registration uses `{id, kind: "judge" | "sign" | "lexicon", text, jobs?}` for judgment, taste and vocabulary. A worker's rule accounting cannot award itself a passing fence. Software verification retains gate identity, actual command, matched files and execution-stage fingerprints, including explicit not-applicable evidence. Terminal function delivery executes compatible unscoped fences; a glob or `{files}` fence without a verified change set is explicitly unavailable and prevents completion.
+
+The work and discovery views show Ground, Rumen and next-step preparation by configured step, with task-owned evidence links. An accepted earlier phase cannot mark future phases ready. Historical records without the contract show unknown organ evidence; they are not rewritten as successes. Source identity, readiness at a recorded boundary, independent acceptance and present resource availability are distinct facts.
+
 ## Install
 
 Requires Node 24.15 or later.

@@ -46,6 +46,10 @@ p{margin:0 0 var(--space-2);max-width:68ch;text-wrap:pretty;overflow-wrap:anywhe
 .step-name{overflow-wrap:anywhere;min-width:0}.step-state{margin-left:auto;text-align:right;flex-shrink:0;font:var(--text-small)/var(--line) var(--font-system);color:var(--muted)}
 .step-state.done{color:var(--accent)}.step-state.attention{color:var(--warning)}
 [data-current-work]{min-width:0;overflow-wrap:anywhere}[data-current-work] p{white-space:pre-wrap}[data-current-work] section{margin-bottom:var(--space-3)}
+.work-organs{min-width:0;margin:var(--space-4) 0;overflow-wrap:anywhere}.work-organs>h3{margin-top:var(--space-3)}
+.organ-checks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-4);margin:var(--space-2) 0}.organ-checks p{margin:0;font-size:var(--text-small)}
+.organ-state{font:var(--text-small)/var(--line) var(--font-system);margin-left:var(--space-1);color:var(--muted)}.organ-state[data-state=yes]{color:var(--accent)}.organ-state[data-state=unknown]{color:var(--warning)}
+.organ-phases{list-style:none;margin:0;padding:0}.organ-phases>li{padding:var(--space-3) 0;border-bottom:1px solid var(--line-color)}.organ-phases>li:last-child{border:0}.organ-phase-title{font:var(--text-small)/var(--line) var(--font-system);margin:0}.organ-phases details{margin-top:var(--space-1)}
 .technical{margin-top:var(--space-8);border-top:1px solid var(--line-color)}
 details{border-bottom:1px solid var(--line-color)}summary{padding:var(--space-3) var(--space-1);cursor:pointer;overflow-wrap:anywhere;transition:background-color 160ms ease-out}
 summary:hover{background:var(--side)}summary:active{background:var(--hover)}summary::marker{color:var(--muted)}
@@ -113,6 +117,37 @@ function currentWork(parent,summary,item){
   for(const row of [...card.children])if(row.dataset.input&&!inputKeys.has(row.dataset.input))row.remove();
   let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.truncated?'Preview shortened. ':'')+(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(entry.questionsOmitted?entry.questionsOmitted+' more assigned questions. ':'')+'Exact details are available above.');
  }
+ return root;
+}
+function workOrgans(parent,summary,item,jobs,currentJob){
+ let root=[...parent.children].find(n=>n.dataset.workOrgans===String(item));
+ if(!root){root=evidenceNode('section');root.className='work-organs';root.dataset.workOrgans=String(item);root.dataset.key='organs:'+item;
+  const title=evidenceNode('h3','Ground, Rumen and preparation'),scope=evidenceNode('p'),checks=evidenceNode('div'),note=evidenceNode('p'),details=evidenceNode('details'),body=evidenceNode('div'),rows=evidenceNode('ol');
+  scope.className=note.className='system';scope.dataset.organScope='';checks.className='organ-checks';checks.dataset.organChecks='';note.dataset.organNote='';
+  for(const [key,label]of [['ground','Every step grounded?'],['rumen','Rules accounted for?'],['nextPrepared','Next steps prepared?']]){const p=evidenceNode('p',label),value=evidenceNode('strong');value.dataset.organCheck=key;value.className='organ-state';p.append(value);checks.append(p)}
+  details.dataset.key='organs:'+item+':details';body.className='disclosure-body';rows.className='organ-phases';rows.dataset.organPhases='';body.append(evidenceNode('p','Ground records source identity and findings. Rule accounting is distinct from actual check execution; inspect verification for executed results.'),rows);details.append(evidenceNode('summary','Inspect each step and its accepted evidence'),body);root.append(title,scope,checks,note,details);parent.append(root);
+ }
+ const phases=Array.isArray(summary?.phases)?summary.phases:[],expected=[...new Set((jobs??[]).filter(job=>typeof job==='string'&&job))];
+ if(typeof currentJob==='string'&&currentJob&&!expected.includes(currentJob))expected.push(currentJob);
+ const legacy=summary?.legacy===true,recorded=summary?.required===true&&!legacy;
+ const phaseFor=job=>phases.find(phase=>phase.job===job);
+ const stateFor=(phase,key)=>!recorded?'unknown':phase?.[key]===true&&Number.isSafeInteger(phase.event)&&phase.event>0?'yes':'no';
+ const setState=(value,state)=>{value.dataset.state=state;evidenceText(value,state==='yes'?'YES':state==='no'?'NO · pending':legacy?'UNKNOWN · legacy':'UNKNOWN · unavailable')};
+ for(const value of root.querySelector('[data-organ-checks]').querySelectorAll('[data-organ-check]')){
+  const key=value.dataset.organCheck,states=expected.map(job=>stateFor(phaseFor(job),key));setState(value,!states.length||states.includes('unknown')?'unknown':states.every(state=>state==='yes')?'yes':'no');
+ }
+ evidenceText(root.querySelector('[data-organ-scope]'),'Across all '+expected.length+' configured or active steps'+(currentJob?' · Current step: '+currentJob:'.'));
+ evidenceText(root.querySelector('[data-organ-note]'),!summary?'Ground/Rumen evidence is unavailable. Current resource availability is unknown; no completion is inferred.':legacy?'This work predates mandatory organ receipts. Historical completion remains visible; Ground/Rumen evidence is unknown.':'Saved acceptance evidence. Current resource availability is unknown until execution rechecks it.'+(summary.omitted?' '+summary.omitted+' accepted receipts are outside this preview.':''));
+ const all=[...new Set([...expected,...phases.map(phase=>phase.job)])],rows=root.querySelector('[data-organ-phases]'),keep=new Set(all);
+ for(const row of [...rows.children])if(!keep.has(row.dataset.organJob))row.remove();
+ for(const job of all){const phase=phaseFor(job);let row=[...rows.children].find(node=>node.dataset.organJob===job);
+  if(!row){row=evidenceNode('li');row.dataset.organJob=job;row.dataset.key='organ-job:'+job;const title=evidenceNode('p'),checks=evidenceNode('div'),note=evidenceNode('p');title.className='organ-phase-title';title.dataset.organTitle='';checks.className='organ-checks';note.className='system';note.dataset.organDetail='';for(const [key,label]of [['ground','Ground'],['rumen','Rumen'],['nextPrepared','Next step']]){const p=evidenceNode('p',label),value=evidenceNode('strong');value.className='organ-state';value.dataset.organCheck=key;p.append(value);checks.append(p)}row.append(title,checks,note);rows.append(row)}
+  evidenceText(row.querySelector('[data-organ-title]'),job+(job===currentJob?' · current':''));for(const value of row.querySelectorAll('[data-organ-check]'))setState(value,stateFor(phase,value.dataset.organCheck));
+  evidenceText(row.querySelector('[data-organ-detail]'),phase?(phase.rules+' declared rules · '+(phase.next?.length?'Prepared for '+phase.next.join(', '):'No later step required')+' · Current availability unknown'):legacy?'No mandatory organ evidence was recorded.':'No current accepted preparation is recorded for this step.');
+  const event=phase?.event,existing=[...row.children].find(node=>node.dataset.evidenceKey);
+  if(recorded&&Number.isSafeInteger(event)&&event>0)exactEvidence(row,'organ-event:'+item+':'+job,'Read accepted Ground, Rumen and handoff evidence','/api/v1/items/'+item+'/evidence?kind=event&ref='+event);else existing?.remove();
+ }
+ let link=root.querySelector('[data-organ-record]');if(!link){link=evidenceNode('a','Inspect the same work record');link.dataset.organRecord='';root.lastElementChild.lastElementChild.append(link)}link.href=summary?.detail??'/api/trace/'+item+'?lens=ax';
  return root;
 }
 function patchEvidence(old,fresh){
@@ -317,8 +352,9 @@ function render(v,context){
   const last=active.map(i=>i.heartbeat?.at??i.started).sort().at(-1);head.append(el('p','Last activity at '+time(last),'system'));
  }
  head.append(el('h3','Steps'));
- const nodes=el('ol',undefined,'steps');
+ const nodes=el('ol',undefined,'steps'),organJobs=[];
  function node(n,parent){
+  organJobs.push(n.job);
   const li=el('li'),row=el('div',undefined,'step');
   const done=v.workEvidence?.jobs[n.job]?.complete===true;
   const current=n.job===v.job||active.some(i=>i.job===n.job);
@@ -330,6 +366,7 @@ function render(v,context){
  for(const c of v.pack[v.itemRecord.flow?.loop??v.phase]??[])for(const n of c.steps??[])node(n,nodes);
  if(nodes.children.length)head.append(nodes);else head.append(el('p','No steps have been set up for this task.','muted'));
  currentWork(head,v.currentHandoff,v.item);
+ workOrgans(head,context.organs,v.item,organJobs,v.job);
  const thread=conversation(v.item,context);
  const tech=disclosure(tail,'technical:'+v.item,'Activity & technical details',b=>{
   const m=el('dl',undefined,'metrics');for(const [name,value]of [['Calls recorded',v.metrics.invocations],['Failed calls',v.metrics.failed],['Total call time',duration(v.metrics.ms)],['Reported tokens',v.metrics.tokens===null?'Not reported':v.metrics.tokens.toLocaleString()]]){const pair=el('div');pair.append(el('dt',name),el('dd',String(value)));m.append(pair)}b.append(m);

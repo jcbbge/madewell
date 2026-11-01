@@ -12,6 +12,7 @@ import { otlpOf } from './otlp.ts'
 import { projectsPath, readProjects } from './project.ts'
 import { QA_JSON_SCHEMAS, qaCase, qaCases, qaCreateCase, qaError, qaExport, qaLink, qaObservations, qaObserve, qaReviseCase, qaRun, qaRuns, qaStartRun, qaVerdict } from './qa.ts'
 import { DEFAULT_AUTONOMY, Store, openStore, type Event, type Item } from './store.ts'
+import { createWork, organSummary } from './organs.ts'
 
 const ROOT = '/api/v1'
 const BODY_LIMIT = 65_536
@@ -93,7 +94,7 @@ export const contextOf = (store: Store['Service'], id: number) => {
 		item: { id, title: displayPreview(item.title), objective: displayPreview(item.objective, 240), source: displayPreview(item.source, 8000), sourceTruncated: Array.from(item.source).length > 8000, workspace: displayPreview(item.workspace) },
 		position: { status: item.status, node: displayPreview(item.job), round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery'), accepted: (item.flow?.accepted ?? []).slice(0, 20).map(v => displayPreview(v)), acceptedTotal: item.flow?.accepted.length ?? 0, acceptedOmitted: Math.max(0, (item.flow?.accepted.length ?? 0) - 20) },
 		revision, evidence: { event: events.at(-1)?.seq ?? 0, record: `/api/item/${id}`, trace: `/api/trace/${id}?lens=ax`, conversation: `${ROOT}/items/${id}/conversation`, otlp: `${ROOT}/items/${id}/otlp`, qaCases: `${ROOT}/qa/cases?workItem=${id}`, qaRuns: `${ROOT}/qa/runs?workItem=${id}`, cli: { record: `mw show ${id}`, trace: `mw trace ${id} --lens ax`, context: `mw context ${id}` } },
-		currentHandoff, answer: { ...policy, reason: displayPreview(policy.reason, 240) }, conversation: selected, conversationTruncated: selected.length < history.length || selected.some((m) => m.truncated),
+		currentHandoff, organs: organSummary(store, item), answer: { ...policy, reason: displayPreview(policy.reason, 240) }, conversation: selected, conversationTruncated: selected.length < history.length || selected.some((m) => m.truncated),
 		next: actions, actionsTotal: actions.length, actionsOmitted: 0, truncated: false,
 		observation: { owner: 'observer', authority: 'read-only', reason: actions.length ? 'Relay the operator decision; do not answer on their behalf.' : 'Read saved evidence; no automatic retry, repair or steering is authorized.', method: 'GET', href: `${ROOT}/items/${id}`, command: `mw context ${id}` },
 	}
@@ -140,6 +141,7 @@ const compactQuestionStateSchema = object({ key: str, resolution: { enum: ['reso
 const compactInputSchema = object({ key: str, id: str, state: { enum: ['recorded-available', 'recorded-unavailable', 'not-checked', 'unknown'] }, currentAvailability: { const: 'unknown' }, observation: nullable(object({ event: integer, item: nullable(integer), ok: bool, at: str, job: str, name: nullable(str), dir: nullable(str) })), evidence: str, truncated: bool })
 const compactEntrySchema = object({ key: str, id: str, job: str, profile: str, duty: str, dutyTruncated: bool, kind: { enum: ['agent', 'command', 'group', 'engine'] }, mode: { enum: ['current', 'configured-next'] }, exchangeStatus: str, round: integer, questionStates: array(compactQuestionStateSchema), questionsTotal: integer, questionsOmitted: integer, unresolvedCount: integer, expectedOutput: object({ state: { enum: ['configured', 'unspecified'] }, detail: str, pointer: str }), inputs: array(compactInputSchema), inputsTotal: integer, inputsOmitted: integer, declarationsKnown: bool, evidence: object({ detail: str, eventSeqs: array(integer) }), truncated: bool })
 const handoffSchema = object({ entries: array(compactEntrySchema), entriesTotal: integer, entriesOmitted: integer, questions: array(compactQuestionSchema), questionsTotal: integer, questionsOmitted: integer, evidence: object({ detail: str }), truncated: bool })
+const organsSchema = object({ required: bool, version: nullable({ const: '1' }), legacy: bool, phases: array(object({ job: str, ground: bool, rumen: bool, nextPrepared: bool, event: integer, rules: integer, next: array(str), currentAvailability: { const: 'unknown' } })), total: integer, omitted: integer, detail: str })
 const messageSchema = object({ id: str, at: str, role: str, kind: str, text: str, event: nullable(integer), truncated: bool, actor: object({ role: str, job: nullable(str) }), references: array(answerReferenceSchema), referencesTotal: integer, referencesOmitted: integer, evidence: str }, ['id', 'at', 'role', 'kind', 'text', 'event'])
 const eventDetailSchema = object({ event: object({ seq: integer, item: integer, at: str, kind: str, data: arbitrary }), references: array(answerReferenceSchema), messages: array(messageSchema) })
 const answerDetailSchema = object({ requestedId: str, canonicalId: str, question: str, answer: str, by: str, job: str, source: nullable(sourceSchema) })
@@ -158,7 +160,7 @@ export const API_SCHEMAS = {
 		apiVersion: { const: '1' }, item: object({ id: integer, title: str, objective: str, source: str, sourceTruncated: bool, workspace: str }),
 		position: object({ status: str, node: str, round: integer, loop: str, accepted: array(str), acceptedTotal: integer, acceptedOmitted: integer }), revision: revisionSchema,
 		evidence: object({ event: integer, record: str, trace: str, conversation: str, otlp: str, qaCases: str, qaRuns: str, cli: object({ record: str, trace: str, context: str }) }), answer: object({ allowed: bool, causeRequired: bool, causes: array(str), reason: str }),
-		currentHandoff: ref('CurrentHandoff'), conversation: array(messageSchema), conversationTruncated: bool, next: array(actionSchema), actionsTotal: integer, actionsOmitted: integer, truncated: bool, observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str }),
+		currentHandoff: ref('CurrentHandoff'), organs: organsSchema, conversation: array(messageSchema), conversationTruncated: bool, next: array(actionSchema), actionsTotal: integer, actionsOmitted: integer, truncated: bool, observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str }),
 	}),
 	Conversation: object({ apiVersion: { const: '1' }, item: integer, revision: revisionSchema, messages: array(messageSchema), nextAfter: nullable(integer), hasMore: bool }),
 	Accepted: object({ apiVersion: { const: '1' }, accepted: { const: true }, requestId: requestIdSchema, receipt: object({ item: integer, revision: revisionSchema, event: integer, replayed: bool }), context: nullable(ref('Context')), warnings: array(str) }),
@@ -358,7 +360,7 @@ export const createApi = (options: ApiOptions) => {
 						const project = registered()
 						const { pack } = sync(resolvePackSelection(project.cartridges))
 						const discovery = body.mode === 'discovery'
-						item = store!.create({ title: body.title ?? body.objective!, objective: body.objective!, source: body.source!, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...(pack ? { pack } : {}), ...(discovery ? { job: laneOf(pack).discovery[0]?.job ?? '', ...(pack?.runtime === 'functions' ? { flow: { loop: 'discovery', accepted: [] } } : {}) } : {}) })
+						item = createWork(store!, { title: body.title ?? body.objective!, objective: body.objective!, source: body.source!, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...(pack ? { pack } : {}), ...(discovery ? { job: laneOf(pack).discovery[0]?.job ?? '', ...(pack?.runtime === 'functions' ? { flow: { loop: 'discovery', accepted: [] } } : {}) } : {}) })
 					} else {
 						item = found(store, target)
 						if (revisionOf(item) !== body.revision) throw fail(409, 'stale_revision', 'The saved task changed. Refresh its context and review the question before sending a new request; your draft is not discarded.', { id: target, expected: body.revision, actual: revisionOf(item) })

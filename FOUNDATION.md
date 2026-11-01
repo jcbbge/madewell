@@ -10,6 +10,16 @@ The operator's law for Made Well. It binds every implementation, every agent and
 
 **The process is established; automate its driving.** The operator has used this complete discovery-to-delivery process manually for two years. Do not repeatedly reopen whether the grammar works. The engineering job is to carry saved outputs into the next function, launch selected work when dependencies permit, recover from saved state, and expose progress and actual results. The operator must not copy context between steps, phases, terminals, agents or applications to keep work moving.
 
+### Mandatory Ground, Rumen and producer preparation
+
+**Operator correction, 2026-10-31:** the work is the durable object; agents are disposable tools. Every phase owes both its own result and preparation of that same work for its next consumer. Ground and Rumen are non-negotiable organs of delivery.
+
+Ground establishes the intended outcome against actual relevant material and required resources. Rumen carries the applicable mechanical fences, judgment rubrics, taste concerns and vocabulary, with honest evidence ownership. These are obligations inside existing functions and handoffs, not additional mandatory agents or phases. A producer's completed output prepares every configured successor; blocked output retains its partial evidence without claiming readiness.
+
+New CLI/HTTP work pins the console-owned organ contract, independent of cartridge selection. Accepted source identities, rule definitions, findings and successor preparations live on the durable task through its outputs and atomic receipts. Generated tasks reference their parent's actual preparation; receivers recheck required material after preparation/restoration. Private maker outputs remain isolated. Legacy records remain readable without retroactive fabricated receipts. Mechanical gate results distinguish actual execution, failure, not-applicable and unavailable evidence. Judgment and taste are not mechanically proven by a hash or an agent's claim.
+
+The implementation contract and affected acceptance obligations are in [Ground and Rumen](dossiers/2026-10-31-ground-rumen.md).
+
 ### Branch experiment: executable grammar and bounded observation
 
 The opt-in `made-well-grammar-demo` software pack records the seven discovery functions separately and retains the existing four-phase software lane, independent test architect, candidate check execution and shipping. Its exact display labels are `Declare()`, `lookFirst()`, `classify()`, `Lenses()`, `oneThing()`, `route()` and `confirm()`; `confirm()` uses the existing `discover` job contract to generate candidates. This pack's detailed duties are an experimental implementation of the operator's diagram, not additional universal meanings inferred from the labels alone.
