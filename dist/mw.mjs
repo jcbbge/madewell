@@ -27250,8 +27250,20 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
       }
     });
     const sources = fingerprint();
-    const first = yield* runChecks2(id2, wt.path, checks, budget, env, live);
-    const again = yield* runChecks2(id2, wt.path, checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)), budget, env, live);
+    const candidateDiff = () => git(wt.path, "diff", "--binary", "--no-renames", "--no-ext-diff", "--no-textconv", built);
+    const checkBaseline = yield* candidateDiff();
+    let candidateStable = true;
+    const checked = (selected) => Effect_exports.gen(function* () {
+      const results3 = [];
+      for (const check2 of selected) {
+        results3.push(...yield* runChecks2(id2, wt.path, [check2], budget, env, live));
+        const head4 = yield* revParse(wt.path, "HEAD"), diff = yield* candidateDiff();
+        if (head4 !== built || diff !== checkBaseline) candidateStable = false;
+      }
+      return results3;
+    });
+    const first = yield* checked(checks);
+    const again = yield* checked(checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)));
     const results2 = first.map((r) => {
       const r2 = again.find((x) => x.id === r.id);
       return !r2 ? r : r2.exitCode === 0 ? r2 : { ...r, output: `${r.output}
@@ -27261,7 +27273,8 @@ ${r2.output}` };
     const flaky = again.filter((r) => r.exitCode === 0).map((r) => r.id);
     const unchanged = JSON.stringify(sources) === JSON.stringify(fingerprint());
     const integrity = unchanged ? [] : [{ id: "artifact-integrity", doneWhen: GATE, run: "(check source stability)", exitCode: 1, ms: 0, output: "Independent check source changed during verification. A passing result cannot attest the retained check bytes." }];
-    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, gateReceipts: gated.gateReceipts, flaky, sources, results: [...gated.results, ...results2, ...integrity] };
+    const candidateIntegrity = candidateStable ? [] : [{ id: "candidate-integrity", doneWhen: GATE, run: "(candidate stability)", exitCode: 1, ms: 0, output: "Verification changed tracked candidate material or HEAD. A passing check cannot attest different product bytes. Run product-changing build steps as project gates before the candidate is committed." }];
+    return { kind: "ran", on: wt.base, commit: built, fixed: gated.fixed, gateReceipts: gated.gateReceipts, flaky, sources, results: [...gated.results, ...results2, ...integrity, ...candidateIntegrity] };
   })).pipe(Effect_exports.ensuring(Effect_exports.sync(() => endLive(live))));
   if (run2.kind === "unprepared") return hold(store, store.get(id2), "prepare_failed", run2.message, run2.context);
   yield* aftercare(id2, "verify");
@@ -27781,7 +27794,7 @@ var packet = (item, job, dir, parts2, withReceived = true, historyJob = job) => 
   const projectInputs = project?.inputs?.filter((input) => input.jobs === void 0 || input.jobs.includes(job) && input.jobs.includes(historyJob) || job === "plan" && historyJob === "plan" && input.jobs.includes("verify"));
   const deliveryContract = softwareThinking ? {
     owner: "Made Well",
-    verification: "Made Well executes the independent checks on the candidate BEFORE merging or shipping. Check conditions must be provable at that point, without requiring a future release.",
+    verification: "Made Well executes the independent checks on the candidate BEFORE merging or shipping. Checks must leave tracked candidate files and HEAD unchanged; product-changing builds belong to project gates before the candidate commit. Check conditions must be provable at that point, without requiring a future release.",
     shipment: {
       configured: !!project?.ship,
       procedure: project?.ship ? "After passing verification and merging, Made Well runs the registered project ship command with the exact MW_ITEM and MW_COMMIT. A successful command and its output are recorded in the shipped event." : "After passing verification and merging, Made Well pushes the branch to its configured upstream, or records local delivery when there is no upstream."

@@ -46,7 +46,7 @@ import {
 	INTAKE, ORIGINATOR, Resource, blockedOf, decode, deliverableShape, hasJob, isMaker, lastJson, laneOf, malformed, requiredOf, route, shapeOf, stepOf, validate,
 	type Cause, type Check, type Job, type Lane, type Maker, type Plan, type Step,
 } from './lane.ts'
-import { DEFAULT_AUTONOMY, Store, type Exchange, type Item, type Origin, type Track } from './store.ts'
+import { DEFAULT_AUTONOMY, Store, type CheckResult, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { observe } from './trace.ts'
 import { capturePreparationBaseline, type PreparationBaseline, capture, changes, covers, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
@@ -1142,9 +1142,21 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 			catch { return { path, sha256: null } }
 		})
 		const sources = fingerprint()
-		// A failing check runs once more on the same candidate, so a flaky check never reaches the arbiter.
-		const first = yield* runChecks(id, wt.path, checks, budget, env, live)
-		const again = yield* runChecks(id, wt.path, checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)), budget, env, live)
+		const candidateDiff = () => git(wt.path, 'diff', '--binary', '--no-renames', '--no-ext-diff', '--no-textconv', built)
+		const checkBaseline = yield* candidateDiff()
+		let candidateStable = true
+		const checked = (selected: ReadonlyArray<Check>) => Effect.gen(function* () {
+			const results: CheckResult[] = []
+			for (const check of selected) {
+				results.push(...yield* runChecks(id, wt.path, [check], budget, env, live))
+				const head = yield* revParse(wt.path, 'HEAD'), diff = yield* candidateDiff()
+				if (head !== built || diff !== checkBaseline) candidateStable = false
+			}
+			return results
+		})
+		// Check files are intentionally uncommitted; compare their prepared baseline, not a clean tree.
+		const first = yield* checked(checks)
+		const again = yield* checked(checks.filter((c) => first.some((r) => r.id === c.id && r.exitCode !== 0)))
 		const results = first.map((r) => {
 			const r2 = again.find((x) => x.id === r.id)
 			return !r2 ? r : r2.exitCode === 0 ? r2 : { ...r, output: `${r.output}\n[made well] ran it again on the same candidate: exited ${r2.exitCode}\n${r2.output}` }
@@ -1152,7 +1164,8 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		const flaky = again.filter((r) => r.exitCode === 0).map((r) => r.id)
 		const unchanged = JSON.stringify(sources) === JSON.stringify(fingerprint())
 		const integrity = unchanged ? [] : [{ id: 'artifact-integrity', doneWhen: GATE, run: '(check source stability)', exitCode: 1, ms: 0, output: 'Independent check source changed during verification. A passing result cannot attest the retained check bytes.' }]
-		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, gateReceipts: gated.gateReceipts, flaky, sources, results: [...gated.results, ...results, ...integrity] } as const
+		const candidateIntegrity = candidateStable ? [] : [{ id: 'candidate-integrity', doneWhen: GATE, run: '(candidate stability)', exitCode: 1, ms: 0, output: 'Verification changed tracked candidate material or HEAD. A passing check cannot attest different product bytes. Run product-changing build steps as project gates before the candidate is committed.' }]
+		return { kind: 'ran', on: wt.base, commit: built, fixed: gated.fixed, gateReceipts: gated.gateReceipts, flaky, sources, results: [...gated.results, ...results, ...integrity, ...candidateIntegrity] } as const
 	})).pipe(Effect.ensuring(Effect.sync(() => endLive(live))))
 	// Verify is Made Well's own step, not an agent's: a worktree it cannot prepare holds for the operator.
 	if (run.kind === 'unprepared') return hold(store, store.get(id)!, 'prepare_failed', run.message, run.context)
@@ -1746,7 +1759,7 @@ const packet = (item: Item, job: Job, dir: string, parts: Record<string, unknown
 		const projectInputs = project?.inputs?.filter(input => input.jobs === undefined || input.jobs.includes(job) && input.jobs.includes(historyJob) || job === 'plan' && historyJob === 'plan' && input.jobs.includes('verify'))
 		const deliveryContract = softwareThinking ? {
 			owner: 'Made Well',
-			verification: 'Made Well executes the independent checks on the candidate BEFORE merging or shipping. Check conditions must be provable at that point, without requiring a future release.',
+			verification: 'Made Well executes the independent checks on the candidate BEFORE merging or shipping. Checks must leave tracked candidate files and HEAD unchanged; product-changing builds belong to project gates before the candidate commit. Check conditions must be provable at that point, without requiring a future release.',
 			shipment: { configured: !!project?.ship, procedure: project?.ship
 				? 'After passing verification and merging, Made Well runs the registered project ship command with the exact MW_ITEM and MW_COMMIT. A successful command and its output are recorded in the shipped event.'
 				: 'After passing verification and merging, Made Well pushes the branch to its configured upstream, or records local delivery when there is no upstream.',
