@@ -12,6 +12,8 @@ The operator's law for Made Well. It binds every implementation, every agent and
 
 ### Mandatory Ground, Rumen and producer preparation
 
+**Driver correction, 2026-11-01:** console-owned producer evidence uses `organPreparation`, independently of a cartridge’s fields. In particular, discovery retains its `preparation` array for cross-task promises. Legacy organ objects remain validated on read/acceptance; historical output bytes and receipts do not change.
+
 **Operator correction, 2026-10-31:** the work is the durable object; agents are disposable tools. Every phase owes both its own result and preparation of that same work for its next consumer. Ground and Rumen are non-negotiable organs of delivery.
 
 Ground establishes the intended outcome against actual relevant material and required resources. Rumen carries the applicable mechanical fences, judgment rubrics, taste concerns and vocabulary, with honest evidence ownership. These are obligations inside existing functions and handoffs, not additional mandatory agents or phases. A producer's completed output prepares every configured successor; blocked output retains its partial evidence without claiming readiness.

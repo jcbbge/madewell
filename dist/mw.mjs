@@ -13,7 +13,7 @@ import { basename as basename3, dirname as dirname9, join as join12, resolve as 
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 import { parseArgs } from "node:util";
 
-// ../../engine/node_modules/effect/dist/Pipeable.js
+// node_modules/effect/dist/Pipeable.js
 var pipeArguments = (self, args2) => {
   switch (args2.length) {
     case 0:
@@ -57,7 +57,7 @@ var Class = /* @__PURE__ */ (function() {
   return PipeableBase;
 })();
 
-// ../../engine/node_modules/effect/dist/Function.js
+// node_modules/effect/dist/Function.js
 var dual = function(arity, body) {
   if (typeof arity === "function") {
     return function() {
@@ -132,7 +132,7 @@ function memoizeIdempotent(f) {
   };
 }
 
-// ../../engine/node_modules/effect/dist/Cause.js
+// node_modules/effect/dist/Cause.js
 var Cause_exports = {};
 __export(Cause_exports, {
   AsyncFiberError: () => AsyncFiberError2,
@@ -196,7 +196,7 @@ __export(Cause_exports, {
   squash: () => squash
 });
 
-// ../../engine/node_modules/effect/dist/Context.js
+// node_modules/effect/dist/Context.js
 var Context_exports = {};
 __export(Context_exports, {
   Reference: () => Reference,
@@ -224,7 +224,7 @@ __export(Context_exports, {
   pick: () => pick
 });
 
-// ../../engine/node_modules/effect/dist/internal/equal.js
+// node_modules/effect/dist/internal/equal.js
 var getAllObjectKeys = (obj) => {
   const keys3 = new Set(Reflect.ownKeys(obj));
   if (obj.constructor === Object) return keys3;
@@ -248,13 +248,13 @@ var getAllObjectKeys = (obj) => {
 var byReferenceInstances = /* @__PURE__ */ new WeakSet();
 var viewBytes = (view2) => new Uint8Array(view2.buffer, view2.byteOffset, view2.byteLength);
 
-// ../../engine/node_modules/effect/dist/internal/hash.js
+// node_modules/effect/dist/internal/hash.js
 var backEdges = 0;
 var addBackEdge = () => {
   backEdges++;
 };
 
-// ../../engine/node_modules/effect/dist/Predicate.js
+// node_modules/effect/dist/Predicate.js
 function isString(input) {
   return typeof input === "string";
 }
@@ -306,7 +306,7 @@ function isIterable(input) {
   return hasProperty(input, Symbol.iterator) || isString(input);
 }
 
-// ../../engine/node_modules/effect/dist/Hash.js
+// node_modules/effect/dist/Hash.js
 var symbol = "~effect/Hash";
 var hash = (self) => {
   switch (typeof self) {
@@ -430,7 +430,7 @@ var randomHashCache = /* @__PURE__ */ new WeakMap();
 var hashCache = /* @__PURE__ */ new WeakMap();
 var visitedObjects = /* @__PURE__ */ new WeakSet();
 
-// ../../engine/node_modules/effect/dist/Equal.js
+// node_modules/effect/dist/Equal.js
 var symbol2 = "~effect/Equal";
 function equals() {
   if (arguments.length === 1) {
@@ -600,7 +600,7 @@ var byReferenceUnsafe = (obj) => {
   return obj;
 };
 
-// ../../engine/node_modules/effect/dist/Redactable.js
+// node_modules/effect/dist/Redactable.js
 var symbolRedactable = /* @__PURE__ */ Symbol.for("~effect/Redactable");
 var isRedactable = (u) => hasProperty(u, symbolRedactable);
 function redact(u) {
@@ -622,7 +622,7 @@ var emptyContext = {
   }
 };
 
-// ../../engine/node_modules/effect/dist/Formatter.js
+// node_modules/effect/dist/Formatter.js
 function format(input, options) {
   const space = options?.space ?? 0;
   const ancestors = /* @__PURE__ */ new WeakSet();
@@ -774,7 +774,7 @@ function isJsonPrimitiveWrapper(object2) {
   return false;
 }
 
-// ../../engine/node_modules/effect/dist/Inspectable.js
+// node_modules/effect/dist/Inspectable.js
 var NodeInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
 var toJson = (input) => {
   try {
@@ -841,7 +841,7 @@ var Class2 = class {
   }
 };
 
-// ../../engine/node_modules/effect/dist/internal/stackTraceLimit.js
+// node_modules/effect/dist/internal/stackTraceLimit.js
 var isStackTraceLimitWritable = () => {
   const desc = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
   if (desc === void 0) {
@@ -858,7 +858,7 @@ var setStackTraceLimit = (value4) => {
   }
 };
 
-// ../../engine/node_modules/effect/dist/Utils.js
+// node_modules/effect/dist/Utils.js
 var SingleShotGen = class {
   constructor(self) {
     this.value = self;
@@ -910,7 +910,7 @@ var pickInternalCall = () => {
 };
 var internalCall = /* @__PURE__ */ pickInternalCall();
 
-// ../../engine/node_modules/effect/dist/internal/record.js
+// node_modules/effect/dist/internal/record.js
 function assignProperty(self, key2, value4) {
   if (key2 === "__proto__") {
     Object.defineProperty(self, key2, {
@@ -932,7 +932,7 @@ function assignProperties(self, source2) {
   }
 }
 
-// ../../engine/node_modules/effect/dist/internal/core.js
+// node_modules/effect/dist/internal/core.js
 var EffectTypeId = `~effect/Effect`;
 var ExitTypeId = `~effect/Exit`;
 var effectVariance = {
@@ -1346,13 +1346,13 @@ var done = (value4) => {
   return exitFail(Done(value4));
 };
 
-// ../../engine/node_modules/effect/dist/Effectable.js
+// node_modules/effect/dist/Effectable.js
 var Prototype2 = (options) => makePrimitiveProto({
   op: options.label,
   [evaluate]: options.evaluate
 });
 
-// ../../engine/node_modules/effect/dist/Equivalence.js
+// node_modules/effect/dist/Equivalence.js
 var make = (isEquivalent) => (self, that) => self === that || isEquivalent(self, that);
 var isStrictEquivalent = (x, y) => x === y;
 var strictEqual = () => isStrictEquivalent;
@@ -1379,7 +1379,7 @@ function Array_(item) {
   });
 }
 
-// ../../engine/node_modules/effect/dist/internal/doNotation.js
+// node_modules/effect/dist/internal/doNotation.js
 var let_ = (map11) => dual(3, (self, name, f) => map11(self, (a) => ({
   ...a,
   [name]: f(a)
@@ -1392,7 +1392,7 @@ var bind = (map11, flatMap7) => dual(3, (self, name, f) => flatMap7(self, (a) =>
   [name]: b
 }))));
 
-// ../../engine/node_modules/effect/dist/internal/option.js
+// node_modules/effect/dist/internal/option.js
 var TypeId = "~effect/Option";
 var CommonProto = {
   [TypeId]: {
@@ -1458,7 +1458,7 @@ var SomeImpl = function(value4) {
 SomeImpl.prototype = SomeProto;
 var some = (value4) => new SomeImpl(value4);
 
-// ../../engine/node_modules/effect/dist/internal/result.js
+// node_modules/effect/dist/internal/result.js
 var TypeId2 = "~effect/Result";
 var CommonProto2 = {
   [TypeId2]: {
@@ -1528,7 +1528,7 @@ var getFailure = (self) => isSuccess(self) ? none : some(self.failure);
 var getSuccess = (self) => isFailure(self) ? none : some(self.success);
 var fromOption = /* @__PURE__ */ dual(2, (self, onNone) => isNone(self) ? fail(onNone()) : succeed(self.value));
 
-// ../../engine/node_modules/effect/dist/Order.js
+// node_modules/effect/dist/Order.js
 function make2(compare2) {
   return (self, that) => self === that ? 0 : compare2(self, that);
 }
@@ -1547,7 +1547,7 @@ var isGreaterThan = (O) => dual(2, (self, that) => O(self, that) === 1);
 var isLessThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== 1);
 var isGreaterThanOrEqualTo = (O) => dual(2, (self, that) => O(self, that) !== -1);
 
-// ../../engine/node_modules/effect/dist/Option.js
+// node_modules/effect/dist/Option.js
 var none2 = () => none;
 var some2 = some;
 var isOption2 = isOption;
@@ -1575,7 +1575,7 @@ var flatMap = /* @__PURE__ */ dual(2, (self, f) => isNone2(self) ? none2() : f(s
 var flatten = /* @__PURE__ */ flatMap(identity);
 var filter = /* @__PURE__ */ dual(2, (self, predicate) => isNone2(self) ? none2() : predicate(self.value) ? some2(self.value) : none2());
 
-// ../../engine/node_modules/effect/dist/Context.js
+// node_modules/effect/dist/Context.js
 var ServiceTypeId = "~effect/Context/Service";
 var Service = function() {
   function KeyClass() {
@@ -1805,13 +1805,13 @@ var omit = (...keys3) => (self) => withFlat(self, (map11) => {
 });
 var Reference = Service;
 
-// ../../engine/node_modules/effect/dist/internal/array.js
+// node_modules/effect/dist/internal/array.js
 var isArrayNonEmpty = (self) => self.length > 0;
 
-// ../../engine/node_modules/effect/dist/internal/count.js
+// node_modules/effect/dist/internal/count.js
 var normalize = (n) => n > 0 ? Math.floor(n) : 0;
 
-// ../../engine/node_modules/effect/dist/Result.js
+// node_modules/effect/dist/Result.js
 var Result_exports = {};
 __export(Result_exports, {
   Do: () => Do,
@@ -1966,10 +1966,10 @@ var tap = /* @__PURE__ */ dual(2, (self, f) => {
   return self;
 });
 
-// ../../engine/node_modules/effect/dist/Tuple.js
+// node_modules/effect/dist/Tuple.js
 var makeEquivalence2 = Tuple;
 
-// ../../engine/node_modules/effect/dist/Iterable.js
+// node_modules/effect/dist/Iterable.js
 var findFirst = /* @__PURE__ */ dual(2, (self, f) => {
   let i = 0;
   for (const a of self) {
@@ -2012,7 +2012,7 @@ var filter2 = /* @__PURE__ */ dual(2, (self, predicate) => ({
   }
 }));
 
-// ../../engine/node_modules/effect/dist/Record.js
+// node_modules/effect/dist/Record.js
 var has = /* @__PURE__ */ dual(2, (self, key2) => Object.hasOwn(self, key2));
 var map3 = /* @__PURE__ */ dual(2, (self, f) => {
   const out = {
@@ -2037,7 +2037,7 @@ var makeEquivalence3 = (equivalence) => {
   return (self, that) => is3(self, that) && is3(that, self);
 };
 
-// ../../engine/node_modules/effect/dist/Array.js
+// node_modules/effect/dist/Array.js
 var Array2 = globalThis.Array;
 var fromIterable = (collection) => Array2.isArray(collection) ? collection : Array2.from(collection);
 var append = /* @__PURE__ */ dual(2, (self, last) => [...self, last]);
@@ -2096,7 +2096,7 @@ var dedupe = (self) => {
   return out;
 };
 
-// ../../engine/node_modules/effect/dist/Duration.js
+// node_modules/effect/dist/Duration.js
 var TypeId4 = "~effect/Duration";
 var bigint0 = /* @__PURE__ */ BigInt(0);
 var bigint1 = /* @__PURE__ */ BigInt(1);
@@ -2486,7 +2486,7 @@ var format2 = (self) => {
   return pieces.join(" ");
 };
 
-// ../../engine/node_modules/effect/dist/Filter.js
+// node_modules/effect/dist/Filter.js
 var composePassthrough = /* @__PURE__ */ dual(2, (left, right) => (input) => {
   const leftOut = left(input);
   if (isFailure2(leftOut)) return fail2(input);
@@ -2499,7 +2499,7 @@ var toOption = (self) => (input) => {
   return isFailure2(result3) ? none2() : some2(result3.success);
 };
 
-// ../../engine/node_modules/effect/dist/Scheduler.js
+// node_modules/effect/dist/Scheduler.js
 var Scheduler_exports = {};
 __export(Scheduler_exports, {
   MaxOpsBeforeYield: () => MaxOpsBeforeYield,
@@ -2650,7 +2650,7 @@ var PreventSchedulerYield = /* @__PURE__ */ Reference("effect/Scheduler/PreventS
   defaultValue: () => false
 });
 
-// ../../engine/node_modules/effect/dist/Tracer.js
+// node_modules/effect/dist/Tracer.js
 var Tracer_exports = {};
 __export(Tracer_exports, {
   CurrentTraceLevel: () => CurrentTraceLevel,
@@ -2666,7 +2666,7 @@ __export(Tracer_exports, {
   nativeTracer: () => nativeTracer
 });
 
-// ../../engine/node_modules/effect/dist/Data.js
+// node_modules/effect/dist/Data.js
 var Data_exports = {};
 __export(Data_exports, {
   Class: () => Class3,
@@ -2713,7 +2713,7 @@ function taggedMatch() {
 var Error3 = Error2;
 var TaggedError2 = TaggedError;
 
-// ../../engine/node_modules/effect/dist/encoding/EncodingError.js
+// node_modules/effect/dist/encoding/EncodingError.js
 var EncodingErrorTypeId = "~effect/encoding/EncodingError";
 var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")) {
   /**
@@ -2728,7 +2728,7 @@ var EncodingError = class extends (/* @__PURE__ */ TaggedError2("EncodingError")
   [EncodingErrorTypeId] = EncodingErrorTypeId;
 };
 
-// ../../engine/node_modules/effect/dist/encoding/Hex.js
+// node_modules/effect/dist/encoding/Hex.js
 var encode = (input) => typeof input === "string" ? hexEncodeUint8Array(encoder.encode(input)) : hexEncodeUint8Array(input);
 var random2 = (length) => {
   switch (length) {
@@ -2817,7 +2817,7 @@ var fromHexChar = (byte) => {
   throw new TypeError("Invalid input");
 };
 
-// ../../engine/node_modules/effect/dist/Tracer.js
+// node_modules/effect/dist/Tracer.js
 var ParentSpanKey = "effect/Tracer/ParentSpan";
 var ParentSpan = class extends (/* @__PURE__ */ Service()(ParentSpanKey, {
   fiberCached: true
@@ -2906,10 +2906,10 @@ var NativeSpan = class {
   }
 };
 
-// ../../engine/node_modules/effect/dist/internal/metric.js
+// node_modules/effect/dist/internal/metric.js
 var FiberRuntimeMetricsKey = "effect/Metric/FiberRuntimeMetrics";
 
-// ../../engine/node_modules/effect/dist/internal/references.js
+// node_modules/effect/dist/internal/references.js
 var CurrentErrorReporters = /* @__PURE__ */ Reference("effect/ErrorReporter/CurrentErrorReporters", {
   defaultValue: () => /* @__PURE__ */ new Set()
 });
@@ -2945,7 +2945,7 @@ var CurrentLogSpans = /* @__PURE__ */ Reference("effect/References/CurrentLogSpa
   defaultValue: () => []
 });
 
-// ../../engine/node_modules/effect/dist/internal/tracer.js
+// node_modules/effect/dist/internal/tracer.js
 var addSpanStackTrace = (options) => {
   if (options?.captureStackTrace === false) {
     return options;
@@ -2982,7 +2982,7 @@ var makeStackCleaner = (line) => (stack) => {
 };
 var spanCleaner = /* @__PURE__ */ makeStackCleaner(3);
 
-// ../../engine/node_modules/effect/dist/internal/effect.js
+// node_modules/effect/dist/internal/effect.js
 var Interrupt = class extends ReasonBase {
   constructor(fiberId3, annotations2 = constEmptyAnnotations) {
     super("Interrupt", annotations2, "Interrupted");
@@ -5672,7 +5672,7 @@ var reportCauseUnsafe = (fiber3, cause, defectsOnly) => {
   reporters.forEach((reporter) => reporter.report(opts));
 };
 
-// ../../engine/node_modules/effect/dist/Cause.js
+// node_modules/effect/dist/Cause.js
 var TypeId5 = CauseTypeId;
 var ReasonTypeId = CauseReasonTypeId;
 var isCause2 = isCause;
@@ -5735,7 +5735,7 @@ var StackTrace = class extends (/* @__PURE__ */ Service()("effect/Cause/StackTra
 var InterruptorStackTrace2 = class extends (/* @__PURE__ */ Service()("effect/Cause/InterruptorStackTrace")) {
 };
 
-// ../../engine/node_modules/effect/dist/Effect.js
+// node_modules/effect/dist/Effect.js
 var Effect_exports = {};
 __export(Effect_exports, {
   Do: () => Do3,
@@ -5969,7 +5969,7 @@ __export(Effect_exports, {
   zipWith: () => zipWith2
 });
 
-// ../../engine/node_modules/effect/dist/Exit.js
+// node_modules/effect/dist/Exit.js
 var Exit_exports = {};
 __export(Exit_exports, {
   asVoid: () => asVoid2,
@@ -6028,7 +6028,7 @@ var getSuccess3 = exitGetSuccess;
 var getCause = exitGetCause;
 var findErrorOption3 = exitFindErrorOption;
 
-// ../../engine/node_modules/effect/dist/Layer.js
+// node_modules/effect/dist/Layer.js
 var Layer_exports = {};
 __export(Layer_exports, {
   CurrentMemoMap: () => CurrentMemoMap,
@@ -6077,7 +6077,7 @@ __export(Layer_exports, {
   withSpan: () => withSpan2
 });
 
-// ../../engine/node_modules/effect/dist/Deferred.js
+// node_modules/effect/dist/Deferred.js
 var TypeId6 = "~effect/Deferred";
 var DeferredProto = {
   [TypeId6]: {
@@ -6118,19 +6118,19 @@ var doneUnsafe = (self, effect2) => {
   return true;
 };
 
-// ../../engine/node_modules/effect/dist/References.js
+// node_modules/effect/dist/References.js
 var CurrentLogAnnotations2 = CurrentLogAnnotations;
 var CurrentLogSpans2 = CurrentLogSpans;
 var CurrentStackFrame2 = CurrentStackFrame;
 
-// ../../engine/node_modules/effect/dist/Scope.js
+// node_modules/effect/dist/Scope.js
 var Scope = scopeTag;
 var makeUnsafe3 = scopeMakeUnsafe;
 var provide = provideScope;
 var forkUnsafe2 = scopeForkUnsafe;
 var close = scopeClose;
 
-// ../../engine/node_modules/effect/dist/Layer.js
+// node_modules/effect/dist/Layer.js
 var TypeId7 = "~effect/Layer";
 var MemoMapTypeId = "~effect/Layer/MemoMap";
 var makeMemoMapEntry = (memoMap, layer) => {
@@ -6358,7 +6358,7 @@ var provideSpanStackFrame2 = (name, stack) => {
   }));
 };
 
-// ../../engine/node_modules/effect/dist/Clock.js
+// node_modules/effect/dist/Clock.js
 var Clock_exports = {};
 __export(Clock_exports, {
   Clock: () => Clock,
@@ -6373,7 +6373,7 @@ var currentTimeMillis2 = currentTimeMillis;
 var currentTimeNanos2 = currentTimeNanos;
 var monotonicTimeNanos2 = monotonicTimeNanos;
 
-// ../../engine/node_modules/effect/dist/internal/dateTime.js
+// node_modules/effect/dist/internal/dateTime.js
 var TypeId8 = "~effect/DateTime";
 var TimeZoneTypeId = "~effect/DateTime/TimeZone";
 var Proto2 = {
@@ -6764,7 +6764,7 @@ var formatIsoOffset = (self) => {
 };
 var formatIsoZoned = (self) => self.zone._tag === "Offset" ? formatIsoOffset(self) : `${formatIsoOffset(self)}[${self.zone.id}]`;
 
-// ../../engine/node_modules/effect/dist/Number.js
+// node_modules/effect/dist/Number.js
 var Number3 = globalThis.Number;
 var remainder = /* @__PURE__ */ dual(2, (self, divisor) => {
   if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
@@ -6796,11 +6796,11 @@ function toScientificInteger(n) {
   return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1];
 }
 
-// ../../engine/node_modules/effect/dist/String.js
+// node_modules/effect/dist/String.js
 var String3 = globalThis.String;
 var trim = (self) => self.trim();
 
-// ../../engine/node_modules/effect/dist/Pull.js
+// node_modules/effect/dist/Pull.js
 var catchDone = /* @__PURE__ */ dual(2, (effect2, f) => catchCauseFilter(effect2, filterDoneLeftover, (l) => f(l)));
 var isDoneCause = (cause) => cause.reasons.some(isDoneFailure);
 var isDoneFailure = (failure2) => failure2._tag === "Fail" && isDone2(failure2.error);
@@ -6829,7 +6829,7 @@ var matchEffect2 = /* @__PURE__ */ dual(2, (self, options) => matchCauseEffect(s
   }
 }));
 
-// ../../engine/node_modules/effect/dist/Schedule.js
+// node_modules/effect/dist/Schedule.js
 var TypeId9 = "~effect/Schedule";
 var CurrentMetadata = /* @__PURE__ */ Reference("effect/Schedule/CurrentMetadata", {
   defaultValue: /* @__PURE__ */ constant({
@@ -6921,7 +6921,7 @@ var while_ = /* @__PURE__ */ dual(2, (self, predicate) => fromStep(map5(toStep(s
 })));
 var forever2 = /* @__PURE__ */ spaced(zero);
 
-// ../../engine/node_modules/effect/dist/ExecutionPlan.js
+// node_modules/effect/dist/ExecutionPlan.js
 var TypeId10 = "~effect/ExecutionPlan";
 var Proto3 = {
   [TypeId10]: TypeId10,
@@ -6950,11 +6950,11 @@ var CurrentMetadata2 = /* @__PURE__ */ Reference("effect/ExecutionPlan/CurrentMe
   })
 });
 
-// ../../engine/node_modules/effect/dist/internal/layer.js
+// node_modules/effect/dist/internal/layer.js
 var provideLayer = (self, layer, options) => scopedWith((scope3) => flatMap3(options?.local ? buildWithMemoMap(layer, makeMemoMapUnsafe(), scope3) : buildWithScope(layer, scope3), (context3) => provideContext(self, context3)));
 var provide3 = /* @__PURE__ */ dual((args2) => isEffect(args2[0]), (self, source2, options) => isContext(source2) ? provideContext(self, source2) : provideLayer(self, Array.isArray(source2) ? mergeAll2(...source2) : source2, options));
 
-// ../../engine/node_modules/effect/dist/internal/schedule.js
+// node_modules/effect/dist/internal/schedule.js
 var findErrorOnly = (cause) => cause.reasons.every(isFailReason) ? findError(cause) : fail2(cause);
 var repeatOrElse = /* @__PURE__ */ dual(3, (self, schedule2, orElse2) => flatMap3(toStepWithMetadata(schedule2), (step2) => {
   let meta = CurrentMetadata.defaultValue();
@@ -7026,7 +7026,7 @@ var buildFromOptions = (options) => {
   return schedule2;
 };
 
-// ../../engine/node_modules/effect/dist/internal/executionPlan.js
+// node_modules/effect/dist/internal/executionPlan.js
 var makeEventEmitter = (onEvent, currentMetadata) => {
   let lastStepIndex = -1;
   let stepAttempt = 0;
@@ -7131,7 +7131,7 @@ var scheduleFromStep = (step2, first) => {
 };
 var scheduleOnce = /* @__PURE__ */ recurs(1);
 
-// ../../engine/node_modules/effect/dist/MutableHashMap.js
+// node_modules/effect/dist/MutableHashMap.js
 var TypeId11 = "~effect/MutableHashMap";
 var MutableHashMapProto = {
   [TypeId11]: TypeId11,
@@ -7235,7 +7235,7 @@ var remove = /* @__PURE__ */ dual(2, (self, key_) => {
   return self;
 });
 
-// ../../engine/node_modules/effect/dist/Request.js
+// node_modules/effect/dist/Request.js
 var TypeId12 = "~effect/Request";
 var requestVariance = /* @__PURE__ */ byReferenceUnsafe({
   /* c8 ignore next */
@@ -7251,7 +7251,7 @@ var RequestPrototype = {
 };
 var makeEntry = (options) => options;
 
-// ../../engine/node_modules/effect/dist/internal/request.js
+// node_modules/effect/dist/internal/request.js
 var request = /* @__PURE__ */ dual(2, (self, resolver) => {
   const withResolver = (resolver2) => callback((resume) => {
     const entry = addEntry(resolver2, self, resume, getCurrentFiber());
@@ -7377,7 +7377,7 @@ function runBatch(batch) {
   return batch.run;
 }
 
-// ../../engine/node_modules/effect/dist/Metric.js
+// node_modules/effect/dist/Metric.js
 var CurrentMetricAttributesKey = "effect/Metric/CurrentMetricAttributes";
 var CurrentMetricAttributes = /* @__PURE__ */ Reference(CurrentMetricAttributesKey, {
   defaultValue: () => ({})
@@ -7453,7 +7453,7 @@ function attributesToRecord(attributes) {
   return attributes;
 }
 
-// ../../engine/node_modules/effect/dist/Effect.js
+// node_modules/effect/dist/Effect.js
 var TypeId14 = EffectTypeId;
 var isEffect2 = isEffect;
 var all3 = all2;
@@ -7840,7 +7840,7 @@ var flatMapEager2 = flatMapEager;
 var catchEager2 = catchEager;
 var fnUntracedEager2 = fnUntracedEager;
 
-// ../../engine/node_modules/effect/dist/BigDecimal.js
+// node_modules/effect/dist/BigDecimal.js
 var FINITE_INT_REGEXP = /^[+-]?\d+$/;
 var TypeId15 = "~effect/BigDecimal";
 var BigDecimalProto = {
@@ -7993,7 +7993,7 @@ var toExponential = (n) => {
 };
 var isZero2 = (n) => n.value === bigint03;
 
-// ../../engine/node_modules/effect/dist/Schema.js
+// node_modules/effect/dist/Schema.js
 var Schema_exports = {};
 __export(Schema_exports, {
   Any: () => Any2,
@@ -8366,7 +8366,7 @@ __export(Schema_exports, {
   withDecodingDefaultTypeKey: () => withDecodingDefaultTypeKey
 });
 
-// ../../engine/node_modules/effect/dist/BigInt.js
+// node_modules/effect/dist/BigInt.js
 var BigInt3 = globalThis.BigInt;
 var toNumber = (b) => {
   if (b > BigInt3(Number.MAX_SAFE_INTEGER) || b < BigInt3(Number.MIN_SAFE_INTEGER)) {
@@ -8375,7 +8375,7 @@ var toNumber = (b) => {
   return some2(Number(b));
 };
 
-// ../../engine/node_modules/effect/dist/ByteSize.js
+// node_modules/effect/dist/ByteSize.js
 var bigint04 = /* @__PURE__ */ BigInt(0);
 var bigint13 = /* @__PURE__ */ BigInt(1);
 var decimalBase = /* @__PURE__ */ BigInt(1e3);
@@ -8502,7 +8502,7 @@ var isByteSize = (input) => typeof input === "bigint" && input >= bigint04;
 var toBigInt = (self) => self;
 var toNumber2 = toNumber;
 
-// ../../engine/node_modules/effect/dist/Chunk.js
+// node_modules/effect/dist/Chunk.js
 var TypeId16 = "~effect/Chunk";
 function copy(src, srcPos, dest, destPos, len) {
   for (let i = srcPos; i < Math.min(src.length, srcPos + len); i++) {
@@ -8666,7 +8666,7 @@ var fromArrayUnsafe = (self) => self.length === 0 ? empty6() : self.length === 1
 });
 var size = (self) => self.length;
 
-// ../../engine/node_modules/effect/dist/DateTime.js
+// node_modules/effect/dist/DateTime.js
 var isDateTime2 = isDateTime;
 var isTimeZone2 = isTimeZone;
 var isTimeZoneOffset2 = isTimeZoneOffset;
@@ -8689,7 +8689,7 @@ var toEpochMillis2 = toEpochMillis;
 var formatIso2 = formatIso;
 var formatIsoZoned2 = formatIsoZoned;
 
-// ../../engine/node_modules/effect/dist/encoding/Base64.js
+// node_modules/effect/dist/encoding/Base64.js
 var encode2 = (input) => encodeBytes(typeof input === "string" ? encoder2.encode(input) : input);
 var decode2 = (str2) => {
   const stripped = stripCrlf(str2);
@@ -8768,7 +8768,7 @@ var getCode = (charCode) => {
   return codes[charCode];
 };
 
-// ../../engine/node_modules/effect/dist/internal/hashMap.js
+// node_modules/effect/dist/internal/hashMap.js
 var HashMapTypeId = "~effect/HashMap";
 var SHIFT = 5;
 var BUCKET_SIZE = 1 << SHIFT;
@@ -9403,14 +9403,14 @@ var keys2 = (self) => new HashMapIterator(self._root, identity);
 var entries = (self) => self[Symbol.iterator]();
 var size2 = (self) => self.size;
 
-// ../../engine/node_modules/effect/dist/HashMap.js
+// node_modules/effect/dist/HashMap.js
 var isHashMap2 = isHashMap;
 var fromIterable4 = fromIterable3;
 var entries2 = entries;
 var toEntries = (self) => Array.from(entries2(self));
 var size3 = size2;
 
-// ../../engine/node_modules/effect/dist/internal/hashSet.js
+// node_modules/effect/dist/internal/hashSet.js
 var HashSetTypeId = "~effect/HashSet";
 var hashSetSeed = /* @__PURE__ */ string(HashSetTypeId);
 var HashSetProto = {
@@ -9465,12 +9465,12 @@ var every2 = (self, predicate) => {
   return true;
 };
 
-// ../../engine/node_modules/effect/dist/HashSet.js
+// node_modules/effect/dist/HashSet.js
 var fromIterable6 = fromIterable5;
 var isHashSet2 = isHashSet;
 var size5 = size4;
 
-// ../../engine/node_modules/effect/dist/http/Cookies.js
+// node_modules/effect/dist/http/Cookies.js
 var TypeId17 = "~effect/http/Cookies";
 var isCookies = (u) => hasProperty(u, TypeId17);
 var CookieTypeId = "~effect/http/Cookies/Cookie";
@@ -9794,7 +9794,7 @@ var tryDecodeURIComponent = (str2) => {
   }
 };
 
-// ../../engine/node_modules/effect/dist/internal/redacted.js
+// node_modules/effect/dist/internal/redacted.js
 var redactedRegistry = /* @__PURE__ */ new WeakMap();
 var value = (self) => {
   if (redactedRegistry.has(self)) {
@@ -9804,7 +9804,7 @@ var value = (self) => {
   }
 };
 
-// ../../engine/node_modules/effect/dist/Redacted.js
+// node_modules/effect/dist/Redacted.js
 var TypeId18 = "~effect/Redacted";
 var isRedacted = (u) => hasProperty(u, TypeId18);
 var make12 = (value4, options) => {
@@ -9837,7 +9837,7 @@ var Proto5 = {
 var value2 = value;
 var makeEquivalence6 = (isEquivalent) => make((x, y) => isEquivalent(value2(x), value2(y)));
 
-// ../../engine/node_modules/effect/dist/http/Headers.js
+// node_modules/effect/dist/http/Headers.js
 var TypeId19 = /* @__PURE__ */ Symbol.for("~effect/http/Headers");
 var isHeaders = (u) => hasProperty(u, TypeId19);
 var Proto6 = /* @__PURE__ */ Object.defineProperties(/* @__PURE__ */ Object.create(null), {
@@ -9938,10 +9938,10 @@ var CurrentRedactedNames = /* @__PURE__ */ Reference("effect/Headers/CurrentReda
   defaultValue: () => ["authorization", "cookie", "set-cookie", "x-api-key"]
 });
 
-// ../../engine/node_modules/effect/dist/http/internal/urlParams.js
+// node_modules/effect/dist/http/internal/urlParams.js
 var unwrap2 = (value4) => typeof value4 === "string" ? value4 : value2(value4);
 
-// ../../engine/node_modules/effect/dist/http/UrlParams.js
+// node_modules/effect/dist/http/UrlParams.js
 var TypeId20 = "~effect/http/UrlParams";
 var isUrlParams = (u) => hasProperty(u, TypeId20);
 var Proto7 = {
@@ -10039,7 +10039,7 @@ var CurrentRedactedNames2 = /* @__PURE__ */ Reference("effect/http/UrlParams/Cur
   defaultValue: () => ["AWSAccessKeyId", "Signature", "sig", "X-Goog-Signature"]
 });
 
-// ../../engine/node_modules/effect/dist/internal/graph.js
+// node_modules/effect/dist/internal/graph.js
 var TypeId21 = "~effect/Graph";
 var isGraph = (u) => hasProperty(u, TypeId21);
 var toImpl = (graph) => graph;
@@ -10163,7 +10163,7 @@ var hydrate = (snapshot3) => {
   return graph;
 };
 
-// ../../engine/node_modules/effect/dist/internal/schema/annotations.js
+// node_modules/effect/dist/internal/schema/annotations.js
 function resolve(ast) {
   return ast.checks ? ast.checks[ast.checks.length - 1].annotations : ast.annotations;
 }
@@ -10185,7 +10185,7 @@ var getExpected = /* @__PURE__ */ memoize((ast) => {
 });
 var annotationExcludedKeys = /* @__PURE__ */ new Set([SENTINELS_ANNOTATION_KEY, STRUCTURAL_ANNOTATION_KEY, "representation", "arbitraryConstraint", "toJsonSchema", "toCode", "toEquivalence", "toFormatter", "toCodec", "toCodecJson", "toCodecStringTree", "toCodecIso", "toCodecArbitrary"]);
 
-// ../../engine/node_modules/effect/dist/internal/schema/parser.js
+// node_modules/effect/dist/internal/schema/parser.js
 var missing = /* @__PURE__ */ Symbol();
 var succeed7 = succeed4;
 var missingExit = /* @__PURE__ */ succeed7(missing);
@@ -10193,7 +10193,7 @@ var sameExit = /* @__PURE__ */ succeed7(missing);
 var toOption2 = (value4) => value4 === missing ? none2() : some2(value4);
 var fromOptionExit = (option3) => option3._tag === "None" ? missingExit : succeed7(option3.value);
 
-// ../../engine/node_modules/effect/dist/SchemaIssue.js
+// node_modules/effect/dist/SchemaIssue.js
 var TypeId22 = "~effect/SchemaIssue/Issue";
 function isIssue(u) {
   return hasProperty(u, TypeId22) && u[TypeId22] === TypeId22;
@@ -10536,7 +10536,7 @@ function findMessage(issue) {
   if (typeof message === "string") return message;
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/cause.js
+// node_modules/effect/dist/internal/schema/cause.js
 function getSchemaIssue(cause) {
   let issue;
   for (const reason of cause.reasons) {
@@ -10557,7 +10557,7 @@ function getSchemaIssueOrThrow(cause, message) {
   return issue;
 }
 
-// ../../engine/node_modules/effect/dist/encoding/Base64Url.js
+// node_modules/effect/dist/encoding/Base64Url.js
 var encode3 = (input) => encode2(input).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 var decode3 = (str2) => {
   const stripped = str2.replace(/[\n\r]/g, "");
@@ -10585,7 +10585,7 @@ var decode3 = (str2) => {
 var decodeString3 = (str2) => map2(decode3(str2), (_) => decoder3.decode(_));
 var decoder3 = /* @__PURE__ */ new TextDecoder();
 
-// ../../engine/node_modules/effect/dist/SchemaGetter.js
+// node_modules/effect/dist/SchemaGetter.js
 var makeGetter = (fields) => Object.assign(Object.create(Prototype), fields);
 function fail7(f) {
   return transformOptionalEffect((oe, options) => fail6(f(oe, options)));
@@ -10872,7 +10872,7 @@ function collectBracketPathEntries(isLeaf) {
   };
 }
 
-// ../../engine/node_modules/effect/dist/SchemaTransformation.js
+// node_modules/effect/dist/SchemaTransformation.js
 var Middleware = class extends Class {
   _tag = "Middleware";
   decode;
@@ -11065,7 +11065,7 @@ function fromJsonString(options) {
 var fromFormData = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeFormData(), /* @__PURE__ */ encodeFormData());
 var fromURLSearchParams = /* @__PURE__ */ new Transformation(/* @__PURE__ */ decodeURLSearchParams(), /* @__PURE__ */ encodeURLSearchParams());
 
-// ../../engine/node_modules/effect/dist/SchemaAST.js
+// node_modules/effect/dist/SchemaAST.js
 function makeGuard(tag2) {
   return (ast) => ast._tag === tag2;
 }
@@ -13189,7 +13189,7 @@ var StringTree = /* @__PURE__ */ new Declaration([], () => (input, ast, options)
 });
 var unknownToStringTree = /* @__PURE__ */ new Link(StringTree, /* @__PURE__ */ passthrough3());
 
-// ../../engine/node_modules/effect/dist/internal/schema/interpreter.js
+// node_modules/effect/dist/internal/schema/interpreter.js
 var flatMapTransformation = (result3, current, f) => result3 === sameExit ? f(current) : flatMapEager2(result3, f);
 function compileTransformation(transformation) {
   if (transformation._tag === "Middleware") {
@@ -13346,7 +13346,7 @@ function compile(ast, compile3, compileField2, base, specialize) {
   };
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/compilerRegistry.js
+// node_modules/effect/dist/internal/schema/compilerRegistry.js
 var invalid3 = /* @__PURE__ */ Symbol();
 var cache = /* @__PURE__ */ new WeakMap();
 var compiler;
@@ -13440,7 +13440,7 @@ function resolve2(ast) {
   return entry;
 }
 
-// ../../engine/node_modules/effect/dist/SchemaParser.js
+// node_modules/effect/dist/SchemaParser.js
 function makeEffect(schema) {
   const ast = schema.ast;
   let parser;
@@ -13706,7 +13706,7 @@ function makeConstructorSync(ast) {
 var normalCompiler = (ast) => resolve2(ast).parser;
 var constructorCompiler = (ast) => resolve2(ast).makeEffect;
 
-// ../../engine/node_modules/effect/dist/internal/schema/make.js
+// node_modules/effect/dist/internal/schema/make.js
 var TypeId25 = "~effect/Schema/Schema";
 var RebuildOptions = /* @__PURE__ */ Symbol();
 var SchemaProto = {
@@ -13767,7 +13767,7 @@ function make16(ast, options) {
   return self;
 }
 
-// ../../engine/node_modules/effect/dist/JsonPointer.js
+// node_modules/effect/dist/JsonPointer.js
 function escapeToken(token) {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
@@ -13797,7 +13797,7 @@ function formatUriFragment(path) {
   return path.reduce((fragment, token) => `${fragment}/${formatUriFragmentToken(token)}`, "#");
 }
 
-// ../../engine/node_modules/effect/dist/JsonSchema.js
+// node_modules/effect/dist/JsonSchema.js
 var META_SCHEMA_URI_DRAFT_07 = "http://json-schema.org/draft-07/schema#";
 var META_SCHEMA_URI_DRAFT_2020_12 = "https://json-schema.org/draft/2020-12/schema";
 function isMetaSchemaUri(value4, uri) {
@@ -14157,7 +14157,7 @@ function convertLegacyId(source2, out, targetKey, dialect) {
   }
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toCodec.js
+// node_modules/effect/dist/internal/schema/toCodec.js
 function toCodecJson(schema) {
   return make16(toCodecJsonAST(schema.ast), {
     schema
@@ -14365,11 +14365,11 @@ function toCodecArrayFromSingleASTStep(ast) {
   return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" || ast._tag === "Suspend" ? ast.recur(toCodecArrayFromSingleAST) : ast;
 }
 
-// ../../engine/node_modules/effect/dist/RegExp.js
+// node_modules/effect/dist/RegExp.js
 var RegExp2 = globalThis.RegExp;
 var escape = (string3) => string3.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&");
 
-// ../../engine/node_modules/effect/dist/internal/errors.js
+// node_modules/effect/dist/internal/errors.js
 function errorWithPath(message, path) {
   if (path.length > 0) {
     message += `
@@ -14378,7 +14378,7 @@ function errorWithPath(message, path) {
   return new Error(message);
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
+// node_modules/effect/dist/internal/schema/toJsonSchemaDocument.js
 function formatDefinitionReference(key2) {
   return `#/$defs/${formatUriFragmentToken(key2)}`;
 }
@@ -15027,7 +15027,7 @@ function toJsonSchemaDocument(document, options) {
   };
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toRepresentation.js
+// node_modules/effect/dist/internal/schema/toRepresentation.js
 var defaultReferencePolicy = ({
   identifier: identifier3
 }) => identifier3;
@@ -15344,7 +15344,7 @@ function toRepresentations(asts, options) {
   }
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/standardSchema.js
+// node_modules/effect/dist/internal/schema/standardSchema.js
 function makeStandardResult(exit4) {
   return isSuccess4(exit4) ? exit4.value : {
     issues: [{
@@ -15444,7 +15444,7 @@ function toStandardJSONSchemaV1(self) {
   });
 }
 
-// ../../engine/node_modules/effect/dist/JsonPatch.js
+// node_modules/effect/dist/JsonPatch.js
 function get4(oldValue, newValue) {
   const patches = [];
   getLoop(oldValue, newValue, "", patches);
@@ -15625,7 +15625,7 @@ function rebuildFromStack(stack, newParent) {
   return acc;
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
+// node_modules/effect/dist/internal/schema/toDifferJsonPatch.js
 function toDifferJsonPatch(schema) {
   const serializer = toCodecJson(schema);
   const get6 = encodeSync(serializer);
@@ -15642,7 +15642,7 @@ function toDifferJsonPatch(schema) {
   };
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toEncoderXml.js
+// node_modules/effect/dist/internal/schema/toEncoderXml.js
 function toEncoderXml(codec, options) {
   const rootName = resolveIdentifier(codec.ast) ?? resolveTitle(codec.ast);
   const serialize = encodeEffect(toCodecStringTree(codec));
@@ -15741,7 +15741,7 @@ var xml = {
   }
 };
 
-// ../../engine/node_modules/effect/dist/internal/schema/toEquivalence.js
+// node_modules/effect/dist/internal/schema/toEquivalence.js
 var toEquivalence = /* @__PURE__ */ memoize((ast) => {
   return recur(ast);
 });
@@ -15925,7 +15925,7 @@ function causeEquivalence(error, defect) {
   return (a, b) => reasons(a.reasons, b.reasons);
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toFormatter.js
+// node_modules/effect/dist/internal/schema/toFormatter.js
 function causeReasonToFormatter(error, defect) {
   return (reason) => {
     switch (reason._tag) {
@@ -16140,7 +16140,7 @@ function toFormatter(ast, options) {
   }
 }
 
-// ../../engine/node_modules/effect/dist/Struct.js
+// node_modules/effect/dist/Struct.js
 var pick2 = /* @__PURE__ */ dual(2, (self, keys3) => {
   return buildStruct(self, (k, v) => hasPropertyKey(keys3, k) ? [k, v] : void 0);
 });
@@ -16173,7 +16173,7 @@ function buildStruct(source2, f) {
   return out;
 }
 
-// ../../engine/node_modules/effect/dist/Optic.js
+// node_modules/effect/dist/Optic.js
 function makeIso(get6, set4) {
   return make17(primitiveNode("Iso", get6, set4));
 }
@@ -16519,7 +16519,7 @@ function id() {
   return identityIso;
 }
 
-// ../../engine/node_modules/effect/dist/internal/schema/toIso.js
+// node_modules/effect/dist/internal/schema/toIso.js
 function toIso(schema) {
   const serializer = toCodecIso(schema);
   return makeIso(encodeSync(serializer), decodeSync(serializer));
@@ -16531,13 +16531,13 @@ function toIsoFocus(_) {
   return id();
 }
 
-// ../../engine/node_modules/effect/dist/internal/schemaError.js
+// node_modules/effect/dist/internal/schemaError.js
 var SchemaErrorTypeId = "~effect/Schema/SchemaError";
 function isSchemaError(u) {
   return hasProperty(u, SchemaErrorTypeId) && u[SchemaErrorTypeId] === SchemaErrorTypeId;
 }
 
-// ../../engine/node_modules/effect/dist/net/NetAddress.js
+// node_modules/effect/dist/net/NetAddress.js
 var TypeId26 = "~effect/net/NetAddress";
 var ipv4Value = (self) => self.value;
 var ipv6Words = (self) => self;
@@ -16981,7 +16981,7 @@ var unixPathAddress = (path) => {
   return Object.freeze(self);
 };
 
-// ../../engine/node_modules/effect/dist/net/Host.js
+// node_modules/effect/dist/net/Host.js
 var TypeId27 = "~effect/net/Host";
 var hostError = (input, message) => fail2(new NetAddressError({
   input,
@@ -17094,7 +17094,7 @@ var formatHostPort = (self) => {
   return host.includes(":") ? `[${host}]:${self.port}` : `${host}:${self.port}`;
 };
 
-// ../../engine/node_modules/effect/dist/net/Dns.js
+// node_modules/effect/dist/net/Dns.js
 var RecordTypeId = "~effect/net/Dns/DnsRecord";
 var isUint8 = (u) => Number.isInteger(u) && u >= 0 && u <= 255;
 var isUint16 = (u) => Number.isInteger(u) && u >= 0 && u <= 65535;
@@ -17261,7 +17261,7 @@ var formatRecord = (self) => {
   }
 };
 
-// ../../engine/node_modules/effect/dist/net/IpInterface.js
+// node_modules/effect/dist/net/IpInterface.js
 var TypeId28 = "~effect/net/IpInterface";
 var isIpv4Interface = (u) => isIpInterface(u) && isIpv4Address(u.address);
 var isIpv6Interface = (u) => isIpInterface(u) && isIpv6Address(u.address);
@@ -17323,7 +17323,7 @@ var ipv6FromString2 = (input, options) => flatMap2(parseAddressWithPrefix(input,
 var fromString3 = (input, options) => flatMap2(parseAddressWithPrefix(input, options), (parts2) => flatMap2(ipFromString(parts2.address), (address) => make18(address, parts2.prefixLength ?? width(address))));
 var format5 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../engine/node_modules/effect/dist/net/IpNetwork.js
+// node_modules/effect/dist/net/IpNetwork.js
 var TypeId29 = "~effect/net/IpNetwork";
 var isIpv4Network = (u) => isIpNetwork(u) && isIpv4Address(u.address);
 var isIpv6Network = (u) => isIpNetwork(u) && isIpv6Address(u.address);
@@ -17392,7 +17392,7 @@ var fromString4 = (input) => {
 };
 var format6 = (self) => `${formatIp(self.address)}/${self.prefixLength}`;
 
-// ../../engine/node_modules/effect/dist/Schema.js
+// node_modules/effect/dist/Schema.js
 var TypeId30 = TypeId25;
 function declareConstructor() {
   return (typeParameters, run2, annotations2) => {
@@ -21202,7 +21202,7 @@ function resolveAnnotationsKey(schema) {
   return schema.ast.context?.annotations;
 }
 
-// ../../engine/node_modules/effect/dist/Fiber.js
+// node_modules/effect/dist/Fiber.js
 var Fiber_exports = {};
 __export(Fiber_exports, {
   await: () => await_,
@@ -21229,7 +21229,7 @@ var isFiber = (u) => hasProperty(u, FiberTypeId);
 var getCurrent = getCurrentFiber;
 var runIn = fiberRunIn;
 
-// ../../engine/node_modules/effect/dist/MutableList.js
+// node_modules/effect/dist/MutableList.js
 var Empty = /* @__PURE__ */ Symbol.for("effect/MutableList/Empty");
 var make21 = () => ({
   head: void 0,
@@ -21335,7 +21335,7 @@ var take = (self) => {
   return message;
 };
 
-// ../../engine/node_modules/effect/dist/Queue.js
+// node_modules/effect/dist/Queue.js
 var Queue_exports = {};
 __export(Queue_exports, {
   asDequeue: () => asDequeue,
@@ -21769,7 +21769,7 @@ var finalize = (self, exit4) => {
   openState.awaiters.clear();
 };
 
-// ../../engine/node_modules/effect/dist/Semaphore.js
+// node_modules/effect/dist/Semaphore.js
 var Semaphore_exports = {};
 __export(Semaphore_exports, {
   make: () => make23,
@@ -23253,7 +23253,7 @@ function organOutputShape(item, original) {
     if (Array.isArray(shape.anyOf)) return { ...shape, anyOf: shape.anyOf.map((branch) => add4(branch)) };
     const properties = shape.properties ?? {};
     if ("blocked" in properties) return shape;
-    return { ...shape, type: "object", properties: { ...properties, preparation: shapeOf(Preparation2) }, required: [.../* @__PURE__ */ new Set([...shape.required ?? [], "preparation"])] };
+    return { ...shape, type: "object", properties: { ...properties, organPreparation: shapeOf(Preparation2) }, required: [.../* @__PURE__ */ new Set([...shape.required ?? [], "organPreparation"])] };
   };
   return add4(original ?? { type: "object" });
 }
@@ -23323,7 +23323,7 @@ function material(item, job, ref2, dir, project, own, inputJob = job) {
 }
 function inspectPreparation(item, job, output, raw, dir, project, tracked = [], selectedRules) {
   if (!organsRequired(item) || typeof output.blocked === "string") return { ok: true };
-  const decoded = Schema_exports.decodeUnknownResult(Preparation2)(output.preparation);
+  const decoded = Schema_exports.decodeUnknownResult(Preparation2)(Object.hasOwn(output, "organPreparation") ? output.organPreparation : output.preparation);
   if (Result_exports.isFailure(decoded)) return { ok: false, reason: `Ground, Rumen and next-step preparation are mandatory: ${decoded.failure.message}` };
   const p = decoded.success, rules = rumenRules(project, job), expected = nextJobs(item, job, output);
   const definitions = (inventory) => JSON.stringify(inventory.map((rule) => [rule.id, rule.definitionHash]));
@@ -23381,7 +23381,7 @@ function organPacket(store, item, job, project) {
     rules: rumenRules(project, job),
     nextJobs: nextJobs(item, job),
     incoming: [...inherited, ...incoming],
-    instruction: "The work is durable; you are a disposable tool. Complete only this phase, ground its findings in actual material, account for every selected Rumen rule, and prepare every configured next consumer in preparation. Never self-certify a mechanical gate. Source hashes prove material identity, not semantic correctness. Intake has no tools; inspect sources during execution. Missing sender-owned material returns through this same NQ exchange."
+    instruction: "The work is durable; you are a disposable tool. Complete only this phase, ground its findings in actual material, account for every selected Rumen rule, and prepare every configured next consumer in organPreparation. The preparation field belongs to the cartridge; do not overwrite it. Never self-certify a mechanical gate. Source hashes prove material identity, not semantic correctness. Intake has no tools; inspect sources during execution. Missing sender-owned material returns through this same NQ exchange."
   };
 }
 function checkIncomingPreparation(store, item, job, dir, project, producers) {
@@ -26137,7 +26137,7 @@ var advanceFunctions = Effect_exports.fn("mw.advanceFunctions")(function* (given
       store.note(item.id, "ground-checked", { job: step2.job, ...ground });
       if (!ground.ok) return yield* failed2(item, step2.job, "Ground found changed or unavailable producer requirements.", ground);
     }
-    const result4 = step2.children ? { code: 0, stdout: JSON.stringify({ ...input.received, ...organsRequired(item) ? { preparation: compositionPreparation(item, step2.job, project) } : {} }), stderr: "" } : yield* runGroup({ command: "sh", args: ["-c", step2.run], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step2.budget ?? { minutes: 30 }, onOutput });
+    const result4 = step2.children ? { code: 0, stdout: JSON.stringify({ ...input.received, ...organsRequired(item) ? { organPreparation: compositionPreparation(item, step2.job, project) } : {} }), stderr: "" } : yield* runGroup({ command: "sh", args: ["-c", step2.run], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step2.budget ?? { minutes: 30 }, onOutput });
     if (result4.code !== 0) return yield* failed2(item, step2.job, `exit ${result4.code}: ${result4.stderr}`);
     const acceptedPrefix = Object.fromEntries(Object.entries(item.outputs).flatMap(([key2, raw]) => raw === void 0 ? [] : [[key2, lastJson(raw)]]));
     const checked = validate3(laneOf(item.pack), step2.job, result4.stdout, void 0, void 0, item.autonomy === "full", [], acceptedPrefix);
@@ -26937,7 +26937,8 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
   const refused = (reason) => Effect_exports.andThen(keep("refused", reason), refuse(id2, job, call, reason));
   if (!v.ok) return yield* refused(v.reason);
   if (organsRequired(item) && !isMaker(job) && answered.before?.head && (yield* revParse(dir, "HEAD")) !== answered.before.head) return yield* refused("A read-phase worker moved its prepared checkout HEAD. Its unpublished commits are disposable, not durable next-step material. Restore the prepared base and return the phase result on the work.");
-  const value4 = { ...v.value, ...lastJson(call.output)?.preparation !== void 0 ? { preparation: lastJson(call.output).preparation } : {} };
+  const returned = lastJson(call.output);
+  const value4 = { ...v.value, ...Object.fromEntries(["organPreparation", "preparation"].filter((key2) => Object.hasOwn(returned, key2)).map((key2) => [key2, returned[key2]])) };
   const organTracked = organsRequired(item) ? (yield* snapshot2(dir, [])).files : [];
   const organs = inspectPreparation(item, job, value4, call.output, dir, organProject, organTracked, selectedRules);
   if (!organs.ok) return yield* refused(organs.reason);

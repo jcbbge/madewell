@@ -193,7 +193,7 @@ export const advanceFunctions = Effect.fn('mw.advanceFunctions')(function* (give
 			store.note(item.id, 'ground-checked', { job: step.job, ...ground })
 			if (!ground.ok) return yield* failed(item, step.job, 'Ground found changed or unavailable producer requirements.', ground)
 		}
-		const result = step.children ? { code: 0, stdout: JSON.stringify({ ...input.received, ...(organsRequired(item) ? { preparation: compositionPreparation(item, step.job, project) } : {}) }), stderr: '' }
+		const result = step.children ? { code: 0, stdout: JSON.stringify({ ...input.received, ...(organsRequired(item) ? { organPreparation: compositionPreparation(item, step.job, project) } : {}) }), stderr: '' }
 			: yield* runGroup({ command: 'sh', args: ['-c', step.run!], cwd: item.workspace, env: process.env, input: JSON.stringify(input), budget: step.budget ?? { minutes: 30 }, onOutput })
 		if (result.code !== 0) return yield* failed(item, step.job, `exit ${result.code}: ${result.stderr}`)
 		const acceptedPrefix = Object.fromEntries(Object.entries(item.outputs).flatMap(([key, raw]) => raw === undefined ? [] : [[key, lastJson(raw)]]))

@@ -44,7 +44,7 @@ export function organOutputShape(item: Item, original: Record<string, unknown> |
 		if (Array.isArray(shape.anyOf)) return { ...shape, anyOf: shape.anyOf.map(branch => add(branch as Record<string, unknown>)) }
 		const properties = (shape.properties ?? {}) as Record<string, unknown>
 		if ('blocked' in properties) return shape
-		return { ...shape, type: 'object', properties: { ...properties, preparation: shapeOf(Preparation) }, required: [...new Set([...(shape.required as string[] ?? []), 'preparation'])] }
+		return { ...shape, type: 'object', properties: { ...properties, organPreparation: shapeOf(Preparation) }, required: [...new Set([...(shape.required as string[] ?? []), 'organPreparation'])] }
 	}
 	return add(original ?? { type: 'object' })
 }
@@ -126,7 +126,8 @@ function material(item: Item, job: string, ref: string, dir: string, project: Pr
 export function inspectPreparation(item: Item, job: string, output: Record<string, unknown>, raw: string, dir: string, project?: Project, tracked: ReadonlyArray<string> = [], selectedRules?: ReadonlyArray<RumenRule>):
 	{ ok: true; receipt?: OrganReceipt } | { ok: false; reason: string } {
 	if (!organsRequired(item) || typeof output.blocked === 'string') return { ok: true }
-	const decoded = Schema.decodeUnknownResult(Preparation)(output.preparation)
+	// Existing v1 replies remain valid; an explicit namespaced value must stand on its own.
+	const decoded = Schema.decodeUnknownResult(Preparation)(Object.hasOwn(output, 'organPreparation') ? output.organPreparation : output.preparation)
 	if (Result.isFailure(decoded)) return { ok: false, reason: `Ground, Rumen and next-step preparation are mandatory: ${decoded.failure.message}` }
 	const p = decoded.success, rules = rumenRules(project, job), expected = nextJobs(item, job, output)
 	const definitions = (inventory: ReadonlyArray<RumenRule>) => JSON.stringify(inventory.map(rule => [rule.id, rule.definitionHash]))
@@ -182,7 +183,7 @@ export function organPacket(store: HandoffReader, item: Item, job: string, proje
 	const origin = originPreparation(store, item, job)
 	const inherited = origin?.outgoing ? [{ ...origin.outgoing, job, from: origin.origin.job, fromItem: origin.origin.item, event: origin.receipt!.event }] : []
 	return { version: '1', required: true, rules: rumenRules(project, job), nextJobs: nextJobs(item, job), incoming: [...inherited, ...incoming],
-		instruction: 'The work is durable; you are a disposable tool. Complete only this phase, ground its findings in actual material, account for every selected Rumen rule, and prepare every configured next consumer in preparation. Never self-certify a mechanical gate. Source hashes prove material identity, not semantic correctness. Intake has no tools; inspect sources during execution. Missing sender-owned material returns through this same NQ exchange.' }
+		instruction: 'The work is durable; you are a disposable tool. Complete only this phase, ground its findings in actual material, account for every selected Rumen rule, and prepare every configured next consumer in organPreparation. The preparation field belongs to the cartridge; do not overwrite it. Never self-certify a mechanical gate. Source hashes prove material identity, not semantic correctness. Intake has no tools; inspect sources during execution. Missing sender-owned material returns through this same NQ exchange.' }
 }
 
 /** Recheck the actual requirements the producer supplied, after preparation and artifact restoration. */

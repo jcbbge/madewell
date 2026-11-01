@@ -787,7 +787,8 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 	const refused = (reason: string) => Effect.andThen(keep('refused', reason), refuse(id, job, call, reason))
 	if (!v.ok) return yield* refused(v.reason)
 	if (organsRequired(item) && !isMaker(job) && answered.before?.head && (yield* revParse(dir, 'HEAD')) !== answered.before.head) return yield* refused('A read-phase worker moved its prepared checkout HEAD. Its unpublished commits are disposable, not durable next-step material. Restore the prepared base and return the phase result on the work.')
-	const value: Record<string, unknown> = { ...v.value, ...(lastJson(call.output)?.preparation !== undefined ? { preparation: lastJson(call.output)!.preparation } : {}) }
+	const returned = lastJson(call.output)!
+	const value: Record<string, unknown> = { ...v.value, ...Object.fromEntries(['organPreparation', 'preparation'].filter(key => Object.hasOwn(returned, key)).map(key => [key, returned[key]])) }
 	const organTracked = organsRequired(item) ? (yield* snapshot(dir, [])).files : []
 	const organs = inspectPreparation(item, job, value, call.output, dir, organProject, organTracked, selectedRules)
 	if (!organs.ok) return yield* refused(organs.reason)

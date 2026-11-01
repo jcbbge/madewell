@@ -6,7 +6,9 @@ Operator requirement, 2026-10-31: work is durable; agents are disposable tools. 
 
 New work submitted through CLI or HTTP carries `organs: {version: "1"}`. Discovered tasks and prerequisite work inherit it. This console-owned obligation cannot be disabled by a cartridge. Existing saved items without the pin remain readable as legacy, with no invented organ completion.
 
-Every accepted producer output carries `preparation`:
+Every accepted producer output carries the console-owned `organPreparation` field. Cartridge fields, including discovery’s `preparation` array, retain their domain meaning. Existing v1 replies using the former `preparation` object remain accepted through the same validation; an explicitly supplied `organPreparation` must itself be valid. Saved outputs and receipts are never rewritten.
+
+The organ object is:
 
 ```json
 {
