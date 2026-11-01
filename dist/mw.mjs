@@ -31138,9 +31138,7 @@ var itemDetail = (store, nextOf, id2) => {
     calls: store.callHeads().filter((c) => c.item === id2),
     related: store.list().filter((i) => i.discovery === id2 || i.parent === id2 || (item.after ?? []).includes(i.id) || i.id === item.waitsOn || i.id === item.parent || i.id === item.discovery).map((i) => ({ id: i.id, title: i.title, status: i.status })),
     diff: diffOf(store.path, item),
-    events: events2.filter(timelineEvent).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
-    trace: lensOf(store, id2, "ax", nextOf(item)),
-    traces: { ux: lensOf(store, id2, "ux", nextOf(item)), dx: lensOf(store, id2, "dx", nextOf(item)), ax: lensOf(store, id2, "ax", nextOf(item)) }
+    events: events2.filter(timelineEvent).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) }))
   };
 };
 var spansOf = (path, item) => {
@@ -31168,12 +31166,26 @@ var storeWatcher = (path) => {
   };
 };
 var json = (res, body, code = 200) => {
+  if (res.headersSent) {
+    res.destroy();
+    return;
+  }
+  let payload;
+  try {
+    payload = JSON.stringify(body);
+  } catch (error) {
+    code = 500;
+    payload = JSON.stringify({ error: "console_failed", message: String(error) });
+  }
   res.writeHead(code, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-  res.end(JSON.stringify(body));
+  res.end(payload);
 };
 var staticPage = (store, nextOf) => {
   const model = modelOf(store, nextOf);
-  const details = Object.fromEntries(store.list().map((i) => [i.id, itemDetail(store, nextOf, i.id)]));
+  const details = Object.fromEntries(store.list().map((i) => [i.id, {
+    ...itemDetail(store, nextOf, i.id),
+    traces: { ux: lensOf(store, i.id, "ux", nextOf(i)), dx: lensOf(store, i.id, "dx", nextOf(i)), ax: lensOf(store, i.id, "ax", nextOf(i)) }
+  }]));
   const calls = Object.fromEntries(store.calls().map(({ raw, ...c }) => [c.id, { ...c, raw: raw && raw.length > 4e5 ? raw.slice(-4e5) : raw }]));
   const data = JSON.stringify({ model, details, calls }).replaceAll("</", "<\\/");
   return CONSOLE.replace("<script>", `<script>var STATIC = ${data};</script><script>`);

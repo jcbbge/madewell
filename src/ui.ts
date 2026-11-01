@@ -547,8 +547,6 @@ export const itemDetail = (store: StoreService, nextOf: NextOf, id: number) => {
 		related: store.list().filter((i) => i.discovery === id || i.parent === id || (item.after ?? []).includes(i.id) || i.id === item.waitsOn || i.id === item.parent || i.id === item.discovery).map((i) => ({ id: i.id, title: i.title, status: i.status })),
 		diff: diffOf(store.path, item),
 		events: events.filter(timelineEvent).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
-		trace: lensOf(store, id, 'ax', nextOf(item)),
-		traces: { ux: lensOf(store, id, 'ux', nextOf(item)), dx: lensOf(store, id, 'dx', nextOf(item)), ax: lensOf(store, id, 'ax', nextOf(item)) },
 	}
 }
 
@@ -582,14 +580,22 @@ const storeWatcher = (path: string) => {
 }
 
 const json = (res: import('node:http').ServerResponse, body: unknown, code = 200) => {
+	if (res.headersSent) { res.destroy(); return }
+	let payload: string | undefined
+	try { payload = JSON.stringify(body) } catch (error) {
+		code = 500
+		payload = JSON.stringify({ error: 'console_failed', message: String(error) })
+	}
 	res.writeHead(code, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' })
-	res.end(JSON.stringify(body))
+	res.end(payload)
 }
 
 /** The console page with a model inside it, for reading without a server: `mw replay`. */
 export const staticPage = (store: StoreService, nextOf: NextOf) => {
 	const model = modelOf(store, nextOf)
-	const details = Object.fromEntries(store.list().map((i) => [i.id, itemDetail(store, nextOf, i.id)]))
+	const details = Object.fromEntries(store.list().map((i) => [i.id, { ...itemDetail(store, nextOf, i.id),
+		traces: { ux: lensOf(store, i.id, 'ux', nextOf(i)), dx: lensOf(store, i.id, 'dx', nextOf(i)), ax: lensOf(store, i.id, 'ax', nextOf(i)) },
+	}]))
 	const calls = Object.fromEntries(store.calls().map(({ raw, ...c }) => [c.id, { ...c, raw: raw && raw.length > 400_000 ? raw.slice(-400_000) : raw }]))
 	// `</` inside the data would end the script element.
 	const data = JSON.stringify({ model, details, calls }).replaceAll('</', '<\\/')
