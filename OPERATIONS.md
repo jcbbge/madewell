@@ -55,7 +55,7 @@ Prerequisites are Node **24.15 or later**, plus Git and a POSIX shell/process en
 
 The following are templates. Replace every `/absolute/path/...`, `SELECTED_REF`, uppercase command placeholder and `<id>` with reviewed values before running anything. Use a disposable store for experiments; do not point examples at an existing operational store.
 
-Acquire a source checkout at the intended revision. Do not assume the default branch contains a requested delivery; this delivery line is `feat/ground-rumen` until integrated elsewhere.
+Acquire a source checkout at the intended reviewed revision from `main`, this repository's integration and publication branch.
 
 ```sh
 git clone https://github.com/jcbbge/madewell.git /absolute/path/madewell-source
@@ -67,7 +67,7 @@ npm run typecheck
 node dist/mw.mjs
 ```
 
-`SELECTED_REF` may be the reviewed commit or `origin/feat/ground-rumen`. The final command prints the generated JSON manual. Direct source execution (`node src/cli.ts`) needs the source checkout's dependencies; the built entrypoint is `node dist/mw.mjs`.
+`SELECTED_REF` may be the reviewed commit or `origin/main`. The final command prints the generated JSON manual. Direct source execution (`node src/cli.ts`) needs the source checkout's dependencies; the built entrypoint is `node dist/mw.mjs`.
 
 For a copy-only runtime, run `npm pack` after bundling, then unpack the returned archive into a versioned runtime directory. Preserve the complete package layout, including bundled UI, fonts, prescriptions and guidance. Run `node dist/mw.mjs` there, or invoke that file by absolute path from an application. No global installation or runtime link to another project's checkout or `node_modules` is required. Keep the previous runtime directory for rollback.
 
@@ -225,7 +225,7 @@ The jump-pack lab builds on that demo configuration. Follow `examples/jump-pack-
 
 ## Maintain, verify and extend
 
-For a source change, use an authorized work branch rather than the detached build checkout. Inspect the current diff and remote, stage only your own paths, and follow AGENTS.md for commit authority; an explicit request to commit/push authorizes that delivery. Publish the approved branch after its checks pass. Never force-push or fold an independently frozen lab history into upstream main by assumption. Read the affected contract and consumers first, then build before CLI checks. Independent verification chooses affected test files/name selections and relevant typechecking. A useful selection for discovery-to-delivery contract work is:
+For a source change, use an authorized checkout on `main` rather than the detached build checkout. Inspect the current diff and remote, stage only your own paths, and follow AGENTS.md for commit authority; an explicit request to commit/push authorizes that delivery. Commit verified work and push `main`; publishing a feature branch alone does not complete delivery. Preserve existing upstream history, reconciling any independently frozen laboratory history before integration, and never force-push. Read the affected contract and consumers first, then build before CLI checks. Independent verification chooses affected test files/name selections and relevant typechecking. A useful selection for discovery-to-delivery contract work is:
 
 ```sh
 npm run bundle
