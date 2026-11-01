@@ -896,8 +896,8 @@ export const uninstallService = (h: Host): Omit<ServiceView, 'answering'> => {
 	const removed: string[] = []
 	const next = inspectNext(h)
 	if (existsSync(paths.unit)) {
-		if (h.platform === 'darwin') h.run('launchctl', ['bootout', `gui/${h.uid}/${LABEL}`])
-		else h.run('systemctl', ['--user', 'disable', '--now', SERVICE])
+		if (h.platform === 'darwin') must(h, 'launchctl', ['bootout', `gui/${h.uid}/${LABEL}`], next)
+		else must(h, 'systemctl', ['--user', 'disable', '--now', SERVICE], next)
 		rmSync(paths.unit, { force: true })
 		removed.push(paths.unit)
 		if (h.platform !== 'darwin') must(h, 'systemctl', ['--user', 'daemon-reload'], next)

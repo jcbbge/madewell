@@ -31459,8 +31459,8 @@ var uninstallService = (h) => {
   const removed = [];
   const next = inspectNext(h);
   if (existsSync5(paths.unit)) {
-    if (h.platform === "darwin") h.run("launchctl", ["bootout", `gui/${h.uid}/${LABEL}`]);
-    else h.run("systemctl", ["--user", "disable", "--now", SERVICE]);
+    if (h.platform === "darwin") must(h, "launchctl", ["bootout", `gui/${h.uid}/${LABEL}`], next);
+    else must(h, "systemctl", ["--user", "disable", "--now", SERVICE], next);
     rmSync6(paths.unit, { force: true });
     removed.push(paths.unit);
     if (h.platform !== "darwin") must(h, "systemctl", ["--user", "daemon-reload"], next);

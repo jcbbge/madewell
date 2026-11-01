@@ -208,3 +208,55 @@ test('any other platform is refused with a Made Well error that names it; the CL
 	assert.deepEqual([JSON.parse(both.stderr).error, JSON.parse(both.stderr).context], ['usage', { command: 'ui' }])
 	assert.equal(existsSync(join(home, '.config')), false, 'status writes nothing')
 })
+
+for (const platform of ['linux', 'darwin'] as const) test(`${platform} uninstall retains the manifest and logs when stopping fails, and the same installation can be retried`, () => {
+	const { host, calls, state } = scripted(platform)
+	installService(host, {})
+	const { unit, log } = servicePaths(host)
+	const manifest = readFileSync(unit, 'utf8')
+	if (log) { mkdirSync(join(log, '..'), { recursive: true }); writeFileSync(log, 'Preserve service evidence.') }
+	const command = platform === 'darwin' ? 'launchctl bootout gui/501/com.madewell.ui' : 'systemctl --user disable --now madewell-ui'
+	const run = host.run
+	const refused: Host = { ...host, run(file, args) {
+		if ([file, ...args].join(' ') === command) { calls.push(command); return { code: 1, out: '', err: 'Fixture stop refused.\n' } }
+		return run(file, args)
+	} }
+	calls.length = 0
+	assert.throws(() => uninstallService(refused), (error: { code: string; context: object; next: { run: string }[] }) => {
+		assert.equal(error.code, 'ui_service_failed')
+		assert.deepEqual(error.context, { platform, command, exitCode: 1, stderr: 'Fixture stop refused.' })
+		assert.ok(error.next.some(next => next.run.includes(platform === 'darwin' ? 'launchctl print' : 'systemctl --user status')))
+		return true
+	})
+	assert.deepEqual(calls, [command], 'no reload or other manager step follows a refused stop')
+	assert.equal(readFileSync(unit, 'utf8'), manifest)
+	if (log) assert.equal(readFileSync(log, 'utf8'), 'Preserve service evidence.')
+	assert.equal(platform === 'darwin' ? state.loaded : state.active, true)
+	assert.equal(serviceStatus(host).running, true, 'the retained installation can still be inspected')
+	const retried = uninstallService(host)
+	assert.deepEqual([retried.installed, retried.running], [false, false])
+	assert.equal(existsSync(unit), false)
+	if (log) assert.equal(existsSync(log), false)
+})
+
+for (const condition of ['already unloaded', 'inspection denied']) test(`macOS uninstall preserves its manifest when ${condition} cannot be distinguished from a stop failure`, () => {
+	const { host, calls, state } = scripted('darwin')
+	installService(host, {})
+	const { unit } = servicePaths(host)
+	const manifest = readFileSync(unit, 'utf8')
+	state.loaded = condition !== 'already unloaded'
+	const run = host.run
+	const unconfirmed: Host = { ...host, run(file, args) {
+		if (file === 'launchctl' && (args[0] === 'bootout' || args[0] === 'print')) {
+			calls.push([file, ...args].join(' '))
+			return { code: 1, out: '', err: `Fixture ${condition}.` }
+		}
+		return run(file, args)
+	} }
+	assert.equal(serviceStatus(unconfirmed).running, false, 'the current status projection has no distinct confirmed-absent state')
+	calls.length = 0
+	assert.throws(() => uninstallService(unconfirmed), (error: { code: string }) => error.code === 'ui_service_failed')
+	assert.deepEqual(calls, ['launchctl bootout gui/501/com.madewell.ui'])
+	assert.equal(readFileSync(unit, 'utf8'), manifest, 'an unconfirmed stop never authorizes manifest removal')
+})
+
