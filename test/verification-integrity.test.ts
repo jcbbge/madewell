@@ -9,6 +9,7 @@ import { AGENT_JOBS, type Card, type Prescriptions } from '../src/cards.ts'
 import { drive, go } from '../src/engine.ts'
 import { quote } from '../src/errors.ts'
 import { SOFTWARE } from '../src/lane.ts'
+import type { Gate } from '../src/project.ts'
 import { openStore, Store } from '../src/store.ts'
 import { workEvidenceOf } from '../src/work-evidence.ts'
 import { Worker, type WorkerRequest } from '../src/worker.ts'
@@ -19,7 +20,7 @@ const prescriptions: Prescriptions = {
 	jobs: { ...Object.fromEntries(AGENT_JOBS.map(job => [job, { tier: 'deep', access: job === 'implement' ? 'make' : job === 'test-plan' ? 'checks' : 'read', budget: { minutes: 1 } }])), verify: { budget: { minutes: 1 } } } as Prescriptions['jobs'],
 }
 const assertExport = 'actual=$(sh src/export.sh)\n[ "$actual" = "a,b" ] || { echo "wrong export: $actual"; exit 1; }\nprintf "tested:%s\\n" "$actual"\n'
-function fixture(commands: string[], staleGeneratedOutput = false) {
+function fixture(commands: string[], { staleGeneratedOutput = false, gates = [], autonomy = 'checkpoints' }: { staleGeneratedOutput?: boolean; gates?: ReadonlyArray<Gate>; autonomy?: 'checkpoints' | 'full' } = {}) {
 	const root = realpathSync(mkdtempSync(join(tmpdir(), 'mw-verification-integrity-'))), repo = join(root, 'repo'), home = join(root, 'home')
 	mkdirSync(join(repo, 'src'), { recursive: true }); mkdirSync(join(repo, 'scripts')); mkdirSync(home)
 	const git = (...args: string[]) => execFileSync('git', ['-C', repo, ...args], { encoding: 'utf8' }).trim()
@@ -35,9 +36,9 @@ function fixture(commands: string[], staleGeneratedOutput = false) {
 	for (const key of Object.keys(process.env)) if (/^MW_/i.test(key)) delete process.env[key]
 	process.env.MW_HOME = home; process.env.MW_STORE = join(home, 'work.db'); process.env.MW_AUTORUN = '0'
 	const shipped = join(root, 'shipped.log')
-	writeFileSync(join(home, 'projects.json'), JSON.stringify([{ path: repo, ship: `git rev-parse HEAD >> ${quote(shipped)}` }]))
+	writeFileSync(join(home, 'projects.json'), JSON.stringify([{ path: repo, gates, ship: `git rev-parse HEAD >> ${quote(shipped)}` }]))
 	const store = openStore(process.env.MW_STORE)
-	const item = store.create({ title: 'Update the CSV export', objective: 'The delivered export prints a,b', source: 'Update the CSV source and its generated export. Verify the delivered bytes.', workspace: repo, pack: SOFTWARE, autonomy: 'checkpoints' })
+	const item = store.create({ title: 'Update the CSV export', objective: 'The delivered export prints a,b', source: 'Update the CSV source and its generated export. Verify the delivered bytes.', workspace: repo, pack: SOFTWARE, autonomy })
 	const calls: WorkerRequest[] = []
 	const write = (req: WorkerRequest, path: string, content: string) => { mkdirSync(dirname(join(req.cwd, path)), { recursive: true }); writeFileSync(join(req.cwd, path), content) }
 	const worker = Layer.succeed(Worker, { run: req => Effect.sync(() => {
@@ -65,7 +66,7 @@ for (const scenario of [
 	{ name: 'a later passing check restores an earlier tracked mutation', commands: ["printf '# mutation between commands\\n' >> src/export.sh\n", `git restore --source=HEAD --worktree -- src/export.sh\n${assertExport}`] },
 	{ name: 'a passing check stages a tracked product mutation', commands: ["printf 'echo changed\\n' > src/export.sh\ngit add src/export.sh\n"] },
 ] as const) test(`verification integrity: ${scenario.name} cannot attest or ship the original candidate`, { timeout: 30_000 }, async () => {
-	const t = fixture([...scenario.commands], 'stale' in scenario && scenario.stale)
+	const t = fixture([...scenario.commands], { staleGeneratedOutput: 'stale' in scenario && scenario.stale })
 	try {
 		const result = await t.run(drive(t.item.id, { prescriptions }))
 		assert.equal(result.status, 'held', JSON.stringify(result))
@@ -79,6 +80,37 @@ for (const scenario of [
 		assert.equal(result.shipped, undefined)
 		assert.equal(existsSync(t.shipped), false)
 		assert.equal(readFileSync(join(t.repo, 'src/export.sh'), 'utf8'), 'echo old\n')
+		assert.equal(workEvidenceOf(t.store, result).verificationCurrent, false)
+	} finally { t.clean() }
+})
+
+test('verification integrity: a passing project gate leaves tracked output outside the candidate and cannot ship it', { timeout: 30_000 }, async () => {
+	const t = fixture([assertExport], { staleGeneratedOutput: true, gates: [{ id: 'build-export', run: 'sh scripts/build.sh' }], autonomy: 'full' })
+	try {
+		const result = await t.run(drive(t.item.id, { prescriptions }))
+		assert.equal(result.status, 'held', JSON.stringify(result))
+		assert.equal(result.verification?.passed, false)
+		const results = result.verification!.results
+		const gate = results.find(check => check.id === 'G1')
+		assert.ok(gate, 'the project build gate must actually run')
+		assert.equal(gate.exitCode, 0)
+		const check = results.find(check => check.id === 'C1')
+		assert.ok(check, 'the read-only independent check must actually run')
+		assert.equal(check.exitCode, 0)
+		assert.match(check.output, /tested:a,b/)
+		const failure = results.find(check => check.id === 'candidate-integrity')
+		assert.ok(failure, 'pre-existing tracked build output cannot become an accepted check baseline')
+		assert.notEqual(failure.exitCode, 0)
+		assert.deepEqual(results.filter(check => check.exitCode !== 0).map(check => check.id), ['candidate-integrity'])
+		assert.equal(t.git('show', `${result.verification!.commit}:src/value.txt`), 'a,b')
+		assert.equal(t.git('show', `${result.verification!.commit}:src/export.sh`), 'echo old', 'the read-only check saw regenerated bytes absent from the candidate commit')
+		assert.equal(t.git('rev-parse', 'main'), t.base)
+		assert.equal(t.git('status', '--porcelain'), '')
+		assert.equal(readFileSync(join(t.repo, 'src/value.txt'), 'utf8'), 'old\n')
+		assert.equal(readFileSync(join(t.repo, 'src/export.sh'), 'utf8'), 'echo old\n')
+		assert.equal(result.merged, undefined)
+		assert.equal(result.shipped, undefined)
+		assert.equal(existsSync(t.shipped), false)
 		assert.equal(workEvidenceOf(t.store, result).verificationCurrent, false)
 	} finally { t.clean() }
 })

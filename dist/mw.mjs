@@ -27309,6 +27309,8 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     const gated = yield* runGates(id2, wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
     preserveArtifact(store, item, "implement", readFileSync9(patchPath(home, "change"), "utf8"), wt.base);
     const built = yield* commit(wt.path, commitMessage(item));
+    const candidateDiff = () => git(wt.path, "diff", "--binary", "--no-renames", "--no-ext-diff", "--no-textconv", built);
+    const committedProductClean = (yield* candidateDiff()) === "";
     const applied = yield* Effect_exports.result(applyPatch(wt.path, patchPath(home, "checks")));
     if (Result_exports.isFailure(applied)) return { kind: "conflict", by: "test-plan", on: wt.base, error: applied.failure };
     if (organsRequired(item)) {
@@ -27325,9 +27327,8 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
       }
     });
     const sources = fingerprint();
-    const candidateDiff = () => git(wt.path, "diff", "--binary", "--no-renames", "--no-ext-diff", "--no-textconv", built);
     const checkBaseline = yield* candidateDiff();
-    let candidateStable = true;
+    let candidateStable = committedProductClean;
     const checked = (selected) => Effect_exports.gen(function* () {
       const results3 = [];
       for (const check2 of selected) {

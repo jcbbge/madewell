@@ -1130,6 +1130,8 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		const gated = yield* runGates(id, wt.path, wt.base, gates, patchPath(home, 'change'), budget, env, live)
 		preserveArtifact(store, item, 'implement', readFileSync(patchPath(home, 'change'), 'utf8'), wt.base)
 		const built = yield* commit(wt.path, commitMessage(item))
+		const candidateDiff = () => git(wt.path, 'diff', '--binary', '--no-renames', '--no-ext-diff', '--no-textconv', built)
+		const committedProductClean = (yield* candidateDiff()) === ''
 		const applied = yield* Effect.result(applyPatch(wt.path, patchPath(home, 'checks')))
 		if (Result.isFailure(applied)) return { kind: 'conflict', by: 'test-plan', on: wt.base, error: applied.failure } as const
 		if (organsRequired(item)) {
@@ -1142,9 +1144,8 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 			catch { return { path, sha256: null } }
 		})
 		const sources = fingerprint()
-		const candidateDiff = () => git(wt.path, 'diff', '--binary', '--no-renames', '--no-ext-diff', '--no-textconv', built)
 		const checkBaseline = yield* candidateDiff()
-		let candidateStable = true
+		let candidateStable = committedProductClean
 		const checked = (selected: ReadonlyArray<Check>) => Effect.gen(function* () {
 			const results: CheckResult[] = []
 			for (const check of selected) {

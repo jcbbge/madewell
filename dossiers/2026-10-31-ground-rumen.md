@@ -44,3 +44,5 @@ Independent verification checks leave tracked candidate material and HEAD unchan
 Gate applicability includes staged deletions. A captured deletion that is physically absent carries `deleted:true`, distinct from an unreadable source. File-argument gates receive surviving matched paths only and explicitly record non-applicability when none survive; whole-project gates still execute for deletion-only changes.
 
 Historical standing-context facts resolve private maker provenance through retained source, previous-fact and revocation references before visibility or mutation checks. Missing, unrecognized or conflicting lineage is withheld from makers. Read-time inference never rewrites the saved events.
+
+Before independent check files are applied, tracked product material must match the committed candidate exactly. A successful gate that leaves other tracked generated output unstaged cannot establish shipment of those bytes; the candidate-integrity result prevents acceptance.
