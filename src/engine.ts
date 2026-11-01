@@ -794,7 +794,10 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 		yield* guardMain(store, item).pipe(Effect.tapError((e) => Effect.andThen(keep('guard-error', e.message), Effect.sync(() => store.rejectCall(call.callId, e.message)))))
 	}
 	let artifacts: Partial<Item> = {}
-	if (isMaker(job) && !blockedOf(L(item), job, value)) {
+	const blocked = blockedOf(L(item), job, value)
+	if (isMaker(job) && blocked) {
+		yield* keep('blocked', blocked)
+	} else if (isMaker(job)) {
 		const base = from
 		if (job === 'implement') {
 			const scoped = yield* Effect.result(scopeCheck(dir, base, plan!.scope, answered.preparationBaseline))
@@ -814,8 +817,8 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 		// Ignored files the maker made (build output, screenshots) never leave the worktree, which is removed: recorded, not shipped.
 		const stray = yield* Effect.result(leftovers(dir, call.before!))
 		if (Result.isFailure(stray)) store.save(store.get(id)!, 'worktree-leftovers', { job, files: (stray.failure.context as { files: string[] }).files })
+		rmSync(patchPath(home, `${job}.partial`), { force: true })
 	}
-	if (isMaker(job)) rmSync(patchPath(home, `${job}.partial`), { force: true })
 
 	const now = store.get(id)!
 	const provisioned = [...(now.provisioned ?? []), ...((value.provisioned as Item['provisioned']) ?? []).map((r) => ({ kind: r.kind, id: r.id, teardown: r.teardown, job }))]
