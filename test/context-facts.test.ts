@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import { Effect, Layer } from 'effect'
 import { answer, contextFact, contextFacts, drive } from '../src/engine.ts'
 import { contextFactsFor } from '../src/context-facts.ts'
+import { preserveArtifact } from '../src/artifact-evidence.ts'
 import type { Prescriptions } from '../src/cards.ts'
 import { openStore, Store } from '../src/store.ts'
 import { Worker, type WorkerRequest } from '../src/worker.ts'
@@ -213,5 +214,26 @@ test('CLI explicitly registers, updates, lists and revokes facts without moving 
 		assert.equal(cli('context-fact', String(t.item.id)).facts[0].status, 'revoked')
 		assert.deepEqual(t.store.get(t.item.id), before, 'saving facts does not alter the delivery state or release a hold')
 		assert.equal(t.store.runner(), null)
+	} finally { t.cleanup() }
+})
+
+test('saved artifact provenance keeps standing facts private to each real maker role', async () => {
+	const t = setup()
+	try {
+		for (const [role, other] of [['implement', 'test-plan'], ['test-plan', 'implement']] as const) {
+			preserveArtifact(t.store, t.item, role, `Private ${role} fixture bytes.`, 'fixture-base')
+			const event = t.store.events(t.item.id).at(-1)!
+			assert.equal(event.kind, 'artifact-saved')
+			assert.equal(event.data.job, undefined, 'exercise the actual persisted role-only event')
+			const source = { reference: `${role} saved artifact`, event: event.seq }
+			const key = `artifact-${role}`
+			await assert.rejects(t.run(contextFact(t.item.id, registration(`${key}-leak`, { key, jobs: [other], source }))), /context_fact_maker_isolation/)
+			const own = await t.run(contextFact(t.item.id, registration(`${key}-own`, { key, jobs: ['plan', role], source })))
+			assert.equal(contextFactsFor(t.store, t.item, role, Date.now()).find(f => f.key === key)?.sourceJob, role)
+			assert.ok(contextFactsFor(t.store, t.item, other, Date.now()).every(f => f.key !== key))
+			assert.ok(contextFactsFor(t.store, t.item, 'plan', Date.now(), other).every(f => f.key !== key), 'an originator serving the opposing maker stays blind')
+			await assert.rejects(t.run(contextFact(t.item.id, registration(`${key}-update`, { key, operation: 'update', revision: 1, jobs: [other] }))), /context_fact_maker_isolation/, 'an update cannot remove the private origin')
+			await assert.rejects(t.run(contextFact(t.item.id, registration(`${key}-copy`, { key: `${key}-copy`, jobs: [other], source: { reference: 'Private standing fact', event: own.event } }))), /context_fact_maker_isolation/)
+		}
 	} finally { t.cleanup() }
 })

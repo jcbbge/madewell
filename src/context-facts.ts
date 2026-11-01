@@ -62,6 +62,7 @@ export function contextFactRecords(store: FactStore, id: number): ContextFact[] 
 
 const opposing = (sourceJob: string | undefined, reader: string) => isMaker(reader) && isMaker(sourceJob ?? '') && reader !== sourceJob
 const sourceJobOf = (event: Event | undefined): string | undefined => {
+	if (event?.kind === 'artifact-saved' && (event.data.role === 'implement' || event.data.role === 'test-plan')) return event.data.role
 	if (typeof event?.data.job === 'string') return event.data.job
 	if (event?.kind === 'context-fact' && event.data.version === 1) {
 		try { return Schema.decodeUnknownSync(StoredFact)(event.data.fact).sourceJob } catch {}
