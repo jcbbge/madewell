@@ -29126,8 +29126,9 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
       calls: scored
     });
   }
+  const comparable = groups.every((group) => group.calls.length === calls.length && group.calls.every((call, index2) => call.id === calls[index2].id));
   const cost = (r) => [r.replay.tokens === null ? 1 : 0, r.replay.tokens ?? 0, r.replay.seconds];
-  const best = results2.filter((r) => r.matches).sort((a, b) => {
+  const best = (comparable ? results2 : []).filter((r) => r.matches).sort((a, b) => {
     const [x, y] = [cost(a), cost(b)];
     return x[0] - y[0] || x[1] - y[1] || x[2] - y[2];
   })[0];
@@ -29145,7 +29146,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const lead = cardsFor(p, o.job)[0];
   const next = [
     ...best && !sameCard(best.card, lead) ? [{ run: `$EDITOR ${quote2(o.prescriptionsPath)}`, why: `to prescribe ${label2(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` }] : [],
-    ...!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: "no evaluated card matched the record: keep the prescription, or try other cards" }] : [],
+    ...!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: comparable ? "no evaluated card matched the record: keep the prescription, or try other cards" : "recorded cards replayed different call IDs; use --card to compare every card on the same selected calls before changing the prescription" }] : [],
     ...results2.filter((r) => r.limited).map((r) => ({ run: command2, why: `${label2(r.card)} stopped at a usage limit; run again after ${r.limited.resetsAt} to complete it` })),
     { run: `sqlite3 ${quote2(store.path)} "SELECT call, card, outcome, score, output FROM eval_calls WHERE eval = ${run2}"`, why: "read each replayed answer; raw streams, facts and flags are on the same rows" }
   ];

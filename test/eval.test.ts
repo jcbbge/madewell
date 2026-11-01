@@ -246,3 +246,20 @@ test('mw eval replays a delivered item\'s calls through the worker command and p
 	assert.deepEqual(mw('eval', 'plan', '--item', '2,3').err.context.items, [2, 3], 'only the named items\' calls are replayed')
 	assert.equal(mw('eval', 'plan', '--item', '1,x').err.error, 'usage')
 })
+
+for (const executions of [1, 2]) test(`default replay does not recommend across different call IDs (${executions} execution calls)`, async () => {
+	const t = setup(`unequal-workloads-${executions}`)
+	try {
+		t.record('intake', 'arbitrate', card('cheap'), INTAKE, 1)
+		for (let index = 0; index < executions; index++) t.record('execute', 'arbitrate', card('big'), ARBITRATED, 100)
+		const report = await Effect.runPromise(t.run(req => ({ ok: true, output: req.kind === 'intake' ? INTAKE : ARBITRATED, raw: raw(req.kind === 'intake' ? 1 : 100) })))
+		assert.deepEqual(report.cards.map(result => [result.card.model, result.complete, result.matches, result.replay.calls, result.replay.tokens]), [
+			['cheap', true, true, 1, 1], ['big', true, true, executions, executions * 100],
+		], 'each card still retains its honest comparison with its own recorded calls')
+		assert.equal(report.recommendation, null, 'even equal group sizes do not establish the same workload')
+		assert.match(report.next[0]!.why, /different call IDs.*same selected calls/)
+		assert.equal(report.next[0]!.run, 'mw eval arbitrate --card <a tier, or a card as JSON>')
+		assert.ok(!report.next.some(next => next.run.startsWith('$EDITOR')))
+		t.untouched()
+	} finally { t.store.close() }
+})

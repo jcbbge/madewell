@@ -241,9 +241,12 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 		})
 	}
 
+	// Original-card groups may contain different jobs/kinds or different numbers of calls.
+	// A prescription recommendation needs the same selected call IDs on every compared card.
+	const comparable = groups.every(group => group.calls.length === calls.length && group.calls.every((call, index) => call.id === calls[index]!.id))
 	// Cheapest by the evidence: fewest tokens (a card whose harness reports none comes last), then fewest seconds.
 	const cost = (r: CardResult) => [r.replay.tokens === null ? 1 : 0, r.replay.tokens ?? 0, r.replay.seconds]
-	const best = results.filter((r) => r.matches).sort((a, b) => {
+	const best = (comparable ? results : []).filter((r) => r.matches).sort((a, b) => {
 		const [x, y] = [cost(a), cost(b)]
 		return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]!
 	})[0]
@@ -262,7 +265,7 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	const lead = cardsFor(p, o.job)[0]!
 	const next: Next[] = [
 		...(best && !sameCard(best.card, lead) ? [{ run: `$EDITOR ${quote(o.prescriptionsPath)}`, why: `to prescribe ${label(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` }] : []),
-		...(!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: 'no evaluated card matched the record: keep the prescription, or try other cards' }] : []),
+		...(!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: comparable ? 'no evaluated card matched the record: keep the prescription, or try other cards' : 'recorded cards replayed different call IDs; use --card to compare every card on the same selected calls before changing the prescription' }] : []),
 		...results.filter((r) => r.limited).map((r) => ({ run: command, why: `${label(r.card)} stopped at a usage limit; run again after ${r.limited!.resetsAt} to complete it` })),
 		{ run: `sqlite3 ${quote(store.path)} "SELECT call, card, outcome, score, output FROM eval_calls WHERE eval = ${run}"`, why: 'read each replayed answer; raw streams, facts and flags are on the same rows' },
 	]
