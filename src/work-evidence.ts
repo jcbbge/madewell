@@ -3,7 +3,7 @@ import { laneOf, lastJson, malformed, stepOf } from './lane.ts'
 import { invalidatedAt } from './work-boundary.ts'
 import { organReceipts, organsRequired } from './organs.ts'
 import { quote } from './errors.ts'
-import { gateRule, hasFunctionFenceProof, type GateReceipt, type RumenRule } from './rumen.ts'
+import { gateRule, gateSourceAvailable, hasFunctionFenceProof, type GateReceipt, type RumenRule } from './rumen.ts'
 import type { Event, Item, Store } from './store.ts'
 
 type Reader = Pick<Store['Service'], 'events' | 'call'>
@@ -34,9 +34,12 @@ function gatesComplete(item: Item, events: readonly Event[], start: Event | unde
 			if (receipt.id !== `G${index + 1}` || receipt.rule !== definition.id || receipt.definitionHash !== definition.definitionHash || definition.definitionHash !== gateRule({ run: definition.run, ...(definition.glob === undefined ? {} : { glob: definition.glob }) }).definitionHash || receipt.template !== definition.run || receipt.template !== templates[index]) return false
 			if (!Array.isArray(receipt.files) || receipt.files.some(file => typeof file !== 'string') || new Set(receipt.files).size !== receipt.files.length || !Array.isArray(receipt.sourceBefore) || !Array.isArray(receipt.sourceAfter)) return false
 			const result = verification.results.find(run => run.id === receipt.id && run.doneWhen === '(gate)')
-			if (receipt.outcome === 'not-applicable') return receipt.files.length === 0 && receipt.command === null && receipt.exitCode === null && receipt.sourceBefore.length === 0 && receipt.sourceAfter.length === 0 && result === undefined
-			const bound = (sources: GateReceipt['sourceBefore']) => sources.length === receipt.files.length && sources.every((source, at) => source?.path === receipt.files[at] && typeof source.sha256 === 'string' && /^[a-f0-9]{64}$/.test(source.sha256))
-			return receipt.outcome === 'passed' && receipt.files.length > 0 && receipt.exitCode === 0 && receipt.command === receipt.template.replaceAll('{files}', receipt.files.map(quote).join(' ')) && result?.exitCode === 0 && result.run === receipt.command && bound(receipt.sourceBefore) && bound(receipt.sourceAfter)
+			const bound = (sources: GateReceipt['sourceBefore']) => sources.length === receipt.files.length && sources.every((source, at) => source?.path === receipt.files[at] && gateSourceAvailable(source))
+			if (!bound(receipt.sourceBefore) || !bound(receipt.sourceAfter)) return false
+			const surviving = receipt.sourceBefore.filter(source => source.deleted !== true).map(source => source.path)
+			const applicable = receipt.files.length > 0 && (!receipt.template.includes('{files}') || surviving.length > 0)
+			if (receipt.outcome === 'not-applicable') return !applicable && receipt.command === null && receipt.exitCode === null && result === undefined && receipt.sourceAfter.every(source => source.deleted === true)
+			return receipt.outcome === 'passed' && applicable && receipt.exitCode === 0 && receipt.command === receipt.template.replaceAll('{files}', surviving.map(quote).join(' ')) && result?.exitCode === 0 && result.run === receipt.command
 		})
 	}
 	// Old engines did not save non-applicability or definition identities. Confirm their actual gate runs

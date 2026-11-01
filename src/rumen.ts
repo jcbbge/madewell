@@ -17,7 +17,14 @@ export interface RumenRule {
 export interface GateSource {
 	readonly path: string
 	readonly sha256: string | null
+	/** Only a captured staged deletion which was physically absent at this observation. */
+	readonly deleted?: true
 }
+
+/** Missing content is known only when the receipt explicitly records a declared deletion. */
+export const gateSourceAvailable = (source: GateSource): boolean => source.deleted === true
+	? source.sha256 === null
+	: source.deleted === undefined && typeof source.sha256 === 'string' && /^[a-f0-9]{64}$/.test(source.sha256)
 
 /** These fingerprints describe this gate's actual before/after material, not every later formatter's result. */
 export interface GateReceipt {

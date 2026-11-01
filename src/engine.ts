@@ -26,7 +26,7 @@ import { referenceDiscovery } from './packet-references.ts'
 import { answerHistory, decisionProblem, questionsOwedBy, questionResolved, recordPhaseDecisions } from './nq-obligations.ts'
 import { checkPrerequisites, prerequisiteForReference } from './prerequisites.ts'
 import { childOrgans, checkIncomingPreparation, inspectPreparation, organOutputShape, organPacket, organsRequired, saveOrganReceipt, type OrganReceipt } from './organs.ts'
-import { gateRule, rumenRules, type RumenRule } from './rumen.ts'
+import { gateRule, gateSourceAvailable, rumenRules, type RumenRule } from './rumen.ts'
 import { existsSync, mkdirSync, readdirSync, readFileSync, lstatSync, readlinkSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -1188,7 +1188,7 @@ const verify = Effect.fn('mw.verify')(function* (id: number, config: EngineConfi
 		}, 'rebased', { conflict: run.by, from: now.base!.commit, ref: now.base!.ref, reason: why.slice(0, 2000) })
 		return
 	}
-	if (run.gateReceipts.some(r => r.outcome === 'unavailable' || r.outcome === 'passed' && [...r.sourceBefore, ...r.sourceAfter].some(source => source.sha256 === null))) return hold(store, now, 'environment', 'Rumen could not retain readable material identities for a required mechanical fence.', { job: 'verify', gateReceipts: run.gateReceipts })
+	if (run.gateReceipts.some(r => r.outcome === 'unavailable' || r.outcome === 'passed' && [...r.sourceBefore, ...r.sourceAfter].some(source => !gateSourceAvailable(source)))) return hold(store, now, 'environment', 'Rumen could not retain readable material identities for a required mechanical fence.', { job: 'verify', gateReceipts: run.gateReceipts })
 	const passed = run.results.every((r) => r.exitCode === 0)
 	const verification = { on: run.on, commit: run.commit, results: run.results, gateReceipts: run.gateReceipts, passed }
 	const artifacts = continuationArtifacts(store.events(id)).filter(a => !a.partial)

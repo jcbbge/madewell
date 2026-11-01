@@ -40,3 +40,5 @@ Independent acceptance covers missing preparation, invalid/missing/stale sources
 DX: one explicit producer contract and usable errors; UX: explainable Ground/Rumen/readiness completion; AX: prepared inputs and constraints travel automatically with the task. Cost: compact required output fields and retained fingerprints. All three are expected gains; acceptance evidence determines delivered scope.
 
 Independent verification checks leave tracked candidate material and HEAD unchanged after each command. Their staged check files form the expected baseline; ignored/untracked build output is allowed. Product-changing builds run as project gates before the candidate commit. A changed candidate records a failing `candidate-integrity` result and cannot ship.
+
+Gate applicability includes staged deletions. A captured deletion that is physically absent carries `deleted:true`, distinct from an unreadable source. File-argument gates receive surviving matched paths only and explicitly record non-applicability when none survive; whole-project gates still execute for deletion-only changes.

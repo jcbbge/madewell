@@ -23186,6 +23186,7 @@ import { dirname, isAbsolute as isAbsolute2, normalize as normalize3, relative a
 
 // src/rumen.ts
 import { createHash as createHash4 } from "node:crypto";
+var gateSourceAvailable = (source2) => source2.deleted === true ? source2.sha256 === null : source2.deleted === void 0 && typeof source2.sha256 === "string" && /^[a-f0-9]{64}$/.test(source2.sha256);
 var hash2 = (value4) => createHash4("sha256").update(JSON.stringify(value4)).digest("hex");
 function gateRule(gate) {
   const definitionHash = hash2({ kind: "fence", run: gate.run, glob: gate.glob ?? null });
@@ -23446,7 +23447,7 @@ function organSummary(store, item) {
 }
 
 // src/engine.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync9, lstatSync as lstatSync3, readlinkSync as readlinkSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync9, lstatSync as lstatSync4, readlinkSync as readlinkSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
 import { tmpdir as tmpdir3 } from "node:os";
 import { dirname as dirname7, join as join9, relative as relative4, resolve as resolve7 } from "node:path";
 
@@ -23992,7 +23993,7 @@ function pickCard(cards, exhausted, now2) {
 
 // src/change.ts
 import { createHash as createHash9 } from "node:crypto";
-import { appendFileSync as appendFileSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync7, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
+import { appendFileSync as appendFileSync3, lstatSync as lstatSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync7, rmSync as rmSync4, writeFileSync as writeFileSync3 } from "node:fs";
 import { basename, dirname as dirname5, join as join7, matchesGlob as matchesGlob2 } from "node:path";
 
 // src/store.ts
@@ -24883,9 +24884,12 @@ function gatesComplete(item, events2, start, proof) {
       if (receipt.id !== `G${index2 + 1}` || receipt.rule !== definition.id || receipt.definitionHash !== definition.definitionHash || definition.definitionHash !== gateRule({ run: definition.run, ...definition.glob === void 0 ? {} : { glob: definition.glob } }).definitionHash || receipt.template !== definition.run || receipt.template !== templates[index2]) return false;
       if (!Array.isArray(receipt.files) || receipt.files.some((file) => typeof file !== "string") || new Set(receipt.files).size !== receipt.files.length || !Array.isArray(receipt.sourceBefore) || !Array.isArray(receipt.sourceAfter)) return false;
       const result3 = verification.results.find((run2) => run2.id === receipt.id && run2.doneWhen === "(gate)");
-      if (receipt.outcome === "not-applicable") return receipt.files.length === 0 && receipt.command === null && receipt.exitCode === null && receipt.sourceBefore.length === 0 && receipt.sourceAfter.length === 0 && result3 === void 0;
-      const bound = (sources) => sources.length === receipt.files.length && sources.every((source2, at) => source2?.path === receipt.files[at] && typeof source2.sha256 === "string" && /^[a-f0-9]{64}$/.test(source2.sha256));
-      return receipt.outcome === "passed" && receipt.files.length > 0 && receipt.exitCode === 0 && receipt.command === receipt.template.replaceAll("{files}", receipt.files.map(quote2).join(" ")) && result3?.exitCode === 0 && result3.run === receipt.command && bound(receipt.sourceBefore) && bound(receipt.sourceAfter);
+      const bound = (sources) => sources.length === receipt.files.length && sources.every((source2, at) => source2?.path === receipt.files[at] && gateSourceAvailable(source2));
+      if (!bound(receipt.sourceBefore) || !bound(receipt.sourceAfter)) return false;
+      const surviving = receipt.sourceBefore.filter((source2) => source2.deleted !== true).map((source2) => source2.path);
+      const applicable = receipt.files.length > 0 && (!receipt.template.includes("{files}") || surviving.length > 0);
+      if (receipt.outcome === "not-applicable") return !applicable && receipt.command === null && receipt.exitCode === null && result3 === void 0 && receipt.sourceAfter.every((source2) => source2.deleted === true);
+      return receipt.outcome === "passed" && applicable && receipt.exitCode === 0 && receipt.command === receipt.template.replaceAll("{files}", surviving.map(quote2).join(" ")) && result3?.exitCode === 0 && result3.run === receipt.command;
     });
   }
   return templates.every((template, index2) => {
@@ -25624,20 +25628,31 @@ var bringOnto = Effect_exports.fn("mw.bringOnto")(function* (repo, ref2, from, t
 var GATE = "(gate)";
 var runGates = Effect_exports.fn("mw.gates")(function* (item, dir, base, gates, change, budget, env, live) {
   const store = yield* Store;
-  const files = lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=d", "-z", base));
+  const files = lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "-z", base));
+  const deleted = new Set(lines3(yield* git(dir, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=D", "-z", base)));
   const results2 = [], gateReceipts = [];
   const fingerprint = (paths) => paths.map((path) => {
     try {
       return { path, sha256: createHash9("sha256").update(readFileSync7(join7(dir, path))).digest("hex") };
     } catch {
+      if (deleted.has(path)) {
+        try {
+          lstatSync3(join7(dir, path));
+        } catch (error) {
+          if (error.code === "ENOENT") return { path, sha256: null, deleted: true };
+        }
+      }
       return { path, sha256: null };
     }
   });
   for (const [index2, gate] of gates.entries()) {
     const matched = gate.glob ? files.filter((file) => matchesGlob2(gate.glob.includes("/") ? file : basename(file), gate.glob)) : files;
     const rule = gateRule(gate), id2 = `G${index2 + 1}`;
-    const command2 = matched.length ? gate.run.replaceAll("{files}", matched.map(quote2).join(" ")) : null;
     const sourceBefore = fingerprint(matched);
+    const available = sourceBefore.every(gateSourceAvailable);
+    const surviving = sourceBefore.filter((source2) => source2.sha256 !== null).map((source2) => source2.path);
+    const applicable = matched.length > 0 && (!gate.run.includes("{files}") || surviving.length > 0);
+    const command2 = available && applicable ? gate.run.replaceAll("{files}", surviving.map(quote2).join(" ")) : null;
     const [result3] = command2 === null ? [] : yield* runChecks2(item, dir, [{ id: id2, doneWhen: GATE, run: command2 }], budget, env, live);
     if (result3) results2.push(result3);
     const receipt = {
@@ -25647,7 +25662,7 @@ var runGates = Effect_exports.fn("mw.gates")(function* (item, dir, base, gates, 
       template: gate.run,
       command: command2,
       files: matched,
-      outcome: command2 === null ? "not-applicable" : !result3 ? "unavailable" : result3.exitCode === 0 ? "passed" : "failed",
+      outcome: !available ? "unavailable" : command2 === null ? "not-applicable" : !result3 ? "unavailable" : result3.exitCode === 0 ? "passed" : "failed",
       exitCode: result3?.exitCode ?? null,
       sourceBefore,
       sourceAfter: fingerprint(matched)
@@ -25656,9 +25671,10 @@ var runGates = Effect_exports.fn("mw.gates")(function* (item, dir, base, gates, 
     store.note(item, "rumen-gate", { job: "verify", ...receipt });
   }
   if (!results2.length) return { results: results2, fixed: [], gateReceipts };
-  const fixed = lines3(yield* git(dir, "diff", "--name-only", "-z", "--", ...files));
+  const restored = [...deleted].filter((path) => fingerprint([path])[0].sha256 !== null);
+  const fixed = [.../* @__PURE__ */ new Set([...lines3(yield* git(dir, "diff", "--name-only", "-z", "--", ...files)), ...restored])];
   if (fixed.length) {
-    yield* git(dir, "add", "--", ...fixed);
+    yield* git(dir, "add", "--force", "--", ...fixed);
     writePatch(change, yield* git(dir, "diff", "--cached", "--binary", "--no-renames", base));
   }
   return { results: results2, fixed, gateReceipts };
@@ -27244,7 +27260,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     const fingerprint = () => (item.checks?.files ?? []).map((path) => {
       try {
         const file = join9(wt.path, path);
-        return { path, sha256: contentHash(lstatSync3(file).isSymbolicLink() ? readlinkSync3(file) : readFileSync9(file)) };
+        return { path, sha256: contentHash(lstatSync4(file).isSymbolicLink() ? readlinkSync3(file) : readFileSync9(file)) };
       } catch {
         return { path, sha256: null };
       }
@@ -27303,7 +27319,7 @@ Plan again from the branch as it is now.`
     }, "rebased", { conflict: run2.by, from: now2.base.commit, ref: now2.base.ref, reason: why.slice(0, 2e3) });
     return;
   }
-  if (run2.gateReceipts.some((r) => r.outcome === "unavailable" || r.outcome === "passed" && [...r.sourceBefore, ...r.sourceAfter].some((source2) => source2.sha256 === null))) return hold(store, now2, "environment", "Rumen could not retain readable material identities for a required mechanical fence.", { job: "verify", gateReceipts: run2.gateReceipts });
+  if (run2.gateReceipts.some((r) => r.outcome === "unavailable" || r.outcome === "passed" && [...r.sourceBefore, ...r.sourceAfter].some((source2) => !gateSourceAvailable(source2)))) return hold(store, now2, "environment", "Rumen could not retain readable material identities for a required mechanical fence.", { job: "verify", gateReceipts: run2.gateReceipts });
   const passed = run2.results.every((r) => r.exitCode === 0);
   const verification = { on: run2.on, commit: run2.commit, results: run2.results, gateReceipts: run2.gateReceipts, passed };
   const artifacts = continuationArtifacts(store.events(id2)).filter((a) => !a.partial);

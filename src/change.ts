@@ -2,13 +2,13 @@
 // maker's work out of its worktree as a patch kept in Made Well's home, builds the candidate commit, runs
 // the project's gates and the item's checks against it, and brings the verified commit onto the branch. No agent does any of it.
 import { createHash } from 'node:crypto'
-import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { appendFileSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, matchesGlob } from 'node:path'
 import { Effect } from 'effect'
 import { MadeWellError, quote } from './errors.ts'
 import type { Check } from './lane.ts'
 import type { Gate } from './project.ts'
-import { gateRule, type GateReceipt, type GateSource } from './rumen.ts'
+import { gateRule, gateSourceAvailable, type GateReceipt, type GateSource } from './rumen.ts'
 import { Store, type CheckResult } from './store.ts'
 import { observe } from './trace.ts'
 import { assessChange, git, type PreparationBaseline } from './workspace.ts'
@@ -90,36 +90,50 @@ export const GATE = '(gate)'
 
 /**
  * Runs the project's gates on the change's own files, with the change applied and staged and nothing else.
- * A gate runs on the files its glob matches, and not at all when none does. Files a gate rewrites among them
- * (a formatter's fixes) are staged and written back to the item's change, so they ship and a redrive keeps them.
+ * Deletions count for applicability. A {files} gate receives only its surviving matched paths and does not
+ * launch with an empty expansion. Files a gate rewrites or restores among the changed paths are staged and
+ * written back to the item's change, so they ship and a redrive keeps them.
  */
 export const runGates = Effect.fn('mw.gates')(function* (item: number, dir: string, base: string, gates: ReadonlyArray<Gate>, change: string, budget: Budget, env: NodeJS.ProcessEnv, live?: string) {
 	const store = yield* Store
-	const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=d', '-z', base))
+	const files = lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '-z', base))
+	const deleted = new Set(lines(yield* git(dir, 'diff', '--cached', '--name-only', '--no-renames', '--diff-filter=D', '-z', base)))
 	const results: CheckResult[] = [], gateReceipts: GateReceipt[] = []
 	const fingerprint = (paths: ReadonlyArray<string>): GateSource[] => paths.map(path => {
 		try { return { path, sha256: createHash('sha256').update(readFileSync(join(dir, path))).digest('hex') } }
-		catch { return { path, sha256: null } }
+		catch {
+			if (deleted.has(path)) {
+				try { lstatSync(join(dir, path)) } catch (error) {
+					if ((error as NodeJS.ErrnoException).code === 'ENOENT') return { path, sha256: null, deleted: true }
+				}
+			}
+			return { path, sha256: null }
+		}
 	})
 	for (const [index, gate] of gates.entries()) {
 		const matched = gate.glob ? files.filter(file => matchesGlob(gate.glob!.includes('/') ? file : basename(file), gate.glob!)) : files
 		const rule = gateRule(gate), id = `G${index + 1}`
-		const command = matched.length ? gate.run.replaceAll('{files}', matched.map(quote).join(' ')) : null
 		const sourceBefore = fingerprint(matched)
+		const available = sourceBefore.every(gateSourceAvailable)
+		const surviving = sourceBefore.filter(source => source.sha256 !== null).map(source => source.path)
+		const applicable = matched.length > 0 && (!gate.run.includes('{files}') || surviving.length > 0)
+		const command = available && applicable ? gate.run.replaceAll('{files}', surviving.map(quote).join(' ')) : null
 		const [result] = command === null ? [] : yield* runChecks(item, dir, [{ id, doneWhen: GATE, run: command }], budget, env, live)
 		if (result) results.push(result)
 		const receipt: GateReceipt = {
 			id, rule: rule.id, definitionHash: rule.definitionHash, template: gate.run, command, files: matched,
-			outcome: command === null ? 'not-applicable' : !result ? 'unavailable' : result.exitCode === 0 ? 'passed' : 'failed',
+			outcome: !available ? 'unavailable' : command === null ? 'not-applicable' : !result ? 'unavailable' : result.exitCode === 0 ? 'passed' : 'failed',
 			exitCode: result?.exitCode ?? null, sourceBefore, sourceAfter: fingerprint(matched),
 		}
 		gateReceipts.push(receipt)
 		store.note(item, 'rumen-gate', { job: 'verify', ...receipt })
 	}
 	if (!results.length) return { results, fixed: [], gateReceipts }
-	const fixed = lines(yield* git(dir, 'diff', '--name-only', '-z', '--', ...files))
+	// A recreated staged deletion is untracked, so git diff alone cannot retain its gate-produced bytes.
+	const restored = [...deleted].filter(path => fingerprint([path])[0]!.sha256 !== null)
+	const fixed = [...new Set([...lines(yield* git(dir, 'diff', '--name-only', '-z', '--', ...files)), ...restored])]
 	if (fixed.length) {
-		yield* git(dir, 'add', '--', ...fixed)
+		yield* git(dir, 'add', '--force', '--', ...fixed)
 		writePatch(change, yield* git(dir, 'diff', '--cached', '--binary', '--no-renames', base))
 	}
 	return { results, fixed, gateReceipts }
