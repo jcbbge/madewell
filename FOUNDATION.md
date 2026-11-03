@@ -269,14 +269,15 @@ madewell() {
 | **Ideation peer** | Challenge, strengthen, and sharpen ideas. Failure questions route through NQ to the responsible answerer; this profile is not automatically the answerer for every failure. |
 | **Planner** | Inspect the actual environment and produce the grounded plan and actionable contract. |
 | **Test architect** | Derive the checks from the agreed plan, in parallel with the making and blind to it. |
-| **Implementer** | Execute the fixed implementation instructions without changing scope. |
+| **Implementer** | Execute the fixed implementation instructions without changing scope. Executes provided plan only. *Does not think, improvise, deviate from the plan.|
+| **Tester** | Executes provided test against Implementer's work. Runs tests only and reports. Does not think, improvise, deviate from the test architects test suite. not responsible for fixing failed tests. only job is to run the tests. |
 | **Arbiter** | Rule on a failed check: whose question it is. Ruling on a failure is its own job, separate from the ideation peer. |
 
 Verification is not an agent. Made Well runs the item's checks itself, merges and ships on a pass, and calls the Arbiter only on a failure (ruling 14). Three parties sit outside the six: the **dispatcher** starts, stops and steers work and never does it; the **operator** is the person who decides; the **operator's agent** is the one agent the operator talks to, which watches through the glass and never moves the work (ruling 16).
 
 The six agents separate the ideator from its challenging peer and separate test design from implementation and from test execution. The planner grounds work in actual sources; the implementer follows the plan; the test architect derives checks from the same plan without seeing the making; Made Well runs the checks. No agent accepts its own contribution. Profiles are not permanently running processes: each job is one call on its prescribed card.
 
-**After planning, the implementer and the test architect are vending machines.** They execute the plan. They do not think, plan, design or improvise, and they never change the spec under everyone else. If the plan cannot be done as written, they stop and report it, and the Arbiter rules.
+**After planning, the implementer and the tester are vending machines.** They execute the plan. They do not think, plan, design or improvise, and they never change the spec under everyone else. If the plan cannot be done as written, they stop and report it, and the Arbiter rules.
 
 ## Inner loop: ideation → planning → implementation → verification
 
