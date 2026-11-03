@@ -25567,7 +25567,8 @@ var scopeCheck = Effect_exports.fn("mw.scopeCheck")(function* (dir, base, declar
   return changed;
 });
 var leftovers = Effect_exports.fn("mw.leftovers")(function* (dir, before) {
-  const created = lines2(yield* git(dir, "ls-files", "--others", "-z")).filter((f) => !(f in before.files)).sort();
+  const existed = (f) => f in before.files || f.endsWith("/") && Object.keys(before.files).some((k) => k.startsWith(f));
+  const created = lines2(yield* git(dir, "ls-files", "--others", "-z")).filter((f) => !existed(f)).sort();
   const after = (yield* capture(dir)).files;
   const control = Object.keys({ ...before.files, ...after }).filter((f) => f.startsWith(".git/") && before.files[f] !== after[f]).sort();
   if (created.length || control.length) {

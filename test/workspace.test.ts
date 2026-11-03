@@ -212,6 +212,25 @@ test('the leftover check finds untracked and ignored files a job created, and on
 	}
 })
 
+test('a nested repository that was there before the job is not a leftover', async () => {
+	const t = setup()
+	try {
+		mkdirSync(join(t.repo, 'mind'))
+		execFileSync('git', ['init', '--quiet'], { cwd: join(t.repo, 'mind') })
+		writeFileSync(join(t.repo, 'mind', 'note.md'), 'x')
+		const before = await run(capture(t.repo))
+		writeFileSync(join(t.repo, 'mind', 'note.md'), 'changed by a live writer')
+		await run(leftovers(t.repo, before))
+		mkdirSync(join(t.repo, 'fresh'))
+		execFileSync('git', ['init', '--quiet'], { cwd: join(t.repo, 'fresh') })
+		writeFileSync(join(t.repo, 'fresh', 'a.md'), 'x')
+		const e = await error(leftovers(t.repo, before))
+		assert.deepEqual(e.context.files, ['fresh/'])
+	} finally {
+		t.cleanup()
+	}
+})
+
 test('provisioned resources are each torn down once, last first, and a failure is reported after the rest run', async () => {
 	const t = setup()
 	try {

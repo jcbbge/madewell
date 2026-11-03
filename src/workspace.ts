@@ -243,7 +243,9 @@ export const scopeCheck = Effect.fn('mw.scopeCheck')(function* (dir: string, bas
  * and on git settings, excludes or hooks that changed: every worktree shares them with the product repo.
  */
 export const leftovers = Effect.fn('mw.leftovers')(function* (dir: string, before: State) {
-	const created = lines(yield* git(dir, 'ls-files', '--others', '-z')).filter((f) => !(f in before.files)).sort()
+	// Git lists a nested repository as one "dir/" entry; capture recorded the files inside it.
+	const existed = (f: string) => f in before.files || (f.endsWith('/') && Object.keys(before.files).some((k) => k.startsWith(f)))
+	const created = lines(yield* git(dir, 'ls-files', '--others', '-z')).filter((f) => !existed(f)).sort()
 	const after = (yield* capture(dir)).files
 	const control = Object.keys({ ...before.files, ...after }).filter((f) => f.startsWith('.git/') && before.files[f] !== after[f]).sort()
 	if (created.length || control.length) {
