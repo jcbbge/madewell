@@ -1918,12 +1918,13 @@ for (const defect of ['invalid-edge', 'lost-constraint'] as const) test(`autonom
 test('autonomy: delegated context retains actor and source, and revocation supplies a durable tombstone to the checker', async () => {
 	const t = setup(undefined, 'checkpoints')
 	try {
-		t.store.note(t.item.id, 'operator-instruction', { text: 'Allow the delegated agent to register local candidate fixtures.' })
-		const sourceEvent = t.store.events(t.item.id).at(-1)!.seq
-		const actor = { kind: 'agent', label: 'Delegated acceptance agent', authority: `operator instruction event ${sourceEvent}` }
-		const first = await t.run(contextFact(t.item.id, { operation: 'set', requestId: 'delegated-fixtures', key: 'fixtures', revision: 0, text: 'Local fixtures permitted.\r\nExact λ  ', jobs: ['plan', 'test-plan'], scope: 'item', enteredBy: actor, source: { reference: 'operator instruction', event: sourceEvent }, nonsecret: true }))
 		assert.equal((await t.run(drive(t.item.id, config))).status, 'paused')
-		const fact = t.packet('execute', 'test-plan').contextFacts[0]
+		const sourceEvent = t.store.events(t.item.id).find(event => event.kind === 'call-finished' && event.data.job === 'plan')!.seq
+		const actor = { kind: 'agent', label: 'Delegated acceptance agent', authority: 'Operator permits registering local candidate fixtures.' }
+		const first = await t.run(contextFact(t.item.id, { operation: 'set', requestId: 'delegated-fixtures', key: 'fixtures', revision: 0, text: 'Local fixtures permitted.\r\nExact λ  ', jobs: ['plan', 'test-plan'], scope: 'item', enteredBy: actor, source: { reference: 'Public planner call', event: sourceEvent }, nonsecret: true }))
+		await t.run(answer(t.item.id, 'Retain the same export; use the registered fixture context.'))
+		assert.equal((await t.run(drive(t.item.id, config))).status, 'paused')
+		const fact = t.packet('execute', 'test-plan', 1).contextFacts[0]
 		assert.deepEqual(fact.enteredBy, actor)
 		assert.equal(fact.source.event, sourceEvent)
 		assert.equal(fact.event, first.event)
@@ -1932,7 +1933,7 @@ test('autonomy: delegated context retains actor and source, and revocation suppl
 		await t.run(answer(t.item.id, 'Retain the same export; use only the current permitted context.'))
 		t.restart()
 		await t.run(drive(t.item.id, config))
-		const tombstone = t.packet('execute', 'test-plan', 1).contextFacts[0]
+		const tombstone = t.packet('execute', 'test-plan', 2).contextFacts[0]
 		assert.equal(tombstone.status, 'revoked')
 		assert.equal(tombstone.text, undefined)
 		assert.equal(tombstone.previousEvent, first.event)
