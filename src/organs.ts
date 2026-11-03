@@ -211,7 +211,9 @@ export function checkIncomingPreparation(store: HandoffReader, item: Item, job: 
 	}
 	for (const receipt of receipts.filter(r => allowed.has(r.job))) {
 		const from = isMaker(job) ? item.split?.[job]?.from ?? item.from : item.from
-		if (from.kind === 'job' && from.job === receipt.job && !receipt.next.some(next => next.job === job)) checked.push({ ref: `output:${receipt.job}`, producer: receipt.job, ok: false, reason: 'The actual originator did not prepare this configured consumer.' })
+		// A failed check reaches the arbiter through the engine's verification (engine.ts sets from: test-plan), not a test-plan handoff.
+		const ruling = laneOf(item.pack).arbiter?.job === job && item.verification !== undefined && from.kind === 'job' && from.job === 'test-plan'
+		if (from.kind === 'job' && from.job === receipt.job && !ruling && !receipt.next.some(next => next.job === job)) checked.push({ ref: `output:${receipt.job}`, producer: receipt.job, ok: false, reason: 'The actual originator did not prepare this configured consumer.' })
 		for (const next of receipt.next.filter(n => n.job === job)) for (const expected of next.requires) {
 			try {
 				const actual = material(item, receipt.job, expected.ref, dir, project, { job: receipt.job, output: item.outputs[receipt.job]! }, job)
