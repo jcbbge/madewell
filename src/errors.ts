@@ -102,10 +102,6 @@ export const ERRORS = {
 	no_branch: { means: 'The product repo has no branch checked out, so Made Well does not know which branch an item ships to.', context: Schema.Struct({ repo: Schema.String }) },
 	path_outside_workspace: { means: 'A snapshot was asked for files outside the workspace.', context: Schema.Struct({ dir: Schema.String, outside: Schema.Array(Schema.String) }) },
 	workspace_written: { means: 'A read-only call changed the workspace.', context: Schema.Struct({ dir: Schema.String, changes: Schema.Unknown }) },
-	branch_moved: {
-		means: 'A branch moved while an item was in flight; only ship may move it.',
-		context: Schema.Struct({ repo: Schema.String, ref: Schema.String, recorded: Schema.String, now: Schema.String, landed: Schema.Array(Schema.String) }),
-	},
 	out_of_scope: {
 		means: 'The change touches files outside the plan\'s declared scope.',
 		context: Schema.Struct({ dir: Schema.String, base: Schema.String, declared: Schema.Array(Schema.String), outside: Schema.Array(Schema.String), changed: Schema.Array(Schema.String) }),

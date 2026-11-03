@@ -845,12 +845,13 @@ test('check writers must revert product-scope writes before outside checks can s
 	}
 })
 
-test('an implementer that commits to main holds the item before anything ships; one that leaves a file in the product repo, or edits its shared git excludes, holds it too', async () => {
+test('a commit that lands on main while an item is in flight does not hold it: the item ships on top; a maker that leaves a file in the product repo, or edits its shared git excludes, holds it', async () => {
 	const t = setup((req) => {
 		if (req.kind === 'execute' && req.job === 'implement' && req.item === 1) {
-			writeFileSync(join(t.repo, 'early.txt'), 'x')
-			git(t.repo, 'add', 'early.txt')
-			git(t.repo, 'commit', '-qm', 'implementer committed before verification')
+			// Another machine or agent commits to main while this item is being made.
+			writeFileSync(join(t.repo, 'parallel.txt'), 'x')
+			git(t.repo, 'add', 'parallel.txt')
+			git(t.repo, 'commit', '-qm', 'parallel work')
 			return implement(req)
 		}
 		if (req.kind === 'execute' && req.job === 'implement' && req.item === 2) return (writeFileSync(join(t.repo, 'probe.log'), 'x'), implement(req))
@@ -863,13 +864,9 @@ test('an implementer that commits to main holds the item before anything ships; 
 	})
 	try {
 		const first = await t.run(drive(t.item.id, config))
-		assert.equal(first.hold?.code, 'branch_moved')
-		assert.deepEqual((first.hold?.context.landed as string[]).map((l) => l.split(' ').slice(1).join(' ')), ['implementer committed before verification'])
-		assert.ok(nextFor(first).some((n) => n.run.includes('reset --keep')))
-		assert.deepEqual(t.shipped(), [])
-		assert.equal(t.store.calls(t.item.id).find((c) => c.job === 'implement' && c.kind === 'execute')!.outcome, 'rejected')
+		assert.equal(first.status, 'shipped')
+		assert.equal(git(t.repo, 'log', '-1', '--format=%s', 'main~1'), 'parallel work', 'the item lands on top of the parallel commit')
 
-		git(t.repo, 'reset', '-q', '--hard', 'HEAD~1')
 		const second = t.create('second')
 		const held = await t.run(drive(second.id, config))
 		assert.equal(held.hold?.code, 'leftovers')
@@ -880,6 +877,33 @@ test('an implementer that commits to main holds the item before anything ships; 
 
 		const third = await t.run(drive(t.create('third').id, config))
 		assert.deepEqual([third.hold?.code, third.hold?.context.files], ['leftovers', ['.git/info/exclude']])
+	} finally {
+		t.cleanup()
+	}
+})
+
+test('the default ship rebases onto the remote before it pushes, so work pushed from elsewhere stays and the item lands on top', async () => {
+	const t = setup()
+	try {
+		const remote = join(t.tmp, 'remote.git'), other = join(t.tmp, 'other')
+		git(t.tmp, 'init', '-q', '--bare', '-b', 'main', remote)
+		git(t.repo, 'remote', 'add', 'origin', remote)
+		git(t.repo, 'push', '-q', '-u', 'origin', 'main')
+		writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo }]))
+		// Another machine pushes while this item is in flight.
+		git(t.tmp, 'clone', '-q', remote, other)
+		git(other, 'config', 'user.name', 'Elsewhere')
+		git(other, 'config', 'user.email', 'elsewhere@example.com')
+		writeFileSync(join(other, 'elsewhere.txt'), 'x')
+		git(other, 'add', 'elsewhere.txt')
+		git(other, 'commit', '-qm', 'pushed from elsewhere')
+		git(other, 'push', '-q', 'origin', 'main')
+		const done = await t.run(drive(t.item.id, config))
+		assert.equal(done.status, 'shipped')
+		assert.equal(git(remote, 'rev-parse', 'main'), git(t.repo, 'rev-parse', 'main'))
+		assert.equal(done.shipped?.main, git(remote, 'rev-parse', 'main'), 'the shipped record names the commit that is on the remote')
+		assert.equal(git(remote, 'log', '-1', '--format=%s', 'main~1'), 'pushed from elsewhere')
+		assert.equal(git(remote, 'rev-list', '--merges', '--count', 'main'), '0', 'rebased, never merged')
 	} finally {
 		t.cleanup()
 	}
@@ -1459,7 +1483,7 @@ test('the project\'s prepare command stocks every worktree an agent or the check
 	}
 })
 
-test('without a ship command, shipping pushes main to its upstream, or is done once the change is on main; the commit says why', async () => {
+test('without a ship command, shipping rebases main onto its upstream and pushes it, or is done once the change is on main; the commit says why', async () => {
 	const t = setup()
 	try {
 		writeFileSync(join(t.home, 'projects.json'), JSON.stringify([{ path: t.repo }]))
@@ -1468,7 +1492,7 @@ test('without a ship command, shipping pushes main to its upstream, or is done o
 		git(t.repo, 'push', '-q', '-u', 'origin', 'main')
 		const item = await t.run(drive(t.item.id, config))
 		assert.equal(item.status, 'shipped')
-		assert.equal(item.shipped?.command, `git push origin refs/heads/main:refs/heads/main`)
+		assert.match(item.shipped!.command, /git pull --rebase --autostash --quiet origin main .*git push origin refs\/heads\/main:refs\/heads\/main/)
 		assert.equal(git(join(t.tmp, 'up.git'), 'rev-parse', 'main'), git(t.repo, 'rev-parse', 'main'), 'main reached its upstream')
 		const message = git(t.repo, 'log', '-1', '--format=%B', 'main')
 		assert.equal(message.split('\n')[0], 'Add CSV export')

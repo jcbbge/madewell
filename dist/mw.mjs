@@ -22132,10 +22132,6 @@ var ERRORS = {
   no_branch: { means: "The product repo has no branch checked out, so Made Well does not know which branch an item ships to.", context: Schema_exports.Struct({ repo: Schema_exports.String }) },
   path_outside_workspace: { means: "A snapshot was asked for files outside the workspace.", context: Schema_exports.Struct({ dir: Schema_exports.String, outside: Schema_exports.Array(Schema_exports.String) }) },
   workspace_written: { means: "A read-only call changed the workspace.", context: Schema_exports.Struct({ dir: Schema_exports.String, changes: Schema_exports.Unknown }) },
-  branch_moved: {
-    means: "A branch moved while an item was in flight; only ship may move it.",
-    context: Schema_exports.Struct({ repo: Schema_exports.String, ref: Schema_exports.String, recorded: Schema_exports.String, now: Schema_exports.String, landed: Schema_exports.Array(Schema_exports.String) })
-  },
   out_of_scope: {
     means: "The change touches files outside the plan's declared scope.",
     context: Schema_exports.Struct({ dir: Schema_exports.String, base: Schema_exports.String, declared: Schema_exports.Array(Schema_exports.String), outside: Schema_exports.Array(Schema_exports.String), changed: Schema_exports.Array(Schema_exports.String) })
@@ -23411,7 +23407,8 @@ function checkIncomingPreparation(store, item, job, dir, project, producers) {
   }
   for (const receipt of receipts.filter((r) => allowed.has(r.job))) {
     const from = isMaker(job) ? item.split?.[job]?.from ?? item.from : item.from;
-    if (from.kind === "job" && from.job === receipt.job && !receipt.next.some((next) => next.job === job)) checked.push({ ref: `output:${receipt.job}`, producer: receipt.job, ok: false, reason: "The actual originator did not prepare this configured consumer." });
+    const ruling = laneOf(item.pack).arbiter?.job === job && item.verification !== void 0 && from.kind === "job" && from.job === "test-plan";
+    if (from.kind === "job" && from.job === receipt.job && !ruling && !receipt.next.some((next) => next.job === job)) checked.push({ ref: `output:${receipt.job}`, producer: receipt.job, ok: false, reason: "The actual originator did not prepare this configured consumer." });
     for (const next of receipt.next.filter((n) => n.job === job)) for (const expected of next.requires) {
       try {
         const actual = material(item, receipt.job, expected.ref, dir, project, { job: receipt.job, output: item.outputs[receipt.job] }, job);
@@ -25507,15 +25504,6 @@ var readOnly = (dir, effect2) => Effect_exports.gen(function* () {
   }
   return result3;
 }).pipe(Effect_exports.withSpan("mw.readOnly", { attributes: { dir } }));
-var headGuard = Effect_exports.fn("mw.headGuard")(function* (repo, ref2, recorded) {
-  const now2 = (yield* git(repo, "rev-parse", "--verify", `${ref2}^{commit}`)).trim();
-  if (now2 === recorded) return;
-  const landed = yield* Effect_exports.orElseSucceed(git(repo, "log", "--format=%H %s", `${recorded}..${now2}`), () => "");
-  return yield* fail9("branch_moved", `${ref2} moved from ${recorded.slice(0, 12)} to ${now2.slice(0, 12)}.`, { repo, ref: ref2, recorded, now: now2, landed: landed.trim().split("\n").filter(Boolean) }, [
-    { run: `git -C ${repo} log --stat ${recorded}..${now2}`, why: "see what landed on the branch and who made it" },
-    { run: `git -C ${repo} reset --keep ${recorded}`, why: "only if those commits are unverified agent work and were never pushed" }
-  ]);
-});
 var covers = (scope3, file) => scope3.some((d) => d.endsWith("/") || d.endsWith("/**") ? file.startsWith(d.replace(/\*\*$/, "")) : file === d);
 var preparedFailure = (dir, phase, paths, reason) => fail9("prepared_input_failed", "Prepared inputs cannot be safely captured or extracted.", { dir, phase, paths, reason }, [{ run: `git -C ${dir} status --short`, why: "inspect supplied resources and correct preparation before retrying" }]);
 var preparedFingerprint = (dir, path, phase) => Effect_exports.try({
@@ -27041,9 +27029,6 @@ var accept = Effect_exports.fn("mw.accept")(function* (id2, job, dir, answered) 
       if (!ownArtifact(store, item, resume.role, item.base.commit, resume.sha256)) return yield* refused("The plan names a continuation artifact unavailable to that maker on this base. Select an existing role/base hash from continuationOptions, or omit it.");
     }
   }
-  if (isMaker(job) || job === "arbitrate") {
-    yield* guardMain(store, item).pipe(Effect_exports.tapError((e) => Effect_exports.andThen(keep("guard-error", e.message), Effect_exports.sync(() => store.rejectCall(call.callId, e.message)))));
-  }
   let artifacts = {};
   const blocked = blockedOf(L(item), job, value4);
   if (isMaker(job) && blocked) {
@@ -27228,16 +27213,6 @@ var withLock = (repo, effect2) => {
   if (!lock) locks.set(repo, lock = Semaphore_exports.makeUnsafe(1));
   return lock.withPermit(effect2);
 };
-var expectedMain = (store, item) => {
-  let best = store.events(item.id).findLast((e) => e.kind === "base" || e.kind === "merged");
-  for (const other of store.list()) {
-    if (other.id === item.id || other.workspace !== item.workspace || !other.merged) continue;
-    const e = store.events(other.id).findLast((e2) => e2.kind === "merged");
-    if (e && (!best || e.seq > best.seq)) best = e;
-  }
-  return best?.data.main ?? item.base.commit;
-};
-var guardMain = (store, item) => withLock(item.workspace, Effect_exports.suspend(() => headGuard(item.workspace, item.base.ref, expectedMain(store, item))));
 var pending = (item, job) => (item.provisioned ?? []).filter((r) => (!job || r.job === job) && r.torn?.exitCode !== 0);
 var aftercare = Effect_exports.fn("mw.aftercare")(function* (id2, job) {
   const store = yield* Store;
@@ -27447,10 +27422,16 @@ var stepsBefore = (item) => {
   const steps = L(item).delivery.map((s) => s.job);
   return steps.slice(0, steps.indexOf("plan"));
 };
-var pushCommand = (repo, ref2) => Effect_exports.map(Effect_exports.result(git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", `${ref2.replace("refs/heads/", "")}@{upstream}`)), (r) => {
+var pushCommand = (repo, ref2) => Effect_exports.gen(function* () {
+  const r = yield* Effect_exports.result(git(repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", `${ref2.replace("refs/heads/", "")}@{upstream}`));
   const upstream = Result_exports.isSuccess(r) ? r.success.trim() : "";
   const slash = upstream.indexOf("/");
-  return slash > 0 ? `git push ${quote2(upstream.slice(0, slash))} ${quote2(`${ref2}:refs/heads/${upstream.slice(slash + 1)}`)}` : void 0;
+  if (slash <= 0) return void 0;
+  const remote = quote2(upstream.slice(0, slash)), branch = quote2(upstream.slice(slash + 1));
+  const push = `git push ${remote} ${quote2(`${ref2}:refs/heads/${upstream.slice(slash + 1)}`)}`;
+  const checkedOut = (yield* Effect_exports.orElseSucceed(git(repo, "symbolic-ref", "-q", "HEAD"), () => "")).trim() === ref2;
+  if (!checkedOut) return push;
+  return `for attempt in 1 2 3; do git pull --rebase --autostash --quiet ${remote} ${branch} || { git rebase --abort 2>/dev/null; exit 1; }; ${push} && exit 0; done; exit 1`;
 });
 var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   const store = yield* Store;
@@ -27464,11 +27445,14 @@ var shipCommand = Effect_exports.fn("mw.ship")(function* (id2) {
   }
   const env = { ...process.env, MW_ITEM: String(id2), MW_TITLE: item.title, MW_KIND: item.kind ?? "feature", MW_COMMIT: item.merged.commit };
   store.note(id2, "ship-started", { command: command2, main: item.merged.commit });
-  const { result: { code, stdout, stderr } } = yield* observe(store, id2, { job: "verify", kind: "ship", args: { command: command2, cwd: item.workspace } }, (onOutput) => runGroup({ command: "sh", args: ["-c", command2], cwd: item.workspace, env, input: "", onOutput }));
+  const { code, stdout, stderr, main } = yield* withLock(item.workspace, Effect_exports.gen(function* () {
+    const { result: result3 } = yield* observe(store, id2, { job: "verify", kind: "ship", args: { command: command2, cwd: item.workspace } }, (onOutput) => runGroup({ command: "sh", args: ["-c", command2], cwd: item.workspace, env, input: "", onOutput }));
+    return { ...result3, main: yield* Effect_exports.orElseSucceed(revParse(item.workspace, item.merged.ref), () => item.merged.commit) };
+  }));
   const tail2 = (s) => s.slice(-4e3);
   if (code !== 0) return hold(store, item, "ship_failed", `Item #${id2} is on ${item.merged.ref}, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command: command2, exitCode: code, stdout: tail2(stdout), stderr: tail2(stderr) });
   removeHome(itemHome(store.path, id2));
-  store.save({ ...item, status: "shipped", shipped: { command: command2, output: tail2(stdout), main: item.merged.commit } }, "shipped", { command: command2, output: tail2(stdout), main: item.merged.commit });
+  store.save({ ...item, status: "shipped", shipped: { command: command2, output: tail2(stdout), main } }, "shipped", { command: command2, output: tail2(stdout), main });
 });
 var preferred = (store, item, job, p, now2) => {
   const cards = cardsFor(p, job);

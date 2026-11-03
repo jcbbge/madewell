@@ -171,17 +171,6 @@ export const readOnly = <A, E, R>(dir: string, effect: Effect.Effect<A, E, R>) =
 		return result
 	}).pipe(Effect.withSpan('mw.readOnly', { attributes: { dir } }))
 
-/** Fails when `ref` no longer points at `recorded`: someone committed to it, or moved it, since. */
-export const headGuard = Effect.fn('mw.headGuard')(function* (repo: string, ref: string, recorded: string) {
-	const now = (yield* git(repo, 'rev-parse', '--verify', `${ref}^{commit}`)).trim()
-	if (now === recorded) return
-	const landed = yield* Effect.orElseSucceed(git(repo, 'log', '--format=%H %s', `${recorded}..${now}`), () => '')
-	return yield* fail('branch_moved', `${ref} moved from ${recorded.slice(0, 12)} to ${now.slice(0, 12)}.`, { repo, ref, recorded, now, landed: landed.trim().split('\n').filter(Boolean) }, [
-		{ run: `git -C ${repo} log --stat ${recorded}..${now}`, why: 'see what landed on the branch and who made it' },
-		{ run: `git -C ${repo} reset --keep ${recorded}`, why: 'only if those commits are unverified agent work and were never pushed' },
-	])
-})
-
 /** A path covered by a declared scope: the path itself, or under a directory entry ("dir/" or "dir/**"). */
 export const covers = (scope: ReadonlyArray<string>, file: string) =>
 	scope.some((d) => (d.endsWith('/') || d.endsWith('/**') ? file.startsWith(d.replace(/\*\*$/, '')) : file === d))

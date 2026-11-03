@@ -48,7 +48,7 @@ import {
 } from './lane.ts'
 import { DEFAULT_AUTONOMY, Store, type CheckResult, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { observe } from './trace.ts'
-import { capturePreparationBaseline, type PreparationBaseline, capture, changes, covers, git, headGuard, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
+import { capturePreparationBaseline, type PreparationBaseline, capture, changes, covers, git, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
 
 const MAX_LAUNCHES = 3
@@ -815,9 +815,6 @@ const accept = Effect.fn('mw.accept')(function* (id: number, job: Job, dir: stri
 			if (!ownArtifact(store, item, resume.role, item.base!.commit, resume.sha256)) return yield* refused('The plan names a continuation artifact unavailable to that maker on this base. Select an existing role/base hash from continuationOptions, or omit it.')
 		}
 	}
-	if (isMaker(job) || job === 'arbitrate') {
-		yield* guardMain(store, item).pipe(Effect.tapError((e) => Effect.andThen(keep('guard-error', e.message), Effect.sync(() => store.rejectCall(call.callId, e.message)))))
-	}
 	let artifacts: Partial<Item> = {}
 	const blocked = blockedOf(L(item), job, value)
 	if (isMaker(job) && blocked) {
@@ -1029,24 +1026,6 @@ const withLock = <A, E, R>(repo: string, effect: Effect.Effect<A, E, R>) => {
 	return lock.withPermit(effect)
 }
 
-/**
- * The branch commit this item may see: its own base, or the latest commit Made Well's ship put there since,
- * for this item or a parallel one. Refs are shared across worktrees, so another item's ship is expected.
- */
-const expectedMain = (store: StoreService, item: Item) => {
-	let best = store.events(item.id).findLast((e) => e.kind === 'base' || e.kind === 'merged')
-	for (const other of store.list()) {
-		if (other.id === item.id || other.workspace !== item.workspace || !other.merged) continue
-		const e = store.events(other.id).findLast((e) => e.kind === 'merged')
-		if (e && (!best || e.seq > best.seq)) best = e
-	}
-	return (best?.data.main as string | undefined) ?? item.base!.commit
-}
-
-/** Only ship moves the branch: after a making job it must be where Made Well last left it. */
-const guardMain = (store: StoreService, item: Item) =>
-	withLock(item.workspace, Effect.suspend(() => headGuard(item.workspace, item.base!.ref, expectedMain(store, item))))
-
 const pending = (item: Item, job?: Job) => (item.provisioned ?? []).filter((r) => (!job || r.job === job) && r.torn?.exitCode !== 0)
 
 /** Ruling 13: tears down what a job provisioned, each once. The records are saved, so a redrive never repeats one. */
@@ -1254,12 +1233,23 @@ const stepsBefore = (item: Item) => {
 }
 
 /** The change is on the branch: the project's own ship command deploys it. Then the item's checks are gone (ruling 11). */
-/** `git push` to the branch's upstream, or undefined when it has none. */
+/**
+ * Push to the branch's upstream, rebased onto it first: other machines and agents push there too, so what is on the
+ * remote now goes under this item's commit. A push that loses a race rebases and tries again; a rebase that conflicts
+ * is aborted, leaving the branch as it was. Undefined when the branch has no upstream.
+ */
 const pushCommand = (repo: string, ref: string) =>
-	Effect.map(Effect.result(git(repo, 'rev-parse', '--abbrev-ref', '--symbolic-full-name', `${ref.replace('refs/heads/', '')}@{upstream}`)), (r) => {
+	Effect.gen(function* () {
+		const r = yield* Effect.result(git(repo, 'rev-parse', '--abbrev-ref', '--symbolic-full-name', `${ref.replace('refs/heads/', '')}@{upstream}`))
 		const upstream = Result.isSuccess(r) ? r.success.trim() : ''
 		const slash = upstream.indexOf('/')
-		return slash > 0 ? `git push ${quote(upstream.slice(0, slash))} ${quote(`${ref}:refs/heads/${upstream.slice(slash + 1)}`)}` : undefined
+		if (slash <= 0) return undefined
+		const remote = quote(upstream.slice(0, slash)), branch = quote(upstream.slice(slash + 1))
+		const push = `git push ${remote} ${quote(`${ref}:refs/heads/${upstream.slice(slash + 1)}`)}`
+		// Rebasing moves the checked-out branch, so only a branch that is checked out here is rebased in place.
+		const checkedOut = (yield* Effect.orElseSucceed(git(repo, 'symbolic-ref', '-q', 'HEAD'), () => '')).trim() === ref
+		if (!checkedOut) return push
+		return `for attempt in 1 2 3; do git pull --rebase --autostash --quiet ${remote} ${branch} || { git rebase --abort 2>/dev/null; exit 1; }; ${push} && exit 0; done; exit 1`
 	})
 
 const shipCommand = Effect.fn('mw.ship')(function* (id: number) {
@@ -1275,11 +1265,15 @@ const shipCommand = Effect.fn('mw.ship')(function* (id: number) {
 	}
 	const env = { ...process.env, MW_ITEM: String(id), MW_TITLE: item.title, MW_KIND: item.kind ?? 'feature', MW_COMMIT: item.merged!.commit }
 	store.note(id, 'ship-started', { command, main: item.merged!.commit })
-	const { result: { code, stdout, stderr } } = yield* observe(store, id, { job: 'verify', kind: 'ship', args: { command, cwd: item.workspace } }, (onOutput) => runGroup({ command: 'sh', args: ['-c', command], cwd: item.workspace, env, input: '', onOutput }))
+	// The lock keeps a parallel item's merge off the branch while the ship rebases it.
+	const { code, stdout, stderr, main } = yield* withLock(item.workspace, Effect.gen(function* () {
+		const { result } = yield* observe(store, id, { job: 'verify', kind: 'ship', args: { command, cwd: item.workspace } }, (onOutput) => runGroup({ command: 'sh', args: ['-c', command], cwd: item.workspace, env, input: '', onOutput }))
+		return { ...result, main: yield* Effect.orElseSucceed(revParse(item.workspace, item.merged!.ref), () => item.merged!.commit) }
+	}))
 	const tail = (s: string) => s.slice(-4000)
 	if (code !== 0) return hold(store, item, 'ship_failed', `Item #${id} is on ${item.merged!.ref}, but its ship command failed with exit code ${code}.`, { workspace: item.workspace, command, exitCode: code, stdout: tail(stdout), stderr: tail(stderr) })
 	removeHome(itemHome(store.path, id))
-	store.save({ ...item, status: 'shipped', shipped: { command, output: tail(stdout), main: item.merged!.commit } }, 'shipped', { command, output: tail(stdout), main: item.merged!.commit })
+	store.save({ ...item, status: 'shipped', shipped: { command, output: tail(stdout), main } }, 'shipped', { command, output: tail(stdout), main })
 })
 
 // ── Cards, limits and failed launches ──────────────────────────────────────────────────────────────────

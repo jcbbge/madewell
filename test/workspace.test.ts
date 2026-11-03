@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { Effect } from 'effect'
 import type { MadeWellError } from '../src/errors.ts'
-import { capture, headGuard, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, worktreesRoot } from '../src/workspace.ts'
+import { capture, leftovers, readOnly, scopeCheck, snapshot, teardown, worktree, worktreesRoot } from '../src/workspace.ts'
 
 /** A product repo with two commits, and Made Well's home beside it; both deleted by cleanup. */
 function setup() {
@@ -124,21 +124,6 @@ test('a read-only call that writes in its checkout is caught with exactly what i
 		assert.deepEqual(added, ['.amp/in/check.sh', 'probe.txt'])
 		assert.deepEqual(removed, ['src/b.ts'])
 		assert.deepEqual(modified, ['a.txt'])
-	} finally {
-		t.cleanup()
-	}
-})
-
-test('the HEAD guard catches a commit to the branch since the recorded commit', async () => {
-	const t = setup()
-	try {
-		await run(headGuard(t.repo, 'main', t.head))
-		writeFileSync(join(t.repo, 'a.txt'), 'early\n')
-		t.git('commit', '-qam', 'implementer committed before verification')
-		const e = await error(headGuard(t.repo, 'main', t.head))
-		assert.equal(e.code, 'branch_moved')
-		assert.equal(e.context.now, t.git('rev-parse', 'HEAD'))
-		assert.deepEqual(e.context.landed, [`${t.git('rev-parse', 'HEAD')} implementer committed before verification`])
 	} finally {
 		t.cleanup()
 	}
