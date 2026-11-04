@@ -370,12 +370,13 @@ Downstream `/qa` review clients can read `selection=all&format=json` for all lin
 
 ## Develop
 
-Node runs the TypeScript sources directly (`node src/cli.ts`). The install runs `dist/mw.mjs`, bundled with Effect. Regenerate the package assets with `npm run bundle` before CLI checks. Run affected test files or focused test-name selections and relevant typechecking; this feature has no whole-suite gate. Makers do not write or run their own acceptance checks; independent verification owns them. Commit only when explicitly requested.
+Node runs the TypeScript sources directly (`node src/cli.ts`). The install runs `dist/mw.mjs`, bundled with Effect. The implementer may maintain existing repository regression tests only when the accepted plan explicitly requires it and the files are within its scope; this is product work, not independent acceptance evidence. The test architect alone authors this item's independent acceptance checks outside the plan's scope. Neither maker runs tests or checks, including regression tests, typechecking or verification commands; Made Well executes them. For Made Well's verification, regenerate the package assets with `npm run bundle` before CLI checks, then run affected test files or focused test-name selections and relevant typechecking; this feature has no whole-suite gate. Commit only when explicitly requested.
 
 ```sh
 npm install
+# Made Well verification commands (neither maker executes these):
 npm run bundle
-# Independent verification: select only affected files/names, for example:
+# Select only affected files/names, for example:
 node --test test/packet-transport.test.ts
 npm run typecheck
 ```
