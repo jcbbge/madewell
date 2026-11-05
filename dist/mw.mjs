@@ -7,7 +7,7 @@ var __export = (target, all4) => {
 
 // src/cli.ts
 import { spawn as spawn3 } from "node:child_process";
-import { existsSync as existsSync6, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync14, realpathSync as realpathSync5, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
+import { existsSync as existsSync6, mkdirSync as mkdirSync8, openSync as openSync4, readdirSync as readdirSync5, readFileSync as readFileSync15, realpathSync as realpathSync5, rmSync as rmSync7, statSync as statSync6, writeFileSync as writeFileSync8 } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { basename as basename3, dirname as dirname9, join as join12, resolve as resolve13 } from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
@@ -23444,7 +23444,7 @@ function organSummary(store, item) {
 }
 
 // src/engine.ts
-import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync9, lstatSync as lstatSync4, readlinkSync as readlinkSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync5, readdirSync as readdirSync3, readFileSync as readFileSync10, lstatSync as lstatSync4, readlinkSync as readlinkSync3, rmSync as rmSync5, writeFileSync as writeFileSync5 } from "node:fs";
 import { tmpdir as tmpdir3 } from "node:os";
 import { dirname as dirname7, join as join9, relative as relative4, resolve as resolve7 } from "node:path";
 
@@ -23940,12 +23940,12 @@ var Prescriptions = Schema_exports.Struct({
   harnesses: Schema_exports.optional(Schema_exports.Record(Schema_exports.String, Harness)),
   /** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
   env: Schema_exports.optional(Schema_exports.Array(Schema_exports.String)),
-  /** Items `mw run` drives at once, each up to two agents. Default: DEFAULT_PARALLEL. */
-  parallel: Schema_exports.optional(Schema_exports.Int.check(Schema_exports.isGreaterThan(0))),
+  /** Resource-based admission by default; a positive integer remains an explicit opt-in count limit. */
+  parallel: Schema_exports.optional(Schema_exports.Union([Schema_exports.Literal("resources"), Schema_exports.Int.check(Schema_exports.isGreaterThan(0))])),
   /** Optional capability: malformed settings fall back per decision, never prevent the console from running. */
   decisionModel: Schema_exports.optionalKey(Schema_exports.Unknown)
 });
-var DEFAULT_PARALLEL = 3;
+var DEFAULT_PARALLEL = "resources";
 var loadPrescriptions = (path) => Effect_exports.gen(function* () {
   const text4 = yield* Effect_exports.try({
     try: () => readFileSync4(path, "utf8"),
@@ -26408,6 +26408,44 @@ function grammarOf(store, id2) {
   };
 }
 
+// src/resources.ts
+import { readFileSync as readFileSync9, statfsSync } from "node:fs";
+import { availableParallelism, freemem, loadavg, totalmem } from "node:os";
+function resourceAdmission(directory) {
+  if (process.env.MW_WORKER === "1") return { allowed: true };
+  try {
+    let memory = freemem();
+    try {
+      const available = readFileSync9("/proc/meminfo", "utf8").match(/^MemAvailable:\s+(\d+)/m);
+      if (available) memory = Number(available[1]) * 1024;
+    } catch {
+    }
+    try {
+      const limit = Number(readFileSync9("/sys/fs/cgroup/memory.max", "utf8").trim());
+      const used = Number(readFileSync9("/sys/fs/cgroup/memory.current", "utf8").trim());
+      if (Number.isFinite(limit) && Number.isFinite(used)) memory = Math.min(memory, Math.max(0, limit - used));
+    } catch {
+    }
+    const disk = statfsSync(directory);
+    const availableDiskBytes = disk.bavail * disk.bsize;
+    let cpuPressure;
+    try {
+      const pressure = readFileSync9("/proc/pressure/cpu", "utf8").match(/^some avg10=([\d.]+)/m);
+      if (pressure) cpuPressure = Number(pressure[1]);
+    } catch {
+    }
+    const loadPerCpu = loadavg()[0] / availableParallelism();
+    const requiredMemoryBytes = Math.max(totalmem() * 0.1, 512 * 1024 ** 2);
+    const observed = { availableMemoryBytes: memory, requiredMemoryBytes, availableDiskBytes, cpuPressure, loadPerCpu };
+    if (memory < requiredMemoryBytes) return { allowed: false, reason: "memory", ...observed };
+    if (availableDiskBytes < 20 * 1024 ** 3) return { allowed: false, reason: "disk", ...observed };
+    if (cpuPressure !== void 0 ? cpuPressure >= 50 : loadPerCpu >= 1) return { allowed: false, reason: "cpu", ...observed };
+    return { allowed: true, ...observed };
+  } catch {
+    return { allowed: false, reason: "unavailable" };
+  }
+}
+
 // src/engine.ts
 var MAX_LAUNCHES = 3;
 var REPAIR_BUDGET = { minutes: 5 };
@@ -26789,7 +26827,7 @@ var jobTree = (item, job) => ({
     if (job === "arbitrate") return yield* candidate(item, dir);
     if (correcting(item, job)) {
       const store = yield* Store;
-      const change = contentHash(readFileSync9(patchPath(home, "change")));
+      const change = contentHash(readFileSync10(patchPath(home, "change")));
       const saved = store.events(item.id).findLast((e) => e.kind === "correction-base" && e.data.change === change && e.data.on === item.base.commit);
       const stable = item.verification?.commit ?? (typeof saved?.data.commit === "string" ? saved.data.commit : void 0);
       let base;
@@ -26821,7 +26859,7 @@ var restorePartial = (item, role, base, path) => Effect_exports.gen(function* ()
     return true;
   }
   if (!continuationBoundary(store.events(item.id)) && item.pack?.contracts?.acceptance !== "1" && existsSync3(path) && !savedArtifacts(store.events(item.id)).some((a) => a.role === role)) {
-    store.note(item.id, "legacy-partial-resumed", { job: role, sha256: contentHash(readFileSync9(path)), provenance: "Historical base/plan metadata unavailable; legacy disk continuation." });
+    store.note(item.id, "legacy-partial-resumed", { job: role, sha256: contentHash(readFileSync10(path)), provenance: "Historical base/plan metadata unavailable; legacy disk continuation." });
     return true;
   }
   rmSync5(path, { force: true });
@@ -27283,7 +27321,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
       if (!ground.ok) return { kind: "unprepared", message: "Ground found changed or unavailable implementation handoff material.", context: { job: "verify", ...ground } };
     }
     const gated = yield* runGates(id2, wt.path, wt.base, gates, patchPath(home, "change"), budget, env, live);
-    preserveArtifact(store, item, "implement", readFileSync9(patchPath(home, "change"), "utf8"), wt.base);
+    preserveArtifact(store, item, "implement", readFileSync10(patchPath(home, "change"), "utf8"), wt.base);
     const built = yield* commit(wt.path, commitMessage(item));
     const candidateDiff = () => git(wt.path, "diff", "--binary", "--no-renames", "--no-ext-diff", "--no-textconv", built);
     const committedProductClean = (yield* candidateDiff()) === "";
@@ -27297,7 +27335,7 @@ var verify = Effect_exports.fn("mw.verify")(function* (id2, config) {
     const fingerprint = () => (item.checks?.files ?? []).map((path) => {
       try {
         const file = join9(wt.path, path);
-        return { path, sha256: contentHash(lstatSync4(file).isSymbolicLink() ? readlinkSync3(file) : readFileSync9(file)) };
+        return { path, sha256: contentHash(lstatSync4(file).isSymbolicLink() ? readlinkSync3(file) : readFileSync10(file)) };
       } catch {
         return { path, sha256: null };
       }
@@ -27766,6 +27804,7 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
   const running = /* @__PURE__ */ new Set();
   const results2 = [];
   const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL;
+  let lastResourceWait;
   for (; ; ) {
     const reloading = config.reloading?.() ?? false;
     const items = store.list();
@@ -27784,24 +27823,38 @@ var runQueue = (config, options = {}) => Effect_exports.gen(function* () {
         expanded = selected.size !== before;
       }
     }
+    let resourceWait = false;
     for (const i of reloading ? [] : items) {
-      if (running.size >= parallel) break;
+      if (typeof parallel === "number" && running.size >= parallel) break;
       if (selected && !selected.has(i.id)) continue;
       if (i.parent !== void 0 || !READY.includes(i.status) || running.has(i.id) || stuck(store, i) || unshipped(store, i).length) continue;
+      if (parallel === "resources") {
+        const admission = (config.resourceAdmission ?? resourceAdmission)(store.path === ":memory:" ? tmpdir3() : dirname7(store.path));
+        if (!admission.allowed) {
+          const key2 = `${i.id}:${admission.reason}`;
+          if (key2 !== lastResourceWait) store.note(i.id, "resource-wait", { ...admission });
+          lastResourceWait = key2;
+          resourceWait = true;
+          break;
+        }
+        store.note(i.id, "resource-admitted", { ...admission });
+        lastResourceWait = void 0;
+      }
       running.add(i.id);
       yield* Effect_exports.forkScoped(drive(i.id, config).pipe(
         Effect_exports.catchTag("MadeWellError", () => Effect_exports.sync(() => store.get(i.id))),
         Effect_exports.flatMap((item) => Queue_exports.offer(finished, item))
       ));
+      if (parallel === "resources") break;
     }
     if (!running.size) {
       store.runnerOn(null);
       if (reloading) return { items: results2, reload: true };
-      if (!options.watch) return { items: results2, reload: false };
+      if (!options.watch && !resourceWait) return { items: results2, reload: false };
       yield* Effect_exports.sleep(config.pollMs ?? 2e3);
       continue;
     }
-    const done3 = options.watch || config.reloading ? yield* Effect_exports.raceFirst(Queue_exports.take(finished), Effect_exports.as(Effect_exports.sleep(config.pollMs ?? 2e3), void 0)) : yield* Queue_exports.take(finished);
+    const done3 = options.watch || config.reloading || parallel === "resources" ? yield* Effect_exports.raceFirst(Queue_exports.take(finished), Effect_exports.as(Effect_exports.sleep(config.pollMs ?? 2e3), void 0)) : yield* Queue_exports.take(finished);
     if (done3) {
       running.delete(done3.id);
       results2.push(done3);
@@ -28068,7 +28121,7 @@ function otlpOf(store, id2) {
 }
 
 // src/export.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync6, readFileSync as readFileSync10, writeFileSync as writeFileSync6 } from "node:fs";
+import { existsSync as existsSync4, mkdirSync as mkdirSync6, readFileSync as readFileSync11, writeFileSync as writeFileSync6 } from "node:fs";
 import { join as join10 } from "node:path";
 var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
   const item = store.get(id2);
@@ -28082,7 +28135,7 @@ var exportItem = Effect_exports.fn("mw.export")(function* (store, id2, dir) {
       if (existsSync4(record4)) {
         let previous;
         try {
-          previous = JSON.parse(readFileSync10(record4, "utf8"));
+          previous = JSON.parse(readFileSync11(record4, "utf8"));
         } catch {
           throw conflict("Existing item.json is unreadable or invalid; its owning task cannot be confirmed.");
         }
@@ -28963,7 +29016,7 @@ var createApi = (options) => {
 };
 
 // src/eval.ts
-import { readFileSync as readFileSync11 } from "node:fs";
+import { readFileSync as readFileSync12 } from "node:fs";
 import { resolve as resolve10 } from "node:path";
 import { DatabaseSync as DatabaseSync2 } from "node:sqlite";
 var JOBS = AGENT_JOBS;
@@ -29058,7 +29111,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
   const cards = o.card === void 0 ? void 0 : yield* candidates(o.card, p);
   const briefPath = o.brief === void 0 ? void 0 : resolve10(o.brief);
   const brief = briefPath === void 0 ? void 0 : yield* Effect_exports.try({
-    try: () => readFileSync11(briefPath, "utf8"),
+    try: () => readFileSync12(briefPath, "utf8"),
     catch: () => new MadeWellError({ code: "brief_unreadable", message: `Cannot read --brief ${briefPath}.`, context: { path: briefPath }, next: [{ run: `ls -l ${quote2(briefPath)}`, why: "check the file exists and is readable" }] })
   });
   const all4 = store.calls();
@@ -29191,7 +29244,7 @@ var evaluate2 = Effect_exports.fn("mw.eval")(function* (o) {
 
 // src/ui.ts
 import { execFileSync as execFileSync2, spawn as spawn2 } from "node:child_process";
-import { closeSync as closeSync3, existsSync as existsSync5, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync13, readSync as readSync3, rmSync as rmSync6, statSync as statSync5, writeFileSync as writeFileSync7 } from "node:fs";
+import { closeSync as closeSync3, existsSync as existsSync5, fstatSync, mkdirSync as mkdirSync7, openSync as openSync3, readdirSync as readdirSync4, readFileSync as readFileSync14, readSync as readSync3, rmSync as rmSync6, statSync as statSync5, writeFileSync as writeFileSync7 } from "node:fs";
 import { createServer } from "node:http";
 import { homedir as homedir3, hostname as hostname2 } from "node:os";
 import { basename as basename2, dirname as dirname8, join as join11, resolve as resolve12 } from "node:path";
@@ -30334,7 +30387,7 @@ $('refresh').addEventListener('click',refresh);window.addEventListener('popstate
 
 // src/jump-pack-lab.ts
 import { createHash as createHash15 } from "node:crypto";
-import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync12, readSync as readSync2, realpathSync as realpathSync4, statSync as statSync4 } from "node:fs";
+import { closeSync as closeSync2, openSync as openSync2, readFileSync as readFileSync13, readSync as readSync2, realpathSync as realpathSync4, statSync as statSync4 } from "node:fs";
 import { extname, isAbsolute as isAbsolute4, relative as relative5, resolve as resolve11, sep as sep5 } from "node:path";
 var parsed2 = (raw) => typeof raw === "string" ? lastJson(raw) ?? raw : raw ?? null;
 var record3 = (value4) => value4 && typeof value4 === "object" && !Array.isArray(value4) ? value4 : {};
@@ -30348,7 +30401,7 @@ function workArtifact(item, verification) {
     if (within === ".." || within.startsWith(`..${sep5}`) || isAbsolute4(within)) return absent("The recorded output is outside this task workspace; its content is unavailable here.");
     const expected = Array.isArray(verification.evidence) ? verification.evidence.find((entry) => typeof entry === "string" && /^sha256:[a-f0-9]{64}$/.test(entry)) : void 0;
     const previewable = [".md", ".txt", ".json"].includes(extname(actual)) && statSync4(actual).size <= 65536;
-    const bytes3 = previewable ? readFileSync12(actual) : null;
+    const bytes3 = previewable ? readFileSync13(actual) : null;
     let hashMatches = null;
     if (typeof expected === "string") {
       const hash5 = createHash15("sha256");
@@ -31144,7 +31197,7 @@ var diffOf = (storePath2, item) => {
   const cap = (s) => s.length > 2e5 ? `${s.slice(0, 2e5)}
 \u2026 (cut at 200 KB)` : s;
   const home = itemHome(storePath2, item.id);
-  const read2 = (name) => existsSync5(patchPath(home, name)) ? readFileSync13(patchPath(home, name), "utf8") : "";
+  const read2 = (name) => existsSync5(patchPath(home, name)) ? readFileSync14(patchPath(home, name), "utf8") : "";
   const shipped = item.merged?.commit ?? item.shipped?.main;
   let change = read2("change");
   if (!change && shipped) {
@@ -31177,7 +31230,7 @@ var itemDetail = (store, nextOf, id2) => {
 var spansOf = (path, item) => {
   const file = spansPath(path);
   if (!existsSync5(file)) return [];
-  const all4 = readFileSync13(file, "utf8").split("\n").flatMap((l) => {
+  const all4 = readFileSync14(file, "utf8").split("\n").flatMap((l) => {
     try {
       return l ? [JSON.parse(l)] : [];
     } catch {
@@ -31226,7 +31279,7 @@ var staticPage = (store, nextOf) => {
 var GAZETTE = new URL("../dist/gazette.html", import.meta.url);
 var gazettePage = () => {
   try {
-    return readFileSync13(GAZETTE, "utf8");
+    return readFileSync14(GAZETTE, "utf8");
   } catch {
     return void 0;
   }
@@ -31251,7 +31304,7 @@ var serve = (path, nextOf, host, port, renderer, wake2) => Effect_exports.callba
       if (url.pathname === "/lab") return html(res, JUMP_PACK_PAGE);
       if (url.pathname === "/qa") return html(res, QA_NOTEBOOK);
       if (/^\/fonts\/ibm-plex-(sans|mono)-latin\.woff2$/.test(url.pathname)) {
-        const font = readFileSync13(new URL(`../ui${url.pathname}`, import.meta.url));
+        const font = readFileSync14(new URL(`../ui${url.pathname}`, import.meta.url));
         res.writeHead(200, { "content-type": "font/woff2", "cache-control": "public, max-age=86400" });
         return void res.end(font);
       }
@@ -31418,7 +31471,7 @@ var serviceStatus = (h) => {
   if (!SUPPORTED.includes(h.platform)) return { ...base, installed: false, running: false, address: null, next: [{ run: "mw ui", why: `this platform has no service manager Made Well knows; serve it in a terminal` }] };
   const { unit } = servicePaths(h);
   if (!existsSync5(unit)) return { ...base, installed: false, running: false, address: null, unit, next: [{ run: "mw ui --install", why: "provision the web interface as an always-on background service of this user" }] };
-  const text4 = readFileSync13(unit, "utf8");
+  const text4 = readFileSync14(unit, "utf8");
   const args2 = execStartOf(h, text4);
   const address = addressOf(args2);
   let running = false;
@@ -31447,7 +31500,7 @@ var installService = (h, s) => {
   if (!SUPPORTED.includes(h.platform)) throw unsupported2(h);
   const { unit } = servicePaths(h);
   const text4 = h.platform === "darwin" ? plistText(h, s) : unitText(h, s);
-  const before = existsSync5(unit) ? readFileSync13(unit, "utf8") : void 0;
+  const before = existsSync5(unit) ? readFileSync14(unit, "utf8") : void 0;
   const wrote = [];
   if (before !== text4) {
     mkdirSync7(dirname8(unit), { recursive: true });
@@ -31842,13 +31895,13 @@ var readSource = (input) => {
   if (!input["source-file"]) return Effect_exports.succeed(input.source);
   const path = resolve13(input["source-file"]);
   return Effect_exports.try({
-    try: () => readFileSync14(path, "utf8"),
+    try: () => readFileSync15(path, "utf8"),
     catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --source-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check the file exists and is readable" }] })
   });
 };
 var readQaInput = Effect_exports.fn("mw.readQaInput")(function* (input) {
   const path = resolve13(input["input-file"]);
-  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync14(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
+  const bytes3 = yield* Effect_exports.try({ try: () => readFileSync15(path), catch: () => new MadeWellError({ code: "source_unreadable", message: `Cannot read --input-file ${path}.`, context: { path }, next: [{ run: `ls -l ${quote2(path)}`, why: "check that the JSON input file exists and is readable" }] }) });
   return yield* Effect_exports.try({ try: () => qaParseJson(bytes3), catch: qaStorageError });
 });
 var qaInputFile = (schema) => Schema_exports.String.annotate({ description: `UTF-8 JSON file (maximum 65536 bytes), exact ${schema} body, with a caller-supplied requestId; no path IDs in the body. JSON Schema: ${JSON.stringify(QA_JSON_SCHEMAS[schema])}` });
@@ -32143,7 +32196,7 @@ var COMMANDS = [
     run: (input) => Effect_exports.gen(function* () {
       if (!input["input-file"]) return yield* contextFacts(input.id);
       const value4 = yield* Effect_exports.try({
-        try: () => JSON.parse(readFileSync14(input["input-file"], "utf8")),
+        try: () => JSON.parse(readFileSync15(input["input-file"], "utf8")),
         catch: () => usageError("context-fact", "Cannot read a JSON context fact command from --input-file. No input was saved.")
       });
       return { ...yield* contextFact(input.id, value4) };
@@ -32290,7 +32343,7 @@ var COMMANDS = [
       const dir = input.dir ?? process.env.MW_TELEMETRY;
       if (!dir) return yield* usageError("stats", "No telemetry directory: set MW_TELEMETRY=<dir> on every machine, or pass --dir <dir>.");
       const files = existsSync6(dir) ? readdirSync5(dir).filter((f) => f.endsWith(".jsonl")).sort() : [];
-      const lines4 = files.flatMap((f) => readFileSync14(join12(dir, f), "utf8").split("\n").filter(Boolean));
+      const lines4 = files.flatMap((f) => readFileSync15(join12(dir, f), "utf8").split("\n").filter(Boolean));
       return { dir: resolve13(dir), files, lines: lines4.length, ...stats(lines4), next: files.length ? [] : [{ run: `export MW_TELEMETRY=${quote2(resolve13(dir))}`, why: "set it on every machine that runs Made Well, so each writes its file there" }] };
     })
   }),
