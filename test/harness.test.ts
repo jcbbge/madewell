@@ -230,15 +230,14 @@ test('mw run stops cleanly on SIGTERM: the agent process group dies and the runn
 	const repo = join(dir, 'repo')
 	const pidFile = join(dir, 'agent.pid')
 	mkdirSync(repo)
-	spawnSync('sh', ['-c', 'git init -q -b main && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m first'], { cwd: repo })
 	// A worker whose agent hangs, with a child of its own.
 	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: `sleep 300 & echo $! > ${pidFile}; wait`, MW_AUTORUN: '0' }
 	delete env.MW_STORE
 	const cli = join(import.meta.dirname, '../src/cli.ts')
 	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
 	try {
-		mw('init', '--autonomy', 'full', '--ship', 'true')
-		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+		mw('settings')
+		mw('start','--cartridges','builtin:grammar','--objective','Produce text','--source','Fixture text')
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: ['ignore', 'ignore', 'pipe'] })
 		let stderr = ''
 		runner.stderr.setEncoding('utf8').on('data', (c: string) => (stderr += c))
@@ -264,7 +263,6 @@ test('a daemon left by a runner that was SIGKILLed is killed when the next runne
 	const repo = join(dir, 'repo')
 	const daemonFile = join(dir, 'daemon.pid')
 	mkdirSync(repo)
-	spawnSync('sh', ['-c', 'git init -q -b main && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m first'], { cwd: repo })
 	// The first call leaves a daemon in a session of its own and hangs; later calls fail at once.
 	const detached = "const fs=require('node:fs');if(fs.existsSync(" + JSON.stringify(daemonFile) + "))process.exit(1);const p=require('node:child_process').spawn(process.execPath,['-e','setTimeout(()=>{},302000)'],{detached:true,stdio:'ignore'});fs.writeFileSync(" + JSON.stringify(daemonFile) + ",String(p.pid));p.unref();setTimeout(()=>{},300000)"
 	const env: NodeJS.ProcessEnv = { ...process.env, MW_HOME: join(dir, 'home'), MW_WORKER_COMMAND: quote(process.execPath) + ' -e ' + quote(detached), MW_AUTORUN: '0' }
@@ -273,8 +271,8 @@ test('a daemon left by a runner that was SIGKILLed is killed when the next runne
 	const mw = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], { env, cwd: repo, encoding: 'utf8' })
 	let ownedRunner: ReturnType<typeof spawn> | undefined
 	try {
-		mw('init', '--autonomy', 'full', '--ship', 'true')
-		mw('start', '--objective', 'Add CSV export', '--source', 'operator: add CSV export')
+		mw('settings')
+		mw('start','--cartridges','builtin:grammar','--objective','Produce text','--source','Fixture text')
 		const runner = spawn(process.execPath, [cli, 'run'], { env, cwd: repo, stdio: 'ignore' })
 		ownedRunner = runner
 		while (!existsSync(daemonFile) || !readFileSync(daemonFile, 'utf8').trim()) await new Promise((r) => setTimeout(r, 20))

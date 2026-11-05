@@ -1,7 +1,8 @@
 // The prescribed demo grammar and a read-only view of its existing work record.
 import { Schema } from 'effect'
+import { readiness } from './readiness.ts'
 import { Decision } from './decision.ts'
-import { isMaker, laneOf, lastJson, shapeOf, SOFTWARE, stepOf, type Pack } from './lane.ts'
+import { isMaker, laneOf, lastJson, shapeOf, stepOf, type Pack } from './lane.ts'
 import { workEvidenceOf, type WorkEvidence } from './work-evidence.ts'
 import { currentHandoffOf } from './handoff-view.ts'
 import { organSummary } from './organs.ts'
@@ -15,20 +16,20 @@ export const DISCOVERY_FUNCTIONS = [
 ] as const
 const finding = shapeOf(Schema.Struct({ result: Schema.NonEmptyString, sources: Schema.Array(Schema.String), unknowns: Schema.Array(Schema.String), decisions: Schema.Array(Decision) }))
 
-/** An explicit software demonstration; it retains the existing makers, checks and shipping machinery. */
+/** An explicit general work demonstration with independently accepted structured results. */
 export const GRAMMAR_PACK: Pack = {
-	name: 'made-well-grammar-demo', version: '1', runtime: 'software',
+	name: 'made-well-grammar-demo', version: '2', runtime: 'functions', contracts:{execution:'2',discovery:'2',acceptance:'2',handoff:'2'},
 	brief: 'Run the prescribed grammar without skipping obligations. Discovery functions investigate and return their own concrete result, source references and genuine unknowns; preserve earlier accepted outputs. The discovery report generates coherent tasks, not an implementation plan. Every task subsequently owes ideation, planning, implementation and independent verification. Keep outputs concise but complete, and use the existing NQ and rubric for actual decisions.',
 	discovery: [{ cartridge: 'discovery', steps: [
 		{ job: 'declare', profile: 'ideator', duty: 'Declare the intended outcome, source, scope and authority in the operator\'s words. Separate explicit instructions from your interpretation; do not implement.', output: finding },
-		{ job: 'look-first', profile: 'ideator', duty: 'Inspect the actual workspace, its instructions and relevant existing code or artifacts. Report what already exists, its exact locations and constraints; do not change it.', output: finding },
+		{ job: 'look-first', profile: 'ideator', duty: 'Inspect declared material, its instructions and relevant artifacts. Report what already exists, its exact locations and constraints; do not change it.', output: finding },
 		{ job: 'classify', profile: 'ideator', duty: 'Classify the source into requested changes, observations, constraints and unresolved questions. Preserve source references and distinguish facts from proposed work; do not implement.', output: finding },
-		{ job: 'lenses', profile: 'ideator', duty: 'Examine the proposed work through relevant user, developer and agentic concerns in this workspace. Record concrete tradeoffs and risks without inventing requirements or implementing.', output: finding },
+		{ job: 'lenses', profile: 'ideator', duty: 'Examine the proposed work through relevant user, developer and agentic concerns for this task. Record concrete tradeoffs and risks without inventing requirements or implementing.', output: finding },
 		{ job: 'one-thing', profile: 'ideator', duty: 'Separate the grounded work into individual coherent candidate tasks, each with its purpose, boundaries and observable completion conditions. Reconcile existing work rather than duplicating it; do not plan code changes.', output: finding },
 		{ job: 'route', profile: 'ideator', duty: 'Determine which candidate tasks are independent and which depend on another candidate or an unresolved external prerequisite. Preserve the reason for each dependency and allow independent tasks to proceed in parallel.', output: finding },
-		{ job: 'discover', profile: 'ideator', task: 'This is confirm(). Use all six accepted discovery outputs and the exact original source to return the final task list. Each candidate text preserves its own purpose, constraints, source references and done-when conditions. Use after only for genuine dependencies, as 1-based positions of earlier candidates. Do not invent work, implement it, or omit an unsettled prerequisite.' },
-	] }],
-	delivery: SOFTWARE.delivery,
+		{ job: 'discover', profile: 'ideator', duty:'Confirm candidates with exact conditions and dependencies.', output:{type:'object',required:['items'],properties:{items:{type:'array',items:{type:'object',required:['title','objective','text','conditions'],properties:{title:{type:'string'},objective:{type:'string'},text:{type:'string'},kind:{type:'string'},conditions:{type:'array',items:{type:'object',required:['id','text'],properties:{id:{type:'string'},text:{type:'string'}}}},after:{type:'array',items:{type:'integer'}}}}}}},task: 'This is confirm(). Use all six accepted discovery outputs and the exact original source to return the final task list. Each candidate text preserves its own purpose, constraints, source references and done-when conditions. Use after only for genuine dependencies, as 1-based positions of earlier candidates. Do not invent work, implement it, or omit an unsettled prerequisite.' },
+	].map(s=>({...s,replay:'safe' as const,writes:[]})) }],
+	delivery: [],
 }
 
 export type GrammarState = 'yes' | 'no' | 'unknown' | 'running' | 'blocked'
@@ -52,6 +53,11 @@ export interface GrammarReadiness {
 	readonly waitingOn: ReadonlyArray<number>
 }
 export interface GrammarTask {
+ readonly objective:string
+ readonly owner:string
+ readonly nextAction:string
+ readonly blockers:Item['blockers']
+ readonly completion:Item['completion']|null
 	readonly currentHandoff: ReturnType<typeof currentHandoffOf>
 	readonly organs: ReturnType<typeof organSummary>
 	readonly organJobs: ReadonlyArray<string>
@@ -109,10 +115,10 @@ function stepView(item: Item, job: string, label: string, active: boolean, heads
 }
 
 function readinessOf(store: Pick<WorkStore, 'get'>, item: Item, active: boolean, delivered: boolean): GrammarReadiness {
-	const waitingOn = [...new Set([...(item.after ?? []).filter((id) => !['shipped', 'completed'].includes(store.get(id)?.status ?? '')),
-		...(item.waitsOn !== undefined && !['shipped', 'completed', 'dropped'].includes(store.get(item.waitsOn)?.status ?? '') ? [item.waitsOn] : [])])]
+	const waitingOn = readiness(store,item).waitingOn
 	const result = (state: GrammarReadiness['state'], ready: boolean, reason: string, ownerId = item.id): GrammarReadiness => ({ state, ready, reason, ownerId, waitingOn })
-	if (delivered) return result('delivered', false, 'The task has current verification and saved shipment evidence.')
+	if (delivered) return result('delivered', false, 'The task has saved completion evidence with its declared provenance.')
+	if(item.execution?.mode==='external') return result('incomplete',false,item.progress?.nextAction??'Record progress or completion.')
 	if (item.hold || ['held', 'paused'].includes(item.status)) return result('held', false, item.hold?.message ?? 'The task is held for an answer or release.')
 	if (waitingOn.length) {
 		const held = waitingOn.find((id) => !store.get(id) || ['held', 'paused', 'candidate', 'dropped'].includes(store.get(id)!.status))
@@ -122,6 +128,7 @@ function readinessOf(store: Pick<WorkStore, 'get'>, item: Item, active: boolean,
 	if (item.status === 'candidate') return result('waiting-selection', false, 'The task awaits selection for delivery.')
 	if (item.status === 'waiting-quota') return result('waiting-quota', false, 'Waiting for a prescribed account to reset.')
 	if (['shipped', 'completed', 'dropped', 'discovered'].includes(item.status)) return result('incomplete', false, 'The saved end state does not establish all required delivery evidence.')
+	const ready=readiness(store,item);if(!ready.ready)return result('incomplete',false,ready.reasons.join('; '))
 	if (!active) return result('ready-waiting-runner', true, 'Ready to continue from the saved step; waiting for a runner.')
 	return result(item.status === 'running' ? 'running' : 'ready', true, item.status === 'running' ? 'A runner is active; this task is at its saved step.' : 'Dependencies are complete; ready for the active runner.')
 }
@@ -174,7 +181,7 @@ export function grammarOf(store: WorkStore, id: number): GrammarView | undefined
 		viewed.push({ job: 'verification', label: 'verification()', state: verified ? 'yes' : child.status === 'held' && ['verify', 'arbitrate'].includes(child.job) ? 'blocked' : !!runner && child.job === 'verify' && child.status === 'running' ? 'running' : 'no', complete: verified, configured: laneOf(child.pack).delivery.some((s) => s.job === 'verify'), input: history.findLast((e) => e.kind === 'verify-started')?.data ?? null, output: verification ?? null, evidence: { eventSeqs: verifyProof.map((e) => e.seq), trace: `/api/trace/${child.id}?lens=ax` }, reason: verified ? 'Saved verification applies to the recorded candidate; current deployment has not been rechecked.' : child.hold?.message ?? 'No current passing verification is recorded.', metrics: metricsFor(heads, child.id, ['verify']) })
 		if (child.pack?.runtime === 'functions') viewed.splice(0, viewed.length, ...laneOf(child.pack)[child.flow?.loop ?? 'delivery'].map(s => stepView(child, s.job, s.job, !!runner, heads, workEvidence.jobs[s.job])))
 		const delivered = workEvidence.delivered
-		return { currentHandoff: currentHandoffOf(store, child), organs: organSummary(store, child), organJobs: laneOf(child.pack)[child.flow?.loop ?? 'delivery'].map(step => step.job), id: child.id, title: child.title, status: child.status, currentJob: child.job, currentPhase: child.job === 'arbitrate' ? 'verification' : stepOf(laneOf(child.pack), child.job).cartridge, enteredDelivery: history.some((e) => e.kind === 'handoff' || e.kind === 'call-started'), phases: viewed, testsCreated, testCount: checks.length,
+		return { currentHandoff: currentHandoffOf(store, child), organs: organSummary(store, child), organJobs: laneOf(child.pack)[child.flow?.loop ?? 'delivery'].map(step => step.job), id: child.id, title: child.title,objective:child.objective,owner:child.progress.owner,nextAction:child.progress.nextAction,blockers:child.blockers,completion:child.completion??null,status: child.status, currentJob: child.job, currentPhase: child.job === 'arbitrate' ? 'verification' : stepOf(laneOf(child.pack), child.job).cartridge, enteredDelivery: history.some((e) => e.kind === 'handoff' || e.kind === 'call-started'), phases: viewed, testsCreated, testCount: checks.length,
 			verification: { passed: verification ? verified ? true : verification.passed ? null : false : null, on: verification?.on ?? null, commit: verification?.commit ?? null, results: verification?.results ?? [] },
 			delivered, shipment: child.shipped ?? null, blocker: child.hold ?? null, readiness: readinessOf(store, child, !!runner, delivered), after: child.after ?? [], updated: child.updated }
 	})

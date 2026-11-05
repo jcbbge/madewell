@@ -39,7 +39,7 @@ test('the Delivery sheet is written from the model: one ring per item, inks by s
 	assert.deepEqual([second.says, second.actions[0]], ['It could not start: the folder it works in has no branch checked out.', { words: 'Check out main', run: 'git -C /home/jrg/madewell-three-lens switch main', weight: 'plain' }])
 	assert.equal(b.notices.flatMap((n: { actions: { weight: string }[] }) => n.actions).filter((a: { weight: string }) => a.weight === 'primary').length, 1)
 	assert.deepEqual(b.legend.map((l: { ink: string }) => l.ink), ['sage', 'vermilion', 'ochre'], 'the legend names only the inks on the sheet')
-	assert.match(b.colophon, /^From the Made Well record on hive; last entry 24 Oct, 21:57\. 4 items, 19 agent calls, 755,579 tokens, 6 minutes of agent time\. Not sealed: nothing has shipped\.$/)
+	assert.match(b.colophon, /^From the Made Well record on hive; last entry 24 Oct, 21:57\. 4 items, 19 agent calls, 755,579 tokens, 6 minutes of agent time\. Not sealed: nothing has completed\.$/)
 	// The sheet's own words carry no Made Well jargon; titles and Made Well's messages are quoted as they are.
 	const own = JSON.stringify([b.sheet, b.principal.steps, b.principal.centre, b.notices.map((n: { says: string; since: string; actions: { words: string }[] }) => [n.says, n.since, n.actions.map((a) => a.words)]), b.legend, b.colophon])
 	for (const word of ['UX', 'DX', 'AX', 'lens', 'cartridge', 'profile', 'NQ', 'hold', 'runner']) assert.doesNotMatch(own, new RegExp(`\\b${word}\\b`), `no "${word}" on the sheet`)

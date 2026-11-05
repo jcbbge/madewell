@@ -5,18 +5,21 @@
 export const CONSOLE = String.raw`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Made Well</title>
+<link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face{font-family:'IBM Plex Sans';font-style:normal;font-weight:100 700;font-display:swap;src:url('/fonts/ibm-plex-sans-latin.woff2') format('woff2')}
+@font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/ibm-plex-mono-latin.woff2') format('woff2')}
 :root { --ink:#0f172a; --ink2:#334155; --mute:#64748b; --faint:#94a3b8; --line:#e2e8f0; --line2:#f1f5f9; --bg:#f8fafc; --card:#fff;
   --blue:#2563eb; --blue-bg:#eff6ff; --blue-ln:#bfdbfe; --green:#15803d; --green-bg:#f0fdf4; --green-ln:#bbf7d0; --red:#dc2626; --red-bg:#fef2f2; --red-ln:#fecaca;
   --amber:#b45309; --amber-bg:#fffbeb; --amber-ln:#fde68a; --violet:#7c3aed; --violet-bg:#f5f3ff; --teal:#0f766e;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; --r:10px; }
+  --font-text:'IBM Plex Sans',system-ui,sans-serif; --font-system:'IBM Plex Mono',ui-monospace,monospace; --r:10px; }
 * { box-sizing:border-box }
-body { margin:0; font:14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); background:var(--bg) }
+body { margin:0; font:14px/1.5 var(--font-text); color:var(--ink); background:var(--bg) }
 a { color:var(--blue); text-decoration:none } a:hover { text-decoration:underline }
-code, .mono { font-family:var(--mono); font-size:12.5px }
+code, .mono { font-family:var(--font-system); font-size:12.5px }
 .top { position:sticky; top:0; z-index:5; display:flex; align-items:center; gap:14px; padding:10px 24px; background:rgba(255,255,255,.92); backdrop-filter:blur(6px); border-bottom:1px solid var(--line) }
 .brand { font-weight:700; letter-spacing:-.01em; font-size:15px; display:flex; gap:8px; align-items:center } .brand i { width:10px; height:10px; border-radius:3px; background:linear-gradient(135deg,#2563eb,#15803d); display:inline-block }
-.top .proj { color:var(--ink2); font-weight:500 } .top .path { color:var(--faint); font:12px var(--mono); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 } .grow { flex:1 }
+.top .proj { color:var(--ink2); font-weight:500 } .top .path { color:var(--faint); font:12px var(--font-system); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0 } .grow { flex:1 }
 .pill { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:3px 10px; border-radius:999px; white-space:nowrap; font-weight:500; border:1px solid transparent }
 .pill.ok { color:var(--green); background:var(--green-bg); border-color:var(--green-ln) } .pill.warn { color:var(--amber); background:var(--amber-bg); border-color:var(--amber-ln) } .pill.bad { color:var(--red); background:var(--red-bg); border-color:var(--red-ln) } .pill.mute { color:var(--mute); background:var(--line2) }
 .dot { width:7px; height:7px; border-radius:50%; background:currentColor } .pulse { animation:pulse 1.4s infinite } @keyframes pulse { 50% { opacity:.3 } }
@@ -28,7 +31,7 @@ h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fa
 .hero .big { font-size:30px; font-weight:700; letter-spacing:-.02em; line-height:1.1 } .hero .big small { font-size:15px; font-weight:500; color:var(--mute); letter-spacing:0 }
 .hero .verdict { font-size:15px; color:var(--ink2); margin-top:4px; max-width:620px }
 .stats { display:flex; gap:22px; flex-wrap:wrap; margin-left:auto }
-.stat .v { font:650 19px var(--mono); letter-spacing:-.02em } .stat .k { font-size:12px; color:var(--mute) } .stat.bad .v { color:var(--red) } .stat.ok .v { color:var(--green) }
+.stat .v { font:650 19px var(--font-system); letter-spacing:-.02em } .stat .k { font-size:12px; color:var(--mute) } .stat.bad .v { color:var(--red) } .stat.ok .v { color:var(--green) }
 .needs { border:1px solid var(--red-ln); background:linear-gradient(0deg,#fff,#fff8f8); }
 .needs h2 { color:var(--red) }
 .need { padding:12px 0; border-top:1px solid var(--red-ln) } .need:first-of-type { border-top:0; padding-top:0 }
@@ -38,31 +41,31 @@ h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fa
 .work { display:grid; gap:0 }
 .row { display:grid; grid-template-columns: minmax(260px, 1fr) 590px 200px; gap:18px; align-items:center; padding:12px 6px; border-top:1px solid var(--line2); cursor:pointer; border-radius:8px }
 .row:first-child { border-top:0 } .row:hover { background:#f8fbff }
-.row .t { font-weight:600; font-size:14.5px; line-height:1.35 } .row .t .id { color:var(--faint); font:500 13px var(--mono); margin-right:6px }
+.row .t { font-weight:600; font-size:14.5px; line-height:1.35 } .row .t .id { color:var(--faint); font:500 13px var(--font-system); margin-right:6px }
 .row .d { font-size:13px; color:var(--ink2); margin-top:3px; line-height:1.4 } .row .d b { font-weight:600 }
-.row .m { font:12px var(--mono); color:var(--mute); text-align:right; line-height:1.6 } .row .m .owes { font-family:inherit; color:var(--ink2) }
-.tag { display:inline-block; font:600 10.5px var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:2px; background:var(--line2); color:var(--mute) }
+.row .m { font:12px var(--font-system); color:var(--mute); text-align:right; line-height:1.6 } .row .m .owes { font-family:inherit; color:var(--ink2) }
+.tag { display:inline-block; font:600 10.5px var(--font-system); letter-spacing:.04em; text-transform:uppercase; padding:1px 6px; border-radius:4px; margin-left:6px; vertical-align:2px; background:var(--line2); color:var(--mute) }
 .tag.fix { background:#fff1f2; color:#be123c } .tag.feature { background:var(--blue-bg); color:var(--blue) } .tag.chore { background:#f5f5f4; color:#57534e } .tag.discovery { background:var(--violet-bg); color:var(--violet) } .tag.prerequisite { background:var(--amber-bg); color:var(--amber) }
-.tag.st-shipped { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-paused { background:var(--amber-bg, #fff4dc); color:var(--amber) } .tag.st-dropped { text-decoration:line-through }
+.tag.st-completed { background:var(--green-bg); color:var(--green) } .tag.st-held { background:var(--red-bg); color:var(--red) } .tag.st-paused { background:var(--amber-bg, #fff4dc); color:var(--amber) } .tag.st-dropped { text-decoration:line-through }
 .pipe { display:flex; align-items:center; gap:3px; justify-self:start }
 .pipe .col { display:flex; flex-direction:column; gap:3px }
 .seg { font-size:11px; font-weight:600; padding:3px 7px; border-radius:6px; border:1px solid var(--line); color:var(--faint); background:#fff; white-space:nowrap; min-width:62px; text-align:center; position:relative; line-height:1.3 }
 .seg.done { background:var(--green-bg); border-color:var(--green-ln); color:var(--green) }
 .seg.active { background:var(--blue-bg); border-color:var(--blue); color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.12) } .seg.active::after { content:''; position:absolute; top:-3px; right:-3px; width:7px; height:7px; border-radius:50%; background:var(--blue); animation:pulse 1.2s infinite }
 .seg.held, .seg.failed { background:var(--red-bg); border-color:var(--red); color:var(--red) } .seg.waiting { background:var(--amber-bg); border-color:var(--amber-ln); color:var(--amber) }
-.seg.skipped { border-style:dashed; color:#cbd5e1 } .seg .q { font:600 9.5px var(--mono); margin-left:3px; color:var(--amber) }
+.seg.skipped { border-style:dashed; color:#cbd5e1 } .seg .q { font:600 9.5px var(--font-system); margin-left:3px; color:var(--amber) }
 .arrow { color:#cbd5e1; font-size:11px }
 .running { display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:12px }
 .run { border:1px solid var(--blue-ln); background:linear-gradient(180deg,var(--blue-bg),#fff 60%); border-radius:var(--r); padding:12px 14px; cursor:pointer; min-width:0 }
 .run.nq { border-color:var(--amber-ln); background:linear-gradient(180deg,var(--amber-bg),#fff 60%) } .run.mw { border-color:var(--green-ln); background:linear-gradient(180deg,var(--green-bg),#fff 60%) }
-.run .h { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap } .run .h b { font-size:14px } .run .h .tm { margin-left:auto; font:600 13px var(--mono); color:var(--blue) }
+.run .h { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap } .run .h b { font-size:14px } .run .h .tm { margin-left:auto; font:600 13px var(--font-system); color:var(--blue) }
 .run .rw { font-size:12.5px; color:var(--mute) } .run .it { font-size:12.5px; color:var(--ink2); margin:2px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-.act { font:12px/1.55 var(--mono); color:var(--ink2); border-left:2px solid var(--line); padding-left:9px; min-height:20px }
+.act { font:12px/1.55 var(--font-system); color:var(--ink2); border-left:2px solid var(--line); padding-left:9px; min-height:20px }
 .act div { white-space:nowrap; overflow:hidden; text-overflow:ellipsis } .act .tool { color:#1e40af } .act .say { color:var(--ink2) } .act .error { color:var(--red) } .act div:last-child { color:var(--ink); font-weight:500 }
 .tl { position:relative; overflow-x:auto } .tl-in { position:relative; min-width:900px }
-.tl-axis { position:relative; height:22px; margin-left:220px; border-bottom:1px solid var(--line) } .tl-axis span { position:absolute; top:2px; font:11px var(--mono); color:var(--faint); transform:translateX(-50%) }
+.tl-axis { position:relative; height:22px; margin-left:220px; border-bottom:1px solid var(--line) } .tl-axis span { position:absolute; top:2px; font:11px var(--font-system); color:var(--faint); transform:translateX(-50%) }
 .tl-row { display:flex; align-items:stretch; border-bottom:1px solid var(--line2); min-height:30px; cursor:pointer } .tl-row:hover { background:#fafcff }
-.tl-name { width:220px; flex:none; padding:5px 10px 5px 0; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink2) } .tl-name b { font:500 12px var(--mono); color:var(--faint); margin-right:4px }
+.tl-name { width:220px; flex:none; padding:5px 10px 5px 0; font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--ink2) } .tl-name b { font:500 12px var(--font-system); color:var(--faint); margin-right:4px }
 .tl-track { position:relative; flex:1 } .tl-grid { position:absolute; top:0; bottom:0; width:1px; background:var(--line2) }
 .bar { position:absolute; height:9px; border-radius:3px; min-width:3px; cursor:pointer }
 .bar:hover { outline:2px solid var(--ink); z-index:2 }
@@ -72,13 +75,13 @@ h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fa
 .legend { display:flex; gap:14px; font-size:12px; color:var(--mute); flex-wrap:wrap } .legend i { display:inline-block; width:14px; height:8px; border-radius:2px; margin-right:5px; vertical-align:0 }
 .two { display:grid; grid-template-columns: 1.3fr 1fr; gap:18px }
 .cost { display:grid; grid-template-columns: 96px 1fr 120px; gap:7px 12px; align-items:center; font-size:13px }
-.cost .track { height:14px; background:var(--line2); border-radius:4px; overflow:hidden; display:flex } .cost .track div { height:100% } .cost .n { font:12px var(--mono); color:var(--mute); text-align:right }
+.cost .track { height:14px; background:var(--line2); border-radius:4px; overflow:hidden; display:flex } .cost .track div { height:100% } .cost .n { font:12px var(--font-system); color:var(--mute); text-align:right }
 .k-intake { background:#93c5fd } .k-originator { background:#fbbf24 } .k-execute { background:var(--blue) } .k-repair { background:#f472b6 }
 .facts { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:10px }
-.fact { border:1px solid var(--line); border-radius:8px; padding:10px 12px } .fact .v { font:650 17px var(--mono) } .fact .k { font-size:12px; color:var(--mute) } .fact.bad .v { color:var(--red) } .fact.ok .v { color:var(--green) }
+.fact { border:1px solid var(--line); border-radius:8px; padding:10px 12px } .fact .v { font:650 17px var(--font-system) } .fact .k { font-size:12px; color:var(--mute) } .fact.bad .v { color:var(--red) } .fact.ok .v { color:var(--green) }
 .log { max-height:420px; overflow:auto } .ev { display:grid; grid-template-columns: 64px 82px 40px 1fr; gap:10px; padding:5px 4px; border-bottom:1px solid var(--line2); font-size:13px; align-items:baseline }
-.ev .t { font:12px var(--mono); color:var(--faint) } .ev .i { font:12px var(--mono); color:var(--mute) }
-.who { font:600 10.5px var(--mono); letter-spacing:.05em; text-transform:uppercase; padding:1px 6px; border-radius:4px; text-align:center }
+.ev .t { font:12px var(--font-system); color:var(--faint) } .ev .i { font:12px var(--font-system); color:var(--mute) }
+.who { font:600 10.5px var(--font-system); letter-spacing:.05em; text-transform:uppercase; padding:1px 6px; border-radius:4px; text-align:center }
 .w-operator { color:var(--violet); background:var(--violet-bg) } .w-agent { color:var(--blue); background:var(--blue-bg) } .w-made { color:var(--green); background:var(--green-bg) } .w-runner { color:var(--mute); background:var(--line2) }
 .filter { display:flex; gap:8px; margin:-4px 0 8px } .filter input { flex:1; font:inherit; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff }
 .empty { color:var(--faint); font-size:13px }
@@ -87,32 +90,32 @@ h2 .sub { text-transform:none; letter-spacing:0; font-weight:400; color:var(--fa
 .dh { padding:16px 22px 0; border-bottom:1px solid var(--line) } .dh .x { float:right; font:inherit; font-size:13px; padding:4px 10px; border:1px solid var(--line); border-radius:7px; background:#fff; cursor:pointer }
 .dh h3 { margin:0 0 4px; font-size:19px; letter-spacing:-.01em } .dh .sub { color:var(--ink2); font-size:13.5px; margin-bottom:10px }
 .tabs { display:flex; gap:2px; margin-top:12px } .tabs button { font:inherit; font-size:13px; font-weight:500; padding:8px 12px; border:0; background:none; color:var(--mute); border-bottom:2px solid transparent; cursor:pointer } .tabs button.on { color:var(--ink); border-color:var(--ink) }
-.tabs button .n { font:11px var(--mono); color:var(--faint); margin-left:4px }
+.tabs button .n { font:11px var(--font-system); color:var(--faint); margin-left:4px }
 .db { overflow:auto; padding:18px 22px 60px; flex:1 }
 .db h4 { margin:20px 0 8px; font-size:12px; letter-spacing:.07em; text-transform:uppercase; color:var(--mute) } .db h4:first-child { margin-top:0 }
 .prose { font-size:14px; color:var(--ink2); white-space:pre-wrap } .prose.lead { font-size:15px; color:var(--ink) }
 .dec { border:1px solid var(--line); border-radius:8px; padding:9px 12px; margin:6px 0 } .dec .q { font-weight:600; font-size:13.5px } .dec .a { font-size:13.5px; margin-top:2px } .dec .y { font-size:12.5px; color:var(--mute); margin-top:4px }
-.chips { display:flex; gap:6px; flex-wrap:wrap } .chip { font:12px var(--mono); padding:2px 8px; border-radius:6px; background:var(--line2); color:var(--ink2) }
+.chips { display:flex; gap:6px; flex-wrap:wrap } .chip { font:12px var(--font-system); padding:2px 8px; border-radius:6px; background:var(--line2); color:var(--ink2) }
 ol.steps { padding-left:22px; margin:4px 0 } ol.steps li { margin:4px 0; font-size:13.5px }
-.dw { display:grid; grid-template-columns: 54px 1fr; gap:6px 10px; font-size:13.5px } .dw .id { font:600 12px var(--mono); color:var(--mute) }
+.dw { display:grid; grid-template-columns: 54px 1fr; gap:6px 10px; font-size:13.5px } .dw .id { font:600 12px var(--font-system); color:var(--mute) }
 .turn { border-left:3px solid var(--amber-ln); padding:4px 0 4px 12px; margin:8px 0 } .turn .qh { font-size:12px; font-weight:600; color:var(--amber); text-transform:uppercase; letter-spacing:.05em }
 .turn ol { margin:4px 0; padding-left:20px; font-size:13.5px } .turn .ans { background:var(--line2); border-radius:8px; padding:8px 11px; font-size:13.5px; white-space:pre-wrap; margin-top:6px } .turn .ans b { font-size:12px; color:var(--mute); display:block; margin-bottom:2px }
 .turn.clear { border-color:var(--green-ln) } .turn.clear .qh { color:var(--green) }
 .xch { border:1px solid var(--line); border-radius:var(--r); padding:12px 14px; margin:10px 0 } .xch .xh { font-weight:600; font-size:14px } .xch .xh span { color:var(--mute); font-weight:400; font-size:13px }
 table { border-collapse:collapse; width:100% } th { text-align:left; font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line) }
-td { padding:7px 8px; border-bottom:1px solid var(--line2); vertical-align:top; font-size:13px } tr.click { cursor:pointer } tr.click:hover td { background:#f8fbff } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:12.5px }
+td { padding:7px 8px; border-bottom:1px solid var(--line2); vertical-align:top; font-size:13px } tr.click { cursor:pointer } tr.click:hover td { background:#f8fbff } td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; font-family:var(--font-system); font-size:12.5px }
 .ok-t { color:var(--green); font-weight:600 } .bad-t { color:var(--red); font-weight:600 }
-pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:12px/1.5 var(--mono); max-height:520px; overflow:auto; margin:4px 0 }
-.diff { white-space:pre; overflow:auto; font:12px/1.5 var(--mono); border:1px solid var(--line); border-radius:8px; max-height:640px } .diff div { padding:0 10px } .diff .a { background:#ecfdf3; color:#166534 } .diff .r { background:#fef2f2; color:#991b1b } .diff .h { background:#f1f5f9; color:var(--mute) } .diff .f { background:#e2e8f0; font-weight:600 }
+pre { white-space:pre-wrap; word-break:break-word; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:12px/1.5 var(--font-system); max-height:520px; overflow:auto; margin:4px 0 }
+.diff { white-space:pre; overflow:auto; font:12px/1.5 var(--font-system); border:1px solid var(--line); border-radius:8px; max-height:640px } .diff div { padding:0 10px } .diff .a { background:#ecfdf3; color:#166534 } .diff .r { background:#fef2f2; color:#991b1b } .diff .h { background:#f1f5f9; color:var(--mute) } .diff .f { background:#e2e8f0; font-weight:600 }
 details summary { cursor:pointer; color:var(--blue); margin:6px 0; font-size:13px }
-.hold { border:1px solid var(--red-ln); background:var(--red-bg); border-radius:var(--r); padding:12px 14px; margin-bottom:14px } .hold .c { font:600 12px var(--mono); color:var(--red) }
+.hold { border:1px solid var(--red-ln); background:var(--red-bg); border-radius:var(--r); padding:12px 14px; margin-bottom:14px } .hold .c { font:600 12px var(--font-system); color:var(--red) }
 .bigpipe { display:flex; gap:4px; align-items:stretch; margin:4px 0 2px; flex-wrap:wrap }
 .bp { flex:1; min-width:96px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12px; color:var(--mute); background:#fff }
 .bp b { display:block; font-size:13px; color:var(--ink) } .bp .w { font-size:11.5px } .bp.done { background:var(--green-bg); border-color:var(--green-ln) } .bp.active { background:var(--blue-bg); border-color:var(--blue) } .bp.held, .bp.failed { background:var(--red-bg); border-color:var(--red) } .bp.waiting { background:var(--amber-bg); border-color:var(--amber-ln) } .bp.skipped { border-style:dashed; opacity:.6 }
-.tx { font:12.5px/1.55 var(--mono) } .tx > div { padding:5px 0; border-bottom:1px dashed var(--line2) } .tx .k { display:inline-block; min-width:62px; font-size:11px; font-weight:600; text-transform:uppercase; color:var(--faint) } .tx .tool { color:#1e40af } .tx .say { white-space:pre-wrap; font-family:ui-sans-serif, system-ui, sans-serif; font-size:13.5px; color:var(--ink) }
-.span { display:grid; grid-template-columns: 1fr 74px; gap:8px; font:12px var(--mono); padding:2px 0 } .span .b2 { height:5px; background:var(--blue); border-radius:3px; margin-top:4px; min-width:2px } .span.err { color:var(--red) } .span.err .b2 { background:var(--red) }
+.tx { font:12.5px/1.55 var(--font-system) } .tx > div { padding:5px 0; border-bottom:1px dashed var(--line2) } .tx .k { display:inline-block; min-width:62px; font-size:11px; font-weight:600; text-transform:uppercase; color:var(--faint) } .tx .tool { color:#1e40af } .tx .say { white-space:pre-wrap; font-family:var(--font-text); font-size:13.5px; color:var(--ink) }
+.span { display:grid; grid-template-columns: 1fr 74px; gap:8px; font:12px var(--font-system); padding:2px 0 } .span .b2 { height:5px; background:var(--blue); border-radius:3px; margin-top:4px; min-width:2px } .span.err { color:var(--red) } .span.err .b2 { background:var(--red) }
 .trace-switch { display:flex; gap:6px; flex-wrap:wrap; margin:0 0 14px }
-.trace-switch button { font:600 12px var(--mono); letter-spacing:.05em; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--mute); cursor:pointer }
+.trace-switch button { font:600 12px var(--font-system); letter-spacing:.05em; padding:6px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--mute); cursor:pointer }
 .trace-switch button.on { color:var(--ink); border-color:var(--ink); box-shadow:0 1px 0 rgba(15,23,42,.06) }
 .trace-ux { border:1px solid var(--blue-ln); background:linear-gradient(180deg,#fff,var(--blue-bg)); border-radius:14px; padding:16px; margin-bottom:14px }
 .trace-ux.done { border-color:var(--green-ln); background:linear-gradient(180deg,#fff,var(--green-bg)) } .trace-ux.needs { border-color:var(--amber-ln); background:linear-gradient(180deg,#fff,var(--amber-bg)) }
@@ -121,7 +124,7 @@ details summary { cursor:pointer; color:var(--blue); margin:6px 0; font-size:13p
 .trace-card { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#fff } .trace-card .k { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--mute); font-weight:650 } .trace-card .v { margin-top:3px; font-weight:650 }
 .trace-layout { display:grid; grid-template-columns:minmax(260px,.9fr) minmax(360px,1.1fr); gap:14px; align-items:start }
 .trace-tree { border:1px solid var(--line); border-radius:10px; background:#fff; padding:8px; max-height:620px; overflow:auto }
-.trace-node { display:block; width:100%; border:0; background:transparent; text-align:left; padding:5px 8px; border-radius:7px; font:12.5px var(--mono); color:var(--ink2); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.trace-node { display:block; width:100%; border:0; background:transparent; text-align:left; padding:5px 8px; border-radius:7px; font:12.5px var(--font-system); color:var(--ink2); cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
 .trace-node:hover { background:var(--line2) } .trace-node.on { background:var(--blue-bg); color:var(--blue); font-weight:650 }
 .trace-detail { border:1px solid var(--line); border-radius:10px; background:#fff; padding:12px; min-width:0 } .trace-detail h4 { margin-top:0 }
 .trace-table { width:100%; border-collapse:collapse; margin-top:8px } .trace-table td, .trace-table th { font-size:12.5px } .trace-table tr[data-trace-node] { cursor:pointer }
@@ -180,12 +183,12 @@ function renderHero() {
   var verdict = !total && !M.items.length ? 'Nothing recorded yet. In a registered project: <code>mw discover --source-file notes.md</code> or <code>mw start --objective "…"</code>.'
     : s.held ? '<b style="color:var(--red)">' + plural(s.held, 'item waits', 'items wait') + ' on you.</b> Everything else keeps moving.'
     : s.candidates && !s.moving && !s.queued ? '<b style="color:var(--red)">' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.</b> Nothing else is moving.'
-    : !open_ ? 'All work is done: every item has shipped, been dropped, or waits for promotion.'
+    : !open_ ? 'All work is done: every item has completed, been dropped, or waits for promotion.'
     : !M.runner && LIVE ? '<b style="color:var(--amber)">The machine is stopped.</b> Any command that gives it work starts it again, or <code>mw run</code>; every item resumes where it stopped.'
     : plural(s.moving, 'item') + ' moving, ' + s.queued + ' queued.' + (s.candidates ? ' ' + plural(s.candidates, 'candidate waits', 'candidates wait') + ' for you to promote.' : ' Nothing needs you.');
   var span = s.first ? (Date.parse(s.last) > Date.parse(s.first) ? (LIVE && open_ ? now() : Date.parse(s.last)) - Date.parse(s.first) : 0) : 0;
   var nq = s.agentMs ? Math.round(s.nqMs / s.agentMs * 100) : 0;
-  $('hero').innerHTML = '<div><div class="big">' + s.shipped + ' <small>of ' + total + ' shipped</small></div><div class="verdict">' + verdict + '</div></div>' +
+  $('hero').innerHTML = '<div><div class="big">' + s.completed + ' <small>of ' + total + ' completed</small></div><div class="verdict">' + verdict + '</div></div>' +
     '<div class="stats">' + [[dur(span), 'wall time'], [mins(s.agentMs), 'agent time'], [tk(s.tokens), 'tokens'], [s.calls, 'agent calls'], [nq + '%', 'of agent time in NQ', nq > 45 ? 'bad' : ''], [s.questions, 'NQ questions'], [s.held, 'need you', s.held ? 'bad' : '']].map(function (x) {
       return '<div class="stat ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('') + '</div>';
 }
@@ -216,6 +219,7 @@ function pipe(steps) {
 function rowMeta(i) {
   var end = i.ended ? Date.parse(i.ended) : now();
   var bits = [];
+  if(i.owner)bits.push('<span class="owes">owner: <b>'+esc(i.owner)+'</b></span>');
   if (i.owes) bits.push('<span class="owes">next: <b>' + esc(i.owes) + '</b></span>');
   bits.push(i.status === 'candidate' || i.status === 'queued' ? 'waiting ' + dur(end - Date.parse(i.started)) : dur(end - Date.parse(i.started)) + (i.ended ? '' : ' so far'));
   bits.push(mins(i.agentMs) + ' agent · ' + tk(i.tokens) + ' tok');
@@ -227,10 +231,10 @@ function renderWork() {
   var dropped = M.items.length - items.length;
   $('worksub').textContent = items.length ? plural(items.length, 'item') + (dropped ? ' · ' + dropped + ' dropped' : '') : '';
   // What needs a person first, then what moves, then what waits, then what is done.
-  var rank = { held: 0, paused: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, shipped: 6 };
+  var rank = { held: 0, paused: 0, candidate: 1, running: 2, 'waiting-quota': 3, 'waiting-prerequisite': 3, queued: 4, discovered: 5, completed: 6 };
   items.sort(function (a, b) { return (rank[a.status] - rank[b.status]) || a.id - b.id; });
   $('work').innerHTML = items.length ? items.map(function (i) {
-    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'shipped' || i.status === 'held' || i.status === 'paused' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
+    var tags = '<span class="tag ' + esc(i.kind) + '">' + esc(i.kind) + '</span>' + (i.status === 'completed' || i.status === 'held' || i.status === 'paused' || i.status === 'candidate' ? '<span class="tag st-' + i.status + '">' + esc(i.status) + '</span>' : '') + (i.round > 1 ? '<span class="tag">round ' + i.round + '</span>' : '');
     return '<div class="row" data-item="' + i.id + '"><div><div class="t"><span class="id">#' + i.id + '</span>' + esc(i.title) + tags + '</div><div class="d">' + esc(i.doing) + '</div></div>' + pipe(i.steps) + '<div class="m">' + rowMeta(i) + '</div></div>';
   }).join('') : '<div class="empty">No work items yet.</div>';
 }
@@ -295,7 +299,7 @@ function renderFacts() {
     [breaks, breaks ? 'rule breaks: ' + Object.keys(ruleNames).map(function (k) { return k + ' ×' + ruleNames[k]; }).join(', ') : 'rule breaks in ' + plural(s.calls, 'checked call'), breaks ? 'bad' : 'ok'],
     [s.calls ? tk(s.tokens / s.calls) : '0', 'tokens per call'],
     [s.calls ? dur(s.agentMs / s.calls) : '0s', 'mean call time'],
-    [s.shipped ? mins(s.agentMs / s.shipped) : '—', 'agent time per shipped item']];
+    [s.completed ? mins(s.agentMs / s.completed) : '—', 'agent time per completed item']];
   $('facts').innerHTML = f.map(function (x) { return '<div class="fact ' + (x[2] || '') + '"><div class="v">' + esc(x[0]) + '</div><div class="k">' + esc(x[1]) + '</div></div>'; }).join('') +
     (breaks ? '<div style="grid-column:1/-1">' + M.rules.slice(0, 10).map(function (r) { return '<a href="#" data-call="' + r.call + '" class="chip" style="margin:2px">#' + r.item + ' ' + esc(r.kind + ' ' + r.job + ': ' + r.rule) + '</a>'; }).join('') + '</div>' : '');
 }
@@ -326,7 +330,7 @@ function drawItem(keep) {
   var v = D.view, it = D.item;
   var counts = { nq: D.exchanges.reduce(function (n, x) { return n + x.turns.length; }, 0), checks: D.checks.length, change: (it.change && it.change.files.length) || 0, calls: D.calls.length, log: D.events.length };
   var head = '<h3>#' + v.id + ' ' + esc(v.title) + ' <span class="tag ' + esc(v.kind) + '">' + esc(v.kind) + '</span><span class="tag st-' + v.status + '">' + esc(v.status) + '</span>' + (v.round > 1 ? '<span class="tag">round ' + v.round + '</span>' : '') + '</h3>' +
-    '<div class="sub">' + esc(v.doing) + (v.owes ? ' · next: <b>' + esc(v.owes) + '</b>' : '') + '</div>' + bigPipe(v.steps) +
+    '<div class="prose">'+esc(it.objective)+'</div><div class="sub">' + esc(v.doing) + ' · Owner: '+esc(v.owner||'operator')+' · Next: '+esc(v.nextAction||v.owes||'Inspect saved work') + '</div>' + bigPipe(v.steps) +
     '<div class="tabs">' + TABS.map(function (t) { return '<button data-tab="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + (counts[t[0]] ? '<span class="n">' + counts[t[0]] + '</span>' : '') + '</button>'; }).join('') + '</div>';
   var body = ({ story: storyTab, nq: nqTab, checks: checksTab, change: changeTab, calls: callsTab, log: logTab, trace: traceTab })[tab]();
   show(head, body, keep);
@@ -410,7 +414,7 @@ function diffHtml(text) {
 function changeTab() {
   var files = (D.item.change && D.item.change.files) || [];
   if (!files.length && !D.diff.change) return '<div class="empty">No change yet: the implementer makes it from the plan.</div>';
-  return (files.length ? '<h4>' + plural(files.length, 'file') + '</h4><div class="chips">' + files.map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') + '</div>' : '') + (D.diff.change ? '<h4>' + (D.view.commit ? 'As shipped' : 'The patch waiting to ship') + '</h4>' + diffHtml(D.diff.change) : '');
+  return (files.length ? '<h4>' + plural(files.length, 'file') + '</h4><div class="chips">' + files.map(function (f) { return '<span class="chip">' + esc(f) + '</span>'; }).join('') + '</div>' : '') + (D.diff.change ? '<h4>' + (D.view.commit ? 'As completed' : 'Saved historical patch') + '</h4>' + diffHtml(D.diff.change) : '');
 }
 function callsTab() {
   if (!D.calls.length) return '<div class="empty">No calls yet.</div>';

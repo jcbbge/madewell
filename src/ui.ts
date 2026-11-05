@@ -1,10 +1,10 @@
+import { readiness } from './ledger.ts'
 import { workEvidenceOf } from './work-evidence.ts'
 // The console: one live view of the work, read straight from the store. `mw ui` serves the Gazette sheet (ui/gazette,
 // built into dist/gazette.html) at / and the console page at /console, with the read-only JSON API both read, on this
 // machine (a browser, an orb portal, or an SSH tunnel reaches it); `mw watch` draws the same model in a terminal, or
 // streams events as JSON lines when an agent reads it; `mw replay` writes the console page with the model inside it.
-// `mw ui --install` provisions the server as this user's always-on background service (systemd on Linux, a
-// LaunchAgent on macOS); --status and --uninstall inspect and remove it. Legacy views only read the store.
+// Serving is an explicit foreground invocation. Legacy views only read the store.
 // The additive /api/v1 operator surface delegates durable input to api.ts; projections never drive work.
 //
 // The model answers the operator's questions first (FOUNDATION, work-level observability): is the work done, what
@@ -18,7 +18,8 @@ import { homedir, hostname } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { Effect } from 'effect'
 import { createApi, type ApiOptions } from './api.ts'
-import { GATE, itemHome, patchPath } from './change.ts'
+import { itemHome, patchPath } from './legacy.ts'
+const GATE='(gate)' 
 import { CONSOLE } from './console.ts'
 import { MONITOR } from './monitor.ts'
 import { GRAMMAR_PAGE } from './grammar-page.ts'
@@ -28,8 +29,8 @@ import { grammarOf, grammarRuns } from './grammar.ts'
 import { QA_NOTEBOOK } from './qa-notebook.ts'
 import { MadeWellError, type Next } from './errors.ts'
 import { isMaker, laneOf, lastJson, stepOf, type Lane } from './lane.ts'
-import { openHolds } from './project.ts'
-import { openStore, spansPath, type CallHead, type Event, type Item } from './store.ts'
+import { openHolds } from './settings.ts'
+import { openStore, openReadOnlyStore, spansPath, type CallHead, type Event, type Item } from './store.ts'
 import { totalTokens } from './telemetry.ts'
 import { lensOf, renderTrace, type Lens, type TraceRenderer } from './trace.ts'
 
@@ -86,7 +87,7 @@ export const sayOf = (e: Event, title?: string): string => {
 		case 'handed-off': return `${jobs(d.from)} → ${jobs(d.to)}`
 		case 'failure': return `${d.results ? `${(d.results as any[]).filter((r) => r.exitCode !== 0).length} of ${(d.results as any[]).length} checks failed` : `${jobs(d.from)} could not finish`}; the arbiter decides whose it is`
 		case 'ruling': return d.prerequisite ? `The ${d.by} rules it a pre-existing defect; fix #${d.prerequisite} goes first` : `The ${d.by} rules the cause ${d.cause}; back to ${d.to}${d.answer ? `: ${short(d.answer, 160)}` : ''}`
-		case 'prepare-started': return `The project's prepare command runs for ${d.job}: ${short(d.command, 120)}`
+		case 'prepare-started': return `The historical prepare command ran for ${d.job}: ${short(d.command, 120)}`
 		case 'prepared': return `Prepare for ${d.job} exited ${d.exitCode}${d.provisioned?.length ? `, provisioned ${d.provisioned.map((p: any) => `${p.kind} ${p.id}`).join(', ')}` : ''}`
 		case 'verify-started': return `Made Well runs ${plural(d.gates?.length ?? 0, 'gate')} and ${plural(d.checks?.length ?? 0, 'check')} on the change`
 		case 'verified': {
@@ -260,6 +261,11 @@ type StepState = 'done' | 'active' | 'held' | 'failed' | 'waiting' | 'todo' | 's
 export interface StepView { readonly job: string; readonly label: string; readonly cartridge: string; readonly who: string; readonly state: StepState; readonly agentMs: number; readonly calls: number; readonly tokens: number; readonly questions: number; readonly ms: number }
 
 export interface ItemView {
+ readonly objective:string
+ readonly owner:string
+ readonly nextAction:string
+ readonly blockers:Item['blockers']
+ readonly completion:Item['completion']|null
 	readonly id: number
 	readonly title: string
 	readonly kind: string
@@ -328,10 +334,10 @@ const stepsOf = (item: Item, calls: ReadonlyArray<CallHead>, events: ReadonlyArr
 /** What is happening to an item now and who owes the next move. */
 const doingOf = (store: StoreService, item: Item, flying: ReadonlyArray<Flight>, driven: boolean, nextOf: NextOf, events: ReadonlyArray<Event>) => {
 	const title = (id: number) => `#${id}`
-	const unshipped = (item.after ?? []).filter((id) => !['shipped', 'completed'].includes(store.get(id)?.status ?? ''))
+	const unshipped = readiness(store,item).waitingOn
 	switch (item.status) {
 		case 'shipped': return { doing: `Shipped${item.shipped?.main ? ` at ${item.shipped.main.slice(0, 10)}` : ''}`, owes: '' }
-		case 'completed': return { doing: `Completed ${item.completion?.nodes ?? 0} configured functions; no implicit verification or shipping`, owes: '' }
+		case 'completed': return {doing:item.completion?.kind==='recorded'?'Completion recorded as an assertion':item.completion?.kind==='legacy'?'Historical completion; acceptance coverage unavailable':'Completed with independent acceptance',owes:''}
 		case 'discovered': {
 			const waiting = store.list().filter((c) => c.discovery === item.id && c.status === 'candidate').length
 			return { doing: waiting ? `Found candidates; ${plural(waiting, 'candidate')} wait for you to promote` : 'Found its candidates', owes: waiting ? 'operator' : '' }
@@ -343,7 +349,9 @@ const doingOf = (store: StoreService, item: Item, flying: ReadonlyArray<Flight>,
 		case 'waiting-quota': return { doing: `Every card is out of quota; resumes by itself at ${item.resetsAt ? new Date(item.resetsAt).toISOString().slice(11, 16) : 'the earliest reset'} UTC`, owes: 'quota reset' }
 		case 'waiting-prerequisite': return { doing: `Its check failed on a pre-existing defect; waits for fix ${title(item.waitsOn!)} to ship, then runs its checks again`, owes: title(item.waitsOn!) }
 	}
-	if (unshipped.length) return { doing: `Starts once ${unshipped.map(title).join(', ')} ${unshipped.length === 1 ? 'ships' : 'ship'}`, owes: unshipped.map(title).join(' ') }
+	if (unshipped.length) return { doing: `Starts once ${unshipped.map(title).join(', ')} complete`, owes: unshipped.map(title).join(' ') }
+	if(item.blockers?.some(b=>!b.resolvedAt)) return {doing:item.blockers.filter(b=>!b.resolvedAt).map(b=>b.reason).join('; '),owes:item.blockers.filter(b=>!b.resolvedAt).map(b=>b.owner).join(', ')}
+	if(item.execution?.mode==='external') return {doing:item.progress.nextAction,owes:item.progress.owner}
 	if (!driven) return { doing: 'Nothing moves it: no runner is driving the store. Run `mw run`.', owes: 'runner' }
 	const mine = flying.filter((f) => f.item === item.id)
 	if (mine.length) {
@@ -353,7 +361,7 @@ const doingOf = (store: StoreService, item: Item, flying: ReadonlyArray<Flight>,
 				return `Made Well is running ${plural(v?.gates?.length ?? 0, 'gate')} and ${plural(v?.checks?.length ?? 0, 'check')}`
 			}
 			if (f.kind === 'ship') return 'Made Well is running the ship command'
-			if (f.kind === 'prepare') return `Made Well is preparing a worktree for ${f.job}`
+			if (f.kind === 'prepare') return `Historical preparation for ${f.job}`
 			const receiver = stepOf(laneOf(item.pack), f.job).profile
 			if (f.kind === 'intake') return `The ${receiver} is reading its hand-off for ${f.job} (NQ intake)`
 			if (f.kind === 'originator') {
@@ -379,7 +387,7 @@ const itemViews = (store: StoreService, items: ReadonlyArray<Item>, events: Read
 		const end = evs.findLast((e) => ['shipped', 'completed', 'dropped', 'discovered'].includes(e.kind))?.at
 		const results = item.verification?.results.filter((r) => r.doneWhen !== GATE) ?? []
 		return {
-			id: item.id, title: item.title, kind: isDiscovery(item) ? 'discovery' : item.parent !== undefined ? 'prerequisite' : item.kind ?? 'feature', status: item.status,
+			id: item.id, title: item.title, objective:item.objective,owner:item.progress.owner,nextAction:item.progress.nextAction,blockers:item.blockers,completion:item.completion??null,kind: isDiscovery(item) ? 'discovery' : item.parent !== undefined ? 'prerequisite' : item.kind ?? 'work', status: item.status,
 			...(item.discovery !== undefined ? { discovery: item.discovery } : {}), ...(item.parent !== undefined ? { parent: item.parent } : {}),
 			after: (item.after ?? []).map((id) => ({ id, status: store.get(id)?.status ?? 'missing' })), ...(item.waitsOn !== undefined ? { waitsOn: item.waitsOn } : {}),
 			round: item.round, steps: stepsOf(item, mine, evs, fl), doing, owes, since: evs.at(-1)?.at ?? item.updated, started: start, ...(end ? { ended: end } : {}),
@@ -442,15 +450,15 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 	}
 	const holds = openHolds(store)
 	const promote = items.filter((i) => i.status === 'discovered' && items.some((c) => c.discovery === i.id && c.status === 'candidate'))
-	const movable = items.filter((i) => ['queued', 'running', 'waiting-quota', 'waiting-prerequisite'].includes(i.status))
+	const movable = items.filter((i) => ['queued', 'running', 'waiting-quota', 'waiting-prerequisite'].includes(i.status)&&readiness(store,i).ready)
 	return {
 		at: new Date(now).toISOString(),
 		host: hostname().split('.')[0],
 		store: store.path,
-		projects: [...new Set(items.map((i) => i.workspace))],
+		
 		runner,
 		summary: {
-			shipped: count('shipped'), moving: count('running', 'waiting-quota', 'waiting-prerequisite'), queued: count('queued'), held: count('held', 'paused'), candidates: count('candidate'), dropped: count('dropped'),
+			completed:count('completed'),open:count('open'),discovered:count('discovered'), moving: count('running', 'waiting-quota', 'waiting-prerequisite'), queued: count('queued'), held: count('held', 'paused'), candidates: count('candidate'), dropped: count('dropped'),
 			items: delivery.length,
 			...tally(calls), nqMs: nq.reduce((n, c) => n + c.ms, 0), intakes: calls.filter((c) => c.kind === 'intake').length,
 			questions: events.filter((e) => e.kind === 'nq-question').reduce((n, e) => n + ((e.data.questions as unknown[])?.length ?? 0), 0),
@@ -468,10 +476,10 @@ export const modelOf = (store: StoreService, nextOf: NextOf) => {
 		cutOff,
 		cost: byJob,
 		/** Every job the items' lanes have, with the label and profile the page shows for it. */
-		jobs: Object.fromEntries([...new Map(items.flatMap((i) => {
+		jobs: Object.fromEntries(new Map(items.flatMap((i) => {
 			const lane = laneOf(i.pack)
 			return [...lane.discovery, ...lane.delivery, lane.arbiter].map((s) => [s.job, { label: labelOf(s.job), profile: s.job === 'verify' ? 'made well' : s.profile, cartridge: s.cartridge }] as const)
-		})).entries(), ['ship', { label: 'Ship', profile: 'made well', cartridge: 'verification' }]]),
+		}))),
 		rules: calls.flatMap((c) => c.flags.map((f) => ({ call: c.id, item: c.item, job: c.job, kind: c.kind, rule: f.rule }))),
 		events: events.filter(timelineEvent).slice(-400).map((e) => ({ ...e, actor: actorOf(e), say: sayOf(e, titles.get(e.item)) })),
 		eventCount: events.length,
@@ -519,13 +527,8 @@ const diffOf = (storePath: string, item: Item) => {
 	const cap = (s: string) => (s.length > 200_000 ? `${s.slice(0, 200_000)}\n… (cut at 200 KB)` : s)
 	const home = itemHome(storePath, item.id)
 	const read = (name: 'change' | 'checks') => (existsSync(patchPath(home, name)) ? readFileSync(patchPath(home, name), 'utf8') : '')
-	const shipped = item.merged?.commit ?? item.shipped?.main
-	let change = read('change')
-	if (!change && shipped) {
-		try {
-			change = execFileSync('git', ['-C', item.workspace, 'show', '--format=%H %s%n', '--no-color', shipped], { encoding: 'utf8', maxBuffer: 16 << 20, stdio: ['ignore', 'pipe', 'ignore'] })
-		} catch {}
-	}
+	const change = read('change')
+
 	return { change: cap(change), checks: cap(read('checks')) }
 }
 
@@ -538,7 +541,7 @@ export const itemDetail = (store: StoreService, nextOf: NextOf, id: number) => {
 	const titles = new Map(store.list().map((i) => [i.id, i.title]))
 	return {
 		view: m.items.find((i) => i.id === id)!,
-		item: { id: item.id, title: item.title, objective: item.objective, source: item.source, workspace: item.workspace, base: item.base, merged: item.merged, round: item.round, corrections: item.corrections, failure: item.failure, rework: item.rework, change: item.change, provisioned: item.provisioned ?? [] },
+		item: { id: item.id, title: item.title, objective: item.objective, source: item.source, progress:item.progress,blockers:item.blockers,conditions:item.conditions,completion:item.completion, round: item.round, corrections: item.corrections, failure: item.failure, rework: item.rework, change: item.change, provisioned: item.provisioned ?? [] },
 		deliverables: Object.fromEntries(Object.entries(item.outputs).map(([job, out]) => [job, deliverable(out)])),
 		checks: item.checks?.checks ?? [],
 		verification: item.verification ?? null,
@@ -562,7 +565,7 @@ const spansOf = (path: string, item: number) => {
 		}
 	})
 	const keep = new Set(all.filter((s) => s.attributes.item === item).map((s) => s.span))
-	// Spans under the item's own (worktrees, git, gates) belong to it too.
+	// Saved invocation spans belong to the item.
 	for (let grew = true; grew;) {
 		grew = false
 		for (const s of all) if (!keep.has(s.span) && s.parent && keep.has(s.parent)) (keep.add(s.span), (grew = true))
@@ -571,12 +574,11 @@ const spansOf = (path: string, item: number) => {
 }
 
 /** Reads never create a store; only a validated operator submission opts in. */
-const storeWatcher = (path: string) => {
-	let store: StoreService | undefined
-	return (create = false) => {
-		if (!store && (create || existsSync(path))) store = openStore(path)
-		return store
-	}
+const storeWatcher = (path:string)=>{
+ const stores=new Map<boolean,StoreService>()
+ const open=(write=false)=>{if(!existsSync(path)&&!write) return undefined;let store=stores.get(write);if(!store){store=write?openStore(path):openReadOnlyStore(path);stores.set(write,store)}return store}
+ open.close=()=>{for(const store of stores.values()) store.close();stores.clear()}
+ return open
 }
 
 const json = (res: import('node:http').ServerResponse, body: unknown, code = 200) => {
@@ -642,7 +644,7 @@ export const serve = (path: string, nextOf: NextOf, host: string, port: number, 
 				}
 				if (url.pathname === '/console') return html(res, CONSOLE)
 				if (url.pathname === '/favicon.ico') return void (res.writeHead(204), res.end())
-				if (url.pathname === '/api/runs') return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job, completion: workEvidenceOf(store!, i).delivered, noWorkPerformed: workEvidenceOf(store!, i).noWorkPerformed })), at: new Date().toISOString() })
+				if (url.pathname === '/api/runs') return json(res, { items: (store?.list() ?? []).map((i) => ({ id: i.id, title: i.title, status: i.status, job: i.job, objective:i.objective, owner:i.progress?.owner, nextAction:i.progress?.nextAction, blockers:i.blockers, result:i.completion?.result, completion: workEvidenceOf(store!, i).delivered, noWorkPerformed: workEvidenceOf(store!, i).noWorkPerformed })), at: new Date().toISOString() })
 				if (url.pathname === '/api/lab') {
 					if (req.method !== 'GET') return json(res, { error: 'method_not_allowed', message: 'The experiment console reads recorded evidence only.' }, 405)
 					return json(res, store ? jumpPackLab(store) : { observedAt: new Date().toISOString(), runner: { active: false, pid: null }, cases: [] })
@@ -699,12 +701,11 @@ export const serve = (path: string, nextOf: NextOf, host: string, port: number, 
 					{ run: `open ${url}gazette`, why: 'the existing Gazette sheet' },
 					{ run: `open ${url}console`, why: 'the console: every item\'s pipeline with time, tokens and questions, what each agent is doing, and where the time goes' },
 					{ run: `ssh -L ${bound}:localhost:${bound} <this machine>`, why: 'from another computer, then open the same address there' },
-					{ run: 'mw ui --install', why: 'keep it up as a background service of this user, started at boot and restarted on failure' },
 					{ run: 'mw watch', why: 'the same view in a terminal' },
 				],
 			}) + '\n')
 		})
-		return Effect.sync(() => void server.close())
+		return Effect.sync(() => {server.close();open.close()})
 	})
 
 // ── The service: `mw ui` as this user's always-on background process ───────────────────────────────────
@@ -968,17 +969,17 @@ const fit = (s: string, w: number) => {
 }
 const clock = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { hour12: false })
 const tokensText = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `${Math.round(n / 1e3)}k` : String(n))
-const STATUS: Partial<Record<Item['status'], string>> = { held: '31', shipped: '32', candidate: '33', 'waiting-quota': '33', 'waiting-prerequisite': '33', dropped: '2', discovered: '32' }
+const STATUS: Partial<Record<Item['status'], string>> = {completed:'32',open:'36', held: '31', shipped: '32', candidate: '33', 'waiting-quota': '33', 'waiting-prerequisite': '33', dropped: '2', discovered: '32' }
 
 /** One screen of the console for a terminal `cols` wide and `rows` high. `web`: the web interface's line and a slip to show under it. */
 export const frame = (m: Model, cols: number, rows: number, web: { text: string; slip?: string } = { text: '' }) => {
 	const out: string[] = []
 	const s = m.summary
 	const now = Date.parse(m.at)
-	const project = m.projects.length === 1 ? basename(m.projects[0]!) : `${m.projects.length} projects`
-	out.push(`${bold('MADE WELL')}  ${project}  ${m.runner ? paint('32', `● runner ${m.runner.pid}`) : paint('33', '○ no runner')}  ${dim(clock(m.at))}  ${paint('36', web.text)}`)
+	const ledger = 'Work ledger'
+	out.push(`${bold('MADE WELL')}  ${ledger}  ${m.runner ? paint('32', `● runner ${m.runner.pid}`) : paint('33', '○ no runner')}  ${dim(clock(m.at))}  ${paint('36', web.text)}`)
 	if (web.slip) out.push(paint('36', web.slip))
-	out.push(`${paint('32', `${s.shipped} shipped`)} · ${s.moving} moving · ${s.queued} queued · ${s.held ? paint('31', `${s.held} need you`) : '0 need you'} · ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time · ${tokensText(s.tokens)} tokens · ${s.calls} calls · NQ ${s.agentMs ? Math.round((s.nqMs / s.agentMs) * 100) : 0}%`)}`)
+	out.push(`${paint('32', `${s.completed} completed`)} · ${s.moving} moving · ${s.queued} queued · ${s.held ? paint('31', `${s.held} need you`) : '0 need you'} · ${s.candidates} candidates   ${dim(`${secs(s.agentMs)} agent time · ${tokensText(s.tokens)} tokens · ${s.calls} calls · NQ ${s.agentMs ? Math.round((s.nqMs / s.agentMs) * 100) : 0}%`)}`)
 	if (m.needs.length) {
 		out.push('')
 		out.push(paint('31', bold('NEEDS YOU')))

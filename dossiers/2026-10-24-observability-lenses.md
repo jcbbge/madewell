@@ -1,3 +1,10 @@
+# One trace, three lenses
+
+Store/item/invocation identify every record, including external work without a location. UX leads with objective/status/owner/next action/blockers/result; DX shows contracts and metrics; AX retains exact invocations, pending and superseded returns, NQ and saved evidence. Read projections never schedule, fetch destination files or repair work. Unknown usage and inaccessible internals remain unavailable. OTLP contains actual saved finished spans only.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
 # Observability Lenses — locked design model for Made Well
 
 ## Purpose
@@ -560,3 +567,5 @@ The settled design is:
 24. The key missing capture is a stall/loop/no-progress signal, not another after-the-fact timeout.
 25. Every existing Made Well feature and command must survive.
 26. Agent auto-self-correction is explicitly enabled by B2 but not built in B2.
+
+</details>

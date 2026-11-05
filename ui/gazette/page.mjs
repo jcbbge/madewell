@@ -63,7 +63,7 @@ const tick = async () => {
 }
 
 /** A record with nothing in it yet, so the sheet still has a masthead and a colophon before the first item. */
-const EMPTY = { at: new Date().toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] }
+const EMPTY = { at: new Date().toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { completed: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] }
 
 document.addEventListener('click', (e) => {
 	const b = e.target.closest('[data-run]')

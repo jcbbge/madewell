@@ -27,7 +27,7 @@ export const exportItem = Effect.fn('mw.export')(function* (store: Source, id: n
 				let previous: { item?: Item } | null
 				try { previous = JSON.parse(readFileSync(record, 'utf8')) as { item?: Item } | null }
 				catch { throw conflict('Existing item.json is unreadable or invalid; its owning task cannot be confirmed.') }
-				if (previous?.item?.id !== item.id || previous.item.workspace !== item.workspace || previous.item.created !== item.created) throw conflict('Existing item.json belongs to a different task or has no matching task identity.')
+				if (previous?.item?.id !== item.id || previous.item.created !== item.created) throw conflict('Existing item.json belongs to a different task or has no matching task identity.')
 			}
 			mkdirSync(dir, { recursive: true })
 			writeFileSync(join(dir, 'item.json'), JSON.stringify({ item, events }, null, 2))
@@ -100,7 +100,7 @@ export const formatQaMarkdown = (document: QaExportDocument): string => {
 	}
 	const run = (value: QaRun) => {
 		lines.push(`Run ID: ${value.id}`, `Work item: ${value.workItem}`, '')
-		literal('Workspace (recorded project identity)', value.workspace); literal('Application', value.application); literal('Environment', value.environment)
+		literal('Application', value.application); literal('Environment', value.environment)
 		literal('Started at', value.startedAt); actor('Run enteredBy', value.enteredBy); version(value.version)
 		structured('Original ordered case pins', value.cases)
 		locations(value.id)
@@ -125,7 +125,7 @@ export const formatQaMarkdown = (document: QaExportDocument): string => {
 	if (!document.entries.length) lines.push('Selected entries: none.', '')
 	for (const entry of document.entries) {
 		lines.push(`## Case ${entry.caseId}`, '', `Pinned instruction revision: ${entry.caseRevision}`, `Current case revision: ${entry.currentCaseRevision}`, `Outdated: ${entry.outdated}`, `Case work item: ${entry.case.workItem}`, '')
-		literal('Case workspace', entry.case.workspace); literal('Case created at', entry.case.createdAt)
+		literal('Case created at', entry.case.createdAt)
 		actor('Instruction author', entry.instructions.enteredBy); literal('Instruction at', entry.instructions.at)
 		instructions(entry.instructions.instructions)
 		lines.push(`Current manual status: ${entry.status}`, `Entry revision: ${entry.entryRevision}`, `Latest manual verdict ID: ${entry.latestVerdictId ?? 'not supplied'}`, '')
@@ -149,7 +149,7 @@ export const formatQaMarkdown = (document: QaExportDocument): string => {
 			if (link.target.kind === 'work-item') {
 				lines.push('Recorded fix reference: work item', '', `Target work item: ${link.target.workItem}`, '')
 				const saved = link.target.snapshot
-				literal('Captured workspace', saved.workspace); literal('Captured title', saved.title); literal('Captured objective', saved.objective); literal('Captured source', saved.source)
+				literal('Captured title', saved.title); literal('Captured objective', saved.objective); literal('Captured source', saved.source)
 				literal('Status at association (not current resolution)', saved.status); literal('Captured updated time', saved.updated)
 				literal('CLI target read (may be unavailable)', `mw context ${link.target.workItem}`); literal('HTTP target read (may be unavailable)', `GET /api/v1/items/${link.target.workItem}`)
 			} else if (link.target.kind === 'reference') references('Recorded fix reference', [link.target.reference])

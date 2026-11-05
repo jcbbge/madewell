@@ -48,7 +48,7 @@ export interface HandoffEntry {
 	inputs: HandoffInput[]; inputsTotal: number; inputsOmitted: number; declarationsKnown: boolean; evidence: { detail: string; eventSeqs: number[] }; truncated: boolean
 }
 export function fullHandoffOf(store: Reader, item: Item, job: string) {
-	const lane = laneOf(item.pack), step = stepOf(lane, job), track = item.split?.[job as 'implement' | 'test-plan'], exchange = track?.exchange ?? (item.job === job ? item.exchange : undefined)
+	const lane = laneOf(item.pack), step = stepOf(lane, job), track = item.flow?.tracks?.[step.track??'main']??item.split?.[job as 'implement' | 'test-plan'], exchange = track?.exchange ?? (item.job === job ? item.exchange : undefined)
 	const events = ancestryEvents(store, item), own = events.filter(e => e.item === item.id && e.data.job === job)
 	const boundary = own.findLast(e => e.kind === 'handoff'), history = buildAnswerHistory(events, job)
 	const questions: HandoffQuestion[] = workQuestions(store, item).map(q => {
@@ -66,6 +66,7 @@ export function fullHandoffOf(store: Reader, item: Item, job: string) {
 		const packet = lastJson(call.prompt)
 		if (packet && 'projectInputs' in packet) declarations.push({ call: call.id, scope: packet.round === item.round && (!boundary || e.seq > boundary.seq) ? 'current-round' : 'historical', projectInputs: packet.projectInputs })
 	}
+	for(const e of own.filter(e=>e.kind==='function-started')){const input=e.data.input as {bindings?:{inputs?:unknown}}|undefined;if(input?.bindings)declarations.push({call:0,scope:'current-round',projectInputs:input.bindings.inputs??[]})}
 	const observations = own.filter(e => e.kind === 'inputs-checked').flatMap(e => Array.isArray(e.data.inputs) ? e.data.inputs.map((input): Record<string, unknown> & { event: number } => ({ ...(input as Record<string, unknown>), job, name: e.data.name ?? null, dir: e.data.dir ?? null, at: e.at, event: e.seq, item: e.item })) : [])
 	const declaration = declarations.findLast(d => d.scope === 'current-round') ?? declarations.at(-1)
 	const declared = Array.isArray(declaration?.projectInputs) ? declaration.projectInputs as Array<Record<string, unknown>> : []
@@ -101,10 +102,11 @@ export interface CompactEntry {
 export function currentHandoffOf(store: Reader, item: Item) {
  const lane = laneOf(item.pack), terminal = ['shipped', 'completed', 'discovered', 'dropped'].includes(item.status)
  const steps = configuredSteps(item)
- const tracks = lane.delivery.filter(s => item.split?.[s.job as 'implement' | 'test-plan'] && !item.split[s.job as 'implement' | 'test-plan']!.done).map(s => s.job)
+ const tracks = [...new Set(Object.values(item.flow?.tracks??{}).flatMap(t=>t.pending?[t.pending.job]:[]))]
+ if(!tracks.length)tracks.push(...lane.delivery.filter(s => item.split?.[s.job as 'implement' | 'test-plan'] && !item.split[s.job as 'implement' | 'test-plan']!.done).map(s => s.job))
  const jobs = terminal ? [] : tracks.length ? tracks : steps.some(s => s.job === item.job) ? [item.job] : []
  const full = jobs.map(job => fullHandoffOf(store, item, job))
- const allQuestions = full[0]?.questions ?? []
+ const allQuestions = full[0]?.questions ?? fullHandoffOf(store, item, item.job).questions
  const questionKeys = new Map(allQuestions.map((q, i) => [q.id, `q:${i}:${digest(q.id)}`]))
  const questions: CompactQuestion[] = allQuestions.slice(0, 10).map(q => ({ key: questionKeys.get(q.id)!, id: displayPreview(q.id), text: displayPreview(q.text, 240), textTruncated: Array.from(q.text).length > 240, ownerRole: displayPreview(q.ownerRole), blockingRole: q.blockingRole === null ? null : displayPreview(q.blockingRole), truncated: [q.id, q.ownerRole, q.blockingRole ?? ''].some(v => Array.from(v).length > 120) || Array.from(q.text).length > 240 }))
  const entries: CompactEntry[] = full.map(f => {

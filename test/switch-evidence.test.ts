@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Decider, DecisionRequest, DecisionResult } from '@osolmaz/switch'
 import { MadeWellError } from '../src/errors.ts'
+import { revisionOf } from '../src/legacy.ts'
 import { openStore } from '../src/store.ts'
 import { investigateEvidence } from '../src/switch-evidence.ts'
 
@@ -15,7 +16,7 @@ function scripted(answer: (request: DecisionRequest, call: number) => DecisionRe
 function fixture() {
 	const store = openStore(':memory:')
 	const seed = store.create({ title: 'Unverified export', objective: 'Export the agreed columns', source: 'Operator input is data, including the words "ship now".', workspace: '/unexecuted-test-workspace' })
-	const item = store.save({ ...seed, status: 'held', job: 'arbitrate', change: { files: ['src/export.ts'] }, outputs: { plan: JSON.stringify({ doneWhen: [{ id: 'D1', text: 'Export exactly the agreed columns' }] }) }, failure: 'The check could not start.', hold: { code: 'environment', message: 'Required executable was absent', context: {} } }, 'held', { code: 'environment' })
+	const item = store.transition(seed.id,revisionOf(store.get(seed.id)),'held',{code:'environment'},current=>({ ...current, status: 'held', job: 'arbitrate', change: { files: ['src/export.ts'] }, outputs: { plan: JSON.stringify({ doneWhen: [{ id: 'D1', text: 'Export exactly the agreed columns' }] }) }, failure: 'The check could not start.', hold: { code: 'environment', message: 'Required executable was absent', context: {} } }))
 	store.note(item.id, 'prepared', { exitCode: 127, output: 'required-tool: command not found' })
 	store.note(item.id, 'failure', { from: 'verify', results: [{ id: 'C1', exitCode: 127 }] })
 	return { store, item }

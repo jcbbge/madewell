@@ -124,6 +124,34 @@
       "budget": {
         "minutes": 10
       }
+    },
+    "ideation": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 10
+      }
+    },
+    "planning": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 20
+      }
+    },
+    "implementation": {
+      "tier": "coding",
+      "access": "make",
+      "budget": {
+        "minutes": 30
+      }
+    },
+    "verification": {
+      "tier": "deep",
+      "access": "read",
+      "budget": {
+        "minutes": 15
+      }
     }
   }
 }

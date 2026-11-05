@@ -3,16 +3,19 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Effect } from 'effect'
-import { answer, nextFor, promote } from './engine.ts'
+import { requestPackUpdate } from './functions.ts'
+import { answer, drop, nextFor, promote } from './engine.ts'
 import { ERRORS, MadeWellError } from './errors.ts'
-import { laneOf } from './lane.ts'
-import { resolvePackSelection } from './pack-selection.ts'
-import { currentHandoffOf, displayPreview, evidenceDetailOf, evidenceUrl, messageReferencesOf, type AnswerReference } from './handoff-view.ts'
+import { laneOf, conforms } from './lane.ts'
+import { ancestryEvents, currentHandoffOf, displayPreview, evidenceDetailOf, evidenceUrl, messageReferencesOf, type AnswerReference } from './handoff-view.ts'
+import { questionKey, workQuestions } from './nq-obligations.ts'
 import { otlpOf } from './otlp.ts'
-import { projectsPath, readProjects } from './project.ts'
+import { createLedgerWork, mutateWork, type Mutation } from './ledger.ts'
+import { assertWritable, migrationStatus } from './migration.ts'
+import { defaultSettings, settingsOf, updateSettings } from './settings.ts'
 import { QA_JSON_SCHEMAS, qaCase, qaCases, qaCreateCase, qaError, qaExport, qaLink, qaObservations, qaObserve, qaReviseCase, qaRun, qaRuns, qaStartRun, qaVerdict } from './qa.ts'
-import { DEFAULT_AUTONOMY, Store, openStore, type Event, type Item } from './store.ts'
-import { createWork, organSummary } from './organs.ts'
+import { Store, openStore, type Event, type Item } from './store.ts'
+import { organSummary } from './organs.ts'
 
 const ROOT = '/api/v1'
 const BODY_LIMIT = 65_536
@@ -30,7 +33,7 @@ const found = (store: Store['Service'] | undefined, id: number) => {
 }
 /** These effects must stay synchronous inside operatorRequest's SQLite transaction. */
 const sync = <A>(effect: Effect.Effect<A, MadeWellError>) => {
-	const result = Effect.runSync(effect.pipe(Effect.match({ onFailure: (error) => ({ ok: false as const, error }), onSuccess: (value) => ({ ok: true as const, value }) })))
+	const result = Effect.runSync(effect.pipe(Effect.catchDefect(e=>Effect.fail(e instanceof MadeWellError?e:fail(500,'internal_error',String(e)))),Effect.match({ onFailure: (error) => ({ ok: false as const, error }), onSuccess: (value) => ({ ok: true as const, value }) })))
 	if (!result.ok) throw result.error
 	return result.value
 }
@@ -47,6 +50,11 @@ export const answerPolicy = (item: Item) => {
 interface Message { id: string; at: string; role: string; kind: string; text: string; event: number | null; truncated?: boolean; actor?: { role: string; job: string | null }; references?: AnswerReference[]; referencesTotal?: number; referencesOmitted?: number; evidence?: string }
 const messagesOf = (item: Item, events: readonly Event[], store: Store['Service'], exact = false): Message[] => {
 	const messages: Message[] = [{ id: `source:${item.id}`, at: item.created, role: 'operator', kind: 'source', text: item.source, event: events.find(e => e.kind === 'created')?.seq ?? null }]
+	if (!['1','2'].includes(item.pack?.contracts?.handoff ?? '')) {
+		const questions = workQuestions(store, item)
+		const linked = ancestryEvents(store, item).filter(e => e.item !== item.id && (!e.data.track || e.data.track === 'main') && questions.some(q => Array.isArray(e.data.questionIds) && e.data.questionIds.includes(q.id) || Array.isArray(e.data.questions) && e.data.questions.some(text => typeof text === 'string' && questionKey(text) === questionKey(q.text))))
+		events = [...events, ...linked].sort((a, b) => a.seq - b.seq)
+	}
 	for (const e of events) {
 		if (e.kind === 'nq-question' && Array.isArray(e.data.questions)) messages.push({ id: `event:${e.seq}`, at: e.at, role: String(e.data.receiver ?? 'unknown'), kind: 'question', text: e.data.questions.map(String).join('\n'), event: e.seq })
 		const text = e.data.answer ?? (e.kind === 'ruling' && typeof e.data.prerequisite === 'number' ? store.get(e.data.prerequisite)?.objective : undefined)
@@ -82,8 +90,8 @@ export const contextOf = (store: Store['Service'], id: number) => {
 		const read = n.run.startsWith('mw ') && ['context', 'trace', 'show', 'status', 'holds', 'next', 'stats', 'watch', 'export', 'replay'].includes(command)
 		return {
 			owner: read ? 'observer' : 'operator', authority: read ? 'read-only' : 'explicit-operator-action', reason: displayPreview(n.why, 240), command: n.run,
-			transport: command === 'answer' ? 'http' : 'cli',
-			...(command === 'answer' ? { method: 'POST', href: `${ROOT}/items/${id}/answers` } : {}),
+			transport: ['answer','progress','block','unblock','complete','configure-work','resolve-execution'].includes(command)?'http':'cli',
+			...(['answer','progress','block','unblock','complete','configure-work','resolve-execution'].includes(command)?{method:'POST',href:`${ROOT}/items/${id}/${command==='answer'?'answers':command}`} : {}),
 			inputs: (command === 'answer' ? { revision, text: null, ...(cause ? { cause } : {}), requestId: null } : { id }) as Record<string, unknown>,
 			preconditions: { revision, status: item.status, holdCode: item.hold?.code ?? null },
 		}
@@ -91,10 +99,10 @@ export const contextOf = (store: Store['Service'], id: number) => {
 	if (item.status === 'candidate' && item.discovery !== undefined) actions.unshift({ owner: 'operator', authority: 'explicit-operator-action', reason: 'Start this task and its prerequisites through the configured delivery steps.', command: `mw promote ${item.discovery} ${id}`, transport: 'http', method: 'POST', href: `${ROOT}/items/${id}/start`, inputs: { revision, requestId: null }, preconditions: { revision, status: item.status, holdCode: null } })
 	const context = {
 		apiVersion: '1',
-		item: { id, title: displayPreview(item.title), objective: displayPreview(item.objective, 240), source: displayPreview(item.source, 8000), sourceTruncated: Array.from(item.source).length > 8000, workspace: displayPreview(item.workspace) },
+		item: { id, title: displayPreview(item.title), objective: displayPreview(item.objective, 240), source: displayPreview(item.source, 8000), sourceTruncated: Array.from(item.source).length > 8000, owner:item.progress?.owner??'operator' },
 		position: { status: item.status, node: displayPreview(item.job), round: item.round, loop: item.flow?.loop ?? (laneOf(item.pack).discovery.some((s) => s.job === item.job) ? 'discovery' : 'delivery'), accepted: (item.flow?.accepted ?? []).slice(0, 20).map(v => displayPreview(v)), acceptedTotal: item.flow?.accepted.length ?? 0, acceptedOmitted: Math.max(0, (item.flow?.accepted.length ?? 0) - 20) },
 		revision, evidence: { event: events.at(-1)?.seq ?? 0, record: `/api/item/${id}`, trace: `/api/trace/${id}?lens=ax`, conversation: `${ROOT}/items/${id}/conversation`, otlp: `${ROOT}/items/${id}/otlp`, qaCases: `${ROOT}/qa/cases?workItem=${id}`, qaRuns: `${ROOT}/qa/runs?workItem=${id}`, cli: { record: `mw show ${id}`, trace: `mw trace ${id} --lens ax`, context: `mw context ${id}` } },
-		currentHandoff, organs: organSummary(store, item), answer: { ...policy, reason: displayPreview(policy.reason, 240) }, conversation: selected, conversationTruncated: selected.length < history.length || selected.some((m) => m.truncated),
+		work:{pending:(item.flow?.pending??Object.values(item.flow?.tracks??{}).find(t=>t.pending)?.pending)??null,hold:item.hold??null,progress:item.progress,conditions:item.conditions,blockers:item.blockers,completion:item.completion??null,execution:item.execution},currentHandoff, organs: organSummary(store, item), answer: { ...policy, reason: displayPreview(policy.reason, 240) }, conversation: selected, conversationTruncated: selected.length < history.length || selected.some((m) => m.truncated),
 		next: actions, actionsTotal: actions.length, actionsOmitted: 0, truncated: false,
 		observation: { owner: 'observer', authority: 'read-only', reason: actions.length ? 'Relay the operator decision; do not answer on their behalf.' : 'Read saved evidence; no automatic retry, repair or steering is authorized.', method: 'GET', href: `${ROOT}/items/${id}`, command: `mw context ${id}` },
 	}
@@ -103,7 +111,7 @@ export const contextOf = (store: Store['Service'], id: number) => {
 		context.actionsOmitted = context.actionsTotal - actions.length
 		context.position.acceptedOmitted = context.position.acceptedTotal - context.position.accepted.length
 		context.conversationTruncated ||= selected.length < history.length || selected.some(m => m.truncated)
-		context.truncated ||= context.item.sourceTruncated || context.currentHandoff.truncated || context.conversationTruncated || context.actionsOmitted > 0 || context.position.acceptedOmitted > 0 || context.answer.reason !== policy.reason || context.item.title !== item.title || context.item.objective !== item.objective || context.item.workspace !== item.workspace || context.position.node !== item.job || context.position.accepted.some((v, i) => v !== item.flow?.accepted[i]) || actions.some(a => Array.from(a.reason).length >= 240)
+		context.truncated ||= context.item.sourceTruncated || context.currentHandoff.truncated || context.conversationTruncated || context.actionsOmitted > 0 || context.position.acceptedOmitted > 0 || context.answer.reason !== policy.reason || context.item.title !== item.title || context.item.objective !== item.objective || context.item.owner !== (item.progress?.owner??'operator') || context.position.node !== item.job || context.position.accepted.some((v, i) => v !== item.flow?.accepted[i]) || actions.some(a => Array.from(a.reason).length >= 240)
 	}
 	account()
 	while (Buffer.byteLength(JSON.stringify(context), 'utf8') > 24576) {
@@ -149,29 +157,38 @@ const handoffDetailSchema = object({ entry: fullHandoffEntrySchema, questions: a
 
 const actionSchema = object({ owner: str, authority: str, reason: str, command: str, transport: str, method: str, href: str, inputs: { type: 'object', additionalProperties: true }, preconditions: object({ revision: revisionSchema, status: str, holdCode: nullable(str) }) }, ['owner', 'authority', 'reason', 'command', 'transport', 'inputs', 'preconditions'])
 const attributesSchema = array(object({ key: str, value: { oneOf: [object({ stringValue: str }), object({ intValue: { type: 'string', pattern: '^-?[0-9]+$' } }), object({ doubleValue: { type: 'number' } })] } }))
+const actorSchema=object({kind:{enum:['operator','agent']},label:textInput(300)}),mutationFields={requestId:requestIdSchema,revision:revisionSchema,actor:actorSchema}
 export const API_SCHEMAS = {
+ ErrorCode:{type:'string',description:'Every MadeWellError code; see README error contract',enum:Object.keys(ERRORS)},
 	...QA_JSON_SCHEMAS,
-	CurrentHandoff: handoffSchema,
+ SettingsWrite:object({requestId:requestIdSchema,revision:str,settings:arbitrary}),
+ Progress:object({...mutationFields,progress:object({remaining:str,nextAction:str,owner:str,conditions:array(object({id:str,text:str}))},['remaining','nextAction','owner'])}),
+ Block:object({...mutationFields,blocker:object({id:str,reason:str,owner:str,nextAction:str})}),
+ Unblock:object({...mutationFields,blockerId:str,resolution:str}),
+ Complete:object({...mutationFields,result:{},files:array(object({destination:str,path:str,sha256:str,bytes:integer})),evidence:array(object({conditionId:str,detail:str,refs:array(str)}))},[...Object.keys(mutationFields),'result','evidence']),
+ ConfigureWork:object({...mutationFields,reason:str,execution:object({mode:{enum:['external','cartridge']},owner:str}),settings:arbitrary,conditions:array(object({id:str,text:str}))},[...Object.keys(mutationFields),'reason','execution']),
+ ResolveExecution:object({...mutationFields,invocation:str,action:{enum:['replay','external']},reason:str,authorizeReplay:bool},[...Object.keys(mutationFields),'invocation','action','reason']),
+ CurrentHandoff: handoffSchema,
 	Evidence: { anyOf: [object({ apiVersion: { const: '1' }, item: integer, kind: { enum: ['event', 'answer', 'handoff', 'handoff-slot'] }, ref: str, available: { const: false }, data: { type: 'null' } }), ...(['event', 'answer', 'handoff', 'handoff-slot'] as const).map(kind => object({ apiVersion: { const: '1' }, item: integer, kind: { const: kind }, ref: str, available: { const: true }, data: kind === 'event' ? eventDetailSchema : kind === 'answer' ? answerDetailSchema : handoffDetailSchema }))] },
-	Submit: object({ requestId: requestIdSchema, workspace: textInput(4096), title: textInput(300), objective: textInput(2000), source: textInput(TEXT_LIMIT), mode: { enum: ['discovery', 'delivery'] } }, ['requestId', 'workspace', 'objective', 'source']),
+	Submit: object({ requestId: requestIdSchema, title: textInput(300), kind:str,conditions:array(object({id:str,text:str})),settings:arbitrary, objective: textInput(2000), source: textInput(TEXT_LIMIT), mode: { enum: ['discovery', 'delivery'] } }, ['requestId','objective','source']),
 	Answer: object({ requestId: requestIdSchema, revision: revisionSchema, text: textInput(TEXT_LIMIT), cause: { enum: ['implementation', 'test', 'pre-existing'] } }, ['requestId', 'revision', 'text']),
 	Start: object({ requestId: requestIdSchema, revision: revisionSchema }),
-	Context: object({
-		apiVersion: { const: '1' }, item: object({ id: integer, title: str, objective: str, source: str, sourceTruncated: bool, workspace: str }),
+	Context: object({work:arbitrary,migration:arbitrary,
+		apiVersion: { const: '1' }, item: object({ id: integer, title: str, objective: str, source: str, sourceTruncated: bool, owner: str }),
 		position: object({ status: str, node: str, round: integer, loop: str, accepted: array(str), acceptedTotal: integer, acceptedOmitted: integer }), revision: revisionSchema,
 		evidence: object({ event: integer, record: str, trace: str, conversation: str, otlp: str, qaCases: str, qaRuns: str, cli: object({ record: str, trace: str, context: str }) }), answer: object({ allowed: bool, causeRequired: bool, causes: array(str), reason: str }),
 		currentHandoff: ref('CurrentHandoff'), organs: organsSchema, conversation: array(messageSchema), conversationTruncated: bool, next: array(actionSchema), actionsTotal: integer, actionsOmitted: integer, truncated: bool, observation: object({ owner: str, authority: str, reason: str, method: str, href: str, command: str }),
 	}),
 	Conversation: object({ apiVersion: { const: '1' }, item: integer, revision: revisionSchema, messages: array(messageSchema), nextAfter: nullable(integer), hasMore: bool }),
-	Accepted: object({ apiVersion: { const: '1' }, accepted: { const: true }, requestId: requestIdSchema, receipt: object({ item: integer, revision: revisionSchema, event: integer, replayed: bool }), context: nullable(ref('Context')), warnings: array(str) }),
-	Problem: object({ type: str, title: str, status: integer, detail: str, instance: str, code: str, reason: str, context: { type: 'object', additionalProperties: true }, task: nullable(ref('Context')), next: array(object({ run: str, why: str })), recovery: object({ preserveDraft: { const: true }, retry: str }) }),
-	Projects: object({ apiVersion: { const: '1' }, projects: array(object({ workspace: str, autonomy: str, pack: { ...str, description: 'Configured builtin:grammar selector, absolute cartridge pack file, or default; new items pin the complete resolved pack.' } })) }),
+	Accepted: object({ apiVersion: { const: '1' }, accepted: { const: true }, requestId: requestIdSchema, value:{}, context: nullable(ref('Context')), warnings: array(str) }),
+	Problem: object({ type: str, title: str, status: integer, detail: str, instance: str, code: {type:'string',description:'A MadeWellError code (#/components/schemas/ErrorCode) or an HTTP boundary code such as invalid_body'}, reason: str, context: { type: 'object', additionalProperties: true }, task: nullable(ref('Context')), next: array(object({ run: str, why: str })), recovery: object({ preserveDraft: { const: true }, retry: str }) }),
+
 	Session: object({ apiVersion: { const: '1' }, csrfToken: str, header: { const: 'X-MW-CSRF' }, maxBodyBytes: integer }),
-	Discovery: object({ apiVersion: { const: '1' }, openapi: str, session: str, projects: str, submit: str, qaCases: str, qaRuns: str, authority: str, telemetry: object({ format: str, exported: str, unavailable: array(str) }) }),
+	Discovery: object({ apiVersion: { const: '1' }, openapi: str, session: str, settings: str, submit: str, qaCases: str, qaRuns: str, authority: str, telemetry: object({ format: str, exported: str, unavailable: array(str) }) }),
 	Otlp: object({ resourceSpans: array(object({ resource: object({ attributes: attributesSchema }), scopeSpans: array(object({ scope: object({ name: str }), spans: array(object({ traceId: { type: 'string', pattern: '^[a-f0-9]{32}$' }, spanId: { type: 'string', pattern: '^[a-f0-9]{16}$' }, name: str, kind: { const: 1 }, startTimeUnixNano: { type: 'string', pattern: '^[0-9]+$' }, endTimeUnixNano: { type: 'string', pattern: '^[0-9]+$' }, attributes: attributesSchema, status: object({ code: { enum: [1, 2] } }) })) })) })) }),
 }
 const discovery = {
-	apiVersion: '1', openapi: `${ROOT}/openapi.json`, session: `${ROOT}/session`, projects: `${ROOT}/projects`, submit: `${ROOT}/items`, qaCases: `${ROOT}/qa/cases`, qaRuns: `${ROOT}/qa/runs`, authority: 'Local single operator. Observing agents remain read-only; writes require explicit operator input.',
+	apiVersion: '1', openapi: `${ROOT}/openapi.json`, session: `${ROOT}/session`, settings: `${ROOT}/settings`, submit: `${ROOT}/items`, qaCases: `${ROOT}/qa/cases`, qaRuns: `${ROOT}/qa/runs`, authority: 'Local single operator. Observing agents remain read-only; writes require explicit operator input.',
 	telemetry: { format: 'OTLP/HTTP JSON ExportTraceServiceRequest', exported: 'Saved, finished invocation spans with bounded metadata; GET /api/v1/items/{id}/otlp. Millisecond source precision, deterministic IDs within the same store path, no invented parent spans.', unavailable: ['Running/lost/interrupted invocations stay on the legacy trace, not fabricated as finished spans.', 'No OTel SDK, collector delivery, logs/metrics export, raw bodies, tool events or model internals.', 'External transports may capture only dispatch/result and heartbeat without tool-by-tool streams.'] },
 }
 const response = (schema: JsonSchema, description = 'Success') => ({ description, content: { 'application/json': { schema } } })
@@ -188,13 +205,15 @@ const qaOperation = (id: string, output: string, input?: string, query?: keyof t
 		responses: { ...base.responses, ...(['qaCreateCase', 'qaStartRun'].includes(id) ? { '201': response(ref(output), 'Created; replays return 200') } : {}), '400': problem, '403': problem, '404': problem, '405': problem, '408': problem, '409': problem, '413': problem, '415': problem, '500': problem, '503': problem },
 	}
 }
+(API_SCHEMAS.Context.required as string[])=(API_SCHEMAS.Context.required as string[]).filter(k=>k!=='migration')
 export const OPENAPI = {
 	openapi: '3.1.1', info: { title: 'Made Well operator and agent context API', version: '1', description: 'Additive contract only; legacy /api routes are not described by this document. CSRF is not multi-tenant authentication. Never expose the local UI to untrusted users.' },
 	paths: {
 		[ROOT]: { get: operation('discoverApi', ref('Discovery')) },
 		[`${ROOT}/openapi.json`]: { get: operation('readOpenApi', { type: 'object', description: 'OpenAPI 3.1.1 document', required: ['openapi', 'info', 'paths', 'components'] }) },
 		[`${ROOT}/session`]: { get: operation('readSession', ref('Session')) },
-		[`${ROOT}/projects`]: { get: operation('listProjects', ref('Projects')) },
+		[`${ROOT}/settings`]: {get:operation('readSettings',arbitrary),post:operation('updateSettings',arbitrary,'SettingsWrite')},
+  ...Object.fromEntries(['progress','block','unblock','complete','configure-work','resolve-execution','drop','pack'].map(name=>[`${ROOT}/items/{id}/${name}`,{parameters:[{name:'id',in:'path',required:true,schema:{type:'integer',minimum:1}}],post:operation(name,ref('Accepted'),name==='progress'?'Progress':name==='block'?'Block':name==='unblock'?'Unblock':name==='complete'?'Complete':name==='configure-work'?'ConfigureWork':name==='resolve-execution'?'ResolveExecution':'Start')}])) ,
 		[`${ROOT}/items`]: { post: operation('submitWork', ref('Accepted'), 'Submit') },
 		[`${ROOT}/items/{id}`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], get: operation('readContext', ref('Context')) },
 		[`${ROOT}/items/{id}/answers`]: { parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer', minimum: 1 } }], post: operation('answerWork', ref('Accepted'), 'Answer') },
@@ -213,19 +232,6 @@ export const OPENAPI = {
 		[`${ROOT}/qa/runs/{runId}/cases/{caseId}/verdicts`]: { post: qaOperation('qaVerdict', 'QaAccepted', 'QaVerdictInput', undefined, ['runId', 'caseId']) },
 		[`${ROOT}/qa/runs/{runId}/cases/{caseId}/links`]: { post: qaOperation('qaLink', 'QaAccepted', 'QaLinkInput', undefined, ['runId', 'caseId']) },
 	}, components: { schemas: API_SCHEMAS, securitySchemes: { csrf: { type: 'apiKey', in: 'header', name: 'X-MW-CSRF', description: 'Read /api/v1/session from the same origin. Token rotates on server restart; it is CSRF protection, not user authentication.' } } },
-}
-
-const validateBody = (value: unknown, kind: 'Submit' | 'Answer' | 'Start'): Record<string, string> => {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) throw fail(400, 'invalid_body', 'The JSON body must be an object.')
-	const body = value as Record<string, unknown>
-	const schema = API_SCHEMAS[kind] as { properties: Record<string, { maxLength?: number; pattern?: string; enum?: string[] }>; required: string[] }
-	for (const key of Object.keys(body)) if (!Object.hasOwn(schema.properties, key)) throw fail(400, 'invalid_body', `Unknown field: ${key}.`, { field: key })
-	for (const [key, field] of Object.entries(schema.properties)) {
-		const v = body[key]
-		if (v === undefined && !schema.required.includes(key)) continue
-		if (typeof v !== 'string' || !v.trim() || (field.maxLength && [...v].length > field.maxLength) || (field.pattern && !new RegExp(field.pattern).test(v)) || (field.enum && !field.enum.includes(v))) throw fail(400, 'invalid_body', `Invalid ${key}; see its schema in ${ROOT}/openapi.json.`, { field: key })
-	}
-	return body as Record<string, string>
 }
 
 const readBody = (req: IncomingMessage) => new Promise<unknown>((resolve, reject) => {
@@ -252,7 +258,7 @@ const readBody = (req: IncomingMessage) => new Promise<unknown>((resolve, reject
 
 export interface ApiOptions {
 	path: string
-	open: (create?: boolean) => Store['Service'] | undefined
+	open: (write?: boolean) => Store['Service'] | undefined
 	/** The CLI's existing wake owner; called only after commit, also on an accepted retry. */
 	wake?: (store: Store['Service'], id: number) => Promise<unknown>
 	/** Exact external UI origins trusted by the local operator; never infer trust from forwarded headers. */
@@ -303,7 +309,7 @@ export const createApi = (options: ApiOptions) => {
 				}
 				const caseId = caseRoute ? numeric(caseRoute[1]!, 'caseId') : runRoute?.[3] ? numeric(runRoute[3], 'caseId') : undefined
 				const runId = runRoute ? numeric(runRoute[1]!, 'runId') : undefined
-				const keys = writing ? [] : collection?.[1] === 'cases' ? ['workspace', 'workItem', 'q', 'area', 'after', 'limit'] : collection?.[1] === 'runs' ? ['workspace', 'workItem', 'caseId', 'after', 'limit'] : caseRoute ? ['revision'] : runRoute?.[2] === 'export' ? ['selection', 'format'] : runRoute?.[2] ? ['caseId', 'after', 'limit'] : []
+				const keys = writing ? [] : collection?.[1] === 'cases' ? ['workItem', 'q', 'area', 'after', 'limit'] : collection?.[1] === 'runs' ? ['workItem', 'caseId', 'after', 'limit'] : caseRoute ? ['revision'] : runRoute?.[2] === 'export' ? ['selection', 'format'] : runRoute?.[2] ? ['caseId', 'after', 'limit'] : []
 				const query: Record<string, string | number> = {}
 				for (const [key, value] of url.searchParams) {
 					if (!keys.includes(key) || Object.hasOwn(query, key)) throw qaError(400, 'invalid_input', { field: key, reason: 'unknown_or_repeated_parameter' })
@@ -317,20 +323,21 @@ export const createApi = (options: ApiOptions) => {
 				else if (runRoute?.[4]) effect = runRoute[4] === 'links' ? qaLink(runId!, caseId!, body) : runRoute[4] === 'verdicts' ? qaVerdict(runId!, caseId!, body) : qaObserve(runId!, caseId!, body)
 				else if (runRoute?.[2] === 'export') effect = qaExport(runId!, query)
 				else effect = runRoute?.[2] ? qaObservations(runId!, query) : qaRun(runId!)
-				const existing = options.open()
+				const existing = options.open(writing)
 				// No disk is initialized by QA, including rejected writes with missing anchors.
 				const store = existing ?? openStore(':memory:')
 				try {
+					if(writing) await Effect.runPromise(assertWritable().pipe(Effect.provideService(Store,store)))
 					const result = await Effect.runPromise(effect.pipe(Effect.provideService(Store, store), Effect.match({ onFailure: (error) => ({ ok: false as const, error }), onSuccess: (value) => ({ ok: true as const, value }) })))
 					if (!result.ok) throw result.error
 					const value = result.value as { receipt?: { replayed: boolean } }
 					return send(res, result.value, writing && collection && !value.receipt?.replayed ? 201 : 200)
 				} finally { if (!existing) store.close() }
 			}
-			const match = /^\/api\/v1\/items\/([1-9]\d*)(?:\/(answers|start|conversation|otlp|evidence))?$/.exec(url.pathname)
+			const match = /^\/api\/v1\/items\/([1-9]\d*)(?:\/(answers|start|drop|pack|progress|block|unblock|complete|configure-work|resolve-execution|conversation|otlp|evidence))?$/.exec(url.pathname)
 			target = match ? Number(match[1]) : undefined
 			if (target !== undefined && !Number.isSafeInteger(target)) throw fail(400, 'invalid_id', 'Item ID must be a positive safe integer.')
-			const write = url.pathname === `${ROOT}/items` || match?.[2] === 'answers' || match?.[2] === 'start'
+			const write = req.method==='POST'
 			security(req, false)
 			if (req.method !== (write ? 'POST' : 'GET')) { res.setHeader('Allow', write ? 'POST' : 'GET'); throw fail(405, 'method_not_allowed', `Use ${write ? 'POST' : 'GET'} for this resource.`) }
 			if (write) security(req, true)
@@ -338,51 +345,41 @@ export const createApi = (options: ApiOptions) => {
 			if (url.pathname === ROOT) return send(res, discovery)
 			if (url.pathname === `${ROOT}/openapi.json`) return send(res, OPENAPI)
 			if (url.pathname === `${ROOT}/session`) return send(res, { apiVersion: '1', csrfToken: token, header: 'X-MW-CSRF', maxBodyBytes: BODY_LIMIT })
-			if (url.pathname === `${ROOT}/projects`) return send(res, { apiVersion: '1', projects: sync(readProjects(projectsPath(options.path))).map((p) => ({ workspace: p.path, autonomy: p.autonomy ?? DEFAULT_AUTONOMY, pack: p.cartridges ?? 'default' })) })
+			if(url.pathname===`${ROOT}/settings`){
+			 const store=options.open(write)
+			 if(!write) return send(res,{settings:store?settingsOf(store):defaultSettings(),revision:store?.settings()?.revision??'0'})
+			 if(!store)throw fail(503,'store_unavailable','The work store is unavailable.')
+			 const body=await readBody(req) as Parameters<typeof updateSettings>[0]
+			 if(!/^[A-Za-z0-9_-]{16,128}$/.test(body.requestId??'')) throw fail(400,'invalid_body','A 16-128 character requestId is required.')
+			 sync(assertWritable().pipe(Effect.provideService(Store,store)))
+			 return send(res,sync(updateSettings(body).pipe(Effect.provideService(Store,store))))
+			}
 			if (write) {
-				const bodyKind = target === undefined ? 'Submit' : match?.[2] === 'start' ? 'Start' : 'Answer'
-				const body = validateBody(await readBody(req), bodyKind)
-				// Fingerprint explicit schema fields in fixed order; JSON key order is not request identity.
-				const fingerprint = hash(JSON.stringify([url.pathname, ...Object.keys((API_SCHEMAS[bodyKind] as { properties: object }).properties).map((key) => [key, body[key] ?? null])]))
-				const registered = () => {
-					const projects = sync(readProjects(projectsPath(options.path)))
-					const project = projects.find((p) => p.path === body.workspace)
-					if (!project) throw new MadeWellError({ code: 'project_not_found', message: 'Select an exactly registered workspace.', context: { workspace: body.workspace!, projects: projects.map((p) => p.path) }, next: [{ run: 'mw init', why: 'register the project locally before submitting browser work' }] })
-					return project
-				}
-				// Reject bad submissions before creating a database. Existing receipts are independent of registry changes.
-				if (target === undefined && !options.open()) registered()
-				const store = options.open(target === undefined)
-				if (!store) found(undefined, target!)
-				const receipt = store!.operatorRequest(body.requestId!, fingerprint, () => {
-					let item: Item
-					if (target === undefined) {
-						const project = registered()
-						const { pack } = sync(resolvePackSelection(project.cartridges))
-						const discovery = body.mode === 'discovery'
-						item = createWork(store!, { title: body.title ?? body.objective!, objective: body.objective!, source: body.source!, workspace: project.path, autonomy: project.autonomy ?? DEFAULT_AUTONOMY, ...(pack ? { pack } : {}), ...(discovery ? { job: laneOf(pack).discovery[0]?.job ?? '', ...(pack?.runtime === 'functions' ? { flow: { loop: 'discovery', accepted: [] } } : {}) } : {}) })
-					} else {
-						item = found(store, target)
-						if (revisionOf(item) !== body.revision) throw fail(409, 'stale_revision', 'The saved task changed. Refresh its context and review the question before sending a new request; your draft is not discarded.', { id: target, expected: body.revision, actual: revisionOf(item) })
-						if (bodyKind === 'Start') {
-							if (item.status !== 'candidate' || item.discovery === undefined) throw fail(409, 'not_a_candidate', 'Only a proposed discovery task can be selected here.', { id: target, status: item.status })
-							sync(promote(item.discovery, [item.id]).pipe(Effect.provideService(Store, store!)))
-							item = found(store, target)
-						} else {
-						const policy = answerPolicy(item)
-						if (body.cause && !policy.causes.includes(body.cause)) throw fail(400, 'invalid_cause', 'This hold does not accept that cause.', { allowed: policy.causes })
-						sync(answer(target, body.text!, body.cause as 'implementation' | 'test' | 'pre-existing' | undefined).pipe(Effect.provideService(Store, store!)))
-						item = found(store, target)
-						if (revisionOf(item) === body.revision) throw fail(409, 'answer_not_applied', 'The engine treated this text as an earlier answer, not a new transition. Inspect the current hold; no new message was accepted.', { id: target })
-						}
-					}
-					store!.note(item.id, 'operator-message', { requestId: body.requestId, kind: target === undefined ? 'submission' : bodyKind === 'Start' ? 'selection' : 'answer', inputEvent: store!.events(item.id).at(-1)!.seq, ...(body.revision ? { expectedRevision: body.revision } : {}) })
-					return { item: item.id, revision: revisionOf(item), event: store!.events(item.id).at(-1)!.seq }
-				})
-				const warnings: string[] = []
-				try { if (options.wake && store!.get(receipt.item)) await options.wake(store!, receipt.item) }
-				catch { warnings.push('Input is durably accepted, but runner wake failed. Retry this same request ID/input or inspect mw status; do not submit a duplicate.') }
-				return send(res, { apiVersion: '1', accepted: true, requestId: body.requestId, receipt, context: store!.get(receipt.item) ? contextOf(store!, receipt.item) : null, warnings }, target === undefined && !receipt.replayed ? 201 : 200)
+			 const body=await readBody(req) as Record<string,unknown>
+			 if(!body||Array.isArray(body)||!/^[A-Za-z0-9_-]{16,128}$/.test(String(body.requestId??''))) throw fail(400,'invalid_body','A 16-128 character requestId is required.')
+			 const store=options.open(true)!
+			 sync(assertWritable().pipe(Effect.provideService(Store,store)))
+			 let value:unknown
+			 if(target===undefined){
+			  if(url.pathname!==`${ROOT}/items`) throw fail(404,'route_not_found','Unknown mutation.')
+			  const errors=conforms(API_SCHEMAS.Submit,body);if(errors.length) throw fail(400,'invalid_body',errors.join('; '))
+			  value=sync(createLedgerWork({requestId:String(body.requestId),title:String(body.title??body.objective),objective:String(body.objective),source:String(body.source),discovery:body.mode==='discovery',...(body.kind!==undefined?{kind:body.kind as string}:{}),...(body.conditions?{conditions:body.conditions as never}:{}),...(body.settings?{settings:body.settings as never}:{})}).pipe(Effect.provideService(Store,store)))
+			 }else if(['progress','block','unblock','complete','configure-work','resolve-execution'].includes(match![2]!)) value=sync(mutateWork(match![2]!,target,body as unknown as Mutation).pipe(Effect.provideService(Store,store)))
+			 else {
+			  value=store.request(String(body.requestId),match![2]==='answers'?'answer':match![2]==='start'?'promote':match![2]==='pack'?'pack-update':match![2]!,target,match![2]==='start'?{...body,candidates:[target]}:body,()=>{
+			   const item=found(store,target!)
+			   if(body.revision!==revisionOf(item)) throw fail(409,'revision_conflict','The work changed; review before submitting a new request.')
+			   if(match![2]==='answers'&&conforms(API_SCHEMAS.Answer,body).length) throw fail(400,'invalid_body','An answer needs exact nonblank text and its request revision.');
+			   if(match![2]==='answers') return sync(answer(target!,String(body.text),body.cause as string|undefined).pipe(Effect.provideService(Store,store)))
+			   if(match![2]==='start') return sync(promote(item.discovery!,[target!]).pipe(Effect.provideService(Store,store)))
+			   if(match![2]==='pack') return requestPackUpdate(store,target!,body.pack as import('./lane.ts').Pack)
+			   if(match![2]==='drop') return sync(drop(target!).pipe(Effect.provideService(Store,store)))
+			   throw fail(404,'route_not_found','Unknown mutation.')
+			  })
+			 }
+			 const acceptedId=target??(value as Item)?.id,warnings:string[]=[]
+			 if(acceptedId&&store.get(acceptedId)?.execution.mode==='cartridge'&&options.wake) try{await options.wake(store,acceptedId)}catch{warnings.push('wake-failed: accepted work is saved; resume with mw run.')}
+			 return send(res,{apiVersion:'1',accepted:true,requestId:body.requestId,value,context:acceptedId&&store.get(acceptedId)?contextOf(store,acceptedId):null,warnings})
 			}
 			if (match) {
 				const store = options.open()
@@ -402,16 +399,16 @@ export const createApi = (options: ApiOptions) => {
 					const page = messages.slice(0, 50)
 					return send(res, { apiVersion: '1', item: item.id, revision: revisionOf(item), messages: page, nextAfter: page.at(-1)?.event ?? null, hasMore: messages.length > page.length })
 				}
-				return send(res, contextOf(store!, item.id))
+				return send(res,{...contextOf(store!,item.id),migration:sync(migrationStatus().pipe(Effect.provideService(Store,store!)))})
 			}
 			throw fail(404, 'route_not_found', 'No versioned API operation matches this path.')
 		} catch (cause) {
 			const error = cause instanceof MadeWellError ? cause : fail(500, 'internal_error', 'The request could not be completed. Retain the draft and retry the same request ID; inspect the saved state before making a new request.')
 			const details = error.context as { status?: number; reason?: string }
-			const status = error.code === 'api_request' || error.code === 'qa_request' ? details.status! : error.code === 'item_not_found' ? 404 : ['not_held', 'not_answerable', 'cause_required'].includes(error.code) ? 409 : 400
+			const status = error.code === 'api_request' || error.code === 'qa_request' ? details.status! : error.code === 'item_not_found' ? 404 : ['revision_conflict','request_id_conflict','work_busy','work_terminal','completion_invalid','not_held', 'not_answerable', 'cause_required'].includes(error.code) ? 409 : 400
 			let task: ReturnType<typeof contextOf> | null = null
 			try { const store = authorized ? options.open() : undefined; if (target && store?.get(target)) task = contextOf(store, target) } catch {}
-			send(res, { type: `urn:madewell:problem:${details.reason ?? error.code}`, title: error.code === 'api_request' ? details.reason! : ERRORS[error.code].means, status, detail: error.message, instance: `urn:uuid:${randomUUID()}`, code: error.code, reason: details.reason ?? error.code, context: error.context, task, next: error.next, recovery: { preserveDraft: true, retry: 'For an uncertain outcome resend the same request ID and exact input. For stale state, refresh and review before creating a new request.' } }, status, true)
+			send(res, { type: `urn:madewell:problem:${details.reason ?? error.code}`, title: error.code === 'api_request' ? details.reason! : ERRORS[error.code]?.means??error.code, status, detail: error.message, instance: `urn:uuid:${randomUUID()}`, code: error.code, reason: details.reason ?? error.code, context: error.context, task, next: error.next, recovery: { preserveDraft: true, retry: 'For an uncertain outcome resend the same request ID and exact input. For stale state, refresh and review before creating a new request.' } }, status, true)
 		}
 	}
 }

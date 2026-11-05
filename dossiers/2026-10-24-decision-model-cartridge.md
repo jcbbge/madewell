@@ -1,3 +1,10 @@
+# Advisory decisions
+
+Prescriptions may select an advisory decision cartridge. Missing/disabled/faulty cartridges use the in-process rubric. Context, application intent and all DX/UX/AX matrices remain mandatory. The result grants no execution authority or additional stage. Implementation executes its fixed brief. No inference provider, cost machinery or structured-hold redesign is introduced.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
 # Decision Model Cartridge — optional plug-and-play decision extension for Made Well
 
 ## Purpose
@@ -162,3 +169,5 @@ This keeps Made Well open to future decision models without painting the archite
 The main risk is accidentally turning the cartridge into another agent stage. That would violate the console/cartridge model and the vending-machine principle. The decision model must be a narrow resolver at an existing decision boundary, not a planner, reviewer, worker, or parallel authority.
 
 The toggle location is not open: it lives in prescriptions, matching the existing card/harness/prescriptions configuration pattern.
+
+</details>

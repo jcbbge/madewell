@@ -312,13 +312,13 @@ interface Tally { calls: number; minutes: number; tokens: number; refused: numbe
 /** Agent minutes by call kind: intake and originator are NQ's share, execute is the work itself. */
 type Kinds = Record<string, number>
 interface ItemRef { item: number; store: string; minutes: number }
-interface ProjectStats extends Tally {
+interface StoreStats extends Tally {
 	host: string
-	workspace: string
+	store: string
 	kinds: Kinds
-	items: { created: number; shipped: number; held: number }
+	items: { created: number; completed: number; held: number }
 	nq: { intakes: number; questions: number; share: number }
-	leadTime: { median: number | null; slowest: ItemRef | null; shipped: ItemRef[]; open: (ItemRef & { status: 'candidate' | 'running' | 'held' })[] }
+	leadTime: { median: number | null; slowest: ItemRef | null; completed: ItemRef[]; open: (ItemRef & { status: 'candidate' | 'running' | 'held' })[] }
 	flags: Record<string, number>
 	jobs: Record<string, Tally & { kinds: Kinds }>
 	cards: Record<string, Tally>
@@ -329,25 +329,25 @@ const WHILE_HELD = ['alerted', 'torn-down', 'worktree-leftovers']
 const minutesBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 6_000) / 10
 
 /**
- * Metrics from telemetry lines of any number of machines: per host and project, items created, shipped and
+ * Metrics from telemetry lines of any number of machines: per host and store, items created, completed and
  * held; lead time from each delivery item's creation to its ship, and the age of those still open; NQ intakes,
  * questions and share of agent minutes; and calls, agent minutes (by call kind), tokens and refusals per job and per card.
  */
 export function stats(lines: Iterable<string>) {
-	const projects = new Map<string, ProjectStats>()
-	const calls = new Map<string, { p: ProjectStats; job: string; card: string }>()
+	const stores = new Map<string, StoreStats>()
+	const calls = new Map<string, { p: StoreStats; job: string; card: string }>()
 	/** Delivery items by host, store and id: ids are only unique within one store. */
-	const items = new Map<string, { p: ProjectStats; item: number; store: string; created: string; shipped?: string; status: 'candidate' | 'running' | 'held' }>()
+	const items = new Map<string, { p: StoreStats; item: number; store: string; created: string; completed?: string; status: 'candidate' | 'running' | 'held' }>()
 	/** Each store's latest record: an open item's age is measured to it. */
 	const latest = new Map<string, string>()
 	let from: string | null = null
 	let to: string | null = null
 	const tally = (): Tally => ({ calls: 0, minutes: 0, tokens: 0, refused: 0 })
 	const kinds = (): Kinds => ({ intake: 0, originator: 0, execute: 0 })
-	const project = (host: string, workspace: string) => {
-		const key = `${host}\0${workspace}`
-		if (!projects.has(key)) projects.set(key, { host, workspace, ...tally(), kinds: kinds(), items: { created: 0, shipped: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, shipped: [], open: [] }, flags: {}, jobs: {}, cards: {} })
-		return projects.get(key)!
+	const ledger = (host: string, store: string) => {
+		const key = `${host}\0${store}`
+		if (!stores.has(key)) stores.set(key, { host, store, ...tally(), kinds: kinds(), items: { created: 0, completed: 0, held: 0 }, nq: { intakes: 0, questions: 0, share: 0 }, leadTime: { median: null, slowest: null, completed: [], open: [] }, flags: {}, jobs: {}, cards: {} })
+		return stores.get(key)!
 	}
 	const refused = new Set<string>()
 	for (const line of lines) {
@@ -365,18 +365,18 @@ export function stats(lines: Iterable<string>) {
 			if (at > (latest.get(s) ?? '')) latest.set(s, at)
 		}
 		if (r.t === 'rejected') refused.add(`${r.host}\0${r.store}\0${r.call}`)
-		if (!r.workspace) continue
-		const p = project(r.host, r.workspace)
+		if (!r.store) continue
+		const p = ledger(r.host, String(r.store))
 		if (r.t === 'event') {
 			if (r.kind === 'created') p.items.created++
-			if (r.kind === 'shipped') p.items.shipped++
+			if (r.kind === 'completed') p.items.completed++
 			if (r.kind === 'held') p.items.held++
 			if (r.kind === 'nq-question') p.nq.questions += r.data?.questions?.length ?? 0
 			// A discovery run never ships: it ends with its candidates, which are tracked from their promotion.
 			const key = `${r.host}\0${r.store}\0${r.item}`
 			if (r.kind === 'created' && r.data?.job !== 'discover') items.set(key, { p, item: r.item, store: r.store, created: r.at, status: r.data?.status === 'candidate' ? 'candidate' : 'running' })
 			const i = items.get(key)
-			if (i && r.kind === 'shipped') i.shipped = r.at
+			if (i && r.kind === 'completed') i.completed = r.at
 			// Delivery starts at promotion: the operator's wait to promote is not Made Well's time.
 			else if (i && r.kind === 'promoted') (i.created = r.at), (i.status = 'running')
 			else if (i && r.kind === 'held') i.status = 'held'
@@ -407,7 +407,7 @@ export function stats(lines: Iterable<string>) {
 	// Slowest first; open items oldest first, aged to their store's latest record.
 	for (const i of items.values()) {
 		const ref = { item: i.item, store: i.store }
-		if (i.shipped) i.p.leadTime.shipped.push({ ...ref, minutes: minutesBetween(i.created, i.shipped) })
+		if (i.completed) i.p.leadTime.completed.push({ ...ref, minutes: minutesBetween(i.created, i.completed) })
 		else i.p.leadTime.open.push({ ...ref, status: i.status, minutes: minutesBetween(i.created, latest.get(`${i.p.host}\0${i.store}`)!) })
 	}
 	const tenth = (n: number) => Math.round(n * 10) / 10
@@ -419,13 +419,13 @@ export function stats(lines: Iterable<string>) {
 	return {
 		from,
 		to,
-		projects: [...projects.values()].map((p) => {
+		stores: [...stores.values()].map((p) => {
 			const lt = p.leadTime
-			lt.shipped.sort((a, b) => b.minutes - a.minutes)
+			lt.completed.sort((a, b) => b.minutes - a.minutes)
 			lt.open.sort((a, b) => b.minutes - a.minutes)
-			const n = lt.shipped.length
-			lt.slowest = lt.shipped[0] ?? null
-			lt.median = n ? tenth((lt.shipped[Math.floor((n - 1) / 2)]!.minutes + lt.shipped[Math.floor(n / 2)]!.minutes) / 2) : null
+			const n = lt.completed.length
+			lt.slowest = lt.completed[0] ?? null
+			lt.median = n ? tenth((lt.completed[Math.floor((n - 1) / 2)]!.minutes + lt.completed[Math.floor(n / 2)]!.minutes) / 2) : null
 			p.nq.share = p.minutes ? Math.round(((p.kinds.intake! + p.kinds.originator!) / p.minutes) * 100) / 100 : 0
 			round(p)
 			Object.values(p.jobs).forEach(round)

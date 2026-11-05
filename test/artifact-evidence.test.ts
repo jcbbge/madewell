@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { revisionOf } from '../src/legacy.ts'
 import { openStore } from '../src/store.ts'
 import { contentHash, ownArtifact, preserveArtifact, savedArtifacts } from '../src/artifact-evidence.ts'
 
@@ -11,7 +12,7 @@ test('maker evidence survives reopening, deduplicates exact bytes and never cros
 	let store = openStore(path)
 	try {
 		const item = store.create({ title: 'Photo', objective: 'saved', source: 'operator', workspace: dir })
-		const fixed = store.save({ ...item, outputs: { plan: '{"scope":["photo.js"]}' } }, 'planned')
+		const fixed = store.transition(item.id,revisionOf(store.get(item.id)),'planned',{},current=>({ ...current, outputs: { plan: '{"scope":["photo.js"]}' } }))
 		preserveArtifact(store, fixed, 'test-plan', 'independent checks\n', 'base')
 		preserveArtifact(store, fixed, 'test-plan', 'independent checks\n', 'base')
 		assert.equal(savedArtifacts(store.events(item.id)).length, 1)

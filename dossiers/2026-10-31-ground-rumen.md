@@ -1,3 +1,10 @@
+# Ground, Rumen and preparation
+
+Each active phase cites actual source, permitted output or absolute declared binding, accounts for every selected rule and prepares every configured consumer. Settings are pinned work data, not a registry lookup. Engine-owned fences are node check commands in scratch receiving input/output. A rule declaration or fingerprint is not semantic or executed proof. Save output and organ receipt atomically, recheck required material on consumption, and invalidate preparations when producer output hashes change. Private tracks never consume sibling material; only engine composition receives child outputs. Blocked partials retain evidence and never advance. NQ reuses relevant durable answers through explicit ancestry and private audience; three answered unresolved turns hold for a brief defect.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
 # Ground, Rumen and preparation belong to the work
 
 Operator requirement, 2026-10-31: work is durable; agents are disposable tools. Completing a phase includes preparing the next phase. Ground and Rumen are mandatory organs of delivery, not optional advice.
@@ -46,3 +53,5 @@ Gate applicability includes staged deletions. A captured deletion that is physic
 Historical standing-context facts resolve private maker provenance through retained source, previous-fact and revocation references before visibility or mutation checks. Missing, unrecognized or conflicting lineage is withheld from makers. Read-time inference never rewrites the saved events.
 
 Before independent check files are applied, tracked product material must match the committed candidate exactly. A successful gate that leaves other tracked generated output unstaged cannot establish shipment of those bytes; the candidate-integrity result prevents acceptance.
+
+</details>

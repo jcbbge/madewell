@@ -1,49 +1,11 @@
-// A stand-in harness for MW_WORKER_COMMAND: reads the job request on stdin, answers every job with its
-// deliverable, confirms every hand-off, reports its version as "scripted 1", and logs "<kind> <job> <profile>"
-// lines to $FAKE_LOG. The makers write their files into their worktree (the working directory), so Made
-// Well's own check run passes.
-import { execFileSync } from 'node:child_process'
-import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { preparedOutput, type PreparationPacket } from './prepared-output.ts'
-
-const request = JSON.parse(readFileSync(0, 'utf8')) as { kind: string; job: string; profile: string; prompt: string }
-appendFileSync(process.env.FAKE_LOG!, `${request.kind} ${request.job} ${request.profile}\n`)
-// FAKE_HANG=<job>:<marker file>: hang the first time that job runs, so a test can kill the runner mid-job.
-const [hangJob, marker] = (process.env.FAKE_HANG ?? '').split(':')
-if (request.kind === 'execute' && request.job === hangJob && marker && !existsSync(marker)) {
-	process.stderr.write('partial evidence before runner loss\n')
-	writeFileSync(marker, '')
-	setInterval(() => {}, 1000)
-	await new Promise(() => {})
-}
-// FAKE_PAUSE=<job>:<file>: that job's call waits until the file is gone, so a test can act while it is in flight.
-const [pauseJob, pauseFile] = (process.env.FAKE_PAUSE ?? '').split(':')
-if (request.kind === 'execute' && request.job === pauseJob && pauseFile) {
-	process.stderr.write('planner is still working\n')
-	writeFileSync(`${pauseFile}.started`, '')
-	while (existsSync(pauseFile)) await new Promise((r) => setTimeout(r, 20))
-}
-const write = (path: string, content: string) => {
-	mkdirSync(path.split('/').slice(0, -1).join('/') || '.', { recursive: true })
-	writeFileSync(path, content)
-}
-const deliverables: Record<string, () => unknown> = {
-	discover: () => ({ items: [{ title: 'First piece', kind: 'feature', objective: 'Do the first thing', text: 'details' }, { title: 'Second piece', kind: 'chore', objective: 'Do the second thing', text: 'details', after: [1, 2, 7] }] }),
-	ideate: () => ({ outcome: 'CSV export', approach: 'a script', decisions: [] }),
-	challenge: () => ({ findings: [], decisions: [] }),
-	plan: () => ({ making: 'export', notMaking: [], scope: ['src/export.sh'], steps: ['write src/export.sh'], doneWhen: [{ id: 'D1', text: 'it prints a,b' }], decisions: [] }),
-	'test-plan': () => (write('checks/export.check.sh', '[ "$(sh src/export.sh)" = a,b ]\n'), { checks: [{ id: 'C1', doneWhen: 'D1', run: 'sh checks/export.check.sh' }] }),
-	implement: () => (write('src/export.sh', 'echo a,b\n'), { summary: 'wrote src/export.sh' }),
-	arbitrate: () => ({ cause: 'undetermined', answer: 'unscripted', evidence: '' }),
-}
-// FAKE_ASK=<job>: that job's receiver asks until the operator has answered, and its originator defers to the operator.
-const asks = request.job === process.env.FAKE_ASK && !request.prompt.includes('"by": "operator"')
-const answer = request.kind === 'intake' ? { understanding: asks ? 'mostly' : 'clear', unclear: asks ? ['CSV or PDF?'] : [], ambiguous: [], missing: [], notes: [] }
-	: request.kind === 'originator' ? (asks ? { answer: 'Only the operator can choose the format.', needsOperator: true } : { answer: 'as planned', needsOperator: false })
-	: deliverables[request.job]!()
-const packet = JSON.parse(request.prompt) as PreparationPacket
-const files = request.kind === 'execute' && packet.organs
-	? execFileSync('git', ['--no-optional-locks', 'ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(path => path && existsSync(path) && statSync(path).isFile()).slice(0, 1)
-	: []
-const output = request.kind === 'execute' ? preparedOutput(packet, request.job, answer as Record<string, unknown>, files) : answer
-process.stdout.write(JSON.stringify({ ok: true, output: JSON.stringify(output), version: 'scripted 1' }))
+// Trusted WorkerRequest → WorkerResult fixture. It needs only its packet and scratch.
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { preparedOutput } from './prepared-output.ts'
+const request=JSON.parse(readFileSync(0,'utf8')),packet=JSON.parse(request.prompt)
+if(process.env.FAKE_LOG)appendFileSync(process.env.FAKE_LOG,`${request.kind} ${request.job} ${request.profile}\n`)
+const [hangJob,marker]=(process.env.FAKE_HANG??'').split(':')
+if(request.kind==='execute'&&request.job===hangJob&&marker&&!existsSync(marker)){writeFileSync(marker,'started');await new Promise(()=>{})}
+const [pauseJob,pauseFile]=(process.env.FAKE_PAUSE??'').split(':')
+if(request.kind==='execute'&&request.job===pauseJob&&pauseFile){writeFileSync(pauseFile+'.started','');while(existsSync(pauseFile))await new Promise(r=>setTimeout(r,20))}
+const output=request.kind==='intake'?{understanding:'The declared function is clear.',unclear:[],ambiguous:[],missing:[],notes:[]}:request.kind==='originator'?{answer:'Follow the fixed brief.',needsOperator:false}:preparedOutput(packet,request.job,request.job==='accept'||request.job==='verification'?{acceptance:{verdict:'passed',conditionHash:packet.item.conditionHash,evidence:packet.item.conditions.map((c:{id:string})=>({conditionId:c.id,detail:'Compared the explicitly received result.',refs:['source']}))}}:{result:'Scripted structured result'})
+process.stdout.write(JSON.stringify({ok:true,output:JSON.stringify(output),version:'scripted 2'}))

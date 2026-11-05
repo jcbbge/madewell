@@ -1,5 +1,24 @@
 # Work display
 
+Lead with exact objective, status, owner, next action, active blockers and accepted result. New work asks only what needs to happen and its source, with discovery or direct external work. No workspace chooser or registration exists. Advertised engine actions generate labelled inline progress/block/unblock/complete/answer/configure/resolve forms. Do not put internal implementation choices into ordinary flows.
+
+Plex Sans is prose; Plex Mono is system messages/evidence. Keep the existing local fonts/licenses, quarter-line spacing, 68ch prose measure, paper/list colors and responsive notebook. Work is two columns at wide widths and one at narrow widths; no horizontal document overflow at 1280×900 or 390×844. Text accompanies colors. Use native buttons/disclosures, visible focus and a skip link. No decorative metric cards or animations.
+
+Show recorded assertion plus actor, independent automated acceptance, and historical result with coverage unavailable distinctly. Dropped, discovered, open, completed, held and stopped are different states. Empty automation means none performed, not independently verified. Show saved file observations and current availability unknown; readers never fetch content. Superseded attempts stay available through technical evidence.
+
+Preserve mounted composers, exact draft fields, original revision and immutable pending URL/body/request ID before sending. Uncertain retry reuses the same request; refresh CSRF only. Only confirmed acceptance clears drafts. Stale refusal retains text for explicit comparison/review before a fresh request. Polling preserves focus/selection, disclosures and technical scroll. Reconcile stable task/event/answer/control identities. Storage failure prevents a new send and explains recovery.
+
+Current handoff and conversation remain beside the work. Preserve question identities, aliases, actual roles and source attribution. Exact full-text disclosures complement bounded previews. Technical evidence belongs under Activity & technical details, including native call/event/handoff disclosures, unknown metrics and unavailable internals. Never replace evidence with a decorative status.
+
+QA uses workItem/case/run anchors, existing revision pins and explicit verdicts. There is no project filter or workspace validation. Preserve note clearing, serialized autosave, newer typing, conflict comparison, per-page recovery, two-step retests and complete export. A manual verdict is a trusted-local declaration; work completion cannot overwrite it.
+
+Independent acceptance owns rendered layout, keyboard controls, loaded fonts, contrast and polling recovery. Maker source work is not evidence these passed, and makers do not run those checks.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
+# Work display
+
 Made Well is a notebook for work, used by nontechnical people. The first screen answers: what is this task, is it finished, and does anything need attention? Technical depth is available without becoming the default reading experience.
 
 The experimental work-example view at `/lab` leads with the exact input, intended result, generated tasks, per-task delivery, and actual produced output. Its first screen includes task names and YES/NO completion. Technical checks and contract configuration stay behind disclosures. A successful tool test must never stand in for completing the work. Different attempts sharing an input remain distinct; direct delivery must not appear to complete a failed discovery attempt.
@@ -95,3 +114,5 @@ Implementation trade-off within the accepted direction: **DX hit, cell 2** — o
 Show “Discovery complete?” with YES/NO and the accepted count out of seven. Show the same completion answer for each prescribed function, with its actual input, accepted output and evidence accessible in place. Explain task readiness in plain words: which prerequisite or person owes the next move, or that no runner is active. Distinguish not yet done, held and unavailable evidence. Preserve unknown metrics as unknown.
 
 The read-side corrections predict quieter reading and less repeated context; they do not establish measured success. Payload comparisons measure deterministic serialized response bytes only, not measured model efficiency or live acceptance. The exact limits and summary/detail ownership remain in the Foundation contract.
+
+</details>

@@ -194,7 +194,7 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
         return need.questions?.length ? "It asked questions that only you can answer." : `It stopped and waits for you (${String(need.code).replaceAll("_", " ")}).`;
     }
   };
-  var rank = (item, needIds) => needIds.has(item.id) ? 0 : ["running", "queued", "waiting-quota", "waiting-prerequisite", "candidate"].includes(item.status) ? 1 : item.status === "shipped" ? 2 : 3;
+  var rank = (item, needIds) => needIds.has(item.id) ? 0 : ["running", "queued", "waiting-quota", "waiting-prerequisite", "candidate"].includes(item.status) ? 1 : item.status === "completed" ? 2 : 3;
   var blazonOf = (model, opts = {}) => {
     const zone = opts.zone;
     const driven = model.runner != null;
@@ -245,8 +245,8 @@ footer { border-top: 3px double var(--ink); padding-top: 10px; font-size: 13px; 
     }
     const s = model.summary;
     const last = s.last ? when(s.last, zone) : "none yet";
-    const sealed = s.shipped > 0;
-    const colophon = `From the Made Well record on ${model.host ?? "this machine"}; last entry ${last}. ${plural(delivery.length, "item")}, ${plural(s.calls, "agent call")}, ${s.tokens.toLocaleString("en-GB")} tokens, ${agentTime(s.agentMs)} of agent time.` + (sealed ? ` Sealed: ${plural(s.shipped, "item has", "items have")} shipped.` : " Not sealed: nothing has shipped.") + (delivery.length > shown.length ? ` ${delivery.length - shown.length} older ${delivery.length - shown.length === 1 ? "item is" : "items are"} not drawn.` : "");
+    const sealed = s.completed > 0;
+    const colophon = `From the Made Well record on ${model.host ?? "this machine"}; last entry ${last}. ${plural(delivery.length, "item")}, ${plural(s.calls, "agent call")}, ${s.tokens.toLocaleString("en-GB")} tokens, ${agentTime(s.agentMs)} of agent time.` + (sealed ? ` Sealed: ${plural(s.completed, "item has", "items have")} completed.` : " Not sealed: nothing has completed.") + (delivery.length > shown.length ? ` ${delivery.length - shown.length} older ${delivery.length - shown.length === 1 ? "item is" : "items are"} not drawn.` : "");
     return {
       about: `Made Well, delivery, from GET /api/model at ${model.at}.`,
       sheet: {
@@ -471,7 +471,7 @@ ${B.legend.length ? `<div class="legend">${B.legend.map((l) => `<span>${disc(l.i
       mark = "";
     }
   };
-  var EMPTY = { at: (/* @__PURE__ */ new Date()).toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { shipped: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] };
+  var EMPTY = { at: (/* @__PURE__ */ new Date()).toISOString(), host: location.hostname, runner: null, eventCount: 0, summary: { completed: 0, calls: 0, tokens: 0, agentMs: 0, last: null }, needs: [], items: [], running: [] };
   document.addEventListener("click", (e) => {
     const b = e.target.closest("[data-run]");
     if (!b) return;

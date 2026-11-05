@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { execFileSync, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -40,8 +40,6 @@ test('malformed command results finish their CLI invocations and leave an action
 		for (const [index, value] of [null, true, {}, { ok: true }].entries()) {
 			const repo = join(root, `repo-${index}`), home = join(root, `home-${index}`), path = join(home, 'work.db')
 			mkdirSync(repo)
-			execFileSync('git', ['-C', repo, 'init', '-q', '-b', 'main'])
-			execFileSync('git', ['-C', repo, '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.com', 'commit', '-q', '--allow-empty', '-m', 'Seed worker-envelope regression'])
 			const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('MW_')))
 			Object.assign(env, { MW_HOME: home, MW_STORE: path, MW_AUTORUN: '0', MW_DEBUG: '0', MW_WORKER_COMMAND: `cat >/dev/null; printf %s ${quote(JSON.stringify(value))}` })
 			const mw = (...args: string[]) => {
@@ -51,7 +49,7 @@ test('malformed command results finish their CLI invocations and leave an action
 				assert.equal(result.status, 0, result.stderr)
 				return JSON.parse(result.stdout)
 			}
-			mw('init', '--autonomy', 'full', '--ship', 'true')
+			mw('settings')
 			const id = mw('start', '--objective', 'Check the command boundary', '--source', 'Isolated malformed-envelope fixture.').item.id
 			mw('run')
 			const store = openStore(path)

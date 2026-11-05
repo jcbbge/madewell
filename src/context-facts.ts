@@ -28,7 +28,7 @@ export type ContextFactCommand = typeof ContextFactCommand.Type
 
 const StoredFact = Schema.Struct({
 	key, revision: positive, ...value, enteredBy: actor, source,
-	item: positive, workspace: nonblank(4096), sourceJob: Schema.optionalKey(nonblank(120)),
+	item: positive, workspace: Schema.optionalKey(Schema.String), sourceJob: Schema.optionalKey(nonblank(120)),
 	status: Schema.Literals(['active', 'revoked']), previousEvent: Schema.optionalKey(positive),
 	revocation: Schema.optionalKey(Schema.Struct({ enteredBy: actor, source, reason: nonblank(4000) })),
 })
@@ -92,14 +92,14 @@ const sourceJobOf = (event: Event | undefined, events: ReadonlyMap<number, Event
 	return unavailable || makers.size > 1 ? null : makers.values().next().value ?? job
 }
 
-/** Nearest explicit scope wins by key, including revocation/expiry. Siblings and other workspaces are excluded. */
+/** Nearest explicit scope wins by key, including revocation/expiry. Unrelated work and private tracks are excluded. */
 export function contextFactsFor(store: FactStore, item: Item, job: string, now: number, receiver = job): PacketContextFact[] {
 	const ancestors = new Map<number, { item: Item; distance: number }>([[item.id, { item, distance: 0 }]])
 	for (const current of ancestors.values()) {
 		for (const id of [current.item.discovery, current.item.parent]) {
 			if (id === undefined || ancestors.has(id)) continue
 			const parent = store.get(id)
-			if (parent?.workspace === item.workspace) ancestors.set(id, { item: parent, distance: current.distance + 1 })
+			if (parent) ancestors.set(id, { item: parent, distance: current.distance + 1 })
 		}
 	}
 	const selected = new Map<string, { fact: ContextFact; distance: number }>()
@@ -108,12 +108,13 @@ export function contextFactsFor(store: FactStore, item: Item, job: string, now: 
 		const history = store.events(owner.item.id), events = new Map(history.map(event => [event.seq, event]))
 		for (const fact of contextFactRecords(store, owner.item.id, history)) {
 			origins.set(fact.event, sourceJobOf(events.get(fact.event), events))
-			if (fact.workspace !== item.workspace || (owner.distance > 0 && fact.scope !== 'descendants')) continue
+			if (owner.distance > 0 && fact.scope !== 'descendants') continue
 			const prior = selected.get(fact.key)
 			if (!prior || owner.distance < prior.distance || (owner.distance === prior.distance && fact.event > prior.fact.event)) selected.set(fact.key, { fact, distance: owner.distance })
 		}
 	}
 	return [...selected.values()].map(({ fact }) => fact)
+		.filter((fact)=>{const steps=[...laneOf(item.pack).discovery,...laneOf(item.pack).delivery],origin=steps.find(s=>s.job===fact.sourceJob)?.track,target=steps.find(s=>s.job===job)?.track;return !origin||origin==='main'||origin===target})
 		.filter((fact) => fact.jobs.includes(job) && fact.jobs.includes(receiver) && !opposing(origins.get(fact.event), job) && !opposing(origins.get(fact.event), receiver))
 		.map((fact) => {
 			const status = fact.status === 'revoked' ? 'revoked' : fact.expiresAt !== undefined && Date.parse(fact.expiresAt) <= now ? 'expired' : 'active'
@@ -156,7 +157,7 @@ export function changeContextFact(store: Store['Service'], id: number, input: Co
 			if (input.jobs.some(crossesMaker)) throw failure(id, 400, 'context_fact_maker_isolation')
 			fact = {
 				key: input.key, revision: input.revision + 1, text: input.text, jobs: input.jobs, scope: input.scope,
-				enteredBy: input.enteredBy, source: input.source, item: id, workspace: item.workspace, status: 'active',
+				enteredBy: input.enteredBy, source: input.source, item: id, status: 'active',
 				...(input.expiresAt === undefined ? {} : { expiresAt: input.expiresAt }),
 				...(sourceJob === undefined ? {} : { sourceJob }), ...(previous ? { previousEvent: previous.event } : {}),
 			}

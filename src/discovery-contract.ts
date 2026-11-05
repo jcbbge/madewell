@@ -2,7 +2,7 @@
 import { Result, Schema } from 'effect'
 import { Decision } from './decision.ts'
 
-export const DISCOVERY_CONTRACT_VERSION = '1'
+export const DISCOVERY_CONTRACT_VERSION = '2'
 const jobs = ['declare', 'look-first', 'classify', 'lenses', 'one-thing', 'route', 'discover'] as const
 export type DiscoveryJob = typeof jobs[number]
 const Text = Schema.NonEmptyString
@@ -13,7 +13,7 @@ const Question = Schema.Struct({ id: Text, text: Text, ownerRole: Text, blocking
 const Claim = { id: Text, text: Text, sources: SourceRefs }
 const Artifact = Schema.Struct({ id: Text, description: Text, sources: SourceRefs })
 const Candidate = {
-	key: Text, title: Text, kind: Schema.Literals(['feature', 'fix', 'chore']), objective: Text, text: Text,
+	key: Text, title: Text, kind: Schema.optionalKey(Text), objective: Text, text: Text,
 	requirementIds: Refs, artifacts: Schema.Array(Artifact),
 }
 const Dependency = Schema.Struct({
@@ -25,7 +25,7 @@ const Requirement = { ...Claim, kind: Schema.Literals(['outcome', 'constraint'])
 const IntentDisposition = Schema.Struct({ intentId: Text, kind: Schema.Literals(['provided', 'context', 'deferred', 'superseded']), reason: Text, sources: SourceRefs })
 const QuestionRefs = Refs.annotate({ description: 'IDs from accepted questions that this candidate must carry into delivery. Keep earlier bindings at confirmation; new route/confirmation questions can be added. Use [] when none apply.' })
 const common = {
-	discoveryContract: Schema.Literal(DISCOVERY_CONTRACT_VERSION), result: Text,
+	discoveryContract: Schema.Literals(['1','2']), result: Text,
 	sources: Refs, unknowns: Schema.Array(Schema.String), decisions: Schema.Array(Decision),
 	evidence: Schema.Array(Evidence), questions: Schema.Array(Question),
 }
@@ -36,7 +36,7 @@ const schemas = {
 	lenses: Schema.Struct({ ...common, tradeoffs: Schema.Array(Schema.Struct({ ...Claim, requirementIds: Refs })) }),
 	'one-thing': Schema.Struct({ ...common, candidates: Schema.Array(Schema.Struct(Candidate)) }),
 	route: Schema.Struct({ ...common, dependencies: Schema.Array(Dependency), preparation: Schema.Array(Preparation) }),
-	discover: Schema.Struct({ ...common, items: Schema.Array(Schema.Struct({ ...Candidate, after: Schema.Array(Schema.Int) })), dependencyIds: Refs, preparationIds: Refs, questionIds: Refs }),
+	discover: Schema.Struct({ ...common, items: Schema.Array(Schema.Struct({ ...Candidate, conditions:Schema.optionalKey(Schema.Array(Schema.Struct({id:Text,text:Text}))), after: Schema.Array(Schema.Int) })), dependencyIds: Refs, preparationIds: Refs, questionIds: Refs }),
 } as const
 const HandoffSourceRefs = Refs.annotate({ description: 'Evidence references: cite evidence[].id values declared in this contribution or an earlier accepted contribution. Never invent IDs or substitute observation IDs, requirement IDs, raw locators, URLs or physical paths. Put each actual locator in evidence[].ref and cite its declared id here.' })
 const HandoffEvidence = Schema.Struct({
@@ -99,11 +99,11 @@ const handoffSchemas = {
 	'look-first': Schema.Struct({ ...handoffCommon, observations: Schema.Array(Schema.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: 'Declared observation identity in look-first.observations; not an evidence identity for sources.' }) })) }),
 	classify: Schema.Struct({ ...handoffCommon, requirements: Schema.Array(Schema.Struct({ ...HandoffRequirement, intentIds: Refs.annotate({ description: 'One or more declared Declare intent[].id values accounted for by this requirement.' }) })), intentDispositions: Schema.Array(HandoffIntentDisposition).annotate({ description: 'Explicitly account for declared intents that do not become requirements, with a reason and evidence IDs. Use [] when all intents map to requirements.' }) }),
 	lenses: Schema.Struct({ ...handoffCommon, tradeoffs: Schema.Array(Schema.Struct({ ...HandoffClaim, id: Claim.id.annotate({ description: 'Declared tradeoff identity in lenses.tradeoffs; not a requirement or evidence identity.' }), requirementIds: HandoffRequirementRefs })) }),
-	'one-thing': Schema.Struct({ ...handoffCommon, candidates: Schema.Array(Schema.Struct({ ...HandoffCandidate, questionRefs: HandoffQuestionRefs })) }),
+	'one-thing': Schema.Struct({ ...handoffCommon, candidates: Schema.Array(Schema.Struct({ ...HandoffCandidate, conditions:Schema.optionalKey(Schema.Array(Schema.Struct({id:Text,text:Text}))), questionRefs: HandoffQuestionRefs })) }),
 	route: Schema.Struct({ ...handoffCommon, dependencies: Schema.Array(HandoffDependency), preparation: Schema.Array(HandoffPreparation).annotate({ description: 'Cross-task preparation promises describe task-delivered readiness. Required producer-before-consumer ordering must also appear in route.dependencies and the matching confirmation after graph; preparation does not create scheduling edges. Use [] when no genuine cross-task preparation promise exists. This is separate from the engine-owned per-job environment prepare command. Environment references use input:<id> for registered projectInputs; they are not candidate keys or invented discovery identities.' }) }),
 	discover: Schema.Struct({
 		...handoffCommon,
-		items: Schema.Array(Schema.Struct({ ...HandoffCandidate, questionRefs: HandoffQuestionRefs, after: Schema.Array(Schema.Int).annotate({ description: 'Distinct one-based positions of earlier confirmed items matching accepted route.dependencies; retain the accepted dependency graph. Use [] when no earlier dependencies apply.' }) })),
+		items: Schema.Array(Schema.Struct({ ...HandoffCandidate, conditions:Schema.optionalKey(Schema.Array(Schema.Struct({id:Text,text:Text}))), questionRefs: HandoffQuestionRefs, after: Schema.Array(Schema.Int).annotate({ description: 'Distinct one-based positions of earlier confirmed items matching accepted route.dependencies; retain the accepted dependency graph. Use [] when no earlier dependencies apply.' }) })),
 		dependencyIds: Refs.annotate({ description: 'Retained route.dependencies[].id values; use [] when no dependencies were declared.' }),
 		preparationIds: Refs.annotate({ description: 'Retained route.preparation[].id values; use [] when no preparation promises were declared.' }),
 		questionIds: Refs.annotate({ description: 'All declared questions[].id identities from earlier accepted contributions and supported current declarations, including newly declared confirmation questions. Use [] when none exist.' }),
@@ -119,7 +119,11 @@ export type DiscoveryValidation<T> = { readonly ok: true; readonly value: T } | 
 /** JSON schemas describe the opt-in outputs; richer prose and original evidence stay on the saved output. */
 export const DISCOVERY_CONTRIBUTION_SCHEMAS = Object.fromEntries(jobs.map((job) => [job, Schema.toJsonSchemaDocument(schemas[job]).schema])) as Record<DiscoveryJob, Record<string, unknown>>
 const handoffShapes = Object.fromEntries(jobs.map((job) => [job, Schema.toJsonSchemaDocument(handoffSchemas[job]).schema])) as Record<DiscoveryJob, Record<string, unknown>>
-export const discoveryContributionShape = (job: DiscoveryJob, options: DiscoveryContractOptions = {}): Record<string, unknown> => options.handoff ? handoffShapes[job] : DISCOVERY_CONTRIBUTION_SCHEMAS[job]
+export const discoveryContributionShape = (job:DiscoveryJob,options:DiscoveryContractOptions={}):Record<string,unknown>=>{
+ const shape=structuredClone(options.handoff?handoffShapes[job]:DISCOVERY_CONTRIBUTION_SCHEMAS[job])
+ if(job==='discover'){const properties=shape.properties as Record<string,Record<string,unknown>>,candidate=properties.items!.items as Record<string,unknown>;candidate.required=[...new Set([...(candidate.required as string[]??[]),'conditions'])]}
+ return shape
+}
 export const usesDiscoveryContract = (value: unknown): boolean => !!value && typeof value === 'object' && 'discoveryContract' in value
 const failed = (issues: ReadonlyArray<DiscoveryIssue>): DiscoveryValidation<never> => ({ ok: false, reason: issues.map((i) => `${i.at}: ${i.message}`).join(' '), issues })
 
@@ -136,6 +140,7 @@ export function validateDiscoveryContribution<J extends DiscoveryJob>(job: J, va
 	const current = parseDiscoveryContribution(job, value, options)
 	if (!current.ok) return current
 	const issues: DiscoveryIssue[] = []
+ if(job==='discover'&&(value as {discoveryContract?:string}).discoveryContract==='2') for(const [index,c] of ((value as {items?:Array<{conditions?:Array<{id:string;text:string}>}>}).items??[]).entries()) if(!c.conditions?.length||new Set(c.conditions.map(x=>x.id)).size!==c.conditions.length) issues.push({code:'conditions',at:`discover.items[${index}].conditions`,message:'Conditions must be nonempty with unique ids.'})
 	const issue = (code: string, at: string, message: string) => issues.push({ code, at, message })
 	const prefix: Partial<{ [K in DiscoveryJob]: DiscoveryContributions[K] }> = {}
 	for (const previous of jobs.slice(0, jobs.indexOf(job))) {

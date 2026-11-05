@@ -21,6 +21,7 @@ export const DEFAULT_BUDGET: Budget = { minutes: 30 }
 export interface WorkerRequest {
 	/** intake: the receiver states its understanding and questions; originator: the sender answers; execute: the job itself; repair: Made Well re-asks for a malformed answer's JSON. */
 	readonly kind: 'intake' | 'originator' | 'execute' | 'repair'
+	readonly invocation?:string
 	readonly item: number
 	/** The job this hand-off is for. */
 	readonly job: Job

@@ -2,8 +2,6 @@
 import { laneOf, lastJson } from './lane.ts'
 import { functionProgress } from './function-progress.ts'
 import { createHash } from 'node:crypto'
-import { closeSync, openSync, readFileSync, readSync, realpathSync, statSync } from 'node:fs'
-import { extname, isAbsolute, relative, resolve, sep } from 'node:path'
 import type { Item, Store } from './store.ts'
 
 type LabStore = Pick<Store['Service'], 'list' | 'get' | 'events' | 'callHeads' | 'call' | 'runner'>
@@ -11,31 +9,10 @@ const parsed = (raw: unknown) => typeof raw === 'string' ? lastJson(raw) ?? raw 
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 const deliveryJobs = ['ideation', 'planning', 'implementation', 'verification']
 
-/** Show the real small text artifact, and compare it with saved proof when a fingerprint exists. */
-function workArtifact(item: Item, verification: Record<string, unknown>) {
-	if (typeof verification.artifact !== 'string') return null
-	const path = resolve(item.workspace, verification.artifact)
-	const absent = (message: string) => ({ path, content: null as string | null, available: false, hashMatches: null as boolean | null, message })
-	try {
-		const root = realpathSync(item.workspace), actual = realpathSync(path), within = relative(root, actual)
-		if (within === '..' || within.startsWith(`..${sep}`) || isAbsolute(within)) return absent('The recorded output is outside this task workspace; its content is unavailable here.')
-		const expected = Array.isArray(verification.evidence) ? verification.evidence.find((entry) => typeof entry === 'string' && /^sha256:[a-f0-9]{64}$/.test(entry)) : undefined
-		const previewable = ['.md', '.txt', '.json'].includes(extname(actual)) && statSync(actual).size <= 65536
-		const bytes = previewable ? readFileSync(actual) : null
-		let hashMatches: boolean | null = null
-		if (typeof expected === 'string') {
-			const hash = createHash('sha256')
-			if (bytes) hash.update(bytes)
-			else {
-				const file = openSync(actual, 'r'), buffer = Buffer.alloc(65536)
-				try { for (let size; (size = readSync(file, buffer)) > 0;) hash.update(buffer.subarray(0, size)) } finally { closeSync(file) }
-			}
-			hashMatches = hash.digest('hex') === expected.slice(7)
-		}
-		if (!previewable) return { path, content: null, available: true, hashMatches, message: hashMatches === false ? 'This output has changed since it was checked.' : 'The output exists. This view can only preview small text files.' }
-		const content = bytes!.toString('utf8')
-		return { path, content, available: true, hashMatches, message: hashMatches === true ? 'This is the actual output; it matches the saved verification.' : hashMatches === false ? 'This output has changed since it was checked.' : 'This is the current output; no saved fingerprint is available for comparison.' }
-	} catch { return absent('The recorded output file is not available.') }
+/** A view reads only the saved observation; it never dereferences a result file. */
+function workArtifact(item:Item,_verification:Record<string,unknown>){
+ const file=item.completion?.files[0]
+ return file?{path:file.destination+':'+file.path,content:null,available:true,hashMatches:null as boolean | null,message:'Saved file observation: '+file.sha256+' · '+file.bytes+' bytes. Current availability unknown.'}:null
 }
 
 export function jumpPackLab(store: LabStore) {
@@ -53,7 +30,7 @@ export function jumpPackLab(store: LabStore) {
 			const history = store.events(owner.id)
 			const lane = laneOf(owner.pack)
 			return [...lane.discovery, ...lane.delivery].map((step) => {
-				const accepted = history.findLast((e) => e.kind === 'accepted' && e.data.job === step.job)
+				const accepted = history.findLast((e) => ['accepted','function-accepted'].includes(e.kind) && e.data.job === step.job)
 				const call = heads.findLast((c) => c.item === owner.id && c.job === step.job && c.kind === 'execute')
 				const start = history.findLast((e) => e.kind === 'trace-started' && e.data.job === step.job && ['execute', 'function', 'compose'].includes(String(e.data.kind)))
 				const link = start ? history.findLast((e) => e.kind === 'trace-call' && e.data.invocation === start.data.invocation) : undefined
@@ -84,9 +61,9 @@ export function jumpPackLab(store: LabStore) {
 			const command = laneOf(owner.pack).delivery.find((phase) => phase.job === 'verification')?.run
 			const review = history.findLast((event) => event.kind === 'lab-semantic-review')
 			const reviewed = review?.data.result === 'pass'
-			const checked = verification.verdict === 'passed' && review?.data.result !== 'fail' && (reviewed || !!command && record(check?.evidence.commandResult).status === 'returned')
-			const done = ['completed', 'shipped'].includes(owner.status) && deliveryJobs.every((job) => phases.some((phase) => phase.job === job && phase.state === 'accepted')) && checked && (!artifact || artifact.available && artifact.hashMatches !== false)
-			return { phases, history, verification, artifact, review, done }
+			const checked = owner.completion?.kind==='automated' && verification.acceptance!==undefined && review?.data.result !== 'fail' && (reviewed || !!command && record(check?.evidence.commandResult).status === 'returned')
+			const done = owner.status==='completed'&&!!owner.completion
+			return { phases, history, verification:{...verification,checked} as Record<string,unknown>, artifact, review, done }
 		}
 		const task = (owner: Item) => {
 			const { phases, history, verification, artifact, review, done } = completion(owner)
@@ -101,8 +78,8 @@ export function jumpPackLab(store: LabStore) {
 			else if (owner.status === 'queued' && after.some((dependency) => !dependency.done)) why = `Waiting for: ${after.filter((dependency) => !dependency.done).map((dependency) => dependency.title).join('; ')}.`
 			else if (owner.status === 'queued') why = 'Selected, but work has not started.'
 			else if (owner.status === 'running') why = `Work is at ${owner.job}. Completion is not yet recorded.`
-			else if (['completed', 'shipped'].includes(owner.status)) why = artifact && !artifact.available ? artifact.message : 'Work was reported complete, but sufficient verification is not recorded.'
-			return { id: owner.id, title: owner.id === item.id && typeof context.workTitle === 'string' ? context.workTitle : owner.title, recordTitle: owner.title, objective: owner.objective, brief: owner.source, after, status: owner.status, enteredDelivery, done, why, nextAction: owner.pack?.runtime === 'functions' ? functionProgress(owner, store) : null, phases, result: typeof verification.result === 'string' ? verification.result : null, artifact }
+			else if (['completed'].includes(owner.status)) why = artifact && !artifact.available ? artifact.message : 'Work was reported complete, but sufficient verification is not recorded.'
+			return { id: owner.id, title: owner.id === item.id && typeof context.workTitle === 'string' ? context.workTitle : owner.title, recordTitle: owner.title, objective: owner.objective,owner:owner.progress.owner,recordedNextAction:owner.progress.nextAction,blockers:owner.blockers,completion:owner.completion??null, brief: owner.source, after, status: owner.status, enteredDelivery, done, why, nextAction: owner.pack?.runtime === 'functions' ? functionProgress(owner, store) : null, phases, result:typeof owner.completion?.result==='string'?owner.completion.result:null, artifact }
 		}
 		const children = items.filter((c) => c.discovery === item.id)
 		const mode = declaration.data.kind === 'deterministic' ? 'tool-check' : item.flow?.loop === 'discovery' ? 'discovery' : 'direct-delivery'

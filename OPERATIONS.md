@@ -1,275 +1,88 @@
 # Operating Made Well
 
-Use this runbook to install, configure, drive, inspect and recover Made Well. It explains the operating procedure; [FOUNDATION.md](FOUNDATION.md) remains operator law.
+Read FOUNDATION.md, AGENTS.md and this guide on entry. The durable object is a work item; the configured pack supplies its methods. The model is capture input → generate tasks → complete tasks. An observing agent reads and explains; intentional operator input moves work through supported commands/API.
 
-## Enter with the right context
+## Identify the runtime
 
-On a new session or context reset, read in this order:
+Record the actual executable path/revision, selected MW_HOME/MW_STORE, MW_PRESCRIPTIONS and runner owner before operational changes. Use the current invocation environment and `mw status`, `mw context <id>`, `mw settings`, `mw migrate --status`; never infer paths from another lab. Source execution and packed runtime differ. Node 24.15 or later and the existing dependencies are required; ordinary ledger use requires no repository tool or model credentials. Harness authentication is required only for scheduled agent work. Do not put credentials in work input or prescriptions.
 
-1. [FOUNDATION.md](FOUNDATION.md), beginning with the governing model and mandatory organs.
-2. [AGENTS.md](AGENTS.md), then this guide.
-3. [README.md](README.md) for the selected runtime/API contract, and the task's actual source, saved context and relevant project instructions.
-4. The applicable contract: [Ground and Rumen](dossiers/2026-10-31-ground-rumen.md), [three-legged rubric](dossiers/2026-10-24-three-legged-rubric.md), and [DESIGN.md](DESIGN.md) for display work.
+An installed runtime preserves dist/mw.mjs, dist/gazette.html, prescriptions, local fonts/licenses and guidance. Made Well's verification owner builds with `npm run bundle`, runs affected checks and typecheck, then packs the accepted runtime. Keep a previous version for rollback. The implementer may run `npm run bundle` solely when the fixed brief requires generated product artifacts, and includes the generated tracked files in its change. Neither maker runs tests, typechecks, acceptance or verification commands, nor commits, branches or pushes; Made Well owns candidate build/check acceptance and delivery. Do not hand-edit dist. Source invocation uses `node src/cli.ts`; installed invocation uses `node /absolute/runtime/dist/mw.mjs`.
 
-An agent taking over reads `mw context <id>` before acting, then follows its evidence links. The task is durable; agents, calls and job worktrees are disposable. Accepted outputs, answers, holds and evidence stay on that task. Never rebuild a handoff by repeatedly copying prompts between agents or phases.
-
-The operator supplies intent, selects work and owns intentional checkpoints and product judgment. A delegated execution agent acts only within its authority. The operator's observing agent reads and explains through the read surface; it does not promote, answer, retry or otherwise move work.
-
-## Know what is being driven
-
-The model is **capture raw input → generate tasks → complete tasks**. Its purpose is to remove manual context transfer while making each step’s completion, output and evidence inspectable. Notes, transcripts, documents and rough discussion are sufficient input. Discovery prepares useful intent and candidates; its output is a selection surface, not authorization to deliver every candidate.
-
-The prescribed discovery labels and job IDs are:
-
-| Display label | Job ID |
-|---|---|
-| `Declare()` | `declare` |
-| `lookFirst()` | `look-first` |
-| `classify()` | `classify` |
-| `Lenses()` | `lenses` |
-| `oneThing()` | `one-thing` |
-| `route()` | `route` |
-| `confirm()` | `discover` |
-
-Every selected task owes ideation, planning, implementation and verification. These are obligations, not a requirement for seven discovery agents or four fresh agent calls for every small task. Domain-specific methods and completion conditions come from the task and configured pack.
-
-For the software runtime, ideation uses `ideate` and `challenge`; `plan` produces the fixed brief; `implement` and `test-plan` run as parallel, blind makers; engine-owned `verify` runs the checks against the candidate. The implementer may maintain existing repository regression tests only when the accepted plan explicitly requires it and the files are within its scope; this maintenance is product work, not independent acceptance evidence. The test architect alone authors this item's independent acceptance checks outside the plan's scope. Neither maker sees the opposing maker's private work or awards its own acceptance. Neither maker runs tests or checks, including regression tests, typechecking or verification commands; Made Well executes them. Documented test/typecheck commands belong to Made Well's verification: build with `npm run bundle` before CLI checks, then run affected checks and relevant `npm run typecheck`. `arbitrate` diagnoses failures; it is not permission for implementation to redesign the plan.
-
-Every agent handoff uses NQ: the receiver confirms understanding or identifies unclear, ambiguous or missing input; the sender clarifies. Reuse saved answers and answer IDs. Resolve decisions from context, then repository intent, then the three-legged rubric. Three answered turns with questions still open hold for a specification defect, including under `full` autonomy. Full autonomy does not expand authority or bypass evidence.
-
-Apply the linked rubric to consequential choices: record DX, UX and AX gains, costs and reasons. Three hits support building with conviction; two permit proceeding; fewer require reshaping or stopping. Predictions remain predictions until measured or independently checked.
-
-### Keep the three preparations distinct
-
-| Contract | Purpose |
-|---|---|
-| `organPreparation` in producer output | Mandatory console-owned Ground, Rumen and usable preparation for every configured successor. |
-| Discovery's `preparation` array | Domain promises between candidate tasks; preserve its identities and executable dependency edges. |
-| Project `prepare` command | Makes each fresh software job worktree usable: dependencies, environment, resources and functional probes. |
-
-New CLI/HTTP work pins the organ contract regardless of cartridge selection. Ground cites actual relevant material; Rumen accounts for selected fences, judgment, taste and vocabulary; each successor gets its brief and required references. Terminal producers explicitly have no successors. The console validates and saves receipts atomically and rechecks required material before consumption. Blocked partials do not claim readiness. Historical records without the pin remain readable with unknown evidence. See the organ dossier for canonical output, allowed references and legacy compatibility; fingerprints do not prove comprehension or executed acceptance.
-
-## Install without coupling applications to the source checkout
-
-Prerequisites are Node **24.15 or later**, plus Git and a POSIX shell/process environment for software delivery. Native Windows execution is not established by the local Mac/Linux checks. Install and authenticate the harnesses you will actually prescribe in the execution environment. Use their supported authentication procedures; do not put credentials in source, work input, context facts or prescriptions.
-
-The following are templates. Replace every `/absolute/path/...`, `SELECTED_REF`, uppercase command placeholder and `<id>` with reviewed values before running anything. Use a disposable store for experiments; do not point examples at an existing operational store.
-
-Acquire a source checkout at the intended reviewed revision from `main`, this repository's integration and publication branch.
+## Select durable state
 
 ```sh
-git clone https://github.com/jcbbge/madewell.git /absolute/path/madewell-source
-cd /absolute/path/madewell-source
-git switch --detach SELECTED_REF
-npm ci
-npm run bundle
-npm run typecheck
-node dist/mw.mjs
-```
-
-`SELECTED_REF` may be the reviewed commit or `origin/main`. The final command prints the generated JSON manual. Direct source execution (`node src/cli.ts`) needs the source checkout's dependencies; the built entrypoint is `node dist/mw.mjs`.
-
-For a copy-only runtime, run `npm pack` after bundling, then unpack the returned archive into a versioned runtime directory. Preserve the complete package layout, including bundled UI, fonts, prescriptions and guidance. Run `node dist/mw.mjs` there, or invoke that file by absolute path from an application. No global installation or runtime link to another project's checkout or `node_modules` is required. Keep the previous runtime directory for rollback.
-
-## Configure an isolated home before queueing
-
-Choose persistent paths outside the application and outside the Made Well source checkout. The selected store's parent owns `projects.json`, items, live evidence and worktrees. `MW_STORE` overrides the default database path and determines those sibling paths. Job worktrees must also have no ancestor guidance files such as `AGENTS.md` or `CLAUDE.md`; otherwise unrelated law would be inherited and `worktree_root_unclean` refuses execution. Check the whole ancestor chain when choosing the location.
-
-Copy the supplied `prescriptions.json` to your own configuration path and adapt it before starting work. Define this same environment in every terminal used for this store, including UI and runner terminals:
-
-```sh
-export MW_HOME=/absolute/path/neutral/madewell-home
+export MW_HOME=/absolute/neutral/work-home
 export MW_STORE="$MW_HOME/madewell.db"
-export MW_PRESCRIPTIONS=/absolute/path/your-prescriptions.json
-mw() { node /absolute/path/runtime/dist/mw.mjs "$@"; }
-mw
-```
-
-The shell function is only a convenience wrapper around the packed entrypoint. Preserve the same selected paths on restart; changing them selects different state rather than recovering the old task.
-
-Prescriptions define tiers of cards `{harness, provider, account, model, effort}` and job mappings `{tier, access, budget}`. Choose currently available, authenticated combinations rather than treating the supplied model list as a universal prescription. Keep cards sharing a quota pool on the same `account`. In software delivery, `verify` is engine-owned and has a budget, not an agent card. Built-in harnesses and custom `harnesses` entries are described by the manual/source; extra credential variable names must be allowlisted through the harness or prescriptions `env`. Do not store secret values in that JSON. A usage limit swaps cards or waits for the earliest reset when all accounts are exhausted.
-
-### Queue admission
-
-`parallel: "resources"` is the default. It imposes no worker-count ceiling: the existing
-queue samples available host/cgroup memory, CPU pressure (or load per CPU), and free
-disk before each launch. It retains memory headroom of 10% of host RAM (at least
-512 MiB), the existing 20 GiB disk floor, and waits at 50% CPU pressure (or one
-load unit per available CPU without PSI). These are resource thresholds, not an
-agent-count budget. New launches yield before resampling so startup allocations
-become observable. A resource wait records its reason on the same work item and
-resumes automatically when capacity returns, including when no item is running.
-It starts no additional scheduler and never kills active work to admit another item.
-An explicitly supplied positive integer remains compatible for installations that
-choose a count limit. Removing that integer selects resources; it does not restore
-a hidden default of three. CI and shared mutations still use their existing locks.
-
-### Environment and adapter boundaries
-
-| Variable | Meaning |
-|---|---|
-| `MW_HOME` | Default state directory; absent overrides, `~/.local/share/madewell`. |
-| `MW_STORE` | Selected SQLite file; overrides `$MW_HOME/madewell.db` and determines sibling registry/worktree paths. |
-| `MW_PRESCRIPTIONS` | Card/harness configuration file; defaults to the selected CLI package’s `prescriptions.json`. |
-| `MW_AUTORUN` | `0` leaves queue driving explicit; otherwise authorized work-giving commands can wake a detached runner. |
-| `MW_WORKER_COMMAND` | Optional trusted command adapter replacing built-in harness execution; see the distinct envelope below. |
-| `MW_TELEMETRY` | Optional directory receiving machine/store JSONL evidence. |
-| `MW_TELEMETRY_LEVEL` | `metrics` omits prose from that telemetry export; `full` includes it. This does not redact the SQLite record. |
-| `MW_DEBUG` | `0` disables default Effect span-file logging, not durable work transitions or receipts. |
-| `MW_UI_ORIGINS` | Comma-separated exact trusted browser origins; not a replacement for authentication on a public network. |
-
-A `MW_WORKER_COMMAND` adapter receives a serialized `WorkerRequest` on stdin, including `kind`, `job`, `card`, `cwd`, `system` and the JSON-string `prompt`. It handles intake, execution, originator and repair calls using their supplied schemas. Return one `WorkerResult` on stdout: `{"ok":true,"output":"<phase JSON as a string>"}`, `{"ok":false,"error":"<failure>"}`, or `{"ok":false,"limit":{"account":"<quota pool>","resetsAt":null,"message":"<limit>"}}`. Optional `raw` and `version` are strings. Use stderr for logs. Malformed envelopes are failures, not completed work.
-
-A function-pack command node’s `run` is a different boundary: it receives function input and returns its bare output object, not a `WorkerResult` wrapper. New successful phase output still owes `organPreparation` from its actual packet. Never conflate either adapter boundary with an accepted task result. Commands are trusted host code; retry-safe side effects and resource ownership remain their responsibility.
-
-Before software work, inspect the actual application instructions, worktree state, current branch, upstream, preparation and delivery commands. Select the intended delivery branch, usually `main`, in that product checkout. The runtime records the branch actually checked out; it does not silently choose `main`.
-
-Register configuration before `discover` or `start`:
-
-```sh
-mw cartridges --check builtin:grammar
-mw init --workspace /absolute/path/product --cartridges builtin:grammar --autonomy checkpoints
-mw cartridges --workspace /absolute/path/product
-```
-
-Add the real project settings with `mw init --workspace /absolute/path/product` and the applicable flags below. Omitted settings preserve existing registration; JSON `[]` removes an array setting. Registration lives in `projects.json` beside the selected store, not inside the application.
-
-| Setting | Configuration and responsibility |
-|---|---|
-| `--prepare 'PROJECT_PREPARE_COMMAND'` | Runs in every fresh job worktree before the job. Use ignored files for generated environment/dependency material. |
-| `--inputs '[{"id":"fixture","path":"fixtures/input.json","kind":"file","jobs":["verify"]}]'` | Declare real supplied file/directory/executable bindings. Relative paths stay within the prepared worktree; absolute paths are explicit host bindings. Use `input:fixture` in environment evidence. |
-| `--gates '[{"id":"project-check","run":"PROJECT_GATE_COMMAND","glob":"*.ts"}]'` | Mechanical commands; `{files}` expands to surviving matched changed paths. Omit `glob` for a whole-project fence. |
-| `--conventions '["ACTUAL_PROJECT_CONVENTION"]'` | Judgment constraints that planning must address or explain as inapplicable. |
-| `--ship 'PROJECT_SHIP_COMMAND'` | The complete post-merge shipment procedure, including push when required and the actual release/live check. |
-| `--alert 'PROJECT_ALERT_COMMAND'` | Optional once-per-hold notification; receives hold JSON on stdin. A nonzero exit is a recorded notification failure. |
-
-`prepare` receives `MW_ITEM`, `MW_JOB`, `MW_NAME`, `MW_WORKTREE`, `MW_PROJECT` and `MW_BASE`. Its last JSON line may return `{"provisioned":[{"kind":"resource-kind","id":"resource-id","teardown":"TEARDOWN_COMMAND"}]}` for owned cleanup. Missing declared resources enter the receiving job's NQ exchange; availability alone does not prove the resource works. Do not modify supplied prepared inputs as implementation artifacts.
-
-Shipping receives `MW_ITEM`, `MW_TITLE`, `MW_KIND` and `MW_COMMIT`; the command must perform and report the actual release/live check. Alert commands receive `MW_ITEM`, `MW_TITLE`, `MW_HOLD` and `MW_MESSAGE` as well as hold JSON on stdin.
-
-Typed Rumen guidance is supported by the project registry as `rumen: [{id,kind:"judge"|"sign"|"lexicon",text,jobs?}]`; `mw init` has **no `--rumen` flag**. Review the registry schema before an authorized edit and preserve other entries. Mechanical fences remain in `gates`.
-
-`builtin:grammar` selects `made-well-autonomy-lab` **1.3**, with discovery, acceptance and handoff contracts `1`. It includes all seven discovery obligations and four delivery phases and is opt-in. The installation default remains the compatibility software pack. Inspect pins with `mw cartridges --item <id>`: changing project configuration affects new work, not historical tasks. `mw init --cartridges default` removes that selection; only init treats `default` specially.
-
-## Choose one execution mode
-
-**Default CLI wake:** leave `MW_AUTORUN` unset. Work-giving commands wake a detached, one-shot `run` when eligible work exists and no runner owns the store. It writes `runner.log` beside the store and stops when work is finished or cannot move. This is not an installed service and does not use `--watch`. Do not issue `run` after every phase; saved outputs feed successors automatically.
-
-**Explicitly requested foreground operation:** set `MW_AUTORUN=0` in every participating terminal, then start one foreground watcher once:
-
-```sh
+export MW_PRESCRIPTIONS=/absolute/prescriptions.json
 export MW_AUTORUN=0
-mw run --watch
+mw() { node /absolute/runtime/dist/mw.mjs "$@"; }
+mw settings
 ```
 
-Keep that terminal open. Use the same home, store, prescriptions and autorun setting in the command/UI terminal. The watcher owns the store's runner claim and waits for newly queued work. Do not start a second runner. An existing lab launcher may set `MW_AUTORUN=0`; inspect that setting before assuming a browser submission will drive itself. Interrupting it ends that foreground execution; the saved work remains resumable. Install no service or schedule unless the operator separately authorizes what runs, when, what it may change and how to stop it.
+The Store parent contains items, scratch and invocation evidence. Keep persistent destinations outside scratch/live/per-call roots; no overlapping roots. Preserve the selected paths on restart. Read commands use a read-only Store and do not initialize a missing installation. A new write creates storage normally. `mw init` is retired and writes nothing; configure with settings.
 
-**Standalone UI:** `mw ui` serves the view and explicit operator API, normally on `127.0.0.1:4747`; it is not the queue runner. It can coexist with the one runner. Operator submissions/answers can use the configured CLI wake; with `MW_AUTORUN=0`, the foreground watcher must already be driving the store. Keep remote exposure restricted and configure exact `MW_UI_ORIGINS` for trusted forwarding. Observing agents remain read-only even though the API accepts authorized operator actions.
+Settings writes use a file `{requestId,revision,settings}`. Omitted fields keep values; null/[] clear them. Defaults are checkpoints, general discovery, no delivery pack, no alert, empty bindings/destinations/conventions/Rumen. Explicit values override inherited discovery, then installation; new items pin resolved settings and full packs. File selectors resolve relative to the caller; input/destination paths and alert cwd must be absolute. `builtin:grammar` pins made-well-autonomy-lab 2. Historical pins are inspectable, never silently upgraded.
 
-## Capture, select and deliver
+Prescriptions retain configured tiers/cards/accounts/models and optional named job overrides. Validate only scheduled agent jobs. `parallel:'resources'` is default: sample host/cgroup memory, CPU pressure/load and disk before each launch, retaining 10% RAM (at least 512MiB), 20GiB disk floor and existing CPU thresholds. Record resource-wait/resource-admitted on the item, resample after yielding and wait even with no active items. Positive explicit count limits remain supported. Resource waits never kill active work. Usage limits swap cards or wait for the earliest reset; they do not ask the operator to solve quota.
+
+MW_WORKER_COMMAND is a trusted adapter receiving WorkerRequest on stdin; return WorkerResult `{ok:true,output:'<phase JSON>'}` or a failure/limit envelope. Bare trusted cartridge commands instead receive function input and return a bare object. Never confuse either with completion evidence. Command stderr stays evidence. Native harness environment is allowlisted; packets carry only granted bindings/received outputs.
+
+## Capture and complete work
 
 ```sh
-mw discover --workspace /absolute/path/product --source-file /absolute/path/notes.txt
-mw status
-mw context <discovery-id>
-mw promote <discovery-id> <selected-candidate-id> <another-selected-id>
+mw start --objective 'Prepare a workshop brief' --source-file notes.txt
+mw discover --source-file notes.txt
+mw context 1
+mw promote 1 2
+mw progress 2 --input-file progress.json
+mw block 2 --input-file blocker.json
+mw unblock 2 --input-file resolution.json
+mw complete 2 --input-file completion.json
+mw answer 2 'The recorded answer' --cause implementation
+mw stats --dir /absolute/telemetry
 ```
 
-Use actual IDs returned from this store. Promotion with no candidate IDs selects **all** candidates; use that only when all are intentionally selected. `mw go <discovery-id>` also promotes every waiting candidate. Genuine prerequisites determine readiness; phases stay inside each task rather than becoming artificial tasks.
+Source remains exact. Identical unkeyed captures are distinct; use --request-id for retry identity. A key reused with different validated input refuses request_id_conflict; identical replay returns its original receipt even after restart/default changes/pruning. All work mutations use revision CAS and atomic event/receipt writes. Preserve rejected drafts. HTTP keys are 16–128 identifier characters.
 
-For one already selected task, `mw start --workspace /absolute/path/product --objective "What done means" --source-file /absolute/path/source.txt` enters delivery directly. Preserve the operator's exact source; do not substitute a reconstructed summary.
+`mw answer <id> <text...> [--cause implementation|test|pre-existing]` accepts an unkeyed positional answer. For a keyed answer use `mw answer <id> --input-file <file>` with requestId, revision, text and optional cause; positional text and --input-file cannot be combined. `mw stats [--dir <directory>]` reads telemetry `.jsonl` files from --dir or MW_TELEMETRY and reports metrics per host and store.
 
-| Autonomy | Intentional stops |
-|---|---|
-| `checkpoints` (default) | After discovery for selection; before each software shipment. |
-| `steps` | Those checkpoints and boundaries between delivery cartridges. |
-| `full` | No routine checkpoints; authority, unavailable resources, failed acceptance and exhausted NQ can still hold. |
+Every lifecycle input includes requestId/revision/actor. Progress supplies remaining/nextAction/owner; block names id/reason/owner/nextAction; unblock names blockerId/resolution. Completion supplies non-null result and evidence exactly covering current conditions once, optionally declared file references. It is an attributed assertion on quiescent, unblocked external work with completed prerequisites, not an automated verification claim. Dropped work never satisfies dependencies. `mw drop` changes only its target.
 
-Project settings and explicit `--autonomy` overrides on `discover`/`start` are preserved. At an authorized checkpoint use `mw go <id>` to continue, or `mw answer <id> "What should change"` to steer. A human selection or shipment checkpoint is an intentional control, not a failed automation step.
+General discovery has seven obligations. Candidate conditions and earlier-position dependencies are published atomically with organ receipts and the discovery completion event. Selecting a candidate preserves parent source/settings/answers. Without a delivery pack it stays external and never wakes the runner. No project selection or location is required.
 
-Software delivery assembles the candidate, runs registered gates, commits and independently verifies it before bringing the passing commit onto the recorded branch. Verification must name the actual candidate and unchanged check definitions; changed tracked candidate material or HEAD during a check invalidates acceptance. Product-changing builds must finish before candidate verification. Gates retain corrections to the captured changed paths; the implementation must deliver required tracked generated files rather than relying on unstaged gate output outside that set. Tracked leftovers after the candidate commit fail its integrity check, before legitimate independent check files become the baseline. Ignored/untracked build output is permitted. Deletions still count for gate applicability; no matching surviving file arguments means explicit not-applicable evidence, not a fabricated execution pass.
+`mw ui --host 127.0.0.1 --port 4747` serves Work plus Grammar, Manual QA, console and Gazette read lenses. Browser writes use the guarded versioned API. Configure exact trusted proxy origins in MW_UI_ORIGINS; preserve Host/Origin/CSRF/body limits. Pending browser requests retain their exact ID/body and original revision across reload. Conflict review precedes a new submission. Readers never fetch file results or move work. Manual QA anchors by workItem and case/run IDs; retest creation and link submission remain separate explicit requests.
 
-After merge, a configured `project.ship` **replaces** the default push; it must push itself if that is part of delivery. Without it, Made Well pushes the recorded branch to its configured upstream. Without either ship command or upstream, the saved shipment means local delivery only. Report implemented, verified, merged, pushed, released and presently live as distinct facts; a historical green shipment cannot prove the current deployment.
+## Drive configured automation
 
-## Inspect evidence and recover the same work
+`mw run [--watch]` drives eligible cartridges using pinned execution-2 contracts; external open work is inert. Default CLI wake is a one-shot driver when enabled; MW_AUTORUN=0 keeps driving explicit. Foreground browser demonstration driving selects only operator-chosen roots and linked work. Unrelated examples remain untouched. This wiring installs no always-on service.
 
-Commands print JSON; errors carry factual context and `next` commands. Start with the advertised next owner and authority, not a guessed mutation.
+Each leaf requires explicit replay policy and destination grants. Scratch is acquired/released per invocation, and process groups stop on success/failure/interruption. Outputs/files are observed before cleanup. Ground/Rumen and usable successor preparation are mandatory; missing material or blocked partials do not count as acceptance. Job names grant no special behavior. Use `mw trace <id> --lens ax` for exact execution and superseded attempts; UX/DX stay read projections of the same record.
 
-| Need | Read surface |
-|---|---|
-| Next action / board / holds | `mw next`, `mw status`, `mw status <id>`, `mw holds` |
-| Compact handoff / complete record | `mw context <id>`, `mw show <id>` |
-| Outcome / diagnostics / full tree | `mw trace <id> --lens ux`, `--lens dx`, `--lens ax` |
-| Follow events | `mw watch`; resume the event feed: `mw watch --since <event-seq>`; snapshot: `mw watch --once` |
-| Browser / offline view | `mw ui`, `mw replay --out /absolute/path/replay.html` |
-| Exact forensic evidence | `mw export <id> --out /absolute/path/export-directory` |
-| Standing nonsecret facts | `mw context-fact <id>` |
+Safe correction rewinds preserve history/answers and increment bounded track counters. Explicit or writing leaves cannot be rewound. `mw retry <id>` releases function failure/exhaustion for one attempt without resetting counters. Lost explicit execution holds execution_uncertain; use `mw resolve-execution <id> --input-file file` with exact invocation/revision and either replay plus authorizeReplay:true, or external without it. Retry/go/answer/unblock cannot bypass this hold. Saved returns are consumed instead of repeated. Reconfigure only quiescent work with `mw configure-work`; legacy commands are never adopted. Unattended cartridge work requires pinned alert run/cwd. Alert attempts record missing/failed/uncertain outcomes and uncertain ones are not automatically resent. Resource teardown includes cwd; historical obligations remain inert.
 
-UX, DX and AX are projections of one trace, not separate state or schedulers. Missing usage and inaccessible internals are unknown, never zero or invented. Live signals are diagnostic evidence; they do not automatically interrupt, repair or steer work. Exported `artifacts/history.json` describes both maker histories; available bytes are at `artifacts/<sha256>.patch` relative to the export root. Historical bytes establish neither compatible continuation nor authority to apply them.
+## Installed cutover and recovery
 
-Only an authorized operator or explicitly delegated agent writes standing facts with `mw context-fact <id> --input-file /absolute/path/fact-command.json`. Follow the generated `ContextFactCommand` schema: explicit request identity, revision, source, audience, scope and nonsecret declaration. Keep the same body/request ID on an uncertain retry. Facts are trusted local declarations, not authentication, secret storage or automatic permission. Revocation/expiry and maker provenance still constrain visibility; never copy private maker material into the other maker's context.
+The rollout owner performs these steps after candidate acceptance. Isolated migration evidence is not proof that the installed registry was removed.
 
-| Situation | Recovery |
-|---|---|
-| Runner stopped, saved work can move | Inspect ownership, then resume with `mw run` or the explicitly chosen watcher. Earlier accepted work is retained. |
-| `store_locked` / live owner | Inspect status and wait for its quiet boundary; do not kill healthy work to obtain the claim. |
-| Open questions or authority checkpoint | The authorized owner answers through the existing surface; retry cannot substitute for the answer. |
-| Failed check | Inspect exact evidence; an authorized `mw answer <id> "Diagnosis" --cause <cause>` supplies the actual cause. Choose `implementation`, `test` or `pre-existing` from the evidence. |
-| Missing environment/input | Correct the registered preparation/binding or resource, then follow the item's advertised retry/answer path. |
-| Eligible unmerged technical hold needing a new plan | `mw retry <id> --replan "Specific nonblank reason"`; this preserves history on the same task and resets active planning onward. It does not bypass NQ or checkpoints. |
-| Retryable failure / post-merge shipment failure | Fix the cause, then `mw retry <id>`; do not create a replacement task or replan already merged work. |
-| Work intentionally abandoned | Authorized `mw drop <id>` keeps the record and tears down owned resources; the command acquires an exclusive runner claim, so stop a watcher or wait for the current runner to finish before dropping it. |
+1. Discover the actual current runtime, MW_HOME/MW_STORE, prescriptions and runner owner through read surfaces. Record `mw status`, `mw settings`, `mw migrate --status` and the selected runtime revision on item #14 through its supported evidence/lifecycle interface. Do not substitute a guessed lab path.
+2. Stop that runner and all older writers through their real process/service boundaries. Confirm ownership is released through status. The --writers-stopped flag is an explicit attestation, not a writer detector. Readers may remain available. Do not edit SQLite or force a claim by changing rows.
+3. Keep a rollback copy of the entire selected home and runtime while writers are stopped, including SQLite companions, exact registry bytes, item/artifact/evidence files, settings and prescriptions. Protect that copy from old writers. Do not delete any registered directory.
+4. Install the accepted packed runtime into a separate versioned directory. Point this selected invocation at it and retain the prior runtime path. Do not start a writer yet.
+5. Run `mw migrate --preview`. Save its exact token, ordered item inventory, registry hash/size/diagnostics, runner and cutoverRequired. Preview is read-only and does not visit registered directories. Investigate diagnostics before attesting; do not normalize or hand-edit the registry.
+6. Run `mw migrate --apply <token> --writers-stopped`. Keep the exact JSON receipt. Apply snapshots raw documents and registry bytes, migrates inert records, removes only the snapshotted regular projects.json, fsyncs its parent and completes the journal. No old prepare/delivery/teardown command runs. Successful legacy work is labelled historical; unfinished work holds legacy_execution.
+7. Run `mw migrate --status`; retain its receipt and compare to apply's result. Confirm registry absence, unchanged item IDs/history/relationships, retained QA/artifacts and honest unfinished holds through read surfaces. A missing original registry is recorded rather than fabricated. Record these actual outputs on #14. No maker report or isolated fixture replaces this rollout receipt.
+8. Re-enable writers only on the accepted runtime and selected store. Explicitly configure unfinished historical work when ready; never replay old commands by implication. Observe the first intended task through context/trace.
 
-Partial artifacts remain evidence. A changed plan starts clean unless planning explicitly authorizes compatible role-specific continuation. A technical reset prevents pre-reset artifacts from being restored as continuation, while retaining history for reference. Never edit task rows or mark an output accepted to manufacture recovery. Do not prune records or remove their workspaces while they are still needed for review.
+If apply fails or is interrupted, leave older writers stopped. Read `--status`, retain the token and redrive the same `--apply` command. Durable phases are snapshot-saved, items-saved, registry-removed, complete; unlink-before-phase interruption is resumable. Changed/reappeared bytes or symlinks give migration_conflict; do not delete them manually to hide the conflict. A stale token requires a fresh preview/review; a different token against unfinished migration refuses. Matching completed-token apply returns its saved receipt without duplicate task events.
 
-## Use the foreground examples deliberately
+An unfinished journal gates ordinary mutations with migration_in_progress; a required cutover gates them with migration_required. Reads stay available. Missing attestation and live-owner refusals write nothing. Outcomes after successful claim permit only unchanged runner ownership bookkeeping/events and the sqlite_sequence events counter advance those inserts cause; no domain/registry/file mutation. See README for the exact contract and injectable MigrationControl boundaries.
 
-Examples are **source-checkout tools**, separate from installed onboarding. The Switch demo uses `GRAMMAR_PACK` (`made-well-grammar-demo` **1**), not installed `builtin:grammar` 1.3. Its sandbox shipment exports a local release; it is not a production deployment.
+Rollback requires stopped writers, the saved pre-cutover home and prior runtime together. Never point the older runtime at partially migrated state. Restore the reviewed backup through the installation's real file/process boundaries, retain the failed migration evidence separately under rollout ownership, and record what was restored before re-enabling writes. Once new work has been accepted, do not overwrite it with an old backup; return through the existing incident/contingency path.
 
-Use a separate example shell with inherited `MW_STORE` unset: the demo selects its own neutral home/store, while an inherited store path would redirect job worktrees. Choose a new demo root and authenticated prescriptions. To execute the root created by init, keep `serve` stopped:
+A context fact needed during an NQ exchange must list both the receiver job and the originator job in jobs; contextFactsFor (src/context-facts.ts) admits a fact only when both are present.
 
-```sh
-npm run demo -- init --root /absolute/path/new-demo --prescriptions /absolute/path/your-prescriptions.json
-npm run demo -- run --root /absolute/path/new-demo
-npm run demo -- status --root /absolute/path/new-demo
-```
+## Evidence, extensions and retention
 
-Alternatively, after initialization start `npm run demo -- serve --root /absolute/path/new-demo --port 4758`, then submit raw input and select tasks through that browser. The server owns a foreground queue for browser-wake-selected roots and linked work, resuming those selections after restart. It does not automatically select the unrelated init-created root. Never run CLI `run` concurrently against that store to execute it. Stop the server before switching to the CLI-driven path. Preserve `demo.json` and its separately located neutral home for recovery; do not reinitialize an existing root.
+`mw export <id> --out directory` retains calls, results, observations and historical artifact descriptors/exact available bytes. `mw replay` produces a saved read view. Neither fetches external references or synthesizes verification. `mw eval` uses compatible execution-2 safe nodes and declared inputs in fresh scratch; missing legacy context is unavailable, and side effects require separate authority/isolated destinations. OTLP exports only actual finished spans; inaccessible tools/usage stay unknown. Observations and signals do not retry or repair work.
 
-The jump-pack lab builds on that demo configuration. Follow `examples/jump-pack-lab/README.md` in the source checkout, keep structural/scripted tests separate from real inference, and preserve failed cases. Example results do not establish provider interchangeability, semantic quality, measured savings or live application acceptance.
-
-## Maintain, verify and extend
-
-For a source change, use an authorized checkout on `main` rather than the detached build checkout. Inspect the current diff and remote, stage only your own paths, and follow AGENTS.md for commit authority; an explicit request to commit/push authorizes that delivery. Commit verified work and push `main`; publishing a feature branch alone does not complete delivery. Preserve existing upstream history, reconciling any independently frozen laboratory history before integration, and never force-push. Read the affected contract and consumers first, then build before CLI checks. Independent verification chooses affected test files/name selections and relevant typechecking. A useful selection for discovery-to-delivery contract work is:
-
-```sh
-npm run bundle
-node --test test/discovery-organs.test.ts test/pipeline-delivery.test.ts test/verification-integrity.test.ts test/context-facts.test.ts
-npm run typecheck
-```
-
-These four files cover discovery/organ coexistence, the strict pipeline through local shipment, candidate integrity and standing-context provenance. Select additional tests when the change affects their consumers. `npm test` has a pretest bundle and runs the entire suite; it is not the per-change default. Scripted workers prove machinery behavior, real inference evaluates model behavior, browser/API checks prove their exercised flow, and an application's own live check proves present operation. Report executed, failed, skipped, not applicable and unknown separately.
-
-### Confirm the maker-instruction correction on #14
-
-After normal delivery and activation of the corrected runtime, the existing authorized recovery owner reconfirms the operational workspace, delivery branch, selected home/store, prescriptions, runtime revision and current runner owner through the read surface. Do not infer these from a disposable maker checkout. Read `mw context 14` (or `GET /api/v1/items/14`) and follow its current supported next action under that owner's authority. Do not retry or replan unconditionally: prerequisite release routes to verification and does not guarantee another implementer invocation. This procedure grants makers no operational recovery authority.
-
-Inspect the next actual implementer intake and execution calls through the existing saved-call read surface, including `GET /api/call/<call-id>`. Confirm item identity (#14), call identity and intake/execution kind, the default duty and generated task, the supplied accepted plan and governing instructions. Together they must permit only explicitly plan-required, in-scope maintenance of existing repository regression tests, reserve independent acceptance-check authorship to the test architect and all check execution to Made Well; intake stays read-only. Retain call IDs/read locations as evidence. Historical failed packets stay unchanged. If no fresh implementer call exists, report live confirmation as pending. If a custom pinned duty conflicts, report that specific contract conflict through existing NQ without rewriting the pin. Isolated candidate recovery checks prove candidate behavior; they do not prove the installed runtime or #14's live packet is corrected. This live follow-through is separate from candidate acceptance and does not require future shipment to accept the prerequisite fix.
-
-Before backup or rollback, stop all writers, including the runner and any UI accepting operator input. Preserve the selected store directory as a coherent whole, including SQLite sidecars, registry, item artifacts and live evidence, plus the chosen prescriptions, runtime revision and application commits. If prescriptions live elsewhere, copy them separately. An export/replay is useful evidence, not a replacement for the complete operational backup. Protect backups as sensitively as their recorded project content.
-
-For update, build/pack and independently check a new revision in isolation, then retain it beside the previous runtime. The runner notices replacement of its executable or SIGHUP, drains in-flight steps and re-executes while retaining its claim. A switch to a different versioned path needs a controlled foreground stop/start with the same environment; changing a wrapper alone does not redirect an already running executable. For rollback, keep an untouched pre-update backup, stop writers, preserve the current state and reconcile intervening deliveries before restoring compatible runtime/state together. No automatic reverse migration or deployment rollback is promised; perform the application's own release recovery and live check.
-
-Extension seams are explicit: prescriptions supply cards/harness recipes; project registration supplies preparation/inputs/gates/conventions/Rumen/ship; packs supply configured functions. Validate with `mw cartridges --check <selector-or-file>` before selection. Function-pack `--update` applies only at saved boundaries and preserves accepted/attempted nodes; it is not a software-pack live update. Advisory decision providers and trace renderers do not gain scheduler or acceptance authority.
-
-Source map below is for a **source checkout only**; these paths are not promised inside the packed runtime:
-
-| Source | Responsibility |
-|---|---|
-| `src/cli.ts`, `src/api.ts`, `src/ui.ts` | Generated manual, compact context, explicit operator input, UI/API and wake. |
-| `src/store.ts`, `src/engine.ts` | Durable transitions, receipts, runner ownership, NQ, redrive and shipment. |
-| `src/project.ts`, `src/prerequisites.ts`, `src/workspace.ts`, `src/change.ts` | Registry, preparation, inputs, isolation, artifacts, gates and candidate integration. |
-| `src/grammar.ts`, `src/autonomy-pack.ts`, `src/pack-selection.ts`, `src/lane.ts`, `src/functions.ts` | Grammar, built-in selection, software/function contracts and boundary updates. |
-| `src/organs.ts`, `src/rumen.ts`, `src/discovery-contract.ts`, `src/acceptance-contract.ts`, `src/context-facts.ts` | Producer obligations, discovery identities, evidence ownership and fact provenance. |
-| `src/cards.ts`, `src/harness.ts`, `src/worker.ts`, `src/trace.ts`, `src/export.ts` | Execution recipes/transport, evidence lenses and exact exports. |
-| `test/`, `examples/switch-demo/`, `examples/jump-pack-lab/` | Independent acceptance and separately labelled experiments. |
+Prune finished work only through `mw prune --before ISO [--dry-run]`; QA anchor retention is rechecked atomically before file deletion. Permanent operator/QA receipts survive pruning. Source tests use scripted workers and temporary plain directories. Made Well's verification builds first, runs affected test/name selections and relevant typecheck, and records exact commands/results/unverified boundaries. Do not claim a whole suite, browser acceptance, measured speedup or installation activation without its actual evidence.

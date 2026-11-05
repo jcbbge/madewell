@@ -1,20 +1,4 @@
-// The console and its cartridges.
-//
-// Made Well is two loops. Discovery takes raw input (notes, transcripts, meetings) and returns candidate work
-// items; delivery takes one promoted item and returns it delivered. The console is the fixed part: the loops,
-// the durable item, NQ at every hand-off, holds, card swaps, recording and the views. Cartridges are what plug
-// into it: each is a named group of steps, and each step is one agent job with a contract, what it receives
-// and the JSON its deliverable must match. Function packs also accept trusted commands and nested groups.
-// A cartridge pack is the ordered set for both loops; software
-// development is the default pack, and a project can plug in its own (`mw init --cartridges <file>`).
-//
-// Only the software runtime owns five slots, because its machinery acts on what they return: `discover` (the last
-// discovery step: return the candidates), `plan` (the contract the makers are held to: scope and done-when),
-// `implement` and `test-plan` (the makers, run in parallel after the plan and blind to each other, ruling 12)
-// and `verify` (Made Well runs the item's checks itself, merges and ships, ruling 14). A failure goes to the
-// arbiter, which is the console's too. Every other step is a thinking step a cartridge defines in full.
-//
-// Every deliverable is schema-first JSON: what each job is told to answer with and what its answer is checked against.
+import { functionSteps, problemsOf } from './readiness.ts'
 import { readFileSync } from 'node:fs'
 import { Effect, Result, Schema } from 'effect'
 import { Decision } from './decision.ts'
@@ -23,7 +7,7 @@ import { acceptanceProblem } from './acceptance-contract.ts'
 import { DISCOVERY_CONTRIBUTION_SCHEMAS, discoveryContributionShape, validateDiscoveryContribution, type AcceptedDiscovery, type DiscoveryJob } from './discovery-contract.ts'
 
 export type Job = string
-export type Cause = 'pre-existing' | 'implementation' | 'test' | 'environment'
+export type Cause = 'pre-existing' | 'implementation' | 'test' | 'environment' | 'function-check'
 /** The two jobs that run in parallel after planning. */
 export type Maker = 'implement' | 'test-plan'
 export const isMaker = (job: Job): job is Maker => job === 'implement' || job === 'test-plan'
@@ -40,6 +24,12 @@ export interface Step {
 	readonly args?: Readonly<Record<string, unknown>>
 	readonly children?: ReadonlyArray<string>
 	readonly parent?: string
+ readonly track?: string
+ readonly position?: number
+ readonly mode?: 'sequence'|'parallel'
+ readonly replay?: 'safe'|'explicit'
+ readonly writes?: ReadonlyArray<string>
+ readonly onFailure?: {readonly target:string;readonly maxCorrections?:number}
 	readonly access?: 'none' | 'read' | 'make' | 'checks' | 'run'
 	/** The cartridge it belongs to, shown as its stage. */
 	readonly cartridge: string
@@ -61,7 +51,7 @@ export interface Step {
 
 const Positive = Schema.Finite.check(Schema.isGreaterThan(0))
 const StepFields = {
-	job: Schema.String.annotate({ description: 'the job\'s name, lowercase letters, digits and "-"; a slot (discover, plan, implement, test-plan, verify) gets the console\'s behaviour' }),
+	job: Schema.String.annotate({ description: 'the job\'s name, lowercase letters, digits and "-"; names carry no behavior' }),
 	profile: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'the agent profile that does it, never a personal name' })),
 	duty: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'what the job is for and what it must not do, in one or two sentences' })),
 	task: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'further instructions for the job itself' })),
@@ -73,6 +63,10 @@ const StepFields = {
 	check: Schema.optionalKey(Schema.NonEmptyString.annotate({ description: 'functions runtime: trusted preaccept command; receives {input, output} JSON on stdin, exit 0 accepts the original output' })),
 	input: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
 	args: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+	mode: Schema.optionalKey(Schema.Literals(['sequence','parallel'])),
+	replay: Schema.optionalKey(Schema.Literals(['safe','explicit'])),
+	writes: Schema.optionalKey(Schema.Array(Schema.NonEmptyString)),
+	onFailure: Schema.optionalKey(Schema.Struct({target:Schema.NonEmptyString,maxCorrections:Schema.optionalKey(Schema.Int)})),
 	access: Schema.optionalKey(Schema.Literals(['none', 'read', 'make', 'checks', 'run'])),
 }
 interface NodeSpec extends Schema.Struct.Type<typeof StepFields> {
@@ -88,110 +82,17 @@ const CartridgeSpec = Schema.Struct({
 }).annotate({ identifier: 'Cartridge' })
 export const Pack = Schema.Struct({
 	name: Schema.NonEmptyString,
-	runtime: Schema.optionalKey(Schema.Literals(['software', 'functions']).annotate({ description: 'software keeps the existing maker/check/ship contract; functions has no required stage names or Git dependency' })),
+	runtime: Schema.optionalKey(Schema.Literals(['software', 'functions']).annotate({ description: 'functions runs explicit node contracts; software is a historical decoding value only' })),
 	version: Schema.optionalKey(Schema.NonEmptyString),
-	contracts: Schema.optionalKey(Schema.Struct({ discovery: Schema.optionalKey(Schema.Literal('1')), acceptance: Schema.optionalKey(Schema.Literal('1')), handoff: Schema.optionalKey(Schema.Literal('1')) })),
+	contracts: Schema.optionalKey(Schema.Struct({ execution:Schema.optionalKey(Schema.Literals(['1','2'])),discovery: Schema.optionalKey(Schema.Literals(['1','2'])), acceptance: Schema.optionalKey(Schema.Literals(['1','2'])), handoff: Schema.optionalKey(Schema.Literals(['1','2'])) })),
+	completion:Schema.optionalKey(Schema.Struct({resultJob:Schema.NonEmptyString,acceptanceJob:Schema.NonEmptyString})),
 	brief: Schema.optionalKey(Schema.String.annotate({ description: 'what every call of this kind of work should know, added to the shared brief' })),
-	discovery: Schema.Array(CartridgeSpec).annotate({ description: 'raw input in, candidates out; software ends with "discover"' }),
+	discovery: Schema.Array(CartridgeSpec).annotate({ description: 'raw input in, candidates out' }),
 	delivery: Schema.Array(CartridgeSpec).annotate({ description: 'ordered cartridges; functions may have zero, one or many nodes, including nested children' }),
 }).annotate({ identifier: 'Pack' })
 export type Pack = typeof Pack.Type
 
-const SLOTS = ['discover', 'plan', 'implement', 'test-plan', 'verify']
-const SLOT_DEFAULTS: Record<string, { profile: string; duty: string }> = {
-	discover: { profile: 'ideator', duty: 'Turn the operator\'s raw input into separate candidate work items (features, bug fixes, chores), in the order they should be delivered; an item that builds on earlier ones names them under "after". Each item is one coherent piece of work that delivery can take alone; its text carries the purpose, scope and what done means, in the operator\'s terms. Surface uncertainty instead of guessing. Do not plan or implement.' },
-	plan: { profile: 'planner', duty: 'Inspect the workspace and write the contract: what is made and not made, the files the change may touch, the exact steps, and the done-when items. Settle every design choice. Do not implement.' },
-	'test-plan': { profile: 'test architect', duty: 'From the plan alone, write the checks for this work item: for each done-when item, at least one shell command that exits 0 only when that item is done. Do not write product code.' },
-	implement: { profile: 'implementer', duty: 'Execute the plan exactly as written. Do not design, improvise or change the plan. You may maintain existing repository regression tests only when the accepted plan explicitly requires it and the files are within its scope. Independent acceptance-check authorship belongs to the test architect. Never run tests or checks, including regression tests, typechecking or verification commands; Made Well executes them.' },
-	verify: { profile: 'made well', duty: 'Made Well runs the item\'s own check commands against the implementer\'s change; exit 0 ships.' },
-}
-
-const ARBITER = {
-	job: 'arbitrate', profile: 'arbiter',
-	duty: 'A check failed or a step could not be done as written. Decide from the evidence whose it is: a pre-existing defect, a bad implementation, or a bad test.',
-}
-
-/** Why a pack breaks the console's contract: one sentence per problem, empty when it plugs in. */
-export function problemsOf(pack: Pack): string[] {
-	if (pack.runtime === 'functions') return functionProblems(pack)
-	const out: string[] = []
-	const seen = new Set<string>()
-	const loop = (name: 'discovery' | 'delivery') => pack[name].flatMap((c) => c.steps.map((s) => ({ ...s, cartridge: c.cartridge })))
-	const disc = loop('discovery')
-	const del = loop('delivery')
-	for (const [name, steps] of [['discovery', disc], ['delivery', del]] as const) {
-		steps.forEach((s, i) => {
-			const at = `${name} step ${s.job}`
-			if (s.run || s.check || s.children || s.input || s.args || s.access) out.push(`${at}: function-node fields require runtime "functions".`)
-			if (!/^[a-z][a-z0-9-]*$/.test(s.job)) out.push(`${name} step "${s.job}": a job name is lowercase letters, digits and "-".`)
-			if (s.job === 'arbitrate' || s.job === 'ship') out.push(`${at}: "${s.job}" is the console's own; it cannot be placed.`)
-			if (seen.has(s.job)) out.push(`${at}: the job name is used twice.`)
-			seen.add(s.job)
-			const slot = SLOTS.includes(s.job)
-			if (slot && s.output) out.push(`${at}: a slot's deliverable is the console's own contract; remove "output".`)
-			if (slot && (s.tier || s.budget)) out.push(`${at}: a slot runs on its prescription; remove "tier" and "budget".`)
-			if (s.job === 'verify' && (s.profile || s.duty || s.task || s.receives)) out.push(`${at}: verify is Made Well's own run of the checks; give it only its job.`)
-			if (isMaker(s.job) && s.receives) out.push(`${at}: the makers receive the plan alone (ruling 12); remove "receives".`)
-			if (!slot) {
-				if (!s.profile || !s.duty) out.push(`${at}: a thinking step needs a "profile" and a "duty".`)
-				if (s.output?.type !== 'object') out.push(`${at}: a thinking step needs an "output" JSON Schema of {"type": "object", ...}.`)
-			}
-			const earlier = steps.slice(0, i).map((e) => e.job)
-			for (const r of s.receives ?? []) if (!earlier.includes(r) && !(name === 'delivery' && r === 'discover')) out.push(`${at}: it receives "${r}", which is not an earlier step of ${name}${name === 'delivery' ? ' or "discover"' : ''}.`)
-		})
-	}
-	if (disc.at(-1)?.job !== 'discover') out.push('discovery: its last step is "discover", which returns the candidates.')
-	for (const s of disc) if (s.job !== 'discover' && SLOTS.includes(s.job)) out.push(`discovery step ${s.job}: a delivery slot cannot run in discovery.`)
-	if (del.some((s) => s.job === 'discover')) out.push('delivery: "discover" belongs to discovery.')
-	const jobs = del.map((s) => s.job)
-	const plan = jobs.indexOf('plan')
-	const makers = jobs.filter(isMaker)
-	if (jobs.at(-1) !== 'verify') out.push('delivery: its last step is "verify", Made Well\'s run of the checks, merge and ship.')
-	if (plan < 0) out.push('delivery: it needs "plan", the contract the makers are held to.')
-	if (!jobs.includes('implement')) out.push('delivery: it needs "implement", which makes the change.')
-	if (plan >= 0 && jobs.includes('implement') && jobs.at(-1) === 'verify') {
-		const between = jobs.slice(plan + 1, -1)
-		if (between.length !== makers.length || between.some((j) => !isMaker(j))) out.push('delivery: after "plan" come only the makers ("implement", and "test-plan" beside it), then "verify": nothing may change the plan under them.')
-		const homes = new Set(del.filter((s) => isMaker(s.job)).map((s) => s.cartridge))
-		if (homes.size > 1) out.push('delivery: "implement" and "test-plan" run in parallel, so they sit in the same cartridge.')
-	}
-	return out
-}
-
-/** Groups compose child outputs. Execution order is depth first; identities remain stable across updates. */
-function functionSteps(pack: Pack, loop: 'discovery' | 'delivery'): Step[] {
-	const steps: Step[] = []
-	const visit = (node: NodeSpec, cartridge: string, parent?: string) => {
-		for (const child of node.children ?? []) visit(child, cartridge, node.job)
-		steps.push({ ...node, cartridge, loop, profile: node.profile ?? 'made well', duty: node.duty ?? '',
-			receives: node.receives ?? (node.children ? node.children.map((c) => c.job) : steps.slice(-1).map((s) => s.job)),
-			...(parent ? { parent } : {}), children: node.children?.map((c) => c.job),
-		})
-	}
-	for (const cartridge of pack[loop]) for (const node of cartridge.steps) visit(node, cartridge.cartridge)
-	return steps
-}
-
-function functionProblems(pack: Pack): string[] {
-	const problems: string[] = []
-	const seen = new Set<string>()
-	for (const loop of ['discovery', 'delivery'] as const) {
-		const earlier = new Set<string>()
-		for (const step of functionSteps(pack, loop)) {
-			const at = `${loop} node ${step.job}`
-			if (!/^[a-z][a-z0-9-]*$/.test(step.job)) problems.push(`${at}: use lowercase letters, digits and "-".`)
-			if (seen.has(step.job)) problems.push(`${at}: duplicate node identity.`)
-			if (step.children && (step.run || step.profile !== 'made well' || step.task)) problems.push(`${at}: a group composes children; give executable behavior to a child.`)
-			if (!step.children && !step.run && (!step.duty || step.profile === 'made well')) problems.push(`${at}: an agent needs profile and duty; otherwise provide run or children.`)
-			if (!step.children && step.output?.type !== 'object') problems.push(`${at}: declare an object output schema.`)
-			for (const received of step.receives) if (!earlier.has(received)) problems.push(`${at}: ${received} is not an earlier output in ${loop}.`)
-			earlier.add(step.job)
-			seen.add(step.job)
-		}
-	}
-	return problems
-}
-
+export { functionSteps, problemsOf, rewindJobs } from './readiness.ts'
 /** A pack with its defaults filled in, ready for the console. */
 export interface Lane {
 	readonly pack: Pack
@@ -202,37 +103,15 @@ export interface Lane {
 	readonly arbiter: Step
 }
 
-function compile(pack: Pack): Lane {
-	if (pack.runtime === 'functions') return {
-		pack, discovery: functionSteps(pack, 'discovery'), delivery: functionSteps(pack, 'delivery'), makers: [],
-		arbiter: { ...ARBITER, cartridge: 'delivery', loop: 'delivery', receives: [] },
-	}
-	const loop = (name: 'discovery' | 'delivery'): Step[] => {
-		const steps = pack[name].flatMap((c) => c.steps.map((s) => ({ s, cartridge: c.cartridge })))
-		return steps.map(({ s, cartridge }, i) => {
-			const d = SLOT_DEFAULTS[s.job]
-			const earlier = steps.slice(0, i).map((e) => e.s.job).filter((j) => j !== 'verify')
-			const receives = isMaker(s.job) ? ['plan'] : s.job === 'verify' ? [] : (s.receives ?? (name === 'delivery' ? ['discover', ...earlier] : earlier))
-			return {
-				job: s.job, cartridge, loop: name, profile: s.profile ?? d?.profile ?? s.job, duty: s.duty ?? d?.duty ?? '', receives,
-				...(s.task ? { task: s.task } : {}), ...(s.output ? { output: s.output } : {}), ...(s.tier ? { tier: s.tier } : {}), ...(s.budget ? { budget: s.budget } : {}),
-			}
-		})
-	}
-	const delivery = loop('delivery')
-	const makers = (['implement', 'test-plan'] as const).filter((m) => delivery.some((s) => s.job === m))
-	return {
-		pack, discovery: loop('discovery'), delivery, makers,
-		arbiter: { ...ARBITER, cartridge: delivery.at(-1)!.cartridge, loop: 'delivery', receives: ['plan', ...makers] },
-	}
-}
+const compile=(pack:Pack):Lane=>({pack,discovery:functionSteps(pack,'discovery'),delivery:functionSteps(pack,'delivery'),makers:[],arbiter:{job:'arbitrate',profile:'arbiter',duty:'',cartridge:'unspecified',loop:'delivery',receives:[]}})
+export const UNSPECIFIED:Pack={name:'unspecified',runtime:'functions',discovery:[],delivery:[]}
 
 const lanes = new Map<string, Lane>()
-/** The lane an item runs: its own pack, or the default software pack. */
+/** The lane an item runs: its own pack, or the unspecified inert lane. */
 export const laneOf = (pack?: Pack): Lane => {
 	const key = pack ? JSON.stringify(pack) : ''
 	let lane = lanes.get(key)
-	if (!lane) lanes.set(key, (lane = compile(pack ?? SOFTWARE)))
+	if (!lane) lanes.set(key, (lane = compile(pack ?? UNSPECIFIED)))
 	return lane
 }
 
@@ -251,8 +130,8 @@ export const loadPack = (path: string) =>
 		})
 		const invalid = (problems: string[]) => new MadeWellError({
 			code: 'cartridges_invalid', message: `The cartridge pack ${path} does not plug into the console.`, context: { path, problems },
-			cause: 'A pack is {name, runtime?, version?, brief?, discovery: [cartridge], delivery: [cartridge]}. Each cartridge has steps. The default software runtime keeps plan/makers/verify. runtime "functions" has no required nodes: use agent profiles, trusted commands, or nested children with input/output contracts.',
-			next: [{ run: `$EDITOR ${path}`, why: 'fix each problem in context.problems' }, { run: 'mw cartridges', why: 'compare with the default software pack' }],
+			cause: 'A pack is {name, runtime?, version?, brief?, discovery: [cartridge], delivery: [cartridge]}. Each cartridge has steps. Historical software packs remain read-only. runtime "functions" has no required nodes: use agent profiles, trusted commands, or nested children with input/output contracts.',
+			next: [{ run: `$EDITOR ${path}`, why: 'fix each problem in context.problems' }, { run: 'mw cartridges', why: 'compare with the unspecified inert lane' }],
 		})
 		const json = yield* Effect.try({ try: () => JSON.parse(text) as unknown, catch: (e) => invalid([`It is not valid JSON: ${String(e)}`]) })
 		const pack = yield* Schema.decodeUnknownEffect(Pack)(json).pipe(Effect.mapError((e) => invalid([String(e)])))
@@ -281,9 +160,8 @@ export const Check = Schema.Struct({
 	run: Text.annotate({ description: 'shell command run from the repo root; exit 0 means the item is done' }),
 })
 export type Check = typeof Check.Type
-const Blocked = Schema.Struct({ blocked: Schema.NonEmptyString.annotate({ description: 'what stops you doing the step as written; only when something does' }) })
 const Candidate = Schema.Struct({
-	title: Text, kind: Schema.Literals(['feature', 'fix', 'chore']), objective: Text, text: Text,
+	title: Text, kind: Schema.optionalKey(Schema.NonEmptyString), objective: Text, text: Text,conditions:Schema.Array(Schema.Struct({id:Schema.NonEmptyString,text:Schema.NonEmptyString})),
 	after: Schema.optionalKey(Schema.Array(Schema.Int).annotate({ description: 'positions (1 is the first) of earlier items in this list that must ship before this one starts, because it builds on them' })),
 })
 type Candidate = typeof Candidate.Type
@@ -308,14 +186,6 @@ export const PLAN = Schema.Struct({
 })
 export type Plan = typeof PLAN.Type
 
-/** The deliverables of the console's slots: its own machinery acts on them, so no cartridge redefines them. */
-const SLOT_DELIVERABLES = {
-	discover: Schema.Struct({ items: Schema.Array(Candidate) }),
-	plan: PLAN,
-	'test-plan': Schema.Union([Schema.Struct({ checks: Schema.Array(Check), provisioned: Provisioned }), Blocked]),
-	implement: Schema.Union([Schema.Struct({ summary: Text, provisioned: Provisioned }), Blocked]),
-} as const
-
 /**
  * The arbiter's ruling. Its causes follow the lane: "test" only when the lane writes checks; "undetermined" only when an
  * operator is there to name the cause, so in full autonomy the arbiter names the one the evidence best supports.
@@ -328,12 +198,12 @@ export const arbiterSchema = (lane: Lane, autonomous: boolean) =>
 	})
 
 /** A slot's deliverable schema, or undefined for a thinking step (its JSON Schema is the cartridge's). */
-const slotSchema = (lane: Lane, job: Job, autonomous: boolean): Schema.Top & Schema.ConstraintDecoder<unknown> | undefined =>
-	lane.pack.runtime === 'functions' ? undefined : job === 'arbitrate' ? arbiterSchema(lane, autonomous) : (SLOT_DELIVERABLES as Record<string, Schema.Top & Schema.ConstraintDecoder<unknown>>)[job]
+const slotSchema = (_lane: Lane, _job: Job, _autonomous: boolean): Schema.Top & Schema.ConstraintDecoder<unknown> | undefined =>
+	undefined
 
 /** The JSON Schema a job's answer must match, as its packet shows it. */
 export const deliverableShape = (lane: Lane, job: Job, autonomous = false): Record<string, unknown> | undefined => {
-	if (lane.pack.contracts?.discovery === '1' && job in DISCOVERY_CONTRIBUTION_SCHEMAS) return discoveryContributionShape(job as DiscoveryJob, { handoff: lane.pack.contracts.handoff === '1' })
+	if (['1','2'].includes(lane.pack.contracts?.discovery??'') && job in DISCOVERY_CONTRIBUTION_SCHEMAS) return discoveryContributionShape(job as DiscoveryJob, { handoff: ['1','2'].includes(lane.pack.contracts?.handoff??'') })
 	const schema = slotSchema(lane, job, autonomous)
 	const shape = schema ? shapeOf(schema) : (stepOf(lane, job).output as Record<string, unknown> | undefined)
 	if (shape && job === 'plan' && lane.pack.contracts?.acceptance === '1') {
@@ -458,8 +328,8 @@ function unfollowed(p: Plan, tracked: ReadonlyArray<string>): string | undefined
  * `tracked`, the files at the plan's base, enables the follows rule; without it (re-reading a stored plan) the rule is not applied.
  */
 export function validate(lane: Lane, job: Job, output: string, plan?: Plan, tracked?: ReadonlyArray<string>, autonomous = false, conventions: ReadonlyArray<string> = [], accepted: AcceptedDiscovery = {}): { ok: true; value: Record<string, unknown>; dropped?: ReadonlyArray<{ position: number; missing: string[] }> } | { ok: false; reason: string } {
-	if (lane.pack.contracts?.discovery === '1' && job in DISCOVERY_CONTRIBUTION_SCHEMAS) {
-		const result = validateDiscoveryContribution(job as DiscoveryJob, lastJson(output), accepted, { handoff: lane.pack.contracts.handoff === '1' })
+	if (['1','2'].includes(lane.pack.contracts?.discovery??'') && job in DISCOVERY_CONTRIBUTION_SCHEMAS) {
+		const result = validateDiscoveryContribution(job as DiscoveryJob, lastJson(output), accepted, { handoff: ['1','2'].includes(lane.pack.contracts?.handoff??'') })
 		return result.ok ? { ok: true, value: result.value as unknown as Record<string, unknown> } : { ok: false, reason: result.reason }
 	}
 	if (lane.pack.runtime !== 'functions' && job === 'discover') {
@@ -473,7 +343,7 @@ export function validate(lane: Lane, job: Job, output: string, plan?: Plan, trac
 			const i = all[n]!
 			// "after" may name only earlier kept items; positions are renumbered past any dropped item.
 			const after = [...new Set((Array.isArray(i.after) ? i.after : []).map((p) => kept.indexOf(Number(p) - 1)).filter((m) => m >= 0 && m < k))].map((m) => m + 1)
-			return { title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature', ...(after.length ? { after } : {}) }
+			return { title: text(i.title), objective: text(i.objective), text: text(i.text), kind: i.kind === 'fix' || i.kind === 'chore' ? i.kind : 'feature', conditions: (i.conditions as Candidate['conditions'] | undefined) ?? [{id:'A1',text:text(i.objective)}], ...(after.length ? { after } : {}) }
 		})
 		const dropped = all.flatMap((i, n) => kept.includes(n) ? [] : [{ position: n + 1, missing: ['title', 'objective'].filter((key) => !text(i?.[key])) }])
 		return { ok: true, value: { items }, ...(dropped.length ? { dropped } : {}) }
@@ -578,22 +448,4 @@ export function lastJson(text: string): Record<string, unknown> | undefined {
 		} catch {}
 	}
 	return undefined
-}
-
-/** The software cartridge pack: the four stages and six profiles of FOUNDATION, as data. `mw cartridges` prints it. */
-export const SOFTWARE: Pack = {
-	name: 'software',
-	discovery: [{ cartridge: 'discovery', steps: [{ job: 'discover' }] }],
-	delivery: [
-		{
-			cartridge: 'ideation',
-			steps: [
-				{ job: 'ideate', profile: 'ideator', duty: 'Shape the outcome and the smallest useful approach, and settle every design decision it raises. Do not implement.', output: shapeOf(Schema.Struct({ outcome: Text, approach: Text, decisions: Decisions })) },
-				{ job: 'challenge', profile: 'ideation peer', duty: 'Challenge the idea against the actual workspace: defects, missing constraints, unnecessary scope. Settle each finding with a decision. Do not implement.', output: shapeOf(Schema.Struct({ findings: Schema.Array(Schema.Struct({ finding: Text, resolution: Text })), decisions: Decisions })) },
-			],
-		},
-		{ cartridge: 'planning', steps: [{ job: 'plan' }] },
-		{ cartridge: 'implementation', steps: [{ job: 'implement' }, { job: 'test-plan' }] },
-		{ cartridge: 'verification', steps: [{ job: 'verify' }] },
-	],
 }

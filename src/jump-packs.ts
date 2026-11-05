@@ -128,6 +128,7 @@ function schemaProblems(schema: JsonSchema, path: string, root = true): string[]
 }
 
 function outputFor(slot: JumpSlot, extension?: JsonSchema): JsonSchema {
+ if(slot==='verification') return object({acceptance:object({verdict:{enum:['passed','failed']},conditionHash:string,evidence:{type:'array',items:object({conditionId:string,detail:string,refs:strings})}}),result:string,evidence:strings,unknowns:strings})
 	const base = slot === 'confirm' ? confirmation : slot === 'declare' ? object({ result: string, evidence: strings, unknowns: strings, outcomes }) : ordinary
 	if (!extension) return structuredClone(base)
 	const original = base.properties as Record<string, unknown>
@@ -188,12 +189,12 @@ export function resolveJumpPacks(given: ReadonlyArray<JumpPack>, selections: Rea
 		const { id: _id, fallback: _fallback, output, args, ...method } = chosen.method
 		// Available alternatives are console metadata, not an execution input to unrelated accepted work.
 		const { availableMethods: _alternatives, ...contract } = binding
-		nodes[slot.loop].push({ ...method, job: slot.id, receives: nodes[slot.loop].map((n) => n.job), output: outputFor(slot.id, output), args: { ...args, contract } })
+		nodes[slot.loop].push({ ...method,replay:'safe',writes:[], job: slot.id, receives: nodes[slot.loop].map((n) => n.job), output: outputFor(slot.id, output), args: { ...args, contract } })
 	}
 	if (problems.length) invalid('jump-packs', problems)
 	const selected = packs.map(({ name, version }) => ({ name, version }))
 	const pack: Pack = {
-		name: 'jump-pack-lab', version: selected.map((p) => `${p.name}@${p.version}`).join('+'), runtime: 'functions',
+		name: 'jump-pack-lab', version: selected.map((p) => `${p.name}@${p.version}`).join('+'), runtime:'functions',contracts:{execution:'2'},completion:{resultJob:'implementation',acceptanceJob:'verification'},
 		brief: 'This is an opt-in jump-pack experiment. Read args.contract for the effective function, method and every contributing requirement. Discovery prepares raw notes and discussion into usable intent; it is not literal extraction of a predetermined task list. Early outcomes are provisional anchors: clarify their meaning as evidence accumulates, retain their identities for traceability, and explain consequential clarifications using source references and the DX, UX and AX rubric already supplied. Preserve uncertainty and distinguish a sourced clarification from an unsupported assumption. Candidate proposals are distinct from execution authority: missing permission never means silently removing a potential outcome. Preparatory tasks retain the outcome they support. Return concise concrete findings, actual evidence and explicit unknowns; do not invent industry rules, project bindings or completed actions. Follow the declared output schema. Declare stable outcome ids. Clarify descriptions as evidence develops; include new outcomes with sourceRefs and rationale in intentChanges, and account for original and added outcomes in coverage. Silent renaming is invalid. Confirm references those ids from candidate outcomeRefs and coverage, names candidates by stable ids, and uses after only for genuine dependencies as 1-based positions of earlier items. Candidate text carries its scope, completion conditions and unresolved inputs so delivery can understand it. Coverage links are inspectable claims, not proof of semantic completeness. Verification must report actual checks and honest failure or uncertainty; accepted JSON shape alone never establishes a successful outcome.',
 		discovery: [{ cartridge: 'discovery', steps: nodes.discovery }],
 		delivery: nodes.delivery.map((step) => ({ cartridge: step.job, steps: [step] })),

@@ -1,8 +1,13 @@
-// The one record. Every work item, for every project, lives in one SQLite file; every change to an
+// The one record. Every work item lives in one SQLite file; every change to an
 // item is saved together with an event describing it. Nothing else holds state. The record is also the
 // trace: each call keeps its tool events, tokens and rule-break flags, and the console reads it live.
 // With MW_TELEMETRY set, every event and call also goes to this machine's telemetry file, written only
 // once its transaction commits.
+import { createHash } from 'node:crypto'
+import { decodeLegacy } from './legacy.ts'
+import type { LedgerFields, Completion } from './ledger.ts'
+import type { WorkSettings } from './settings.ts'
+import type { MigrationJournal, MigrationReceipt } from './migration.ts'
 import { mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
@@ -16,11 +21,11 @@ import type { GateReceipt } from './rumen.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 import type { QaAccepted, QaCase, QaCaseRevision, QaCommand, QaConflict, QaLink, QaLinkView, QaObservation, QaOutcome, QaQuery, QaReadResult, QaRun, QaSnapshot } from './qa.ts'
 
-type Status = 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'completed' | 'discovered' | 'dropped'
+type Status = 'open' | 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'completed' | 'discovered' | 'dropped'
 
 /**
  * How involved the operator is (FOUNDATION, ruling 17). full: no stops, and what would go to the operator is decided by the
- * delegating agent by the rubric. checkpoints: stops after discovery and before each item ships. steps: also between the
+ * delegating agent by the rubric. checkpoints: stops after discovery and before each item completes. steps: also between the
  * cartridges of a loop. Absent means checkpoints.
  */
 export type Autonomy = 'full' | 'checkpoints' | 'steps'
@@ -81,18 +86,19 @@ export interface CheckResult extends Check {
 
 /** Something a job provisioned, and its teardown once it ran. */
 export interface Provisioned extends Resource {
+ readonly invocation?:string
 	readonly job: Job
 	readonly torn?: TeardownRecord
 }
 
-export interface Item {
+export interface Item extends LedgerFields {
 	/** Mandatory work-owned Ground, Rumen and producer preparation; absent only on legacy records. */
 	readonly organs?: { readonly version: '1'; readonly origin?: { readonly item: number; readonly job: string; readonly outputHash: string; readonly target: 'delivery' | 'prerequisite' } }
 	readonly id: number
 	readonly title: string
 	readonly objective: string
 	readonly source: string
-	readonly workspace: string
+	readonly workspace?: string
 	readonly status: Status
 	/** The job that runs next. */
 	readonly job: Job
@@ -114,7 +120,7 @@ export interface Item {
 	readonly rejected?: string
 	/** The product repo's branch and its commit when the item (or its current round) started. */
 	readonly base?: { readonly ref: string; readonly commit: string }
-	/** The project's conventions when the base was recorded: the plan must hold the change to each one. */
+	/** Historical conventions retained for decoding and evidence. New execution uses pinned settings. */
 	readonly conventions?: ReadonlyArray<string>
 	/** After planning: the implementer's and the test architect's tracks, run in parallel. */
 	readonly split?: Partial<Record<Maker, Track>>
@@ -130,12 +136,12 @@ export interface Item {
 	readonly parent?: number
 	/** For a candidate: the discovery run that found it. */
 	readonly discovery?: number
-	readonly kind?: 'feature' | 'fix' | 'chore'
-	/** The cartridge pack it runs, from its project; absent for the default software pack. Candidates and fix items inherit it. */
+	readonly kind?: string
+	/** The complete pinned cartridge pack. Absent on external work. */
 	readonly pack?: Pack
 	/** Function packs retain their exact accepted prefix and apply updates only between nodes. */
-	readonly flow?: { readonly loop: 'discovery' | 'delivery'; readonly accepted: ReadonlyArray<string>; readonly update?: number }
-	readonly completion?: { readonly output: Record<string, unknown>; readonly nodes: number }
+	readonly flow?: { readonly loop: 'discovery' | 'delivery'; readonly accepted: ReadonlyArray<string>; readonly update?: number; readonly corrections?: Readonly<Record<string,number>>; readonly frozen?: ReadonlyArray<string>; readonly superseded?: ReadonlyArray<{track:string;job:string;outputHash:string;output:string;acceptedEvent:number|null}>; readonly tracks?: Readonly<Record<string,{accepted:ReadonlyArray<string>;outputs:Readonly<Record<string,string>>;job?:string;exchange?:Exchange;rework?:Item['rework'];pending?:NonNullable<Item['flow']>['pending']}>>; readonly pending?: {invocation:string;job:string;track:string;attempt:number;nodeHash:string;inputHash:string;replay:'safe'|'explicit';pendingReturn?:string};readonly replayOf?:string }
+	readonly completion?: Completion & {readonly output?: Record<string,unknown>;readonly nodes?:number}
 	/** How involved the operator is with it; candidates and fix items inherit it. Absent means checkpoints. */
 	readonly autonomy?: Autonomy
 	/** The checkpoint the operator last let it pass, so it does not stop there twice. */
@@ -143,7 +149,7 @@ export interface Item {
 	/** The operator's word at a checkpoint, for the next hand-off. */
 	readonly steer?: string
 	readonly waitsOn?: number
-	/** For a candidate: the items it builds on. It starts once they have shipped. */
+	/** Prerequisites release only when completed. */
 	readonly after?: ReadonlyArray<number>
 	readonly resetsAt?: number
 	readonly hold?: Hold
@@ -220,10 +226,13 @@ const qaGuard = <A>(run: () => A): A => {
 const qaCanonical = (value: unknown): unknown => Array.isArray(value) ? value.map(qaCanonical) : value && typeof value === 'object'
 	? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([key, child]) => [key, qaCanonical(child)])) : value
 
-export function openStore(path: string) {
-	mkdirSync(dirname(path), { recursive: true })
-	const db = new DatabaseSync(path)
-	db.exec(`PRAGMA journal_mode = WAL; PRAGMA busy_timeout = 5000;
+export function openStore(path: string, options: {readOnly?: boolean;now?:()=>number} = {}) {
+	if (!options.readOnly) mkdirSync(dirname(path), { recursive: true })
+	const db = new DatabaseSync(path, {readOnly: options.readOnly ?? false})
+	db.exec('PRAGMA busy_timeout = 5000')
+	if (!options.readOnly) db.exec(`PRAGMA journal_mode = WAL;
+		CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK(id=1), doc TEXT NOT NULL, revision TEXT NOT NULL, updated TEXT NOT NULL);
+		CREATE TABLE IF NOT EXISTS migrations (id TEXT PRIMARY KEY, token TEXT NOT NULL, phase TEXT NOT NULL, doc TEXT NOT NULL, started TEXT NOT NULL, updated TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS items (id INTEGER PRIMARY KEY AUTOINCREMENT, doc TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY AUTOINCREMENT, item INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL);
 		CREATE TABLE IF NOT EXISTS operator_requests (id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, receipt TEXT NOT NULL);
@@ -231,7 +240,7 @@ export function openStore(path: string) {
 		CREATE TABLE IF NOT EXISTS tool_events (call INTEGER NOT NULL, seq INTEGER NOT NULL, tool TEXT NOT NULL, digest TEXT NOT NULL, input_bytes INTEGER NOT NULL, output_bytes INTEGER NOT NULL, tokens INTEGER, at TEXT, ms INTEGER, error INTEGER NOT NULL, PRIMARY KEY (call, seq));
 		CREATE TABLE IF NOT EXISTS accounts (account TEXT PRIMARY KEY, resets_at INTEGER NOT NULL);
 		CREATE TABLE IF NOT EXISTS runner (id INTEGER PRIMARY KEY CHECK (id = 1), pid INTEGER NOT NULL, since TEXT NOT NULL, item INTEGER);`)
-	qaGuard(() => {
+	if (!options.readOnly) qaGuard(() => {
 		// Refuse an incompatible existing table; never backfill, drop or rewrite QA history.
 		const tables = {
 			qa_cases: 'id INTEGER PRIMARY KEY AUTOINCREMENT, work_item INTEGER NOT NULL, workspace TEXT NOT NULL, current_revision INTEGER NOT NULL, created_at TEXT NOT NULL',
@@ -259,7 +268,7 @@ export function openStore(path: string) {
 			db.exec('CREATE INDEX IF NOT EXISTS qa_cases_work ON qa_cases(work_item); CREATE INDEX IF NOT EXISTS qa_runs_work ON qa_runs(work_item); CREATE INDEX IF NOT EXISTS qa_observations_entry ON qa_observations(run_id,case_id,id); COMMIT')
 		} catch (cause) { db.exec('ROLLBACK'); throw cause }
 	})
-	const sink = telemetry(path)
+	const sink = options.readOnly ? undefined : telemetry(path)
 	let pending: [string, Record<string, unknown>][] | undefined
 	/** Inside a transaction, held until it commits; a rolled-back record never reaches the telemetry file. */
 	const emit = (t: string, record: Record<string, unknown>) => (pending ? pending.push([t, record]) : sink?.write(t, record))
@@ -285,7 +294,7 @@ export function openStore(path: string) {
 		const insert = db.prepare('INSERT INTO tool_events (call, seq, tool, digest, input_bytes, output_bytes, tokens, at, ms, error) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
 		for (const t of tools) insert.run(call, t.seq, t.tool, t.digest, t.inputBytes, t.outputBytes, t.tokens, t.at, t.ms, t.error ? 1 : 0)
 	}
-	tx(() => {
+	if (!options.readOnly) tx(() => {
 		const columns = (db.prepare('PRAGMA table_info(calls)').all() as { name: string }[]).map((c) => c.name)
 		if (columns.includes('tokens')) return
 		db.exec("ALTER TABLE calls ADD COLUMN tokens TEXT; ALTER TABLE calls ADD COLUMN facts TEXT; ALTER TABLE calls ADD COLUMN flags TEXT NOT NULL DEFAULT '[]'")
@@ -297,20 +306,21 @@ export function openStore(path: string) {
 			insertTools(c.id, toolEvents(harness, c.raw))
 		}
 	})
-	const event = (item: number, kind: string, data: Record<string, unknown>, at = new Date().toISOString()) => {
+	const timestamp=()=>new Date(options.now?.()??Date.now()).toISOString()
+	const event = (item: number, kind: string, data: Record<string, unknown>, at = timestamp()) => {
 		const { lastInsertRowid } = db.prepare('INSERT INTO events (item, at, kind, data) VALUES (?, ?, ?, ?)').run(item, at, kind, JSON.stringify(data))
-		emit('event', { seq: Number(lastInsertRowid), item, workspace: read(item)?.workspace ?? null, at, kind, data })
+		emit('event', { seq: Number(lastInsertRowid), item, at, kind, data })
 		return Number(lastInsertRowid)
 	}
 	const read = (id: number): Item | undefined => {
 		const row = db.prepare('SELECT doc FROM items WHERE id = ?').get(id) as { doc: string } | undefined
-		return row && JSON.parse(row.doc)
+		return row && decodeLegacy(JSON.parse(row.doc),JSON.parse(row.doc).updated??JSON.parse(row.doc).created??'1970-01-01T00:00:00.000Z')
 	}
 
 	const qaCaseRow = (caseId: number): QaCase => {
 		const row = db.prepare('SELECT id, work_item AS workItem, workspace, current_revision AS currentRevision, created_at AS createdAt FROM qa_cases WHERE id = ?').get(caseId) as QaCase | undefined
 		if (!row) throw qaFailure(404, 'not_found', { caseId, refresh: 'mw qa-cases' })
-		return { ...row }
+		const {workspace: _legacyWorkspace,...value}=row as QaCase&{workspace?:string};return value
 	}
 	const qaRevisionRow = (caseId: number, revision: number): QaCaseRevision => {
 		const row = db.prepare('SELECT doc FROM qa_case_revisions WHERE case_id = ? AND revision = ?').get(caseId, revision) as { doc: string } | undefined
@@ -320,7 +330,7 @@ export function openStore(path: string) {
 	const qaRunRow = (runId: number): QaRun => {
 		const row = db.prepare('SELECT doc FROM qa_runs WHERE id = ?').get(runId) as { doc: string } | undefined
 		if (!row) throw qaFailure(404, 'not_found', { runId, refresh: 'mw qa-runs' })
-		return JSON.parse(row.doc)
+		const {workspace:_legacyWorkspace,...run}=JSON.parse(row.doc);return run
 	}
 	const qaHistory = (runId: number, caseId: number): QaObservation[] => (db.prepare('SELECT doc FROM qa_observations WHERE run_id = ? AND case_id = ? ORDER BY id').all(runId, caseId) as { doc: string }[]).map((r) => JSON.parse(r.doc))
 	const qaEntry = (run: QaRun, caseId: number) => {
@@ -328,10 +338,10 @@ export function openStore(path: string) {
 		if (!pin) throw qaFailure(409, 'case_not_in_run', { runId: run.id, caseId, refresh: `mw qa-run ${run.id}` })
 		return pin
 	}
-	const qaAnchor = (workItem: number, workspace: string) => {
+	const qaAnchor = (workItem: number, _workspace?: string) => {
 		const item = read(workItem)
 		if (!item) throw new MadeWellError({ code: 'item_not_found', message: `No work item #${workItem}. Select an existing work anchor; QA never creates one.`, context: { id: workItem }, next: [{ run: 'mw status', why: 'select existing work or separately use the authorized work interface' }] })
-		if (item.workspace !== workspace) throw qaFailure(409, 'workspace_mismatch', { workItem, workspace, expected: item.workspace, refresh: `mw context ${workItem}` })
+
 	}
 	const qaRetained = (): number[] => (db.prepare('SELECT work_item AS id FROM qa_cases UNION SELECT work_item AS id FROM qa_runs ORDER BY id').all() as { id: number }[]).map((r) => r.id)
 	const qaLinks = (): QaLink[] => (db.prepare("SELECT seq, at, data FROM events WHERE kind = 'qa-linkObservation' ORDER BY seq").all() as { seq: number; at: string; data: string }[]).map((row) => {
@@ -348,7 +358,7 @@ export function openStore(path: string) {
 		if (query.kind === 'cases') {
 			const f = query.filters
 			const cases = (db.prepare('SELECT id FROM qa_cases ORDER BY id').all() as { id: number }[]).map(({ id }) => qaCaseRow(id))
-			const rows = cases.filter((c) => (f.workspace === undefined || c.workspace === f.workspace) && (f.workItem === undefined || c.workItem === f.workItem)).flatMap((c) => {
+			const rows = cases.filter((c) => (f.workItem === undefined || c.workItem === f.workItem)).flatMap((c) => {
 				const i = qaRevisionRow(c.id, c.currentRevision).instructions
 				if (f.area !== undefined && i.area !== f.area) return []
 				if (f.q !== undefined && ![i.title, i.area, i.change].some((value) => value.toLowerCase().includes(f.q!.toLowerCase()))) return []
@@ -360,7 +370,7 @@ export function openStore(path: string) {
 		if (query.kind === 'runs') {
 			const f = query.filters
 			const runs = (db.prepare('SELECT doc FROM qa_runs ORDER BY id').all() as { doc: string }[]).map((r): QaRun => JSON.parse(r.doc))
-			return page(runs.filter((r) => (f.workspace === undefined || r.workspace === f.workspace) && (f.workItem === undefined || r.workItem === f.workItem) && (f.caseId === undefined || r.cases.some((p) => p.caseId === f.caseId))).map((r) => ({ id: r.id, workItem: r.workItem, workspace: r.workspace, application: r.application, environment: r.environment, version: r.version, startedAt: r.startedAt, caseCount: r.cases.length })), f)
+			return page(runs.filter((r) => (f.workItem === undefined || r.workItem === f.workItem) && (f.caseId === undefined || r.cases.some((p) => p.caseId === f.caseId))).map((r) => ({ id: r.id, workItem: r.workItem, application: r.application, environment: r.environment, version: r.version, startedAt: r.startedAt, caseCount: r.cases.length })), f)
 		}
 		if (query.kind === 'export') {
 			// Reuse the original seam inside this same qaRead transaction, not several public reads.
@@ -401,6 +411,27 @@ export function openStore(path: string) {
 
 	const store = {
 		path,
+		readOnly: options.readOnly ?? false,
+		rawItems(): {id:number;doc:string}[] {return db.prepare('SELECT id,doc FROM items ORDER BY id').all() as {id:number;doc:string}[]},
+		settings(): {settings:WorkSettings;revision:string;updated:string}|null {
+			if(!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='settings'").get()) return null
+			const row=db.prepare('SELECT doc,revision,updated FROM settings WHERE id=1').get() as {doc:string;revision:string;updated:string}|undefined
+			return row?{settings:JSON.parse(row.doc),revision:row.revision,updated:row.updated}:null
+		},
+		saveSettings(settings:WorkSettings,at:string) {return tx(()=>{const revision=createHash('sha256').update(JSON.stringify(settings)+at).digest('hex');db.prepare('INSERT INTO settings VALUES (1,?,?,?) ON CONFLICT(id) DO UPDATE SET doc=excluded.doc,revision=excluded.revision,updated=excluded.updated').run(JSON.stringify(settings),revision,at);event(0,'settings-updated',{settings,revision},at);return {settings,revision,updated:at}})},
+		request<A>(id:string,operation:string,target:number|null,input:unknown,run:()=>A):A {
+			return tx(()=>{const fingerprint=JSON.stringify(qaCanonical({operation,target,input}));const row=db.prepare('SELECT fingerprint,receipt FROM operator_requests WHERE id=?').get(id) as {fingerprint:string;receipt:string}|undefined
+			if(row){if(row.fingerprint!==fingerprint) throw new MadeWellError({code:'request_id_conflict',message:'Request id already used with different input.',context:{requestId:id},next:[]});return JSON.parse(row.receipt) as A}
+			const result=run();db.prepare('INSERT INTO operator_requests VALUES (?,?,?)').run(id,fingerprint,JSON.stringify(result));return result})
+		},
+		migrationJournal():MigrationJournal|null {
+			if(!db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='migrations'").get()) return null
+			const row=db.prepare('SELECT id,token,phase,doc,started,updated FROM migrations ORDER BY started DESC LIMIT 1').get() as {id:string;token:string;phase:MigrationJournal['phase'];doc:string;started:string;updated:string}|undefined
+			return row?{...row,doc:JSON.parse(row.doc)}:null
+		},
+		migrationBegin(journal:MigrationJournal) {tx(()=>{const pending=store.migrationJournal();if(pending&&pending.phase!=='complete') throw new MadeWellError({code:'migration_in_progress',message:'Migration in progress.',context:{migrationId:pending.id,token:pending.token,phase:pending.phase},next:[]});db.prepare('INSERT INTO migrations VALUES (?,?,?,?,?,?)').run(journal.id,journal.token,journal.phase,JSON.stringify(journal.doc),journal.started,journal.updated)})},
+		migrationSaveItems(id:string,items:ReadonlyArray<Item>,events:ReadonlyArray<{item:number;kind:string;data:Record<string,unknown>;at:string}>) {tx(()=>{const j=store.migrationJournal()!;if(j.id!==id||j.phase!=='snapshot-saved') throw new MadeWellError({code:'migration_conflict',message:'Migration phase changed.',context:{id},next:[]});for(const item of items) db.prepare('UPDATE items SET doc=? WHERE id=?').run(JSON.stringify(item),item.id);for(const e of events) event(e.item,e.kind,e.data,e.at);db.prepare("UPDATE migrations SET phase='items-saved',updated=? WHERE id=?").run(events[0]?.at??j.updated,id)})},
+		migrationPhase(id:string,phase:MigrationJournal['phase'],receipt?:MigrationReceipt) {tx(()=>{const j=store.migrationJournal()!;db.prepare('UPDATE migrations SET phase=?,doc=?,updated=? WHERE id=?').run(phase,JSON.stringify({...j.doc,...(receipt?{receipt}:{})}),receipt?.completedAt??timestamp(),id)})},
 		qaRetained,
 		qaRead(query: QaQuery): QaReadResult {
 			return qaGuard(() => {
@@ -440,15 +471,15 @@ export function openStore(path: string) {
 				}
 				if (command.operation === 'createCase') {
 					const i = command.input
-					qaAnchor(i.workItem, i.workspace)
-					const id = Number(db.prepare('INSERT INTO qa_cases (work_item, workspace, current_revision, created_at) VALUES (?, ?, 1, ?)').run(i.workItem, i.workspace, at).lastInsertRowid)
+					qaAnchor(i.workItem)
+					const id = Number(db.prepare('INSERT INTO qa_cases (work_item, workspace, current_revision, created_at) VALUES (?, ?, 1, ?)').run(i.workItem, '', at).lastInsertRowid)
 					const revision: QaCaseRevision = { caseId: id, revision: 1, at, enteredBy: i.enteredBy, instructions: i.instructions }
 					db.prepare('INSERT INTO qa_case_revisions (case_id, revision, doc) VALUES (?, 1, ?)').run(id, JSON.stringify(revision))
 					return accepted(i.workItem, 'case', id, null, 0, 1)
 				}
 				if (command.operation === 'reviseCase') {
 					const c = qaCaseRow(command.caseId)
-					qaAnchor(c.workItem, c.workspace)
+					qaAnchor(c.workItem)
 					if (command.input.revision !== c.currentRevision) return stale(c.workItem, command.input.revision, c.currentRevision)
 					const revision: QaCaseRevision = { caseId: c.id, revision: c.currentRevision + 1, at, enteredBy: command.input.enteredBy, instructions: command.input.instructions }
 					if (!Number.isSafeInteger(revision.revision)) throw qaFailure(400, 'invalid_input', { caseId: c.id, reason: 'revision_exhausted' })
@@ -458,21 +489,20 @@ export function openStore(path: string) {
 				}
 				if (command.operation === 'startRun') {
 					const i = command.input
-					qaAnchor(i.workItem, i.workspace)
+					qaAnchor(i.workItem)
 					for (const pin of i.cases) {
 						const c = qaCaseRow(pin.caseId)
-						qaAnchor(c.workItem, c.workspace)
-						if (c.workspace !== i.workspace) throw qaFailure(409, 'workspace_mismatch', { caseId: c.id, workspace: i.workspace, expected: c.workspace, refresh: `mw qa-case ${c.id}` })
+						qaAnchor(c.workItem)
 						qaRevisionRow(c.id, pin.caseRevision)
 					}
-					const id = Number(db.prepare('INSERT INTO qa_runs (work_item, workspace, doc) VALUES (?, ?, ?)').run(i.workItem, i.workspace, '{}').lastInsertRowid)
+					const id = Number(db.prepare('INSERT INTO qa_runs (work_item, workspace, doc) VALUES (?, ?, ?)').run(i.workItem, '', '{}').lastInsertRowid)
 					const { requestId: _, ...fields } = i
 					const run: QaRun = { ...fields, id, startedAt: at }
 					db.prepare('UPDATE qa_runs SET doc = ? WHERE id = ?').run(JSON.stringify(run), id)
 					return accepted(i.workItem, 'run', id, null, 0, 0)
 				}
 				const run = qaRunRow(command.runId)
-				qaAnchor(run.workItem, run.workspace)
+				qaAnchor(run.workItem)
 				const pin = qaEntry(run, command.caseId)
 				const current = qaHistory(run.id, pin.caseId).at(-1)?.entryRevision ?? 0
 				if (command.input.revision !== current) return stale(run.workItem, command.input.revision, current)
@@ -495,13 +525,12 @@ export function openStore(path: string) {
 					let linkedTarget: QaLink['target']
 					try {
 						if (i.target.kind === 'work-item') {
-							qaAnchor(i.target.workItem, run.workspace)
-							const { id, workspace, title, objective, source, status, updated } = read(i.target.workItem)!
-							linkedTarget = { kind: 'work-item', workItem: id, snapshot: { id, workspace, title, objective, source, status, updated } }
+							qaAnchor(i.target.workItem)
+							const { id, title, objective, source, status, updated } = read(i.target.workItem)!
+							linkedTarget = { kind: 'work-item', workItem: id, snapshot: { id, title, objective, source, status, updated } }
 						} else if (i.target.kind === 'reference') linkedTarget = i.target
 						else {
 							const retest = qaRunRow(i.target.runId)
-							if (retest.workspace !== run.workspace) throw qaFailure(409, 'workspace_mismatch', { ...facts, workspace: run.workspace, expected: retest.workspace })
 							if (retest.id <= run.id || retest.application !== run.application) throw qaFailure(409, 'invalid_retest', { ...facts, reason: retest.id <= run.id ? 'not_later_run' : 'different_application' })
 							const targetPin = qaEntry(retest, pin.caseId)
 							qaRevisionRow(targetPin.caseId, targetPin.caseRevision)
@@ -512,7 +541,7 @@ export function openStore(path: string) {
 							const context = cause.context as { status: number; reason: string; facts: Record<string, unknown> }
 							throw qaFailure(context.status, context.reason, { ...context.facts, ...facts })
 						}
-						if (cause instanceof MadeWellError && cause.code === 'item_not_found' && i.target.kind === 'work-item') throw new MadeWellError({ code: 'item_not_found', message: cause.message, context: { id: i.target.workItem }, next: [{ run: refresh, why: 'inspect source evidence and choose an existing same-workspace target' }] })
+						if (cause instanceof MadeWellError && cause.code === 'item_not_found' && i.target.kind === 'work-item') throw new MadeWellError({ code: 'item_not_found', message: cause.message, context: { id: i.target.workItem }, next: [{ run: refresh, why: 'inspect source evidence and choose an existing work target' }] })
 						throw cause
 					}
 					return accepted(run.workItem, 'run-entry', run.id, pin.caseId, current, current, { enteredBy: i.enteredBy, source: { runId: run.id, ...pin, observationId: i.observationId }, target: linkedTarget })
@@ -547,11 +576,11 @@ export function openStore(path: string) {
 		},
 		/** A phase's accepted output, transition and reusable NQ decisions commit together. */
 		atomic<T>(run: () => T): T { return tx(run) },
-		create(fields: Pick<Item, 'title' | 'objective' | 'source' | 'workspace'> & Partial<Pick<Item, 'job' | 'parent' | 'from' | 'rework' | 'status' | 'discovery' | 'kind' | 'outputs' | 'after' | 'pack' | 'autonomy' | 'flow' | 'organs'>>): Item {
+		create(fields: Pick<Item, 'title' | 'objective' | 'source'> & Partial<Item>): Item {
 			const created = tx(() => {
-				const now = new Date().toISOString()
+				const now = timestamp()
 				const { lastInsertRowid } = db.prepare('INSERT INTO items (doc) VALUES (?)').run('{}')
-				const item: Item = { job: laneOf(fields.pack).delivery[0]?.job ?? '', from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: now, updated: now }
+				const item = { job: laneOf(fields.pack).delivery[0]?.job ?? '', from: { kind: 'dispatcher' }, status: 'queued', outputs: {}, ...fields, id: Number(lastInsertRowid), round: 1, corrections: 0, launches: 0, created: fields.created??now, updated: fields.updated??now } as Item
 				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(item), item.id)
 				event(item.id, 'created', { title: item.title, job: item.job, status: item.status, parent: item.parent ?? null, discovery: item.discovery ?? null })
 				return item
@@ -565,17 +594,21 @@ export function openStore(path: string) {
 		note(id: number, kind: string, data: Record<string, unknown> = {}, at?: string) {
 			tx(() => event(id, kind, data, at))
 		},
-		/** Saves the new state of an item together with the event that explains it. */
-		save(item: Item, kind: string, data: Record<string, unknown> = {}): Item {
-			const next = { ...item, updated: new Date().toISOString() }
-			tx(() => {
-				db.prepare('UPDATE items SET doc = ? WHERE id = ?').run(JSON.stringify(next), item.id)
-				event(item.id, kind, data)
+		/** Compare and save under the same write lock, preserving concurrent blockers and answers. */
+		transition(id: number, expected: string, kind: string, data: Record<string,unknown>, change: (current:Item)=>Item): Item {
+			return tx(()=>{
+				const current=read(id)
+				if(!current) throw new MadeWellError({code:'item_not_found',message:`No work item #${id}.`,context:{id},next:[]})
+				const actual=createHash('sha256').update(JSON.stringify(current)).digest('hex')
+				if(expected!==actual) throw new MadeWellError({code:'revision_conflict',message:'The work changed; review the current record.',context:{id,expected,actual},next:[{run:`mw context ${id}`,why:'review the concurrent transition'}]})
+				const next={...change(current),updated:timestamp()}
+				db.prepare('UPDATE items SET doc=? WHERE id=?').run(JSON.stringify(next),id)
+				event(id,kind,data.actor?{...data,output:next}:data,next.updated)
+				return next
 			})
-			return next
 		},
 		list(): Item[] {
-			return (db.prepare('SELECT doc FROM items ORDER BY id').all() as { doc: string }[]).map((r) => JSON.parse(r.doc))
+			return (db.prepare('SELECT doc FROM items ORDER BY id').all() as { doc: string }[]).map((r) => {const raw=JSON.parse(r.doc);return decodeLegacy(raw,raw.updated??raw.created??'1970-01-01T00:00:00.000Z')})
 		},
 		events(id: number): Event[] {
 			return (db.prepare('SELECT * FROM events WHERE item = ? ORDER BY seq').all(id) as { seq: number; item: number; at: string; kind: string; data: string }[]).map((r) => ({ ...r, data: JSON.parse(r.data) }))
@@ -591,7 +624,7 @@ export function openStore(path: string) {
 					.run(call.item, call.kind, call.job, call.profile, JSON.stringify(call.card), call.system, call.prompt, call.outcome, call.output, call.error, call.raw, call.started, call.ms, tokens && JSON.stringify(tokens), facts ? JSON.stringify(facts) : null, JSON.stringify(flags)).lastInsertRowid)
 				insertTools(id, tools)
 				const { system, prompt, output, raw, ...summary } = call
-				emit('call', { id, ...summary, workspace: read(call.item)?.workspace ?? null, tokens, flags, facts: facts ?? null, tools, system, prompt, output, raw })
+				emit('call', { id, ...summary, tokens, flags, facts: facts ?? null, tools, system, prompt, output, raw })
 				return id
 			})
 		},
@@ -726,6 +759,9 @@ export class Store extends Context.Service<Store, ReturnType<typeof openStore>>(
 export const spansPath = (path: string) => join(dirname(path), 'spans.jsonl')
 export const storeLayer = (path = defaultStorePath()) =>
 	Layer.mergeAll(
-		Layer.effect(Store, Effect.acquireRelease(Effect.sync(() => openStore(path)), (s) => Effect.sync(() => s.close()))),
+		Layer.effect(Store, Effect.acquireRelease(Effect.clockWith(clock=>Effect.sync(()=>openStore(path,{now:()=>clock.currentTimeMillisUnsafe()}))), (s) => Effect.sync(() => s.close()))),
 		debugLayer(path === ':memory:' ? ':memory:' : spansPath(path), telemetry(path)),
 	)
+
+export const openReadOnlyStore = (path:string) => openStore(path,{readOnly:true})
+export const readOnlyStoreLayer = (path=defaultStorePath()) => Layer.effect(Store,Effect.acquireRelease(Effect.sync(()=>openReadOnlyStore(path)),s=>Effect.sync(()=>s.close())))

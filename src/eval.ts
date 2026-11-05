@@ -4,21 +4,22 @@
 // telemetry flags, seconds and tokens. The report compares them call by call and in aggregate, and names
 // the cheapest card that matches or beats the record, so prescriptions come from evidence.
 //
-// Leave no trace: every replay runs in a throwaway worktree of the item's workspace, and is proved to
-// leave the product repo exactly as it found it. Results go only into Made Well's own store (the `evals`
+// Every replay uses fresh scratch and fingerprints only its explicitly declared material. Results go only into Made Well's own store (the `evals`
 // and `eval_calls` tables beside the calls they replay). No file is changed.
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { Clock, Effect, Schema } from 'effect'
-import { AGENT_JOBS, Card, budgetFor, cardsFor, harnessOf, prescriptionOf, type Access, type Prescriptions } from './cards.ts'
+import { AGENT_JOBS, Card, budgetFor, cardsFor, forLane, harnessOf, prescriptionOf, type Access, type Prescriptions } from './cards.ts'
 import { MadeWellError, Next, quote } from './errors.ts'
 import { HARNESSES } from './harness.ts'
 import { decode, INTAKE, laneOf, lastJson, ORIGINATOR, validate, type Job, type Lane } from './lane.ts'
 import { Store, type Call } from './store.ts'
 import { flagsFor, telemetry, tokensOf, toolEvents, totalTokens, type Facts, type Flag } from './telemetry.ts'
 import { Worker, type WorkerRequest, type WorkerResult } from './worker.ts'
-import { capture, readOnly, worktree } from './workspace.ts'
+import { scratch, fingerprint } from './workspace.ts'
+import { stepOf } from './lane.ts'
+import { assertWritable } from './migration.ts'
 
 /** Every agent job. verify is Made Well's own code, so there is nothing to replay. */
 export const JOBS = AGENT_JOBS satisfies ReadonlyArray<Job>
@@ -50,7 +51,7 @@ const CardResult = Schema.Struct({
 	replay: Totals,
 	recorded: Totals.annotate({ description: 'the same calls, as recorded' }),
 	matches: Schema.Boolean.annotate({ description: 'complete, at least as many valid answers and no more rule breaks than the record' }),
-	calls: Schema.Array(Schema.Struct({ call: Schema.Int, item: Schema.Int, kind: Schema.String, recorded: Score, replay: Score, verdict: Schema.Literals(['better', 'same', 'worse']) })),
+	calls: Schema.Array(Schema.Struct({ call: Schema.Int, item: Schema.Int, kind: Schema.String, recorded: Score, replay: Score, verdict: Schema.Literals(['better', 'same', 'worse', 'unavailable']) })),
 }).annotate({ identifier: 'CardResult' })
 type CardResult = typeof CardResult.Type
 
@@ -60,7 +61,7 @@ export const EvalReport = Schema.Struct({
 	brief: Schema.NullOr(Schema.String),
 	recorded: Schema.Struct({ ...Totals.fields, cards: Schema.Array(EvalCard) }),
 	cards: Schema.Array(CardResult),
-	recommendation: Schema.NullOr(Schema.Struct({ card: EvalCard, tier: Schema.NullOr(Schema.String), prescribed: Schema.String, why: Schema.String })),
+	recommendation: Schema.NullOr(Schema.Struct({ card: EvalCard, tier: Schema.NullOr(Schema.String), prescribed: Schema.NullOr(Schema.String), why: Schema.String })),
 	next: Schema.Array(Next),
 }).annotate({ identifier: 'EvalReport' })
 type EvalReport = typeof EvalReport.Type
@@ -124,12 +125,15 @@ const ITEM_IDS = /^\d+$/
 
 /** Replays a job's recorded calls on the given card(s) or brief, records the results in the store, and reports. */
 export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: string; brief?: string; item?: string; limit?: number; prescriptions: Prescriptions; prescriptionsPath: string }) {
+	yield* assertWritable()
 	const store = yield* Store
 	const worker = yield* Worker
-	const p = o.prescriptions
 	const items = (o.item ?? '').split(/[\s,]+/).filter(Boolean)
 	if (items.some((i) => !ITEM_IDS.test(i) || Number(i) < 1)) return yield* usage(`--item takes work item numbers separated by commas, such as --item 3,5; got "${o.item}".`)
 	const ids = items.map(Number)
+	const owner = (ids.length ? ids.map(id => store.get(id)).filter(item => item !== undefined) : store.list()).find(item => [...laneOf(item.pack).discovery, ...laneOf(item.pack).delivery].some(step => step.job === o.job && !step.run && !step.children))
+	const resolved = owner ? yield* Effect.result(forLane(o.prescriptions, laneOf(owner.pack))) : undefined
+	const p = resolved?._tag === 'Success' ? resolved.success : o.prescriptions
 	const cards = o.card === undefined ? undefined : yield* candidates(o.card, p)
 	const briefPath = o.brief === undefined ? undefined : resolve(o.brief)
 	const brief = briefPath === undefined ? undefined : yield* Effect.try({
@@ -175,25 +179,19 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 		return score(c.kind as Kind, laneOf(store.get(c.item)?.pack), o.job, { ...c, flags: flagsFor(facts, c) })
 	}
 
-	/** One replay in a fresh worktree at the call's recorded HEAD (else the workspace's), proved to leave the product repo untouched. */
-	const replay = (c: Call, card: Card, n: number) => {
-		const workspace = store.get(c.item)!.workspace
-		return readOnly(workspace, Effect.scoped(Effect.gen(function* () {
-			const wt = yield* worktree(workspace, c.facts?.head?.before ?? 'HEAD', `eval-${run}-${c.id}-${n}`)
-			const before = yield* capture(wt.path)
-			const system = c.kind === 'execute' && brief !== undefined ? brief : c.system
-			// The packet names the item's workspace; the replay works in its own worktree instead.
-			const prompt = c.prompt.replaceAll(workspace, wt.path)
-			const started = yield* Clock.currentTimeMillis
-			const result: WorkerResult = yield* worker
-				.run({ kind: c.kind as Kind, item: c.item, job: o.job, profile: c.profile, card, access: accessOf(c), system, prompt, cwd: wt.path, budget, harness: harnessOf(p, card.harness) })
-				.pipe(Effect.withSpan(`mw.eval.${c.kind}.${o.job}`, { attributes: { eval: run, call: c.id, harness: card.harness, model: card.model, account: card.account } }))
-			const ms = (yield* Clock.currentTimeMillis) - started
-			const after = yield* capture(wt.path)
-			const changed = [...new Set([...Object.keys(before.files), ...Object.keys(after.files)])].filter((f) => !f.startsWith('.git/') && before.files[f] !== after.files[f]).sort()
-			return { result, system, prompt, ms, started, head: { before: before.head, after: after.head }, changed }
-		})))
-	}
+	/** Replay saved input in fresh scratch, refusing side effects and unavailable legacy context. */
+ const replay=(c:Call,card:Card,n:number)=>Effect.scoped(Effect.gen(function*(){
+  const item=store.get(c.item),step=item?stepOf(laneOf(item.pack),o.job):undefined
+  const saved=lastJson(c.prompt)
+  const received=saved?.received&&typeof saved.received==='object'&&!Array.isArray(saved.received)?saved.received as Record<string,unknown>:undefined
+  const unavailable=!item||item.pack?.contracts?.execution!=='2'||!step||step.replay!=='safe'||step.writes?.length||!saved?.item||!saved.bindings||!received||step.receives.some(job=>!(job in received)||received[job]===undefined||received[job]===null)
+  if(unavailable) return {unavailable:'Replay unavailable: saved input/context and a current execution-2 safe leaf are required. Side effects need separate authorization and isolated destinations.'}
+  const dir=yield* scratch(store.path,c.item,o.job,`eval-${run}-${c.id}-${n}`),before=fingerprint([dir,...item.settings.inputs.filter(i=>!i.jobs||i.jobs.includes(o.job)).map(i=>i.path)])
+  const system=c.kind==='execute'&&brief!==undefined?brief:c.system,prompt=c.prompt,started=yield* Clock.currentTimeMillis
+  const result:WorkerResult=yield* worker.run({kind:c.kind as Kind,item:c.item,job:o.job,profile:c.profile,card,access:accessOf(c),system,prompt,cwd:dir,budget,harness:harnessOf(p,card.harness)})
+  const after=fingerprint([dir,...item.settings.inputs.filter(i=>!i.jobs||i.jobs.includes(o.job)).map(i=>i.path)])
+  return {result,system,prompt,ms:(yield* Clock.currentTimeMillis)-started,started,changed:before===after?[]:['declared material'],head:undefined}
+ }))
 
 	const groups = cards ? cards.map((card) => ({ card, calls })) : calls.reduce<{ card: Card; calls: Call[] }[]>((gs, c) => {
 		const g = gs.find((g) => sameCard(g.card, c.card))
@@ -213,6 +211,13 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 				break
 			}
 			const r = yield* replay(c, g.card, n)
+			if (r.unavailable !== undefined) {
+				const s: Score = { outcome: 'unavailable', valid: false, parses: false, reason: r.unavailable, flags: [], seconds: 0, tokens: null }
+				const facts: Facts = { ...rulesOf(c), head: undefined, changed: [] }
+				insert.run(run, c.id, JSON.stringify(g.card), c.system, c.prompt, 'unavailable', null, r.unavailable, null, new Date(yield* Clock.currentTimeMillis).toISOString(), 0, null, JSON.stringify(facts), JSON.stringify([]), JSON.stringify(s))
+				scored.push({ call: c.id, item: c.item, kind: c.kind, recorded: recordedScore(c), replay: s, verdict: 'unavailable' })
+				continue
+			}
 			const raw = r.result.raw ?? null
 			const output = r.result.ok ? r.result.output : null
 			const tokens = tokensOf(g.card.harness, raw)
@@ -232,9 +237,10 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 			const recorded = recordedScore(c)
 			scored.push({ call: c.id, item: c.item, kind: c.kind, recorded, replay: s, verdict: verdict(recorded, s) })
 		}
-		const replayed = totals(scored.map((s) => s.replay))
-		const recorded = totals(scored.map((s) => s.recorded))
-		const complete = scored.length === g.calls.length
+		const available = scored.filter((s) => s.verdict !== 'unavailable')
+		const replayed = totals(available.map((s) => s.replay))
+		const recorded = totals(available.map((s) => s.recorded))
+		const complete = scored.length === g.calls.length && available.length === scored.length
 		results.push({
 			card: g.card, complete, ...(limited ? { limited } : {}), replay: replayed, recorded,
 			matches: complete && replayed.valid >= recorded.valid && replayed.flags <= recorded.flags, calls: scored,
@@ -250,8 +256,10 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 		const [x, y] = [cost(a), cost(b)]
 		return x[0]! - y[0]! || x[1]! - y[1]! || x[2]! - y[2]!
 	})[0]
-	const prescribed = prescriptionOf(p, o.job).tier
-	const tierOf = (card: Card) => (p.tiers[prescribed]!.some((c) => sameCard(c, card)) ? prescribed : Object.keys(p.tiers).find((t) => p.tiers[t]!.some((c) => sameCard(c, card))) ?? null)
+	const prescription = p.jobs[o.job]
+	const requestedTier = prescription && typeof prescription === 'object' && 'tier' in prescription && typeof prescription.tier === 'string' ? prescription.tier : null
+	const prescribed = requestedTier && p.tiers[requestedTier] ? requestedTier : null
+	const tierOf = (card: Card) => (prescribed && p.tiers[prescribed]!.some((c) => sameCard(c, card)) ? prescribed : Object.keys(p.tiers).find((t) => p.tiers[t]!.some((c) => sameCard(c, card))) ?? null)
 	const overall = totals(calls.map(recordedScore))
 	const tokens = (t: Totals) => (t.tokens === null ? 'unreported tokens' : `${t.tokens} tokens`)
 	const recommendation = best ? {
@@ -262,10 +270,15 @@ export const evaluate = Effect.fn('mw.eval')(function* (o: { job: Job; card?: st
 	} : null
 
 	const command = ['mw eval', o.job, ...(o.card !== undefined ? ['--card', quote(o.card)] : []), ...(briefPath ? ['--brief', quote(briefPath)] : []), ...(ids.length ? ['--item', ids.join(',')] : []), ...(o.limit ? ['--limit', String(o.limit)] : [])].join(' ')
-	const lead = cardsFor(p, o.job)[0]!
+	const lead = prescribed ? cardsFor(p, o.job)[0] : undefined
+	const unavailable = results.flatMap((r) => r.calls.filter((c) => c.verdict === 'unavailable'))
 	const next: Next[] = [
-		...(best && !sameCard(best.card, lead) ? [{ run: `$EDITOR ${quote(o.prescriptionsPath)}`, why: `to prescribe ${label(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` }] : []),
-		...(!best ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: comparable ? 'no evaluated card matched the record: keep the prescription, or try other cards' : 'recorded cards replayed different call IDs; use --card to compare every card on the same selected calls before changing the prescription' }] : []),
+		...(best && (!lead || !sameCard(best.card, lead)) ? [{ run: `$EDITOR ${quote(o.prescriptionsPath)}`, why: prescribed ? `to prescribe ${label(best.card)} for ${o.job}: put it first in tier "${prescribed}", or point ${o.job} at a tier led by it. Made Well changes no file itself.` : `to prescribe ${label(best.card)} for ${o.job}, point the job at a tier led by it. Made Well changes no file itself.` }] : []),
+		...(!best && !unavailable.length ? [{ run: `mw eval ${o.job} --card <a tier, or a card as JSON>`, why: comparable ? 'no evaluated card matched the record: keep the prescription, or try other cards' : 'recorded cards replayed different call IDs; use --card to compare every card on the same selected calls before changing the prescription' }] : []),
+		...[...new Set(unavailable.map((c) => c.item))].sort((a, b) => a - b).map((item) => {
+			const entries = unavailable.filter((c) => c.item === item)
+			return { run: `mw trace ${item} --lens ax`, why: `Replay unavailable for call(s) ${[...new Set(entries.map((c) => c.call))].join(',')}: ${entries[0]!.replay.reason} No card ran these calls, so this is not a card result.` }
+		}),
 		...results.filter((r) => r.limited).map((r) => ({ run: command, why: `${label(r.card)} stopped at a usage limit; run again after ${r.limited!.resetsAt} to complete it` })),
 		{ run: `sqlite3 ${quote(store.path)} "SELECT call, card, outcome, score, output FROM eval_calls WHERE eval = ${run}"`, why: 'read each replayed answer; raw streams, facts and flags are on the same rows' },
 	]

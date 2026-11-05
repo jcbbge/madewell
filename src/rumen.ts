@@ -1,6 +1,7 @@
 // Project constraints and engine-owned evidence. Rule identity is separate from an expanded shell command.
 import { createHash } from 'node:crypto'
-import type { Gate, Project } from './project.ts'
+import type { WorkSettings } from './settings.ts'
+type Gate={id?:string;run:string;glob?:string}
 import type { Event } from './store.ts'
 
 export type RumenKind = 'fence' | 'judge' | 'sign' | 'lexicon'
@@ -51,8 +52,8 @@ export function gateRule(gate: Gate): RumenRule {
 }
 
 /** No rules is an explicit empty inventory. Guidance never becomes a shell gate by its presence here. */
-export function rumenRules(project: Pick<Project, 'gates' | 'conventions' | 'rumen'> | undefined, job: string): RumenRule[] {
-	const gates = (project?.gates ?? []).map(gateRule)
+export function rumenRules(project: Pick<WorkSettings,'conventions'|'rumen'> | undefined, job: string): RumenRule[] {
+	const gates: RumenRule[] = []
 	const conventions: RumenRule[] = [...new Set(project?.conventions ?? [])].map(text => ({
 		id: `convention:${hash(text)}`, kind: 'judge', text, definitionHash: hash({ kind: 'judge', text }), evidenceOwner: 'independent-review',
 	}))

@@ -1,3 +1,10 @@
+# Work interface handoff
+
+Follow DESIGN.md. Capture and lifecycle forms require no registration and use advertised versioned API actions. Persist exact drafts, original revision and pending request identity before sending. Preserve focus/selection/disclosure/scroll across polls and conflicts. Recorded assertions, independent acceptance and historical coverage-unavailable success remain distinct. QA anchors by durable workItem and case/run IDs. Rendered acceptance is independently owned, never claimed by a maker.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
 # Observability UI — Handoff & Retrospective
 
 **Date:** 2026-10-24
@@ -52,3 +59,5 @@ A **viewable, usable** default view does not exist. The backend can serve the da
 ## 6. Concrete next step
 
 Make **one** static, openable screen with seed data: two labeled frames (Delivery, Discovery), each listing its items in plain language, with one item clearly stopped and a plain "stuck here → next action" line. No navigation, no lenses, no animation. Put it on a stable URL. Show the operator. Ask one question: *"Does this feel right?"* Build nothing else until the answer is yes.
+
+</details>

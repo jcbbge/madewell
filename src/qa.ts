@@ -2,6 +2,7 @@
 // The Store owns every row/transaction; CLI and HTTP share these exact boundaries.
 import { Clock, Effect, Schema } from 'effect'
 import { MadeWellError } from './errors.ts'
+import { assertWritable } from './migration.ts'
 import { Store } from './store.ts'
 import { observe } from './trace.ts'
 import { formatQaMarkdown } from './export.ts'
@@ -29,13 +30,13 @@ export const QaInstructions = Schema.Struct({
 	prerequisites: text(8000), testData: text(8000), actions: Schema.Array(nonblank(2000)).check(Schema.isBetweenLength(1, 100)), expected: nonblank(8000),
 })
 export const QaVersion = Schema.Union([Schema.Struct({ kind: Schema.Literal('unknown') }), Schema.Struct({ kind: Schema.Literal('known'), value: nonblank(300), source: QaRef })])
-export const QaCase = Schema.Struct({ id: QaId, workItem: QaId, workspace: nonblank(4096), currentRevision: QaId, createdAt: timestamp })
+export const QaCase = Schema.Struct({ id: QaId, workItem: QaId, currentRevision: QaId, createdAt: timestamp })
 export type QaCase = typeof QaCase.Type
 export const QaCaseRevision = Schema.Struct({ caseId: QaId, revision: QaId, at: timestamp, enteredBy: QaActor, instructions: QaInstructions })
 export type QaCaseRevision = typeof QaCaseRevision.Type
 const pin = Schema.Struct({ caseId: QaId, caseRevision: QaId })
 const pins = Schema.Array(pin).check(Schema.isBetweenLength(1, 100), Schema.makeFilter((value: readonly (typeof pin.Type)[]) => new Set(value.map((p) => p.caseId)).size === value.length, { toJsonSchema: () => [{}, true] }))
-export const QaRun = Schema.Struct({ id: QaId, workItem: QaId, workspace: nonblank(4096), application: nonblank(2000), environment: nonblank(2000), version: QaVersion, startedAt: timestamp, enteredBy: QaActor, cases: pins })
+export const QaRun = Schema.Struct({ id: QaId, workItem: QaId, application: nonblank(2000), environment: nonblank(2000), version: QaVersion, startedAt: timestamp, enteredBy: QaActor, cases: pins })
 export type QaRun = typeof QaRun.Type
 export const QaObservation = Schema.Struct({
 	id: QaId, runId: QaId, caseId: QaId, caseRevision: QaId, entryRevision: QaId, at: timestamp,
@@ -43,9 +44,9 @@ export const QaObservation = Schema.Struct({
 	actual: text(8000), reproduction: text(8000), notes: text(8000), evidence: refs, reportedResult: Schema.NullOr(QaState), verdict: Schema.NullOr(QaState),
 })
 export type QaObservation = typeof QaObservation.Type
-export const QaCreateCaseInput = Schema.Struct({ requestId, workItem: QaId, workspace: nonblank(4096), enteredBy: QaActor, instructions: QaInstructions })
+export const QaCreateCaseInput = Schema.Struct({ requestId, workItem: QaId, enteredBy: QaActor, instructions: QaInstructions })
 export const QaReviseCaseInput = Schema.Struct({ requestId, revision: QaId, enteredBy: QaActor, instructions: QaInstructions })
-export const QaStartRunInput = Schema.Struct({ requestId, workItem: QaId, workspace: nonblank(4096), enteredBy: QaActor, application: nonblank(2000), environment: nonblank(2000), version: QaVersion, cases: pins })
+export const QaStartRunInput = Schema.Struct({ requestId, workItem: QaId, enteredBy: QaActor, application: nonblank(2000), environment: nonblank(2000), version: QaVersion, cases: pins })
 const observationInput = { requestId, revision: QaCounter, enteredBy: QaActor, claimedVerifier: Schema.NullOr(QaActor), observedAt: Schema.NullOr(timestamp), actual: text(8000), reproduction: text(8000), notes: text(8000), evidence: refs }
 export const QaObserveInput = Schema.Union([
 	Schema.Struct({ ...observationInput, kind: Schema.Literal('note'), reportedResult: Schema.Null }),
@@ -62,7 +63,7 @@ export const QaLinkInput = Schema.Struct({ requestId, revision: QaCounter, enter
 	Schema.Struct({ kind: Schema.Literal('retest'), runId: QaId }),
 ]) })
 export type QaLinkInput = typeof QaLinkInput.Type
-export const QaLinkedWork = Schema.Struct({ id: QaId, workspace: Schema.String, title: Schema.String, objective: Schema.String, source: Schema.String, status: Schema.String, updated: Schema.String })
+export const QaLinkedWork = Schema.Struct({ id: QaId, title: Schema.String, objective: Schema.String, source: Schema.String, status: Schema.String, updated: Schema.String })
 export type QaLinkedWork = typeof QaLinkedWork.Type
 export const QaLink = Schema.Struct({ event: QaId, at: timestamp, requestId, enteredBy: QaActor,
 	source: Schema.Struct({ runId: QaId, caseId: QaId, caseRevision: QaId, observationId: QaId }),
@@ -106,7 +107,7 @@ export type QaAccepted = typeof QaAccepted.Type
 const page = <S extends Schema.Top>(schema: S) => Schema.Struct({ apiVersion: Schema.Literal('1'), items: Schema.Array(schema), nextAfter: Schema.NullOr(QaId), hasMore: Schema.Boolean })
 export const QaCaseList = page(Schema.Struct({ ...QaCase.fields, title: nonblank(300), area: nonblank(300) }))
 export const QaCaseDetail = Schema.Struct({ apiVersion: Schema.Literal('1'), case: QaCase, revision: QaCaseRevision })
-export const QaRunList = page(Schema.Struct({ id: QaId, workItem: QaId, workspace: nonblank(4096), application: nonblank(2000), environment: nonblank(2000), version: QaVersion, startedAt: timestamp, caseCount: QaId }))
+export const QaRunList = page(Schema.Struct({ id: QaId, workItem: QaId, application: nonblank(2000), environment: nonblank(2000), version: QaVersion, startedAt: timestamp, caseCount: QaId }))
 export const QaRunDetail = Schema.Struct({ apiVersion: Schema.Literal('1'), run: QaRun, entries: Schema.Array(Schema.Struct({
 	caseId: QaId, caseRevision: QaId, title: nonblank(300), area: nonblank(300), entryRevision: QaCounter, status: QaState,
 	currentCaseRevision: QaId, outdated: Schema.Boolean, latestVerdictId: Schema.NullOr(QaId), instructionsHref: Schema.String, observationsHref: Schema.String,
@@ -115,9 +116,9 @@ export const QaObservationList = page(QaObservation)
 export const QaSnapshot = Schema.Struct({ schemaVersion: Schema.Literal(1), run: QaRun, entries: Schema.Array(Schema.Struct({ caseId: QaId, caseRevision: QaId, instructions: QaCaseRevision, entryRevision: QaCounter, status: QaState, observations: Schema.Array(QaObservation) })) })
 export type QaSnapshot = typeof QaSnapshot.Type
 const pagination = { after: Schema.optionalKey(QaCounter), limit: Schema.optionalKey(Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 }))) }
-export const QaCasesQuery = Schema.Struct({ workspace: Schema.optionalKey(nonblank(4096)), workItem: Schema.optionalKey(QaId), q: Schema.optionalKey(text(300)), area: Schema.optionalKey(text(300)), ...pagination })
+export const QaCasesQuery = Schema.Struct({ workItem: Schema.optionalKey(QaId), q: Schema.optionalKey(text(300)), area: Schema.optionalKey(text(300)), ...pagination })
 export const QaCaseQuery = Schema.Struct({ revision: Schema.optionalKey(QaId) })
-export const QaRunsQuery = Schema.Struct({ workspace: Schema.optionalKey(nonblank(4096)), workItem: Schema.optionalKey(QaId), caseId: Schema.optionalKey(QaId), ...pagination })
+export const QaRunsQuery = Schema.Struct({ workItem: Schema.optionalKey(QaId), caseId: Schema.optionalKey(QaId), ...pagination })
 export const QaObservationsQuery = Schema.Struct({ caseId: Schema.optionalKey(QaId), ...pagination })
 
 export type QaActor = typeof QaActor.Type
@@ -178,6 +179,7 @@ export const qaParseJson = (bytes: Uint8Array): unknown => {
 }
 
 const write = Effect.fn('mw.qaWrite')(function* (command: QaCommand) {
+	yield* assertWritable()
 	const store = yield* Store
 	// This read only locates trace ownership. All authority/link/CAS checks repeat under the write lock.
 	const itemId = yield* Effect.try({ try: () => {

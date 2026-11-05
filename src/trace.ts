@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { Cause, Effect, Exit } from 'effect'
 import { workEvidenceOf, workEvidenceSummaryOf } from './work-evidence.ts'
 import { currentHandoffOf } from './handoff-view.ts'
-import { laneOf, stepOf } from './lane.ts'
+import { laneOf, stepOf, lastJson } from './lane.ts'
 import type { Next } from './errors.ts'
 import type { Store } from './store.ts'
 import { toolTracker, totalTokens } from './telemetry.ts'
@@ -163,15 +163,21 @@ export function lensOf(store: Source, id: number, lens: Lens, next: ReadonlyArra
 	const needsYou = item.status === 'held' || item.status === 'paused' || item.status === 'candidate'
 	const live = invocations.filter((i) => i.status === 'running')
 	const state = done ? item.status : needsYou ? 'needs-you' : item.status.startsWith('waiting-') ? 'waiting' : live.length ? 'working' : item.status === 'dropped' ? 'stopped' : runner ? 'queued' : 'not-running'
+	const resultJob=item.pack?.completion?.resultJob??item.flow?.accepted.at(-1)
+	const savedResult=item.status==='open'&&resultJob?lastJson(item.outputs[resultJob]??Object.values(item.flow?.tracks??{}).find(t=>t.outputs[resultJob]!==undefined)?.outputs[resultJob]??''):null
+	const result=item.completion?.result??savedResult
+	const points=typeof result==='string'?Array.from(result):[]
+	const preparedResult=result===null||result===undefined?null:{label:'Prepared result',result:typeof result==='string'?points.slice(0,1200).join(''):null,resultTruncated:points.length>1200,completionKind:item.completion?.kind??null,conditionHash:item.conditionHash}
 	const ux = {
-		item: id, title: item.title, objective: item.objective, workEvidence, currentHandoff, done, needsYou, state,
-		next, proof: { completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
+		item:id,title:item.title,objective:item.objective,owner:item.progress?.owner,nextAction:item.progress?.nextAction,blockers:item.blockers??[],workEvidence, currentHandoff, done, needsYou, state,
+		records:events.filter(e=>!e.kind.startsWith('trace-')).sort((a,b)=>a.seq-b.seq).map(({seq,at,kind,data})=>({seq,at,kind,data})),
+		next, proof: { result:preparedResult, completion: item.completion ?? null, shipped: item.shipped ?? null, verification: item.verification ? { passed: workEvidence.verificationCurrent ? true : item.verification.passed ? null : false, results: item.verification.results.map(({ id, doneWhen, exitCode }) => ({ id, doneWhen, exitCode })) } : null, candidates: store.list().filter((i) => i.discovery === id).map((i) => ({ id: i.id, title: i.title })), hold: item.hold ? { code: item.hold.code, message: item.hold.message } : null },
 	}
 	if (lens === 'ux') {
-		const result = item.completion?.output && typeof item.completion.output === 'object' && 'result' in item.completion.output ? item.completion.output.result : null
+		const result=item.completion?.result??null
 		const points = typeof result === 'string' ? Array.from(result) : []
 		return { lens, depth: 30_000, ...ux, workEvidence: workEvidenceSummaryOf(workEvidence, id), proof: { ...ux.proof,
-			completion: item.completion ? { nodes: item.completion.nodes, result: typeof result === 'string' ? points.slice(0, 1200).join('') : null, resultTruncated: points.length > 1200, detail: `/api/trace/${id}?lens=ax` } : null,
+			completion: item.completion ? { kind:item.completion.kind,acceptedBy:item.completion.acceptedBy,conditionHash:item.completion.conditionHash,result: typeof result === 'string' ? points.slice(0, 1200).join('') : null, resultTruncated: points.length > 1200, detail: `/api/trace/${id}?lens=ax` } : null,
 			shipped: item.shipped ? { recorded: true, main: typeof item.shipped.main === 'string' && item.shipped.main.length > 0 && item.shipped.main.length <= 128 ? item.shipped.main : null, detail: `/api/trace/${id}?lens=ax` } : null,
 		} }
 	}

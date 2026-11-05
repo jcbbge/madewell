@@ -1,5 +1,90 @@
 # Made Well
 
+Capture input, generate tasks, complete tasks. Made Well stores work and its evidence without a project or repository. Read [FOUNDATION.md](FOUNDATION.md) for authority and [OPERATIONS.md](OPERATIONS.md) for installation and cutover.
+
+## General work
+
+All commands print JSON. Failures carry `code`, `message`, factual `context`, optional `cause` and `next` commands. Select state with MW_STORE or MW_HOME; prescriptions are needed only for scheduled agent work.
+
+```sh
+mw start --objective 'Prepare the workshop brief' --source-file notes.txt
+mw discover --source-file notes.txt
+mw status
+mw context 1
+mw settings
+mw progress 1 --input-file progress.json
+mw block 1 --input-file blocker.json
+mw unblock 1 --input-file resolution.json
+mw complete 1 --input-file completion.json
+mw answer 1 'The recorded answer' --cause implementation
+mw stats --dir /absolute/telemetry
+```
+
+`start` records open external work by default. `discover` pins GENERAL_DISCOVERY, retaining the seven discovery obligations and no delivery nodes. `builtin:grammar` resolves made-well-autonomy-lab version 2 with execution/discovery/acceptance/handoff contract 2 and four neutral delivery nodes. Historical version-1 pins remain readable and never gain a default executor. `laneOf(undefined)` is inert. A selected candidate inherits exact parent source, detail, conditions, settings and relevant linked answers; no delivery pack means no runner wake. Candidates name optional nonblank kind and conditions plus distinct earlier 1-based after positions. Invalid dependency locations are refused, never filtered. Publication is atomic with its organ receipts and candidate IDs.
+
+`mw answer <id> <text...> [--cause implementation|test|pre-existing]` answers an item that waits on you: an agent's open questions, a failed check (with --cause), or, at a checkpoint, what should change. Positional answers have no request key. The optional keyed `--input-file <file>` form supplies requestId, revision, text and optional cause instead of positional text; giving both forms is a usage error. The result is `{item,next}`, with the runner wake result in next.
+
+`mw stats [--dir <directory>]` reads the `.jsonl` telemetry files from --dir or MW_TELEMETRY: per host and store, items created, completed and held; lead time, NQ, calls, tokens, refusals and rule-break flags. It returns `{dir,files,lines,...metrics,next}` and needs no work store or worker.
+
+New Item schemaVersion 2 contains exact title/objective/source, optional free-text kind, relationships, outputs, timestamps, execution `{mode:'external'|'cartridge',owner}`, pinned settings, conditions `[{id,text}]`, conditionHash, progress `{remaining,nextAction,owner}`, blockers and optional completion. Conditions default to A1=objective; IDs are unique and nonblank. Default progress is the objective, Carry out the recorded work, operator. Statuses are candidate/open/queued/running/waiting-quota/waiting-prerequisite/held/paused/discovered/completed/dropped. New items have no location/base/change/delivery fields.
+
+Every lifecycle input has `{requestId,revision,actor:{kind:'operator'|'agent',label}}`. Progress adds `{progress:{remaining,nextAction,owner,conditions?}}`; conditions change only on quiescent external work. Block adds `{blocker:{id,reason,owner,nextAction}}`. Unblock adds `{blockerId,resolution}` and releases only that active named blocker. Complete adds `{result,files?,evidence:[{conditionId,detail,refs:[]}]}`. Evidence covers every current condition exactly once. Terminal targets, stale revisions, duplicate active blockers and resolved/unknown blocker IDs are refused. Drop changes only its target. Prerequisites release on completed, never dropped.
+
+CLI creation keys are optional: no key creates new work even for identical source. Keyed CLI and HTTP operations share operator_requests; recursively sorted validated operation/target/input forms the fingerprint. Replay returns the original outcome before resolving defaults or pack files and survives pruning. Conflicting reuse returns request_id_conflict. Stale revisions return revision_conflict. Receipts, event and Item commit under one BEGIN IMMEDIATE; runner writes use the same boundary. A return arriving during a block is saved pending and consumed after unblock without another producer call.
+
+Completion is `{kind:'recorded'|'automated'|'legacy',result,files,conditionHash,evidence,acceptedBy,at}`. Recorded completion is an attributed assertion, only on quiescent external work with no blocker/hold/pending invocation and all prerequisites completed. Automated completion requires an independent later acceptance invocation, current conditionHash and producer output hash. Schema validity and exit status alone cannot complete work. Legacy success retains provenance and acceptance coverage unavailable. Changing conditions invalidates earlier acceptance while retaining history.
+
+## Settings and surfaces
+
+`mw settings [--input-file file]` and GET/POST `/api/v1/settings` share the singleton settings row. A write is `{requestId,revision,settings}`; initial revision is `0`. WorkSettings is `{autonomy,discoveryPack,deliveryPack,alert,inputs,destinations,conventions,rumen}`. Defaults are checkpoints, GENERAL_DISCOVERY, null delivery, null alert and empty arrays. Omitted fields keep values; null/empty clears them. Explicit settings override the inherited discovery snapshot, which overrides installation values. Creation pins full packs and resolved values; later defaults do not change existing work. Binding/alert paths are absolute; only explicit file arguments resolve against caller cwd. Alert is `{run,cwd}`; inputs are `{id,path,kind:'file'|'dir'|'exec',jobs?}`; destinations are `{id,path}`. Rumen guidance has id/kind/text/jobs.
+
+`mw init` returns a usage error naming settings/migrate and writes nothing. No workspace options or registration picker remain. `mw configure-work <id> --input-file file` takes the common lifecycle fields plus `{reason,execution,settings?,conditions?}`. It requires quiescence, refuses uncertain execution, clears only legacy_execution, records original state, and retains blockers/dependencies/cleanup. External needs an owner; cartridge needs an execution-2 pack, pinned settings and no pending cleanup. Successful historical work cannot be reopened.
+
+POST `/api/v1/items` captures input; mode discovery/delivery selects the configured pack. GET `/api/v1/items/{id}` and `mw context` share bounded context and evidence links. POST `/api/v1/items/{id}/progress|block|unblock|complete|configure-work|resolve-execution`, `/answers`, `/start` and `/drop` share engine boundaries. HTTP request IDs use 16–128 ASCII identifier characters. Exact Host/Origin, same-origin CSRF, fatal UTF-8, body bounds and stale-state refusal remain. Browser drafts persist exact fields, original revisions and immutable pending bodies/IDs before sending. Uncertain retries send the same body; conflict review precedes a fresh request. GET `/api/v1/openapi.json` advertises shapes. `/api/v1/session` supplies CSRF credentials. `/api/v1/items/{id}/otlp` exports only actual saved finished evidence.
+
+## Execution-2 cartridges
+
+A runnable pack requires `runtime:'functions'` and `contracts.execution:'2'`. A leaf declares exactly one agent (profile/duty) or trusted run command, object output schema, replay safe/explicit, writes destination IDs, optional check, and onFailure. Default failure target is hold. Groups declare sequence/parallel; nested parallel is refused. Main track is flattened top-level sequence with sequence children inline and each parallel group one position. Parallel child track keys are `<groupJob>#<zero-based child index>`; children have private scratch, NQ, answers, facts, attempts and outputs. Parent composition waits for every child. No job name has built-in behavior. Prescriptions supply optional per-job overrides and validate scheduled agents only; account/model selections stay configured.
+
+Optional completion is `{resultJob,acceptanceJob}`: distinct leaves, acceptance later and explicitly receiving the result. It returns `{acceptance:{verdict:'passed'|'failed',conditionHash,evidence}}`. Without completion the flow returns open external work awaiting recorded acceptance. Every node still owes Ground/Rumen and successor preparation. Check commands run in scratch with `{input,output}` on stdin and saved outcomes.
+
+onFailure `{target:'hold'|leafJob,maxCorrections?}` targets only a same-track leaf at or before failure. A leaf target requires integer maxCorrections 1–3; hold forbids it. Group/later/unknown/cross-track targets fail cartridges_invalid with locations. A rewind range includes every child of intervening groups; any replay explicit leaf makes the range invalid. A main leaf after a parallel group may rewind before that group, clearing all child tracks. Writing leaves require explicit replay and always hold.
+
+Schema, check, file-result and failed-acceptance returns are leaf failures. Harness errors, quotas, interruption and execution uncertainty never rewind. One transaction records function-failed and function-rewound, moves rewound output bytes to append-only flow.superseded, truncates the active prefix, sets rework cause function-check, and increments flow.corrections[`<track>:<failingJob>`]. Superseded preparations are inactive when their source hash differs. Calls, attempts, context facts and saved answers remain. Sibling tracks are untouched. Counters survive restart and are distinct from delivery corrections. Failed saved returns are rechecked, never reinvoked. At the limit, function_corrections_exhausted includes track/job/target/maxCorrections/corrections/reason/invocation and points to trace/retry. `mw retry` grants exactly one new attempt without resetting the count. Definitions through the highest accepted, superseded or attempted position stay frozen across pack updates.
+
+Before launch save invocation ID, node/input hash and replay policy. Saved returns are consumed. Missing returns rerun only safe leaves; explicit leaves hold execution_uncertain. Resolve with `{requestId,revision,actor,invocation,action:'replay'|'external',reason,authorizeReplay?}`. Replay needs true and grants one linked attempt. External forbids authorizeReplay and keeps evidence/blockers without acceptance. Retry/go/answer/unblock cannot release this hold. Quota swaps and eval cannot bypass it.
+
+Every invocation runs in acquired/released scratch under the store. MW_ITEM/MW_JOB/MW_INVOCATION/MW_SCRATCH identify it. Process groups stop on every exit path; evidence is saved before cleanup. Packets carry only granted bindings and declared received outputs. Read-only fingerprints cover scratch and declared input material. Destinations are absolute existing nonoverlapping directories outside transient store roots, granted only through item settings. Files use `{destination,path,sha256,bytes}`; relative normalized paths, lowercase SHA-256 and safe byte count are required. Refuse traversal, symlink components, root escapes and nonregular files; open without following links and compare bytes/hash before acceptance and completion. Never copy/delete destination files. Views show observations only.
+
+## Supported migration exports
+
+src/migration.ts exports `previewMigration(): Effect<MigrationPreview,MadeWellError,Store>`, `applyMigration({token,writersStopped,actor}): Effect<MigrationReceipt,MadeWellError,Store|MigrationControl>`, `migrationStatus(): Effect<MigrationStatus,MadeWellError,Store>` and `assertWritable(): Effect<void,MadeWellError,Store>`, each Effect.fn named mw plus its function name. MigrationControl is a Context.Service with `afterBoundary(boundary,context): Effect<void,MadeWellError>`; MigrationControlNoop is its no-op Layer. CLI uses the same export with the no-op layer, never a worker. Independent verification injects the service in-process with `Layer.mergeAll(storeLayer(path),Layer.succeed(MigrationControl,{afterBoundary}))`; no environment or CLI fault switch exists.
+
+`mw migrate --preview | --apply <token> --writers-stopped | --status` prints the corresponding export's value. Preview/status use read-only Store. Preview `{version:1,required,token,registry:{path,present,sha256,bytes,diagnostics},items:[{id,revision,disposition}],runner,cutoverRequired:true}` reads only registry bytes and raw item documents; it never dereferences registered directories. Token includes presence/bytes, ordered raw documents and settings/schema identity. Diagnostics retain malformed/duplicate entries.
+
+The migrations table journals id/token/phase/doc/started/updated. Snapshot doc holds base64/hash/size registry, raw items, dispositions, diagnostics, attestation and receipt. Transactions progress snapshot-saved → items-saved → registry-removed → complete. Items and migration events commit together. Only the exact snapshotted regular projects.json beside the Store is unlinked; its directory is fsynced. Missing is resumable; symlink, changed/reappeared bytes refuse migration_conflict. Historical commands never run, directories remain, QA/artifacts/history stay exact. Legacy success becomes completed with provenance; unfinished software/pre-execution-2 work holds legacy_execution. Missing packs never gain defaults.
+
+Boundary callbacks run after each durable commit: snapshot-saved, items-saved, registry-unlinked, registry-removed, complete. registry-unlinked fires after unlink+fsync and before recording removal, with durablePhase items-saved, including when resume finds it missing. Context contains migrationId/token/durablePhase/registryPresent/registrySha256/itemIds. Callback failure or interruption propagates unchanged and leaves the journal resumable.
+
+Apply first checks writersStopped true, before any Store method or registry read; refusal migration_attestation_missing writes nothing. Then unchanged claimRunner exclusive acquires ownership; a live/concurrent owner refuses store_locked without writes or release. After acquisition, ensuring releases on every exit. Same-token complete returns its saved deep-equal receipt with no callback. Matching unfinished journal resumes; different token refuses migration_in_progress. No journal with no required work refuses migration_not_required; a stale token refuses migration_token_stale with given/current and next preview.
+
+Post-claim refusals and saved-receipt reuse permit only unchanged ownership bookkeeping: runner row upsert/delete; at most one runner-lost on the prior claim's item (0 when absent), runner-started (runner-reloaded is permitted, but impossible for an exclusive live claim), runner-stopped. Events append as an exact unfiltered suffix. AUTOINCREMENT necessarily advances only sqlite_sequence row events to the last appended sequence; no other counter is added/removed/changed. All item/domain/QA/settings/schema/journal/receipt/registry/file state stays identical. Missing-attestation/live-owner refusals preserve even all counters/events. Never modify ownership methods, add a second lock, suppress events or reset counters.
+
+Receipt `{version:1,migrationId,token,phase:'complete',registry:{path,sha256,bytes,alreadyMissing},items:[{id,revisionBefore,revisionAfter,disposition}],diagnostics,attestation:{writersStopped:true,actor,at},startedAt,completedAt}` is saved in the complete journal. Status returns `{version:1,required,registry:{path,present},journal:null|{migrationId,token,phase,startedAt,updatedAt},receipt}`. Ordinary mutators and runQueue first assertWritable: unfinished journal refuses migration_in_progress; required cutover refuses migration_required; reads remain available. Keeping older writers stopped is an operational precondition.
+
+## Evidence and verification
+
+QA anchors by workItem and case/run IDs; deprecated storage columns carry no authority or advertised location. Manual verdicts, revision pins, clear-note history, receipts, retests, associations and prune retention remain distinct from automated work completion. Context facts inherit only through explicit ancestry and audience/private track.
+
+Trace lenses, telemetry and OTLP key by Store/item/invocation and retain work lacking a location. Exports include results, saved file observations and exact historical artifact bytes through the shared descriptor decoder; no reconstruction or remote fetch. Eval requires compatible execution-2 safe nodes and actual inputs in fresh scratch; side effects require separate authority and isolated destinations. Unknown internals remain unavailable.
+
+Makers do not run checks. Made Well runs `npm run bundle`, affected regression/acceptance selections and relevant `npm run typecheck`, then owns candidate delivery. Source changes alone do not prove checks, rendered keyboard/layout acceptance, live activation or installed registry removal.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
+# Made Well
+
 Made Well is a work OS: **capture raw input → generate tasks → complete tasks**. A durable notebook and to-do list, independent of domain, team, framework, provider and model. Each task runs its own configured input/output functions. NQ governs agent handoffs; the same saved record holds answers, outputs, recovery and execution evidence.
 
 The software-delivery pack remains the installation default for compatibility. It is one configuration, not the definition of Made Well. Use a **function pack** below for a single operation, non-software work or a different composition; it needs no Git repository and adds no implicit planning, testing or shipping steps.
@@ -103,17 +188,18 @@ mw cartridges --update revised.json --item 1
 
 This is explicit configuration loading and boundary replacement inspired by pi.dev, not pi API compatibility, a package installer, an extension sandbox or automatic upgrades.
 
-### Software compatibility pack
+### Configuring delivery packs
 
-The default pack is software development: ideation (ideate, challenge), planning (plan), implementation (implement and the checks, side by side), verification. Change it by plugging in your own:
+New work defaults to external execution. Configure a delivery pack to supply ideation, planning, implementation and independent verification methods:
 
 ```sh
-mw cartridges | jq .pack > pack.json      # start from the default
-$EDITOR pack.json                         # add, remove or reword steps
-mw init --cartridges pack.json            # this project's new work runs it
+mw cartridges builtin:grammar | jq .pack > pack.json
+$EDITOR pack.json
+mw cartridges --check pack.json
+mw settings --input-file settings.json   # pin deliveryPack in the settings request
 ```
 
-The software runtime can add steps before the plan, hold several discovery cartridges, and unplug checks. Only this runtime keeps five slots: `discover`, `plan`, `implement`, `test-plan` and `verify`. Its Git isolation, independent maker/check tracks and shipping guarantees remain intact. `mw cartridges --check pack.json` reports contract problems before anything runs.
+Execution-2 packs define their discovery and delivery nodes explicitly; job names carry no behavior. Execution-2 packs keep independent production and acceptance tracks; any external result or side effect is declared by the cartridge's destinations and covered by the item's authority. `mw cartridges --check pack.json` reports contract problems before anything runs.
 
 ### Installed grammar onboarding
 
@@ -436,3 +522,5 @@ Register supplied physical inputs through `mw init --inputs '<JSON array>'`, usi
 Trusted command/group nodes use the same output, question, input and atomic-record checks without inventing an agent exchange for a command. Their failures use the existing owned function hold. Prepared resources use the existing aftercare lifecycle on success and failure. Older pinned contracts retain their original behavior.
 
 Portable grammar and history verification uses the built/packed executable from an unrelated isolated cwd, shared-decoder export assertions and focused existing packet-transport recipes. Local inline/file recipe execution checks exact large Unicode, CRLF and binary-diff-text bytes, descriptor-only intake, call isolation and bounded failure/interruption cleanup. These local checks do not establish live vendor interchangeability. Independent candidate verification supplies its own executed evidence; installation and real-project smoke in the plant application occur after delivery under the operator's agent. Neither package checks nor these predictions establish deployed plant acceptance or measured speedups.
+
+</details>

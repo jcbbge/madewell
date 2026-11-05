@@ -28,22 +28,16 @@ export const INTAKE_ACCESS = 'none' satisfies Access
 export const AGENT_JOBS = ['discover', 'ideate', 'challenge', 'plan', 'test-plan', 'implement', 'arbitrate'] as const
 export type AgentJob = (typeof AGENT_JOBS)[number]
 
-const Positive = Schema.Finite.check(Schema.isGreaterThan(0))
 /** Wall time for every call of the job, and tokens where the harness reports them. Default: DEFAULT_BUDGET. */
-const JobBudget = Schema.optional(Schema.Struct({ minutes: Positive, tokens: Schema.optional(Positive) }))
-const Prescription = Schema.Struct({ tier: Schema.String, access: Access, budget: JobBudget })
 
 const Prescriptions = Schema.Struct({
 	tiers: Schema.Record(Schema.String, Schema.NonEmptyArray(Card)),
-	jobs: Schema.Struct({
-		...(Object.fromEntries(AGENT_JOBS.map((job) => [job, Prescription])) as Record<AgentJob, typeof Prescription>),
-		verify: Schema.Struct({ budget: JobBudget }),
-	}),
+	jobs: Schema.Record(Schema.String,Schema.Unknown),
 	/** Harness entries added to, or replacing, the built-in ones. */
 	harnesses: Schema.optional(Schema.Record(Schema.String, Harness)),
 	/** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
 	env: Schema.optional(Schema.Array(Schema.String)),
-	/** Resource-based admission by default; a positive integer remains an explicit opt-in count limit. */
+	/** Items `mw run` drives at once, each up to two agents. Default: DEFAULT_PARALLEL. */
 	parallel: Schema.optional(Schema.Union([Schema.Literal('resources'), Schema.Int.check(Schema.isGreaterThan(0))])),
 	/** Optional capability: malformed settings fall back per decision, never prevent the console from running. */
 	decisionModel: Schema.optionalKey(Schema.Unknown),
@@ -71,12 +65,6 @@ export const loadPrescriptions = (path: string) =>
 				return yield* new MadeWellError({ code: 'prescriptions_invalid', message: `Tier "${tier}" has a card on harness "${unknown.harness}", which has no entry.`, context: { path, tier, card: unknown, harnesses: Object.keys(harnesses) }, next: [{ run: `$EDITOR ${path}`, why: `use one of ${Object.keys(harnesses).join(', ')}, or add "${unknown.harness}" under "harnesses": command, output, answer, limit and tools per access level` }] })
 			}
 		}
-		for (const job of AGENT_JOBS) {
-			const tier = p.jobs[job].tier
-			if (!p.tiers[tier]) {
-				return yield* new MadeWellError({ code: 'prescriptions_invalid', message: `Job "${job}" uses tier "${tier}", which is not defined.`, context: { path, job, tier, tiers: Object.keys(p.tiers) }, next: [{ run: `$EDITOR ${path}`, why: `define tier "${tier}" or point "${job}" at one of: ${Object.keys(p.tiers).join(', ')}` }] })
-			}
-		}
 		return p
 	})
 
@@ -90,8 +78,11 @@ export const forLane = (p: Prescriptions, lane: Lane) =>
 		for (const step of [...lane.discovery, ...lane.delivery]) {
 			if (lane.pack.runtime === 'functions') {
 				if (step.run || step.children) continue
-			} else if (step.job === 'verify' || jobs[step.job]) continue
-			const tier = step.tier ?? 'deep'
+			}
+   const raw=p.jobs[step.job]
+   const override=Schema.Struct({tier:Schema.optionalKey(Schema.NonEmptyString),access:Schema.optionalKey(Access),budget:Schema.optionalKey(Schema.Struct({minutes:Schema.Finite.check(Schema.isGreaterThan(0)),tokens:Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0)))}))})
+   const configured=raw===undefined?undefined:yield* Schema.decodeUnknownEffect(override)(raw).pipe(Effect.mapError(e=>new MadeWellError({code:'prescriptions_invalid',message:'Invalid scheduled job override.',context:{path:'prescriptions',job:step.job,reason:String(e)},next:[]})))
+			const tier = configured?.tier ?? step.tier ?? 'deep'
 			if (!p.tiers[tier]) {
 				return yield* new MadeWellError({
 					code: 'prescriptions_invalid', message: `The ${step.job} step of the "${lane.pack.name}" cartridge pack runs on tier "${tier}", which the prescriptions do not define.`,
@@ -99,13 +90,13 @@ export const forLane = (p: Prescriptions, lane: Lane) =>
 					next: [{ run: '$EDITOR "$MW_PRESCRIPTIONS"', why: `define tier "${tier}", or prescribe "${step.job}" under jobs` }, { run: 'mw cartridges', why: 'see the pack and the tier each step asks for' }],
 				})
 			}
-			jobs[step.job] = { tier, access: step.access ?? (lane.pack.runtime === 'functions' ? 'none' : 'read'), ...(step.budget ? { budget: step.budget } : {}) }
+			jobs[step.job] = { tier, access: configured?.access??step.access??'none',budget:configured?.budget??step.budget??DEFAULT_BUDGET }
 		}
 		return { ...p, jobs: jobs as Prescriptions['jobs'] }
 	})
 
 /** An agent job's prescription. The engine runs verify itself before any agent path, so verify never comes here. */
-export const prescriptionOf = (p: Prescriptions, job: Job) => p.jobs[job as AgentJob]
+export const prescriptionOf = (p: Prescriptions, job: Job) => p.jobs[job] as {tier:string;access:Access;budget?:Budget}
 
 export const cardsFor = (p: Prescriptions, job: Job): ReadonlyArray<Card> => p.tiers[prescriptionOf(p, job).tier]!
 

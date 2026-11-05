@@ -5,8 +5,8 @@ import { dirname, isAbsolute, normalize, relative, resolve, sep } from 'node:pat
 import { Result, Schema } from 'effect'
 import { isMaker, laneOf, lastJson, route, shapeOf, stepOf } from './lane.ts'
 import { checkPrerequisites } from './prerequisites.ts'
-import type { Project } from './project.ts'
-import { hasFunctionFenceProof, rumenRules, type RumenRule } from './rumen.ts'
+import type { WorkSettings } from './settings.ts'
+import { gateRule, hasFunctionFenceProof, rumenRules, type RumenRule } from './rumen.ts'
 import type { Item, Store } from './store.ts'
 import { invalidatedAt } from './work-boundary.ts'
 
@@ -27,6 +27,8 @@ export interface OrganReceipt {
 	readonly rumen: ReadonlyArray<RumenRule & { readonly disposition: 'addressed' | 'not-applicable'; readonly evidence: string }>
 	readonly next: ReadonlyArray<{ readonly job: string; readonly brief: string; readonly requires: ReadonlyArray<GroundSource> }>
 }
+
+export const organRules=(item:Item,job:string,settings?:WorkSettings)=>{const check=stepOf(laneOf(item.pack),job).check;return [...rumenRules(settings,job),...(check?[gateRule({id:job,run:check})]:[])]}
 
 /** User-facing creation pins the obligation; raw persistence remains able to restore legacy documents. */
 export const createWork = (store: Pick<Store['Service'], 'create'>, fields: Parameters<Store['Service']['create']>[0]) =>
@@ -53,10 +55,10 @@ export function organOutputShape(item: Item, original: Record<string, unknown> |
 export function nextJobs(item: Item, job: string, output?: Record<string, unknown>): string[] {
 	const lane = laneOf(item.pack), step = stepOf(lane, job)
 	if (lane.pack.runtime === 'functions') {
-		const steps = step.loop === 'discovery' ? lane.discovery : lane.delivery
-		const next = steps[steps.findIndex(s => s.job === job) + 1]
-		return next ? [next.job] : step.loop === 'discovery' && !(Array.isArray(output?.items) && output.items.length === 0) ? ['delivery'] : []
-	}
+  const steps=lane[step.loop]
+  const consumers=steps.filter(s=>s.job!==job&&s.receives.includes(job)).map(s=>s.job)
+  return consumers.length?consumers:step.loop==='discovery'&&steps.at(-1)?.job===job&&item.settings.deliveryPack&&!(Array.isArray(output?.items)&&output.items.length===0)?['delivery']:[]
+ }
 	if (job === 'verify') return []
 	if (job === 'arbitrate' && !output) return ['plan', ...(lane.makers.includes('test-plan') ? ['test-plan'] : []), 'verify']
 	const target = route(lane, job, output ?? {}, item.corrections)
@@ -81,7 +83,7 @@ const permittedOutputs = (item: Item, job: string) => {
 function fileMaterial(root: string, file: string, links: string[] = []): { file: string; paths: string[] } {
 	if (links.length >= 40) throw new Error('Ground file reference has a cyclic or excessive symlink chain.')
 	const inside = relative(root, file)
-	if (isAbsolute(inside) || inside === '..' || inside.startsWith('..' + sep)) throw new Error('Ground file reference leaves the workspace; declare a permitted project input.')
+	if (isAbsolute(inside) || inside === '..' || inside.startsWith('..' + sep)) throw new Error('Ground file reference leaves the scratch; declare a permitted declared input.')
 	const segments = inside.split(sep)
 	let current = root
 	for (const [index, segment] of segments.entries()) {
@@ -95,7 +97,7 @@ function fileMaterial(root: string, file: string, links: string[] = []): { file:
 	return { file: current, paths: [...new Set([...links, relative(root, current)])] }
 }
 
-function material(item: Item, job: string, ref: string, dir: string, project: Project | undefined, own?: { job: string; output: string }, inputJob = job): GroundSource {
+function material(item: Item, job: string, ref: string, dir: string, project: WorkSettings | undefined, own?: { job: string; output: string }, inputJob = job): GroundSource {
 	if (ref === 'source') return { ref, sha256: hash(item.source) }
 	if (ref.startsWith('output:')) {
 		const name = ref.slice(7)
@@ -113,23 +115,23 @@ function material(item: Item, job: string, ref: string, dir: string, project: Pr
 	}
 	if (!ref.startsWith('file:')) throw new Error(`Unknown Ground reference ${ref}; use source, output:<job>, file:<relative path>, or input:<id>.`)
 	const path = ref.slice(5), root = realpathSync(dir)
-	if (!path || isAbsolute(path)) throw new Error(`Ground file reference ${ref} must be relative to the receiving workspace.`)
+	if (!path || isAbsolute(path)) throw new Error(`Ground file reference ${ref} must be relative to the receiving scratch.`)
 	if (normalize(path) !== path) throw new Error(`Ground file reference ${ref} must use its canonical relative path.`)
 	const file = resolve(root, path), lexical = relative(root, file)
-	if (lexical === '..' || lexical.startsWith('..' + sep)) throw new Error(`Ground file reference ${ref} leaves the workspace.`)
+	if (lexical === '..' || lexical.startsWith('..' + sep)) throw new Error(`Ground file reference ${ref} leaves the scratch.`)
 	const resolved = fileMaterial(root, file), physical = resolved.file, inside = relative(root, physical)
 	if (!statSync(physical).isFile()) throw new Error(`Ground file reference ${ref} must name a readable file.`)
 	return { ref, sha256: hash(readFileSync(physical)), path: inside, paths: resolved.paths }
 }
 
 /** Validate real materials and producer responsibility; no receipt claims semantic understanding was proven. */
-export function inspectPreparation(item: Item, job: string, output: Record<string, unknown>, raw: string, dir: string, project?: Project, tracked: ReadonlyArray<string> = [], selectedRules?: ReadonlyArray<RumenRule>):
+export function inspectPreparation(item: Item, job: string, output: Record<string, unknown>, raw: string, dir: string, project?: WorkSettings, _tracked: ReadonlyArray<string> = [], selectedRules?: ReadonlyArray<RumenRule>):
 	{ ok: true; receipt?: OrganReceipt } | { ok: false; reason: string } {
 	if (!organsRequired(item) || typeof output.blocked === 'string') return { ok: true }
 	// Existing v1 replies remain valid; an explicit namespaced value must stand on its own.
 	const decoded = Schema.decodeUnknownResult(Preparation)(Object.hasOwn(output, 'organPreparation') ? output.organPreparation : output.preparation)
 	if (Result.isFailure(decoded)) return { ok: false, reason: `Ground, Rumen and next-step preparation are mandatory: ${decoded.failure.message}` }
-	const p = decoded.success, rules = rumenRules(project, job), expected = nextJobs(item, job, output)
+	const p = decoded.success, rules = organRules(item,job,project), expected = nextJobs(item, job, output)
 	const definitions = (inventory: ReadonlyArray<RumenRule>) => JSON.stringify(inventory.map(rule => [rule.id, rule.definitionHash]))
 	if (selectedRules === undefined || definitions(selectedRules) !== definitions(rules)) return { ok: false, reason: 'Rumen definitions changed or are unavailable since this execution was prepared. Re-ground against the actual selected rules before accepting the output.' }
 	const unique = (values: ReadonlyArray<string>) => new Set(values).size === values.length
@@ -137,7 +139,6 @@ export function inspectPreparation(item: Item, job: string, output: Record<strin
 	if (!unique(p.rumen.map(r => r.rule)) || p.rumen.length !== rules.length || rules.some(rule => !p.rumen.some(r => r.rule === rule.id))) return { ok: false, reason: 'Rumen must account for every selected rule exactly once, without invented rule identities.' }
 	if (p.rumen.some(r => r.disposition === 'not-applicable' && rules.find(rule => rule.id === r.rule)?.kind === 'fence')) return { ok: false, reason: 'Only engine verification determines mechanical fence applicability; carry the fence forward as addressed, without awarding it a pass.' }
 	if (!unique(p.next.map(n => n.job)) || p.next.length !== expected.length || expected.some(job => !p.next.some(n => n.job === job))) return { ok: false, reason: `Next-step preparation must supply exactly these consumers: ${expected.join(', ') || '(terminal: empty next list)'}.` }
-	if (laneOf(item.pack).pack.runtime !== 'functions' && ['plan', 'implement', 'test-plan', 'arbitrate'].includes(job) && tracked.length && !p.ground.sources.some(s => s.ref.startsWith('file:'))) return { ok: false, reason: 'Ground must cite at least one actual repository file for this software phase; task prose alone does not ground the implementation.' }
 	try {
 		const sources = p.ground.sources.map(s => ({ ...material(item, job, s.ref, dir, project), finding: s.finding }))
 		const next = p.next.map(n => {
@@ -176,18 +177,18 @@ function originPreparation(store: HandoffReader, item: Item, job: string) {
 	return { origin, parent, receipt, outgoing }
 }
 
-export function organPacket(store: HandoffReader, item: Item, job: string, project?: Project) {
+export function organPacket(store: HandoffReader, item: Item, job: string, project?: WorkSettings) {
 	if (!organsRequired(item)) return undefined
 	const permitted = permittedOutputs(item, job), receipts = organReceipts(store, item)
 	const incoming = receipts.filter(r => permitted.has(r.job)).flatMap(r => r.next.filter(n => n.job === job).map(n => ({ from: r.job, event: r.event, ...n })))
 	const origin = originPreparation(store, item, job)
 	const inherited = origin?.outgoing ? [{ ...origin.outgoing, job, from: origin.origin.job, fromItem: origin.origin.item, event: origin.receipt!.event }] : []
-	return { version: '1', required: true, rules: rumenRules(project, job), nextJobs: nextJobs(item, job), incoming: [...inherited, ...incoming],
+	return { version: '1', required: true, rules: organRules(item,job,project), nextJobs: nextJobs(item, job), incoming: [...inherited, ...incoming],
 		instruction: 'The work is durable; you are a disposable tool. Complete only this phase, ground its findings in actual material, account for every selected Rumen rule, and prepare every configured next consumer in organPreparation. The preparation field belongs to the cartridge; do not overwrite it. Never self-certify a mechanical gate. Source hashes prove material identity, not semantic correctness. Intake has no tools; inspect sources during execution. Missing sender-owned material returns through this same NQ exchange.' }
 }
 
 /** Recheck the actual requirements the producer supplied, after preparation and artifact restoration. */
-export function checkIncomingPreparation(store: HandoffReader, item: Item, job: string, dir: string, project?: Project, producers?: ReadonlyArray<string>) {
+export function checkIncomingPreparation(store: HandoffReader, item: Item, job: string, dir: string, project?: WorkSettings, producers?: ReadonlyArray<string>) {
 	if (!organsRequired(item)) return { ok: true as const, checked: [] }
 	const allowed = new Set(producers ?? permittedOutputs(item, job)), checked: Array<{ ref: string; producer: string; ok: boolean; reason: string | null }> = []
 	const receipts = organReceipts(store, item), events = store.events(item.id)
@@ -226,10 +227,10 @@ export function checkIncomingPreparation(store: HandoffReader, item: Item, job: 
 }
 
 /** Composition accounts for accepted child references; it never invents an agent's semantic judgment. */
-export function compositionPreparation(item: Item, job: string, project?: Project): Preparation {
+export function compositionPreparation(item: Item, job: string, project?: WorkSettings): Preparation {
 	const step = stepOf(laneOf(item.pack), job), refs = step.receives.map(name => `output:${name}`)
 	return { ground: { intent: item.objective, sources: (refs.length ? refs : ['source']).map(ref => ({ ref, finding: 'Engine composition retains this actual input; semantic claims remain in the accepted child outputs.' })) },
-		rumen: rumenRules(project, job).map(rule => ({ rule: rule.id, disposition: 'addressed', evidence: 'Carried through engine composition; mechanical proof remains engine-owned, and judgment remains attributable to child evidence.' })),
+		rumen: organRules(item,job,project).map(rule => ({ rule: rule.id, disposition: 'addressed', evidence: 'Carried through engine composition; mechanical proof remains engine-owned, and judgment remains attributable to child evidence.' })),
 		next: nextJobs(item, job).map(next => ({ job: next, brief: `Use the accepted ${job} composition for ${item.objective}.`, requires: [`output:${job}`] })) }
 }
 

@@ -334,7 +334,7 @@ export const harnessWorker = Layer.succeed(Worker, {
 				for (const [path, content] of Object.entries(launch.files)) writeFileSync(path, content)
 				// With no access, the call runs in its own empty directory: no workspace, and none of its instruction files.
 				const cwd = request.access === 'none' ? dir : request.cwd
-				const env = agentEnv([...BASE_ENV, ...(harness.env ?? [])])
+				const env = {...agentEnv([...BASE_ENV, ...(harness.env ?? [])]),MW_ITEM:String(request.item),MW_JOB:request.job,MW_INVOCATION:request.invocation??'',MW_SCRATCH:request.cwd}
 				return Effect.zip(
 					runGroup({ command: launch.command, args: launch.args, cwd, env, input: launch.input, budget, tokensIn: (line) => tokensIn(harness, line), files: dir, stamp: harness.output === 'jsonl', onOutput: request.onOutput, ...(request.live ? { live: request.live } : {}) }),
 					versionOf(launch.command, harness.version ?? ['--version'], env),

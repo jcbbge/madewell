@@ -129,8 +129,8 @@ const saysOf = (need, item) => {
 	}
 }
 
-/** Rings in the order the eye should meet them: what waits on you, then what moves, then shipped, then dropped. */
-const rank = (item, needIds) => (needIds.has(item.id) ? 0 : ['running', 'queued', 'waiting-quota', 'waiting-prerequisite', 'candidate'].includes(item.status) ? 1 : item.status === 'shipped' ? 2 : 3)
+/** Rings in the order the eye should meet them: what waits on you, then what moves, then completed, then dropped. */
+const rank = (item, needIds) => (needIds.has(item.id) ? 0 : ['running', 'queued', 'waiting-quota', 'waiting-prerequisite', 'candidate'].includes(item.status) ? 1 : item.status === 'completed' ? 2 : 3)
 
 /**
  * The Delivery sheet, written from the model. `opts.zone` fixes the reader's time zone (tests); `opts.live` maps a
@@ -178,9 +178,9 @@ export const blazonOf = (model, opts = {}) => {
 
 	const s = model.summary
 	const last = s.last ? when(s.last, zone) : 'none yet'
-	const sealed = s.shipped > 0
+	const sealed = s.completed > 0
 	const colophon = `From the Made Well record on ${model.host ?? 'this machine'}; last entry ${last}. ${plural(delivery.length, 'item')}, ${plural(s.calls, 'agent call')}, ${s.tokens.toLocaleString('en-GB')} tokens, ${agentTime(s.agentMs)} of agent time.` +
-		(sealed ? ` Sealed: ${plural(s.shipped, 'item has', 'items have')} shipped.` : ' Not sealed: nothing has shipped.') +
+		(sealed ? ` Sealed: ${plural(s.completed, 'item has', 'items have')} completed.` : ' Not sealed: nothing has completed.') +
 		(delivery.length > shown.length ? ` ${delivery.length - shown.length} older ${delivery.length - shown.length === 1 ? 'item is' : 'items are'} not drawn.` : '')
 
 	return {

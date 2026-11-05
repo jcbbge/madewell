@@ -113,7 +113,7 @@ function currentWork(parent,summary,item){
    const answers=new Set();for(const [i,r] of (state.resolutions??[]).entries()){const answerKey=key+':answer:'+i;answers.add(answerKey);exactEvidence(row,answerKey,'Saved resolution · '+r.by+' · '+r.answerId,r.detail)}if(state.resolutionsOmitted){answers.add(key+':more');exactEvidence(row,key+':more','All '+state.resolutionsTotal+' saved resolutions',entry.evidence.detail)}for(const disclosure of [...row.children])if(disclosure.dataset.evidenceKey&&!answers.has(disclosure.dataset.evidenceKey))disclosure.remove();
   }
   for(const row of [...card.children])if(row.dataset.question&&!questionKeys.has(row.dataset.question))row.remove();
-  const inputKeys=new Set();for(const input of entry.inputs??[]){const o=input.observation,key=entry.key+':input:'+input.key;inputKeys.add(key);let row=[...card.children].find(n=>n.dataset.input===key);if(!row){row=evidenceNode('div');row.dataset.input=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,input.id+' · '+(o?'Observed '+(o.ok?'available':'unavailable')+' at '+o.at+' · '+o.job+' · '+(o.name??'unknown worktree')+' · '+(o.dir??'unknown directory'):input.state==='not-checked'?'Not checked':'Unknown')+' · Current availability unknown');exactEvidence(row,key+':detail','Recorded input evidence',input.evidence)}
+  const inputKeys=new Set();for(const input of entry.inputs??[]){const o=input.observation,key=entry.key+':input:'+input.key;inputKeys.add(key);let row=[...card.children].find(n=>n.dataset.input===key);if(!row){row=evidenceNode('div');row.dataset.input=key;row.append(evidenceNode('p'));card.append(row)}evidenceText(row.firstElementChild,input.id+' · '+(o?'Observed '+(o.ok?'available':'unavailable')+' at '+o.at+' · '+o.job+' · '+(o.name??'unknown scratch')+' · '+(o.dir??'unknown directory'):input.state==='not-checked'?'Not checked':'Unknown')+' · Current availability unknown');exactEvidence(row,key+':detail','Recorded input evidence',input.evidence)}
   for(const row of [...card.children])if(row.dataset.input&&!inputKeys.has(row.dataset.input))row.remove();
   let omitted=card.querySelector('[data-omitted]');if(!omitted){omitted=evidenceNode('p');omitted.dataset.omitted='';card.append(omitted)}evidenceText(omitted,(entry.truncated?'Preview shortened. ':'')+(entry.declarationsKnown?'':'Input declarations unknown. ')+(entry.inputsOmitted?entry.inputsOmitted+' more recorded inputs. ':'')+(entry.questionsOmitted?entry.questionsOmitted+' more assigned questions. ':'')+'Exact details are available above.');
  }
@@ -165,252 +165,38 @@ function patchEvidence(old,fresh){
 }
 `
 
-export const MONITOR = String.raw`<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Made Well · Your work</title>
-<link rel="preload" href="/fonts/ibm-plex-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
-<style>${NOTEBOOK_STYLE}</style></head><body>
-<a class="skip" href="#detail">Skip to task</a>
-<header class="app-header"><h1>Made Well</h1><a href="/" aria-current="page">Work</a><a href="/qa">Manual QA</a><button class="action" id="new-work" type="button">New work</button><span id="connection" role="status">Connecting to your work…</span></header>
-<div class="workspace"><aside class="work-list"><h2>Your tasks</h2><p id="list-summary">Loading…</p><nav aria-label="Your tasks" id="runs"></nav></aside><main><article id="detail" tabindex="-1"><p class="system">Loading your work…</p></article></main></div>
-<script>
-${EVIDENCE_SCRIPT}
-const list=document.querySelector('#runs'),detail=document.querySelector('#detail'),connection=document.querySelector('#connection'),listSummary=document.querySelector('#list-summary');
-let selected=Number(location.hash.slice(1))||null,composing=location.hash==='#new',fetching=false,listKey='',renderKey='';
-let newWorkView=null;
-const drafts=new Map(),conversations=new Map();
-const expanded=new Set();
-const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n};
-const json=x=>JSON.stringify(x,null,2);
-const duration=ms=>ms<1000?Math.round(ms)+' ms':ms<60000?(ms/1000).toFixed(1)+' s':(ms/60000).toFixed(1)+' min';
-const time=at=>new Date(at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-const labels={candidate:'Ready to review',queued:'Not started',running:'In progress',held:'Needs attention',paused:'Ready to continue',completed:'Completed',shipped:'Delivered',discovered:'Tasks ready',dropped:'Stopped','waiting-quota':'Waiting for capacity','waiting-prerequisite':'Waiting for another task'};
-const friendly=job=>({ideate:'Shape the idea',challenge:'Review the idea',plan:'Plan the work',implement:'Do the work','test-plan':'Prepare the checks',verify:'Check the result',verification:'Check the result',discover:'Find the tasks',arbitrate:'Review the problem',ship:'Deliver the work'}[job]??job.replaceAll('-',' ').replace(/^./,c=>c.toUpperCase()));
-async function get(url){const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(8000)});if(!r.ok)throw new Error('Could not load saved work (HTTP '+r.status+'). Try again.');return r.json()}
-function draftFor(key){
- if(drafts.has(key))return drafts.get(key);
- let d={fields:{},phase:'draft'},storageError='';
- try{const saved=localStorage.getItem('mw:operator-draft:v1:'+key);if(saved)d=JSON.parse(saved)}catch{storageError='Draft storage is unavailable. Keep this page open and copy your text before leaving. Sending is disabled until the draft can be saved.'}
- if(d.phase==='sending')d.phase='uncertain';d.storageError=storageError;drafts.set(key,d);return d;
+export const MONITOR=String.raw`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Made Well · Work</title><style>${NOTEBOOK_STYLE}
+main{display:grid;grid-template-columns:minmax(14rem,22rem) minmax(0,1fr);gap:var(--space-6);padding:var(--space-6)}nav button{display:block;width:100%;text-align:left;margin-bottom:var(--space-2)}article{max-width:68ch;min-width:0}textarea,input,select{max-width:100%;box-sizing:border-box}textarea{width:100%;min-height:6rem}label{display:block;margin-top:var(--space-3)}pre,p{overflow-wrap:anywhere}pre{white-space:pre-wrap}#composer{border-top:1px solid var(--line-color);margin-top:var(--space-6);padding-top:var(--space-3)}[hidden]{display:none!important}fieldset{border:0;padding:0}button{margin:var(--space-1)}@media(max-width:48rem){main{grid-template-columns:1fr}.app-header{position:static}}</style>
+<a class="skip" href="#work">Skip to work</a><header class="app-header"><h1>Made Well</h1><a href="/grammar">Grammar</a><a href="/qa">Manual QA</a><span id="connection" role="status">Connecting…</span></header>
+<main><nav aria-label="Work items"><button id="new" type="button">New work</button><div id="items"></div></nav><article id="work" tabindex="-1"><div id="summary"><h2>Your work</h2><p>Select a task or capture new input.</p></div><div id="steps"></div><div id="conversation"></div><form id="composer"><h3 id="form-title">New work</h3><div id="new-fields"><label>What needs to happen?<input id="objective"></label><label>Describe the work<textarea id="source"></textarea></label><label>Next step<select id="mode"><option value="discovery">Discover candidate tasks</option><option value="delivery">Record work to carry out</option></select></label></div><label id="action-label" hidden>Action<select id="action"></select></label><fieldset id="fields"></fieldset><button id="send" type="submit">Save work</button><button id="review" type="button" hidden>Review current record and make a new request</button><p id="message" role="status" aria-live="polite"></p></form><details id="technical"><summary>Activity &amp; technical details</summary><pre id="evidence" tabindex="0"></pre></details></article></main>
+<script>${EVIDENCE_SCRIPT}
+const $=id=>document.getElementById(id),nodes=new Map();let selected=null,context=null,busy=false,polling=false,storage=true,draft={fields:{},action:'',revision:null,pending:null},formKey='';
+const key=()=> 'mw.work.'+(selected??'new');
+const value=id=>$(id)?.value??'';
+function save(){try{localStorage.setItem(key(),JSON.stringify(draft));storage=true}catch{storage=false;$('message').textContent='Browser storage is unavailable. Keep your draft; sending is disabled.'}$('send').disabled=!storage||busy}
+function gather(){draft.objective=value('objective');draft.source=value('source');draft.mode=value('mode');draft.action=value('action');for(const e of $('fields').querySelectorAll('[data-field]'))draft.fields[e.dataset.field]=e.value;save()}
+function load(){try{draft=JSON.parse(localStorage.getItem(key())||'null')||{fields:{},action:'',revision:context?.revision??null,pending:null};storage=true}catch{draft={fields:{},action:'',revision:null,pending:null};storage=false}draft.fields??={};$('objective').value=draft.objective??'';$('source').value=draft.source??'';$('mode').value=draft.mode??'discovery';formKey='';actions();lock()}
+function field(name,label,multiline=false,initial=''){const l=document.createElement('label'),e=document.createElement(multiline?'textarea':'input');l.textContent=label;e.dataset.field=name;e.value=draft.fields[name]??initial;l.append(e);$('fields').append(l);return e}
+function actionName(){return value('action').split('/').pop()}
+function buildFields(){const op=actionName(),k=selected+':'+op;if(k===formKey)return;formKey=k;$('fields').replaceChildren();const p=context?.work?.progress??{};
+ if(op==='progress'){field('remaining','What remains?',true,p.remaining??'');field('nextAction','Next action',false,p.nextAction??'');field('owner','Who owes the next action?',false,p.owner??'operator')}
+ if(op==='block'){field('blockerId','Blocker identifier');field('reason','What blocks this work?',true);field('owner','Who can resolve it?');field('nextAction','Next action to resolve it')}
+ if(op==='unblock'){const e=field('blockerId','Blocker identifier',false,(context?.work?.blockers??[]).find(b=>!b.resolvedAt)?.id??'');field('resolution','How was it resolved?',true)}
+ if(op==='answers')field('text','Your answer',true);
+ if(op==='complete'){field('result','What was accomplished?',true);for(const c of context.work.conditions){const h=document.createElement('p');h.textContent=c.id+': '+c.text;$('fields').append(h);field('evidence:'+c.id,'Evidence for '+c.id,true);field('refs:'+c.id,'Evidence references for '+c.id+' (one per line)',true)}}
+ if(op==='configure-work'){field('reason','Why change execution?',true);const e=field('execution','Execution mode (external or cartridge)',false,'external');field('owner','Execution owner',false,'operator');const d=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Advanced work settings';d.append(summary);const l=document.createElement('label');l.textContent='Settings override (JSON, optional)';const t=document.createElement('textarea');t.dataset.field='settings';t.value=draft.fields.settings??'';l.append(t);d.append(l);$('fields').append(d)}
+ if(op==='resolve-execution'){field('invocation','Uncertain invocation',false,context?.work?.pending?.invocation??'');const e=field('resolutionAction','Resolution (external or replay)',false,'external');field('reason','Reason for this resolution',true);const l=document.createElement('label'),c=document.createElement('input');c.type='checkbox';c.id='authorizeReplay';c.checked=draft.fields.authorizeReplay==='true';l.append(c,document.createTextNode('Authorize exactly one new replay attempt'));$('fields').append(l)}
+ lock();
 }
-function saveDraft(key,d){
- try{localStorage.setItem('mw:operator-draft:v1:'+key,JSON.stringify({...d,storageError:''}));d.storageError='';return true}
- catch{d.storageError='Could not save your draft in this browser. Copy your text before leaving. Free browser storage and try again; nothing new will be sent without a saved request ID.';return false}
-}
-function action(text,run,primary=false){const b=el('button',text,'action'+(primary?' primary':''));b.type='button';b.onclick=run;return b}
-function message(parent,m,key){
- let existing=[...parent.children].find(n=>n.dataset.message===m.id);const signature=json(m);if(existing?.dataset.signature===signature)return existing;
- const li=el('li',undefined,'message');li.dataset.message=m.id;li.dataset.signature=signature;li.append(el('p',(m.kind==='source'?'Original request':m.kind==='question'?'Question':m.kind==='decision'?'Decision':m.kind==='reuse'?'Reused answer':'Answer')+' · '+m.role+(m.at?' · '+time(m.at):''),'system'));
- const long=m.text.length>600||m.truncated;
- li.append(el('p',long?m.text.slice(0,600)+'…':m.text));
- if(long)disclosure(li,'message:'+key+':'+m.id,'Read full message',async b=>{
-  if(!m.truncated){b.append(el('p',m.text));return}
-  const load=async()=>{b.replaceChildren(el('p','Loading the saved message…','system'));try{
-   const page=await get('/api/v1/items/'+key+'/conversation'+(m.kind==='source'?'':'?after='+Math.max(0,m.event-1)));
-   const full=page.messages.find(x=>x.id===m.id);if(!full)throw new Error('The saved message is no longer available.');b.replaceChildren(el('p',full.text));
-  }catch(e){b.replaceChildren(el('p',e.message,'feedback error'),action('Try again',load))}};await load();
- });
- for(const r of m.references??[]){li.append(el('p','Source: '+r.by+' · '+r.answerId+(r.resolved?'':' · unresolved'),'system'));exactEvidence(li,'answer:'+key+':'+r.answerId,'Read exact saved answer',r.detail)}
- if(m.evidence)exactEvidence(li,'event:'+key+':'+m.event,m.referencesOmitted?'All '+m.referencesTotal+' answer references':'Exact event evidence',m.evidence);
- if(existing)patchEvidence(existing,li);else parent.append(li);return existing??li;
-}
-// A pending request is immutable until acceptance or a definite rejection is known.
-// Drafts are local only; all accepted messages and work state belong to the API.
-function composer(key,isNew=false){
- const d=draftFor(key),root=el('section',undefined,'composer'),form=el('form'),policy=el('p',undefined,'muted'),feedback=el('div',undefined,'feedback'),storage=el('p',undefined,'feedback error');
- let context=null,projects=[],feedbackKey='';const controls={};
- feedback.setAttribute('role','status');feedback.setAttribute('aria-live','polite');storage.setAttribute('role','alert');
- const field=(name,label,tag='textarea')=>{const box=el('div',undefined,'field'),l=el('label',label),input=el(tag);input.id='draft-'+key+'-'+name;l.htmlFor=input.id;input.name=name;input.value=d.fields[name]??'';controls[name]=input;
-  input.addEventListener(tag==='select'?'change':'input',()=>{d.fields[name]=input.value;if(d.phase==='accepted'){d.phase='draft';d.notice=''}if(!isNew&&!d.revision&&context)d.revision=context.revision;saveDraft(key,d);update()});box.append(l,input);form.append(box);return input};
- if(isNew){const mode=field('mode','Start with','select');mode.replaceChildren(new Option('Raw notes → discover tasks','discovery'),new Option('A task already selected for delivery','delivery'));mode.value=d.fields.mode??'discovery';d.fields.mode=mode.value;field('workspace','Workspace','select').required=true;field('objective','Short objective','input');field('source','Notes, transcript or task description').required=true}
- else{root.append(el('h3','Your reply'));field('text','Answer or direction for this task').required=true;field('cause','What caused the problem?','select')}
- const note=el('p','Drafts are saved in this browser on this device. Your exact text is sent only when you submit.','draft-note');
- const buttons=el('div',undefined,'actions'),send=action(isNew?'Submit work':'Send reply',()=>{},true),review=action('Review and edit draft',async()=>{
-  if(!isNew&&!context)return;
-  if(!isNew&&d.reviewRevision!==context.revision){review.disabled=true;try{const latest=await get('/api/v1/items/'+key);d.reviewRevision=latest.revision;conversation(Number(key),latest);d.notice='Read the latest conversation above, then confirm your review. Your draft has not changed.';saveDraft(key,d)}catch(e){d.problem={detail:e.message}}finally{review.disabled=false;update()}return}
-  d.pending=null;d.phase='draft';d.problem=null;d.notice='Draft kept. Review your text, then send when ready.';d.revision=context?.revision;d.reviewRevision=undefined;saveDraft(key,d);update();(controls.text??controls.source).focus();
- });send.type='submit';
- buttons.append(send,review);form.append(note,buttons);root.append(policy,feedback,storage,form);
- const starting=()=>!isNew&&(d.pending?.url?.endsWith('/start')||context?.next?.some(a=>a.href==='/api/v1/items/'+key+'/start'));
- function update(next){
-  if(next)context=next;
-  const pending=!!d.pending,busy=d.phase==='sending',stale=!isNew&&!!d.revision&&!!context&&d.revision!==context.revision;
-  const allowed=isNew?projects.some(p=>p.workspace===controls.workspace.value):starting()||context?.answer.allowed===true;if(isNew){if(!controls.mode.value)controls.mode.value='discovery';controls.objective.required=controls.mode.value==='delivery';controls.objective.closest('.field').hidden=controls.mode.value!=='delivery'}
-  policy.textContent=isNew?'Your input is saved once. Made Well carries it through the configured steps.':starting()?'Start this task and its prerequisites. The configured delivery steps use the saved discovery context.':context?.answer.reason??'Loading the task’s answer policy…';
-  form.hidden=!isNew&&!allowed&&!pending;
-  if(!isNew){controls.text.closest('.field').hidden=!!starting();controls.text.required=!starting();
-   const cause=controls.cause,causes=context?.answer.causes??[];
-   if(json([...cause.options].map(o=>o.value))!==json(['',...causes])){cause.replaceChildren(new Option('Choose a cause',''),...causes.map(c=>new Option(friendly(c),c)));cause.value=d.fields.cause??''}
-   cause.closest('.field').hidden=!context?.answer.causeRequired&&!d.pending?.body.cause;cause.required=!!context?.answer.causeRequired;
-  }
-  for(const input of Object.values(controls)){if(input.tagName==='SELECT')input.disabled=pending;else input.readOnly=pending}
-  send.disabled=busy||d.phase==='rejected'||(!pending&&(!allowed||stale))||(!pending&&!isNew&&!context);
-  send.textContent=busy?'Sending…':pending?'Retry same request':isNew?(controls.mode.value==='discovery'?'Start discovery':'Submit task'):starting()?'Start task':'Send reply';
-  review.hidden=busy||!(d.phase==='rejected'||(!pending&&stale));
-  review.textContent=isNew?'Review and edit draft':d.reviewRevision===context?.revision?'I reviewed the latest task · keep my draft':'Review latest task';
-  storage.textContent=d.storageError??'';
-  const state=json([d.phase,d.problem,d.notice,stale,allowed,d.fields.text,form.hidden]);
-  if(state!==feedbackKey){feedbackKey=state;feedback.replaceChildren();feedback.className='feedback'+(d.problem?' error':d.phase==='accepted'?' success':'');
-   if(busy)feedback.append(el('p','Sending your exact text. Please wait…','system'));
-   else if(d.problem){feedback.append(el('p',d.problem.detail??'Your message could not be sent.'));disclosure(feedback,'problem:'+key,'Error details',b=>section(b,'Server response',d.problem,true))}
-   else if(d.notice)feedback.append(el('p',d.notice));
-   if(isNew&&d.phase==='accepted'&&d.receipt){const link=el('a','Open task #'+d.receipt.item);link.href='#'+d.receipt.item;feedback.append(link)}
-   if(d.phase==='uncertain')feedback.append(el('p','Acceptance is not confirmed. Your text and request ID are saved. Retry the same request to check or finish it; do not submit it as new work.'));
-   if(stale&&!pending)feedback.append(el('p','This task changed while your draft was open. Read the latest conversation, then confirm your review before sending.'));
-   if(form.hidden&&d.fields.text)disclosure(feedback,'saved-draft:'+key,'Your saved reply draft',b=>b.append(el('p',d.fields.text,'returned-text')));
-  }
- }
- form.addEventListener('submit',async e=>{
-  e.preventDefault();if(d.phase==='sending'||d.phase==='rejected')return;
-  if(!d.pending){
-   if(!isNew&&(!(starting()||context?.answer.allowed)||(d.revision&&d.revision!==context.revision)))return;
-   const fields=d.fields;
-   const limits=isNew?(controls.mode.value==='discovery'?{workspace:4096,source:32768}:{workspace:4096,objective:2000,source:32768}):starting()?{}:{text:32768};
-   for(const [name,max]of Object.entries(limits))if(!fields[name]?.trim()||Array.from(fields[name]).length>max){d.problem={detail:'Enter '+(name==='source'?'a description':name==='text'?'a reply':name)+' of no more than '+max.toLocaleString()+' characters. Your draft is kept.'};update();controls[name].focus();return}
-   if(!isNew&&!starting()&&context.answer.causeRequired&&!context.answer.causes.includes(fields.cause)){d.problem={detail:'Choose the cause of this problem before sending.'};update();controls.cause.focus();return}
-   const body=isNew?{requestId:crypto.randomUUID(),workspace:fields.workspace,mode:controls.mode.value,objective:controls.mode.value==='discovery'?'Turn the raw input into candidate work items.':fields.objective,source:fields.source,...(controls.mode.value==='discovery'?{title:fields.source.trim().split(/\r?\n/)[0].slice(0,300)}:{})}:starting()?{requestId:crypto.randomUUID(),revision:d.revision??context.revision}:{requestId:crypto.randomUUID(),revision:d.revision??context.revision,text:fields.text,...(context.answer.causeRequired?{cause:fields.cause}:{})};
-   if(new TextEncoder().encode(JSON.stringify(body)).length>65536){d.problem={detail:'This message is too large to send (64 KiB JSON limit). Shorten it; the draft is still here.'};update();return}
-   d.pending={url:'/api/v1/items'+(isNew?'':'/'+key+(starting()?'/start':'/answers')),body};
-  }
-  d.phase='sending';d.problem=null;d.notice='';if(!saveDraft(key,d)){d.phase='uncertain';update();return}update();
-  try{
-   const post=async()=>{const session=await get('/api/v1/session');const r=await fetch(d.pending.url,{method:'POST',headers:{'Content-Type':'application/json','X-MW-CSRF':session.csrfToken},body:JSON.stringify(d.pending.body),signal:AbortSignal.timeout(15000)});return {r,data:await r.json()}};
-   let response=await post();if(response.r.status===403&&response.data.reason==='csrf_required')response=await post();
-   const {r,data}=response;
-   if(!r.ok){d.problem=data;d.phase=r.status>=500||r.status===408||r.status===403||data.reason==='request_id_conflict'?'uncertain':'rejected';if(data.task)context=data.task;saveDraft(key,d);update();return}
-   if(data.accepted!==true||data.requestId!==d.pending.body.requestId)throw new Error('Acceptance could not be confirmed.');
-   d.phase='accepted';d.notice='Accepted · '+(isNew?'Work #'+data.receipt.item+' was saved.':d.pending.url.endsWith('/start')?'The task and its prerequisites were queued.':'Your reply was saved.')+(data.warnings?.length?' '+data.warnings.join(' '):'');d.receipt=data.receipt;d.pending=null;d.fields={};d.revision=undefined;d.problem=null;
-   for(const control of Object.values(controls))control.value='';saveDraft(key,d);if(data.context)context=data.context;update();
-   if(isNew){const reply=draftFor(String(data.receipt.item));reply.notice=d.notice;reply.phase='accepted';saveDraft(String(data.receipt.item),reply);if(composing)location.hash=String(data.receipt.item)}
-   renderKey='';refresh();
-  }catch(e){d.phase='uncertain';d.problem={detail:'Connection interrupted. '+e.message};saveDraft(key,d);update()}
- });
- const setProjects=values=>{projects=values;const input=controls.workspace;input.replaceChildren(new Option('Choose a workspace',''),...values.map(p=>new Option(p.workspace,p.workspace)));input.value=d.fields.workspace??'';
-  if(!input.value&&values.length===1&&!d.fields.workspace){input.value=values[0].workspace;d.fields.workspace=input.value;saveDraft(key,d)}update()};
- update();return {root,update,setProjects};
-}
-function conversation(id,context){
- if(!conversations.has(id)){
-  const root=el('section',undefined,'conversation'),messages=el('ol',undefined,'messages'),history=el('div'),reply=composer(String(id));root.append(el('h3','Conversation'),messages,history,reply.root);
-  disclosure(history,'history:'+id,'Browse the full conversation',b=>{
-   const items=el('ol',undefined,'messages'),status=el('p',undefined,'system');let after=null;
-   const load=async()=>{more.disabled=true;status.textContent='Loading saved messages…';try{const page=await get('/api/v1/items/'+id+'/conversation'+(after===null?'':'?after='+after));for(const m of page.messages)message(items,m,id);after=page.nextAfter;more.hidden=!page.hasMore;status.textContent=page.hasMore?'More messages are available.':'You have reached the latest saved message.'}catch(e){status.textContent=e.message}finally{more.disabled=false}};
-   const more=action('Load more messages',load);b.append(items,status,more);load();
-  },'Original request and every recorded question and answer');
-  conversations.set(id,{id,root,messages,reply,key:''});
- }
- const view=conversations.get(id),k=json([context.item.source,context.item.sourceTruncated,context.conversation,context.conversationTruncated]);
- if(view.key!==k){view.key=k;message(view.messages,{id:'source:'+id,kind:'source',role:'operator',text:context.item.source,truncated:context.item.sourceTruncated},id);for(const m of context.conversation)message(view.messages,m,id);
-  const keep=new Set(['source:'+id,...context.conversation.map(m=>m.id)]);for(const n of [...view.messages.children])if(n.dataset.message&&!keep.has(n.dataset.message))n.remove();let note=view.messages.querySelector('.draft-note');if(context.conversationTruncated&&!note)view.messages.append(el('li','Showing recent messages. Open the full conversation for earlier evidence.','draft-note'));else if(!context.conversationTruncated)note?.remove()}
- view.reply.update(context);return view.root;
-}
-function showNewWork(){
- if(newWorkView?.root.isConnected)return;
- if(newWorkView){detail.className='';detail.replaceChildren(newWorkView.root);renderKey='';return}
- const root=el('section'),c=composer('new',true),status=el('p',undefined,'system');root.append(el('h2','New work'),el('p','Tell Made Well what you want done. The description becomes the original request, exactly as you write it.'),status,c.root);
- const load=async()=>{status.textContent='Loading registered workspaces…';retry.hidden=true;try{const data=await get('/api/v1/projects');c.setProjects(data.projects);status.textContent=data.projects.length?'':'No workspaces are registered yet. Ask your agent to register a workspace before submitting work.'}catch(e){status.textContent=e.message;retry.hidden=false}};
- const retry=action('Reload workspaces',load);root.append(retry);newWorkView={root};detail.className='';detail.replaceChildren(root);renderKey='';load();
-}
-function section(parent,title,value,error=false){const p=el('pre',typeof value==='string'?value:json(value),error?'error':undefined);p.tabIndex=0;p.setAttribute('aria-label',title);parent.append(el('h3',title),p)}
-function disclosure(parent,key,title,fill,hint){
- const d=el('details'),s=el('summary',title),b=el('div',undefined,'disclosure-body');
- d.dataset.key=key;d._fill=fill;d._filled=false;d.open=expanded.has(key);if(hint)s.append(el('span',hint,'hint'));d.append(s,b);
- const populate=()=>{if(!d._filled){d._fill(d.lastElementChild);d._filled=true}};if(d.open)populate();
- d.addEventListener('toggle',()=>{if(!d.isConnected)return;if(d.open){expanded.add(key);populate()}else expanded.delete(key)});parent.append(d);return d;
-}
-function overview(v){
- const status=v.itemRecord.status;
- if(v.workEvidence?.noWorkPerformed)return {title:'No work performed',text:'No steps were set up, so no work was performed.',tone:'quiet'};
- if(['completed','shipped','discovered'].includes(status)&&!v.done)return {title:status==='shipped'?'Recorded as delivered; current evidence incomplete':'Recorded as completed; current evidence incomplete',text:'The saved lifecycle remains available in the evidence below.',tone:'attention'};
- if(status==='completed')return {title:'Completed',text:v.proof.completion?.nodes===0?'No steps were set up, so no work was performed.':'The steps for this task are finished. Only the work listed below is included.',tone:v.proof.completion?.nodes===0?'quiet':''};
- if(status==='shipped')return {title:'Delivered',text:'The work was delivered. Its recorded checks and delivery details are available below.'};
- if(status==='discovered')return {title:'Tasks ready',text:'The input has been turned into tasks.',next:'Open a proposed task to start its delivery.'};
- if(status==='candidate')return {title:'Ready to review',text:'This task has not started.',next:'Start this task below when you want it delivered.'};
- if(status==='paused')return {title:'Ready to continue',text:'Work has reached a review point. Your progress is saved.',next:'Review the conversation below for what comes next.',tone:'attention'};
- if(status==='held')return {title:'Needs attention',text:'A step could not continue. Your progress is saved.',next:'Review the conversation below for what needs attention.',tone:'attention'};
- if(status==='dropped')return {title:'Stopped',text:'This task was stopped. Its previous activity is still available below.',tone:'quiet'};
- if(v.state==='not-running')return {title:'Not running',text:'Made Well is not running this task right now. It is not complete.',next:'Your progress is saved. The driver resumes work selected through this page while the server is running.',tone:'attention'};
- if(status==='waiting-quota')return {title:'Waiting for capacity',text:'The available accounts are busy or at their limits. Work resumes when capacity becomes available.',tone:'quiet'};
- if(status==='waiting-prerequisite')return {title:'Waiting for another task',text:'Another task needs to finish before this one can continue.',tone:'quiet'};
- if(v.state==='working')return {title:'In progress',text:'Made Well is working through the steps for this task.'};
- return {title:'Not started',text:'This task is waiting for its turn.',tone:'quiet'};
-}
-function render(v,context){
- const key=json([v,context]);if(key===renderKey)return;renderKey=key;
- const focused=document.activeElement,focus=focused?.closest('details')?.dataset.key,preFocus=focused?.tagName==='PRE'?focused.getAttribute('aria-label'):null;
- const scroll=new Map([...detail.querySelectorAll('details')].map(d=>[d.dataset.key,[...d.querySelectorAll('pre')].map(p=>[p.scrollTop,p.scrollLeft])]));
- const head=el('section'),tail=el('div'),view=overview(v);head.append(el('h2',v.title),el('p',view.title,'status '+(view.tone??'')));
- if(v.objective&&v.objective!==v.title)head.append(el('p',v.objective));
- head.append(el('p',view.text,'muted'));if(view.next)head.append(el('p',view.next));
- const returned=v.proof.completion?.output?.result;
- if(v.itemRecord.status==='completed'&&v.pack.runtime==='functions'&&typeof returned==='string'){head.append(el('h3','Result'));const result=el('div',undefined,'message');result.append(el('p',returned.length>1200?returned.slice(0,1200)+'…':returned,'returned-text'));if(returned.length>1200)disclosure(result,'result:'+v.item,'Read the full result',b=>b.append(el('p',returned,'returned-text')));head.append(result)}
- const active=v.invocations.filter(i=>i.status==='running'||i.status==='lost');
- if(!v.done&&active.length){
-  const quiet=active.some(i=>i.signals.some(s=>['no-output','no-progress','repeated-output','repeated-operation'].includes(s.data.code)));
-  const lost=active.some(i=>i.stale||i.status==='lost');
-  if(quiet||lost){const notice=el('section',undefined,'notice');notice.append(el('h3',lost?'Updates may have stopped':'No recent progress confirmed'),el('p',lost?'The latest activity may be out of date. Ask your agent to check whether work is still running.':'This step is quiet or repeating activity. That alone does not mean it is stuck.'));head.append(notice)}
-  const last=active.map(i=>i.heartbeat?.at??i.started).sort().at(-1);head.append(el('p','Last activity at '+time(last),'system'));
- }
- head.append(el('h3','Steps'));
- const nodes=el('ol',undefined,'steps'),organJobs=[];
- function node(n,parent){
-  organJobs.push(n.job);
-  const li=el('li'),row=el('div',undefined,'step');
-  const done=v.workEvidence?.jobs[n.job]?.complete===true;
-  const current=n.job===v.job||active.some(i=>i.job===n.job);
-  const state=done?'Done':current?(v.hold?'Needs attention':v.state==='working'?'In progress':'Not started'):'Not started';
-  row.append(el('span',friendly(n.job),'step-name'),el('span',state,'step-state '+(done?'done':current&&v.hold?'attention':'')));li.append(row);
-  const proof=v.workEvidence?.jobs[n.job];if(proof){disclosure(li,'accepted:'+v.item+':'+n.job,'Accepted result',b=>{section(b,'Accepted result',proof.acceptedOutput);section(b,'Retained output',proof.output);if(proof.provenance.state!=='linked')b.append(el('p','Invocation not recorded · '+proof.provenance.reason));section(b,'Recorded invocation input',proof.input);section(b,'Acceptance and provenance',proof.provenance)});for(const attempt of proof.laterAttempts.entries)exactEvidence(li,'later:'+v.item+':'+attempt.event,'Later attempt · '+attempt.outcome+' · '+attempt.at,attempt.evidence);if(proof.laterAttempts.omitted){const link=el('a','All '+proof.laterAttempts.total+' attempts');link.href=proof.laterAttempts.trace;li.append(link)}}
-  if(n.children?.length){const children=el('ol',undefined,'steps');for(const child of n.children)node(child,children);li.append(children)}parent.append(li);
- }
- for(const c of v.pack[v.itemRecord.flow?.loop??v.phase]??[])for(const n of c.steps??[])node(n,nodes);
- if(nodes.children.length)head.append(nodes);else head.append(el('p','No steps have been set up for this task.','muted'));
- currentWork(head,v.currentHandoff,v.item);
- workOrgans(head,context.organs,v.item,organJobs,v.job);
- const thread=conversation(v.item,context);
- const tech=disclosure(tail,'technical:'+v.item,'Activity & technical details',b=>{
-  const m=el('dl',undefined,'metrics');for(const [name,value]of [['Calls recorded',v.metrics.invocations],['Failed calls',v.metrics.failed],['Total call time',duration(v.metrics.ms)],['Reported tokens',v.metrics.tokens===null?'Not reported':v.metrics.tokens.toLocaleString()]]){const pair=el('div');pair.append(el('dt',name),el('dd',String(value)));m.append(pair)}b.append(m);
-  if(v.metrics.tokens!==null&&v.metrics.unreportedUsage)b.append(el('p','Token usage is missing for '+v.metrics.unreportedUsage+' calls; this is a partial total.','system'));
-  b.append(el('p','Task #'+v.item+' · '+v.lane+(v.pack.version?' @ '+v.pack.version:''),'system'),el('p',v.runner?'Runner process '+v.runner.pid:'No runner process owns the work queue.','system'));
-  if(v.hold)section(b,'Recorded reason',v.hold.message,true);
-  if(v.next.length)section(b,'Commands for your agent',v.next);
-  b.append(el('h3','Calls · newest first'));
-  if(!v.invocations.length)b.append(el('p','No calls recorded yet.','muted'));
-  for(const i of [...v.invocations].reverse())disclosure(b,'call:'+i.id,i.job+' / '+i.kind+' · '+i.status+' · '+duration(i.ms),body=>{
-   body.append(el('p','Started '+i.started+(i.heartbeat?' · heartbeat '+i.heartbeat.at:''),'system'));
-   if(i.error)section(body,'Error',i.error,true);
-   if(i.signals.length)section(body,'Observed signals',i.signals.map(s=>({at:s.at,...s.data})));
-   section(body,'Input / effective arguments',i.args);section(body,'Returned output',i.result??'No return recorded');
-   section(body,'Logs / intermediate values',i.entries.filter(e=>['trace-output','trace-tool','trace-value'].includes(e.kind)).map(e=>({at:e.at,kind:e.kind,...e.data})));
-   if(i.call)section(body,'Agent call / prompt / response',i.call);
-  });
-  disclosure(b,'pack:'+v.item,'Setup & changes',body=>{section(body,'Pinned configuration',v.pack);section(body,'Update history',v.updates)});
-  disclosure(b,'events:'+v.item,'Full record & completion evidence',body=>{section(body,'Completion evidence',v.proof);section(body,'Events',v.events)});
-  const link=el('a','Open the full technical console');link.href='/console';b.append(el('p'));b.lastElementChild.append(link);
- },'Calls, timing, inputs, outputs and logs');tech.className='technical';
- tail.append(el('p','New work and replies are your instructions to Made Well. Progress and conversation come from the saved work record.','read-note'));
- detail.className='';
- // Never detach the live composer during polling: selection, IME and focus stay native.
- if(thread.parentElement===detail){patchEvidence(detail.firstElementChild,head);patchEvidence(detail.lastElementChild,tail)}
- else detail.replaceChildren(head,thread,tail);
- for(const d of detail.querySelectorAll('details')){const saved=scroll.get(d.dataset.key);if(saved)[...d.querySelectorAll('pre')].forEach((p,i)=>{if(saved[i]){p.scrollTop=saved[i][0];p.scrollLeft=saved[i][1]}})}
- if(focused!==document.body&&focused?.isConnected)focused.focus({preventScroll:true});
- else if(focus){const d=[...detail.querySelectorAll('details')].find(d=>d.dataset.key===focus);const target=preFocus?[...d?.querySelectorAll('pre')??[]].find(p=>p.getAttribute('aria-label')===preFocus):d?.querySelector('summary');target?.focus({preventScroll:true})}
-}
-async function refresh(){if(fetching)return;fetching=true;try{
- const board=await get('/api/runs');
- if(!composing&&selected===null&&board.items.length)selected=(board.items.find(i=>i.status==='held'||i.status==='paused')??board.items[0]).id;
- const key=json([selected,composing,board.items]);if(key!==listKey){const focused=document.activeElement?.dataset.item;list.replaceChildren();listKey=key;
-  const attention=board.items.filter(i=>i.status==='held'||i.status==='paused').length;listSummary.textContent=board.items.length+' '+(board.items.length===1?'task':'tasks')+(attention?' · '+attention+' '+(attention===1?'needs':'need')+' attention':'');
-  for(const i of board.items){const b=el('button');b.dataset.item=String(i.id);b.setAttribute('aria-current',String(!composing&&selected===i.id));b.append(el('span',i.title,'task-name'),el('span',(['completed','shipped','discovered'].includes(i.status)&&!i.completion?(i.noWorkPerformed?'No work performed':'Recorded completion; evidence incomplete'):labels[i.status]??i.status),'task-state'));b.onclick=()=>{composing=false;selected=i.id;location.hash=String(i.id);refresh()};list.append(b);if(focused===String(i.id))b.focus({preventScroll:true})}
- }
- if(composing)showNewWork();
- else if(!board.items.length){detail.className='empty';detail.replaceChildren(el('h2','A place for your next task.'),el('p','Choose New work to describe what you want done. Follow its progress here, from the first step to the result.','muted'));renderKey=''}
- else if(!board.items.some(i=>i.id===selected)){detail.replaceChildren(el('h2','That task is not available.'),el('p','Choose another task from your list.'));renderKey=''}
- else{const id=selected;const [v,context]=await Promise.all([get('/api/trace/'+id+'?lens=ax'),get('/api/v1/items/'+id)]);if(selected===id&&!composing)render(v,context)}
- connection.textContent='Up to date · '+time(new Date());connection.className='';connection.removeAttribute('title');
- }catch(e){connection.textContent='Connection lost · Showing the last saved view';connection.className='error';connection.title=e.message}finally{fetching=false}}
-document.querySelector('.skip').addEventListener('click',e=>{e.preventDefault();detail.focus();detail.scrollIntoView({block:'start'})});
-document.querySelector('#new-work').addEventListener('click',()=>{composing=true;location.hash='new';showNewWork();detail.focus();detail.scrollIntoView({block:'start'});refresh()});
-window.addEventListener('hashchange',()=>{composing=location.hash==='#new';selected=Number(location.hash.slice(1))||null;renderKey='';if(composing)showNewWork();refresh()});if(composing)showNewWork();refresh();setInterval(refresh,2000);
-</script></body></html>`
+function options(select,entries){const wanted=new Set(entries.map(x=>x[0]));for(const o of [...select.options])if(!wanted.has(o.value))o.remove();for(const [v,label]of entries){let o=[...select.options].find(o=>o.value===v);if(!o){o=document.createElement('option');o.value=v;select.append(o)}if(o.textContent!==label)o.textContent=label}}
+function actions(){const entries=context?.next.filter(a=>a.method==='POST').map(a=>[a.href,a.reason])??[];options($('action'),entries);if(entries.some(e=>e[0]===draft.action))$('action').value=draft.action;$('action-label').hidden=!selected;$('new-fields').hidden=!!selected;if(selected)buildFields();else $('fields').replaceChildren();$('composer').hidden=!!selected&&!entries.length&&!draft.pending;$('form-title').textContent=selected?'Update this work':'New work'}
+function lock(){const pending=!!draft.pending;for(const e of $('composer').querySelectorAll('input,textarea,select'))e.disabled=pending;$('send').textContent=pending?'Retry saved request':selected?'Save action':'Save work';$('send').disabled=busy||!storage;$('review').hidden=!pending}
+async function read(url){const r=await fetch(url);if(!r.ok)throw new Error('Cannot read saved work.');return r.json()}
+function render(){const i=context.item,p=context.work?.progress??{},root=document.createElement('div');root.id='summary';root.append(evidenceNode('h2',i.title),evidenceNode('p',i.objective),evidenceNode('p',context.position.status+' · '+(p.owner??i.owner),'system'),evidenceNode('p',p.nextAction??''));for(const b of context.work?.blockers??[])if(!b.resolvedAt)root.append(evidenceNode('p','Blocked: '+b.reason+' · '+b.owner+' · '+b.nextAction));const c=context.work?.completion;if(c){root.append(evidenceNode('h3','Accepted result'),evidenceNode(typeof c.result==='string'?'p':'pre',typeof c.result==='string'?c.result:JSON.stringify(c.result,null,2)),evidenceNode('p',c.kind==='recorded'?'Recorded assertion by '+c.acceptedBy.label:c.kind==='legacy'?'Historical result; acceptance coverage unavailable':'Independent automated acceptance','system'))}patchEvidence($('summary'),root);$('evidence').textContent=JSON.stringify(context,null,2);currentWork($('steps'),context.currentHandoff,i.id);workOrgans($('steps'),context.organs,i.id,context.organs?.phases.map(p=>p.job),context.position.node);const next=document.createElement('div');next.id='conversation';next.append(evidenceNode('h3','Conversation'));for(const m of context.conversation??[]){const row=evidenceNode('div');row.dataset.key=m.id;row.append(evidenceNode('p',m.role+' · '+m.kind,'system'),evidenceNode('p',m.text));next.append(row)}patchEvidence($('conversation'),next);actions()}
+async function refresh(){if(polling)return;polling=true;const id=selected;try{const runs=await read('/api/runs');for(const i of runs.items){let b=nodes.get(i.id);if(!b){b=document.createElement('button');b.type='button';b.onclick=()=>select(i.id);nodes.set(i.id,b);$('items').append(b)}const text=i.title+' · '+i.status;if(b.textContent!==text)b.textContent=text}for(const [id,b]of nodes)if(!runs.items.some(i=>i.id===id)){b.remove();nodes.delete(id)}if(id){const c=await read('/api/v1/items/'+id);if(id===selected){context=c;render()}}$('connection').textContent='Connected'}catch{$('connection').textContent='Disconnected · saved drafts remain available'}finally{polling=false}}
+async function select(id){if(busy)return;gather();selected=id;context=null;await refresh();load();$('work').focus({preventScroll:true})}
+$('new').onclick=()=>select(null);$('composer').addEventListener('input',()=>{if($('authorizeReplay'))draft.fields.authorizeReplay=String($('authorizeReplay').checked);gather()});$('action').onchange=()=>{gather();formKey='';buildFields();save()};
+function body(){const f=draft.fields,op=actionName(),out={requestId:crypto.randomUUID(),revision:draft.revision,actor:{kind:'operator',label:'Browser operator'}};if(!selected)return {requestId:out.requestId,title:value('objective'),objective:value('objective'),source:value('source'),mode:value('mode')};if(op==='progress')Object.assign(out,{progress:{remaining:f.remaining,nextAction:f.nextAction,owner:f.owner}});if(op==='block')out.blocker={id:f.blockerId,reason:f.reason,owner:f.owner,nextAction:f.nextAction};if(op==='unblock')Object.assign(out,{blockerId:f.blockerId,resolution:f.resolution});if(op==='answers'){out.text=f.text;delete out.actor}if(op==='complete')Object.assign(out,{result:f.result,evidence:context.work.conditions.map(c=>({conditionId:c.id,detail:f['evidence:'+c.id]??'',refs:(f['refs:'+c.id]??'').split('\n').filter(Boolean)}))});if(op==='configure-work')Object.assign(out,{reason:f.reason,execution:{mode:f.execution,owner:f.owner},...(f.settings?{settings:JSON.parse(f.settings)}:{})});if(op==='resolve-execution')Object.assign(out,{invocation:f.invocation,action:f.resolutionAction,reason:f.reason,...(f.resolutionAction==='replay'&&f.authorizeReplay==='true'?{authorizeReplay:true}:{})});return out}
+$('composer').onsubmit=async e=>{e.preventDefault();if(busy||!storage)return;gather();if(!storage)return;if(!draft.pending){if(!draft.revision&&selected)draft.revision=context.revision;draft.pending={url:selected?value('action'):'/api/v1/items',body:body()};save();if(!storage){draft.pending=null;return}}busy=true;lock();try{const session=await read('/api/v1/session'),r=await fetch(draft.pending.url,{method:'POST',headers:{'Content-Type':'application/json','X-MW-CSRF':session.csrfToken},body:JSON.stringify(draft.pending.body)}),result=await r.json();if(!r.ok){$('message').textContent=result.detail??'Request refused; keep the draft.';$('evidence').textContent=JSON.stringify(result,null,2);return}const created=result.value?.id;localStorage.removeItem(key());draft={fields:{},action:'',revision:null,pending:null};$('message').textContent=(result.warnings??[]).join(' ')||'Saved.';if(!selected&&created){selected=created;await refresh();load()}else{await refresh();load()}}catch{$('message').textContent='Acceptance uncertain. Retry sends the exact saved request.'}finally{busy=false;lock()}};
+$('review').onclick=async()=>{await refresh();draft.pending=null;draft.revision=context?.revision??null;save();lock();$('message').textContent='Review the latest record and preserved draft before making a new request.'};load();refresh();setInterval(refresh,3000);
+</script></html>`

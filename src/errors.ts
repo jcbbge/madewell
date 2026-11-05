@@ -16,6 +16,26 @@ const Hold = Schema.Struct({ code: Schema.String, message: Schema.String, contex
  * prints this table in its manual.
  */
 export const ERRORS = {
+	settings_invalid: {means: 'Settings failed validation.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	work_invalid: {means: 'Work input failed validation.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	revision_conflict: {means: 'The work changed concurrently.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	request_id_conflict: {means: 'Request identity was reused with different input.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	discovery_dependency_invalid: {means: 'A candidate dependency is invalid.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	work_terminal: {means: 'Terminal work cannot be changed.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	work_busy: {means: 'Work is not quiescent.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	blocker_exists: {means: 'The active blocker already exists.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	blocker_not_found: {means: 'The active blocker does not exist.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	completion_invalid: {means: 'Completion evidence is invalid.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	file_result_invalid: {means: 'A file reference is invalid.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	execution_uncertain: {means: 'An interrupted side effect needs an explicit resolution.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	function_corrections_exhausted: {means: 'The correction allowance is exhausted.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	migration_required: {means: 'Historical storage needs migration.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	migration_in_progress: {means: 'Migration is unfinished.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	migration_attestation_missing: {means: 'Writers must be stopped before migration.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	migration_token_stale: {means: 'The preview token is stale.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	migration_not_required: {means: 'No migration is required.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	migration_conflict: {means: 'Registry or migration state changed.', context: Schema.Record(Schema.String,Schema.Unknown)},
+
 	prepared_input_failed: { means: 'A prepared resource could not be captured or safely extracted.', context: Schema.Struct({ dir: Schema.String, phase: Schema.Literals(['capture', 'assess', 'extract']), paths: Schema.Array(Schema.String), reason: Schema.String }) },
 	replan_unavailable: { means: 'Technical replanning is unavailable for this item state.', context: Schema.Struct({ id: Id, status: Schema.String, job: Schema.String, reason: Schema.String }) },
 	usage: {
@@ -23,12 +43,6 @@ export const ERRORS = {
 		context: Schema.Struct({ command: Schema.NullOr(Schema.String) }),
 	},
 	source_unreadable: { means: 'The file named by --source-file cannot be read.', context: Schema.Struct({ path: Schema.String }) },
-	workspace_missing: { means: 'The workspace directory does not exist.', context: Schema.Struct({ workspace: Schema.String }) },
-	project_not_found: {
-		means: 'The workspace is not a registered project; `mw init` registers it with its ship command.',
-		context: Schema.Struct({ workspace: Schema.String, projects: Schema.Array(Schema.String) }),
-	},
-	projects_invalid: { means: 'The project registry in Made Well\'s home is not valid.', context: Schema.Struct({ path: Schema.String, problems: Schema.String }) },
 	item_not_found: { means: 'No work item has this number.', context: Schema.Struct({ id: Id }) },
 	api_request: {
 		means: 'A versioned API request failed validation, security, concurrency or transport checks; context names the HTTP status and reason.',
@@ -44,7 +58,7 @@ export const ERRORS = {
 	cause_required: { means: 'The item holds on a failed check; the answer must name its cause with --cause.', context: Schema.Struct({ id: Id, hold: Hold }) },
 	answer_required: { means: 'The item waits on the operator\'s answer, not a retry.', context: Schema.Struct({ id: Id, hold: Hold }) },
 	not_discovered: { means: 'The item is not a finished discovery run, so it has no candidates to promote.', context: Schema.Struct({ id: Id, status: Schema.String, job: Schema.String }) },
-	not_droppable: { means: 'The item has shipped: its change is on main, so there is nothing to abandon.', context: Schema.Struct({ id: Id, status: Schema.String }) },
+	not_droppable: { means: 'The work is terminal and cannot be dropped.', context: Schema.Struct({ id: Id, status: Schema.String }) },
 	not_a_candidate: {
 		means: 'Some named items are not candidates of this discovery run.',
 		context: Schema.Struct({ discovery: Id, unknown: Schema.Array(Id), candidates: Schema.Array(Schema.Struct({ id: Id, title: Schema.String })) }),
@@ -92,16 +106,7 @@ export const ERRORS = {
 	ui_unavailable: { means: 'The console cannot listen on the address asked for: the port is taken or not allowed.', context: Schema.Struct({ host: Schema.String, port: Schema.Int, reason: Schema.String }) },
 	ui_unsupported: { means: 'The web interface cannot be provisioned as a background service on this platform: only Linux (systemd user units) and macOS (LaunchAgents) are supported.', context: Schema.Struct({ platform: Schema.String, supported: Schema.Array(Schema.String) }) },
 	ui_service_failed: { means: 'The service manager (systemctl or launchctl) refused a step of installing, removing or inspecting the web interface service.', context: Schema.Struct({ platform: Schema.String, command: Schema.String, exitCode: Schema.Int, stderr: Schema.String }) },
-	git_failed: { means: 'A git command Made Well ran in a workspace failed.', context: Schema.Struct({ dir: Schema.String, args: Schema.Array(Schema.String), exitCode: Schema.Int, stderr: Schema.String }) },
-	bad_worktree_name: { means: 'A job worktree name holds characters other than letters, digits, ".", "_" or "-".', context: Schema.Struct({ name: Schema.String }) },
-	worktree_root_unclean: {
-		means: 'Job worktrees would sit inside the product repo or below a guidance file, so agents would read instructions that are not the product\'s.',
-		context: Schema.Struct({ root: Schema.String, repo: Schema.String, guidanceAbove: Schema.Array(Schema.String), insideRepo: Schema.Boolean }),
-	},
-	base_not_found: { means: 'The commit an item starts from is not in the product repo.', context: Schema.Struct({ repo: Schema.String, base: Schema.String }) },
-	no_branch: { means: 'The product repo has no branch checked out, so Made Well does not know which branch an item ships to.', context: Schema.Struct({ repo: Schema.String }) },
-	path_outside_workspace: { means: 'A snapshot was asked for files outside the workspace.', context: Schema.Struct({ dir: Schema.String, outside: Schema.Array(Schema.String) }) },
-	workspace_written: { means: 'A read-only call changed the workspace.', context: Schema.Struct({ dir: Schema.String, changes: Schema.Unknown }) },
+	workspace_written: { means: 'A read-only call changed scratch or declared material.', context: Schema.Struct({ dir: Schema.String, changes: Schema.Unknown }) },
 	out_of_scope: {
 		means: 'The change touches files outside the plan\'s declared scope.',
 		context: Schema.Struct({ dir: Schema.String, base: Schema.String, declared: Schema.Array(Schema.String), outside: Schema.Array(Schema.String), changed: Schema.Array(Schema.String) }),

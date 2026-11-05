@@ -1,3 +1,36 @@
+# Made Well foundation
+
+Made Well is a general work ledger: **capture input → generate tasks → complete tasks**. It defines the shape of work without requiring a project, repository, registration or executable delivery tool. One Store retains the input, durable work units, conditions, progress, blockers, relationships, results and evidence. There is no second ledger or scheduler.
+
+Every selected task owes ideation, planning, implementation and independent verification. Complexity changes depth. Function packs supply methods for those obligations; arbitrary names, valid JSON and process exit codes cannot establish that they were fulfilled. Optional automation is explicit. Default captured work is open external work owned by the operator. General discovery keeps Declare(), lookFirst(), classify(), Lenses(), oneThing(), route(), confirm(); selecting a candidate with no delivery pack creates external work.
+
+The durable item is the object; agents are disposable. Commit every transition, event and receipt atomically before the next call. Redrive saved state for recovery. Compare the exact revision under the Store write lock; never erase a concurrent blocker or answer. Preserve pending returns until blockers are resolved. Only the named blocker is released; checkpoints, NQ, dependencies and uncertain execution remain separate.
+
+The operator's agent stays outside the glass: read and narrate through the public surfaces, never promote, answer, retry or move work by observation alone. Explicit operator submissions use the guarded CLI/API. Profiles have no personal names. Every handoff is NQ: confirm understanding, answer once, preserve aliases and reference durable answers. Three answered turns with unresolved questions indicate a specification defect at every autonomy level. Private tracks retain private answers, outputs and facts.
+
+Every choice resolves context, then actual application purpose, then all three matrices. Judge DX leverage/friction, UX delight/cognitive load and AX capability/ambiguity; record pass, cell 1–9, gets, costs and why. Three hits build with conviction; two proceed; fewer reshape or stop. The optional decision cartridge is advisory. Makers execute the settled brief; they do not redesign it or award themselves acceptance. Independent verification belongs to its configured evidence owner.
+
+Ground actual material, account for Rumen, and prepare every configured successor on the same item. Fingerprints establish identity, not understanding. Fences are declared node check commands executed by the engine. Receipt hashes must match active producer outputs; superseded preparation is prepared again. Keep blocked partials and historical attempts.
+
+Settings are singleton installation data and fully pinned per item. Precedence is explicit values, inherited discovery snapshot, installation; never look up ancestry for execution settings. Explicit file selectors resolve against caller cwd. Bindings, destination roots and alert cwd are absolute. Unattended cartridge execution requires a pinned alert; external work does not.
+
+Executable leaves require execution contract 2, exactly one agent or trusted command, object output, replay safe/explicit and declared writes. Sequence groups flatten; parallel children are isolated tracks. No nested parallel. Only same-track safe ranges may rewind, with durable superseded outputs and bounded counters. Harness errors, quotas and interruption never trigger a correction rewind. Explicit execution without a saved return holds for an exact authorized resolution. Job names carry no behavior.
+
+Completion carries a non-null result, current condition hash, one evidence entry per condition, actor and Clock timestamp. Recorded completion is an attributed assertion on quiescent unblocked external work; it never claims independent verification. Automated completion comes only from a later independent acceptance invocation receiving the result and bound to its current hash. Prerequisites must be completed; dropped never qualifies. Legacy success is labelled historical with acceptance coverage unavailable.
+
+Scratch directories are disposable; declared destination files are retained by reference and never copied or deleted by the ledger. Validate normalized paths, roots, symlinks, regular type, bytes and SHA-256 before acceptance and completion. Save observations before cleanup; views do not fetch current bytes. Persist resource teardown cwd and notification attempt/outcome. Uncertain alerts are never resent automatically.
+
+One trace supplies UX, DX and AX. Keep invocation/output/tool/heartbeat/signal evidence, interrupted fragments, exports, saved output and legacy artifact history. Signals never automatically interrupt, repair or steer. Missing metrics and inaccessible internals stay unavailable. Views lead with objective, status, owner, next action, blockers and accepted result; technical detail stays available through disclosures. Preserve exact draft text, request IDs, conflict review and keyboard focus across polling.
+
+Read paths use a read-only Store. Ordinary mutations refuse required/in-progress migration. The supported journaled cutover snapshots raw historical documents and exact registry bytes before removing only that exact regular file; no old command runs. Claim/release ownership stays unchanged. Post-claim refusals permit only its ownership events, runner lifecycle and the sqlite_sequence events counter advance those inserts cause. Missing attestation or a live owner writes nothing. Installed removal is outstanding until the rollout owner records the actual cutover receipt.
+
+Resource admission samples the real host before launches, retains existing thresholds and notes, and defaults to resources; an explicitly configured positive count remains supported. No service is installed as part of foreground driving. Source and packed runtime are separate environments. Made Well alone owns candidate builds/check execution and delivery; maker reports establish neither acceptance nor installed activation.
+
+Accepted project-free implementation gate: DX cell 2 gains one durable transition/settings contract at the cost of migration and explicit packs; UX cell 2 gains ordinary work without setup at the cost of honest evidence entry; AX cell 1 gains declared execution and provable recovery at the cost of retained receipts. All three hit; these are predicted benefits, not measured speedups.
+
+<details>
+<summary>Historical guidance and evidence before the general ledger cutover (superseded; not execution authority)</summary>
+
 # Foundation
 
 The operator's law for Made Well. It binds every implementation, every agent and every evaluation.
@@ -620,3 +653,5 @@ The installed opt-in `builtin:grammar` selector resolves to `made-well-autonomy-
 Operator exports always include `artifacts/history.json` with `instruction` and descriptor-only `entries`, composed through the existing worker history decoder for both maker roles in event order. Available hashes retrieve exact bytes from `artifacts/<sha256>.patch` relative to the export root. Empty and corrupt-only histories retain their index and unavailable diagnostics. Legacy patches and conditional manifest remain owned by the existing saved-artifact decoder; their existence cannot upgrade an unavailable descriptor. The operator index grants no worker access or continuation authority; receiving makers retain only their own role's history, and reset/resume eligibility is unchanged.
 
 The accepted gate predicts DX cell 4 gains from one resolver/decoder with a small module and documentation cost; UX cell 4 gains portable onboarding and inspectable evidence with one explicit selector; AX cell 1 gains stable complete pins and exact evidence with retained-history volume. Independent package/selection/export/transport checks test these predictions. A pre-CLI bundle, affected checks and relevant typechecking replace a mandatory whole-suite gate. Makers run no acceptance checks. Local recipe evidence does not prove vendor interchangeability, plant deployment or measured speedups; independent candidate verification and later real-project activation own their separate evidence.
+
+</details>
