@@ -48,6 +48,7 @@ import {
 } from './lane.ts'
 import { DEFAULT_AUTONOMY, Store, type CheckResult, type Exchange, type Item, type Origin, type Track } from './store.ts'
 import { observe } from './trace.ts'
+import { resourceAdmission, type ResourceAdmission } from './resources.ts'
 import { capturePreparationBaseline, type PreparationBaseline, capture, changes, covers, git, leftovers, scopeCheck, snapshot, teardown, worktree, type State, type TeardownRecord } from './workspace.ts'
 import { killOrphans, runGroup, Worker, type UsageLimit, type WorkerRequest } from './worker.ts'
 
@@ -72,6 +73,8 @@ interface EngineConfig {
 	readonly decisionProviders?: DecisionProviders
 	/** How long an idle `mw run --watch` waits before looking at the queue again. */
 	readonly pollMs?: number
+	/** Host admission observer, replaceable for deterministic queue verification. */
+	readonly resourceAdmission?: (directory: string) => ResourceAdmission
 	/** True once the runner should hand over to a new build: it starts no new work and returns when in-flight work settles. */
 	readonly reloading?: () => boolean
 }
@@ -1622,7 +1625,7 @@ export const drop = (id: number): Effect.Effect<void, MadeWellError, Store> =>
 		store.save({ ...now, status: 'dropped', hold: undefined }, 'dropped', { from: item.status })
 	})
 
-/** Runs the queue: every item that can move, up to `parallel` at once. A held item never stops the others. */
+/** Drives eligible work against live resources, or an explicitly selected count limit. Holds stay local. */
 /**
  * Drives every item that can move. With `config.reloading`, once it turns true no new item starts, and the queue
  * returns `reload: true` as soon as the items in flight have each settled, keeping the runner claim for the next build.
@@ -1637,6 +1640,7 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean; keepC
 		const running = new Set<number>()
 		const results: Item[] = []
 		const parallel = config.prescriptions.parallel ?? DEFAULT_PARALLEL
+		let lastResourceWait: string | undefined
 		for (;;) {
 			const reloading = config.reloading?.() ?? false
 			const items = store.list()
@@ -1656,24 +1660,39 @@ export const runQueue = (config: EngineConfig, options: { watch?: boolean; keepC
 					expanded = selected.size !== before
 				}
 			}
+			let resourceWait = false
 			for (const i of reloading ? [] : items) {
-				if (running.size >= parallel) break
+				if (typeof parallel === 'number' && running.size >= parallel) break
 				if (selected && !selected.has(i.id)) continue
 				if (i.parent !== undefined || !READY.includes(i.status) || running.has(i.id) || stuck(store, i) || unshipped(store, i).length) continue
+				if (parallel === 'resources') {
+					const admission = (config.resourceAdmission ?? resourceAdmission)(store.path === ':memory:' ? tmpdir() : dirname(store.path))
+					if (!admission.allowed) {
+						const key = `${i.id}:${admission.reason}`
+						if (key !== lastResourceWait) store.note(i.id, 'resource-wait', { ...admission })
+						lastResourceWait = key
+						resourceWait = true
+						break
+					}
+					store.note(i.id, 'resource-admitted', { ...admission })
+					lastResourceWait = undefined
+				}
 				running.add(i.id)
 				yield* Effect.forkScoped(drive(i.id, config).pipe(
 					Effect.catchTag('MadeWellError', () => Effect.sync(() => store.get(i.id)!)),
 					Effect.flatMap((item) => Queue.offer(finished, item)),
 				))
+				// Yield so the newly started item can allocate before the next live sample.
+				if (parallel === 'resources') break
 			}
 			if (!running.size) {
 				store.runnerOn(null)
 				if (reloading) return { items: results, reload: true }
-				if (!options.watch) return { items: results, reload: false }
+				if (!options.watch && !resourceWait) return { items: results, reload: false }
 				yield* Effect.sleep(config.pollMs ?? 2000)
 				continue
 			}
-			const done = options.watch || config.reloading ? yield* Effect.raceFirst(Queue.take(finished), Effect.as(Effect.sleep(config.pollMs ?? 2000), undefined)) : yield* Queue.take(finished)
+			const done = options.watch || config.reloading || parallel === 'resources' ? yield* Effect.raceFirst(Queue.take(finished), Effect.as(Effect.sleep(config.pollMs ?? 2000), undefined)) : yield* Queue.take(finished)
 			if (done) {
 				running.delete(done.id)
 				results.push(done)

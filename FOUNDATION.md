@@ -2,6 +2,22 @@
 
 The operator's law for Made Well. It binds every implementation, every agent and every evaluation.
 
+## Resource-governed concurrency — operator correction, 2026-11-05
+
+Ordinary agent work has no fixed worker-count ceiling. Admission follows the VPS's
+current memory, CPU and disk capacity; heavy CI and shared deployment mutations
+retain their own coordination. Replacing three with eight does not satisfy this
+instruction. The default queue mode is resource-based; transient resource pressure
+keeps eligible work queued and automatically resumes it when capacity returns.
+Existing explicit numeric prescriptions remain opt-in compatibility for other
+installations, not a universal policy or the Rivet installation's selected mode.
+
+Decision: DX cell 2 passes (independent work proceeds without count tuning, at the
+cost of a small host sampler); UX cell 2 passes (real resource waits replace false
+dependency/permission holds, at the cost of visible capacity waits); AX cell 1
+passes (fresh admission evidence and automatic recovery in the existing queue,
+at the cost of sampling before launches). No measured throughput gain is claimed.
+
 ## Governing model: capture input → generate tasks → complete tasks
 
 **Operator clarification in the Switch evaluation:** every task owes the four delivery functions—ideation, planning, implementation and verification. These are the universal grammar across domains; complexity changes the depth of the work inside each function, not the obligation to fulfill it. Each function takes input and returns output. Discovery's accumulated function outputs establish the task list; every generated task retains its own delivery and evidence. A harness, agent, application or runtime is an execution choice, never permission to bypass that grammar. Earlier descriptions of arbitrary function compositions describe implementation capability, not proof that the prescribed work occurred.

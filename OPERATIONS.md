@@ -89,6 +89,21 @@ The shell function is only a convenience wrapper around the packed entrypoint. P
 
 Prescriptions define tiers of cards `{harness, provider, account, model, effort}` and job mappings `{tier, access, budget}`. Choose currently available, authenticated combinations rather than treating the supplied model list as a universal prescription. Keep cards sharing a quota pool on the same `account`. In software delivery, `verify` is engine-owned and has a budget, not an agent card. Built-in harnesses and custom `harnesses` entries are described by the manual/source; extra credential variable names must be allowlisted through the harness or prescriptions `env`. Do not store secret values in that JSON. A usage limit swaps cards or waits for the earliest reset when all accounts are exhausted.
 
+### Queue admission
+
+`parallel: "resources"` is the default. It imposes no worker-count ceiling: the existing
+queue samples available host/cgroup memory, CPU pressure (or load per CPU), and free
+disk before each launch. It retains memory headroom of 10% of host RAM (at least
+512 MiB), the existing 20 GiB disk floor, and waits at 50% CPU pressure (or one
+load unit per available CPU without PSI). These are resource thresholds, not an
+agent-count budget. New launches yield before resampling so startup allocations
+become observable. A resource wait records its reason on the same work item and
+resumes automatically when capacity returns, including when no item is running.
+It starts no additional scheduler and never kills active work to admit another item.
+An explicitly supplied positive integer remains compatible for installations that
+choose a count limit. Removing that integer selects resources; it does not restore
+a hidden default of three. CI and shared mutations still use their existing locks.
+
 ### Environment and adapter boundaries
 
 | Variable | Meaning |

@@ -43,12 +43,12 @@ const Prescriptions = Schema.Struct({
 	harnesses: Schema.optional(Schema.Record(Schema.String, Harness)),
 	/** Environment variables every agent receives beyond BASE_ENV and its harness's own. */
 	env: Schema.optional(Schema.Array(Schema.String)),
-	/** Items `mw run` drives at once, each up to two agents. Default: DEFAULT_PARALLEL. */
-	parallel: Schema.optional(Schema.Int.check(Schema.isGreaterThan(0))),
+	/** Resource-based admission by default; a positive integer remains an explicit opt-in count limit. */
+	parallel: Schema.optional(Schema.Union([Schema.Literal('resources'), Schema.Int.check(Schema.isGreaterThan(0))])),
 	/** Optional capability: malformed settings fall back per decision, never prevent the console from running. */
 	decisionModel: Schema.optionalKey(Schema.Unknown),
 })
-export const DEFAULT_PARALLEL = 3
+export const DEFAULT_PARALLEL = 'resources' as const
 export type Prescriptions = typeof Prescriptions.Type
 
 export const loadPrescriptions = (path: string) =>
