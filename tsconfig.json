@@ -19,6 +19,7 @@
     "src",
     "test",
     "examples/switch-demo",
-    "examples/jump-pack-lab"
+    "examples/jump-pack-lab",
+    "examples/security-delivery"
   ]
 }
