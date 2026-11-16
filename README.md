@@ -2,6 +2,8 @@
 
 Capture input, generate tasks, complete tasks. Made Well stores work and its evidence without a project or repository. Read [FOUNDATION.md](FOUNDATION.md) for authority and [OPERATIONS.md](OPERATIONS.md) for installation and cutover.
 
+**Workflow names and sequences are opinionated defaults, not fixed engine stages.** Effort is adjustable composition and depth; Ground and Rumen are spanning processes in the illustrated delivery default. The governing model is [Bedrock: composition, spanning processes and effort dials](FOUNDATION.md#bedrock-composition-spanning-processes-and-effort-dials). The installed commands and packs described below remain implementation facts, not proof that every part of that model is implemented.
+
 ## General work
 
 All commands print JSON. Failures carry `code`, `message`, factual `context`, optional `cause` and `next` commands. Select state with MW_STORE or MW_HOME; prescriptions are needed only for scheduled agent work.

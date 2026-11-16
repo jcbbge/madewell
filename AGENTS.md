@@ -2,7 +2,7 @@
 
 Read FOUNDATION.md before changing this application. OPERATIONS.md is the practical entrypoint; README.md defines CLI/API and cartridge contracts; DESIGN.md governs views.
 
-Capture input → generate tasks → complete tasks. The work item is durable; agents and scratch directories are disposable. Every selected task owes ideation, planning, implementation and independent verification, with depth proportional to the task. Stage names grant no execution authority.
+Capture input → generate tasks → complete tasks. The work item is durable; agents and scratch directories are disposable. Read FOUNDATION.md's **Bedrock: composition, spanning processes and effort dials** before interpreting any workflow: named steps and sequences are the operator's opinionated configurable defaults, not compulsory engine slots. Ground/Rumen span the illustrated delivery functions rather than add serial stages. Effort adjusts composition and depth; stage names grant no execution authority and do not prove work occurred.
 
 Before acting identify revision, target worktree, selected MW_HOME/MW_STORE, prescriptions and runner owner from actual supplied context/read surfaces. Work only in the assigned disposable worktree. Never commit, branch or push without explicit authority; Made Well delivers maker changes. Never edit a live database to manufacture progress. Observers remain read-only and never move work.
 

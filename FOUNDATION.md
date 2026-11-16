@@ -2,7 +2,32 @@
 
 Made Well is a general work ledger: **capture input → generate tasks → complete tasks**. It defines the shape of work without requiring a project, repository, registration or executable delivery tool. One Store retains the input, durable work units, conditions, progress, blockers, relationships, results and evidence. There is no second ledger or scheduler.
 
-Every selected task owes ideation, planning, implementation and independent verification. Complexity changes depth. Function packs supply methods for those obligations; arbitrary names, valid JSON and process exit codes cannot establish that they were fulfilled. Optional automation is explicit. Default captured work is open external work owned by the operator. General discovery keeps Declare(), lookFirst(), classify(), Lenses(), oneThing(), route(), confirm(); selecting a candidate with no delivery pack creates external work.
+The operator's opinionated default delivery composition is ideation, planning, implementation and verification; the default general discovery composition is Declare(), lookFirst(), classify(), Lenses(), oneThing(), route(), confirm(). These names, sequences and workflows are configurable defaults, not compulsory engine slots. A chosen composition must satisfy its actual work contract; arbitrary names, valid JSON and process exit codes cannot establish that it did. Optional automation is explicit. Default captured work is open external work owned by the operator; selecting a candidate with no delivery pack creates external work.
+
+## Bedrock: composition, spanning processes and effort dials
+
+**Non-negotiable operator clarification, 2026-11-16.** This section governs any current or historical wording that turns the operator's named defaults into an immutable pipeline. It records the operator's two supplied diagrams and his correction: “these are dials of effort levels” and “the named workflows/sequencing/steps are my opinionated defaults.”
+
+**The grammar persists; its particular composition and depth are adjustable.** Discovery and delivery are composed work functions. The engine must carry the selected functions' actual inputs, outputs, context, decisions, evidence and preparation for successors. It must not make one named workflow the only shape it can represent. Functions are not necessarily separate agents, model calls, services or approval stops.
+
+**Delivery is the enclosing composition.** In the illustrated default, the function sequence is:
+
+```text
+delivery()
+  default functions: ideation() -> planning() -> implementation() -> verification()
+  ground() spans:    ideation() + planning()
+  rumen() spans:     implementation() + verification()
+```
+
+Ground and Rumen are spanning processes within that composition, not extra serial checkpoints inserted before or between those functions. Ground relates the shaping and plan to actual material; Rumen carries the applicable rules, mechanical evidence, judgment and vocabulary through making and verification. A missing standalone “post-planning Ground step” is not, by itself, a violation of this model. Each process still owes its real contribution and evidence; drawing a bar or recording its name does not fulfill it.
+
+**Effort levels are dials, not a mandatory preset ladder.** The second diagram shows coarse discovery/delivery compositions, more detailed internal work, and an extended composition with additional processes and functions. Its three illustrations do not prescribe exactly three supported settings, particular names such as quick/standard/deep, a fixed number of discovery functions, or a fixed number of agents. Effort may change investigation, elaboration, internal composition and the work performed within a function. More effort is not merely more tokens or automatically more stages; less effort is not permission to claim unperformed work as complete. Named presets may be useful operator choices, but they must not become universal engine structure.
+
+**Shape the incoming material as far as the next useful transformation needs.** Brainstorming may precede discovery; discovery may receive only a rough wish; ideation may do substantial gap-filling. The amount of preparation varies with the material, available assistance and the person's actual knowledge. Inspect what can be recovered, use sourced abilities/preferences where relevant, offer explanation or provisional choices, and ask consequential questions when their answers matter. Do not demand a finished specification at the entrance or substitute a universal tech-stack questionnaire for understanding. Unsettled material travels forward honestly; a task, session or commit may contribute one useful brick rather than finish the wall.
+
+**Configuration and evidence preserve the distinction.** Record the chosen composition, effective effort, actual transformations and successor inputs. Adapt at explicit saved boundaries without silently rewriting pinned calls or historical results. Configurable composition does not waive applicable scope, authority, privacy, acceptance or recovery requirements. Empty or partial work must remain visibly empty or partial. These are governing design requirements; this clarification does not claim that an existing installation already implements them.
+
+## Durable work and execution contracts
 
 The durable item is the object; agents are disposable. Commit every transition, event and receipt atomically before the next call. Redrive saved state for recovery. Compare the exact revision under the Store write lock; never erase a concurrent blocker or answer. Preserve pending returns until blockers are resolved. Only the named blocker is released; checkpoints, NQ, dependencies and uncertain execution remain separate.
 
