@@ -1,6 +1,10 @@
 # Made Well
 
-Capture input, generate tasks, complete tasks. Made Well stores work and its evidence without a project or repository. Read [FOUNDATION.md](FOUNDATION.md) for authority and [OPERATIONS.md](OPERATIONS.md) for installation and cutover.
+Made Well is an established, domain-agnostic, opinionated grammar for work. Josh has used and refined it manually for two years; the work now is to remove the copying, pasting and manual driving, not prove the grammar again. Its default outer composition is **brainstorm → discovery → delivery → landing**; delivery contains **ideation → planning → implementation → verification**. Every component is recursively composable, and anyone can supply and share plugin cartridges. Defaults may be extended, replaced or selected individually, including brainstorm alone.
+
+Read [Settled foundation](FOUNDATION.md#settled-foundation-operationalize-the-established-grammar) for the governing product definition. Made Well does not require Rivet or a particular provider, model, harness or orchestration runtime. The ledger, commands and executable packs documented here describe this repository's implementation, not universal product dependencies. Read [OPERATIONS.md](OPERATIONS.md) for operating that implementation.
+
+**Cloud-agent implementation handoff:** [v7/README.md](v7/README.md) packages the actionable plan, MCP/skills research, delegated-judgment policy and reorientation contract. It separates settled requirements from proposed implementation and explicit release gates; it is not a runtime delivery receipt.
 
 **Workflow names and sequences are opinionated defaults, not fixed engine stages.** Effort is adjustable composition and depth; Ground and Rumen are spanning processes in the illustrated delivery default. The governing model is [Bedrock: composition, spanning processes and effort dials](FOUNDATION.md#bedrock-composition-spanning-processes-and-effort-dials). The installed commands and packs described below remain implementation facts, not proof that every part of that model is implemented.
 

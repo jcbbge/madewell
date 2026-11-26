@@ -1,5 +1,7 @@
 # Operating Made Well
 
+This guide describes the current ledger/runtime implementation, not dependencies required by the portable grammar. [Settled foundation](FOUNDATION.md#settled-foundation-operationalize-the-established-grammar) governs: the process works; operationalize its established chain without revalidating it or imposing this runtime on every consumer.
+
 Read FOUNDATION.md, AGENTS.md and this guide on entry. The durable object is a work item; the configured pack supplies its methods. The model is capture input → generate tasks → complete tasks. An observing agent reads and explains; intentional operator input moves work through supported commands/API.
 
 ## Identify the runtime

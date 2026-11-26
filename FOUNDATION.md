@@ -1,6 +1,32 @@
 # Made Well foundation
 
-Made Well is a general work ledger: **capture input → generate tasks → complete tasks**. It defines the shape of work without requiring a project, repository, registration or executable delivery tool. One Store retains the input, durable work units, conditions, progress, blockers, relationships, results and evidence. There is no second ledger or scheduler.
+Made Well is Josh's established, opinionated grammar for the shape of work, independent of the work's domain or execution stack. It helps shape incoming material into to-dos and promote selected to-dos to tasks.
+
+## Settled foundation: operationalize the established grammar
+
+**Governing operator correction, 2026-11-26. Made Well works.** Josh has used and refined this process for two years, manually carrying skills, context and outputs across terminals, tabs, applications, browsers and IDEs. The problem is the copying, pasting and manual driving: the chain cannot scale beyond him that way. The work is to operationalize that established chain, not invent, simplify away, demonstrate, hypothesize about or revalidate whether its grammar works. This ruling governs conflicting interpretations of the material below.
+
+**Preserve the settled atomic defaults:**
+
+```text
+work()
+  brainstorm() -> discovery() -> delivery() -> landing()
+
+delivery()
+  ideation() -> planning() -> implementation() -> verification()
+```
+
+These are Josh's opinionated irreducible components of work across domains, not provisional software-specific stages. Reducing them further loses the structure he deliberately refined; adding unnecessary machinery makes it unwieldy. Do not replace them with a newly invented kernel such as only “work item” and “cartridge.”
+
+**Defaults are not compulsory cardinality.** Every piece is a component. Components can be added, replaced, extended or used independently at any layer. Ten or a hundred additional steps are possible; brainstorm alone is also a valid selected composition. Selecting one component does not invalidate the complete default grammar or invite an agent to redesign it.
+
+**Cartridges are plugins, recursively.** The methods inside discovery, ideation, planning, implementation, verification and the other components are composable cartridge units. A component can itself contain replaceable components. Anyone must be able to bring, install, replace and share their own cartridges, as people share skills; the product must support that plugin ecosystem rather than lock users to built-in methods. Preserve the enclosing structure while making its constituent methods interchangeable.
+
+**The grammar is not software, a provider or a runtime.** Software is the domain in which the defaults have been refined, not the identity of Made Well. Marketing, sales, engineering, product, design and other work use domain-appropriate cartridges. Made Well is independent of Rivet and must require no particular provider, model, harness or orchestration runtime. Josh's personal infrastructure is not a product dependency.
+
+**Remove manual driving, not the established structure.** Carry the chosen skills, inputs, context, outputs and handoffs through the chain without requiring the user to copy and paste them between tools. Made Well shapes work and helps turn to-dos into tasks; it is not a replacement workforce. People and their chosen tools perform the work. Operationalizing the handoffs must not force a particular execution stack.
+
+**Verify the implementation against this settled contract; do not put the contract back on trial.** Do not propose another pilot, demo or cross-domain experiment to establish whether Made Well works. Engineering verification concerns faithful plumbing, not renewed approval of the grammar.
 
 The operator's opinionated default delivery composition is ideation, planning, implementation and verification; the default general discovery composition is Declare(), lookFirst(), classify(), Lenses(), oneThing(), route(), confirm(). These names, sequences and workflows are configurable defaults, not compulsory engine slots. A chosen composition must satisfy its actual work contract; arbitrary names, valid JSON and process exit codes cannot establish that it did. Optional automation is explicit. Default captured work is open external work owned by the operator; selecting a candidate with no delivery pack creates external work.
 
@@ -28,6 +54,8 @@ Ground and Rumen are spanning processes within that composition, not extra seria
 **Configuration and evidence preserve the distinction.** Record the chosen composition, effective effort, actual transformations and successor inputs. Adapt at explicit saved boundaries without silently rewriting pinned calls or historical results. Configurable composition does not waive applicable scope, authority, privacy, acceptance or recovery requirements. Empty or partial work must remain visibly empty or partial. These are governing design requirements; this clarification does not claim that an existing installation already implements them.
 
 ## Durable work and execution contracts
+
+**Current implementation contracts, not the portable product's dependency requirements.** This repository implements a general work ledger: capture input → generate tasks → complete tasks. Its one Store retains input, work units, conditions, progress, blockers, relationships, results and evidence, without a second ledger or scheduler. The operating and safety contracts below still govern this implementation; they do not make its storage, runner, software tooling or Josh's infrastructure mandatory for every Made Well consumer.
 
 The durable item is the object; agents are disposable. Commit every transition, event and receipt atomically before the next call. Redrive saved state for recovery. Compare the exact revision under the Store write lock; never erase a concurrent blocker or answer. Preserve pending returns until blockers are resolved. Only the named blocker is released; checkpoints, NQ, dependencies and uncertain execution remain separate.
 

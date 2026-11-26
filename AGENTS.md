@@ -1,6 +1,10 @@
 # Made Well
 
+**Read [Settled foundation: operationalize the established grammar](FOUNDATION.md#settled-foundation-operationalize-the-established-grammar) first. Made Well works: Josh has used it for two years.** The job is to remove manual copying, pasting and driving, not hypothesize about, demonstrate or revalidate the grammar. Preserve the atomic defaults: brainstorm → discovery → delivery → landing; delivery contains ideation → planning → implementation → verification. Do not replace that structure with a smaller invented kernel. Every component is recursively composable; anyone can supply and share plugin cartridges, extend the composition or use a component such as brainstorm alone. These are settled defaults, not fixed counts. The product is domain-agnostic and independent of Rivet, provider, model, harness and orchestration runtime. Software methods belong in cartridges, not universal product requirements.
+
 Read FOUNDATION.md before changing this application. OPERATIONS.md is the practical entrypoint; README.md defines CLI/API and cartridge contracts; DESIGN.md governs views.
+
+For the portable skills/MCP operationalization assignment, start at [v7/README.md](v7/README.md) and read the complete [v7/PLAN.md](v7/PLAN.md). Its engineering recommendations and release unknowns are explicit; do not confuse the handoff with implemented or installed capabilities.
 
 Capture input → generate tasks → complete tasks. The work item is durable; agents and scratch directories are disposable. Read FOUNDATION.md's **Bedrock: composition, spanning processes and effort dials** before interpreting any workflow: named steps and sequences are the operator's opinionated configurable defaults, not compulsory engine slots. Ground/Rumen span the illustrated delivery functions rather than add serial stages. Effort adjusts composition and depth; stage names grant no execution authority and do not prove work occurred.
 
