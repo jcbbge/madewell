@@ -3262,7 +3262,7 @@ function pin(selection2, root) {
     if (Object.keys(method.args).some((key) => key !== "effort") || method.args.effort !== void 0 && method.args.effort !== "light") throw fail3("Only the free Light recipe without custom method arguments is supported by this service.", { address: node.address, args: method.args });
     for (const pkg of [method.package, ...method.companions ?? []]) {
       const grant = pkg.origin === root || pkg.origin.startsWith(root.endsWith("/") ? root : root + "/") ? root : brainstormSeedRoot;
-      packages[pkg.identity] = pkg.manifest.filter((f) => f.path === "SKILL.md" || f.path.startsWith("references/") || f.path.startsWith("assets/")).map((file) => {
+      packages[pkg.identity] = pkg.manifest.filter((f) => f.path === "SKILL.md" || f.path.startsWith("references/") || f.path.startsWith("assets/") || f.path.startsWith("scripts/") || /^(LICENSE|NOTICE)(\.(txt|md))?$/.test(f.path)).map((file) => {
         const bytes2 = readSkillFile(grant, pkg, file.path);
         try {
           return { ...file, encoding: "utf8", content: new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes2) };
@@ -3273,6 +3273,24 @@ function pin(selection2, root) {
     }
   }
   return packages;
+}
+function retainSelection(selection2, packages) {
+  const retainPackage = (pkg) => ({
+    ...pkg,
+    scope: void 0,
+    manifestScope: "retained-runtime",
+    manifest: packages[pkg.identity].map(({ path, bytes: bytes2, sha256 }) => ({ path, bytes: bytes2, sha256 }))
+  });
+  const retainNode = (node) => ({
+    ...node,
+    ...node.method?.kind === "skill" ? { method: {
+      ...node.method,
+      package: retainPackage(node.method.package),
+      ...node.method.companions ? { companions: node.method.companions.map(retainPackage) } : {}
+    } } : {},
+    ...node.children ? { children: node.children.map(retainNode) } : {}
+  });
+  return { ...selection2, root: retainNode(selection2.root) };
 }
 function acceptedDiscovery(state) {
   const prefix = {};
@@ -3322,7 +3340,7 @@ function operations2(root) {
       const packages = pin(selected, root);
       const item = store.create({
         ...external(root, i.source, i.title ?? "Work", i.objective ?? i.source, i.actor, at),
-        portable: { version: 1, root, selection: selected, packages, handoffs: [], results: [], candidates: [] }
+        portable: { version: 1, root, selection: retainSelection(selected, packages), packages, handoffs: [], results: [], candidates: [] }
       });
       store.note(item.id, "portable-captured", { requestId: i.requestId, actor: i.actor, selection: selected.identity }, at);
       return snapshot(item);
@@ -3341,7 +3359,7 @@ function operations2(root) {
         const item2 = current;
         mutable2(item2);
         if (i.effort && i.effort !== "light") throw fail3("Managed Focused/Deep preparation is unavailable. Explicitly select Light; no downgrade or purchase occurred.", { requestedEffort: i.effort });
-        const saved = item2.portable, node = leaves(saved.selection.root)[saved.results.length];
+        const saved = item2.portable, node = leaves(retainSelection(saved.selection, saved.packages).root)[saved.results.length];
         if (!node) throw fail3("Every selected occurrence already has a recorded result.", { itemId: i.itemId });
         if (saved.handoffs.some((h) => !saved.results.some((r) => r.handoffId === h.id))) throw fail3("Recover the pending handoff instead of preparing another attempt.", { itemId: i.itemId });
         const method = node.method, selected = method.kind === "skill" ? [method.package, ...method.companions ?? []] : [];
@@ -3435,7 +3453,7 @@ function operations2(root) {
       });
       if (JSON.stringify(enclosing(selected.root)) !== JSON.stringify(enclosing(current.portable.selection.root)) || old.some((node, index) => attempted.has(node.address) && (next[index]?.identity !== node.identity || next[index]?.address !== node.address))) throw fail3("Replacement changes an attempted occurrence or enclosing contract/wiring; historical inputs remain pinned.", { attempted: [...attempted] });
       const packages = pin(selected, root);
-      return snapshot(store.transition(i.itemId, i.revision, "portable-replaced", { input: i }, (item) => ({ ...item, portable: { ...current.portable, selection: selected, packages: { ...current.portable.packages, ...packages } }, updated: at })));
+      return snapshot(store.transition(i.itemId, i.revision, "portable-replaced", { input: i }, (item) => ({ ...item, portable: { ...current.portable, selection: retainSelection(selected, packages), packages: { ...current.portable.packages, ...packages } }, updated: at })));
     }));
   });
   const readResource = Effect12.fn("mw.readPortableResource")(function* (uri) {

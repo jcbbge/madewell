@@ -149,7 +149,10 @@ function pin(selection: CompositionInspection, root: string): PortableState['pac
 		for (const pkg of [method.package, ...(method.companions ?? [])]) {
 			// Shipped Brainstorm companions have their own explicit read-only package grant.
 			const grant = pkg.origin === root || pkg.origin.startsWith(root.endsWith('/') ? root : root + '/') ? root : brainstormSeedRoot
-			packages[pkg.identity] = pkg.manifest.filter(f => f.path === 'SKILL.md' || f.path.startsWith('references/') || f.path.startsWith('assets/')).map(file => {
+			// Retain ordinary runtime support, not eval/review/development payloads. Script bytes grant no execution authority.
+			packages[pkg.identity] = pkg.manifest.filter(f => f.path === 'SKILL.md'
+				|| f.path.startsWith('references/') || f.path.startsWith('assets/') || f.path.startsWith('scripts/')
+				|| /^(LICENSE|NOTICE)(\.(txt|md))?$/.test(f.path)).map(file => {
 				const bytes = readSkillFile(grant, pkg, file.path)
 				try { return { ...file, encoding: 'utf8' as const, content: new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes) } }
 				catch { return { ...file, encoding: 'base64' as const, content: bytes.toString('base64') } }
@@ -157,6 +160,19 @@ function pin(selection: CompositionInspection, root: string): PortableState['pac
 		}
 	}
 	return packages
+}
+function retainSelection(selection: CompositionInspection, packages: PortableState['packages']): CompositionInspection {
+	// Identities retain original source provenance; these manifests describe only retained runtime material, not intact loader snapshots.
+	const retainPackage = (pkg: SkillPackage) => ({ ...pkg, scope: undefined, manifestScope: 'retained-runtime' as const,
+		manifest: packages[pkg.identity]!.map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 })),
+	})
+	const retainNode = (node: ResolvedComponent): ResolvedComponent => ({ ...node,
+		...(node.method?.kind === 'skill' ? { method: { ...node.method, package: retainPackage(node.method.package),
+			...(node.method.companions ? { companions: node.method.companions.map(retainPackage) } : {}),
+		} } : {}),
+		...(node.children ? { children: node.children.map(retainNode) } : {}),
+	})
+	return { ...selection, root: retainNode(selection.root) }
 }
 function acceptedDiscovery(state: PortableState): AcceptedDiscovery {
 	const prefix: Partial<Record<DiscoveryJob, unknown>> = {}
@@ -198,7 +214,7 @@ function operations(root: string) {
 			const selected = Effect.runSync(inspectComposition({ root, component: i.component, config: i.config, override: i.override }).pipe(Effect.match({ onSuccess: value => value, onFailure: error => { throw error } })))
 			const packages = pin(selected, root)
 			const item = store.create({ ...external(root, i.source, i.title ?? 'Work', i.objective ?? i.source, i.actor, at),
-				portable: { version: 1, root, selection: selected, packages, handoffs: [], results: [], candidates: [] },
+				portable: { version: 1, root, selection: retainSelection(selected, packages), packages, handoffs: [], results: [], candidates: [] },
 			}) as PortableItem
 			store.note(item.id, 'portable-captured', { requestId: i.requestId, actor: i.actor, selection: selected.identity }, at)
 			return snapshot(item)
@@ -216,7 +232,7 @@ function operations(root: string) {
 			const item = store.transition(i.itemId, i.revision, 'portable-prepared', { input: i }, current => {
 				const item = current as PortableItem; mutable(item)
 				if (i.effort && i.effort !== 'light') throw fail('Managed Focused/Deep preparation is unavailable. Explicitly select Light; no downgrade or purchase occurred.', { requestedEffort: i.effort })
-				const saved = item.portable, node = leaves(saved.selection.root)[saved.results.length]
+				const saved = item.portable, node = leaves(retainSelection(saved.selection, saved.packages).root)[saved.results.length]
 				if (!node) throw fail('Every selected occurrence already has a recorded result.', { itemId: i.itemId })
 				if (saved.handoffs.some(h => !saved.results.some(r => r.handoffId === h.id))) throw fail('Recover the pending handoff instead of preparing another attempt.', { itemId: i.itemId })
 				const method = node.method!, selected = method.kind === 'skill' ? [method.package, ...(method.companions ?? [])] : []
@@ -287,7 +303,7 @@ function operations(root: string) {
 			})
 			if (JSON.stringify(enclosing(selected.root)) !== JSON.stringify(enclosing(current.portable.selection.root)) || old.some((node, index) => attempted.has(node.address) && (next[index]?.identity !== node.identity || next[index]?.address !== node.address))) throw fail('Replacement changes an attempted occurrence or enclosing contract/wiring; historical inputs remain pinned.', { attempted: [...attempted] })
 			const packages = pin(selected, root)
-			return snapshot(store.transition(i.itemId, i.revision, 'portable-replaced', { input: i }, item => ({ ...item, portable: { ...current.portable, selection: selected, packages: { ...current.portable.packages, ...packages } }, updated: at })) as PortableItem)
+			return snapshot(store.transition(i.itemId, i.revision, 'portable-replaced', { input: i }, item => ({ ...item, portable: { ...current.portable, selection: retainSelection(selected, packages), packages: { ...current.portable.packages, ...packages } }, updated: at })) as PortableItem)
 		}))
 	})
 	const readResource = Effect.fn('mw.readPortableResource')(function*(uri: string) {
