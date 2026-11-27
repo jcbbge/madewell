@@ -1,0 +1,126 @@
+[
+  {
+    "skill": "primitives/skills/right-side-of-the-curve @ 09b5a8926767e9ec1465505fd89f17501e8c9034 (before this change)",
+    "categories": [
+      {
+        "name": "Structural Discipline",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Integrity",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Test Coverage",
+        "status": "findings",
+        "findings": [
+          {
+            "finding_type": "operational-guardrail-untested",
+            "severity": "major",
+            "deterministic": false,
+            "location": "SKILL.md: Count displaced complexity; local/deterministic tie-breakers; cross-system interruption paragraph; stop condition",
+            "explanation": "The two baseline cases cover overbuilt deterministic conversion and preservation of payment guarantees. They do not specifically exercise transferred manual recovery costs, a necessary remote or substantial mechanism, a crash between the external effect and its local durable record, or the difference between a provisional simplification and a proven minimum.",
+            "fix": "Add targeted cases for recurring operator burden versus local code size, existing managed reuse, the external-effect/local-record crash window, and incomplete requirements with bounded claims. Keep the original guarantee cases.",
+            "suggested_rewrite": null
+          }
+        ]
+      },
+      {
+        "name": "Security",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Content Quality",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Convention",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Cost",
+        "status": "pass",
+        "findings": []
+      }
+    ],
+    "out_of_rubric": [
+      {
+        "location": "SKILL.md: opening and outcome contract",
+        "explanation": "The existing skill is a sound subtractive architecture lens. The requested brainstorm use also needs a generative lens: changing a representation can remove several compensating steps while enabling a larger outcome, and early ideas need not have a final specification.",
+        "rationale": "This is an extension for the user's requested use case, not an observed defect or measured quality gain."
+      },
+      {
+        "location": "Relationship to nonconvergence",
+        "explanation": "Keep separate. This lens minimizes total mechanism burden under the goal; nonconvergence changes the generating premise. They can be used independently or in either order.",
+        "rationale": "Complementary responsibilities; shared conceptual vocabulary alone is not a duplicate-skill finding."
+      }
+    ]
+  },
+  {
+    "skill": "primitives/skills/nonconvergence @ 09b5a8926767e9ec1465505fd89f17501e8c9034 (before this change)",
+    "categories": [
+      {
+        "name": "Structural Discipline",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Integrity",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Test Coverage",
+        "status": "findings",
+        "findings": [
+          {
+            "finding_type": "operational-guardrail-untested",
+            "severity": "major",
+            "deterministic": false,
+            "location": "SKILL.md: Expose the basin; Change the generating assumption; Import mechanisms, not costumes; Retain only what survives",
+            "explanation": "The baseline cases cover a known-good correction, distribution-control honesty, mechanism difference, and the status of imagined reviewers. They do not specifically exercise returning to a sufficient baseline on an open-ended request, unverified cross-domain source claims, preservation of incompatible explanations, or narrowing a local result instead of declaring a universal principle.",
+            "fix": "Add cases for a sufficient shared-folder baseline, an unsupported ecological transfer, live rival explanations for missed appointments, and transfer of a local state distinction with explicit limits.",
+            "suggested_rewrite": null
+          }
+        ]
+      },
+      {
+        "name": "Security",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Content Quality",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Convention",
+        "status": "pass",
+        "findings": []
+      },
+      {
+        "name": "Cost",
+        "status": "pass",
+        "findings": []
+      }
+    ],
+    "out_of_rubric": [
+      {
+        "location": "SKILL.md: substantial exploration / second domain; Retain only what survives",
+        "explanation": "For the requested collaborative posture, a compulsory second domain can substitute breadth for depth, and the retention language can be read as requiring finished proof before sharing a promising lead. Make additional domains conditional on information gained and distinguish provisional leads from supported recommendations.",
+        "rationale": "A design concern from reading the instructions, not an observed runtime failure. The reframe requires behavioral evaluation before claiming improvement."
+      },
+      {
+        "location": "Relationship to ambitious-collaboration and find-the-unlock",
+        "explanation": "Keep separate. Ambient ambition keeps the search open; find-the-unlock develops a consequential lead; nonconvergence changes a repeated premise. None is a calibrated model-effort or training-distribution control.",
+        "rationale": "Explicit responsibility boundaries for the new library, not measured independence or a new model capability."
+      }
+    ]
+  }
+]

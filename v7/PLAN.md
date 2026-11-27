@@ -6,6 +6,7 @@
 > **Repository:** https://github.com/jcbbge/madewell — `main`.
 > **Inspected source baseline:** `79e648d442af840bfbb872c538c6eecbc626b74c`. This document and the governing foundation correction are later documentation changes. Reconcile subsequent code changes before implementing.
 > **Owner:** The receiving cloud agent leads implementation and reports to Josh in the conversation that assigns this document. It owns any agents it delegates to. No particular agent platform is required.
+> **Brainstorm supplement:** [brainstorm/README.md](../brainstorm/README.md) supplies the approved base-pack seed and [effort/access direction](../brainstorm/EFFORT-AND-ACCESS.md): free Light by default, paid Focused/Deep. It resolves Brainstorm content under U2; landing and the other release gates remain. It is not a runtime or billing delivery.
 
 ## 1. Executive Objective
 
@@ -96,7 +97,7 @@ The author inspected the actual source, targeted tests, package manifest, and re
 - `77398d6` — general work ledger and removal of project/Git registration assumptions.
 - `09f3a05` — source-bound software-security example without making software rules universal.
 - `79e648d` — composition and effort dials recorded as governing bedrock.
-- Optional reusable thinking methods: [agent-core-public at `09b5a8926767e9ec1465505fd89f17501e8c9034`](https://github.com/jcbbge/agent-core-public/tree/09b5a8926767e9ec1465505fd89f17501e8c9034/primitives/skills). This revision contains the 17 revised thinking skills. Its root license is MIT; retain applicable notices if redistributing. The earlier probes did not certify behavioral improvement. Do not vendor all 17 merely because they exist.
+- Optional reusable thinking methods: [agent-core-public at `09b5a8926767e9ec1465505fd89f17501e8c9034`](https://github.com/jcbbge/agent-core-public/tree/09b5a8926767e9ec1465505fd89f17501e8c9034/primitives/skills). This revision contains the 17 revised thinking skills. Its root license is MIT; retain applicable notices if redistributing. The earlier probes did not certify behavioral improvement. Josh subsequently approved the complete [20-skill Brainstorm seed](../brainstorm/README.md), pinned to [agent-core revision `9addbffae9d600f40dd334ad97bb24c6b0a0c7b7`](https://github.com/jcbbge/agent-core-public/tree/9addbffae9d600f40dd334ad97bb24c6b0a0c7b7/primitives/skills). That explicit seed request authorizes its snapshot here; it does not require loading every method or indiscriminate runtime packaging.
 - [Agent Skills specification](https://agentskills.io/specification) — retrieved 2026-11-26. Ordinary skill format, not Made Well composition semantics.
 - [MCP Skills overview](https://modelcontextprotocol.io/extensions/skills/overview) and [Skills specification](https://github.com/modelcontextprotocol/ext-skills/blob/main/specification/beta/skills.mdx) — overview retrieved 2026-11-26. Skills uses Agent Skills directories and Resources; native loading is a host responsibility.
 - [MCP 2026-07-28 introduction](https://modelcontextprotocol.io/docs/2026-07-28/getting-started/intro), [`server/discover`](https://modelcontextprotocol.io/specification/2026-07-28/server/discover), and [Events overview](https://modelcontextprotocol.io/extensions/events/overview) — retrieved 2026-11-26. Protocol publication does not prove SDK or client compatibility.
@@ -168,7 +169,7 @@ Hosted remote service, remote identity/tenancy, webhook delivery, and host-speci
 - A selected component can contain other components, be replaced by a compatible composition, or be used alone.
 - Added components require no central edit to a list of permissible business-stage names.
 - Standalone brainstorm returns its own result. It must not create fake candidates, require delivery conditions, or imply that the user committed to follow-on work.
-- Keep unresolved method-content questions honest; do not implement brainstorm or landing as empty successful placeholders (§18, U2).
+- Use the approved [Brainstorm seed](../brainstorm/README.md); landing content remains unresolved under §18 U2. Neither component may be an empty successful placeholder.
 
 ### R2 — Use ordinary skills, not a forked standard
 
@@ -294,7 +295,7 @@ Each prepared handoff must resolve the selected method, exact applicable source,
 |---|---|---|
 | Current checkout and history | All work | Cloud lead confirms the documentation commit and compares later source changes with the baseline. |
 | Shared composition, binding, packet, receipt, promotion contracts | Parallel implementation | Cloud lead freezes §15's proposed contracts into reviewed implementation schemas before conflicting work starts. |
-| Approved default method content | Claiming faithful full-default delivery | W2 inventories existing content; missing brainstorm/landing details remain U2, not invented facts. |
+| Approved default method content | Claiming faithful full-default delivery | Brainstorm seed supplied in `brainstorm/`; W2 preserves it and inventories missing landing content under U2. |
 | Actual client, transport, SDK capability | Native MCP/Skills interoperability | W0 resolves from the assigned cloud environment or records U1. No assumed provider compatibility. |
 | Readable, explicitly granted skill material | Repo-local overrides | W2/W4 implement local loading or an explicit package-input bridge. Missing access is a visible error. |
 | Independent verifier | Acceptance | Cloud lead assigns a different reviewer/check owner before implementation is accepted. |
@@ -373,7 +374,7 @@ Do not silently resolve product-content or release-authority unknowns. See §18 
   1. Load standard `SKILL.md` packages and preserve frontmatter, instruction bytes, supporting-file relationships, and license notices.
   2. Implement the optional `.madewell/config.json` convention and explicit shared-config imports against W1's contract.
   3. Read only approved roots; refuse escaping references, symlinks crossing grants, missing files, corrupt manifests, and conflicting package identity.
-  4. Reuse the existing default discovery/delivery content. Inventory the exact missing default content for brainstorm/landing under U2; never ship successful no-op substitutes.
+  4. Reuse the existing default discovery/delivery content and the approved `brainstorm/` seed, preserving free Light as the default and the explicit paid-effort boundary. Inventory missing landing content under U2; never ship successful no-op substitutes.
   5. Supply a minimal author example showing an ordinary skill used outside Made Well and bound inside it, plus a composite pack that references methods without embedding a proprietary skill dialect.
   6. Add capability diagnostics for skill scripts/tools that the selected host cannot support. Loading does not execute them.
   7. Prepare the product asset allowlist for W5's packaging changes; do not ship all vendor/example files indiscriminately.
@@ -583,7 +584,7 @@ These are assertions to implement and independently verify, **not results alread
 | ID | Observable acceptance condition |
 |---|---|
 | AC01 | The default outer tree and nested delivery tree match §1; existing default discovery methods remain available with their intended contracts. |
-| AC02 | Brainstorm alone can be selected and return its own method result without fake discovery candidates, mandatory delivery, or execution. Exact default content remains gated by U2. |
+| AC02 | Brainstorm alone uses the approved seed and can return its own method result without fake discovery candidates, mandatory delivery, or execution. Free Light is the default; explicit deeper selections follow the supplementary effort/access contract. |
 | AC03 | Replace a leaf with a compatible nested composition and add an extra component at a nested address without modifying a central business-stage allowlist. Repeated use of one skill has separate occurrence identities. |
 | AC04 | With no local configuration, resolved defaults are deterministic. A project binding changes only its addressed method; unchanged branches remain byte/identity equivalent. |
 | AC05 | Same-precedence competing methods and contradictory constraints produce explicit diagnostics; reordered filesystem entries do not change the result. |
@@ -665,15 +666,16 @@ Only the following unresolved inputs are known to affect fidelity or release sco
 - **Does not block:** Composition, loading, handoff services, a real protocol client test, or explicit standard-skill compatibility.
 - Do not ask Josh to choose an SDK or code abstraction. Ask only if the first supported user experience cannot be inferred from his actual target.
 
-### U2 — Exact default method content absent from the inspected repository
+### U2 — Landing method content; Brainstorm seed supplied
 
-[UNKNOWN — needs input: Where are Josh's canonical brainstorm and landing method instructions/supporting assets, and which of those are the intended shipped defaults?]
+[UNKNOWN — needs input: Where are Josh's canonical landing method instructions/supporting assets, and which are the intended shipped defaults?]
 
 - **Owner:** Skill/package implementer through the cloud lead.
-- **Evidence:** The searched current source has the outer component names in governing documentation, but the inspected default packs and jump slots implement discovery/delivery rather than canonical brainstorm/landing method bodies.
+- **Resolved for Brainstorm:** Josh approved the toolbox and requested the [base jump-pack seed](../brainstorm/README.md) for the MCP product. Its skills, supporting files, effort profiles, and provenance are supplied. Use that selection; do not ask for Brainstorm content again or claim it is an implemented runtime.
+- **Evidence for the remaining gap:** The earlier inspected default packs and jump slots implement discovery/delivery; this supplement supplies no landing method body.
 - **Inspect first:** Authorized supplied materials, current repository history, and explicitly selected reusable skill packages. Do not infer absence outside that inspected scope.
-- **Blocks:** Claiming the shipped complete default reproduces those exact manual methods.
-- **Does not block:** First-class component support, user-supplied skill bindings, existing discovery/delivery reuse, or contract tests with explicitly labeled fixtures.
+- **Blocks:** Claiming faithful shipped landing behavior or complete full-default delivery.
+- **Does not block:** Brainstorm integration, first-class component support, user-supplied skill bindings, existing discovery/delivery reuse, or contract tests with explicitly labeled fixtures.
 - Do not turn “landing” into automatic deployment, cleanup, task completion, or publication based solely on its name. Do not reopen the settled existence/order of these components.
 
 ### U3 — Hosted deployment and private package custody
@@ -742,4 +744,4 @@ Do you understand the intent and purpose: operationalize Made Well's established
 
 Are there questions that actually require clarification? Inspect the repository and supplied environment first; settle delegated engineering choices rather than sending them back to Josh.
 
-What ambiguous details remain? U1–U4 identify the exact client/topology, missing canonical method content, hosted privacy/deployment terms, and release authority. Resolve or explicitly hold only the affected slice. Do not reopen the grammar, invent missing facts, or call an unverified boundary complete.
+What ambiguous details remain? U1–U4 identify the exact client/topology, missing landing method content, hosted privacy/deployment terms, and release authority. The Brainstorm supplement separately scopes the commercial launch decisions. Resolve or explicitly hold only the affected slice. Do not reopen the grammar, invent missing facts, or call an unverified boundary complete.

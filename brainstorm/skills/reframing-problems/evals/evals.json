@@ -1,0 +1,22 @@
+{
+  "skill": "reframing-problems",
+  "cases": [
+    {
+      "id": "evidence-before-interview",
+      "prompt": "We think we need a faster report query. Existing measurements show the query takes 80 ms, the job waits 20 minutes for approval, and users need the result before a noon meeting. Reframe the problem using these facts.",
+      "assertions": [
+        "Identifies the approval wait or end-to-end delivery as the likely constraint rather than query speed.",
+        "Uses the supplied facts rather than asking the user to restate the goal or metrics.",
+        "Proposes a discriminating next step while preserving any genuine approval requirement."
+      ]
+    },
+    {
+      "id": "respect-settled-goal",
+      "prompt": "The goal is learning Rust, not shipping a product. I have deliberately chosen to write a tiny parser in Rust. Help define the first exercise; do not reframe this as choosing an easier language.",
+      "assertions": [
+        "Preserves learning Rust as the stated goal instead of optimizing it away.",
+        "Provides a concrete first exercise without forcing exploratory questions or alternate goals."
+      ]
+    }
+  ]
+}

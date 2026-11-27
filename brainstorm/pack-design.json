@@ -1,0 +1,95 @@
+{
+  "kind": "brainstorm-pack-design-reference",
+  "schemaVersion": 1,
+  "status": "reference data; not a runnable JumpPack or an implemented MCP schema",
+  "component": "/brainstorm",
+  "entrypoint": {
+    "skill": "brainstorm",
+    "path": "skills/brainstorm/SKILL.md"
+  },
+  "defaultPosture": "ambitious-collaboration",
+  "defaultEffort": "light",
+  "catalog": "skills/brainstorm/references/methods.md",
+  "effortInstructions": "skills/brainstorm/references/effort.md",
+  "sourceInventory": "PROVENANCE.json",
+  "entryContextExamples": [
+    "from scratch",
+    "existing project",
+    "fragment",
+    "stuck or resumed thread"
+  ],
+  "methodSelection": "by current obstruction; load selected bodies and relevant references only",
+  "dials": [
+    "grounding",
+    "causal depth",
+    "breadth",
+    "challenge",
+    "artifact work"
+  ],
+  "effortProfiles": [
+    {
+      "id": "light",
+      "intendedAccess": "free",
+      "work": [
+        "Develop a specific lead using available context",
+        "Explain its mechanism and main uncertainty"
+      ],
+      "outputEvidence": [
+        "lead",
+        "mechanism",
+        "material uncertainty"
+      ]
+    },
+    {
+      "id": "focused",
+      "intendedAccess": "paid",
+      "work": [
+        "Ground the lead in relevant available material",
+        "Examine the load-bearing assumption",
+        "Compare a meaningful alternative or adverse case"
+      ],
+      "outputEvidence": [
+        "material used",
+        "assumption challenged",
+        "comparison and next discriminating observation"
+      ]
+    },
+    {
+      "id": "deep",
+      "intendedAccess": "paid",
+      "work": [
+        "Investigate the critical dependency in accessible primary material",
+        "Compare competing explanations",
+        "Construct or inspect a discriminating example or authorized artifact",
+        "Revisit the lead after challenge"
+      ],
+      "outputEvidence": [
+        "sources or artifacts actually inspected",
+        "alternatives distinguished",
+        "revised candidate or precise evidence gap"
+      ]
+    }
+  ],
+  "commercialProposal": {
+    "status": "operator-approved access direction; plan packaging is a recommendation, not an active subscription",
+    "free": [
+      "light"
+    ],
+    "recommendedSinglePaidEntitlement": [
+      "focused",
+      "deep"
+    ],
+    "prices": null,
+    "paymentProvider": null,
+    "metering": null,
+    "inFlightExpiryPolicy": null
+  },
+  "boundaries": {
+    "effortIsNotProviderReasoning": true,
+    "paymentIsNotExecutionAuthority": true,
+    "ordinaryStandaloneSkillsRemainUsable": true,
+    "serviceEnforcesManagedAccess": true,
+    "noSilentUpgradeOrDowngrade": true,
+    "noAutomaticTaskPromotionOrExecution": true
+  }
+}

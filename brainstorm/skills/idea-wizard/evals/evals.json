@@ -1,0 +1,22 @@
+{
+  "skill": "idea-wizard",
+  "cases": [
+    {
+      "id": "count-and-distinctness",
+      "prompt": "For a small document editor, explore eight improvement ideas and return the best three. Known problems: keyboard users cannot reach Save, autosave conflicts lose edits, and search is slow on large documents. No new platform or collaboration features. Explain why your selections differ.",
+      "assertions": [
+        "Returns three selected ideas rather than forcing the default five.",
+        "Addresses the evidenced problems with distinct mechanisms rather than cosmetic variants or an unauthorized platform expansion.",
+        "Explains a way to validate the selected benefits without inventing measured gains."
+      ]
+    },
+    {
+      "id": "no-false-certainty",
+      "prompt": "We have no usage data yet. Give the best ideas for a new calendar tool, but do not invent user research, adoption numbers, or guaranteed improvements.",
+      "assertions": [
+        "Treats proposed benefits and demand as hypotheses rather than observed facts.",
+        "Includes an economical way to test important assumptions and avoids claiming confidence from its own ranking."
+      ]
+    }
+  ]
+}

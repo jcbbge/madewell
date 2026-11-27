@@ -1,0 +1,21 @@
+{
+  "skill": "detecting-blind-spots",
+  "cases": [
+    {
+      "id": "silence-not-absence",
+      "prompt": "You have only a two-paragraph visual-design excerpt from a larger launch plan. It says nothing about backups. Tell me whether this proves the team forgot backups.",
+      "assertions": [
+        "Distinguishes absence from the inspected excerpt from absence in the actual plan or system.",
+        "Does not accuse the team or invent a backup failure; proposes a relevant coverage check if material."
+      ]
+    },
+    {
+      "id": "handoff-gap",
+      "prompt": "The refund workflow is complete for successful payments. Failed refund callbacks go to a shared mailbox; the launch checklist explicitly has no owner for that mailbox or retry handling. What are we missing?",
+      "assertions": [
+        "Identifies recovery ownership and failed-path handling as a concrete uncovered obligation.",
+        "Connects the gap to an outcome and names a focused next check or assignment without inventing motives or requiring a broad interview."
+      ]
+    }
+  ]
+}

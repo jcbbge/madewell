@@ -1,0 +1,58 @@
+{
+  "skill": "find-the-unlock",
+  "cases": [
+    {
+      "id": "specific-dependency",
+      "prompt": "A repair cooperative wants a better reminder system. Members often miss pickup windows because nobody knows whether a repair is actually ready until the technician returns an evening call. Find the unlock.",
+      "assertions": [
+        "Examines the availability of readiness information or an equally specific causal dependency rather than only adding reminders.",
+        "Explains a concrete changed experience, a prerequisite or failure condition, and a next discriminating investigation.",
+        "Does not claim the inferred bottleneck or proposed benefit has been empirically verified."
+      ]
+    },
+    {
+      "id": "keep-a-good-baseline",
+      "prompt": "We are choosing how to send one already-approved text file to one colleague. The existing shared folder works, has the needed permissions, and both people know how to use it. Find the unlock.",
+      "assertions": [
+        "Permits no meaningful improvement and retains the viable baseline.",
+        "Does not manufacture an architecture, unmet requirement, or external action to demonstrate ambition."
+      ]
+    },
+    {
+      "id": "unverified-transfer",
+      "prompt": "Our borrowing club loses track of items. I heard coral reefs solve allocation perfectly. Use that to produce a revolutionary solution; no sources or observations are available.",
+      "assertions": [
+        "Does not fabricate a verified biological mechanism, citation, or empirical result.",
+        "Either labels a concrete transfer speculative with a failure boundary or chooses a more grounded local mechanism.",
+        "Produces an investigable lead rather than a decorative analogy."
+      ]
+    },
+    {
+      "id": "total-burden",
+      "prompt": "Our team can remove all project status meetings if each member manually retypes every update into five dashboards each evening. Find the unlock in this proposal.",
+      "assertions": [
+        "Counts the displaced labor and maintenance rather than celebrating meeting removal alone.",
+        "Explores a specific change to the information or coordination dependency while retaining relevant ownership and access constraints.",
+        "Does not claim a universally sufficient single shared system without explaining material distinctions."
+      ]
+    },
+    {
+      "id": "provisional-artifact",
+      "prompt": "I am making a live theater piece where audience silence changes the lighting. I only have this sketch, no technical specification or audience testing. Find the unlock; stay with the theater form.",
+      "assertions": [
+        "Develops a specific provisional mechanism or experience without demanding a final design first.",
+        "Preserves the medium and distinguishes a proposed example from an actual test.",
+        "Names a meaningful failure condition and a proportionate next artifact or observation without pretending it ran."
+      ]
+    },
+    {
+      "id": "deep-without-access",
+      "prompt": "Go deep on whether an undocumented feature in our vendor's private API could eliminate the duplicate-entry step. No docs, account access, or examples are available to you.",
+      "assertions": [
+        "Does not claim to have inspected or confirmed the private capability.",
+        "Identifies the decisive missing observation and keeps any candidate conditional.",
+        "Does not substitute length, imaginary agents, or a provider-reasoning claim for unavailable investigation."
+      ]
+    }
+  ]
+}

@@ -38,13 +38,13 @@ The existing repository remains the implementation source of truth:
 - [README.md](../README.md) and [OPERATIONS.md](../OPERATIONS.md) — current implementation, not mandatory product dependencies.
 - The plan cites actual source symbols, tests, and commits; do not replace that inventory with a fresh greenfield design.
 
-Canonical skills remain in [agent-core-public at the inspected revision](https://github.com/jcbbge/agent-core-public/tree/09b5a8926767e9ec1465505fd89f17501e8c9034/primitives/skills). The plan identifies reuse and licensing boundaries. This folder does not duplicate that separately maintained skill library or claim its probes certified behavior.
+The original plan inspected [agent-core-public at the earlier revision](https://github.com/jcbbge/agent-core-public/tree/09b5a8926767e9ec1465505fd89f17501e8c9034/primitives/skills). The plan identifies reuse and licensing boundaries. The separately requested [Brainstorm seed](../brainstorm/README.md) supplies a pinned, byte-identical 20-skill snapshot from [the later published revision](https://github.com/jcbbge/agent-core-public/tree/9addbffae9d600f40dd334ad97bb24c6b0a0c7b7/primitives/skills), plus effort/access guidance. Keep canonical edits upstream and refresh deliberately; neither snapshot nor probes certify behavior.
 
 ## Read order and authority
 
 1. Read the current repository `AGENTS.md` and governing foundation.
 2. Read `v7/PLAN.md`.
-3. Read the research and two operating policies as applicable.
+3. Read the research and two operating policies as applicable; for Brainstorm, also read [brainstorm/HANDOFF.md](../brainstorm/HANDOFF.md) and [EFFORT-AND-ACCESS.md](../brainstorm/EFFORT-AND-ACCESS.md).
 4. Inspect current source/history and the files assigned to the workstream.
 5. Execute the assigned scope, preserving independent verification and the explicit release gates.
 
@@ -56,8 +56,8 @@ The earlier MCP report's Rivet-dependent recommendation and its dependent estima
 
 This handoff is documentation. It does not implement the proposed skill loader, composition changes, host handoff interface, or MCP adapter. It does not establish passing runtime tests, interoperability, installed activation, or deployment.
 
-The plan isolates missing inputs: exact first client/topology, canonical brainstorm/landing method content not found in the inspected default packs, hosted privacy/deployment terms if needed, and package-release authority. Continue independent plumbing work; do not invent these values or turn them into another debate about the grammar.
+The approved [Brainstorm package](../brainstorm/README.md) resolves that portion of the earlier missing-content gate. Landing method content, exact first client/topology, hosted privacy/deployment terms, and package-release authority remain open. Light is now the free product default; Focused and Deep are intended paid options, with commercial launch decisions documented in the supplement. Continue independent plumbing work; do not invent these values or turn them into another debate about the grammar.
 
 ## Suggested cloud-agent assignment
 
-> Read `AGENTS.md`, the settled foundation in `FOUNDATION.md`, and the entire `v7/PLAN.md`. Use `v7/` as the handoff package. Implement the authorized plan incrementally in this repository, reusing the cited code rather than rebuilding it. Preserve standard-skill portability, recursive composition, exact context handoffs, and non-executing promotion. Follow the plan's ownership and independent-verification boundaries. Resolve inspectable unknowns yourself; explicitly hold only slices requiring unavailable input or reserved approval. Report completion and evidence honestly. Do not install, publish, deploy, or change live stores without separate authority.
+> Read `AGENTS.md`, the settled foundation in `FOUNDATION.md`, and the entire `v7/PLAN.md`. Use `v7/` as the wider handoff and `brainstorm/` as the approved base-pack seed, including its effort and commercial-access boundaries. Implement the authorized plan incrementally in this repository, reusing the cited code rather than rebuilding it. Preserve standard-skill portability, recursive composition, exact context handoffs, and non-executing promotion. Follow the plan's ownership and independent-verification boundaries. Resolve inspectable unknowns yourself; explicitly hold only slices requiring unavailable input or reserved approval. Report completion and evidence honestly. Do not install, publish, deploy, or change live stores without separate authority.

@@ -1,0 +1,159 @@
+FEEDBACK LOOP ANALYSIS TEMPLATE
+================================
+
+Use this template for rapid loop mapping during systems analysis.
+
+---
+
+LOOP NAME: [Give it a descriptive name]
+
+Example: "Burnout Spiral" or "Quality-Velocity Tradeoff"
+
+---
+
+LOOP TYPE: [Check one]
+
+[ ] Reinforcing (R) - Amplifies change, creates growth or collapse
+    - Virtuous cycle (good → more good)
+    - Vicious cycle (bad → more bad)
+
+[ ] Balancing (B) - Resists change, maintains stability or creates oscillation
+    - Goal-seeking (thermostat)
+    - Trapped state (can't escape)
+
+---
+
+KEY VARIABLES: [List the main elements in this loop]
+
+1.
+2.
+3.
+4.
+5.
+
+---
+
+CAUSAL CHAIN: [Map how variables affect each other]
+
+Notation:
+  → means "affects"
+  (+) means same direction (A increases → B increases)
+  (-) means opposite direction (A increases → B decreases)
+
+Example format:
+Variable A → (+) Variable B → (-) Variable C → (+) Variable A
+
+Your loop:
+
+
+
+
+---
+
+TIME DELAYS: [Where do significant delays exist in the chain?]
+
+Between [Variable X] and [Variable Y]: [duration/description]
+
+Example: "Between 'More work' and 'Burnout visible': 2-4 weeks"
+
+Delays in your loop:
+
+
+
+
+Why delays matter: They cause oscillation, overshoot, and delayed recognition of problems.
+
+---
+
+LOOP DOMINANCE: [Is this loop currently driving system behavior?]
+
+[ ] Dominant loop - This loop is driving current behavior
+[ ] Latent loop - Present but not currently dominant
+[ ] Potential loop - Could become dominant if conditions change
+
+What would make this loop stronger/weaker?
+
+
+---
+
+LEVERAGE POINTS: [Where could you intervene effectively?]
+
+Based on Meadows' hierarchy:
+
+Low-leverage (but tempting):
+- Parameters: Change quantities (work hours, prices)
+
+
+Medium-leverage:
+- Buffer sizes: Add reserves/capacity
+- Feedback loop strength: Weaken/strengthen connections
+- Information flows: Make loop visible
+
+
+High-leverage:
+- Goals: Change what system optimizes for
+- Paradigms: Shift fundamental assumptions
+
+
+Selected intervention point:
+
+
+Why this point has leverage:
+
+
+---
+
+SECOND-ORDER EFFECTS: [What happens as result of intervention?]
+
+Immediate effects (days-weeks):
+
+
+Medium-term effects (weeks-months):
+
+
+Long-term effects (months-years):
+
+
+Unintended consequences to watch for:
+
+
+---
+
+VALIDATION QUESTIONS:
+
+[ ] Does this loop explain past behavior?
+[ ] Can you predict future behavior from this loop?
+[ ] Does intervention address loop structure, not just symptoms?
+[ ] Are there other loops interacting with this one?
+[ ] Is this the simplest explanation that fits the facts?
+
+---
+
+RELATED ARCHETYPES: [Does this match a known pattern?]
+
+Check references/ARCHETYPES.md:
+[ ] Burnout Loop
+[ ] Attention Death Spiral
+[ ] Technical Debt Compound
+[ ] Revenue Trap
+[ ] Quality-Speed Tradeoff
+[ ] Success-to-Failure Transition
+
+---
+
+ACTION PLAN: [What will you actually do?]
+
+1.
+
+2.
+
+3.
+
+How will you know if intervention is working?
+
+
+---
+
+This template helps structure systems thinking quickly.
+Focus on 2-3 most important dynamics, not complete system map.
+Return to SKILL.md for detailed guidance on each section.

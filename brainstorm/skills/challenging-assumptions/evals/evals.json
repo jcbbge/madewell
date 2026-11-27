@@ -1,0 +1,21 @@
+{
+  "skill": "challenging-assumptions",
+  "cases": [
+    {
+      "id": "hinge-not-risk-list",
+      "prompt": "A team will migrate to a cheaper service. Their entire savings calculation assumes support remains below one hour a month, but nobody has tested restore or recovery. Stress-test the decision without producing a generic cloud-risk list.",
+      "assertions": [
+        "Identifies operating/recovery effort as a load-bearing assumption and proposes evidence that could change the decision.",
+        "Does not turn the claimed savings or a guessed failure probability into an established fact."
+      ]
+    },
+    {
+      "id": "calibrated-challenge",
+      "prompt": "We are trying a reversible button-label experiment for an afternoon. No money, permissions, or data handling changes. The goal and success measure are already settled. Challenge the plan proportionately.",
+      "assertions": [
+        "Keeps the challenge small and relevant to the experiment and measurement.",
+        "Does not prescribe an exhaustive premortem, a stakeholder interview, or a new recurring review process."
+      ]
+    }
+  ]
+}

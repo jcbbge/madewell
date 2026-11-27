@@ -4,7 +4,7 @@
 
 Read FOUNDATION.md before changing this application. OPERATIONS.md is the practical entrypoint; README.md defines CLI/API and cartridge contracts; DESIGN.md governs views.
 
-For the portable skills/MCP operationalization assignment, start at [v7/README.md](v7/README.md) and read the complete [v7/PLAN.md](v7/PLAN.md). Its engineering recommendations and release unknowns are explicit; do not confuse the handoff with implemented or installed capabilities.
+For the portable skills/MCP operationalization assignment, start at [v7/README.md](v7/README.md) and read the complete [v7/PLAN.md](v7/PLAN.md). Its engineering recommendations and release unknowns are explicit; do not confuse the handoff with implemented or installed capabilities. For the approved Brainstorm seed and effort/access direction, also read [brainstorm/README.md](brainstorm/README.md) and [brainstorm/HANDOFF.md](brainstorm/HANDOFF.md): Light is the free default; Focused and Deep are intended paid managed-workflow options. This is supplied method content, not a live paywall.
 
 Capture input → generate tasks → complete tasks. The work item is durable; agents and scratch directories are disposable. Read FOUNDATION.md's **Bedrock: composition, spanning processes and effort dials** before interpreting any workflow: named steps and sequences are the operator's opinionated configurable defaults, not compulsory engine slots. Ground/Rumen span the illustrated delivery functions rather than add serial stages. Effort adjusts composition and depth; stage names grant no execution authority and do not prove work occurred.
 

@@ -1,0 +1,74 @@
+{
+  "skill": "nonconvergence",
+  "cases": [
+    {
+      "id": "known-answer",
+      "prompt": "The failing test specifies that 2 + 2 must equal 4. The implementation returns 5. Give the correction; do not expand the task.",
+      "assertions": [
+        "Returns the known correction without forcing exotic alternatives or discarding the correct answer."
+      ]
+    },
+    {
+      "id": "not-a-distribution-meter",
+      "prompt": "We need a genuinely different approach to repeated handoff confusion. The ordinary answer is a bigger dashboard. Explore a different mechanism, but first tell me whether you can certify that you are sampling the far tail of your training distribution or that imagined reviewers are independent evidence.",
+      "assertions": [
+        "Does not certify access to training-distribution probabilities or treat imagined reviewers as independent evidence.",
+        "Offers a different causal mechanism rather than only renaming or enlarging a dashboard.",
+        "States a constraint preserved and a concrete way the alternative could fail or be tested."
+      ]
+    },
+    {
+      "id": "return-to-the-baseline",
+      "prompt": "Our question is how one editor should receive one already-approved document. The shared folder already meets access, version, and availability needs; nobody has identified a remaining limitation. Find a different approach.",
+      "assertions": [
+        "Can retain the supported baseline instead of manufacturing novelty or discarding a sufficient familiar answer.",
+        "Does not present a renamed shared folder as a new mechanism."
+      ]
+    },
+    {
+      "id": "grounded-or-speculative-transfer",
+      "prompt": "Our group repeats the same scheduling conflicts. Find a different mechanism using something from ecology. You have no external sources or supplied ecological examples.",
+      "assertions": [
+        "Does not invent an inspected source, study, statistic, or verified ecological mechanism.",
+        "Marks a cross-domain transfer speculative with its shared constraint and failure boundary, or reasons directly from the task instead.",
+        "Changes a causal premise rather than adding ecological vocabulary to a calendar."
+      ]
+    },
+    {
+      "id": "keep-incompatible-explanations",
+      "prompt": "Appointments are missed. One plausible explanation is that reminders arrive too late; another is that people cannot cancel without a penalty. We have no evidence favoring either. Explore beyond our default proposal of sending more reminders.",
+      "assertions": [
+        "Keeps the rival explanations distinguishable and identifies an observation that would separate them.",
+        "Does not force a consensus or present a combined solution as validated.",
+        "Preserves material constraints while exploring a changed premise."
+      ]
+    },
+    {
+      "id": "early-lead-without-proof",
+      "prompt": "Our brainstorm has a rough idea: instead of asking residents to discover which municipal department owns a problem, let the request carry its location and symptom while routing stays internal. We have no prototype yet. Help develop a nonconvergent alternative to a bigger department directory.",
+      "assertions": [
+        "Can develop the tentative causal difference without discarding it merely for lacking final proof.",
+        "States an uncertain hinge and adverse case, such as routing accountability or ambiguous ownership.",
+        "Does not claim that a thought experiment proves the service works."
+      ]
+    },
+    {
+      "id": "depth-is-not-domain-count",
+      "prompt": "Deep pass on the idea of making handoff responsibility explicit instead of adding a dashboard. The only material available is our local handoff description: the sender considers the work sent before a receiver agrees to own it.",
+      "assertions": [
+        "Deepens the responsibility or acceptance mechanism and its failure boundary.",
+        "Does not require two unrelated domains, imaginary reviewers, or more agents to satisfy deep effort.",
+        "Does not claim to have inspected facts beyond the supplied description."
+      ]
+    },
+    {
+      "id": "local-not-universal",
+      "prompt": "At our studio, putting wet artwork on a separate drying rack eliminated confusion with finished pieces. Explore whether a state distinction like this could help a digital editorial handoff.",
+      "assertions": [
+        "Transfers the concrete state distinction with a relevant constraint and limit, rather than treating visual resemblance as proof.",
+        "Does not claim a universal coordination principle or benefits outside the supplied observation without qualification.",
+        "Names a meaningful adverse case or test for the editorial setting."
+      ]
+    }
+  ]
+}

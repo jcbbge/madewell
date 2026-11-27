@@ -1,0 +1,471 @@
+{
+  "kind": "pinned-source-inventory",
+  "schemaVersion": 1,
+  "repository": "https://github.com/jcbbge/agent-core-public",
+  "revision": "9addbffae9d600f40dd334ad97bb24c6b0a0c7b7",
+  "filesAreUnmodified": true,
+  "skills": [
+    "brainstorm",
+    "ambitious-collaboration",
+    "find-the-unlock",
+    "right-side-of-the-curve",
+    "nonconvergence",
+    "ablation",
+    "buoyant",
+    "challenging-assumptions",
+    "cognitive-approaches",
+    "creative-systems-thinking",
+    "criticality",
+    "detecting-blind-spots",
+    "exploring-possibilities",
+    "idea-wizard",
+    "luck",
+    "mapping-adjacent-possibilities",
+    "reframing-problems",
+    "synthesizing-insights",
+    "think-critically",
+    "thinking-systemically"
+  ],
+  "license": {
+    "path": "LICENSE.agent-core",
+    "sourcePath": "LICENSE",
+    "sha256": "1f56f5190c80cda501ef199f1fd4f127cad58991d23a895f9c6911c3ea4865bd"
+  },
+  "files": [
+    {
+      "path": "skills/ablation/SKILL.md",
+      "sourcePath": "primitives/skills/ablation/SKILL.md",
+      "gitBlob": "0f23c515cdbd6242f0b3da73775aa14da6edf053",
+      "bytes": 5638,
+      "sha256": "5e0abe6f8a8f4aa13f2e272b2989a52c759b832b9729288db77882c66205ba2d"
+    },
+    {
+      "path": "skills/ablation/evals/evals.json",
+      "sourcePath": "primitives/skills/ablation/evals/evals.json",
+      "gitBlob": "df4748db69b87bcad40dfd9a0d075baa23eb5b61",
+      "bytes": 1214,
+      "sha256": "e0838b179c91b08c664175b5302e7c4bfb9febcd9b4237f3c2d5e1d4b8a7ee09"
+    },
+    {
+      "path": "skills/ambitious-collaboration/SKILL.md",
+      "sourcePath": "primitives/skills/ambitious-collaboration/SKILL.md",
+      "gitBlob": "9f632557547c6a1a7ae6e7e4f596246d4bbb51bd",
+      "bytes": 4395,
+      "sha256": "d50fbba68c3fb2dcdea9454b898a9482961608050ff10535ef25a4901b108231"
+    },
+    {
+      "path": "skills/ambitious-collaboration/evals/evals.json",
+      "sourcePath": "primitives/skills/ambitious-collaboration/evals/evals.json",
+      "gitBlob": "5ab5a20b9f72618426f110f4b602ed42a2c6b2ab",
+      "bytes": 2870,
+      "sha256": "4e0c5c943cf2cbd7584c08fccfec88f5c7a09f59c1a4899c931d44647d6fe7c3"
+    },
+    {
+      "path": "skills/brainstorm/SKILL.md",
+      "sourcePath": "primitives/skills/brainstorm/SKILL.md",
+      "gitBlob": "285c483923203834809909a04fc74cb8b89ef84a",
+      "bytes": 5421,
+      "sha256": "a97b15eb85a7ae9bcf6499567077cd002ddd14f28f61b08eb97345342bf051b6"
+    },
+    {
+      "path": "skills/brainstorm/evals/evals.json",
+      "sourcePath": "primitives/skills/brainstorm/evals/evals.json",
+      "gitBlob": "af9d3dd4a7f95c93d72f13f5db4b31604d0eea70",
+      "bytes": 7563,
+      "sha256": "a274a939a6f3ae9f472818a9710e32e112dfd2dfd3bfed7fc8bf38d03e007468"
+    },
+    {
+      "path": "skills/brainstorm/references/effort.md",
+      "sourcePath": "primitives/skills/brainstorm/references/effort.md",
+      "gitBlob": "2953d578e4cbe1af0a55a30c2847970a6db56e5f",
+      "bytes": 4550,
+      "sha256": "5654f9776c97d9b6a130397c9c756c84ac609706a69ddc091d45b01a306d0d6f"
+    },
+    {
+      "path": "skills/brainstorm/references/madewell.md",
+      "sourcePath": "primitives/skills/brainstorm/references/madewell.md",
+      "gitBlob": "10283368b44ef2b9654ebf6485de4de80b3ce346",
+      "bytes": 3372,
+      "sha256": "4cf5bedf1fc4fd006265fbdf8b2698abd316310c295b76791e2c2cee0e8e15a7"
+    },
+    {
+      "path": "skills/brainstorm/references/methods.md",
+      "sourcePath": "primitives/skills/brainstorm/references/methods.md",
+      "gitBlob": "7fa482bb342c6bfd93ffe942f08d23494e5a2dae",
+      "bytes": 4318,
+      "sha256": "ebf9cc53da924edcf30db4eeb85a98d4d0831ed03d299f6bea96047464898701"
+    },
+    {
+      "path": "skills/buoyant/SKILL.md",
+      "sourcePath": "primitives/skills/buoyant/SKILL.md",
+      "gitBlob": "3f4fdb6638935cca8b8b4fa6ebd0eff52b07e1d2",
+      "bytes": 4110,
+      "sha256": "bbae822303ab05cd3851ac54237cdef453de3a562dbdac670f2c812930064924"
+    },
+    {
+      "path": "skills/buoyant/evals/evals.json",
+      "sourcePath": "primitives/skills/buoyant/evals/evals.json",
+      "gitBlob": "529326f5ea891def4a55e321e9c8d96f13d3192f",
+      "bytes": 1239,
+      "sha256": "61c1d25965b5a5644aed756499236ae769cb3b4fc7ebbde00afe71573f18e69b"
+    },
+    {
+      "path": "skills/challenging-assumptions/SKILL.md",
+      "sourcePath": "primitives/skills/challenging-assumptions/SKILL.md",
+      "gitBlob": "4eb3c86e86f69ed6063a3f7d882c214ba39f8b2b",
+      "bytes": 4275,
+      "sha256": "d23ca617918239d8a518f8983c61eb4005855fd02ad4153614de78833d043fe2"
+    },
+    {
+      "path": "skills/challenging-assumptions/assets/pre-mortem-template.md",
+      "sourcePath": "primitives/skills/challenging-assumptions/assets/pre-mortem-template.md",
+      "gitBlob": "5f78eb11f97181f7cb646f6285bfbf5dcecc3e9e",
+      "bytes": 6990,
+      "sha256": "45ac7ae2445dce0316531bce092d7c37651e9b03389badd2d8d6019fc6edd643"
+    },
+    {
+      "path": "skills/challenging-assumptions/evals/evals.json",
+      "sourcePath": "primitives/skills/challenging-assumptions/evals/evals.json",
+      "gitBlob": "1562dea644142742afdac71d03a1bb3105eea164",
+      "bytes": 1126,
+      "sha256": "9ec34dbfb84dd34c66ce51b1f069b4d33171d113f08f9e277b930439c8b5ab08"
+    },
+    {
+      "path": "skills/challenging-assumptions/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/challenging-assumptions/references/FRAMEWORKS.md",
+      "gitBlob": "8cb3dc3293e3c75bc8f7e3e60b9cbbdb3de0e312",
+      "bytes": 17742,
+      "sha256": "cc7774c7b24f062c098026021e437dd7a1462e7b0c71db772e5e2aec1e345ae2"
+    },
+    {
+      "path": "skills/challenging-assumptions/references/REFERENCE.md",
+      "sourcePath": "primitives/skills/challenging-assumptions/references/REFERENCE.md",
+      "gitBlob": "2aa635ce7c9449a60c3c480d1fcec66191dccbe8",
+      "bytes": 16829,
+      "sha256": "2b92e79ba7c1df0d8b5284741fe896821ed30c3f57c12e2c2f4b75c394127b25"
+    },
+    {
+      "path": "skills/cognitive-approaches/SKILL.md",
+      "sourcePath": "primitives/skills/cognitive-approaches/SKILL.md",
+      "gitBlob": "81a7cbf3be6da610484a569188145c10349a78e1",
+      "bytes": 3766,
+      "sha256": "09ed1e7e5dcd24e5347594281da791a94f80d34ab93ae38088275723c9748558"
+    },
+    {
+      "path": "skills/cognitive-approaches/evals/evals.json",
+      "sourcePath": "primitives/skills/cognitive-approaches/evals/evals.json",
+      "gitBlob": "15d0d2f286de607fdab3003c79e50da1e2a28641",
+      "bytes": 1007,
+      "sha256": "61c5f7d3037b1a807c7e15f4f02d206c9d69efa065bc90682ca9a3e586ce1850"
+    },
+    {
+      "path": "skills/creative-systems-thinking/SKILL.md",
+      "sourcePath": "primitives/skills/creative-systems-thinking/SKILL.md",
+      "gitBlob": "e028abfe66e7a3231981d63aa88db8578b07009c",
+      "bytes": 4267,
+      "sha256": "840eb357c06527a19553af3fca507c504ea608330d34e8a8a191f35dc777ae60"
+    },
+    {
+      "path": "skills/creative-systems-thinking/evals/evals.json",
+      "sourcePath": "primitives/skills/creative-systems-thinking/evals/evals.json",
+      "gitBlob": "7dee504c92b8f9902398e887386909dcb5164502",
+      "bytes": 1223,
+      "sha256": "63437dcdd1413bb74eb151b63691cfa7559aa95a5ab93c9a00708173a755b23f"
+    },
+    {
+      "path": "skills/criticality/SKILL.md",
+      "sourcePath": "primitives/skills/criticality/SKILL.md",
+      "gitBlob": "6ad166f3134144c17d051c78c107093b66e82f8d",
+      "bytes": 4438,
+      "sha256": "c5947f356df9cc6baebb56e9a1f73c59c2079c2ca0e7a7afa2ef8a4dfbc87bd2"
+    },
+    {
+      "path": "skills/criticality/evals/evals.json",
+      "sourcePath": "primitives/skills/criticality/evals/evals.json",
+      "gitBlob": "2712ef1cab31601f7af05ed9afe474f7e2b4876e",
+      "bytes": 1456,
+      "sha256": "c85fb8d840ebca006c89658aacd8002699bba0603b55634e124e885cf1063d4c"
+    },
+    {
+      "path": "skills/detecting-blind-spots/SKILL.md",
+      "sourcePath": "primitives/skills/detecting-blind-spots/SKILL.md",
+      "gitBlob": "d0662c70f97d97bb92d2b5882667c908072d88d6",
+      "bytes": 4192,
+      "sha256": "cc4942de48fc9ae5fdc8d3e84b9ad4450169f22de07e35e5bb4669ca984a55ef"
+    },
+    {
+      "path": "skills/detecting-blind-spots/evals/evals.json",
+      "sourcePath": "primitives/skills/detecting-blind-spots/evals/evals.json",
+      "gitBlob": "18a738d8e3df3a7ffc7756254abe77c6a3b8115c",
+      "bytes": 1072,
+      "sha256": "66caf7d102e6e3b0bda3322dc5b854840dc945e48230e4829ed505228cf29f59"
+    },
+    {
+      "path": "skills/detecting-blind-spots/references/EXAMPLES.md",
+      "sourcePath": "primitives/skills/detecting-blind-spots/references/EXAMPLES.md",
+      "gitBlob": "7872ef350e591e53251befb7fd24daaed5355328",
+      "bytes": 26028,
+      "sha256": "8799e3ca0f440ab179a5fdd35b58d1b28804098fb588d5216c97012de6f6e6e6"
+    },
+    {
+      "path": "skills/detecting-blind-spots/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/detecting-blind-spots/references/FRAMEWORKS.md",
+      "gitBlob": "5617c40ca9d81e9a1e1ccd87e72646b3d1ebfb75",
+      "bytes": 12597,
+      "sha256": "bd754019f7a99ffad46f0674546d5ff06513ace80362457f08e7e67f6248c015"
+    },
+    {
+      "path": "skills/detecting-blind-spots/references/RESEARCH.md",
+      "sourcePath": "primitives/skills/detecting-blind-spots/references/RESEARCH.md",
+      "gitBlob": "e351b2e5685938a02b4bf012de8bb1f7cf03243a",
+      "bytes": 17126,
+      "sha256": "162debfc91c56e3ed70f3caf002bbbc9a7b95727373f378e2372fc34a1ec29c5"
+    },
+    {
+      "path": "skills/exploring-possibilities/SKILL.md",
+      "sourcePath": "primitives/skills/exploring-possibilities/SKILL.md",
+      "gitBlob": "abe5331b236d3cea3668c427712fe945d8299ed2",
+      "bytes": 4896,
+      "sha256": "8fa14e26df68d90ab926f0bd9b5434efc316c5528655cbd8ab09ce0044548abd"
+    },
+    {
+      "path": "skills/exploring-possibilities/evals/evals.json",
+      "sourcePath": "primitives/skills/exploring-possibilities/evals/evals.json",
+      "gitBlob": "16ff3638f33cd90627f26e9fba350b6815c30247",
+      "bytes": 1153,
+      "sha256": "a8b4050d6522b6abfecadd81379e14e23a36718736aefc55407a166d3721048e"
+    },
+    {
+      "path": "skills/exploring-possibilities/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/exploring-possibilities/references/FRAMEWORKS.md",
+      "gitBlob": "815378efff00d0bdae9ae61a91d1cf80601f5749",
+      "bytes": 17599,
+      "sha256": "86ed25926511b88e93949b84fb071f34c9440970c9b08000f6a049a4be76ab2e"
+    },
+    {
+      "path": "skills/exploring-possibilities/references/RESEARCH.md",
+      "sourcePath": "primitives/skills/exploring-possibilities/references/RESEARCH.md",
+      "gitBlob": "ecb5d49f72f8d5cb8c552a40f73e616f88e5482f",
+      "bytes": 14633,
+      "sha256": "2371d1de0f193b3efd6590558467824b7cbf8f6813a1ab23d4ce7090c1a1c6ec"
+    },
+    {
+      "path": "skills/find-the-unlock/SKILL.md",
+      "sourcePath": "primitives/skills/find-the-unlock/SKILL.md",
+      "gitBlob": "0664be2efc09504ad74962fa31434137cc91dadc",
+      "bytes": 4058,
+      "sha256": "e07ef6a022a07eb78307b12e5a2d338602712eec4f9e92923fb2dc7e376fe02a"
+    },
+    {
+      "path": "skills/find-the-unlock/evals/evals.json",
+      "sourcePath": "primitives/skills/find-the-unlock/evals/evals.json",
+      "gitBlob": "fe60cbfc8e1003940a5321d4c01576cc31ff44e6",
+      "bytes": 3548,
+      "sha256": "a935a04f32662aded2e92ac74935be5291b44f04f5ea7aa5ebca35a3b2ccf9e8"
+    },
+    {
+      "path": "skills/idea-wizard/SKILL.md",
+      "sourcePath": "primitives/skills/idea-wizard/SKILL.md",
+      "gitBlob": "7ec22e706cdaac61e42bab242fe5b52430c9ba3e",
+      "bytes": 4253,
+      "sha256": "e35696cf60a32202c31f4b682c780c81fe90660309e92e9505420abe6c462a39"
+    },
+    {
+      "path": "skills/idea-wizard/evals/evals.json",
+      "sourcePath": "primitives/skills/idea-wizard/evals/evals.json",
+      "gitBlob": "ea1b098104ff96ce850d8c8b2636b5a08f9501d1",
+      "bytes": 1198,
+      "sha256": "cda3b429e0d0dcf6ae61cd3d43e9a1bb623c6dc6ea2961327e2a223fae4680e3"
+    },
+    {
+      "path": "skills/luck/SKILL.md",
+      "sourcePath": "primitives/skills/luck/SKILL.md",
+      "gitBlob": "63e63971d366c27a11077070f65f263f31b53635",
+      "bytes": 6351,
+      "sha256": "da542cd49fafd73161a01833107c73e78e55672ad348ba7f61ea136d93388b18"
+    },
+    {
+      "path": "skills/luck/evals/evals.json",
+      "sourcePath": "primitives/skills/luck/evals/evals.json",
+      "gitBlob": "9faab34f068eb1d1bd2ce5013d423ea6b6e9a755",
+      "bytes": 1503,
+      "sha256": "6c4c9070058db52a31e6a3955105a21e27458e5582ca94c048a3e1585dee1860"
+    },
+    {
+      "path": "skills/mapping-adjacent-possibilities/SKILL.md",
+      "sourcePath": "primitives/skills/mapping-adjacent-possibilities/SKILL.md",
+      "gitBlob": "0e271433b3cc28ed5b1c3d36c06fba4a13ac488f",
+      "bytes": 4489,
+      "sha256": "c2256354e410970833cc4c17e6605038c8adb9c29db784112365a197dbad2932"
+    },
+    {
+      "path": "skills/mapping-adjacent-possibilities/evals/evals.json",
+      "sourcePath": "primitives/skills/mapping-adjacent-possibilities/evals/evals.json",
+      "gitBlob": "e4049c375ab6cd5675301fb1ad6308fc1d5f8979",
+      "bytes": 1201,
+      "sha256": "e2fda5066ae255beac288bf61b8d28d80cbeea8f8fd28cd5caf8a364b2c21933"
+    },
+    {
+      "path": "skills/mapping-adjacent-possibilities/references/EXAMPLES.md",
+      "sourcePath": "primitives/skills/mapping-adjacent-possibilities/references/EXAMPLES.md",
+      "gitBlob": "77da2011b0f8496653724737c4b0a4a3d3a59fe8",
+      "bytes": 28670,
+      "sha256": "2ced299c08c4af88dad4132c6341a8dda83c7f95458a63b7512e27a12903bb37"
+    },
+    {
+      "path": "skills/mapping-adjacent-possibilities/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/mapping-adjacent-possibilities/references/FRAMEWORKS.md",
+      "gitBlob": "48fd9e71071a9901bb6c9ea39d2c4e96f67e6108",
+      "bytes": 19364,
+      "sha256": "b1d731b11c2dbd5c5c5cf1b32e919607adfd64d31542371148470ff97950d165"
+    },
+    {
+      "path": "skills/nonconvergence/SKILL.md",
+      "sourcePath": "primitives/skills/nonconvergence/SKILL.md",
+      "gitBlob": "6bd43f0887e807cbe2526b88040a21c227e2e00b",
+      "bytes": 6062,
+      "sha256": "786824408fe92b019a471227e9b2430d7a96f89928aa6d2057c3743528cea758"
+    },
+    {
+      "path": "skills/nonconvergence/evals/evals.json",
+      "sourcePath": "primitives/skills/nonconvergence/evals/evals.json",
+      "gitBlob": "5adcc4b1eead8f91c196f620e4e37d5b3bc3596b",
+      "bytes": 4795,
+      "sha256": "7127a9fbbe7ced601cc1ddc58f0862ab3333f3add6462076ea7d6ec8a881c37a"
+    },
+    {
+      "path": "skills/reframing-problems/SKILL.md",
+      "sourcePath": "primitives/skills/reframing-problems/SKILL.md",
+      "gitBlob": "cd0acb2b90ed6834f43a87540a4fdfaff0429800",
+      "bytes": 4015,
+      "sha256": "efb97f4690ba35ab97f82e9088b12d3bd1f77df11b5eb2ee152da3a3d62ef8ca"
+    },
+    {
+      "path": "skills/reframing-problems/evals/evals.json",
+      "sourcePath": "primitives/skills/reframing-problems/evals/evals.json",
+      "gitBlob": "44fc2e393fba6fd3e6b3ea3dfa8af01d360e34d4",
+      "bytes": 1158,
+      "sha256": "03ff07af2a07acf40bf8c8f508460ffe965e4a07fff55bd26894f0e13d3c7968"
+    },
+    {
+      "path": "skills/reframing-problems/references/EXAMPLES.md",
+      "sourcePath": "primitives/skills/reframing-problems/references/EXAMPLES.md",
+      "gitBlob": "f9ce97c605afc50c7581bde9753f45f0d0f22ec2",
+      "bytes": 20990,
+      "sha256": "0b289f6e7b9e2b7d7e4c2f01ba591351d0a65209ed0c79f969440ea2f4f9bd21"
+    },
+    {
+      "path": "skills/reframing-problems/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/reframing-problems/references/FRAMEWORKS.md",
+      "gitBlob": "02a3efc25814d9d0ed5b29185cde2fce136376f0",
+      "bytes": 15106,
+      "sha256": "86046d9baa00a31e3e48adc535b3d6ce09f7abdec031e25d4675ef0d184b9a0d"
+    },
+    {
+      "path": "skills/right-side-of-the-curve/SKILL.md",
+      "sourcePath": "primitives/skills/right-side-of-the-curve/SKILL.md",
+      "gitBlob": "d82d000cf07b6375fb5da04685992620f821f6a7",
+      "bytes": 4574,
+      "sha256": "ce0753df32840bf9acaaf153bb8b84d9590a0f225b6c8134c932cd0bfa5cd43d"
+    },
+    {
+      "path": "skills/right-side-of-the-curve/evals/evals.json",
+      "sourcePath": "primitives/skills/right-side-of-the-curve/evals/evals.json",
+      "gitBlob": "2bf363f8d6a75b44e356219a36c1869ff8dcc367",
+      "bytes": 4727,
+      "sha256": "7430293c1e4dfc091d7546ac807abbe1acaa5695583f50b0b4725d4aa22d92af"
+    },
+    {
+      "path": "skills/synthesizing-insights/SKILL.md",
+      "sourcePath": "primitives/skills/synthesizing-insights/SKILL.md",
+      "gitBlob": "f147b01d2a186fdfad260f6888ff0035525dd811",
+      "bytes": 4329,
+      "sha256": "eb12900091e2d169343cedfc98297a6f99c54758116267a17525c3fb168f04ac"
+    },
+    {
+      "path": "skills/synthesizing-insights/evals/evals.json",
+      "sourcePath": "primitives/skills/synthesizing-insights/evals/evals.json",
+      "gitBlob": "6845a014339b1f763d898184f92b5fc566ef38f0",
+      "bytes": 1591,
+      "sha256": "1030d116b9540d6e37a73b8edfd9f5c3c8dc404af397f2061498a7a5c15765ef"
+    },
+    {
+      "path": "skills/synthesizing-insights/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/synthesizing-insights/references/FRAMEWORKS.md",
+      "gitBlob": "ccca2637068cecd90f3bbc10f0246fb69f02bb5d",
+      "bytes": 12091,
+      "sha256": "ce9b659193b066318a9d0632466b471fea4eab5abbd201fa638548c50903e833"
+    },
+    {
+      "path": "skills/synthesizing-insights/references/PATTERNS.md",
+      "sourcePath": "primitives/skills/synthesizing-insights/references/PATTERNS.md",
+      "gitBlob": "c5fb94e536f3ae89ace7ee2a57ce2acaba8c857f",
+      "bytes": 15774,
+      "sha256": "e96d05509a9bf6c9dd7bcbf12ad74027f3b80579cc7ecd0d9289311a51a90626"
+    },
+    {
+      "path": "skills/synthesizing-insights/references/VALIDATION.md",
+      "sourcePath": "primitives/skills/synthesizing-insights/references/VALIDATION.md",
+      "gitBlob": "9720f3c0da7436d2c28f0dd0badce9600607b31f",
+      "bytes": 16990,
+      "sha256": "ec1a479911ee138bb6955ed2802eddab651252831caa04d9a81eba7df182d2c9"
+    },
+    {
+      "path": "skills/think-critically/SKILL.md",
+      "sourcePath": "primitives/skills/think-critically/SKILL.md",
+      "gitBlob": "c3caee6041c9273d5b059fbec2f2ba4dac1cb382",
+      "bytes": 3820,
+      "sha256": "c8271cc96f4e65d0092183c5148c9a402df1a8821a6a040ab5beee4eb83694ad"
+    },
+    {
+      "path": "skills/think-critically/evals/evals.json",
+      "sourcePath": "primitives/skills/think-critically/evals/evals.json",
+      "gitBlob": "798281115d6662790674bc806ae56a6d0b9ebaef",
+      "bytes": 1261,
+      "sha256": "9981d966d5d5c72f7c040fa2f5aa8e675a53b56f13cb6e900ba651cd29d039aa"
+    },
+    {
+      "path": "skills/thinking-systemically/SKILL.md",
+      "sourcePath": "primitives/skills/thinking-systemically/SKILL.md",
+      "gitBlob": "88aa542ec5ff8d48cabded6b429aff1eb1ba3dca",
+      "bytes": 4517,
+      "sha256": "e38c146a85f2cd91d3f73b67e36695c59d4ef6966b90e7495dddce2f99225ebd"
+    },
+    {
+      "path": "skills/thinking-systemically/assets/feedback-loop-template.txt",
+      "sourcePath": "primitives/skills/thinking-systemically/assets/feedback-loop-template.txt",
+      "gitBlob": "c57a5ccde1cd61df6884e48a874399c0036a75b1",
+      "bytes": 3098,
+      "sha256": "129eaac5ce80fc268fcd5085242a5455df084dbdd89fa9f6e6da6fe8ab1a77cc"
+    },
+    {
+      "path": "skills/thinking-systemically/assets/leverage-points-quick-ref.txt",
+      "sourcePath": "primitives/skills/thinking-systemically/assets/leverage-points-quick-ref.txt",
+      "gitBlob": "186082c23eb32d386dc2676d2d63db39ce16d80f",
+      "bytes": 5471,
+      "sha256": "7b0c792d537f68f934392c4f75bf593a5ff3cbbca089c3fdac37de4ec286ef10"
+    },
+    {
+      "path": "skills/thinking-systemically/evals/evals.json",
+      "sourcePath": "primitives/skills/thinking-systemically/evals/evals.json",
+      "gitBlob": "635ffbe5d06f219e5dcf2eb5b6b55e4284cc7bf3",
+      "bytes": 1615,
+      "sha256": "217a5daee7e6d3d5cc5055dc33f8a6f9e06d7f858006ab278da6efc9bc165076"
+    },
+    {
+      "path": "skills/thinking-systemically/references/ARCHETYPES.md",
+      "sourcePath": "primitives/skills/thinking-systemically/references/ARCHETYPES.md",
+      "gitBlob": "af6294aed5bba35c4c647963a8ae1012375a3561",
+      "bytes": 17987,
+      "sha256": "9ca328684655a7a6590c6e69e859aab29c04c6025034021107f7e12fbb07d37e"
+    },
+    {
+      "path": "skills/thinking-systemically/references/FRAMEWORKS.md",
+      "sourcePath": "primitives/skills/thinking-systemically/references/FRAMEWORKS.md",
+      "gitBlob": "acc2fb017ea03b05710d702701e1b0c216a10d7d",
+      "bytes": 19054,
+      "sha256": "44196f73f34030d592b72233e5d77f3e471d517604ef0cabf1721113df43737c"
+    }
+  ],
+  "note": "Inventory only, not a runnable pack or MCP manifest. Hashes prove byte identity, not safety or behavior."
+}

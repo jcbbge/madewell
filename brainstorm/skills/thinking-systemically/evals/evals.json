@@ -1,0 +1,29 @@
+{
+  "skill": "thinking-systemically",
+  "cases": [
+    {
+      "id": "stock-and-flow",
+      "prompt": "An intake queue receives 12 jobs per hour and completes 8. Intake staff are rewarded for accepting more jobs. The proposal is to improve the intake UI so they can accept 16 per hour, with no service-capacity change. Analyze the intervention.",
+      "assertions": [
+        "Distinguishes arrivals, completions, and accumulated backlog; recognizes that faster intake worsens the stated imbalance.",
+        "Connects the local intake metric to the end-to-end outcome and names a relevant intervention or check."
+      ]
+    },
+    {
+      "id": "feedback-delay",
+      "prompt": "A workload controller changes capacity every hour based on yesterday's queue, but capacity changes take two days to become effective. Capacity keeps swinging. What structural issue should we inspect?",
+      "assertions": [
+        "Identifies observation/actuation delay as a plausible feedback issue rather than asserting a personality or motivation cause.",
+        "Proposes a bounded check or intervention with an observation horizon that accounts for the delay."
+      ]
+    },
+    {
+      "id": "correlation-not-loop",
+      "prompt": "Support tickets and deployments both rose last month. Is that enough to conclude a reinforcing feedback loop where tickets cause more deployments and deployments cause more tickets?",
+      "assertions": [
+        "Does not infer a closed causal loop from correlation alone.",
+        "Identifies missing causal links or alternative explanations and evidence needed."
+      ]
+    }
+  ]
+}

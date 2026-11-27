@@ -1,0 +1,29 @@
+{
+  "skill": "synthesizing-insights",
+  "cases": [
+    {
+      "id": "shared-provenance",
+      "prompt": "Report A describes one experiment. Blog B quotes A. Memo C summarizes B. All three repeat the same positive result. Synthesize the evidence: do we have three independent confirmations?",
+      "assertions": [
+        "Recognizes one underlying experiment rather than three independent confirmations.",
+        "Preserves the provenance limitation rather than amplifying confidence through repetition."
+      ]
+    },
+    {
+      "id": "apparent-contradiction",
+      "prompt": "Study A says a tool reduced completion time for experienced users. Study B says it increased completion time for first-time users. Their tasks and measurement units are otherwise the same. Synthesize without averaging away the difference.",
+      "assertions": [
+        "Preserves the user-experience condition and identifies a possible conditional effect.",
+        "Does not invent an overall effect size, force consensus, or ask the user to resolve a distinction already in the evidence."
+      ]
+    },
+    {
+      "id": "analogy-boundary",
+      "prompt": "An airline has fixed seats for a flight. An event-rental business can rent replacement equipment at an extra cost. Both accept advance bookings. Can we transfer an airline's fixed-capacity model unchanged to rental inventory?",
+      "assertions": [
+        "Names the capacity/replacement-cost difference as a material boundary.",
+        "Does not infer identical mechanisms from the shared surface feature of bookings."
+      ]
+    }
+  ]
+}

@@ -53,6 +53,16 @@ Ground and Rumen are spanning processes within that composition, not extra seria
 
 **Configuration and evidence preserve the distinction.** Record the chosen composition, effective effort, actual transformations and successor inputs. Adapt at explicit saved boundaries without silently rewriting pinned calls or historical results. Configurable composition does not waive applicable scope, authority, privacy, acceptance or recovery requirements. Empty or partial work must remain visibly empty or partial. These are governing design requirements; this clarification does not claim that an existing installation already implements them.
 
+## Product direction: free Light and paid deeper effort
+
+**Operator-approved Brainstorm seed and commercial direction.** The [brainstorm package](brainstorm/README.md) supplies the chosen base toolbox and supporting material for the new MCP experience. Use it to implement the Brainstorm jump pack; do not keep asking where its seed content is. It does not supply the still-unresolved landing method.
+
+**Light processes ship as the free defaults; Focused and Deep are intended paid options.** Brainstorm supplies the first concrete set of these work recipes. Additional shipped base processes need their own authored Light/deeper behavior; these labels do not become compulsory engine stages or fabricated variants for arbitrary third-party cartridges. Effort changes the work performed, not merely response length, provider reasoning, or claims of quality.
+
+**Commercial access is separate from method and authority.** Public ordinary skills remain portable. A managed service must enforce its paid operation boundary using trusted authorization; prompt text, a model's claim, or a hidden UI control is not a paywall. Paid access never grants broader work/data access or permission to execute. Do not silently upgrade, charge, downgrade, or claim unperformed work.
+
+The [effort/access notes](brainstorm/EFFORT-AND-ACCESS.md) distinguish this settled direction from proposed plan packaging and unknown prices, payment provider, metering, hosting, and in-flight policy. This records product intent, not billing implementation, a publication license, deployment authority, or evidence of behavioral improvement.
+
 ## Durable work and execution contracts
 
 **Current implementation contracts, not the portable product's dependency requirements.** This repository implements a general work ledger: capture input → generate tasks → complete tasks. Its one Store retains input, work units, conditions, progress, blockers, relationships, results and evidence, without a second ledger or scheduler. The operating and safety contracts below still govern this implementation; they do not make its storage, runner, software tooling or Josh's infrastructure mandatory for every Made Well consumer.

@@ -1,0 +1,20 @@
+{
+  "skill": "luck",
+  "cases": [
+    {
+      "id": "specific-reading",
+      "prompt": "Read the leaves, not a project plan. I built a local audio-captioning tool for myself. Two friends independently asked to use it. I keep polishing the settings screen, but I have not sent either friend a working copy. I have one free evening this week.",
+      "assertions": ["Connects the existing requests, withheld working copy, and limited slack into a specific opportunity pattern.", "Offers an evocative reading rather than a generic checklist or project plan.", "Does not assert hidden motives, personal history, future success, or observed facts absent from the scenario."]
+    },
+    {
+      "id": "sparse-context",
+      "prompt": "Read my luck. All you know is that I am considering a new project; I have given you no history or other context.",
+      "assertions": ["Acknowledges that the supplied context cannot support personal breadcrumbs or a definite pattern.", "May offer conditional imagery or a possible opening, but does not fabricate repetitions, emotional changes, past desires, or future needs."]
+    },
+    {
+      "id": "wrong-tool",
+      "prompt": "My production database rejects logins with an authentication error. I need a technical diagnosis, not a reading. What should I inspect first?",
+      "assertions": ["Does not cast lots or assign symbolic meaning to the outage.", "Routes to concrete evidence-led diagnosis without inventing the cause or requesting secrets."]
+    }
+  ]
+}

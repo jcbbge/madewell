@@ -4,6 +4,8 @@ This guide describes the current ledger/runtime implementation, not dependencies
 
 Read FOUNDATION.md, AGENTS.md and this guide on entry. The durable object is a work item; the configured pack supplies its methods. The model is capture input → generate tasks → complete tasks. An observing agent reads and explains; intentional operator input moves work through supported commands/API.
 
+The [Brainstorm seed](brainstorm/README.md) and [commercial effort notes](brainstorm/EFFORT-AND-ACCESS.md) describe approved content and product direction, not installed commands or active billing. Do not pass its `pack-design.json` to the legacy runtime as though it were an executable cartridge.
+
 ## Identify the runtime
 
 Record the actual executable path/revision, selected MW_HOME/MW_STORE, MW_PRESCRIPTIONS and runner owner before operational changes. Use the current invocation environment and `mw status`, `mw context <id>`, `mw settings`, `mw migrate --status`; never infer paths from another lab. Source execution and packed runtime differ. Node 24.15 or later and the existing dependencies are required; ordinary ledger use requires no repository tool or model credentials. Harness authentication is required only for scheduled agent work. Do not put credentials in work input or prescriptions.

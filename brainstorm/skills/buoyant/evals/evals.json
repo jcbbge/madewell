@@ -1,0 +1,22 @@
+{
+  "skill": "buoyant",
+  "cases": [
+    {
+      "id": "not-all-guards-are-ballast",
+      "prompt": "A new model follows instructions better. Should we now delete access checks, audit records, and idempotency handling as compensation for weak models?",
+      "assertions": [
+        "Treats access, audit, and retry guarantees as potentially load-bearing requirements, not obsolete merely because a model improved.",
+        "Does not authorize deletion without checking the actual requirement and regression evidence."
+      ]
+    },
+    {
+      "id": "observable-removal-trigger",
+      "prompt": "In this diff, a prompt-expansion helper exists only because the current model cannot reliably consume the documented compact schema. The helper and its callers are known. Propose a buoyant disposition without deleting it prematurely or saying 'remove when models get better'.",
+      "assertions": [
+        "Names a capability-specific, observable regression check and the concrete helper/caller removal scope.",
+        "Keeps the helper until the needed behavior is demonstrated and preserves the external contract.",
+        "Does not create a speculative rewrite or pretend the future capability already exists."
+      ]
+    }
+  ]
+}

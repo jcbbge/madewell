@@ -1,0 +1,73 @@
+{
+  "skill": "right-side-of-the-curve",
+  "cases": [
+    {
+      "id": "unnecessary-machinery",
+      "prompt": "A local script must deterministically convert one documented CSV format to another once a week. A proposal uses three LLM agents, a vector database, and a remote orchestration service. Choose the mechanism.",
+      "assertions": [
+        "Selects a small deterministic conversion with focused validation rather than retaining speculative agent or database layers.",
+        "Accounts for the required scheduled or repeatable execution without inventing a larger platform."
+      ]
+    },
+    {
+      "id": "load-bearing-complexity",
+      "prompt": "A payment import must survive crashes and retries without charging twice. Can we simplify it by deleting idempotency tracking and the durable record? We prefer local, tiny code.",
+      "assertions": [
+        "Preserves the crash/retry and duplicate-charge requirements rather than deleting necessary guarantees for small code.",
+        "Explains what the retained mechanism prevents and may propose a simpler way to satisfy the same guarantees."
+      ]
+    },
+    {
+      "id": "count-the-operator",
+      "prompt": "Option A is a short local script that requires the operator to reconstruct failed imports by hand every morning. Option B is an existing managed importer with retry records and a small adapter. Both otherwise meet our import needs. Find the simplest mechanism.",
+      "assertions": [
+        "Compares recurring supervision and recovery burden, not just code size or locality.",
+        "Does not reject the existing remote mechanism merely because it is remote or substantial."
+      ]
+    },
+    {
+      "id": "creative-intent-is-load-bearing",
+      "prompt": "Our small museum wants visitors to write postcards by hand and mail them; the physical writing and delayed arrival are the experience. Find a right-side-of-the-curve version.",
+      "assertions": [
+        "Preserves the physical and delayed experience rather than replacing it with an instant digital message.",
+        "Simplifies supporting machinery rather than deleting the purpose."
+      ]
+    },
+    {
+      "id": "compression-opens-capability",
+      "prompt": "A community repair shop uses a request sheet, a separate handoff note, and a pickup list. Each recopies item identity and readiness, and volunteers reconcile them at the end of the day. Explore a simpler arrangement without losing who owns each item or whether pickup is authorized.",
+      "assertions": [
+        "Considers a representation or shared primitive that removes recopying or reconciliation, not only small reductions in each existing sheet.",
+        "Explains how identity, readiness, ownership, and pickup authorization remain distinguishable.",
+        "Does not present a proposed mechanism as a proven operating result."
+      ]
+    },
+    {
+      "id": "early-stage-not-a-spec-gate",
+      "prompt": "We are sketching a better way for a neighborhood garden to share tools. We know tools must come back and people should not have to reveal their home address. Everything else is still open. Find the smallest plausible mechanism.",
+      "assertions": [
+        "Offers a provisional mechanism while preserving the known privacy and return constraints.",
+        "Does not demand a complete specification or declare global optimality.",
+        "Names a consequential unknown or test rather than silently filling it with invented requirements."
+      ]
+    },
+    {
+      "id": "cross-system-crash-boundary",
+      "prompt": "A script charges a remote payment API, then inserts a completed row in a local SQLite database. The local database is durable and the script holds a local lock. Is that the smallest sufficient design for crash-safe, no-duplicate charging?",
+      "assertions": [
+        "Identifies the interruption window between the external charge and the local record.",
+        "Does not claim that local durability or a lock proves cross-system exactly-once effects.",
+        "Preserves the guarantee by naming a supported external idempotency or reconciliation requirement, or leaves it unverified."
+      ]
+    },
+    {
+      "id": "analysis-not-deletion",
+      "prompt": "Review whether the reconciliation service in our running billing system is unnecessary. You have no source, incident history, or permission to change production.",
+      "assertions": [
+        "Does not recommend actual deletion as established safe or perform changes without authority.",
+        "States the evidence needed to determine whether its job is load-bearing.",
+        "Does not label unfamiliar machinery unnecessary solely because it cannot explain it yet."
+      ]
+    }
+  ]
+}

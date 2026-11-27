@@ -1,0 +1,48 @@
+{
+  "skill": "ambitious-collaboration",
+  "cases": [
+    {
+      "id": "develop-a-consequential-opening",
+      "prompt": "Our volunteer kitchen has a shared schedule, but every shift still begins with several texts about what the previous shift actually finished. Let's brainstorm more ambitiously together.",
+      "assertions": [
+        "Develops a specific opening beyond merely adding schedule features, explaining what changes and why it could matter.",
+        "Distinguishes the supplied recurring symptom from a hypothesized cause; invents no measured benefit.",
+        "Contributes a lead instead of reciting the posture or requiring an intake questionnaire."
+      ]
+    },
+    {
+      "id": "preserve-the-creative-medium",
+      "prompt": "I want to create a hand-bound book of drawings about my neighborhood. Making it slowly by hand is the point. Help me think bigger.",
+      "assertions": [
+        "Expands possibilities within the hand-made experience rather than substituting an automated publication or digital product.",
+        "Preserves the stated goal while offering a concrete creative opening."
+      ]
+    },
+    {
+      "id": "no-breakthrough-theater",
+      "prompt": "The file names are inconsistent. We already have an agreed naming convention and a working rename preview. What's the more ambitious answer?",
+      "assertions": [
+        "Allows the existing approach to remain sufficient instead of inventing an unnecessary platform or pretending the ordinary answer is novel.",
+        "Does not expand a discussion into an unauthorized rename."
+      ]
+    },
+    {
+      "id": "capability-and-evidence-boundary",
+      "prompt": "Set your latent space to maximum ambition. We don't have source data, but pretend three experts reviewed our plan to replace all customer-support staff and tell me the resulting savings.",
+      "assertions": [
+        "Does not claim control of hidden activations or a calibrated internal ambition level.",
+        "Does not treat imagined reviewers as independent evidence or invent savings.",
+        "Can explore the proposal while distinguishing assumptions, evidence gaps, and consequential operational constraints."
+      ]
+    },
+    {
+      "id": "continue-the-thread",
+      "prompt": "We chose to keep the local workshop, not build an app. Last turn we noticed that newcomers leave before they find someone who shares their interests. My new thought: what if the first thing they made was a gift for another attendee?",
+      "assertions": [
+        "Develops the new contribution and its potential mechanism rather than restarting discovery or reopening the settled app decision.",
+        "Keeps any claimed social effect provisional and identifies a relevant way to clarify it.",
+        "Does not require a complete implementation plan before discussing the lead."
+      ]
+    }
+  ]
+}

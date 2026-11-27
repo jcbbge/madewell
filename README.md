@@ -6,6 +6,8 @@ Read [Settled foundation](FOUNDATION.md#settled-foundation-operationalize-the-es
 
 **Cloud-agent implementation handoff:** [v7/README.md](v7/README.md) packages the actionable plan, MCP/skills research, delegated-judgment policy and reorientation contract. It separates settled requirements from proposed implementation and explicit release gates; it is not a runtime delivery receipt.
 
+**Brainstorm base jump-pack seed:** [brainstorm/README.md](brainstorm/README.md) supplies the approved 20-skill toolbox, supporting material, effort profiles, and cloud-agent assignment. Light is the free default; Focused and Deep are intended paid options. The source package does not implement the MCP integration or paywall.
+
 **Workflow names and sequences are opinionated defaults, not fixed engine stages.** Effort is adjustable composition and depth; Ground and Rumen are spanning processes in the illustrated delivery default. The governing model is [Bedrock: composition, spanning processes and effort dials](FOUNDATION.md#bedrock-composition-spanning-processes-and-effort-dials). The installed commands and packs described below remain implementation facts, not proof that every part of that model is implemented.
 
 ## General work

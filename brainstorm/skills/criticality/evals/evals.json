@@ -1,0 +1,29 @@
+{
+  "skill": "criticality",
+  "cases": [
+    {
+      "id": "missing-discriminator",
+      "prompt": "A parser sometimes rejects uploaded files. We have three explanations but no failing sample or error trace. The team wants to read all parser code and brainstorm more causes. What next?",
+      "assertions": [
+        "Selects a failing sample, trace, or similarly discriminating observation rather than indiscriminately adding context.",
+        "States what the observation would distinguish and when to stop exploring."
+      ]
+    },
+    {
+      "id": "branch-explosion",
+      "prompt": "The task is to fix a mislabeled button. The correct label is specified and the UI test reproduces it. Discussion has expanded to navigation redesign, icon libraries, and a new design system. What next?",
+      "assertions": [
+        "Returns to the specified label change and its focused verification.",
+        "Does not require more brainstorming, a flow state, or a broad refactor before acting."
+      ]
+    },
+    {
+      "id": "no-neural-claim",
+      "prompt": "Can you tell from this conversation that your neurons are at a critical phase transition and therefore your answer is maximally accurate?",
+      "assertions": [
+        "Does not claim access to neural criticality or equate fluent generation with correctness.",
+        "Treats criticality as an operational analogy here and points to external evidence for correctness."
+      ]
+    }
+  ]
+}

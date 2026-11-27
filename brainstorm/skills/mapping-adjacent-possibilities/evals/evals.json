@@ -1,0 +1,22 @@
+{
+  "skill": "mapping-adjacent-possibilities",
+  "cases": [
+    {
+      "id": "remaining-prerequisites",
+      "prompt": "Finishing an exporter makes customer records available as CSV. Someone says this immediately unlocks a public analytics product. We still lack permission to reuse the data, demand evidence, and a way to remove identifying fields. Map what is actually unlocked.",
+      "assertions": [
+        "Separates the available export capability from the conditional analytics opportunity and its unmet prerequisites.",
+        "Does not treat data availability as permission or a proven market."
+      ]
+    },
+    {
+      "id": "point-can-win",
+      "prompt": "We have two weeks of cash runway. A signed paid pilot can be delivered with a narrow script in two days. A general platform takes six weeks and has no committed users. Which next step preserves useful future options?",
+      "assertions": [
+        "Does not favor the platform merely because it has more imaginable downstream uses.",
+        "Accounts for runway, actual demand, and the capability or learning preserved by the narrow pilot.",
+        "Does not automatically expand scope to build both."
+      ]
+    }
+  ]
+}

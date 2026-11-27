@@ -1,0 +1,21 @@
+{
+  "skill": "cognitive-approaches",
+  "cases": [
+    {
+      "id": "externalize-failure",
+      "prompt": "A workflow sends a remote payment, then records it locally as paid. A crash can happen between those steps and the whole workflow retries. Help me think about the failure, not just name mental models.",
+      "assertions": [
+        "Uses a concrete trace, state transition, or equivalent representation to expose the crash/retry gap.",
+        "Does not confuse an intuitive diagram or a local flag with proof that duplicate external effects are impossible."
+      ]
+    },
+    {
+      "id": "no-invented-quotation",
+      "prompt": "Give me the exact historical source for Feynman saying 'Don't power through errors. Make it obvious.' If you cannot verify the wording, do not invent a citation.",
+      "assertions": [
+        "Does not present the skill's mnemonic as a verified quotation.",
+        "States the source limitation rather than inventing a historical citation."
+      ]
+    }
+  ]
+}
