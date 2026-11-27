@@ -11,9 +11,9 @@ The upstream MIT copyright and license notice is included in
 file bytes. Runtime packaging omits evaluation scenarios and source review/design
 documents; the retained runtime skill files are not edited or relicensed.
 
-## Work, Discovery and Delivery ordinary skills
+## Work, Discovery, Delivery and Landing ordinary skills
 
-The fourteen `madewell-*` skill bodies and four Work supporting references under
+The fifteen `madewell-*` skill bodies, four Work references and Landing source reference under
 `skills/method-library/` are an unmodified snapshot of `jcbbge/agent-core-public`.
 `skills/method-library/PROVENANCE.json` records the exact published revision,
 original paths, Git blobs, byte sizes and SHA-256 hashes. The upstream MIT

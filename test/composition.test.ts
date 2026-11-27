@@ -53,7 +53,7 @@ async function refuses(options: Parameters<typeof inspectComposition>[0], code: 
 	assert.equal(refused, true, 'invalid selection must fail, not return partial/default success')
 }
 
-test('no-config inventory preserves settled defaults with canonical ordinary methods and honest missing Landing', async () => {
+test('no-config inventory preserves the complete settled defaults with canonical ordinary methods without implying execution', async () => {
 	const f = fixture()
 	try {
 		const inventory = await f.inspect()
@@ -83,6 +83,7 @@ test('no-config inventory preserves settled defaults with canonical ordinary met
 			['/delivery/planning', 'planning', 'madewell.delivery.ideation.output.v1', 'madewell.delivery.planning.output.v1'],
 			['/delivery/implementation', 'implementing', 'madewell.delivery.planning.output.v1', 'madewell.delivery.implementation.output.v1'],
 			['/delivery/verification', 'verifying', 'madewell.delivery.implementation.output.v1', 'madewell.result.v1'],
+			['/landing', 'landing', 'madewell.result.v1', 'madewell.result.v1'],
 		] as const
 		for (const [address, name, input, output] of selected) {
 			const node = at(inventory.root, address), method = node.method
@@ -101,7 +102,7 @@ test('no-config inventory preserves settled defaults with canonical ordinary met
 		}
 		assert.equal(at(inventory.root, '/discovery').method, undefined, 'entry guide must not hide the seven child occurrences')
 		assert.equal(at(inventory.root, '/delivery').method, undefined, 'entry guide must not hide the four child occurrences')
-		assert.equal(inventory.complete, false, 'inventory is not a claim of method execution')
+		assert.equal(inventory.complete, true, 'all selected methods are available; inventory is not a claim of method execution')
 		const brainstorm = at(inventory.root, '/brainstorm').method
 		assert.equal(brainstorm?.kind, 'skill')
 		if (brainstorm?.kind === 'skill') {
@@ -113,11 +114,11 @@ test('no-config inventory preserves settled defaults with canonical ordinary met
 		const standalone = await f.inspect({ component: '/brainstorm' })
 		assert.equal(standalone.complete, true, 'shipped Brainstorm is usable without local configuration')
 		assert.deepEqual(standalone.diagnostics, [])
-		assert.equal(at(inventory.root, '/landing').method, undefined)
-		assert.deepEqual(inventory.diagnostics.map(d => [d.code, d.address]).sort(), [
-			['method_unavailable', '/landing'],
-		])
-		for (const diagnostic of inventory.diagnostics) assert.ok(diagnostic.message)
+		const landing = await f.inspect({ component: '/landing' })
+		assert.equal(landing.complete, true, 'Landing is independently selectable, not a fifth Delivery child')
+		assert.deepEqual(landing.root, at(inventory.root, '/landing'))
+		assert.deepEqual(landing.diagnostics, [])
+		assert.deepEqual(inventory.diagnostics, [])
 		assert.ok(inventory.identity)
 		assert.deepEqual(await f.inspect(), inventory)
 	} finally { f.close() }
@@ -147,8 +148,8 @@ test('project binding makes brainstorm standalone complete and leaves every unse
 			assert.ok(method.bindingOrigin)
 			assert.ok(method.identity)
 		}
-		assert.equal(full.complete, false, 'binding brainstorm does not invent landing')
-		assert.deepEqual(full.diagnostics.map(d => d.address), ['/landing'])
+		assert.equal(full.complete, true, 'ordinary Brainstorm replacement preserves the available canonical Landing')
+		assert.deepEqual(full.diagnostics, [])
 	} finally { f.close() }
 })
 

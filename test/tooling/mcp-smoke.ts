@@ -111,11 +111,17 @@ function inspection(value: unknown, component = '/') {
 	assert.equal(parsed.schemaVersion, 1)
 	assert.equal(object(parsed.root).address, component)
 	if (component === '/') {
-		assert.equal(parsed.complete, false)
+		assert.equal(parsed.complete, true, 'all selected methods are available, not a claim of execution')
 		assert.deepEqual(array(object(parsed.root).children).map(node => object(node).id), ['brainstorm', 'discovery', 'delivery', 'landing'])
-		assert.deepEqual(array(parsed.diagnostics).map(d => [object(d).code, object(d).address]).sort(), [
-			['method_unavailable', '/landing'],
-		])
+		assert.deepEqual(parsed.diagnostics, [])
+		const landing = object(array(object(parsed.root).children)[3])
+		assert.equal(landing.address, '/landing', 'Landing is its own outer occurrence, not a fifth Delivery child')
+		assert.equal(landing.input, 'madewell.result.v1'); assert.equal(landing.output, 'madewell.result.v1')
+		const method = object(landing.method), pkg = object(method.package)
+		assert.equal(method.kind, 'skill'); assert.equal(pkg.name, 'madewell-landing')
+		const origin = join(repository, 'skills/method-library/madewell-landing')
+		assert.equal(pkg.origin, origin)
+		assert.equal(pkg.instructions, readFileSync(join(origin, 'SKILL.md'), 'utf8'), 'canonical ordinary Landing instructions, not a placeholder or legacy builtin')
 	} else {
 		assert.equal(parsed.complete, true)
 		assert.deepEqual(parsed.diagnostics, [])

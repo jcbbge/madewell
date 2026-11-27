@@ -14,6 +14,8 @@ import { Store, type Item } from './store.ts'
 import { BrainstormActor } from './brainstorm.ts'
 import { brainstormSeedRoot } from './brainstorm-seed.ts'
 import { methodLibraryRoot } from './method-library.ts'
+import { assertPerformedEffort, authorizeManagedEffort, brainstormEffortDeclaration, currentManagedEffortAccess, resolveManagedEffort, type ManagedEffortAuthorization, type ResolvedEffort } from './managed-effort.ts'
+import { ExchangeAction, transitionExchange, type Exchange } from './portable-exchange.ts'
 
 const text = z.string().refine(s => !!s.trim() && !s.includes('\0'), 'Nonblank text without NUL is required.')
 const id = z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
@@ -23,9 +25,10 @@ const mutation = { ...target, requestId: text, revision, actor: BrainstormActor 
 const selection = { config: text.optional(), override: text.optional() }
 export const CapturePortableInput = z.object({ requestId: text, actor: BrainstormActor, source: text, title: text.optional(), objective: text.optional(), component: text, ...selection }).strict()
 export const InspectPortableInput = z.object(target).strict()
-export const PreparePortableInput = z.object({ ...mutation, context: z.string().refine(s => !s.includes('\0')).optional(), outputLength: text.optional(), effort: z.enum(['light', 'focused', 'deep']).optional() }).strict()
-export const PortableResult = z.object({ artifact: text, sources: z.array(text), decisions: z.array(text), unknowns: z.array(text), contribution: z.unknown().optional(), performedEffort: z.literal('light') }).strict()
+export const PreparePortableInput = z.object({ ...mutation, context: z.string().refine(s => !s.includes('\0')).optional(), outputLength: text.optional(), effort: z.unknown().optional() }).strict()
+export const PortableResult = z.object({ artifact: text, sources: z.array(text), decisions: z.array(text), unknowns: z.array(text), contribution: z.unknown().optional(), performedEffort: text, performedWork: text.optional() }).strict()
 export const RecordPortableInput = z.object({ ...mutation, handoffId: text, result: PortableResult }).strict()
+export const ExchangePortableInput = z.object({ ...mutation, handoffId: text, action: ExchangeAction }).strict()
 const ids = z.array(id).nonempty().refine(values => new Set(values).size === values.length, 'Selection must contain distinct explicit IDs.')
 export const PreviewPortableInput = z.object({ ...target, ids }).strict()
 export const PromotePortableInput = z.object({ ...mutation, ids, candidateRevisions: z.record(z.string(), revision) }).strict()
@@ -38,8 +41,11 @@ export interface PortableHandoff {
 	readonly source: string; readonly context: string | null
 	readonly priorInputs: ReadonlyArray<{ readonly handoffId: string; readonly actor: Actor; readonly context: string }>
 	readonly priorResults: ReadonlyArray<PortableRecordedResult>
+	readonly priorExchanges?: ReadonlyArray<Exchange>
 	readonly packages: Readonly<Record<string, ReadonlyArray<RetainedFile>>>
-	readonly requestedEffort: 'light' | null; readonly effectiveEffort: 'light'; readonly outputLength: string | null
+	readonly requestedEffort: unknown; readonly effectiveEffort: string; readonly outputLength: string | null
+	/** Historical handoffs remain byte-exact and need no recipe migration. */
+	readonly recipe?: ResolvedEffort; readonly effortAuthorization?: ManagedEffortAuthorization
 	readonly contributionSchema: Readonly<Record<string, unknown>> | null
 	readonly framing: string
 }
@@ -53,6 +59,7 @@ export interface PortableState {
 	readonly packages: Readonly<Record<string, ReadonlyArray<RetainedFile>>>
 	readonly handoffs: ReadonlyArray<PortableHandoff>; readonly results: ReadonlyArray<PortableRecordedResult>
 	readonly candidates: ReadonlyArray<number>
+	readonly exchanges?: Readonly<Record<string, Exchange>>
 }
 type PortableItem = Item & { readonly portable: PortableState }
 const recovery = [{ run: 'inspect_work', why: 'Inspect saved work before revising intent. Recover uncertain outcomes using the original requestId and exact body; never automatically choose a new ID.' }]
@@ -73,6 +80,49 @@ const discoveryContracts: Readonly<Record<string, DiscoveryJob>> = {
 	'madewell.discovery.classify.output.v1': 'classify', 'madewell.discovery.lenses.output.v1': 'lenses',
 	'madewell.discovery.one-thing.output.v1': 'one-thing', 'madewell.discovery.route.output.v1': 'route', 'madewell.candidates.v1': 'discover',
 }
+function lineage(root: ResolvedComponent): Map<string, ReadonlyArray<ResolvedComponent>> {
+	const prior = new Map<string, ReadonlyArray<ResolvedComponent>>()
+	const visit = (node: ResolvedComponent, input: ReadonlyArray<ResolvedComponent>): ReadonlyArray<ResolvedComponent> => {
+		if (node.method) {
+			prior.set(node.address, input)
+			return [...input, node]
+		}
+		const outputs = new Map<string, ReadonlyArray<ResolvedComponent>>([['$input', input]])
+		for (const child of node.children ?? []) {
+			const source = node.wiring?.inputs[child.id], predecessors = source === undefined ? undefined : outputs.get(source)
+			if (!predecessors) throw fail('Pinned child input has no earlier sibling output or parent input.', { address: child.address, source })
+			outputs.set(child.id, visit(child, predecessors))
+		}
+		const output = node.wiring?.output, selected = output === undefined ? undefined : outputs.get(output)
+		if (!selected || output === '$input') throw fail('Pinned group output has no selected child.', { address: node.address, output })
+		return selected
+	}
+	visit(root, [])
+	return prior
+}
+function discoveryAncestry(node: Pick<ResolvedComponent, 'address' | 'output'>, prior: ReadonlyArray<Pick<ResolvedComponent, 'address' | 'output'>>) {
+	const job = discoveryContracts[node.output]
+	const recognized = prior.flatMap(previous => {
+		const job = discoveryContracts[previous.output]
+		return job ? [{ address: previous.address, job }] : []
+	})
+	if (job) {
+		const jobs = Object.values(discoveryContracts), expected = jobs.slice(0, jobs.indexOf(job))
+		if (recognized.length !== expected.length || recognized.some((previous, index) => previous.job !== expected[index])) {
+			throw fail('Discovery requires exactly its ordered accepted predecessor contracts in the wired ancestry; missing, out-of-order or duplicate contracts cannot be supplied by independent siblings.', { address: node.address, job, recognized, expected })
+		}
+	}
+	return recognized
+}
+function scopedResults(state: PortableState, node: ResolvedComponent, available: ReadonlyArray<PortableRecordedResult> = state.results): PortableRecordedResult[] {
+	const prior = lineage(state.selection.root).get(node.address)
+	if (!prior) throw fail('The saved handoff occurrence is absent from the pinned selection.', { address: node.address })
+	return prior.map(previous => {
+		const matches = available.filter(result => result.address === previous.address && result.output === previous.output)
+		if (matches.length !== 1) throw fail('Wired predecessor requires exactly one accepted saved result.', { address: node.address, predecessor: previous.address, matches: matches.length })
+		return matches[0]!
+	})
+}
 function scoped(store: Store['Service'], root: string, itemId: number): PortableItem {
 	const item = store.get(itemId)
 	if (!item) throw new MadeWellError({ code: 'item_not_found', message: 'No work item has this number.', context: { id: itemId }, next: recovery })
@@ -87,10 +137,17 @@ function mutable(item: PortableItem): void {
 function snapshot(item: PortableItem) {
 	const nodes = leaves(item.portable.selection.root), next = nodes[item.portable.results.length]
 	const pending = item.portable.handoffs.find(handoff => !item.portable.results.some(result => result.handoffId === handoff.id))
+	const exchange = pending && item.portable.exchanges?.[pending.id]
+	const exchangeAction = exchange?.status === 'held' ? 'Operator resolution of the saved specification-defect hold, then recipient confirmation'
+		: exchange?.status === 'waiting-answer' ? `Answer saved questions: ${exchange.pendingQuestionIds.map(id => {
+			const question = exchange.questions.find(question => question.id === id)!
+			return `${id} (${question.owner.label})`
+		}).join(', ')}`
+		: exchange?.status === 'waiting-confirmation' ? `Recipient ${exchange.recipient.label} must confirm understanding of saved answers` : undefined
 	return { itemId: item.id, revision: revisionOf(item), root: item.workspace!, source: item.source, title: item.title, objective: item.objective, status: item.status,
 		portable: item.portable, executionAuthorized: false as const, independentlyVerified: false as const,
-		owner: item.execution.owner, activity: 'not-running', nextAction: pending ? `Recover saved handoff ${pending.id}; no performer is running.` : next ? `Prepare ${next.address}` : 'Inspect recorded contributions; no execution or independent completion is implied.',
-		resources: ['source', 'handoffs', 'results', 'packages', 'selection'].map(kind => ({ uri: `madewell://work/items/${item.id}/${kind}`, mimeType: 'application/json' })),
+		owner: item.execution.owner, activity: 'not-running', nextAction: exchangeAction ?? (pending ? `Recover saved handoff ${pending.id}; no performer is running.` : next ? `Prepare ${next.address}` : 'Inspect recorded contributions; no execution or independent completion is implied.'),
+		resources: ['source', 'handoffs', 'results', 'packages', 'selection', 'exchanges'].map(kind => ({ uri: `madewell://work/items/${item.id}/${kind}`, mimeType: 'application/json' })),
 	}
 }
 type Snapshot = ReturnType<typeof snapshot>
@@ -130,23 +187,14 @@ function external(root: string, source: string, title: string, objective: string
 }
 function pin(selection: CompositionInspection, root: string): PortableState['packages'] {
 	if (!selection.complete) throw fail('Selected composition has unavailable methods; no successful placeholder was saved.', { diagnostics: selection.diagnostics })
-	// This host boundary supports one shared linear lineage, not private/fan-out tracks.
-	const sequence = (node: ResolvedComponent): void => {
-		if (!node.children) return
-		if (node.wiring?.output !== node.children.at(-1)!.id || node.children.some((child, index) => node.wiring?.inputs[child.id] !== (index ? node.children![index - 1]!.id : '$input'))) {
-			throw fail('Durable handoffs require linear predecessor wiring; independent sibling inputs need a scoped-track adapter. Read-only resolution remains available.', { address: node.address })
-		}
-		for (const child of node.children) sequence(child)
-	}
-	sequence(selection.root)
-	const recognized = leaves(selection.root).map(node => discoveryContracts[node.output]).filter(job => job !== undefined)
-	const expected = Object.values(discoveryContracts)
-	if (recognized.some((job, index) => job !== expected[index])) throw fail('Durable Discovery requires one ordered contribution prefix beginning with Declare. Repeated contracts and standalone later consumers need explicit scoped predecessor input, which this adapter does not yet support. Ordinary standalone skill use remains available.', { recognized, expected })
+	// Traversal remains ordered; only declared data ancestry crosses each handoff.
+	const prior = lineage(selection.root)
 	const packages: Record<string, RetainedFile[]> = {}
 	for (const node of leaves(selection.root)) {
+		discoveryAncestry(node, prior.get(node.address)!)
 		const method = node.method!
 		if (method.kind !== 'skill') continue
-		if (Object.keys(method.args).some(key => key !== 'effort') || (method.args.effort !== undefined && method.args.effort !== 'light')) throw fail('Only the free Light recipe without custom method arguments is supported by this service.', { address: node.address, args: method.args })
+		if (Object.keys(method.args).some(key => key !== 'effort' && key !== 'effortRecipes')) throw fail('Unsupported method arguments were not reinterpreted as effort.', { address: node.address, args: method.args })
 		for (const pkg of [method.package, ...(method.companions ?? [])]) {
 			// Only caller-owned material and the two distribution-owned roots are granted.
 			const grant = [root, brainstormSeedRoot, methodLibraryRoot].find(grant => pkg.origin === grant || pkg.origin.startsWith(grant.endsWith('/') ? grant : grant + '/'))
@@ -163,11 +211,30 @@ function pin(selection: CompositionInspection, root: string): PortableState['pac
 	}
 	return packages
 }
+function effortRecipe(node: ResolvedComponent, packages: PortableState['packages'], requested?: unknown) {
+	const method = node.method!
+	if (method.kind !== 'skill') return resolveManagedEffort({ requested, methodIdentity: method.identity,
+		occurrence: node.address, sourceIdentity: method.origin, instructionBytes: JSON.stringify(method.definition) })
+	// Only the resolver-owned built-in binding selects this adapter. A package name,
+	// Markdown phrase or project binding cannot impersonate the shipped method.
+	const brainstorm = method.bindingOrigin === 'builtin:brainstorm-seed'
+	const effort = brainstorm ? packages[method.package.identity]?.find(file => file.path === 'references/effort.md') : undefined
+	if (brainstorm && (!effort || effort.encoding !== 'utf8')) throw fail('Pinned Brainstorm effort instructions are unavailable.', { address: node.address })
+	return resolveManagedEffort({ requested, bindingSelection: method.args.effort,
+		declaration: brainstorm ? brainstormEffortDeclaration(effort!.content) : method.args.effortRecipes,
+		methodIdentity: method.identity, occurrence: node.address,
+		sourceIdentity: brainstorm ? 'brainstorm:references/effort.md/1' : method.bindingOrigin,
+		instructionBytes: brainstorm ? effort!.content : method.package.instructions,
+	})
+}
 function retainSelection(selection: CompositionInspection, packages: PortableState['packages']): CompositionInspection {
 	// Identities retain original source provenance; these manifests describe only retained runtime material, not intact loader snapshots.
-	const retainPackage = (pkg: SkillPackage) => ({ ...pkg, scope: undefined, manifestScope: 'retained-runtime' as const,
-		manifest: packages[pkg.identity]!.map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 })),
-	})
+	const retainPackage = (pkg: SkillPackage) => {
+		const { scope: _scope, ...retained } = pkg
+		return { ...retained, manifestScope: 'retained-runtime' as const,
+			manifest: packages[pkg.identity]!.map(({ path, bytes, sha256 }) => ({ path, bytes, sha256 })),
+		}
+	}
 	const retainNode = (node: ResolvedComponent): ResolvedComponent => ({ ...node,
 		...(node.method?.kind === 'skill' ? { method: { ...node.method, package: retainPackage(node.method.package),
 			...(node.method.companions ? { companions: node.method.companions.map(retainPackage) } : {}),
@@ -176,9 +243,10 @@ function retainSelection(selection: CompositionInspection, packages: PortableSta
 	})
 	return { ...selection, root: retainNode(selection.root) }
 }
-function acceptedDiscovery(state: PortableState): AcceptedDiscovery {
+function acceptedDiscovery(node: ResolvedComponent, results: ReadonlyArray<PortableRecordedResult>): AcceptedDiscovery {
+	discoveryAncestry(node, results)
 	const prefix: Partial<Record<DiscoveryJob, unknown>> = {}
-	for (const result of state.results) {
+	for (const result of results) {
 		const job = discoveryContracts[result.output]
 		if (job) prefix[job] = result.result.contribution
 	}
@@ -229,26 +297,47 @@ function operations(root: string) {
 	const prepare = Effect.fn('mw.preparePortableWork')(function*(input: unknown) {
 		const i = yield* attempt(() => decode(PreparePortableInput, input))
 		yield* assertWritable()
+		const policy = yield* currentManagedEffortAccess
 		const store = yield* Store, at = new Date(yield* Clock.currentTimeMillis).toISOString()
 		return yield* attempt(() => request(store, root, i.requestId, 'prepare_work', i.itemId, i, at, () => {
 			const item = store.transition(i.itemId, i.revision, 'portable-prepared', { input: i }, current => {
 				const item = current as PortableItem; mutable(item)
-				if (i.effort && i.effort !== 'light') throw fail('Managed Focused/Deep preparation is unavailable. Explicitly select Light; no downgrade or purchase occurred.', { requestedEffort: i.effort })
 				const saved = item.portable, node = leaves(retainSelection(saved.selection, saved.packages).root)[saved.results.length]
 				if (!node) throw fail('Every selected occurrence already has a recorded result.', { itemId: i.itemId })
 				if (saved.handoffs.some(h => !saved.results.some(r => r.handoffId === h.id))) throw fail('Recover the pending handoff instead of preparing another attempt.', { itemId: i.itemId })
+				const recipe = effortRecipe(node, saved.packages, i.effort)
+				const effortAuthorization = authorizeManagedEffort(policy, recipe, { root, storeScope: store.path, revision: revisionOf(item) })
 				const method = node.method!, selected = method.kind === 'skill' ? [method.package, ...(method.companions ?? [])] : []
-				const discoveryJob = discoveryContracts[node.output]
+				const discoveryJob = discoveryContracts[node.output], priorResults = scopedResults(saved, node)
+				discoveryAncestry(node, priorResults)
+				const predecessorHandoffs = new Set(priorResults.map(result => result.handoffId))
 				const handoff: PortableHandoff = { id: randomUUID(), at, actor: i.actor, node, source: item.source, context: i.context ?? null,
-					priorInputs: saved.handoffs.flatMap(h => h.context === null ? [] : [{ handoffId: h.id, actor: h.actor, context: h.context }]), priorResults: saved.results,
+					priorInputs: saved.handoffs.flatMap(h => !predecessorHandoffs.has(h.id) || h.context === null ? [] : [{ handoffId: h.id, actor: h.actor, context: h.context }]), priorResults,
+					priorExchanges: Object.values(saved.exchanges ?? {}).filter(exchange => predecessorHandoffs.has(exchange.handoffId)),
 					packages: Object.fromEntries(selected.map(pkg => [pkg.identity, saved.packages[pkg.identity]!])),
-					requestedEffort: i.effort ?? null, effectiveEffort: 'light', outputLength: i.outputLength ?? saved.handoffs.at(-1)?.outputLength ?? null,
+					requestedEffort: i.effort === undefined ? null : i.effort, effectiveEffort: recipe.effective, recipe, effortAuthorization,
+					outputLength: i.outputLength ?? saved.handoffs.findLast(h => predecessorHandoffs.has(h.id))?.outputLength ?? null,
 					contributionSchema: discoveryJob ? discoveryContributionShape(discoveryJob, { handoff: true }) : null,
 					framing: 'Apply the selected ordinary instructions under actual host authority. Preserve natural output in result.artifact. When contributionSchema is present, provide the separately structured contract-2 adapter output in result.contribution using its declared evidence/intent/requirement/candidate identities and priorResults. The artifact is not replaced by JSON. Recording validates the declared contract only, never independent acceptance, completion, promotion or execution.',
 				}
 				return { ...item, portable: { ...saved, handoffs: [...saved.handoffs, handoff] }, updated: at }
 			}) as PortableItem
 			return { ...snapshot(item), handoff: item.portable.handoffs.at(-1)! }
+		}))
+	})
+	const exchange = Effect.fn('mw.exchangePortableWork')(function*(input: unknown) {
+		const i = yield* attempt(() => decode(ExchangePortableInput, input))
+		yield* assertWritable()
+		const store = yield* Store, at = new Date(yield* Clock.currentTimeMillis).toISOString()
+		return yield* attempt(() => request(store, root, i.requestId, 'exchange_work', i.itemId, i, at, () => {
+			const item = store.transition(i.itemId, i.revision, 'portable-exchanged', { input: i }, current => {
+				const item = current as PortableItem; mutable(item)
+				const saved = item.portable, handoff = saved.handoffs.at(-1)
+				if (!handoff || handoff.id !== i.handoffId || saved.results.some(result => result.handoffId === i.handoffId)) throw fail('Exchange must name the current unrecorded saved handoff.', { handoffId: i.handoffId })
+				const exchange = transitionExchange(saved.exchanges?.[handoff.id], i.action, { handoffId: handoff.id, originator: handoff.actor, actor: i.actor, at })
+				return { ...item, portable: { ...saved, exchanges: { ...saved.exchanges, [handoff.id]: exchange } }, updated: at }
+			}) as PortableItem
+			return { ...snapshot(item), exchange: item.portable.exchanges![i.handoffId]! }
 		}))
 	})
 	const record = Effect.fn('mw.recordPortableWork')(function*(input: unknown) {
@@ -260,14 +349,17 @@ function operations(root: string) {
 				const item = current as PortableItem; mutable(item)
 				const saved = item.portable, handoff = saved.handoffs.at(-1)
 				if (!handoff || handoff.id !== i.handoffId || saved.results.some(r => r.handoffId === i.handoffId)) throw fail('Result must name the current unrecorded saved handoff.', { handoffId: i.handoffId })
+				const exchange = saved.exchanges?.[handoff.id]
+				if (exchange && exchange.status !== 'ready') throw fail('The saved exchange must reach recipient confirmation before recording this result.', { handoffId: handoff.id, status: exchange.status, answeredTurns: exchange.answeredTurns, pendingQuestionIds: exchange.pendingQuestionIds })
+				assertPerformedEffort(i.result.performedEffort, handoff.effectiveEffort, handoff.recipe)
 				const job = discoveryContracts[handoff.node.output]
 				if (job) {
 					if ((i.result.contribution as { discoveryContract?: unknown } | undefined)?.discoveryContract !== '2') throw fail('Portable discovery requires contribution contract 2.', { output: handoff.node.output })
-					const validation = validateDiscoveryContribution(job, i.result.contribution, acceptedDiscovery(saved), { handoff: true })
+					const validation = validateDiscoveryContribution(job, i.result.contribution, acceptedDiscovery(handoff.node, scopedResults(saved, handoff.node, handoff.priorResults)), { handoff: true })
 					if (!validation.ok) throw fail('Discovery contribution does not conserve its accepted inputs.', { issues: validation.issues })
 				}
 				const recorded: PortableRecordedResult = { id: randomUUID(), at, actor: i.actor, handoffId: handoff.id, address: handoff.node.address, output: handoff.node.output, result: i.result, validation: 'contract-accepted-not-independently-verified' }
-				return { ...item, portable: { ...saved, results: [...saved.results, recorded], candidates: job === 'discover' ? candidates(store, item, i.result.contribution, i.actor, at) : saved.candidates }, updated: at }
+				return { ...item, portable: { ...saved, results: [...saved.results, recorded], candidates: job === 'discover' ? [...saved.candidates, ...candidates(store, item, i.result.contribution, i.actor, at)] : saved.candidates }, updated: at }
 			}) as PortableItem
 			return { ...snapshot(item), recorded: item.portable.results.at(-1)! }
 		}))
@@ -309,15 +401,15 @@ function operations(root: string) {
 		}))
 	})
 	const readResource = Effect.fn('mw.readPortableResource')(function*(uri: string) {
-		const match = /^madewell:\/\/work\/items\/([1-9][0-9]*)\/(source|handoffs|results|packages|selection)$/.exec(uri)
+		const match = /^madewell:\/\/work\/items\/([1-9][0-9]*)\/(source|handoffs|results|packages|selection|exchanges)$/.exec(uri)
 		if (!match) return yield* Effect.fail(fail('Unknown saved work resource.', { uri }))
 		const store = yield* Store
 		return yield* attempt(() => {
 			const item = scoped(store, root, decode(InspectPortableInput, { itemId: Number(match[1]) }).itemId), kind = match[2]!
-			return { itemId: item.id, [kind]: kind === 'source' ? item.source : item.portable[kind as keyof PortableState] }
+			return { itemId: item.id, [kind]: kind === 'source' ? item.source : kind === 'exchanges' ? item.portable.exchanges ?? {} : item.portable[kind as keyof PortableState] }
 		})
 	})
-	return { capture, inspect, prepare, record, preview: previewSelection, promote, replace, readResource }
+	return { capture, inspect, prepare, exchange, record, preview: previewSelection, promote, replace, readResource }
 }
 export class PortableWork extends Context.Service<PortableWork, ReturnType<typeof operations>>()('madewell/PortableWork') {}
 export const portableWorkLayer = (configuration: { readonly root: string }) => Layer.effect(PortableWork, attempt(() => operations(validateGrantedRoot(configuration.root))))

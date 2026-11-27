@@ -15,15 +15,17 @@ import {
 } from './brainstorm.ts'
 import {
 	PortableWork, portableWorkLayer, CapturePortableInput, InspectPortableInput, PreparePortableInput,
-	RecordPortableInput, PreviewPortableInput, PromotePortableInput, ReplacePortableInput,
+	RecordPortableInput, ExchangePortableInput, PreviewPortableInput, PromotePortableInput, ReplacePortableInput,
 	PortableResult,
 } from './portable-work.ts'
+import { Exchange } from './portable-exchange.ts'
 import { MadeWellError, errorJson } from './errors.ts'
 import { inspectComposition } from './composition.ts'
 import { assertTelemetryStoreSeparation, localMcpTelemetry } from './mcp-telemetry.ts'
 import { acquireBrainstormSkills } from './mcp-skills.ts'
 import { openReadOnlyStore, openStore, Store } from './store.ts'
 import { validateGrantedRoot } from './skill-package.ts'
+import { currentManagedEffortAccess, ManagedEffortAccess, ResolvedEffort } from './managed-effort.ts'
 
 export interface McpConfiguration { readonly root: string; readonly store: string; readonly telemetryFile?: string; readonly skills?: boolean }
 const configurationRecovery = [{ run: 'node src/mcp.ts --root <ABSOLUTE_ROOT> --store <EXISTING_SELECTED_STORE>',
@@ -56,10 +58,11 @@ const BrainstormCatalogOutput = z.object({
 	schemaVersion: z.literal(1), root: z.string(), component: z.literal('/brainstorm'),
 	defaultMethods: z.array(z.string()), defaultEffort: z.literal('light'),
 	methods: z.array(z.object({ name: z.string(), default: z.boolean(), availability: z.literal('validated-on-selection') })),
-	effort: z.object({ light: z.literal('free'), focused: z.literal('managed-entitlement-unavailable'), deep: z.literal('managed-entitlement-unavailable') }),
+	effort: z.object({ light: z.literal('free'), focused: z.literal('trusted-policy-required'), deep: z.literal('trusted-policy-required') }),
+	accessPolicy: z.string(),
 	configuration: z.string(), resource: z.literal('madewell://brainstorm/catalog'),
 	capabilities: z.object({ materialRoot: z.string(), materialAccess: z.literal('captured-source-and-pinned-selected-packages-only'),
-		managedEffort: z.array(z.literal('light')), execution: z.literal(false), promotion: z.literal(false), workerLaunch: z.literal(false),
+		managedEffort: z.array(z.string()), execution: z.literal(false), promotion: z.literal(false), workerLaunch: z.literal(false),
 		network: z.literal(false), arbitraryFileRead: z.literal(false), providerInference: z.literal(false), nativeSkills: z.literal(false),
 	}),
 })
@@ -72,10 +75,14 @@ const BrainstormPackageOutput = z.object({ name: z.string(), identity: Revision,
 const BrainstormRecordedOutput = z.object({ id: z.string(), handoffId: z.string(), at: z.string(), actor: BrainstormActor,
 	validation: z.literal('shape-accepted-not-independently-verified'), result: BrainstormResult,
 })
+const EffortAuthorizationOutput = z.object({ allowed: z.literal(true), provenance: z.string(), binding: z.object({
+	root: z.string(), storeScope: z.string(), revision: Revision, occurrence: z.string(), methodIdentity: z.string(), sourceIdentity: z.string(), recipeDigest: Revision,
+}) })
 const BrainstormHandoffOutput = z.object({ id: z.string(), itemId: ItemId, at: z.string(), actor: BrainstormActor, component: z.literal('/brainstorm'),
 	source: z.string(), context: z.string().nullable(), title: z.string(), objective: z.string(), methods: z.array(z.string()),
 	packages: z.array(BrainstormPackageOutput), priorInputs: z.array(PriorInputOutput), priorResults: z.array(BrainstormRecordedOutput),
-	requestedEffort: z.literal('light').nullable(), effectiveEffort: z.literal('light'), outputLength: z.string().nullable(),
+	requestedEffort: z.unknown(), effectiveEffort: z.string(), outputLength: z.string().nullable(),
+	recipe: ResolvedEffort.optional(), effortAuthorization: EffortAuthorizationOutput.optional(),
 }).passthrough()
 const ComponentOutput = z.object({ address: z.string(), id: z.string(), identity: Revision, input: z.string(), output: z.string() }).passthrough()
 const SkillSelectionOutput = z.object({ name: z.string(), identity: Revision, origin: z.string(), instructions: z.string(),
@@ -102,7 +109,9 @@ const PortableRecordedOutput = z.object({ id: z.string(), handoffId: z.string(),
 })
 const PortableHandoffOutput = z.object({ id: z.string(), at: z.string(), actor: BrainstormActor, node: ComponentOutput, source: z.string(), context: z.string().nullable(),
 	priorInputs: z.array(PriorInputOutput), priorResults: z.array(PortableRecordedOutput), packages: PortablePackagesOutput,
-	requestedEffort: z.literal('light').nullable(), effectiveEffort: z.literal('light'), outputLength: z.string().nullable(),
+	priorExchanges: z.array(Exchange).optional(),
+	requestedEffort: z.unknown(), effectiveEffort: z.string(), outputLength: z.string().nullable(),
+	recipe: ResolvedEffort.optional(), effortAuthorization: EffortAuthorizationOutput.optional(),
 	contributionSchema: z.record(z.string(), z.unknown()).nullable(), framing: z.string(),
 })
 const SnapshotFields = { itemId: ItemId, revision: Revision, root: z.string(), source: z.string(), title: z.string(), objective: z.string(), status: z.string(),
@@ -119,6 +128,7 @@ export const PortableSnapshotOutput = z.object({
 		selection: z.object({ schemaVersion: z.literal(1), identity: Revision, complete: z.boolean(), root: ComponentOutput,
 			diagnostics: z.array(z.object({ code: z.literal('method_unavailable'), address: z.string(), message: z.string() })),
 		}), packages: PortablePackagesOutput, handoffs: z.array(PortableHandoffOutput), results: z.array(PortableRecordedOutput), candidates: z.array(ItemId),
+		exchanges: z.record(z.string(), Exchange).optional(),
 	}),
 }).passthrough()
 const PromotionOutput = z.object({ selected: z.array(z.object({ itemId: ItemId, revision: Revision, title: z.string(),
@@ -134,6 +144,8 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 		return { ...configuration, root: validateGrantedRoot(configuration.root) }
 	})
 	const telemetry = yield* localMcpTelemetry(config.store, config.telemetryFile)
+	// Capture only Effect-provided host authority, never a CLI flag or client field.
+	const policy = yield* currentManagedEffortAccess
 	const skills = config.skills ? yield* acquireBrainstormSkills(pinPackage) : undefined
 	const active = new Set<Promise<unknown>>()
 	let accepting = true
@@ -146,7 +158,7 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 	const service = Layer.merge(brainstormLayer({ root: config.root }), portableWorkLayer({ root: config.root }))
 	const execute = <A, E>(effect: Effect.Effect<A, E, Brainstorm | PortableWork | Store>, access: 'read' | 'write') =>
 		Effect.suspend(() => accepting
-			? Effect.scoped(effect.pipe(Effect.provide(service), Effect.provide(requestStoreLayer(config.store, access === 'read', telemetry.assertStoreSeparation))))
+			? Effect.scoped(effect.pipe(Effect.provide(service), Effect.provide(requestStoreLayer(config.store, access === 'read', telemetry.assertStoreSeparation)), Effect.provideService(ManagedEffortAccess, policy)))
 			: Effect.fail(failure('The stdio connection is closing; no Store was acquired.')))
 	const respond = <A extends object, E>(effect: Effect.Effect<A, E>) =>
 		run(effect.pipe(Effect.catchCause(cause => Effect.fail(failure(Cause.squash(cause)))), Effect.match({
@@ -180,17 +192,17 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 			annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
 		}, input => tool(Effect.flatMap(Brainstorm, service => service.inspect(input)), 'read'))
 		server.registerTool('prepare_brainstorm', {
-			description: 'Save a Light host handoff at the supplied revision. Optional context retains this turn’s exact material separately from original source/results. Omitted methods and outputLength retain the last selections. Explicit methods add specialists to the default pair. Focused/Deep managed access is unavailable. No execution.',
+			description: 'Save a pinned Brainstorm recipe at the supplied revision. Effort defaults to free Light; authored Focused/Deep require current trusted host access, unavailable by default. Context retains exact turn material. Omitted methods/outputLength retain prior selections; explicit methods add specialists to the default pair. No execution or purchase.',
 			inputSchema: PrepareBrainstormInput, outputSchema: BrainstormSnapshotOutput.extend({ handoff: BrainstormHandoffOutput }),
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		}, input => tool(Effect.flatMap(Brainstorm, service => service.prepare(input)), 'write'))
 		server.registerTool('record_brainstorm', {
-			description: 'Save the exact artifact and attributed Light result for this item’s latest prepared handoff. Shape acceptance is not independent verification, work completion, promotion or execution authority.',
+			description: 'Save the exact artifact and attributed performed work for the latest prepared handoff, bounded by its authorized recipe. Recording stays available after managed access changes. Shape acceptance is not independent verification, completion, promotion or execution authority.',
 			inputSchema: RecordBrainstormInput, outputSchema: BrainstormSnapshotOutput.extend({ recorded: BrainstormRecordedOutput }),
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		}, input => tool(Effect.flatMap(Brainstorm, service => service.record(input)), 'write'))
 		server.registerTool('capture_work', {
-			description: 'Capture exact source and explicitly selected component/configuration as non-executing external work. Pin selected method instructions and supporting files. Missing methods fail visibly; full Work needs canonical Landing. Reuse requestId and exact body after an uncertain response.',
+			description: 'Capture exact source and explicitly selected component/configuration as non-executing external work. Pin selected method instructions and supporting files, including the canonical Landing return when selected. Missing methods fail visibly. Reuse requestId and exact body after an uncertain response.',
 			inputSchema: CapturePortableInput, outputSchema: PortableSnapshotOutput,
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		}, input => tool(Effect.flatMap(PortableWork, service => service.capture(input)), 'write'))
@@ -200,10 +212,15 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 			annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
 		}, input => tool(Effect.flatMap(PortableWork, service => service.inspect(input)), 'read'))
 		server.registerTool('prepare_work', {
-			description: 'Save the next selected occurrence as a free Light host handoff with exact context and prior results. Preparation freezes that occurrence. Recover a pending handoff instead of duplicating it. No performer, provider, shell or worker is invoked; paid managed effort is unavailable.',
+			description: 'Save the next selected occurrence with its pinned authored effort recipe, exact context and wired prior results. Non-Light managed recipes require trusted host access, unavailable by default. A method without declared variants gains none. Preparation freezes the occurrence; recover pending handoffs rather than duplicating them. No performer or external action is invoked.',
 			inputSchema: PreparePortableInput, outputSchema: PortableSnapshotOutput.extend({ handoff: PortableHandoffOutput }),
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		}, input => tool(Effect.flatMap(PortableWork, service => service.prepare(input)), 'write'))
+		server.registerTool('exchange_work', {
+			description: 'Save attributed recipient questions, sender answers or confirmation for the pending fixed handoff. Each answered sender batch counts once; unresolved questions after three answers hold for explicit operator resolution and recipient confirmation. Labels are local attribution, not authentication. No performer, external action or other blocker release.',
+			inputSchema: ExchangePortableInput, outputSchema: PortableSnapshotOutput.extend({ exchange: Exchange }),
+			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+		}, input => tool(Effect.flatMap(PortableWork, service => service.exchange(input)), 'write'))
 		server.registerTool('record_work', {
 			description: 'Retain an attributed artifact for the pending handoff. Declared Discovery contracts enforce contribution conservation; confirm creates candidates, never selects or executes them. Contract acceptance is not semantic truth, independent verification or task completion.',
 			inputSchema: RecordPortableInput, outputSchema: PortableSnapshotOutput.extend({ recorded: PortableRecordedOutput }),
@@ -244,7 +261,7 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 			mimeType: 'application/json', description: 'Root-scoped handoffs/{handoffId} or packages/{packageIdentity}, including saved supporting files. No filesystem path reads.',
 		}, read)
 		server.registerResource('work-saved-material', new ResourceTemplate('madewell://work/items/{itemId}/{kind}', { list: undefined }), {
-			mimeType: 'application/json', description: 'Root-scoped saved source, selection, handoffs, results or packages. Exact retained material only; no live filesystem reads.',
+			mimeType: 'application/json', description: 'Root-scoped saved source, selection, handoffs, results, packages or exchanges. Exact retained material only; no live filesystem reads.',
 		}, read)
 		skills?.attach(server)
 		return server

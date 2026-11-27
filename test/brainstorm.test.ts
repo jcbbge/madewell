@@ -1,10 +1,14 @@
 import assert from 'node:assert/strict'
-import { existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readlinkSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
+import { Effect } from 'effect'
+import { ManagedEffortAccess } from '../src/managed-effort.ts'
+import { PortableWork, portableWorkLayer } from '../src/portable-work.ts'
 import { loadSkillPackage, readSkillFile } from '../src/skill-package.ts'
+import { Store, openStore } from '../src/store.ts'
 import {
-	actor, array, bounded, conversation, decoded, failure, handle, handoff, light, nodes, object, observesUpdatedSeed,
+	actor, array, bounded, conversation, decoded, digest, failure, handle, handoff, light, nodes, object, observesUpdatedSeed,
 	productFixture, reportedResult, reporter, repository, retains, retainsText, roughSource, seed,
 	selectedBodies, startupAliasCases, startupAliasRefusal, success, text, tools, type ProductFixture, type Value,
 } from './tooling/product-mcp-smoke.ts'
@@ -122,6 +126,302 @@ test('M5: default Delivery ordinary instructions and exact reported result survi
 		retains(successor.priorResults, result, 'next selected canonical consumer receives the actual accepted prefix')
 		f.assertNoExecution()
 	} finally { await f.close() }
+})
+
+test('Landing: selected canonical bytes fail visibly on live corruption while captured ordinary pins and natural closure survive restart', async () => {
+	const original = join(repository, 'skills/method-library')
+	const body = readFileSync(join(original, 'madewell-landing/SKILL.md'))
+	const provenance = object(JSON.parse(readFileSync(join(original, 'PROVENANCE.json'), 'utf8')))
+	const f = await productFixture({ copyRuntime: true })
+	assert.ok(f.copiedRuntime)
+	const library = join(f.copiedRuntime, 'skills/method-library'), landing = join(library, 'madewell-landing')
+	const pin = array(provenance.files).map(object).find(file => file.path === 'madewell-landing/SKILL.md')
+	const source = '  Unit return — 雪 / e\u0301\r\nRetain the history, no publication.  \r\n'
+	const result = { artifact: '# Land — U-paper\r\nDELTA: accepted card A2, not posted.\r\nLEARNED: none.\r\nPROPAGATED: printing owed to print-owner, ref debt-7.\r\nTAX: unknown, no correction measurement.\r\nWARNING: no version label; not a new gate.\r\n', sources: ['A2', 'debt-7'], decisions: ['No automatic promotion or publication'], unknowns: ['Correction measurement'], performedEffort: 'light' }
+	const work = async (name: string, input: Value) => {
+		const response = object(await f.call(name, input)), value = decoded(response)
+		assert.notEqual(response.isError, true, JSON.stringify(response)); assert.deepEqual(response.structuredContent, value)
+		assert.equal(value.executionAuthorized, false)
+		return value
+	}
+	try {
+		cpSync(join(repository, 'skills'), join(f.copiedRuntime, 'skills'), { recursive: true })
+		assert.ok(pin, 'Landing bytes are declared in the distribution source inventory')
+		assert.match(text(provenance.revision), /^[a-f0-9]{40}$/)
+		assert.equal(pin.sourcePath, 'primitives/skills/madewell-landing/SKILL.md')
+		assert.equal(pin.bytes, body.length); assert.equal(pin.sha256, digest(body))
+		await f.connect({ file: true })
+		const inspected = decoded(await f.call('inspect_composition', { component: '/landing' }))
+		assert.equal(inspected.complete, true); assert.deepEqual(inspected.diagnostics, [])
+		const live = object(object(object(inspected.root).method).package)
+		assert.equal(live.name, 'madewell-landing'); assert.equal(live.instructions, body.toString('utf8'))
+		assert.ok(JSON.stringify(inspected).includes(text(provenance.revision)), 'binding provenance identifies the actual published source revision')
+		const captured = await work('capture_work', { requestId: 'landing-capture', actor, source, component: '/landing' })
+		// Only a disposable runtime copy is damaged; the selected sibling control
+		// distinguishes a selected-package failure from an eager whole-library scan.
+		writeFileSync(join(landing, 'SKILL.md'), Buffer.concat([body, Buffer.from('\nUNPINNED SOURCE CHANGE\n')]))
+		failure(await f.call('inspect_composition', { component: '/landing' }), /stale|digest|hash|integrity|changed|pin|provenance/i)
+		assert.equal(decoded(await f.call('inspect_composition', { component: '/discovery' })).complete, true)
+		rmSync(join(landing, 'SKILL.md'))
+		failure(await f.call('inspect_composition', { component: '/landing' }), /missing|unreadable|absent|file|ENOENT|integrity|The selected skill package has no SKILL\.md\./i)
+		const beforeMissing = f.snapshot()!
+		failure(await f.call('capture_work', { requestId: 'missing-landing', actor, source, component: '/landing' }), /missing|unreadable|absent|file|ENOENT|integrity|The selected skill package has no SKILL\.md\./i)
+		assert.deepEqual(f.snapshot()!.items, beforeMissing.items, 'missing canonical source never falls back or creates placeholder work')
+		await f.disconnect()
+		await f.connect({ file: true })
+		const prepared = await work('prepare_work', { requestId: 'landing-prepare', ...handle(captured), actor })
+		const packet = handoff(prepared), pkg = object(object(object(packet.node).method).package)
+		assert.equal(object(packet.node).address, '/landing'); assert.equal(packet.contributionSchema, null)
+		assert.equal(packet.source, source); assert.equal(packet.effectiveEffort, 'light')
+		assert.equal(pkg.identity, live.identity); assert.equal(pkg.instructions, body.toString('utf8'))
+		assert.equal(pkg.manifestScope, 'retained-runtime'); assert.equal(Object.hasOwn(pkg, 'scope'), false)
+		assert.equal(live.scope, 'runtime'); assert.equal(Object.hasOwn(live, 'manifestScope'), false)
+		assert.deepEqual(pkg.manifest, live.manifest)
+		const input = { requestId: 'landing-record', ...handle(prepared), actor: reporter, handoffId: packet.id, result }
+		const recorded = await work('record_work', input)
+		assert.deepEqual(object(recorded.recorded).result, result)
+		assert.equal(object(recorded.recorded).validation, 'contract-accepted-not-independently-verified')
+		await f.disconnect()
+		const client = await f.connect({ file: true })
+		const saved = await work('inspect_work', { itemId: handle(captured).itemId })
+		assert.deepEqual(object(saved.portable).selection, object(captured.portable).selection)
+		retains(saved, packet, 'prepared source and package pins remain exact after live-source loss')
+		retains(saved, result, 'closure is attributed, not independently verified or task completion')
+		const uri = `madewell://work/items/${handle(captured).itemId}/packages`
+		const resource = await bounded(client.readResource({ uri }), 'retained Landing package resource')
+		const resourceValue = object(JSON.parse(text(object(resource.contents[0]).text)))
+		const files = array(object(resourceValue.packages)[text(pkg.identity)]).map(object)
+		assert.deepEqual(files.map(file => file.path).sort(), array(pkg.manifest).map(file => object(file).path).sort())
+		for (const file of files) {
+			assert.ok(file.encoding === 'utf8' || file.encoding === 'base64')
+			const bytes = Buffer.from(text(file.content), file.encoding)
+			assert.deepEqual(bytes, readFileSync(join(original, 'madewell-landing', text(file.path))))
+			assert.equal(file.bytes, bytes.length); assert.equal(file.sha256, digest(bytes))
+		}
+		const beforeReplay = f.snapshot()
+		assert.deepEqual(await work('record_work', input), recorded)
+		assert.deepEqual(f.snapshot(), beforeReplay, 'Land receipt replay neither deletes history nor promotes owed work')
+		f.assertNoExecution()
+	} finally { await f.close() }
+})
+
+test('portable scoped wiring: transitive predecessor and non-last group output exclude unequal sibling results and contexts across restart', async () => {
+	const f = await productFixture(), local = join(f.project, 'lineage-contract')
+	const token = 'fixture.lineage.v1', source = '  Root — 雪\r\nNo public names.  \r\n'
+	const leaf = (id: string) => ({ id, purpose: `Fixture ${id}`, input: token, output: token })
+	const branch = { ...leaf('branch'), children: [leaf('alpha'), leaf('kept'), leaf('decoy')], wiring: { inputs: { alpha: '$input', kept: 'alpha', decoy: '$input' }, output: 'kept' } }
+	const config = { schemaVersion: 1, composition: { ...leaf('root'), children: [branch, leaf('private'), leaf('consumer'), leaf('explicit')], wiring: { inputs: { branch: '$input', private: '$input', consumer: 'branch', explicit: 'branch' }, output: 'explicit' } }, bindings: Object.fromEntries(['/branch/alpha', '/branch/kept', '/branch/decoy', '/private', '/consumer', '/explicit'].map(address => [address, { skill: './ordinary', input: token, output: token }])) }
+	const contexts = ['ALPHA context — α\r\n', 'KEPT context — β\r\n', 'DECOY PRIVATE context — 716\r\n', 'SIBLING PRIVATE context — 923\r\n', 'CONSUMER context — 雪\r\n', 'EXPLICIT CONSUMER context — Ω\r\n']
+	const artifacts = ['ALPHA accepted — 19\r\n', 'KEPT group output — 37\r\n', 'DECOY NOT GROUP OUTPUT — 716\r\n', 'SIBLING NOT PREDECESSOR — 923\r\n', 'CONSUMER attributed result\r\n', 'EXPLICIT CONSUMER attributed result\r\n']
+	const addresses = ['/branch/alpha', '/branch/kept', '/branch/decoy', '/private', '/consumer', '/explicit']
+	const lengths = [null, 'KEEP-LENGTH-13', null, 'BETA-PRIVATE-LENGTH-89', 'KEEP-LENGTH-13', 'EXPLICIT-LENGTH-41']
+	const records: unknown[] = [], priorInputs: Value[] = [], preparedPackets: Value[] = []
+	const work = async (name: string, input: Value) => {
+		const response = object(await f.call(name, input)), value = decoded(response)
+		assert.notEqual(response.isError, true, JSON.stringify(response)); assert.deepEqual(response.structuredContent, value)
+		assert.equal(value.executionAuthorized, false)
+		return value
+	}
+	try {
+		mkdirSync(join(local, 'ordinary'), { recursive: true })
+		writeFileSync(join(local, 'ordinary/SKILL.md'), '---\nname: ordinary\ndescription: Inert scoped continuity fixture.\n---\nReturn only declared material.\n')
+		writeFileSync(join(local, 'config.json'), JSON.stringify(config))
+		await f.connect({ file: true })
+		let current = await work('capture_work', { requestId: 'lineage-capture', actor, source, component: '/', config: 'lineage-contract/config.json' })
+		const selection = object(current.portable).selection
+		for (const [index, address] of addresses.entries()) {
+			if (index === 4) { await f.disconnect(); await f.connect({ file: true }); current = await work('inspect_work', { itemId: handle(current).itemId }) }
+			const prepareInput = { requestId: `lineage-prepare-${index}`, ...handle(current), actor, context: contexts[index], ...([1, 3, 5].includes(index) ? { outputLength: lengths[index] } : {}) }
+			current = await work('prepare_work', prepareInput)
+			const packet = handoff(current)
+			assert.equal(object(packet.node).address, address); assert.equal(packet.source, source)
+			assert.equal(packet.outputLength, lengths[index], 'omitted preference follows declared lineage; fresh $input has none; explicit value wins')
+			if (index >= 4) assert.ok(!JSON.stringify(packet).includes('BETA-PRIVATE-LENGTH-89'), 'scan the whole consumer handoff, not just priorResults/context')
+			const lineage = index === 1 ? [0] : index >= 4 ? [0, 1] : []
+			assert.deepEqual(packet.priorResults, lineage.map(i => records[i]), 'exact result list is transitive declared lineage, not every prior occurrence')
+			assert.deepEqual(packet.priorInputs, lineage.map(i => priorInputs[i]), 'only predecessor contexts and original attribution accompany results')
+			for (const excluded of [2, 3]) if (excluded !== index) {
+				assert.ok(!JSON.stringify(packet).includes(contexts[excluded]!.trim()))
+				assert.ok(!JSON.stringify(packet).includes(artifacts[excluded]!.trim()))
+			}
+			if (index === 0) {
+				const before = await work('inspect_work', { itemId: handle(current).itemId })
+				const changed = structuredClone(config), changedBranch = { ...branch, wiring: { ...branch.wiring, output: 'decoy' } }
+				changed.composition.children[0] = changedBranch
+				writeFileSync(join(local, 'changed-wiring.json'), JSON.stringify(changed))
+				failure(await f.call('replace_work', { requestId: 'lineage-freeze-wiring', ...handle(current), actor, reason: 'Cannot rewrite attempted enclosing wiring', config: 'lineage-contract/changed-wiring.json' }), /frozen|prepar|attempt|wiring|structure|changed/i)
+				mkdirSync(join(local, 'other'), { recursive: true })
+				writeFileSync(join(local, 'other/SKILL.md'), '---\nname: other\ndescription: Different attempted method.\n---\nDo not rewrite a prepared pin.\n')
+				const changedMethod = structuredClone(config); changedMethod.bindings['/branch/alpha']!.skill = './other'
+				writeFileSync(join(local, 'changed-method.json'), JSON.stringify(changedMethod))
+				failure(await f.call('replace_work', { requestId: 'lineage-freeze-method', ...handle(current), actor, reason: 'Prepared method cannot change', config: 'lineage-contract/changed-method.json' }), /frozen|prepar|attempt|method|changed/i)
+				const after = await work('inspect_work', { itemId: handle(current).itemId })
+				assert.equal(after.revision, before.revision)
+				for (const key of ['selection', 'handoffs', 'results']) assert.deepEqual(object(after.portable)[key], object(before.portable)[key])
+				const snapshot = f.snapshot()
+				assert.deepEqual(await work('prepare_work', prepareInput), current)
+				assert.deepEqual(f.snapshot(), snapshot, 'exact attempted handoff replays despite a separate refused replacement')
+			}
+			preparedPackets.push(structuredClone(packet))
+			priorInputs.push({ handoffId: packet.id, actor, context: contexts[index] })
+			const result = { artifact: artifacts[index], sources: [address], decisions: [`Decision ${address}`], unknowns: [], performedEffort: 'light' }
+			current = await work('record_work', { requestId: `lineage-record-${index}`, ...handle(current), actor: reporter, handoffId: packet.id, result })
+			records.push(current.recorded)
+		}
+		assert.deepEqual(object(current.portable).selection, selection, 'scoped traversal never rewrites its captured composition')
+		assert.deepEqual(object(current.portable).handoffs, preparedPackets, 'later scoped preparation must not retroactively sanitize historical handoffs')
+		assert.deepEqual(object(current.portable).results, records, 'private sibling history is retained for the owner, not erased to hide leakage')
+	} finally { rmSync(local, { recursive: true, force: true }); await f.close() }
+})
+
+test('portable Discovery: repeated independent prefixes conserve their own intents rather than borrowing an earlier sibling chain', async () => {
+	const f = await productFixture(), local = join(f.project, 'discovery-lineage')
+	const material = 'madewell.material.v1', outputs = ['madewell.discovery.declare.output.v1', 'madewell.discovery.look-first.output.v1', 'madewell.discovery.classify.output.v1']
+	const chain = (id: string) => ({ id, purpose: `Independent ${id}`, input: material, output: outputs[2]!, children: ['seed', 'observe', 'account'].map((name, index) => ({ id: name, purpose: name, input: index ? outputs[index - 1]! : material, output: outputs[index]! })), wiring: { inputs: { seed: '$input', observe: 'seed', account: 'observe' }, output: 'account' } })
+	const left = chain('left'), right = chain('right')
+	const bindings = Object.fromEntries([left, right].flatMap(branch => branch.children.map(child => [`/${branch.id}/${child.id}`, { skill: './ordinary', input: child.input, output: child.output }])))
+	const common = { discoveryContract: '2', result: 'Independent supplied contribution', sources: [], unknowns: [], decisions: [], evidence: [], questions: [] }
+	const work = async (name: string, input: Value) => {
+		const response = object(await f.call(name, input)), value = decoded(response)
+		assert.notEqual(response.isError, true, JSON.stringify(response)); assert.deepEqual(response.structuredContent, value)
+		assert.equal(value.executionAuthorized, false)
+		return value
+	}
+	try {
+		mkdirSync(join(local, 'ordinary'), { recursive: true })
+		writeFileSync(join(local, 'ordinary/SKILL.md'), '---\nname: ordinary\ndescription: Declared-contract conservation fixture.\n---\nConserve supplied source identities.\n')
+		writeFileSync(join(local, 'config.json'), JSON.stringify({ schemaVersion: 1, composition: { id: 'root', purpose: 'Independent Discovery chains', input: material, output: outputs[2], children: [left, right], wiring: { inputs: { left: '$input', right: '$input' }, output: 'right' } }, bindings }))
+		await f.connect({ file: true })
+		let current = await work('capture_work', { requestId: 'discovery-lineage-capture', actor, source: roughSource, component: '/', config: 'discovery-lineage/config.json' })
+		for (const branch of [left, right]) {
+			const evidence = `E-${branch.id}`, intent = `I-${branch.id}`, privacy = `I-private-${branch.id}`
+			const claim = (id: string, wording: string) => ({ id, text: wording, sources: [evidence] })
+			const declared = { ...common, evidence: [{ id: evidence, ref: `fixture:${branch.id}` }], intent: [{ ...claim(intent, `Actual ${branch.id} outcome`), authority: 'explicit' }, { ...claim(privacy, `Privacy obligation ${branch.id}`), authority: 'explicit' }] }
+			const observed = { ...common, observations: [claim(`O-${branch.id}`, 'Available observation, not a private sibling source')] }
+			const requirements = [{ ...claim(`R-${branch.id}`, 'Outcome'), kind: 'outcome', origin: 'explicit', intentIds: [intent] }, { ...claim(`R-private-${branch.id}`, 'Privacy'), kind: 'constraint', origin: 'explicit', intentIds: [privacy] }]
+			const classified = { ...common, requirements, intentDispositions: [] }
+			const accepted: unknown[] = []
+			for (const [index, contribution] of [declared, observed, classified].entries()) {
+				current = await work('prepare_work', { requestId: `${branch.id}-prepare-${index}`, ...handle(current), actor })
+				const packet = handoff(current)
+				assert.equal(object(packet.node).address, `/${branch.id}/${branch.children[index]!.id}`)
+				assert.deepEqual(packet.priorResults, accepted, 'a new independent prefix starts empty and receives only its own actual records')
+				assert.ok(packet.contributionSchema !== null && packet.contributionSchema !== undefined)
+				const result = { artifact: `${branch.id} natural artifact ${index}\r\n`, sources: [evidence], decisions: [], unknowns: [], performedEffort: 'light', contribution }
+				if (index === 2) {
+					const before = await work('inspect_work', { itemId: handle(current).itemId })
+					failure(await f.call('record_work', { requestId: `${branch.id}-lost-intent`, ...handle(current), actor: reporter, handoffId: packet.id, result: { ...result, contribution: { ...classified, requirements: requirements.slice(0, 1) } } }), /lost-intent/i)
+					const after = await work('inspect_work', { itemId: handle(current).itemId })
+					assert.equal(after.revision, before.revision)
+					for (const key of ['selection', 'handoffs', 'results']) assert.deepEqual(object(after.portable)[key], object(before.portable)[key], 'conservation refusal cannot advance accepted lineage')
+				}
+				current = await work('record_work', { requestId: `${branch.id}-record-${index}`, ...handle(current), actor: reporter, handoffId: packet.id, result })
+				accepted.push(current.recorded)
+			}
+		}
+	} finally { rmSync(local, { recursive: true, force: true }); await f.close() }
+})
+
+test('trusted effort: prepared authority survives outage and exact receipt recovery, while new preparation rechecks access', async () => {
+	const f = await productFixture({ existingStore: false }), local = join(f.project, 'trusted-effort')
+	let store = openStore(f.storePath), allowed = true, decisions = 0
+	const access: ManagedEffortAccess['Service'] = { decide: binding => {
+		decisions++
+		return allowed ? { allowed: true, provenance: 'independent-host-fixture/v1', binding } : { allowed: false, reason: 'Independent host authority unavailable' }
+	} }
+	const invoke = (operation: 'capture' | 'prepare' | 'record' | 'inspect', input: unknown) => Effect.runPromise(Effect.gen(function* () {
+		const service = yield* PortableWork
+		return yield* service[operation](input)
+	}).pipe(Effect.provide(portableWorkLayer({ root: f.project })), Effect.provideService(Store, store), Effect.provideService(ManagedEffortAccess, access)))
+	try {
+		mkdirSync(join(local, 'ordinary'), { recursive: true })
+		const instructions = '---\r\nname: ordinary\r\ndescription: Inert independently authored depth fixture.\r\n---\r\nKeep the exact source. 雪\r\n'
+		writeFileSync(join(local, 'ordinary/SKILL.md'), instructions)
+		const recipes = { version: 1, default: 'light', variants: {
+			light: { instructions: 'Use supplied S1.', stopping: 'One useful lead.', evidence: 'Attribute S1.' },
+			'inspect-seam': { instructions: 'Compare S1 and S2. 雪\r\n', stopping: 'One discriminating example or missing source.', evidence: 'Cite actual S1/S2 versions and observations.' },
+		} }
+		const token = 'fixture.effort.v1', leaf = (id: string) => ({ id, purpose: id, input: token, output: token })
+		writeFileSync(join(local, 'config.json'), JSON.stringify({ schemaVersion: 1, composition: { ...leaf('root'), children: [leaf('first'), leaf('second')], wiring: { inputs: { first: '$input', second: 'first' }, output: 'second' } }, bindings: Object.fromEntries(['/first', '/second'].map(address => [address, { skill: './ordinary', input: token, output: token, args: { effortRecipes: JSON.stringify(recipes) } }])) }))
+		const captured = object(await invoke('capture', { requestId: 'trusted-capture', actor, source: '  Planning only — 雪\r\n', component: '/', config: 'trusted-effort/config.json' }))
+		const input = { requestId: 'trusted-prepare', ...handle(captured), actor, effort: 'inspect-seam', outputLength: 'short' }
+		const prepared = object(await invoke('prepare', input)), packet = handoff(prepared), recipe = object(packet.recipe)
+		assert.equal(recipe.effective, 'inspect-seam'); assert.equal(recipe.classification, 'protected')
+		assert.equal(recipe.instructions, recipes.variants['inspect-seam'].instructions); assert.equal(recipe.instructionBytes, instructions)
+		assert.equal(recipe.methodIdentity, object(object(packet.node).method).identity)
+		assert.equal(recipe.sourceIdentity, object(object(packet.node).method).bindingOrigin)
+		assert.equal(object(packet.effortAuthorization).allowed, true)
+		const acceptedDecisions = decisions
+		assert.ok(acceptedDecisions > 0)
+		allowed = false; store.close(); store = openStore(f.storePath)
+		assert.deepEqual(await invoke('prepare', input), prepared, 'receipt is recovered before authority is consulted again')
+		assert.equal(decisions, acceptedDecisions)
+		const result = { artifact: 'Partial comparison — 雪\r\n', sources: ['S1'], decisions: [], unknowns: ['S2 unavailable'], performedEffort: 'inspect-seam', performedWork: 'S1 inspected; S2 comparison remains unperformed.' }
+		const recordInput = { requestId: 'trusted-record', ...handle(prepared), actor: reporter, handoffId: packet.id, result }
+		const recorded = object(await invoke('record', recordInput))
+		assert.deepEqual(object(recorded.recorded).result, result); assert.equal(decisions, acceptedDecisions)
+		const before = object(await invoke('inspect', { itemId: handle(recorded).itemId }))
+		await assert.rejects(invoke('prepare', { requestId: 'trusted-new-refused', ...handle(recorded), actor, effort: 'inspect-seam' }), /unavailable|denied|access|protected/i)
+		assert.ok(decisions > acceptedDecisions, 'a genuinely new protected preparation rechecks current access')
+		const after = object(await invoke('inspect', { itemId: handle(recorded).itemId }))
+		assert.equal(after.revision, before.revision); assert.deepEqual(after.portable, before.portable)
+		assert.deepEqual(await invoke('prepare', input), prepared)
+		assert.deepEqual(await invoke('record', recordInput), recorded)
+	} finally { store.close(); rmSync(local, { recursive: true, force: true }); await f.close() }
+})
+
+test('portable NQ over product MCP: settled identities cannot reset turns; explicit exchange gates record and holds after three answers', async () => {
+	const f = await productFixture(), local = join(f.project, 'nq-contract')
+	const recipient = { kind: 'agent', label: 'planner — bound recipient' }
+	const result = { artifact: 'Attributed partial plan — 雪\r\n', sources: ['note-47'], decisions: ['No publication'], unknowns: ['No independent acceptance'], performedEffort: 'light' }
+	const work = async (name: string, input: Value) => {
+		const wire = object(await f.call(name, input)), value = decoded(wire)
+		assert.notEqual(wire.isError, true, JSON.stringify(wire)); assert.deepEqual(wire.structuredContent, value); assert.equal(value.executionAuthorized, false)
+		return value
+	}
+	try {
+		mkdirSync(join(local, 'ordinary'), { recursive: true })
+		writeFileSync(join(local, 'ordinary/SKILL.md'), '---\nname: ordinary\ndescription: Inert NQ fixture.\n---\nReturn only an attributed plan.\n')
+		writeFileSync(join(local, 'config.json'), JSON.stringify({ schemaVersion: 1, composition: { id: 'note', purpose: 'Plan only', input: 'fixture.nq.v1', output: 'fixture.nq.v1' }, bindings: { '/': { skill: './ordinary', input: 'fixture.nq.v1', output: 'fixture.nq.v1' } } }))
+		await f.connect({ file: true })
+		let current = await work('capture_work', { requestId: 'nq-capture', actor, source: '  note-47 — 雪\r\nNo execution.\r\n', component: '/', config: 'nq-contract/config.json' })
+		current = await work('prepare_work', { requestId: 'nq-prepare', ...handle(current), actor })
+		const id = handoff(current).id as string
+		const savedExchange = () => object(object(object(current.portable).exchanges)[id])
+		const exchange = async (requestId: string, who: Value, action: Value) => { current = await work('exchange_work', { requestId, ...handle(current), actor: who, handoffId: id, action }) }
+		const refuse = async (name: string, input: Value) => {
+			const before = await work('inspect_work', { itemId: handle(current).itemId })
+			failure(await f.call(name, input), /question|answer|exchange|ready|confirm|held|hold|turn|settled/i)
+			const after = await work('inspect_work', { itemId: handle(current).itemId })
+			assert.equal(after.revision, before.revision); assert.deepEqual(after.portable, before.portable)
+		}
+		for (let turn = 1; turn <= 3; turn++) {
+			const question = { kind: 'question', understanding: `Unresolved bound ${turn}`, questions: [{ id: `q${turn}`, text: `Which bound ${turn}?`, owner: actor }] }
+			await exchange(`nq-question-${turn}`, recipient, question)
+			if (turn === 1) await refuse('record_work', { requestId: 'nq-unready-record', ...handle(current), actor: recipient, handoffId: id, result })
+			const answer = { requestId: `nq-answer-${turn}`, ...handle(current), actor, handoffId: id, action: { kind: 'answer', answers: [{ questionId: `q${turn}`, text: `Owner answer ${turn} — 雪\r\n` }] } }
+			current = await work('exchange_work', answer)
+			assert.equal(savedExchange().answeredTurns, turn); assert.equal(savedExchange().status, 'waiting-confirmation')
+			assert.deepEqual(await work('exchange_work', answer), current)
+			if (turn === 1) {
+				const saved = structuredClone(savedExchange())
+				await refuse('exchange_work', { requestId: 'nq-settled-resubmission', ...handle(current), actor: recipient, handoffId: id, action: question })
+				assert.deepEqual(savedExchange(), saved)
+				await f.disconnect(); await f.connect({ file: true })
+				assert.deepEqual(await work('exchange_work', answer), current, 'answer receipt and exact history survive restart')
+			}
+		}
+		await exchange('nq-genuine-unresolved', recipient, { kind: 'question', understanding: 'Three real answers left an operator-owned gap.', questions: [{ id: 'start-event', text: 'Which operator start event?', owner: actor }] })
+		assert.equal(savedExchange().status, 'held'); assert.equal(savedExchange().answeredTurns, 3)
+		await refuse('exchange_work', { requestId: 'nq-no-fourth-agent-answer', ...handle(current), actor, handoffId: id, action: { kind: 'answer', answers: [{ questionId: 'start-event', text: 'No fourth ordinary round' }] } })
+		await exchange('nq-operator-resolution', actor, { kind: 'resolve', reason: 'Operator supplies the missing start event, not execution approval.', answers: [{ questionId: 'start-event', text: 'Explicit owner approval of note-47.' }] })
+		assert.equal(savedExchange().status, 'waiting-confirmation'); assert.equal(savedExchange().answeredTurns, 3)
+		await refuse('record_work', { requestId: 'nq-unconfirmed-resolution', ...handle(current), actor: recipient, handoffId: id, result })
+		await exchange('nq-recipient-confirms', recipient, { kind: 'confirm', understanding: 'The exact start event is settled; no execution authorized.' })
+		assert.equal(savedExchange().status, 'ready')
+		current = await work('record_work', { requestId: 'nq-ready-record', ...handle(current), actor: recipient, handoffId: id, result })
+		assert.deepEqual(object(current.recorded).result, result)
+	} finally { rmSync(local, { recursive: true, force: true }); await f.close() }
 })
 
 test('B11: approved entry/posture remain ordinary independently readable skill packages, without MCP or a subscription', () => {

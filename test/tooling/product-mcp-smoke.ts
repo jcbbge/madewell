@@ -27,7 +27,7 @@ export const reportedResult = {
 	alternatives: ['A staffed shelf', 'An unstaffed exchange — still live'],
 	nextMove: 'Ask which shelf can be observed without contacting anyone.', performedEffort: 'light',
 } as const
-export const tools = ['catalog_brainstorm', 'capture_brainstorm', 'inspect_brainstorm', 'prepare_brainstorm', 'record_brainstorm', 'capture_work', 'inspect_work', 'prepare_work', 'record_work', 'preview_work', 'promote_work', 'replace_work', 'inspect_composition']
+export const tools = ['catalog_brainstorm', 'capture_brainstorm', 'inspect_brainstorm', 'prepare_brainstorm', 'record_brainstorm', 'capture_work', 'inspect_work', 'prepare_work', 'record_work', 'preview_work', 'promote_work', 'replace_work', 'inspect_composition', 'exchange_work']
 const milliseconds = 30000, byteLimit = 16 * 1024 * 1024
 
 export function object(value: unknown): Value {

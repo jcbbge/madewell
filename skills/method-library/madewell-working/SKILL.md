@@ -16,7 +16,7 @@ The opinionated outer default is **Brainstorm → Discovery → Delivery → Lan
 - Select Brainstorm to develop a lead or framing. Its supplied entry method pairs with ambitious collaboration; select specialists for the obstruction, not the whole toolbox.
 - Select Discovery to shape rough material into sourced candidates. Its default methods are Declare, lookFirst, classify, Lenses, oneThing, route, confirm. The separate Discovery guide selects those methods.
 - Select Delivery for one selected task's fulfillment, or select an individual responsibility when that is the actual request. The separate Delivery guide selects its four methods.
-- Landing belongs in the outer default, but its canonical method content is unavailable in this proposal. Report that missing method if selected; do not invent deployment, cleanup, publication, or an empty success in its place.
+- Select Landing to return a completed unit with its actual delta, learning, propagation and correction cost. The separate Landing method preserves the recovered historical four-face contract under current durable, domain-independent boundaries; it does not authorize release, deletion or task promotion.
 
 Method names here identify possible selections, not file links or instructions to read sibling packages. Use only explicitly available instructions through the host's supported loading path. An unavailable explicit selection is a visible gap, not permission to substitute another method. This guide does not perform or dispatch the selected methods by naming them.
 

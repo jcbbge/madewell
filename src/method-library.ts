@@ -19,6 +19,7 @@ const defaults: Readonly<Record<string, string>> = {
 	'/delivery/planning': 'madewell-planning',
 	'/delivery/implementation': 'madewell-implementing',
 	'/delivery/verification': 'madewell-verifying',
+	'/landing': 'madewell-landing',
 }
 const provenance = z.object({
 	kind: z.literal('pinned-source-inventory'), schemaVersion: z.literal(1),

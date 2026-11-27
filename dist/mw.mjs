@@ -54823,7 +54823,8 @@ var defaults = {
   "/delivery/ideation": "madewell-ideating",
   "/delivery/planning": "madewell-planning",
   "/delivery/implementation": "madewell-implementing",
-  "/delivery/verification": "madewell-verifying"
+  "/delivery/verification": "madewell-verifying",
+  "/landing": "madewell-landing"
 };
 var provenance = external_exports.object({
   kind: external_exports.literal("pinned-source-inventory"),

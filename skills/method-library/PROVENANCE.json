@@ -2,7 +2,7 @@
   "kind": "pinned-source-inventory",
   "schemaVersion": 1,
   "repository": "https://github.com/jcbbge/agent-core-public",
-  "revision": "ddfec378480e30383168633e116849beeed38d58",
+  "revision": "5343e335ff8e82ba66e97ea8a0394aa06c50f3a1",
   "filesAreUnmodified": true,
   "skills": [
     "madewell-working",
@@ -18,7 +18,8 @@
     "madewell-ideating",
     "madewell-planning",
     "madewell-implementing",
-    "madewell-verifying"
+    "madewell-verifying",
+    "madewell-landing"
   ],
   "license": {
     "path": "LICENSE.agent-core",
@@ -72,10 +73,10 @@
     {
       "path": "madewell-delivering/SKILL.md",
       "sourcePath": "primitives/skills/madewell-delivering/SKILL.md",
-      "gitBlob": "7b7cd04fdfd5473f01b46e4b367c9cbe282f838c",
+      "gitBlob": "9cf42824ab5928f58ccf86e96f8f5f5af37a3ca8",
       "mode": "100644",
-      "bytes": 6128,
-      "sha256": "2ef8fe7fba5030eb0d67dcfd1cdc2266cb7040965332e9bf9b782cb861a5427a"
+      "bytes": 6260,
+      "sha256": "5b85f667c1b83ff091fe82dfdc220cf512fa92b1c50bbbdeb0d73796c190a2e1"
     },
     {
       "path": "madewell-discovering/SKILL.md",
@@ -100,6 +101,22 @@
       "mode": "100644",
       "bytes": 6113,
       "sha256": "56f8dfea2e33c5932368f57f7401ddb5f7a58ddf2e40a308f01e03dd11bb9a35"
+    },
+    {
+      "path": "madewell-landing/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-landing/SKILL.md",
+      "gitBlob": "f2b84551d149cf109699d8d6b24c465a7aa84ffe",
+      "mode": "100644",
+      "bytes": 6233,
+      "sha256": "2d0372cfdda864bf9a98cd936022d89f9d444b56f16cf26833432a37ac7d31cb"
+    },
+    {
+      "path": "madewell-landing/references/historical-contract.md",
+      "sourcePath": "primitives/skills/madewell-landing/references/historical-contract.md",
+      "gitBlob": "8b4eea16c9da2ac3ceee06653cdc4c57880dcf20",
+      "mode": "100644",
+      "bytes": 3470,
+      "sha256": "995769982e35259dd575f6476eafd0ef7385169b19b2d82d0c7170d63e7ef631"
     },
     {
       "path": "madewell-looking-first/SKILL.md",
@@ -144,10 +161,10 @@
     {
       "path": "madewell-working/SKILL.md",
       "sourcePath": "primitives/skills/madewell-working/SKILL.md",
-      "gitBlob": "59c003659eff0608245854de841adcca28048e39",
+      "gitBlob": "2769c3e9606ce6490f7104226c080367f405de70",
       "mode": "100644",
-      "bytes": 6739,
-      "sha256": "5b3418ba6c3cb20a02e2c89863da01e5c2b79526bd6ffb4c6861c103cfe866f7"
+      "bytes": 6816,
+      "sha256": "7ab6563aa37a1b4ce18d4a7b25faf1282b00585faa6a682fd822df3b22199a20"
     },
     {
       "path": "madewell-working/references/evidence-recovery.md",
