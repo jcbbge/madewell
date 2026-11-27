@@ -520,3 +520,167 @@ test('only granted-root config is auto-read; explicit unreadable/escaped/symlink
 		assert.equal(existsSync(join(f.root, 'selected/.madewell')), false)
 	} finally { f.close() }
 })
+
+test('AC26 expansion: omitted selection is authored Light, explicit selection and declaration edits change identity', async () => {
+	const f = fixture()
+	try {
+		f.skill('ordinary')
+		const base = { schemaVersion: 1, composition: leaf('root'), bindings: { '/': binding('./ordinary') } }
+		f.put('plain.json', base)
+		const plain = await f.inspect({ config: 'plain.json' })
+		const declaration = { default: 'light', variants: {
+			light: { composition: leaf('root'), bindings: { '/': binding('./ordinary') } },
+			'compare-seam': { composition: group('root', [leaf('observe'), leaf('compare')]), bindings: { '/observe': binding('./ordinary'), '/compare': binding('./ordinary') } },
+		} }
+		f.put('config.json', { ...base, efforts: { '/': declaration } })
+		const omitted = await f.inspect({ config: 'config.json' })
+		assert.equal(omitted.complete, true)
+		assert.equal(omitted.root.children, undefined)
+		assert.equal(omitted.root.method?.kind, 'skill')
+		assert.notEqual(omitted.identity, plain.identity)
+		const records = (inventory: Inventory) => inventory.effort
+		const saved = records(omitted)
+		assert.ok(saved); assert.equal(saved.length, 1)
+		assert.equal(saved[0]!.address, '/'); assert.equal(saved[0]!.requested, null); assert.equal(saved[0]!.effective, 'light')
+		assert.ok(saved[0]!.origin)
+		assert.deepEqual(JSON.parse(saved[0]!.declaration), declaration, 'inspection retains the full JSON declaration, including inactive variants')
+		assert.ok(saved[0]!.declarationDigest)
+		assert.equal(Object.hasOwn(plain, 'effort'), false, 'no-effort outputs do not acquire even an empty optional metadata field')
+		f.put('config.json', { ...base, efforts: { '/': { ...declaration, selected: 'light' } } })
+		const explicit = await f.inspect({ config: 'config.json' })
+		assert.equal(records(explicit)?.[0]?.requested, 'light')
+		assert.notEqual(explicit.identity, omitted.identity, 'selection is part of the pin, even when effective children are identical')
+		f.put('config.json', { ...base, efforts: { '/': { ...declaration, variants: { ...declaration.variants, 'compare-seam': { ...declaration.variants['compare-seam'], composition: { ...declaration.variants['compare-seam'].composition, purpose: 'Changed inactive declaration — 雪\r\n' } } } } } })
+		const edited = await f.inspect({ config: 'config.json' })
+		assert.notEqual(edited.identity, omitted.identity, 'full declaration, not only selected package bytes, is pinned')
+		assert.deepEqual(await f.inspect({ config: 'plain.json' }), plain, 'no-effort outputs remain exactly stable')
+	} finally { f.close() }
+})
+
+test('AC26 expansion: parent before child, repeated local IDs, independent branches and non-last output remain ordinary wiring', async () => {
+	const f = fixture()
+	try {
+		f.skill('ordinary')
+		const left = group('left', [leaf('probe'), leaf('tail')])
+		left.wiring.output = 'probe'
+		const expanded = group('probe', [leaf('reflect'), leaf('check')])
+		f.put('config.json', { schemaVersion: 1, composition: group('root', [leaf('left'), leaf('right'), leaf('consumer')]), bindings: { '/consumer': binding('./ordinary') }, efforts: {
+			'/left/probe': { default: 'light', selected: 'inspect-seam', variants: { light: { composition: leaf('probe'), bindings: { '/left/probe': binding('./ordinary') } }, 'inspect-seam': { composition: expanded, bindings: { '/left/probe/reflect': binding('./ordinary'), '/left/probe/check': binding('./ordinary') } } } },
+			'/right': { default: 'light', variants: { light: { composition: group('right', [leaf('reflect')]), bindings: { '/right/reflect': binding('./ordinary') } } } },
+			'/left': { default: 'light', selected: 'compare', variants: { light: { composition: leaf('left'), bindings: { '/left': binding('./ordinary') } }, compare: { composition: left, bindings: { '/left/probe': binding('./ordinary'), '/left/tail': binding('./ordinary') } } } },
+		} })
+		const inventory = await f.inspect({ config: 'config.json' })
+		assert.equal(inventory.complete, true)
+		assert.deepEqual(at(inventory.root, '/left').children?.map(node => node.id), ['probe', 'tail'])
+		assert.equal(at(inventory.root, '/left').wiring?.output, 'probe')
+		assert.deepEqual(at(inventory.root, '/left/probe').children?.map(node => node.id), ['reflect', 'check'])
+		assert.notEqual(at(inventory.root, '/left/probe/reflect').identity, at(inventory.root, '/right/reflect').identity)
+		assert.equal(at(inventory.root, '/left/probe').method, undefined, 'child expansion removes its old enclosing leaf binding')
+		assert.equal(at(inventory.root, '/consumer').method?.kind, 'skill')
+	} finally { f.close() }
+})
+
+test('AC26 expansion: explicit structural replacements precede effort expansion', async () => {
+	const f = fixture()
+	try {
+		f.skill('ordinary')
+		f.put('config.json', { schemaVersion: 1, composition: leaf('root'), replacements: { '/': group('root', [leaf('new')]) }, efforts: {
+			'/new': { default: 'light', variants: { light: { composition: group('new', [leaf('actual')]), bindings: { '/new/actual': binding('./ordinary') } } } },
+		} })
+		const inventory = await f.inspect({ config: 'config.json' })
+		assert.equal(inventory.complete, true)
+		assert.equal(at(inventory.root, '/new/actual').method?.kind, 'skill')
+	} finally { f.close() }
+})
+
+test('AC26 expansion: competing declarations need a higher layer, never import order', async () => {
+	const f = fixture()
+	try {
+		f.skill('ordinary')
+		const first = { default: 'light', variants: { light: { composition: leaf('root'), bindings: { '/': binding('./ordinary') } } } }
+		const second = { ...first, variants: { light: { ...first.variants.light, composition: { ...leaf('root'), purpose: 'A different authored Light' } } } }
+		f.put('a.json', { schemaVersion: 1, efforts: { '/': first } })
+		f.put('b.json', { schemaVersion: 1, efforts: { '/': second } })
+		for (const uses of [['a.json', 'b.json'], ['b.json', 'a.json']]) {
+			f.put('config.json', { schemaVersion: 1, composition: leaf('root'), uses })
+			await refuses({ root: f.root, config: 'config.json' })
+			f.put('config.json', { schemaVersion: 1, composition: leaf('root'), uses, efforts: { '/': first } })
+			assert.equal((await f.inspect({ config: 'config.json' })).root.purpose, leaf('root').purpose)
+		}
+		f.put('nested/choice.json', { schemaVersion: 1, efforts: { '/': { ...first, variants: { light: { composition: leaf('root'), bindings: { '/': binding('../ordinary') } } } } } })
+		f.put('config.json', { schemaVersion: 1, composition: leaf('root'), uses: ['nested/choice.json'] })
+		assert.equal((await f.inspect({ config: 'config.json' })).complete, true, 'variant packages resolve against declaration origin, not importer')
+	} finally { f.close() }
+})
+
+test('AC26 expansion: only selected package grants load, and whole-subtree selection discards obsolete bindings', async () => {
+	const f = fixture()
+	try {
+		f.skill('ordinary')
+		f.put('broken/SKILL.md', 'inactive malformed body must not load')
+		const chosen = { composition: leaf('root'), bindings: { '/': binding('./ordinary') } }
+		const declaration = { default: 'light', variants: { light: chosen, inactive: { composition: leaf('root'), bindings: { '/': binding('./broken') } }, escaped: { composition: leaf('root'), bindings: { '/': binding('../outside-grant') } } } }
+		f.put('config.json', { schemaVersion: 1, composition: group('root', [leaf('obsolete')]), bindings: { '/obsolete': binding('./broken') }, efforts: { '/': declaration } })
+		const inventory = await f.inspect({ config: 'config.json' })
+		assert.equal(inventory.complete, true); assert.equal(inventory.root.children, undefined)
+		for (const selected of ['inactive', 'escaped']) {
+			f.put('bad.json', { schemaVersion: 1, composition: leaf('root'), efforts: { '/': { ...declaration, selected } } })
+			await refuses({ root: f.root, config: 'bad.json' })
+		}
+		symlinkSync(join(f.root, 'ordinary'), join(f.root, 'alias'))
+		f.put('bad.json', { schemaVersion: 1, composition: leaf('root'), efforts: { '/': { default: 'light', variants: { light: { ...chosen, bindings: { '/': binding('./alias') } } } } } })
+		await refuses({ root: f.root, config: 'bad.json' })
+		f.put('missing.json', { schemaVersion: 1, composition: leaf('root'), bindings: { '/': binding('./ordinary') }, efforts: { '/': { default: 'light', variants: { light: { composition: leaf('root') } } } } })
+		assert.equal((await f.inspect({ config: 'missing.json' })).complete, false, 'selected variants do not inherit an old method binding')
+	} finally { f.close() }
+})
+
+test('AC26 expansion: malformed declarations, unknown selections, incompatible target contracts and import cycles fail visibly', async () => {
+	const f = fixture()
+	try {
+		f.skill('ordinary')
+		const variant = { composition: leaf('root'), bindings: { '/': binding('./ordinary') } }
+		for (const declaration of [
+			{}, { default: 'deep', variants: { light: variant } }, { default: 'light', variants: {} },
+			{ default: 'light', selected: '', variants: { light: variant } }, { default: 'light', selected: '  ', variants: { light: variant } },
+			{ default: 'light', selected: 'focused', variants: { light: variant } },
+			{ default: 'light', variants: { light: variant, ' ': variant } },
+			...[{ id: 'renamed' }, { input: 'wrong.input' }, { output: 'wrong.output' }].map(change => ({ default: 'light', variants: { light: { ...variant, composition: { ...leaf('root'), ...change } } } })),
+		]) {
+			f.put('bad.json', { schemaVersion: 1, composition: leaf('root'), efforts: { '/': declaration } })
+			await refuses({ root: f.root, config: 'bad.json' })
+		}
+		f.put('a.json', { schemaVersion: 1, uses: ['b.json'], efforts: { '/': { default: 'light', variants: { light: variant } } } })
+		f.put('b.json', { schemaVersion: 1, uses: ['a.json'] })
+		await refuses({ root: f.root, config: 'a.json' })
+	} finally { f.close() }
+})
+
+test('AC26 expansion: imported variant bindings yield to compatible explicit project and override children', async () => {
+	const f = fixture()
+	try {
+		f.skill('skill-a'); f.skill('skill-b')
+		f.put('imported.json', { schemaVersion: 1, efforts: { '/': { default: 'light', variants: {
+			light: { composition: group('root', [leaf('child')]), bindings: { '/child': binding('./skill-a') } },
+		} } } })
+		const project = { schemaVersion: 1, composition: leaf('root'), uses: ['imported.json'] }
+		f.put('config.json', project)
+		const imported = await f.inspect({ config: 'config.json' })
+		assert.equal(imported.complete, true)
+		const chosen = at(imported.root, '/child').method
+		assert.equal(chosen?.kind, 'skill')
+		if (chosen?.kind === 'skill') assert.equal(chosen.package.name, 'skill-a')
+		for (const layer of ['project', 'override']) {
+			const bindings = { '/child': binding('./skill-b') }
+			f.put('config.json', layer === 'project' ? { ...project, bindings } : project)
+			f.put('override.json', { schemaVersion: 1, bindings })
+			const inventory = await f.inspect({ config: 'config.json', ...(layer === 'override' ? { override: 'override.json' } : {}) })
+			assert.equal(inventory.complete, true)
+			const method = at(inventory.root, '/child').method
+			assert.equal(method?.kind, 'skill')
+			if (method?.kind === 'skill') assert.equal(method.package.name, 'skill-b', `${layer} binding must not be erased by the imported expansion`)
+		}
+		f.put('config.json', { ...project, bindings: { '/obsolete': binding('./skill-b') } })
+		await refuses({ root: f.root, config: 'config.json' })
+	} finally { f.close() }
+})

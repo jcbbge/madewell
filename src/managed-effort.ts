@@ -15,6 +15,9 @@ export const ResolvedEffort = z.object({
 	methodIdentity: text, occurrence: text, sourceIdentity: text,
 	declaration: z.string().nullable(), declarationDigest: text.nullable(),
 	instructionBytes: z.string(), instructions: text, stopping: text, evidence: text,
+	expansions: z.array(z.object({ address: text, origin: text, requested: text.nullable(), effective: text,
+		declaration: text, declarationDigest: text, expansionIdentity: text,
+	})).optional(),
 	classification: z.enum(['free-light', 'protected']), digest: text,
 })
 export type ResolvedEffort = z.infer<typeof ResolvedEffort>
@@ -35,7 +38,7 @@ export interface ManagedEffortPolicy {
 }
 export class ManagedEffortAccess extends Context.Service<ManagedEffortAccess, ManagedEffortPolicy>()('madewell/ManagedEffortAccess') {}
 export const defaultManagedEffortAccess: ManagedEffortPolicy = {
-	decide: (binding, recipe) => recipe.effective === 'light'
+	decide: (binding, recipe) => recipe.effective === 'light' && !recipe.expansions?.some(choice => choice.effective !== 'light')
 		? { allowed: true, provenance: 'builtin:free-light/1', binding }
 		: { allowed: false, reason: 'Protected managed preparation is unavailable without trusted host access.' },
 }
@@ -55,6 +58,7 @@ export function resolveManagedEffort(input: {
 	readonly requested?: unknown; readonly bindingSelection?: unknown; readonly declaration?: unknown
 	readonly methodIdentity: string; readonly occurrence: string; readonly sourceIdentity: string
 	readonly instructionBytes: string
+	readonly expansions?: ResolvedEffort['expansions']
 }): ResolvedEffort {
 	let declaration: z.infer<typeof EffortDeclaration> | undefined
 	if (input.declaration !== undefined) {
@@ -92,7 +96,8 @@ export function resolveManagedEffort(input: {
 		instructions: recipe?.instructions ?? input.instructionBytes,
 		stopping: recipe?.stopping ?? 'As defined by the pinned method; no additional effort variant is declared.',
 		evidence: recipe?.evidence ?? 'Report only work actually performed under the pinned method; missing evidence remains explicit.',
-		classification: selected === 'light' ? 'free-light' as const : 'protected' as const,
+		...(input.expansions?.length ? { expansions: input.expansions } : {}),
+		classification: selected === 'light' && !input.expansions?.some(choice => choice.effective !== 'light') ? 'free-light' as const : 'protected' as const,
 	}
 	return { ...body, digest: hash(JSON.stringify(body)) }
 }
@@ -102,7 +107,7 @@ export function authorizeManagedEffort(policy: ManagedEffortPolicy, recipe: Reso
 	const binding: EffortBinding = { ...scope, occurrence: recipe.occurrence, methodIdentity: recipe.methodIdentity, sourceIdentity: recipe.sourceIdentity, recipeDigest: recipe.digest }
 	// Classification is service-owned even if a caller supplies a fabricated
 	// resolved object to this public seam. Package data cannot mark Deep free.
-	if (recipe.effective === 'light') return { allowed: true as const, provenance: 'builtin:free-light/1', binding }
+	if (recipe.effective === 'light' && !recipe.expansions?.some(choice => choice.effective !== 'light')) return { allowed: true as const, provenance: 'builtin:free-light/1', binding }
 	const decision = policy.decide(Object.freeze({ ...binding }), Object.freeze({ ...recipe }))
 	if (!decision || decision.allowed !== true || typeof decision.provenance !== 'string' || !decision.provenance.trim()
 		|| !decision.binding || Object.keys(binding).some(key => decision.binding[key as keyof EffortBinding] !== binding[key as keyof EffortBinding])) {

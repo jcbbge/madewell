@@ -147,7 +147,7 @@ function snapshot(item: PortableItem) {
 	return { itemId: item.id, revision: revisionOf(item), root: item.workspace!, source: item.source, title: item.title, objective: item.objective, status: item.status,
 		portable: item.portable, executionAuthorized: false as const, independentlyVerified: false as const,
 		owner: item.execution.owner, activity: 'not-running', nextAction: exchangeAction ?? (pending ? `Recover saved handoff ${pending.id}; no performer is running.` : next ? `Prepare ${next.address}` : 'Inspect recorded contributions; no execution or independent completion is implied.'),
-		resources: ['source', 'handoffs', 'results', 'packages', 'selection', 'exchanges'].map(kind => ({ uri: `madewell://work/items/${item.id}/${kind}`, mimeType: 'application/json' })),
+		resources: ['source', 'handoffs', 'results', 'packages', 'selection', 'exchanges', 'refusals'].map(kind => ({ uri: `madewell://work/items/${item.id}/${kind}`, mimeType: 'application/json' })),
 	}
 }
 type Snapshot = ReturnType<typeof snapshot>
@@ -162,8 +162,9 @@ function request<A extends Snapshot>(store: Store['Service'], root: string, requ
 				const error = asError(cause)
 				if (itemId === null) throw error
 				// The scope was authorized above. Refused drafts are evidence, never a new accepted prefix.
-				store.note(itemId, 'portable-refused', { requestId, operation, input, error: errorJson(error) }, at)
-				return { root, itemId, error: errorJson(error) }
+				const refusal = { ...errorJson(error), context: { ...error.context, draft: input } }
+				store.note(itemId, 'portable-refused', { requestId, operation, input, error: refusal }, at)
+				return { root, itemId, error: refusal }
 			}
 		})
 		if (saved.root !== root) throw fail('Receipt belongs to a different material scope.', { root })
@@ -211,10 +212,11 @@ function pin(selection: CompositionInspection, root: string): PortableState['pac
 	}
 	return packages
 }
-function effortRecipe(node: ResolvedComponent, packages: PortableState['packages'], requested?: unknown) {
+function effortRecipe(node: ResolvedComponent, packages: PortableState['packages'], requested?: unknown, selection?: CompositionInspection) {
 	const method = node.method!
+	const expansions = selection?.effort?.filter(choice => choice.address === '/' || choice.address === node.address || node.address.startsWith(choice.address + '/'))
 	if (method.kind !== 'skill') return resolveManagedEffort({ requested, methodIdentity: method.identity,
-		occurrence: node.address, sourceIdentity: method.origin, instructionBytes: JSON.stringify(method.definition) })
+		occurrence: node.address, sourceIdentity: method.origin, instructionBytes: JSON.stringify(method.definition), expansions })
 	// Only the resolver-owned built-in binding selects this adapter. A package name,
 	// Markdown phrase or project binding cannot impersonate the shipped method.
 	const brainstorm = method.bindingOrigin === 'builtin:brainstorm-seed'
@@ -225,6 +227,7 @@ function effortRecipe(node: ResolvedComponent, packages: PortableState['packages
 		methodIdentity: method.identity, occurrence: node.address,
 		sourceIdentity: brainstorm ? 'brainstorm:references/effort.md/1' : method.bindingOrigin,
 		instructionBytes: brainstorm ? effort!.content : method.package.instructions,
+		expansions,
 	})
 }
 function retainSelection(selection: CompositionInspection, packages: PortableState['packages']): CompositionInspection {
@@ -305,7 +308,7 @@ function operations(root: string) {
 				const saved = item.portable, node = leaves(retainSelection(saved.selection, saved.packages).root)[saved.results.length]
 				if (!node) throw fail('Every selected occurrence already has a recorded result.', { itemId: i.itemId })
 				if (saved.handoffs.some(h => !saved.results.some(r => r.handoffId === h.id))) throw fail('Recover the pending handoff instead of preparing another attempt.', { itemId: i.itemId })
-				const recipe = effortRecipe(node, saved.packages, i.effort)
+				const recipe = effortRecipe(node, saved.packages, i.effort, saved.selection)
 				const effortAuthorization = authorizeManagedEffort(policy, recipe, { root, storeScope: store.path, revision: revisionOf(item) })
 				const method = node.method!, selected = method.kind === 'skill' ? [method.package, ...(method.companions ?? [])] : []
 				const discoveryJob = discoveryContracts[node.output], priorResults = scopedResults(saved, node)
@@ -392,6 +395,8 @@ function operations(root: string) {
 			const selected = Effect.runSync(inspectComposition({ root, component: current.portable.selection.root.address, config: i.config, override: i.override }).pipe(Effect.match({ onSuccess: value => value, onFailure: error => { throw error } })))
 			const old = leaves(current.portable.selection.root), next = leaves(selected.root)
 			const attempted = new Set(current.portable.handoffs.map(h => h.node.address))
+			const frozenEffort = (selection: CompositionInspection) => (selection.effort ?? []).filter(choice => [...attempted].some(address => choice.address === '/' || address === choice.address || address.startsWith(choice.address + '/')))
+			if (JSON.stringify(frozenEffort(selected)) !== JSON.stringify(frozenEffort(current.portable.selection))) throw fail('Replacement changes effort expansion governing an attempted occurrence; prepared work remains pinned.', { attempted: [...attempted] })
 			const enclosing = (node: ResolvedComponent): unknown => ({ address: node.address, input: node.input, output: node.output, constraints: node.constraints,
 				...(attempted.has(node.address) ? { identity: node.identity } : attempted.size ? { wiring: node.wiring, children: node.children?.filter(child => [...attempted].some(address => address === child.address || address.startsWith(child.address + '/'))).map(enclosing) } : {}),
 			})
@@ -401,11 +406,12 @@ function operations(root: string) {
 		}))
 	})
 	const readResource = Effect.fn('mw.readPortableResource')(function*(uri: string) {
-		const match = /^madewell:\/\/work\/items\/([1-9][0-9]*)\/(source|handoffs|results|packages|selection|exchanges)$/.exec(uri)
+		const match = /^madewell:\/\/work\/items\/([1-9][0-9]*)\/(source|handoffs|results|packages|selection|exchanges|refusals)$/.exec(uri)
 		if (!match) return yield* Effect.fail(fail('Unknown saved work resource.', { uri }))
 		const store = yield* Store
 		return yield* attempt(() => {
 			const item = scoped(store, root, decode(InspectPortableInput, { itemId: Number(match[1]) }).itemId), kind = match[2]!
+			if (kind === 'refusals') return { itemId: item.id, refusals: store.events(item.id).filter(event => event.kind === 'portable-refused').map(({ seq, at, data }) => ({ seq, at, data })) }
 			return { itemId: item.id, [kind]: kind === 'source' ? item.source : kind === 'exchanges' ? item.portable.exchanges ?? {} : item.portable[kind as keyof PortableState] }
 		})
 	})

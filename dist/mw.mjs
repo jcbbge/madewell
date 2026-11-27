@@ -54869,11 +54869,17 @@ var ComponentSchema = Schema_exports.Struct({
   children: Schema_exports.optionalKey(Schema_exports.Array(Schema_exports.suspend(() => ComponentSchema))),
   wiring: Schema_exports.optionalKey(Schema_exports.Struct({ inputs: Schema_exports.Record(Schema_exports.String, Text6), output: Text6 }))
 });
+var Effort = Schema_exports.Struct({
+  default: Schema_exports.Literal("light"),
+  selected: Schema_exports.optionalKey(Text6),
+  variants: Schema_exports.Record(Text6, Schema_exports.Struct({ composition: ComponentSchema, bindings: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Binding)) }))
+});
 var Config = Schema_exports.Struct({
   schemaVersion: Schema_exports.Literal(1),
   uses: Schema_exports.optionalKey(Schema_exports.Array(Text6)),
   composition: Schema_exports.optionalKey(ComponentSchema),
   replacements: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, ComponentSchema)),
+  efforts: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Effort)),
   bindings: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Binding)),
   constraints: Schema_exports.optionalKey(Schema_exports.Record(Schema_exports.String, Schema_exports.Record(Schema_exports.String, Schema_exports.Union([Schema_exports.String, Schema_exports.Finite, Schema_exports.Boolean]))))
 });
@@ -54990,9 +54996,10 @@ function inspect(options) {
   const origins = new Map([...indexTree(tree).keys()].map((address) => [address, "builtin:grammar"]));
   const bindings = /* @__PURE__ */ new Map();
   const selectedReplacements = /* @__PURE__ */ new Map();
+  const efforts = /* @__PURE__ */ new Map();
   const constraints = /* @__PURE__ */ new Map();
   const conflicts = /* @__PURE__ */ new Map();
-  for (const layer of layers) {
+  for (const [precedence, layer] of layers.entries()) {
     const compositions = layer.filter((entry) => entry.config.composition);
     if (compositions.length) {
       if (new Set(compositions.map((entry) => hash8(entry.config.composition))).size > 1) conflicts.set("composition", compositions.map((entry) => entry.path));
@@ -55006,9 +55013,11 @@ function inspect(options) {
     }
     const replacements = /* @__PURE__ */ new Map();
     const chosen = /* @__PURE__ */ new Map();
+    const effortChoices = /* @__PURE__ */ new Map();
     for (const { path, config: config2 } of layer) {
       for (const [address, node2] of sorted(config2.replacements ?? {})) replacements.set(address, [...replacements.get(address) ?? [], { origin: path, node: node2 }]);
-      for (const [address, binding] of sorted(config2.bindings ?? {})) chosen.set(address, [...chosen.get(address) ?? [], { origin: path, binding }]);
+      for (const [address, binding] of sorted(config2.bindings ?? {})) chosen.set(address, [...chosen.get(address) ?? [], { origin: path, binding, precedence }]);
+      for (const [address, declaration] of sorted(config2.efforts ?? {})) effortChoices.set(address, [...effortChoices.get(address) ?? [], { origin: path, declaration }]);
       for (const [address, values2] of sorted(config2.constraints ?? {})) {
         const valuesAt = constraints.get(address) ?? /* @__PURE__ */ new Map();
         for (const [key2, value4] of sorted(values2)) {
@@ -55036,6 +55045,21 @@ function inspect(options) {
       conflicts.delete(`binding:${address}`);
       bindings.set(address, candidates2.toSorted((a, b) => a.origin.localeCompare(b.origin))[0]);
     }
+    for (const [address, candidates2] of effortChoices) {
+      const identities = candidates2.map(({ origin, declaration }) => hash8({
+        ...declaration,
+        variants: Object.fromEntries(sorted(declaration.variants).map(([name, variant]) => [name, {
+          ...variant,
+          bindings: Object.fromEntries(sorted(variant.bindings ?? {}).map(([address2, binding]) => [address2, { ...binding, skill: resolve10(dirname9(origin), binding.skill) }]))
+        }]))
+      }));
+      if (new Set(identities).size > 1) {
+        conflicts.set(`effort:${address}`, candidates2.map((candidate) => candidate.origin));
+        continue;
+      }
+      conflicts.delete(`effort:${address}`);
+      efforts.set(address, { ...candidates2.toSorted((a, b) => a.origin.localeCompare(b.origin))[0], precedence });
+    }
   }
   if (conflicts.size) fail10("Equal-precedence selections need an explicit higher-layer choice.", { conflicts: Object.fromEntries(conflicts) });
   for (const [address, selected2] of [...selectedReplacements].sort(([a], [b]) => a.split("/").length - b.split("/").length || a.localeCompare(b))) {
@@ -55049,6 +55073,35 @@ function inspect(options) {
       Object.assign(parent, { children: parent.children.map((child) => child.id === previous.id ? structuredClone(next) : child) });
     }
     for (const childAddress of indexTree(next).keys()) origins.set(childAddress === "/" ? address : `${address === "/" ? "" : address}${childAddress}`, selected2.origin);
+  }
+  const resolvedEffort = [];
+  for (const [address, { origin, declaration, precedence }] of [...efforts].sort(([a], [b]) => a.split("/").length - b.split("/").length || a.localeCompare(b))) {
+    const index3 = indexTree(tree), previous = index3.get(address);
+    const effective = declaration.selected ?? declaration.default;
+    if (!Object.hasOwn(declaration.variants, "light") || !Object.hasOwn(declaration.variants, effective)) fail10("Effort requires an authored Light variant and the exact selected variant.", { address, effective });
+    const variant = declaration.variants[effective], next = variant.composition;
+    if (!validAddress(address) || !previous || previous.id !== next.id || previous.input !== next.input || previous.output !== next.output) fail10("Effort expansion must preserve its occurrence and external contracts.", { address, effective });
+    if (address === "/") tree = structuredClone(next);
+    else {
+      const parent = index3.get(address.slice(0, address.lastIndexOf("/")) || "/");
+      Object.assign(parent, { children: parent.children.map((child) => child.id === previous.id ? structuredClone(next) : child) });
+    }
+    const inside = (child) => address === "/" || child === address || child.startsWith(address + "/");
+    for (const [bound, selected2] of bindings) if (inside(bound) && selected2.precedence <= precedence) bindings.delete(bound);
+    for (const [bound, binding] of sorted(variant.bindings ?? {})) {
+      if (!inside(bound)) fail10("An effort variant cannot bind methods outside its subtree.", { address, binding: bound });
+      if ((bindings.get(bound)?.precedence ?? -1) <= precedence) bindings.set(bound, { origin, binding, precedence });
+    }
+    for (const childAddress of indexTree(next).keys()) origins.set(childAddress === "/" ? address : `${address === "/" ? "" : address}${childAddress}`, origin);
+    resolvedEffort.push({
+      address,
+      origin,
+      requested: declaration.selected ?? null,
+      effective,
+      declaration: JSON.stringify(canonical(declaration)),
+      declarationDigest: hash8(declaration),
+      expansionIdentity: hash8(variant)
+    });
   }
   const index2 = indexTree(tree);
   for (const [address, { binding }] of bindings) {
@@ -55067,6 +55120,7 @@ function inspect(options) {
   const selected = index2.get(selectedAddress);
   if (!validAddress(selectedAddress) || !selected) fail10("Selected component does not exist.", { address: selectedAddress });
   for (const parent of bindings.keys()) if (parent !== selectedAddress && (parent === "/" || selectedAddress.startsWith(parent + "/"))) fail10("Selected component is shadowed by an enclosing method.", { address: selectedAddress, parent });
+  for (const effort2 of resolvedEffort) for (const parent of bindings.keys()) if (parent !== effort2.address && (parent === "/" || effort2.address.startsWith(parent + "/"))) fail10("Effort expansion is shadowed by an enclosing method.", { address: effort2.address, parent });
   const diagnostics = [];
   const visit2 = (node2, address) => {
     const chosen = bindings.get(address);
@@ -55116,7 +55170,15 @@ function inspect(options) {
     return { ...result3, identity: hash8(result3) };
   };
   const resolved = visit2(selected, selectedAddress);
-  return { schemaVersion: 1, identity: hash8(resolved), complete: diagnostics.length === 0, root: resolved, diagnostics };
+  const effort = resolvedEffort.filter((choice) => choice.address === "/" || selectedAddress === "/" || choice.address === selectedAddress || choice.address.startsWith(selectedAddress + "/") || selectedAddress.startsWith(choice.address + "/"));
+  return {
+    schemaVersion: 1,
+    identity: effort.length ? hash8({ root: resolved, effort }) : hash8(resolved),
+    complete: diagnostics.length === 0,
+    root: resolved,
+    ...effort.length ? { effort } : {},
+    diagnostics
+  };
 }
 var inspectComposition = Effect_exports.fn("mw.inspectComposition")(function* (options) {
   return yield* Effect_exports.try({ try: () => inspect(options), catch: (cause) => cause instanceof MadeWellError ? cause : new MadeWellError({

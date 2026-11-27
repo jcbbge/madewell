@@ -959,3 +959,60 @@ test('SDK schema/type/unknown-property controls do not create work, accept forge
 		assert.notEqual(handle(correctedCapture).itemId, handle(captured).itemId, 'schema-invalid capture does not reserve its request identity')
 	} finally { await f.close() }
 })
+
+test('RC04: portable refusal discovery returns only exact owning-item events and recovers their inputs after restart', async () => {
+	const f = await productFixture()
+	const work = async (name: string, input: Value) => {
+		const response = object(await f.call(name, input)), value = decoded(response)
+		assert.notEqual(response.isError, true, JSON.stringify(response))
+		assert.deepEqual(response.structuredContent, value, 'JSON text and structuredContent agree')
+		assert.equal(value.executionAuthorized, false)
+		assert.equal(value.independentlyVerified, false)
+		assert.equal(value.activity, 'not-running')
+		return value
+	}
+	try {
+		let client = await f.connect({ file: true })
+		const captured = await work('capture_work', { requestId: 'refusals-capture', actor, source: roughSource, component: '/delivery' })
+		const peer = await work('capture_work', { requestId: 'refusals-peer', actor, source: 'PRIVATE PEER — no refusals', component: '/delivery' })
+		const uri = (value: Value) => `madewell://work/items/${handle(value).itemId}/refusals`
+		const read = async (value: Value) => {
+			const response = await bounded(client.readResource({ uri: uri(value) }), 'public refusals resource')
+			assert.equal(response.contents.length, 1)
+			const content = object(response.contents[0])
+			assert.equal(content.uri, uri(value)); assert.equal(content.mimeType, 'application/json')
+			return object(JSON.parse(text(content.text)))
+		}
+		assert.deepEqual(await read(captured), { itemId: handle(captured).itemId, refusals: [] })
+		const prepared = await work('prepare_work', { requestId: 'refusals-prepared', ...handle(captured), actor })
+		const accepted = await work('inspect_work', { itemId: handle(captured).itemId })
+		const oldDescriptors = array(accepted.resources).map(object)
+		assert.deepEqual(oldDescriptors.at(-1), { uri: uri(captured), mimeType: 'application/json' })
+		assert.ok(text(oldDescriptors.at(-2)!.uri).endsWith('/exchanges'))
+		const errors: Value[] = []
+		for (const [i, context] of ['FIRST REFUSED — 雪 / e\u0301\r\n  Preserve spaces.  \r\n', 'SECOND REFUSED — jade compass 309\r\n'].entries()) {
+			const input = { requestId: `refusals-stale-${i}`, ...handle(captured), actor, context }
+			const error = failure(await f.call('prepare_work', input), /revision|stale|changed/i)
+			assert.deepEqual(object(error.context).draft, input, 'new authorized error returns the full exact validated input')
+			errors.push(error)
+		}
+		assert.deepEqual(await work('inspect_work', { itemId: handle(captured).itemId }), accepted)
+		const retained = f.snapshot()!
+		const events = retained.events.filter(event => event.item === handle(captured).itemId && event.kind === 'portable-refused')
+		assert.equal(events.length, 2)
+		const expected = { itemId: handle(captured).itemId, refusals: events.map(event => ({ seq: event.seq, at: event.at, data: event.data })) }
+		assert.deepEqual(await read(captured), expected, 'every seq/time/data field is the actual original event; no unrelated events or DB metadata')
+		assert.deepEqual(await read(peer), { itemId: handle(peer).itemId, refusals: [] }, 'same-root peer does not inherit another work’s refused drafts')
+		assert.deepEqual(f.snapshot(), retained, 'both event-backed resource reads are fully read-only')
+		client = await f.connect({ file: true })
+		const discovered = await read(captured)
+		assert.deepEqual(discovered, expected)
+		for (const [i, event] of array(discovered.refusals).entries()) {
+			const input = object(object(object(event).data).input)
+			assert.deepEqual(failure(await f.call('prepare_work', input), /revision|stale|changed/i), errors[i], 'recover body/identity from public resource, not client-held original')
+		}
+		assert.deepEqual(await work('prepare_work', { requestId: 'refusals-prepared', ...handle(captured), actor }), prepared)
+		assert.deepEqual(await read(captured), expected)
+		assert.deepEqual(f.snapshot(), retained, 'receipt replay preserves every item, event, setting and call')
+	} finally { await f.close() }
+})

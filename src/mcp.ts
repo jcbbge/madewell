@@ -101,6 +101,7 @@ const ResolvedComponentOutput = ComponentOutput.extend({
 	wiring: z.object({ inputs: z.record(z.string(), z.string()), output: z.string() }).optional(),
 })
 const CompositionInspectionOutput = z.object({ schemaVersion: z.literal(1), identity: Revision, complete: z.boolean(), root: ResolvedComponentOutput,
+	effort: ResolvedEffort.shape.expansions,
 	diagnostics: z.array(z.object({ code: z.literal('method_unavailable'), address: z.string(), message: z.string() })),
 })
 const PortablePackagesOutput = z.record(z.string(), z.array(FileOutput.extend({ encoding: z.enum(['utf8', 'base64']) })))
@@ -126,6 +127,7 @@ export const PortableSnapshotOutput = z.object({
 	...SnapshotFields, independentlyVerified: z.literal(false), activity: z.literal('not-running'), nextAction: z.string(),
 	portable: z.object({ version: z.literal(1), root: z.string(),
 		selection: z.object({ schemaVersion: z.literal(1), identity: Revision, complete: z.boolean(), root: ComponentOutput,
+			effort: ResolvedEffort.shape.expansions,
 			diagnostics: z.array(z.object({ code: z.literal('method_unavailable'), address: z.string(), message: z.string() })),
 		}), packages: PortablePackagesOutput, handoffs: z.array(PortableHandoffOutput), results: z.array(PortableRecordedOutput), candidates: z.array(ItemId),
 		exchanges: z.record(z.string(), Exchange).optional(),
@@ -237,7 +239,7 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		}, input => tool(Effect.flatMap(PortableWork, service => service.promote(input)), 'write'))
 		server.registerTool('replace_work', {
-			description: 'Explicitly re-resolve compatible structure before any preparation, or only future methods afterward, using selected configuration/override and a saved reason. Prepared occurrences, enclosing contracts/wiring, prior handoffs and results cannot be rewritten. No silent library refresh.',
+			description: 'Explicitly re-resolve compatible structure before any preparation, or compatible never-prepared future methods or subtrees afterward, using selected configuration/override and a saved reason. Prepared occurrences, enclosing contracts/wiring, prior handoffs and results cannot be rewritten. No silent library refresh.',
 			inputSchema: ReplacePortableInput, outputSchema: PortableSnapshotOutput,
 			annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
 		}, input => tool(Effect.flatMap(PortableWork, service => service.replace(input)), 'write'))
@@ -261,7 +263,7 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 			mimeType: 'application/json', description: 'Root-scoped handoffs/{handoffId} or packages/{packageIdentity}, including saved supporting files. No filesystem path reads.',
 		}, read)
 		server.registerResource('work-saved-material', new ResourceTemplate('madewell://work/items/{itemId}/{kind}', { list: undefined }), {
-			mimeType: 'application/json', description: 'Root-scoped saved source, selection, handoffs, results, packages or exchanges. Exact retained material only; no live filesystem reads.',
+			mimeType: 'application/json', description: 'Root-scoped saved source, selection, handoffs, results, packages, exchanges or refusals. Exact retained material only; no live filesystem reads.',
 		}, read)
 		skills?.attach(server)
 		return server

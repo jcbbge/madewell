@@ -2239,13 +2239,22 @@ var ResolvedEffort = z.object({
   instructions: text2,
   stopping: text2,
   evidence: text2,
+  expansions: z.array(z.object({
+    address: text2,
+    origin: text2,
+    requested: text2.nullable(),
+    effective: text2,
+    declaration: text2,
+    declarationDigest: text2,
+    expansionIdentity: text2
+  })).optional(),
   classification: z.enum(["free-light", "protected"]),
   digest: text2
 });
 var ManagedEffortAccess = class extends Context4.Service()("madewell/ManagedEffortAccess") {
 };
 var defaultManagedEffortAccess = {
-  decide: (binding, recipe) => recipe.effective === "light" ? { allowed: true, provenance: "builtin:free-light/1", binding } : { allowed: false, reason: "Protected managed preparation is unavailable without trusted host access." }
+  decide: (binding, recipe) => recipe.effective === "light" && !recipe.expansions?.some((choice) => choice.effective !== "light") ? { allowed: true, provenance: "builtin:free-light/1", binding } : { allowed: false, reason: "Protected managed preparation is unavailable without trusted host access." }
 };
 var managedEffortAccessLayer = Layer5.succeed(ManagedEffortAccess, defaultManagedEffortAccess);
 var currentManagedEffortAccess = Effect10.serviceOption(ManagedEffortAccess).pipe(
@@ -2304,13 +2313,14 @@ function resolveManagedEffort(input) {
     instructions: recipe?.instructions ?? input.instructionBytes,
     stopping: recipe?.stopping ?? "As defined by the pinned method; no additional effort variant is declared.",
     evidence: recipe?.evidence ?? "Report only work actually performed under the pinned method; missing evidence remains explicit.",
-    classification: selected === "light" ? "free-light" : "protected"
+    ...input.expansions?.length ? { expansions: input.expansions } : {},
+    classification: selected === "light" && !input.expansions?.some((choice) => choice.effective !== "light") ? "free-light" : "protected"
   };
   return { ...body, digest: hash(JSON.stringify(body)) };
 }
 function authorizeManagedEffort(policy, recipe, scope) {
   const binding = { ...scope, occurrence: recipe.occurrence, methodIdentity: recipe.methodIdentity, sourceIdentity: recipe.sourceIdentity, recipeDigest: recipe.digest };
-  if (recipe.effective === "light") return { allowed: true, provenance: "builtin:free-light/1", binding };
+  if (recipe.effective === "light" && !recipe.expansions?.some((choice) => choice.effective !== "light")) return { allowed: true, provenance: "builtin:free-light/1", binding };
   const decision = policy.decide(Object.freeze({ ...binding }), Object.freeze({ ...recipe }));
   if (!decision || decision.allowed !== true || typeof decision.provenance !== "string" || !decision.provenance.trim() || !decision.binding || Object.keys(binding).some((key) => decision.binding[key] !== binding[key])) {
     throw new MadeWellError({
@@ -3074,11 +3084,17 @@ var ComponentSchema = Schema10.Struct({
   children: Schema10.optionalKey(Schema10.Array(Schema10.suspend(() => ComponentSchema))),
   wiring: Schema10.optionalKey(Schema10.Struct({ inputs: Schema10.Record(Schema10.String, Text6), output: Text6 }))
 });
+var Effort = Schema10.Struct({
+  default: Schema10.Literal("light"),
+  selected: Schema10.optionalKey(Text6),
+  variants: Schema10.Record(Text6, Schema10.Struct({ composition: ComponentSchema, bindings: Schema10.optionalKey(Schema10.Record(Schema10.String, Binding)) }))
+});
 var Config = Schema10.Struct({
   schemaVersion: Schema10.Literal(1),
   uses: Schema10.optionalKey(Schema10.Array(Text6)),
   composition: Schema10.optionalKey(ComponentSchema),
   replacements: Schema10.optionalKey(Schema10.Record(Schema10.String, ComponentSchema)),
+  efforts: Schema10.optionalKey(Schema10.Record(Schema10.String, Effort)),
   bindings: Schema10.optionalKey(Schema10.Record(Schema10.String, Binding)),
   constraints: Schema10.optionalKey(Schema10.Record(Schema10.String, Schema10.Record(Schema10.String, Schema10.Union([Schema10.String, Schema10.Finite, Schema10.Boolean]))))
 });
@@ -3195,9 +3211,10 @@ function inspect(options) {
   const origins = new Map([...indexTree(tree).keys()].map((address) => [address, "builtin:grammar"]));
   const bindings = /* @__PURE__ */ new Map();
   const selectedReplacements = /* @__PURE__ */ new Map();
+  const efforts = /* @__PURE__ */ new Map();
   const constraints = /* @__PURE__ */ new Map();
   const conflicts = /* @__PURE__ */ new Map();
-  for (const layer of layers) {
+  for (const [precedence, layer] of layers.entries()) {
     const compositions = layer.filter((entry) => entry.config.composition);
     if (compositions.length) {
       if (new Set(compositions.map((entry) => hash3(entry.config.composition))).size > 1) conflicts.set("composition", compositions.map((entry) => entry.path));
@@ -3211,9 +3228,11 @@ function inspect(options) {
     }
     const replacements = /* @__PURE__ */ new Map();
     const chosen = /* @__PURE__ */ new Map();
+    const effortChoices = /* @__PURE__ */ new Map();
     for (const { path, config } of layer) {
       for (const [address, node] of sorted(config.replacements ?? {})) replacements.set(address, [...replacements.get(address) ?? [], { origin: path, node }]);
-      for (const [address, binding] of sorted(config.bindings ?? {})) chosen.set(address, [...chosen.get(address) ?? [], { origin: path, binding }]);
+      for (const [address, binding] of sorted(config.bindings ?? {})) chosen.set(address, [...chosen.get(address) ?? [], { origin: path, binding, precedence }]);
+      for (const [address, declaration] of sorted(config.efforts ?? {})) effortChoices.set(address, [...effortChoices.get(address) ?? [], { origin: path, declaration }]);
       for (const [address, values] of sorted(config.constraints ?? {})) {
         const valuesAt = constraints.get(address) ?? /* @__PURE__ */ new Map();
         for (const [key, value] of sorted(values)) {
@@ -3241,6 +3260,21 @@ function inspect(options) {
       conflicts.delete(`binding:${address}`);
       bindings.set(address, candidates2.toSorted((a, b) => a.origin.localeCompare(b.origin))[0]);
     }
+    for (const [address, candidates2] of effortChoices) {
+      const identities = candidates2.map(({ origin, declaration }) => hash3({
+        ...declaration,
+        variants: Object.fromEntries(sorted(declaration.variants).map(([name, variant2]) => [name, {
+          ...variant2,
+          bindings: Object.fromEntries(sorted(variant2.bindings ?? {}).map(([address2, binding]) => [address2, { ...binding, skill: resolve5(dirname6(origin), binding.skill) }]))
+        }]))
+      }));
+      if (new Set(identities).size > 1) {
+        conflicts.set(`effort:${address}`, candidates2.map((candidate) => candidate.origin));
+        continue;
+      }
+      conflicts.delete(`effort:${address}`);
+      efforts.set(address, { ...candidates2.toSorted((a, b) => a.origin.localeCompare(b.origin))[0], precedence });
+    }
   }
   if (conflicts.size) fail3("Equal-precedence selections need an explicit higher-layer choice.", { conflicts: Object.fromEntries(conflicts) });
   for (const [address, selected2] of [...selectedReplacements].sort(([a], [b]) => a.split("/").length - b.split("/").length || a.localeCompare(b))) {
@@ -3254,6 +3288,35 @@ function inspect(options) {
       Object.assign(parent, { children: parent.children.map((child) => child.id === previous.id ? structuredClone(next) : child) });
     }
     for (const childAddress of indexTree(next).keys()) origins.set(childAddress === "/" ? address : `${address === "/" ? "" : address}${childAddress}`, selected2.origin);
+  }
+  const resolvedEffort = [];
+  for (const [address, { origin, declaration, precedence }] of [...efforts].sort(([a], [b]) => a.split("/").length - b.split("/").length || a.localeCompare(b))) {
+    const index2 = indexTree(tree), previous = index2.get(address);
+    const effective = declaration.selected ?? declaration.default;
+    if (!Object.hasOwn(declaration.variants, "light") || !Object.hasOwn(declaration.variants, effective)) fail3("Effort requires an authored Light variant and the exact selected variant.", { address, effective });
+    const variant2 = declaration.variants[effective], next = variant2.composition;
+    if (!validAddress(address) || !previous || previous.id !== next.id || previous.input !== next.input || previous.output !== next.output) fail3("Effort expansion must preserve its occurrence and external contracts.", { address, effective });
+    if (address === "/") tree = structuredClone(next);
+    else {
+      const parent = index2.get(address.slice(0, address.lastIndexOf("/")) || "/");
+      Object.assign(parent, { children: parent.children.map((child) => child.id === previous.id ? structuredClone(next) : child) });
+    }
+    const inside = (child) => address === "/" || child === address || child.startsWith(address + "/");
+    for (const [bound, selected2] of bindings) if (inside(bound) && selected2.precedence <= precedence) bindings.delete(bound);
+    for (const [bound, binding] of sorted(variant2.bindings ?? {})) {
+      if (!inside(bound)) fail3("An effort variant cannot bind methods outside its subtree.", { address, binding: bound });
+      if ((bindings.get(bound)?.precedence ?? -1) <= precedence) bindings.set(bound, { origin, binding, precedence });
+    }
+    for (const childAddress of indexTree(next).keys()) origins.set(childAddress === "/" ? address : `${address === "/" ? "" : address}${childAddress}`, origin);
+    resolvedEffort.push({
+      address,
+      origin,
+      requested: declaration.selected ?? null,
+      effective,
+      declaration: JSON.stringify(canonical(declaration)),
+      declarationDigest: hash3(declaration),
+      expansionIdentity: hash3(variant2)
+    });
   }
   const index = indexTree(tree);
   for (const [address, { binding }] of bindings) {
@@ -3272,6 +3335,7 @@ function inspect(options) {
   const selected = index.get(selectedAddress);
   if (!validAddress(selectedAddress) || !selected) fail3("Selected component does not exist.", { address: selectedAddress });
   for (const parent of bindings.keys()) if (parent !== selectedAddress && (parent === "/" || selectedAddress.startsWith(parent + "/"))) fail3("Selected component is shadowed by an enclosing method.", { address: selectedAddress, parent });
+  for (const effort2 of resolvedEffort) for (const parent of bindings.keys()) if (parent !== effort2.address && (parent === "/" || effort2.address.startsWith(parent + "/"))) fail3("Effort expansion is shadowed by an enclosing method.", { address: effort2.address, parent });
   const diagnostics = [];
   const visit = (node, address) => {
     const chosen = bindings.get(address);
@@ -3321,7 +3385,15 @@ function inspect(options) {
     return { ...result, identity: hash3(result) };
   };
   const resolved = visit(selected, selectedAddress);
-  return { schemaVersion: 1, identity: hash3(resolved), complete: diagnostics.length === 0, root: resolved, diagnostics };
+  const effort = resolvedEffort.filter((choice) => choice.address === "/" || selectedAddress === "/" || choice.address === selectedAddress || choice.address.startsWith(selectedAddress + "/") || selectedAddress.startsWith(choice.address + "/"));
+  return {
+    schemaVersion: 1,
+    identity: effort.length ? hash3({ root: resolved, effort }) : hash3(resolved),
+    complete: diagnostics.length === 0,
+    root: resolved,
+    ...effort.length ? { effort } : {},
+    diagnostics
+  };
 }
 var inspectComposition = Effect12.fn("mw.inspectComposition")(function* (options) {
   return yield* Effect12.try({ try: () => inspect(options), catch: (cause) => cause instanceof MadeWellError ? cause : new MadeWellError({
@@ -3573,7 +3645,7 @@ function snapshot(item) {
     owner: item.execution.owner,
     activity: "not-running",
     nextAction: exchangeAction ?? (pending ? `Recover saved handoff ${pending.id}; no performer is running.` : next ? `Prepare ${next.address}` : "Inspect recorded contributions; no execution or independent completion is implied."),
-    resources: ["source", "handoffs", "results", "packages", "selection", "exchanges"].map((kind) => ({ uri: `madewell://work/items/${item.id}/${kind}`, mimeType: "application/json" }))
+    resources: ["source", "handoffs", "results", "packages", "selection", "exchanges", "refusals"].map((kind) => ({ uri: `madewell://work/items/${item.id}/${kind}`, mimeType: "application/json" }))
   };
 }
 function request2(store, root, requestId, operation, itemId2, input, at, run) {
@@ -3586,8 +3658,9 @@ function request2(store, root, requestId, operation, itemId2, input, at, run) {
       } catch (cause) {
         const error = asError(cause);
         if (itemId2 === null) throw error;
-        store.note(itemId2, "portable-refused", { requestId, operation, input, error: errorJson(error) }, at);
-        return { root, itemId: itemId2, error: errorJson(error) };
+        const refusal = { ...errorJson(error), context: { ...error.context, draft: input } };
+        store.note(itemId2, "portable-refused", { requestId, operation, input, error: refusal }, at);
+        return { root, itemId: itemId2, error: refusal };
       }
     });
     if (saved.root !== root) throw fail5("Receipt belongs to a different material scope.", { root });
@@ -3652,14 +3725,16 @@ function pin(selection2, root) {
   }
   return packages;
 }
-function effortRecipe(node, packages, requested) {
+function effortRecipe(node, packages, requested, selection2) {
   const method = node.method;
+  const expansions = selection2?.effort?.filter((choice) => choice.address === "/" || choice.address === node.address || node.address.startsWith(choice.address + "/"));
   if (method.kind !== "skill") return resolveManagedEffort({
     requested,
     methodIdentity: method.identity,
     occurrence: node.address,
     sourceIdentity: method.origin,
-    instructionBytes: JSON.stringify(method.definition)
+    instructionBytes: JSON.stringify(method.definition),
+    expansions
   });
   const brainstorm = method.bindingOrigin === "builtin:brainstorm-seed";
   const effort = brainstorm ? packages[method.package.identity]?.find((file) => file.path === "references/effort.md") : void 0;
@@ -3671,7 +3746,8 @@ function effortRecipe(node, packages, requested) {
     methodIdentity: method.identity,
     occurrence: node.address,
     sourceIdentity: brainstorm ? "brainstorm:references/effort.md/1" : method.bindingOrigin,
-    instructionBytes: brainstorm ? effort.content : method.package.instructions
+    instructionBytes: brainstorm ? effort.content : method.package.instructions,
+    expansions
   });
 }
 function retainSelection(selection2, packages) {
@@ -3765,7 +3841,7 @@ function operations2(root) {
         const saved = item2.portable, node = leaves(retainSelection(saved.selection, saved.packages).root)[saved.results.length];
         if (!node) throw fail5("Every selected occurrence already has a recorded result.", { itemId: i.itemId });
         if (saved.handoffs.some((h) => !saved.results.some((r) => r.handoffId === h.id))) throw fail5("Recover the pending handoff instead of preparing another attempt.", { itemId: i.itemId });
-        const recipe = effortRecipe(node, saved.packages, i.effort);
+        const recipe = effortRecipe(node, saved.packages, i.effort, saved.selection);
         const effortAuthorization = authorizeManagedEffort(policy, recipe, { root, storeScope: store.path, revision: revisionOf(item2) });
         const method = node.method, selected = method.kind === "skill" ? [method.package, ...method.companions ?? []] : [];
         const discoveryJob = discoveryContracts[node.output], priorResults = scopedResults(saved, node);
@@ -3873,6 +3949,8 @@ function operations2(root) {
       } })));
       const old = leaves(current.portable.selection.root), next = leaves(selected.root);
       const attempted = new Set(current.portable.handoffs.map((h) => h.node.address));
+      const frozenEffort = (selection2) => (selection2.effort ?? []).filter((choice) => [...attempted].some((address) => choice.address === "/" || address === choice.address || address.startsWith(choice.address + "/")));
+      if (JSON.stringify(frozenEffort(selected)) !== JSON.stringify(frozenEffort(current.portable.selection))) throw fail5("Replacement changes effort expansion governing an attempted occurrence; prepared work remains pinned.", { attempted: [...attempted] });
       const enclosing = (node) => ({
         address: node.address,
         input: node.input,
@@ -3886,11 +3964,12 @@ function operations2(root) {
     }));
   });
   const readResource = Effect13.fn("mw.readPortableResource")(function* (uri) {
-    const match = /^madewell:\/\/work\/items\/([1-9][0-9]*)\/(source|handoffs|results|packages|selection|exchanges)$/.exec(uri);
+    const match = /^madewell:\/\/work\/items\/([1-9][0-9]*)\/(source|handoffs|results|packages|selection|exchanges|refusals)$/.exec(uri);
     if (!match) return yield* Effect13.fail(fail5("Unknown saved work resource.", { uri }));
     const store = yield* Store;
     return yield* attempt2(() => {
       const item = scoped(store, root, decode3(InspectPortableInput, { itemId: Number(match[1]) }).itemId), kind = match[2];
+      if (kind === "refusals") return { itemId: item.id, refusals: store.events(item.id).filter((event) => event.kind === "portable-refused").map(({ seq, at, data }) => ({ seq, at, data })) };
       return { itemId: item.id, [kind]: kind === "source" ? item.source : kind === "exchanges" ? item.portable.exchanges ?? {} : item.portable[kind] };
     });
   });
@@ -4350,6 +4429,7 @@ var CompositionInspectionOutput = z6.object({
   identity: Revision,
   complete: z6.boolean(),
   root: ResolvedComponentOutput,
+  effort: ResolvedEffort.shape.expansions,
   diagnostics: z6.array(z6.object({ code: z6.literal("method_unavailable"), address: z6.string(), message: z6.string() }))
 });
 var PortablePackagesOutput = z6.record(z6.string(), z6.array(FileOutput.extend({ encoding: z6.enum(["utf8", "base64"]) })));
@@ -4422,6 +4502,7 @@ var PortableSnapshotOutput = z6.object({
       identity: Revision,
       complete: z6.boolean(),
       root: ComponentOutput,
+      effort: ResolvedEffort.shape.expansions,
       diagnostics: z6.array(z6.object({ code: z6.literal("method_unavailable"), address: z6.string(), message: z6.string() }))
     }),
     packages: PortablePackagesOutput,
@@ -4549,7 +4630,7 @@ var serveMcp = Effect16.fn("mw.serveMcp")(function* (configuration) {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
     }, (input) => tool(Effect16.flatMap(PortableWork, (service2) => service2.promote(input)), "write"));
     server.registerTool("replace_work", {
-      description: "Explicitly re-resolve compatible structure before any preparation, or only future methods afterward, using selected configuration/override and a saved reason. Prepared occurrences, enclosing contracts/wiring, prior handoffs and results cannot be rewritten. No silent library refresh.",
+      description: "Explicitly re-resolve compatible structure before any preparation, or compatible never-prepared future methods or subtrees afterward, using selected configuration/override and a saved reason. Prepared occurrences, enclosing contracts/wiring, prior handoffs and results cannot be rewritten. No silent library refresh.",
       inputSchema: ReplacePortableInput,
       outputSchema: PortableSnapshotOutput,
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
@@ -4574,7 +4655,7 @@ var serveMcp = Effect16.fn("mw.serveMcp")(function* (configuration) {
     }, read);
     server.registerResource("work-saved-material", new ResourceTemplate("madewell://work/items/{itemId}/{kind}", { list: void 0 }), {
       mimeType: "application/json",
-      description: "Root-scoped saved source, selection, handoffs, results, packages or exchanges. Exact retained material only; no live filesystem reads."
+      description: "Root-scoped saved source, selection, handoffs, results, packages, exchanges or refusals. Exact retained material only; no live filesystem reads."
     }, read);
     skills?.attach(server);
     return server;
