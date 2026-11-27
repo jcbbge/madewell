@@ -19,6 +19,7 @@ import {
 	PortableResult,
 } from './portable-work.ts'
 import { MadeWellError, errorJson } from './errors.ts'
+import { inspectComposition } from './composition.ts'
 import { assertTelemetryStoreSeparation, localMcpTelemetry } from './mcp-telemetry.ts'
 import { acquireBrainstormSkills } from './mcp-skills.ts'
 import { openReadOnlyStore, openStore, Store } from './store.ts'
@@ -77,6 +78,24 @@ const BrainstormHandoffOutput = z.object({ id: z.string(), itemId: ItemId, at: z
 	requestedEffort: z.literal('light').nullable(), effectiveEffort: z.literal('light'), outputLength: z.string().nullable(),
 }).passthrough()
 const ComponentOutput = z.object({ address: z.string(), id: z.string(), identity: Revision, input: z.string(), output: z.string() }).passthrough()
+const SkillSelectionOutput = z.object({ name: z.string(), identity: Revision, origin: z.string(), instructions: z.string(),
+	frontmatter: z.record(z.string(), z.unknown()), manifest: z.array(FileOutput.omit({ content: true })), scope: z.literal('runtime').optional(),
+})
+const ResolvedComponentOutput = ComponentOutput.extend({
+	purpose: z.string(), origin: z.string(),
+	constraints: z.record(z.string(), z.object({ value: z.union([z.string(), z.number(), z.boolean()]), origins: z.array(z.string()) })),
+	method: z.discriminatedUnion('kind', [
+		z.object({ kind: z.literal('builtin'), origin: z.string(), identity: Revision, definition: z.record(z.string(), z.unknown()) }),
+		z.object({ kind: z.literal('skill'), origin: z.string(), bindingOrigin: z.string(), identity: Revision, package: SkillSelectionOutput,
+			companions: z.array(SkillSelectionOutput).optional(), args: z.record(z.string(), z.unknown()),
+		}),
+	]).optional(),
+	get children(): z.ZodOptional<z.ZodArray<typeof ResolvedComponentOutput>> { return z.array(ResolvedComponentOutput).optional() },
+	wiring: z.object({ inputs: z.record(z.string(), z.string()), output: z.string() }).optional(),
+})
+const CompositionInspectionOutput = z.object({ schemaVersion: z.literal(1), identity: Revision, complete: z.boolean(), root: ResolvedComponentOutput,
+	diagnostics: z.array(z.object({ code: z.literal('method_unavailable'), address: z.string(), message: z.string() })),
+})
 const PortablePackagesOutput = z.record(z.string(), z.array(FileOutput.extend({ encoding: z.enum(['utf8', 'base64']) })))
 const PortableRecordedOutput = z.object({ id: z.string(), handoffId: z.string(), at: z.string(), actor: BrainstormActor, address: z.string(), output: z.string(),
 	validation: z.literal('contract-accepted-not-independently-verified'), result: PortableResult,
@@ -140,6 +159,11 @@ export const serveMcp = Effect.fn('mw.serveMcp')(function*(configuration: McpCon
 			cacheHints: { 'resources/read': { ttlMs: 0, cacheScope: 'private' } },
 		})
 		server.server.onerror = error => { process.stderr.write(JSON.stringify(errorJson(failure(error))) + '\n') }
+		server.registerTool('inspect_composition', {
+			description: 'Resolve the live selected composition before capture within the explicit startup root. Optional component/config/override use the existing resolver; no caller root override or Store access. Returns selected instructions, origins, contracts and full source manifests, not durable-runtime payloads or execution/activation/acceptance. Missing canonical methods remain visible diagnostics.',
+			inputSchema: CapturePortableInput.pick({ component: true, config: true, override: true }).partial(), outputSchema: CompositionInspectionOutput,
+			annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+		}, input => respond(inspectComposition({ ...input, root: config.root })))
 		server.registerTool('catalog_brainstorm', {
 			description: 'List selectable shipped Brainstorm methods and actual local capabilities without loading every instruction body or opening storage.',
 			inputSchema: CatalogBrainstormInput, outputSchema: BrainstormCatalogOutput,

@@ -3638,7 +3638,7 @@ async function openTelemetry(storePath, file, now) {
             }
             const method = ["initialize", "server/discover", "ping", "tools/list", "tools/call", "resources/list", "resources/templates/list", "resources/read", "skills/list", "skills/get"].includes(message.method) ? message.method : "other";
             const requestedTool = message.method === "tools/call" ? message.params?.name : void 0;
-            const tool = typeof requestedTool === "string" && ["catalog_brainstorm", "capture_brainstorm", "inspect_brainstorm", "prepare_brainstorm", "record_brainstorm", "capture_work", "inspect_work", "prepare_work", "record_work", "preview_work", "promote_work", "replace_work"].includes(requestedTool) ? requestedTool : void 0;
+            const tool = typeof requestedTool === "string" && ["catalog_brainstorm", "capture_brainstorm", "inspect_brainstorm", "prepare_brainstorm", "record_brainstorm", "capture_work", "inspect_work", "prepare_work", "record_work", "preview_work", "promote_work", "replace_work", "inspect_composition"].includes(requestedTool) ? requestedTool : void 0;
             const dimensions = { "mcp.method.name": method, ...tool ? { "gen_ai.tool.name": tool } : {} };
             const parent = message.params?._meta?.traceparent;
             const matched = typeof parent === "string" ? /^00-([a-f0-9]{32})-([a-f0-9]{16})-([a-f0-9]{2})$/.exec(parent) : null;
@@ -3874,6 +3874,43 @@ var BrainstormHandoffOutput = z3.object({
   outputLength: z3.string().nullable()
 }).passthrough();
 var ComponentOutput = z3.object({ address: z3.string(), id: z3.string(), identity: Revision, input: z3.string(), output: z3.string() }).passthrough();
+var SkillSelectionOutput = z3.object({
+  name: z3.string(),
+  identity: Revision,
+  origin: z3.string(),
+  instructions: z3.string(),
+  frontmatter: z3.record(z3.string(), z3.unknown()),
+  manifest: z3.array(FileOutput.omit({ content: true })),
+  scope: z3.literal("runtime").optional()
+});
+var ResolvedComponentOutput = ComponentOutput.extend({
+  purpose: z3.string(),
+  origin: z3.string(),
+  constraints: z3.record(z3.string(), z3.object({ value: z3.union([z3.string(), z3.number(), z3.boolean()]), origins: z3.array(z3.string()) })),
+  method: z3.discriminatedUnion("kind", [
+    z3.object({ kind: z3.literal("builtin"), origin: z3.string(), identity: Revision, definition: z3.record(z3.string(), z3.unknown()) }),
+    z3.object({
+      kind: z3.literal("skill"),
+      origin: z3.string(),
+      bindingOrigin: z3.string(),
+      identity: Revision,
+      package: SkillSelectionOutput,
+      companions: z3.array(SkillSelectionOutput).optional(),
+      args: z3.record(z3.string(), z3.unknown())
+    })
+  ]).optional(),
+  get children() {
+    return z3.array(ResolvedComponentOutput).optional();
+  },
+  wiring: z3.object({ inputs: z3.record(z3.string(), z3.string()), output: z3.string() }).optional()
+});
+var CompositionInspectionOutput = z3.object({
+  schemaVersion: z3.literal(1),
+  identity: Revision,
+  complete: z3.boolean(),
+  root: ResolvedComponentOutput,
+  diagnostics: z3.array(z3.object({ code: z3.literal("method_unavailable"), address: z3.string(), message: z3.string() }))
+});
 var PortablePackagesOutput = z3.record(z3.string(), z3.array(FileOutput.extend({ encoding: z3.enum(["utf8", "base64"]) })));
 var PortableRecordedOutput = z3.object({
   id: z3.string(),
@@ -3987,6 +4024,12 @@ var serveMcp = Effect15.fn("mw.serveMcp")(function* (configuration) {
     server.server.onerror = (error) => {
       process.stderr.write(JSON.stringify(errorJson(failure4(error))) + "\n");
     };
+    server.registerTool("inspect_composition", {
+      description: "Resolve the live selected composition before capture within the explicit startup root. Optional component/config/override use the existing resolver; no caller root override or Store access. Returns selected instructions, origins, contracts and full source manifests, not durable-runtime payloads or execution/activation/acceptance. Missing canonical methods remain visible diagnostics.",
+      inputSchema: CapturePortableInput.pick({ component: true, config: true, override: true }).partial(),
+      outputSchema: CompositionInspectionOutput,
+      annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
+    }, (input) => respond(inspectComposition({ ...input, root: config.root })));
     server.registerTool("catalog_brainstorm", {
       description: "List selectable shipped Brainstorm methods and actual local capabilities without loading every instruction body or opening storage.",
       inputSchema: CatalogBrainstormInput,

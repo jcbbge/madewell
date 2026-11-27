@@ -27,6 +27,57 @@ async function rejectedInput(f: ProductFixture, name: string, args: Value, patte
 	assert.match(JSON.stringify(response), pattern)
 }
 
+// Requires the existing tooling expected-tools list to add inspect_composition.
+test('W4: product inspection honors explicit ordinary selection before capture without a Store or execution', async () => {
+	const f = await productFixture({ existingStore: false })
+	const directory = join(f.project, 'local-methods')
+	try {
+		const material = 'madewell.material.v1'
+		const instructions = (name: string) => `---\r\nname: ${name}\r\ndescription: Explicit local ordinary fixture.\r\nallowed-tools: Bash Read\r\n---\r\n# ${name} — 雪 / e\u0301 / 🦉\r\n  Keep exact bytes.  \r\n`
+		for (const name of ['note-a', 'note-b']) {
+			mkdirSync(join(directory, name, 'scripts'), { recursive: true })
+			writeFileSync(join(directory, name, 'SKILL.md'), instructions(name))
+			writeFileSync(join(directory, name, 'scripts/tripwire.cjs'), `require('node:fs').writeFileSync(${JSON.stringify(join(directory, 'EXECUTED'))}, 'forbidden');\r\n`)
+		}
+		const bind = (name: string) => ({ schemaVersion: 1, bindings: { '/brainstorm': { skill: `./${name}`, input: material, output: material } } })
+		writeFileSync(join(directory, 'config.json'), JSON.stringify(bind('note-a')))
+		writeFileSync(join(directory, 'override.json'), JSON.stringify(bind('note-b')))
+		const client = await f.connect({ file: true })
+		const inspect = async (override?: string) => {
+			const wire = await f.call('inspect_composition', {
+				component: '/brainstorm', config: 'local-methods/config.json', ...(override ? { override } : {}),
+			})
+			assert.notEqual(object(wire).isError, true)
+			const result = decoded(wire)
+			assert.deepEqual(object(wire).structuredContent, result)
+			assert.equal(result.schemaVersion, 1)
+			assert.equal(result.complete, true)
+			assert.deepEqual(result.diagnostics, [])
+			const root = object(result.root), method = object(root.method), pkg = object(method.package)
+			assert.equal(root.address, '/brainstorm')
+			assert.equal(root.input, material)
+			assert.equal(root.output, material)
+			assert.equal(method.kind, 'skill')
+			assert.equal(pkg.instructions, instructions(override ? 'note-b' : 'note-a'))
+			assert.equal(method.bindingOrigin, join(directory, override ? 'override.json' : 'config.json'))
+			assert.deepEqual(method.companions ?? [], [])
+			return result
+		}
+		const first = await inspect()
+		const second = await inspect('local-methods/override.json')
+		assert.notEqual(first.identity, second.identity)
+		assert.deepEqual(await inspect(), first)
+		assert.ok((await bounded(client.listTools(), 'product tools')).tools.some(tool => tool.name === 'inspect_composition'))
+		await f.disconnect()
+		assert.equal(existsSync(join(directory, 'EXECUTED')), false)
+		assert.equal(existsSync(dirname(f.storePath)), false)
+		assert.equal(f.snapshot(), null)
+	} finally {
+		rmSync(directory, { recursive: true, force: true })
+		await f.close()
+	}
+})
+
 test('B11: approved entry/posture remain ordinary independently readable skill packages, without MCP or a subscription', () => {
 	const root = join(repository, 'brainstorm')
 	for (const name of ['brainstorm', 'ambitious-collaboration', 'nonconvergence']) {

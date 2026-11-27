@@ -132,7 +132,7 @@ async function openTelemetry(storePath: string, file: string | undefined, now: (
 						// Bounded names only. Never collect source, artifacts, paths or actor labels.
 						const method = ['initialize', 'server/discover', 'ping', 'tools/list', 'tools/call', 'resources/list', 'resources/templates/list', 'resources/read', 'skills/list', 'skills/get'].includes(message.method) ? message.method : 'other'
 						const requestedTool = message.method === 'tools/call' ? message.params?.name : undefined
-						const tool = typeof requestedTool === 'string' && ['catalog_brainstorm', 'capture_brainstorm', 'inspect_brainstorm', 'prepare_brainstorm', 'record_brainstorm', 'capture_work', 'inspect_work', 'prepare_work', 'record_work', 'preview_work', 'promote_work', 'replace_work'].includes(requestedTool) ? requestedTool : undefined
+						const tool = typeof requestedTool === 'string' && ['catalog_brainstorm', 'capture_brainstorm', 'inspect_brainstorm', 'prepare_brainstorm', 'record_brainstorm', 'capture_work', 'inspect_work', 'prepare_work', 'record_work', 'preview_work', 'promote_work', 'replace_work', 'inspect_composition'].includes(requestedTool) ? requestedTool : undefined
 						const dimensions: Attributes = { 'mcp.method.name': method, ...(tool ? { 'gen_ai.tool.name': tool } : {}) }
 						// Only valid W3C version-00 trace identity crosses this boundary.
 						// Never extract baggage, tracestate or arbitrary private metadata.
