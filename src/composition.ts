@@ -7,6 +7,7 @@ import { AUTONOMY_PACK } from './autonomy-pack.ts'
 import { brainstormSeedRoot } from './brainstorm-seed.ts'
 import { MadeWellError } from './errors.ts'
 import type { Pack } from './lane.ts'
+import { loadDefaultMethod } from './method-library.ts'
 import { loadSkillPackage, readGrantedFile, validateGrantedRoot, type SkillPackage } from './skill-package.ts'
 
 const Text = Schema.NonEmptyString.check(Schema.makeFilter(s => !!s.trim() && !s.includes('\0')))
@@ -68,16 +69,12 @@ function sequence(id: string, purpose: string, children: Component[]): Component
 		wiring: { inputs: Object.fromEntries(children.map((child, i) => [child.id, i ? children[i - 1]!.id : '$input'])), output: children.at(-1)!.id } }
 }
 
-/** Existing instructions are retained verbatim; job IDs and occurrence IDs remain distinct. */
+/** Preserve the established tree and nominal contracts independently of method packaging. */
 function defaults() {
-	const methods = new Map<string, Builtin>()
 	const fromSteps = (loop: 'discovery' | 'delivery', input: string, output: string) => {
 		const steps = AUTONOMY_PACK[loop].flatMap(c => c.steps)
 		return sequence(loop, `${loop} default composition`, steps.map((step, i): Component => {
 			const id = step.job === 'discover' ? 'confirm' : step.job
-			const origin = `builtin:grammar/${loop}/${step.job}`
-			const definition = structuredClone({ step, brief: AUTONOMY_PACK.brief, contracts: AUTONOMY_PACK.contracts })
-			methods.set(`/${loop}/${id}`, { kind: 'builtin', origin, identity: hash({ origin, definition }), definition })
 			return { id, purpose: step.duty!, input: i ? `madewell.${loop}.${steps[i - 1]!.job}.output.v1` : input,
 				output: i === steps.length - 1 ? output : `madewell.${loop}.${step.job}.output.v1` }
 		}))
@@ -88,7 +85,7 @@ function defaults() {
 		fromSteps('delivery', 'madewell.candidates.v1', 'madewell.result.v1'),
 		{ id: 'landing', purpose: 'Land the work using the selected method', input: 'madewell.result.v1', output: 'madewell.result.v1' },
 	])
-	return { tree, methods }
+	return { tree }
 }
 
 function indexTree(tree: Component): Map<string, Component> {
@@ -258,7 +255,12 @@ function inspect(options: { root: string; config?: string; override?: string; co
 				const posture = loadSkillPackage(brainstormSeedRoot, 'skills/ambitious-collaboration')
 				method = { kind: 'skill', origin: skill.origin, bindingOrigin: 'builtin:brainstorm-seed',
 					identity: hash({ method: skill.identity, posture: posture.identity }), package: skill, companions: [posture], args: { effort: 'light' } }
-			} else method = initial.methods.get(address)
+			} else {
+				const selected = loadDefaultMethod(address)
+				if (selected) method = { kind: 'skill', origin: selected.snapshot.origin,
+					bindingOrigin: `builtin:method-library@${selected.revision}`, identity: selected.snapshot.identity,
+					package: selected.snapshot, args: { effort: 'light' } }
+			}
 		}
 		const children = !chosen && node.children ? node.children.map(child => visit(child, addressOf(address, child.id))) : undefined
 		if (!method && !children) diagnostics.push({ code: 'method_unavailable', address, message: 'No canonical method content is available for this occurrence. Supply a compatible skill binding.' })

@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { Effect } from 'effect'
-import { AUTONOMY_PACK, GENERAL_DISCOVERY } from '../src/autonomy-pack.ts'
 import { inspectComposition } from '../src/composition.ts'
 import { MadeWellError } from '../src/errors.ts'
 
@@ -54,7 +53,7 @@ async function refuses(options: Parameters<typeof inspectComposition>[0], code: 
 	assert.equal(refused, true, 'invalid selection must fail, not return partial/default success')
 }
 
-test('no-config inventory preserves settled defaults, original discovery jobs and honest missing methods', async () => {
+test('no-config inventory preserves settled defaults with canonical ordinary methods and honest missing Landing', async () => {
 	const f = fixture()
 	try {
 		const inventory = await f.inspect()
@@ -72,29 +71,36 @@ test('no-config inventory preserves settled defaults, original discovery jobs an
 			assert.equal(at(inventory.root, address!).input, input)
 			assert.equal(at(inventory.root, address!).output, output)
 		}
-		for (const id of discovery) {
-			const method = at(inventory.root, `/discovery/${id}`).method
-			assert.equal(method?.kind, 'builtin')
-			assert.ok(method?.origin)
-			assert.ok(method?.identity)
-			if (method?.kind === 'builtin') {
-				assert.equal(method.definition.step.job, id === 'confirm' ? 'discover' : id)
-				const original = GENERAL_DISCOVERY.discovery.flatMap(c => c.steps).find(s => s.job === method.definition.step.job)
-				assert.ok(original)
-				assert.deepEqual(method.definition.step, original, 'retains source step and its actual instructions/contracts')
-				assert.equal(method.definition.brief, GENERAL_DISCOVERY.brief)
-				assert.deepEqual(method.definition.contracts, GENERAL_DISCOVERY.contracts)
+		const selected = [
+			['/discovery/declare', 'declaring-intent', material, 'madewell.discovery.declare.output.v1'],
+			['/discovery/look-first', 'looking-first', 'madewell.discovery.declare.output.v1', 'madewell.discovery.look-first.output.v1'],
+			['/discovery/classify', 'classifying', 'madewell.discovery.look-first.output.v1', 'madewell.discovery.classify.output.v1'],
+			['/discovery/lenses', 'applying-lenses', 'madewell.discovery.classify.output.v1', 'madewell.discovery.lenses.output.v1'],
+			['/discovery/one-thing', 'shaping-candidates', 'madewell.discovery.lenses.output.v1', 'madewell.discovery.one-thing.output.v1'],
+			['/discovery/route', 'routing', 'madewell.discovery.one-thing.output.v1', 'madewell.discovery.route.output.v1'],
+			['/discovery/confirm', 'confirming', 'madewell.discovery.route.output.v1', 'madewell.candidates.v1'],
+			['/delivery/ideation', 'ideating', 'madewell.candidates.v1', 'madewell.delivery.ideation.output.v1'],
+			['/delivery/planning', 'planning', 'madewell.delivery.ideation.output.v1', 'madewell.delivery.planning.output.v1'],
+			['/delivery/implementation', 'implementing', 'madewell.delivery.planning.output.v1', 'madewell.delivery.implementation.output.v1'],
+			['/delivery/verification', 'verifying', 'madewell.delivery.implementation.output.v1', 'madewell.result.v1'],
+		] as const
+		for (const [address, name, input, output] of selected) {
+			const node = at(inventory.root, address), method = node.method
+			assert.equal(node.input, input); assert.equal(node.output, output)
+			assert.equal(method?.kind, 'skill', `${address} must not fall back to a legacy builtin`)
+			assert.ok(method?.origin); assert.ok(method?.identity)
+			if (method?.kind === 'skill') {
+				assert.equal(method.package.name, `madewell-${name}`)
+				assert.equal(method.package.frontmatter.name, `madewell-${name}`)
+				const directory = join(import.meta.dirname, '../skills/method-library', `madewell-${name}`)
+				assert.equal(method.package.origin, directory)
+				assert.equal(method.package.instructions, readFileSync(join(directory, 'SKILL.md'), 'utf8'), 'full unmodified ordinary instructions, not embedded legacy job briefs')
+				assert.ok(method.package.manifest.some(file => file.path === 'SKILL.md'))
+				assert.ok(method.package.manifest.every(file => !/^(?:evals|reviews)\//.test(file.path)))
 			}
 		}
-		for (const id of ['ideation', 'planning', 'implementation', 'verification']) {
-			const method = at(inventory.root, `/delivery/${id}`).method
-			assert.equal(method?.kind, 'builtin')
-			if (method?.kind === 'builtin') {
-				assert.deepEqual(method.definition.step, AUTONOMY_PACK.delivery.flatMap(c => c.steps).find(s => s.job === id))
-				assert.equal(method.definition.brief, AUTONOMY_PACK.brief)
-				assert.deepEqual(method.definition.contracts, AUTONOMY_PACK.contracts)
-			}
-		}
+		assert.equal(at(inventory.root, '/discovery').method, undefined, 'entry guide must not hide the seven child occurrences')
+		assert.equal(at(inventory.root, '/delivery').method, undefined, 'entry guide must not hide the four child occurrences')
 		assert.equal(inventory.complete, false, 'inventory is not a claim of method execution')
 		const brainstorm = at(inventory.root, '/brainstorm').method
 		assert.equal(brainstorm?.kind, 'skill')
@@ -396,7 +402,8 @@ test('explicit composition and replacement reuse of builtin addresses does not s
 	try {
 		f.skill('ordinary')
 		const original = at((await f.inspect()).root, '/discovery/declare')
-		assert.equal(original.method?.kind, 'builtin', 'control: the untouched default has a builtin method')
+		assert.equal(original.method?.kind, 'skill', 'control: the untouched default has its canonical ordinary method')
+		if (original.method?.kind === 'skill') assert.equal(original.method.package.name, 'madewell-declaring-intent')
 		const replacement = leaf('declare', original.input, original.output)
 		const composition = group('work', [group('discovery', [replacement], original.input, original.output)], original.input, original.output)
 		for (const selection of [{ composition }, { replacements: { '/discovery/declare': replacement } }]) {
@@ -410,6 +417,7 @@ test('explicit composition and replacement reuse of builtin addresses does not s
 			} })
 			const bound = await f.inspect({ config: 'config.json', component: '/discovery/declare' })
 			assert.equal(bound.root.method?.kind, 'skill')
+			if (bound.root.method?.kind === 'skill') assert.equal(bound.root.method.package.name, 'ordinary', 'explicit binding wins, rather than inheriting the canonical default')
 			assert.equal(bound.complete, true)
 			assert.deepEqual(bound.diagnostics, [])
 		}

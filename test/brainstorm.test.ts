@@ -78,6 +78,52 @@ test('W4: product inspection honors explicit ordinary selection before capture w
 	}
 })
 
+test('M5: default Delivery ordinary instructions and exact reported result survive MCP restart and receipt recovery', async () => {
+	const f = await productFixture()
+	const source = '  Selected task — 雪 / e\u0301 / 🦉\r\nKeep the settled outcome.  \r\n'
+	const context = '  Existing answer — β\r\nNo permission to execute.  \r\n'
+	const result = { artifact: '# Reported approach — 鳥\r\n  Not independently verified.  \r\n', sources: ['operator source'], decisions: ['Keep settled outcome'], unknowns: ['Actual availability'], performedEffort: 'light' }
+	const work = async (name: string, input: Value) => {
+		const response = object(await f.call(name, input)), value = decoded(response)
+		assert.notEqual(response.isError, true, JSON.stringify(response))
+		assert.deepEqual(response.structuredContent, value)
+		assert.equal(value.executionAuthorized, false)
+		return value
+	}
+	try {
+		await f.connect({ file: true })
+		const captured = await work('capture_work', { requestId: 'default-delivery', actor, source, component: '/delivery' })
+		const prepared = await work('prepare_work', { requestId: 'default-ideation', ...handle(captured), actor, context })
+		const packet = handoff(prepared), node = object(packet.node), method = object(node.method), pkg = object(method.package)
+		assert.equal(node.address, '/delivery/ideation')
+		assert.equal(node.input, 'madewell.candidates.v1'); assert.equal(node.output, 'madewell.delivery.ideation.output.v1')
+		assert.equal(method.kind, 'skill'); assert.equal(pkg.name, 'madewell-ideating')
+		assert.equal(pkg.instructions, readFileSync(join(text(pkg.origin), 'SKILL.md'), 'utf8'))
+		assert.equal(packet.source, source); assert.equal(packet.context, context)
+		assert.equal(packet.effectiveEffort, 'light'); assert.equal(packet.contributionSchema, null)
+		const recordInput = { requestId: 'default-ideation-record', ...handle(prepared), actor: reporter, handoffId: text(packet.id), result }
+		const recorded = await work('record_work', recordInput)
+		assert.deepEqual(object(recorded.recorded).result, result)
+		assert.equal(object(recorded.recorded).validation, 'contract-accepted-not-independently-verified')
+		await f.disconnect()
+		await f.connect({ file: true })
+		const inspected = await work('inspect_work', { itemId: handle(captured).itemId })
+		assert.equal(inspected.source, source); assert.equal(inspected.revision, recorded.revision)
+		assert.deepEqual(object(inspected.portable).selection, object(captured.portable).selection)
+		retains(inspected, packet, 'restart preserves exact canonical method pin, source and context')
+		retains(inspected, result, 'restart preserves the natural reported artifact without treating it as acceptance')
+		const beforeReplay = f.snapshot()
+		assert.deepEqual(await work('record_work', recordInput), recorded)
+		assert.deepEqual(f.snapshot(), beforeReplay, 'exact retry recovers the receipt without another transition')
+		const next = await work('prepare_work', { requestId: 'default-planning', ...handle(inspected), actor })
+		const successor = handoff(next), successorNode = object(successor.node)
+		assert.equal(successorNode.address, '/delivery/planning')
+		assert.equal(object(object(successorNode.method).package).name, 'madewell-planning')
+		retains(successor.priorResults, result, 'next selected canonical consumer receives the actual accepted prefix')
+		f.assertNoExecution()
+	} finally { await f.close() }
+})
+
 test('B11: approved entry/posture remain ordinary independently readable skill packages, without MCP or a subscription', () => {
 	const root = join(repository, 'brainstorm')
 	for (const name of ['brainstorm', 'ambitious-collaboration', 'nonconvergence']) {

@@ -2,11 +2,11 @@
 
 // src/mcp.ts
 import { realpathSync as realpathSync3 } from "node:fs";
-import { isAbsolute as isAbsolute4, resolve as resolve6 } from "node:path";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
+import { isAbsolute as isAbsolute4, resolve as resolve7 } from "node:path";
+import { fileURLToPath as fileURLToPath4 } from "node:url";
 import { parseArgs } from "node:util";
 import { Cause, Effect as Effect15, Layer as Layer7 } from "effect";
-import { z as z3 } from "zod";
+import { z as z4 } from "zod";
 import { McpServer, ResourceTemplate, ResourceNotFoundError } from "@modelcontextprotocol/server";
 import { serveStdio, StdioServerTransport } from "@modelcontextprotocol/server/stdio";
 
@@ -2122,8 +2122,8 @@ var WorkSettings = Schema9.Struct({
 var defaultSettings = () => ({ autonomy: "checkpoints", discoveryPack: GENERAL_DISCOVERY, deliveryPack: null, alert: null, inputs: [], destinations: [], conventions: [], rumen: [] });
 var settingsOf = (store) => store.settings()?.settings ?? defaultSettings();
 var validateSettings = (value, storePath) => {
-  const v = { ...value }, defaults3 = defaultSettings();
-  for (const key of Object.keys(defaults3)) if (v[key] === null && key !== "deliveryPack" && key !== "alert") v[key] = defaults3[key];
+  const v = { ...value }, defaults4 = defaultSettings();
+  for (const key of Object.keys(defaults4)) if (v[key] === null && key !== "deliveryPack" && key !== "alert") v[key] = defaults4[key];
   for (const key of ["discoveryPack", "deliveryPack"]) if (typeof v[key] === "string") {
     const resolved = Effect9.runSync(resolvePackSelection(v[key]).pipe(Effect9.match({ onSuccess: (r) => r.pack, onFailure: (e) => {
       throw e;
@@ -2856,13 +2856,66 @@ var brainstormLayer = (configuration) => Layer5.effect(Brainstorm, attempt(() =>
 // src/portable-work.ts
 import { randomUUID as randomUUID4 } from "node:crypto";
 import { Clock as Clock5, Context as Context5, Effect as Effect12, Layer as Layer6 } from "effect";
-import { z as z2 } from "zod";
+import { z as z3 } from "zod";
 
 // src/composition.ts
 import { createHash as createHash8 } from "node:crypto";
 import { lstatSync as lstatSync5 } from "node:fs";
-import { dirname as dirname6, resolve as resolve4 } from "node:path";
+import { dirname as dirname6, resolve as resolve5 } from "node:path";
 import { Effect as Effect11, Schema as Schema10 } from "effect";
+
+// src/method-library.ts
+import { resolve as resolve4 } from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+import { z as z2 } from "zod";
+var methodLibraryRoot = fileURLToPath3(new URL("../skills/method-library", import.meta.url));
+var defaults2 = {
+  "/discovery/declare": "madewell-declaring-intent",
+  "/discovery/look-first": "madewell-looking-first",
+  "/discovery/classify": "madewell-classifying",
+  "/discovery/lenses": "madewell-applying-lenses",
+  "/discovery/one-thing": "madewell-shaping-candidates",
+  "/discovery/route": "madewell-routing",
+  "/discovery/confirm": "madewell-confirming",
+  "/delivery/ideation": "madewell-ideating",
+  "/delivery/planning": "madewell-planning",
+  "/delivery/implementation": "madewell-implementing",
+  "/delivery/verification": "madewell-verifying"
+};
+var provenance = z2.object({
+  kind: z2.literal("pinned-source-inventory"),
+  schemaVersion: z2.literal(1),
+  repository: z2.literal("https://github.com/jcbbge/agent-core-public"),
+  revision: z2.string().regex(/^[a-f0-9]{40}$/),
+  filesAreUnmodified: z2.literal(true),
+  files: z2.array(z2.object({
+    path: z2.string(),
+    sourcePath: z2.string(),
+    gitBlob: z2.string().regex(/^[a-f0-9]{40}$/),
+    bytes: z2.number().int().nonnegative(),
+    sha256: z2.string().regex(/^[a-f0-9]{64}$/)
+  }))
+});
+function loadDefaultMethod(address) {
+  const name = defaults2[address];
+  if (!name) return void 0;
+  const inventory = provenance.parse(JSON.parse(readGrantedFile(methodLibraryRoot, resolve4(methodLibraryRoot, "PROVENANCE.json")).toString("utf8")));
+  const snapshot2 = loadSkillPackage(methodLibraryRoot, name, "runtime");
+  const prefix = `${name}/`;
+  const expected = inventory.files.filter((file) => file.path.startsWith(prefix));
+  if (expected.length !== snapshot2.manifest.length || snapshot2.manifest.some((file) => {
+    const entries = expected.filter((entry) => entry.path === prefix + file.path);
+    return entries.length !== 1 || entries[0].bytes !== file.bytes || entries[0].sha256 !== file.sha256;
+  })) throw new MadeWellError({
+    code: "portable_stale",
+    message: "The selected default method does not match its pinned upstream inventory.",
+    context: { address, name, revision: inventory.revision },
+    next: [{ run: "mw cartridges --inspect --root <directory>", why: "Restore the intact distribution or explicitly bind a different ordinary skill; no builtin fallback was selected." }]
+  });
+  return { snapshot: snapshot2, revision: inventory.revision };
+}
+
+// src/composition.ts
 var Text6 = Schema10.NonEmptyString.check(Schema10.makeFilter((s) => !!s.trim() && !s.includes("\0")));
 var Id2 = Text6.check(Schema10.makeFilter((s) => /^[a-z][a-z0-9-]*$/.test(s)));
 var Binding = Schema10.Struct({ skill: Text6, input: Text6, output: Text6, args: Schema10.optionalKey(Schema10.Record(Schema10.String, Schema10.Unknown)) });
@@ -2903,15 +2956,11 @@ function sequence(id2, purpose, children) {
     wiring: { inputs: Object.fromEntries(children.map((child, i) => [child.id, i ? children[i - 1].id : "$input"])), output: children.at(-1).id }
   };
 }
-function defaults2() {
-  const methods = /* @__PURE__ */ new Map();
+function defaults3() {
   const fromSteps = (loop, input, output) => {
     const steps = AUTONOMY_PACK[loop].flatMap((c) => c.steps);
     return sequence(loop, `${loop} default composition`, steps.map((step, i) => {
       const id2 = step.job === "discover" ? "confirm" : step.job;
-      const origin = `builtin:grammar/${loop}/${step.job}`;
-      const definition = structuredClone({ step, brief: AUTONOMY_PACK.brief, contracts: AUTONOMY_PACK.contracts });
-      methods.set(`/${loop}/${id2}`, { kind: "builtin", origin, identity: hash2({ origin, definition }), definition });
       return {
         id: id2,
         purpose: step.duty,
@@ -2926,7 +2975,7 @@ function defaults2() {
     fromSteps("delivery", "madewell.candidates.v1", "madewell.result.v1"),
     { id: "landing", purpose: "Land the work using the selected method", input: "madewell.result.v1", output: "madewell.result.v1" }
   ]);
-  return { tree, methods };
+  return { tree };
 }
 function indexTree(tree) {
   const index = /* @__PURE__ */ new Map();
@@ -2965,16 +3014,16 @@ function decodeConfig(root, path) {
 function configLayers(root, file, ancestors = []) {
   const { config, path } = decodeConfig(root, file);
   if (ancestors.includes(path)) fail2("Configuration imports contain a cycle.", { paths: [...ancestors, path] });
-  const imported = (config.uses ?? []).map((ref) => configLayers(root, resolve4(dirname6(path), ref), [...ancestors, path]));
+  const imported = (config.uses ?? []).map((ref) => configLayers(root, resolve5(dirname6(path), ref), [...ancestors, path]));
   const width = Math.max(0, ...imported.map((layers2) => layers2.length));
   const layers = Array.from({ length: width }, (_, i) => imported.flatMap((branch) => branch[i - (width - branch.length)] ?? []));
   return [...layers, [{ path, config }]];
 }
 function inspect(options) {
-  const root = validateGrantedRoot(resolve4(options.root));
+  const root = validateGrantedRoot(resolve5(options.root));
   let layers = [];
   if (options.config === void 0) {
-    const directory = resolve4(root, ".madewell");
+    const directory = resolve5(root, ".madewell");
     try {
       const stat = lstatSync5(directory);
       if (stat.isSymbolicLink() || !stat.isDirectory()) fail2("The optional configuration directory must be a regular directory inside the granted root.", { path: directory });
@@ -2982,7 +3031,7 @@ function inspect(options) {
       if (cause.code !== "ENOENT") throw cause;
     }
   }
-  const project = options.config === void 0 ? resolve4(root, ".madewell/config.json") : resolve4(root, options.config);
+  const project = options.config === void 0 ? resolve5(root, ".madewell/config.json") : resolve5(root, options.config);
   let projectExists = true;
   try {
     lstatSync5(project);
@@ -2991,8 +3040,8 @@ function inspect(options) {
     else readGrantedFile(root, project);
   }
   if (projectExists) layers = configLayers(root, project);
-  if (options.override !== void 0) layers.push(...configLayers(root, resolve4(root, options.override)));
-  const initial = defaults2();
+  if (options.override !== void 0) layers.push(...configLayers(root, resolve5(root, options.override)));
+  const initial = defaults3();
   let tree = initial.tree;
   const origins = new Map([...indexTree(tree).keys()].map((address) => [address, "builtin:grammar"]));
   const bindings = /* @__PURE__ */ new Map();
@@ -3035,7 +3084,7 @@ function inspect(options) {
       selectedReplacements.set(address, candidates2.toSorted((a, b) => a.origin.localeCompare(b.origin))[0]);
     }
     for (const [address, candidates2] of chosen) {
-      const identities = candidates2.map(({ origin, binding }) => hash2({ ...binding, skill: resolve4(dirname6(origin), binding.skill) }));
+      const identities = candidates2.map(({ origin, binding }) => hash2({ ...binding, skill: resolve5(dirname6(origin), binding.skill) }));
       if (new Set(identities).size > 1) {
         conflicts.set(`binding:${address}`, candidates2.map((candidate) => candidate.origin));
         continue;
@@ -3089,7 +3138,7 @@ function inspect(options) {
     const values = Object.fromEntries([...effective].sort(([a], [b]) => a.localeCompare(b)));
     let method;
     if (chosen) {
-      const skill = loadSkillPackage(root, resolve4(dirname6(chosen.origin), chosen.binding.skill));
+      const skill = loadSkillPackage(root, resolve5(dirname6(chosen.origin), chosen.binding.skill));
       method = { kind: "skill", origin: skill.origin, bindingOrigin: chosen.origin, identity: skill.identity, package: skill, args: chosen.binding.args ?? {} };
     } else if (!node.children && origins.get(address) === "builtin:grammar") {
       if (address === "/brainstorm") {
@@ -3104,7 +3153,17 @@ function inspect(options) {
           companions: [posture],
           args: { effort: "light" }
         };
-      } else method = initial.methods.get(address);
+      } else {
+        const selected2 = loadDefaultMethod(address);
+        if (selected2) method = {
+          kind: "skill",
+          origin: selected2.snapshot.origin,
+          bindingOrigin: `builtin:method-library@${selected2.revision}`,
+          identity: selected2.snapshot.identity,
+          package: selected2.snapshot,
+          args: { effort: "light" }
+        };
+      }
     }
     const children = !chosen && node.children ? node.children.map((child) => visit(child, addressOf(address, child.id))) : void 0;
     if (!method && !children) diagnostics.push({ code: "method_unavailable", address, message: "No canonical method content is available for this occurrence. Supply a compatible skill binding." });
@@ -3125,21 +3184,21 @@ var inspectComposition = Effect11.fn("mw.inspectComposition")(function* (options
 });
 
 // src/portable-work.ts
-var text2 = z2.string().refine((s) => !!s.trim() && !s.includes("\0"), "Nonblank text without NUL is required.");
-var id = z2.number().int().positive().max(Number.MAX_SAFE_INTEGER);
-var revision2 = z2.string().regex(/^[a-f0-9]{64}$/);
+var text2 = z3.string().refine((s) => !!s.trim() && !s.includes("\0"), "Nonblank text without NUL is required.");
+var id = z3.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+var revision2 = z3.string().regex(/^[a-f0-9]{64}$/);
 var target = { itemId: id };
 var mutation = { ...target, requestId: text2, revision: revision2, actor: BrainstormActor };
 var selection = { config: text2.optional(), override: text2.optional() };
-var CapturePortableInput = z2.object({ requestId: text2, actor: BrainstormActor, source: text2, title: text2.optional(), objective: text2.optional(), component: text2, ...selection }).strict();
-var InspectPortableInput = z2.object(target).strict();
-var PreparePortableInput = z2.object({ ...mutation, context: z2.string().refine((s) => !s.includes("\0")).optional(), outputLength: text2.optional(), effort: z2.enum(["light", "focused", "deep"]).optional() }).strict();
-var PortableResult = z2.object({ artifact: text2, sources: z2.array(text2), decisions: z2.array(text2), unknowns: z2.array(text2), contribution: z2.unknown().optional(), performedEffort: z2.literal("light") }).strict();
-var RecordPortableInput = z2.object({ ...mutation, handoffId: text2, result: PortableResult }).strict();
-var ids = z2.array(id).nonempty().refine((values) => new Set(values).size === values.length, "Selection must contain distinct explicit IDs.");
-var PreviewPortableInput = z2.object({ ...target, ids }).strict();
-var PromotePortableInput = z2.object({ ...mutation, ids, candidateRevisions: z2.record(z2.string(), revision2) }).strict();
-var ReplacePortableInput = z2.object({ ...mutation, reason: text2, ...selection }).strict();
+var CapturePortableInput = z3.object({ requestId: text2, actor: BrainstormActor, source: text2, title: text2.optional(), objective: text2.optional(), component: text2, ...selection }).strict();
+var InspectPortableInput = z3.object(target).strict();
+var PreparePortableInput = z3.object({ ...mutation, context: z3.string().refine((s) => !s.includes("\0")).optional(), outputLength: text2.optional(), effort: z3.enum(["light", "focused", "deep"]).optional() }).strict();
+var PortableResult = z3.object({ artifact: text2, sources: z3.array(text2), decisions: z3.array(text2), unknowns: z3.array(text2), contribution: z3.unknown().optional(), performedEffort: z3.literal("light") }).strict();
+var RecordPortableInput = z3.object({ ...mutation, handoffId: text2, result: PortableResult }).strict();
+var ids = z3.array(id).nonempty().refine((values) => new Set(values).size === values.length, "Selection must contain distinct explicit IDs.");
+var PreviewPortableInput = z3.object({ ...target, ids }).strict();
+var PromotePortableInput = z3.object({ ...mutation, ids, candidateRevisions: z3.record(z3.string(), revision2) }).strict();
+var ReplacePortableInput = z3.object({ ...mutation, reason: text2, ...selection }).strict();
 var recovery = [{ run: "inspect_work", why: "Inspect saved work before revising intent. Recover uncertain outcomes using the original requestId and exact body; never automatically choose a new ID." }];
 var fail3 = (message, context2 = {}) => new MadeWellError({ code: "portable_invalid", message, context: context2, next: recovery });
 var asError = (cause) => cause instanceof MadeWellError ? new MadeWellError({ code: cause.code, message: cause.message, context: cause.context, next: cause.next.length ? cause.next : recovery, ...cause.cause ? { cause: cause.cause } : {} }) : fail3("Portable work operation failed.", { reason: String(cause) });
@@ -3261,7 +3320,8 @@ function pin(selection2, root) {
     if (method.kind !== "skill") continue;
     if (Object.keys(method.args).some((key) => key !== "effort") || method.args.effort !== void 0 && method.args.effort !== "light") throw fail3("Only the free Light recipe without custom method arguments is supported by this service.", { address: node.address, args: method.args });
     for (const pkg of [method.package, ...method.companions ?? []]) {
-      const grant = pkg.origin === root || pkg.origin.startsWith(root.endsWith("/") ? root : root + "/") ? root : brainstormSeedRoot;
+      const grant = [root, brainstormSeedRoot, methodLibraryRoot].find((grant2) => pkg.origin === grant2 || pkg.origin.startsWith(grant2.endsWith("/") ? grant2 : grant2 + "/"));
+      if (!grant) throw fail3("The selected package has no authorized material grant.", { address: node.address, origin: pkg.origin });
       packages[pkg.identity] = pkg.manifest.filter((f) => f.path === "SKILL.md" || f.path.startsWith("references/") || f.path.startsWith("assets/") || f.path.startsWith("scripts/") || /^(LICENSE|NOTICE)(\.(txt|md))?$/.test(f.path)).map((file) => {
         const bytes2 = readSkillFile(grant, pkg, file.path);
         try {
@@ -3473,7 +3533,7 @@ var portableWorkLayer = (configuration) => Layer6.effect(PortableWork, attempt2(
 
 // src/mcp-telemetry.ts
 import { closeSync as closeSync5, constants as constants4, fstatSync as fstatSync4, lstatSync as lstatSync6, openSync as openSync5, realpathSync as realpathSync2, statSync, writeSync } from "node:fs";
-import { basename as basename2, dirname as dirname7, resolve as resolve5 } from "node:path";
+import { basename as basename2, dirname as dirname7, resolve as resolve6 } from "node:path";
 import { context, metrics as metrics2, trace, ROOT_CONTEXT, SpanKind, SpanStatusCode } from "@opentelemetry/api";
 import { NodeSDK } from "@opentelemetry/sdk-node";
 import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
@@ -3487,12 +3547,12 @@ var failure2 = (cause) => cause instanceof MadeWellError ? cause : new MadeWellE
 var missing = (cause) => typeof cause === "object" && cause !== null && "code" in cause && cause.code === "ENOENT";
 var sameFile = (left, right) => left.dev === right.dev && left.ino === right.ino;
 function canonicalDestination(path) {
-  let existing = resolve5(path);
+  let existing = resolve6(path);
   const remaining = [];
   let appearanceRetries = 0;
   for (; ; ) {
     try {
-      return resolve5(realpathSync2(existing), ...remaining);
+      return resolve6(realpathSync2(existing), ...remaining);
     } catch (cause) {
       if (!missing(cause)) throw cause;
       let present2 = false, symlink = false;
@@ -3810,188 +3870,188 @@ var requestStoreLayer = (path, readOnly, assertStoreSeparation) => Layer7.effect
   })),
   (store) => trySync(() => store.close()).pipe(Effect15.catch((error) => Effect15.sync(() => report(error))))
 ));
-var ItemId = z3.number().int().positive().max(Number.MAX_SAFE_INTEGER);
-var Revision = z3.string().regex(/^[a-f0-9]{64}$/);
-var BrainstormCatalogOutput = z3.object({
-  schemaVersion: z3.literal(1),
-  root: z3.string(),
-  component: z3.literal("/brainstorm"),
-  defaultMethods: z3.array(z3.string()),
-  defaultEffort: z3.literal("light"),
-  methods: z3.array(z3.object({ name: z3.string(), default: z3.boolean(), availability: z3.literal("validated-on-selection") })),
-  effort: z3.object({ light: z3.literal("free"), focused: z3.literal("managed-entitlement-unavailable"), deep: z3.literal("managed-entitlement-unavailable") }),
-  configuration: z3.string(),
-  resource: z3.literal("madewell://brainstorm/catalog"),
-  capabilities: z3.object({
-    materialRoot: z3.string(),
-    materialAccess: z3.literal("captured-source-and-pinned-selected-packages-only"),
-    managedEffort: z3.array(z3.literal("light")),
-    execution: z3.literal(false),
-    promotion: z3.literal(false),
-    workerLaunch: z3.literal(false),
-    network: z3.literal(false),
-    arbitraryFileRead: z3.literal(false),
-    providerInference: z3.literal(false),
-    nativeSkills: z3.literal(false)
+var ItemId = z4.number().int().positive().max(Number.MAX_SAFE_INTEGER);
+var Revision = z4.string().regex(/^[a-f0-9]{64}$/);
+var BrainstormCatalogOutput = z4.object({
+  schemaVersion: z4.literal(1),
+  root: z4.string(),
+  component: z4.literal("/brainstorm"),
+  defaultMethods: z4.array(z4.string()),
+  defaultEffort: z4.literal("light"),
+  methods: z4.array(z4.object({ name: z4.string(), default: z4.boolean(), availability: z4.literal("validated-on-selection") })),
+  effort: z4.object({ light: z4.literal("free"), focused: z4.literal("managed-entitlement-unavailable"), deep: z4.literal("managed-entitlement-unavailable") }),
+  configuration: z4.string(),
+  resource: z4.literal("madewell://brainstorm/catalog"),
+  capabilities: z4.object({
+    materialRoot: z4.string(),
+    materialAccess: z4.literal("captured-source-and-pinned-selected-packages-only"),
+    managedEffort: z4.array(z4.literal("light")),
+    execution: z4.literal(false),
+    promotion: z4.literal(false),
+    workerLaunch: z4.literal(false),
+    network: z4.literal(false),
+    arbitraryFileRead: z4.literal(false),
+    providerInference: z4.literal(false),
+    nativeSkills: z4.literal(false)
   })
 });
-var ResourceOutput = z3.object({ uri: z3.string(), mimeType: z3.string() }).passthrough();
-var FileOutput = z3.object({ path: z3.string(), bytes: z3.number().int().nonnegative(), sha256: Revision, content: z3.string() }).passthrough();
-var PriorInputOutput = z3.object({ handoffId: z3.string(), actor: BrainstormActor, context: z3.string() });
-var BrainstormPackageOutput = z3.object({
-  name: z3.string(),
+var ResourceOutput = z4.object({ uri: z4.string(), mimeType: z4.string() }).passthrough();
+var FileOutput = z4.object({ path: z4.string(), bytes: z4.number().int().nonnegative(), sha256: Revision, content: z4.string() }).passthrough();
+var PriorInputOutput = z4.object({ handoffId: z4.string(), actor: BrainstormActor, context: z4.string() });
+var BrainstormPackageOutput = z4.object({
+  name: z4.string(),
   identity: Revision,
-  origin: z3.string(),
-  instructions: z3.string(),
-  manifest: z3.array(FileOutput.omit({ content: true })),
-  files: z3.array(FileOutput),
-  frontmatter: z3.record(z3.string(), z3.unknown())
+  origin: z4.string(),
+  instructions: z4.string(),
+  manifest: z4.array(FileOutput.omit({ content: true })),
+  files: z4.array(FileOutput),
+  frontmatter: z4.record(z4.string(), z4.unknown())
 }).passthrough();
-var BrainstormRecordedOutput = z3.object({
-  id: z3.string(),
-  handoffId: z3.string(),
-  at: z3.string(),
+var BrainstormRecordedOutput = z4.object({
+  id: z4.string(),
+  handoffId: z4.string(),
+  at: z4.string(),
   actor: BrainstormActor,
-  validation: z3.literal("shape-accepted-not-independently-verified"),
+  validation: z4.literal("shape-accepted-not-independently-verified"),
   result: BrainstormResult
 });
-var BrainstormHandoffOutput = z3.object({
-  id: z3.string(),
+var BrainstormHandoffOutput = z4.object({
+  id: z4.string(),
   itemId: ItemId,
-  at: z3.string(),
+  at: z4.string(),
   actor: BrainstormActor,
-  component: z3.literal("/brainstorm"),
-  source: z3.string(),
-  context: z3.string().nullable(),
-  title: z3.string(),
-  objective: z3.string(),
-  methods: z3.array(z3.string()),
-  packages: z3.array(BrainstormPackageOutput),
-  priorInputs: z3.array(PriorInputOutput),
-  priorResults: z3.array(BrainstormRecordedOutput),
-  requestedEffort: z3.literal("light").nullable(),
-  effectiveEffort: z3.literal("light"),
-  outputLength: z3.string().nullable()
+  component: z4.literal("/brainstorm"),
+  source: z4.string(),
+  context: z4.string().nullable(),
+  title: z4.string(),
+  objective: z4.string(),
+  methods: z4.array(z4.string()),
+  packages: z4.array(BrainstormPackageOutput),
+  priorInputs: z4.array(PriorInputOutput),
+  priorResults: z4.array(BrainstormRecordedOutput),
+  requestedEffort: z4.literal("light").nullable(),
+  effectiveEffort: z4.literal("light"),
+  outputLength: z4.string().nullable()
 }).passthrough();
-var ComponentOutput = z3.object({ address: z3.string(), id: z3.string(), identity: Revision, input: z3.string(), output: z3.string() }).passthrough();
-var SkillSelectionOutput = z3.object({
-  name: z3.string(),
+var ComponentOutput = z4.object({ address: z4.string(), id: z4.string(), identity: Revision, input: z4.string(), output: z4.string() }).passthrough();
+var SkillSelectionOutput = z4.object({
+  name: z4.string(),
   identity: Revision,
-  origin: z3.string(),
-  instructions: z3.string(),
-  frontmatter: z3.record(z3.string(), z3.unknown()),
-  manifest: z3.array(FileOutput.omit({ content: true })),
-  scope: z3.literal("runtime").optional()
+  origin: z4.string(),
+  instructions: z4.string(),
+  frontmatter: z4.record(z4.string(), z4.unknown()),
+  manifest: z4.array(FileOutput.omit({ content: true })),
+  scope: z4.literal("runtime").optional()
 });
 var ResolvedComponentOutput = ComponentOutput.extend({
-  purpose: z3.string(),
-  origin: z3.string(),
-  constraints: z3.record(z3.string(), z3.object({ value: z3.union([z3.string(), z3.number(), z3.boolean()]), origins: z3.array(z3.string()) })),
-  method: z3.discriminatedUnion("kind", [
-    z3.object({ kind: z3.literal("builtin"), origin: z3.string(), identity: Revision, definition: z3.record(z3.string(), z3.unknown()) }),
-    z3.object({
-      kind: z3.literal("skill"),
-      origin: z3.string(),
-      bindingOrigin: z3.string(),
+  purpose: z4.string(),
+  origin: z4.string(),
+  constraints: z4.record(z4.string(), z4.object({ value: z4.union([z4.string(), z4.number(), z4.boolean()]), origins: z4.array(z4.string()) })),
+  method: z4.discriminatedUnion("kind", [
+    z4.object({ kind: z4.literal("builtin"), origin: z4.string(), identity: Revision, definition: z4.record(z4.string(), z4.unknown()) }),
+    z4.object({
+      kind: z4.literal("skill"),
+      origin: z4.string(),
+      bindingOrigin: z4.string(),
       identity: Revision,
       package: SkillSelectionOutput,
-      companions: z3.array(SkillSelectionOutput).optional(),
-      args: z3.record(z3.string(), z3.unknown())
+      companions: z4.array(SkillSelectionOutput).optional(),
+      args: z4.record(z4.string(), z4.unknown())
     })
   ]).optional(),
   get children() {
-    return z3.array(ResolvedComponentOutput).optional();
+    return z4.array(ResolvedComponentOutput).optional();
   },
-  wiring: z3.object({ inputs: z3.record(z3.string(), z3.string()), output: z3.string() }).optional()
+  wiring: z4.object({ inputs: z4.record(z4.string(), z4.string()), output: z4.string() }).optional()
 });
-var CompositionInspectionOutput = z3.object({
-  schemaVersion: z3.literal(1),
+var CompositionInspectionOutput = z4.object({
+  schemaVersion: z4.literal(1),
   identity: Revision,
-  complete: z3.boolean(),
+  complete: z4.boolean(),
   root: ResolvedComponentOutput,
-  diagnostics: z3.array(z3.object({ code: z3.literal("method_unavailable"), address: z3.string(), message: z3.string() }))
+  diagnostics: z4.array(z4.object({ code: z4.literal("method_unavailable"), address: z4.string(), message: z4.string() }))
 });
-var PortablePackagesOutput = z3.record(z3.string(), z3.array(FileOutput.extend({ encoding: z3.enum(["utf8", "base64"]) })));
-var PortableRecordedOutput = z3.object({
-  id: z3.string(),
-  handoffId: z3.string(),
-  at: z3.string(),
+var PortablePackagesOutput = z4.record(z4.string(), z4.array(FileOutput.extend({ encoding: z4.enum(["utf8", "base64"]) })));
+var PortableRecordedOutput = z4.object({
+  id: z4.string(),
+  handoffId: z4.string(),
+  at: z4.string(),
   actor: BrainstormActor,
-  address: z3.string(),
-  output: z3.string(),
-  validation: z3.literal("contract-accepted-not-independently-verified"),
+  address: z4.string(),
+  output: z4.string(),
+  validation: z4.literal("contract-accepted-not-independently-verified"),
   result: PortableResult
 });
-var PortableHandoffOutput = z3.object({
-  id: z3.string(),
-  at: z3.string(),
+var PortableHandoffOutput = z4.object({
+  id: z4.string(),
+  at: z4.string(),
   actor: BrainstormActor,
   node: ComponentOutput,
-  source: z3.string(),
-  context: z3.string().nullable(),
-  priorInputs: z3.array(PriorInputOutput),
-  priorResults: z3.array(PortableRecordedOutput),
+  source: z4.string(),
+  context: z4.string().nullable(),
+  priorInputs: z4.array(PriorInputOutput),
+  priorResults: z4.array(PortableRecordedOutput),
   packages: PortablePackagesOutput,
-  requestedEffort: z3.literal("light").nullable(),
-  effectiveEffort: z3.literal("light"),
-  outputLength: z3.string().nullable(),
-  contributionSchema: z3.record(z3.string(), z3.unknown()).nullable(),
-  framing: z3.string()
+  requestedEffort: z4.literal("light").nullable(),
+  effectiveEffort: z4.literal("light"),
+  outputLength: z4.string().nullable(),
+  contributionSchema: z4.record(z4.string(), z4.unknown()).nullable(),
+  framing: z4.string()
 });
 var SnapshotFields = {
   itemId: ItemId,
   revision: Revision,
-  root: z3.string(),
-  source: z3.string(),
-  title: z3.string(),
-  objective: z3.string(),
-  status: z3.string(),
-  owner: z3.string(),
-  resources: z3.array(ResourceOutput),
-  executionAuthorized: z3.literal(false)
+  root: z4.string(),
+  source: z4.string(),
+  title: z4.string(),
+  objective: z4.string(),
+  status: z4.string(),
+  owner: z4.string(),
+  resources: z4.array(ResourceOutput),
+  executionAuthorized: z4.literal(false)
 };
-var BrainstormSnapshotOutput = z3.object({
+var BrainstormSnapshotOutput = z4.object({
   ...SnapshotFields,
-  promotionAuthorized: z3.literal(false),
-  brainstorm: z3.object({
-    version: z3.literal(1),
-    root: z3.string(),
-    source: z3.string(),
-    title: z3.string(),
-    objective: z3.string(),
+  promotionAuthorized: z4.literal(false),
+  brainstorm: z4.object({
+    version: z4.literal(1),
+    root: z4.string(),
+    source: z4.string(),
+    title: z4.string(),
+    objective: z4.string(),
     capturedBy: BrainstormActor,
-    packages: z3.array(BrainstormPackageOutput),
-    handoffs: z3.array(BrainstormHandoffOutput),
-    results: z3.array(BrainstormRecordedOutput)
+    packages: z4.array(BrainstormPackageOutput),
+    handoffs: z4.array(BrainstormHandoffOutput),
+    results: z4.array(BrainstormRecordedOutput)
   })
 }).passthrough();
-var PortableSnapshotOutput = z3.object({
+var PortableSnapshotOutput = z4.object({
   ...SnapshotFields,
-  independentlyVerified: z3.literal(false),
-  activity: z3.literal("not-running"),
-  nextAction: z3.string(),
-  portable: z3.object({
-    version: z3.literal(1),
-    root: z3.string(),
-    selection: z3.object({
-      schemaVersion: z3.literal(1),
+  independentlyVerified: z4.literal(false),
+  activity: z4.literal("not-running"),
+  nextAction: z4.string(),
+  portable: z4.object({
+    version: z4.literal(1),
+    root: z4.string(),
+    selection: z4.object({
+      schemaVersion: z4.literal(1),
       identity: Revision,
-      complete: z3.boolean(),
+      complete: z4.boolean(),
       root: ComponentOutput,
-      diagnostics: z3.array(z3.object({ code: z3.literal("method_unavailable"), address: z3.string(), message: z3.string() }))
+      diagnostics: z4.array(z4.object({ code: z4.literal("method_unavailable"), address: z4.string(), message: z4.string() }))
     }),
     packages: PortablePackagesOutput,
-    handoffs: z3.array(PortableHandoffOutput),
-    results: z3.array(PortableRecordedOutput),
-    candidates: z3.array(ItemId)
+    handoffs: z4.array(PortableHandoffOutput),
+    results: z4.array(PortableRecordedOutput),
+    candidates: z4.array(ItemId)
   })
 }).passthrough();
-var PromotionOutput = z3.object({ selected: z3.array(z3.object({
+var PromotionOutput = z4.object({ selected: z4.array(z4.object({
   itemId: ItemId,
   revision: Revision,
-  title: z3.string(),
-  prerequisites: z3.array(z3.object({ itemId: ItemId, selected: z3.boolean(), completed: z3.boolean() }))
-})), executionAuthorized: z3.literal(false), implicitPrerequisites: z3.literal(false) });
+  title: z4.string(),
+  prerequisites: z4.array(z4.object({ itemId: ItemId, selected: z4.boolean(), completed: z4.boolean() }))
+})), executionAuthorized: z4.literal(false), implicitPrerequisites: z4.literal(false) });
 var serveMcp = Effect15.fn("mw.serveMcp")(function* (configuration) {
   const config = yield* trySync(() => {
     if (!isAbsolute4(configuration.root) || !isAbsolute4(configuration.store) || configuration.telemetryFile !== void 0 && !isAbsolute4(configuration.telemetryFile)) {
@@ -4185,7 +4245,7 @@ var mcpMain = Effect15.fn("mw.mcpMain")(function* (args = process.argv.slice(2))
   yield* serveMcp(configuration);
 });
 await Effect15.runPromise(Effect15.scoped(Effect15.gen(function* () {
-  const entry = yield* trySync(() => process.argv[1] !== void 0 && realpathSync3(resolve6(process.argv[1])) === fileURLToPath3(import.meta.url));
+  const entry = yield* trySync(() => process.argv[1] !== void 0 && realpathSync3(resolve7(process.argv[1])) === fileURLToPath4(import.meta.url));
   if (entry) yield* mcpMain();
 })).pipe(Effect15.matchCause({
   onSuccess: () => void 0,

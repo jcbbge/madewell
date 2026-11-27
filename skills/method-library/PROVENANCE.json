@@ -1,0 +1,185 @@
+{
+  "kind": "pinned-source-inventory",
+  "schemaVersion": 1,
+  "repository": "https://github.com/jcbbge/agent-core-public",
+  "revision": "ddfec378480e30383168633e116849beeed38d58",
+  "filesAreUnmodified": true,
+  "skills": [
+    "madewell-working",
+    "madewell-discovering",
+    "madewell-declaring-intent",
+    "madewell-looking-first",
+    "madewell-classifying",
+    "madewell-applying-lenses",
+    "madewell-shaping-candidates",
+    "madewell-routing",
+    "madewell-confirming",
+    "madewell-delivering",
+    "madewell-ideating",
+    "madewell-planning",
+    "madewell-implementing",
+    "madewell-verifying"
+  ],
+  "license": {
+    "path": "LICENSE.agent-core",
+    "sourcePath": "LICENSE",
+    "gitBlob": "00a1fd93938dbd4cb704f56ecc2f6da58f3d1e35",
+    "mode": "100644",
+    "bytes": 1067,
+    "sha256": "1f56f5190c80cda501ef199f1fd4f127cad58991d23a895f9c6911c3ea4865bd"
+  },
+  "files": [
+    {
+      "path": "LICENSE.agent-core",
+      "sourcePath": "LICENSE",
+      "gitBlob": "00a1fd93938dbd4cb704f56ecc2f6da58f3d1e35",
+      "mode": "100644",
+      "bytes": 1067,
+      "sha256": "1f56f5190c80cda501ef199f1fd4f127cad58991d23a895f9c6911c3ea4865bd"
+    },
+    {
+      "path": "madewell-applying-lenses/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-applying-lenses/SKILL.md",
+      "gitBlob": "38d4887a5849bf4bca3dac5074aaab08fcab84be",
+      "mode": "100644",
+      "bytes": 5223,
+      "sha256": "33da562266381457b84484f04bf679be4bbebccd4082ab720c14b9aef104ecd6"
+    },
+    {
+      "path": "madewell-classifying/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-classifying/SKILL.md",
+      "gitBlob": "653fe140e384da4b5875a3b87e4df2e9f420f3b2",
+      "mode": "100644",
+      "bytes": 5085,
+      "sha256": "cf471596521574c98b587cd26e4097000582a712e880264311619c08cb610d86"
+    },
+    {
+      "path": "madewell-confirming/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-confirming/SKILL.md",
+      "gitBlob": "bb677b485299db2b680f065d3a6e7473c7f463d7",
+      "mode": "100644",
+      "bytes": 5682,
+      "sha256": "94a13b57be219b994a9893bb4c32972d5ca0183892139562cf0b964cb4ce6b18"
+    },
+    {
+      "path": "madewell-declaring-intent/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-declaring-intent/SKILL.md",
+      "gitBlob": "ad322182ce9b2e3b5bbbfea883bc43998ff354c1",
+      "mode": "100644",
+      "bytes": 4588,
+      "sha256": "214414496a24218da3d81dc549db27eef145ca16fae66071320625866184711a"
+    },
+    {
+      "path": "madewell-delivering/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-delivering/SKILL.md",
+      "gitBlob": "7b7cd04fdfd5473f01b46e4b367c9cbe282f838c",
+      "mode": "100644",
+      "bytes": 6128,
+      "sha256": "2ef8fe7fba5030eb0d67dcfd1cdc2266cb7040965332e9bf9b782cb861a5427a"
+    },
+    {
+      "path": "madewell-discovering/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-discovering/SKILL.md",
+      "gitBlob": "6f506286a2d1e1d281ab69b435c578df85385396",
+      "mode": "100644",
+      "bytes": 5906,
+      "sha256": "c2ae8fa73eac632ad5d37f8baa2c2881a5a06c87f09c275c41e03b941f88f970"
+    },
+    {
+      "path": "madewell-ideating/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-ideating/SKILL.md",
+      "gitBlob": "cba84c674df1b4baf9485ba16919a1788801a21f",
+      "mode": "100644",
+      "bytes": 5313,
+      "sha256": "44f1a7e6feee6ba2a7c1070003de2a948e8af7a075aed7e418b1c6ec0f32337b"
+    },
+    {
+      "path": "madewell-implementing/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-implementing/SKILL.md",
+      "gitBlob": "404b1d0e79b099cc668cc92089d9eeb6fa7b7f7f",
+      "mode": "100644",
+      "bytes": 6113,
+      "sha256": "56f8dfea2e33c5932368f57f7401ddb5f7a58ddf2e40a308f01e03dd11bb9a35"
+    },
+    {
+      "path": "madewell-looking-first/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-looking-first/SKILL.md",
+      "gitBlob": "81c014b0ec7809f11a2a8b3f1c63e80006c1d012",
+      "mode": "100644",
+      "bytes": 4631,
+      "sha256": "1a3b9675912e9313b0f2a9051d11cdcfa2f533130d5218344704a2e076fd0708"
+    },
+    {
+      "path": "madewell-planning/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-planning/SKILL.md",
+      "gitBlob": "ca6f6d9ae92fde489ceb065227b0f1fa941472c4",
+      "mode": "100644",
+      "bytes": 6468,
+      "sha256": "d935f2b0522fcebb370775586b5c14390cd6055ab2d449a10bb24957a1c7e48f"
+    },
+    {
+      "path": "madewell-routing/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-routing/SKILL.md",
+      "gitBlob": "f4c61ebf5df17d0dca44daf9ad782e7b5a4ed749",
+      "mode": "100644",
+      "bytes": 5540,
+      "sha256": "24718eb81dab99e0a937e72dcb679f672cdef5130629ab85dce2750aeadc7834"
+    },
+    {
+      "path": "madewell-shaping-candidates/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-shaping-candidates/SKILL.md",
+      "gitBlob": "a50651159c1989be71d03ef2e8b5acc26716154a",
+      "mode": "100644",
+      "bytes": 5443,
+      "sha256": "118ac9b72a182fb2f5e5ffbf6013237f40e91484249a79c3637d2f0466405cee"
+    },
+    {
+      "path": "madewell-verifying/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-verifying/SKILL.md",
+      "gitBlob": "2c81f46ebd531ab2cc3695e76e161ccabb251ea6",
+      "mode": "100644",
+      "bytes": 6590,
+      "sha256": "889b1a97de76ecdd879c2b77dd19b0dd2c08e91f869f75922905b5e7d0231d37"
+    },
+    {
+      "path": "madewell-working/SKILL.md",
+      "sourcePath": "primitives/skills/madewell-working/SKILL.md",
+      "gitBlob": "59c003659eff0608245854de841adcca28048e39",
+      "mode": "100644",
+      "bytes": 6739,
+      "sha256": "5b3418ba6c3cb20a02e2c89863da01e5c2b79526bd6ffb4c6861c103cfe866f7"
+    },
+    {
+      "path": "madewell-working/references/evidence-recovery.md",
+      "sourcePath": "primitives/skills/madewell-working/references/evidence-recovery.md",
+      "gitBlob": "2111528bda5d6471d0d97a3194f4c85e86c1a490",
+      "mode": "100644",
+      "bytes": 4534,
+      "sha256": "c8ddd756f8af408d73f5e01c12f4e62cc5dfcebfbb001b6cd082b619e2fca30d"
+    },
+    {
+      "path": "madewell-working/references/exchanges.md",
+      "sourcePath": "primitives/skills/madewell-working/references/exchanges.md",
+      "gitBlob": "2a4e01901d1fb163cf3c3df0036bf82d8afe14fc",
+      "mode": "100644",
+      "bytes": 4048,
+      "sha256": "747e515d12421c625d492668ddb476d72e96e795f59cb0b5a9b603a0c69a4812"
+    },
+    {
+      "path": "madewell-working/references/ground-rumen.md",
+      "sourcePath": "primitives/skills/madewell-working/references/ground-rumen.md",
+      "gitBlob": "51b6411af0f8936624d9dc29c577b13f63b374ed",
+      "mode": "100644",
+      "bytes": 4399,
+      "sha256": "f004d290766df7010736ea940196d74a7cd71ae7b3e16a12cef72573f1bcc1c5"
+    },
+    {
+      "path": "madewell-working/references/judgment.md",
+      "sourcePath": "primitives/skills/madewell-working/references/judgment.md",
+      "gitBlob": "32151ac2817d88f17a035cec762be4daedbaf9ea",
+      "mode": "100644",
+      "bytes": 3520,
+      "sha256": "b2e53e40e1e05b09ec23dc16f6eeb7aecfaf5086f485717c04d41cfd22710a17"
+    }
+  ]
+}

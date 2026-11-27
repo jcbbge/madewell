@@ -13,6 +13,7 @@ import { readSkillFile, validateGrantedRoot, type SkillPackage } from './skill-p
 import { Store, type Item } from './store.ts'
 import { BrainstormActor } from './brainstorm.ts'
 import { brainstormSeedRoot } from './brainstorm-seed.ts'
+import { methodLibraryRoot } from './method-library.ts'
 
 const text = z.string().refine(s => !!s.trim() && !s.includes('\0'), 'Nonblank text without NUL is required.')
 const id = z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
@@ -147,8 +148,9 @@ function pin(selection: CompositionInspection, root: string): PortableState['pac
 		if (method.kind !== 'skill') continue
 		if (Object.keys(method.args).some(key => key !== 'effort') || (method.args.effort !== undefined && method.args.effort !== 'light')) throw fail('Only the free Light recipe without custom method arguments is supported by this service.', { address: node.address, args: method.args })
 		for (const pkg of [method.package, ...(method.companions ?? [])]) {
-			// Shipped Brainstorm companions have their own explicit read-only package grant.
-			const grant = pkg.origin === root || pkg.origin.startsWith(root.endsWith('/') ? root : root + '/') ? root : brainstormSeedRoot
+			// Only caller-owned material and the two distribution-owned roots are granted.
+			const grant = [root, brainstormSeedRoot, methodLibraryRoot].find(grant => pkg.origin === grant || pkg.origin.startsWith(grant.endsWith('/') ? grant : grant + '/'))
+			if (!grant) throw fail('The selected package has no authorized material grant.', { address: node.address, origin: pkg.origin })
 			// Retain ordinary runtime support, not eval/review/development payloads. Script bytes grant no execution authority.
 			packages[pkg.identity] = pkg.manifest.filter(f => f.path === 'SKILL.md'
 				|| f.path.startsWith('references/') || f.path.startsWith('assets/') || f.path.startsWith('scripts/')

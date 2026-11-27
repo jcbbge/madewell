@@ -11,6 +11,18 @@ The upstream MIT copyright and license notice is included in
 file bytes. Runtime packaging omits evaluation scenarios and source review/design
 documents; the retained runtime skill files are not edited or relicensed.
 
+## Work, Discovery and Delivery ordinary skills
+
+The fourteen `madewell-*` skill bodies and four Work supporting references under
+`skills/method-library/` are an unmodified snapshot of `jcbbge/agent-core-public`.
+`skills/method-library/PROVENANCE.json` records the exact published revision,
+original paths, Git blobs, byte sizes and SHA-256 hashes. The upstream MIT
+copyright and license notice is included as `skills/method-library/LICENSE.agent-core`.
+Runtime packaging excludes the source evaluation cases and development material.
+This pin is separate from, and does not refresh, the Brainstorm pin above.
+Source-proposal wording inside the original instructions is retained unchanged;
+publication and packaging are not complete behavioral or native-host acceptance.
+
 ## yaml
 
 Copyright Eemeli Aro <eemeli@gmail.com>
