@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "bin": {
-    "mw": "dist/mw.mjs"
+    "mw": "dist/mw.mjs",
+    "madewell-mcp": "dist/mcp.mjs"
   },
   "files": [
     "dist/mw.mjs",
+    "dist/mcp.mjs",
     "dist/gazette.html",
     "ui/fonts",
     "prescriptions.json",
@@ -16,6 +18,15 @@
     "OPERATIONS.md",
     "DESIGN.md",
     "FOUNDATION.md",
+    "THIRD_PARTY_NOTICES.md",
+    "brainstorm/PROVENANCE.json",
+    "brainstorm/LICENSE.agent-core",
+    "brainstorm/skills/*/SKILL.md",
+    "brainstorm/skills/*/references/**",
+    "brainstorm/skills/*/assets/**",
+    "examples/method-library/README.md",
+    "examples/method-library/discovery.json",
+    "examples/method-library/delivery.json",
     "dossiers"
   ],
   "engines": {
@@ -23,17 +34,31 @@
   },
   "scripts": {
     "demo": "node examples/switch-demo/run.ts",
-    "bundle": "node ui/gazette/build.mjs && esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --outfile=dist/mw.mjs --log-level=warning",
+    "bundle": "node ui/gazette/build.mjs && esbuild src/cli.ts --bundle --platform=node --format=esm --target=node24.15 --banner:js=\"import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);\" --outfile=dist/mw.mjs --log-level=warning && esbuild src/mcp.ts --bundle --packages=external --platform=node --format=esm --target=node24.15 --outfile=dist/mcp.mjs --log-level=warning",
     "pretest": "npm run bundle",
     "test": "env $(env | grep -o '^MW_[A-Z_]*' | sed 's/^/-u /') node --test test/*.test.ts",
     "typecheck": "tsc",
+    "smoke:mcp": "node test/tooling/mcp-smoke.ts",
+    "smoke:mcp:product": "node test/tooling/product-mcp-smoke.ts",
+    "inspect:mcp": "mcp-inspector --cli",
     "lab": "node examples/jump-pack-lab/run.ts"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/inspector": "2.16.0",
     "@osolmaz/switch": "0.1.1",
     "@types/node": "^26.6.5",
-    "effect": "^4.0.5",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.4.0",
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/sdk-metrics": "3.1.1",
+    "@opentelemetry/sdk-node": "0.301.2",
+    "@opentelemetry/sdk-trace": "3.1.1",
+    "effect": "4.0.5",
+    "zod": "4.6.7",
+    "yaml": "2.9.1"
   }
 }

@@ -16,6 +16,12 @@ const Hold = Schema.Struct({ code: Schema.String, message: Schema.String, contex
  * prints this table in its manual.
  */
 export const ERRORS = {
+	portable_invalid: {means: 'Portable composition, binding or skill content is invalid.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	portable_unreadable: {means: 'Explicitly selected portable material could not be read.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	portable_stale: {means: 'Portable package content changed after selection.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	brainstorm_invalid: {means: 'The Brainstorm input, scope or saved handoff is inappropriate for this operation.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	brainstorm_entitlement_unavailable: {means: 'Managed Focused and Deep access is unavailable; explicitly select the free Light path.', context: Schema.Record(Schema.String,Schema.Unknown)},
+	mcp_failed: {means: 'The local product MCP adapter could not complete its transport or lifecycle operation.', context: Schema.Record(Schema.String,Schema.Unknown)},
 	settings_invalid: {means: 'Settings failed validation.', context: Schema.Record(Schema.String,Schema.Unknown)},
 	work_invalid: {means: 'Work input failed validation.', context: Schema.Record(Schema.String,Schema.Unknown)},
 	revision_conflict: {means: 'The work changed concurrently.', context: Schema.Record(Schema.String,Schema.Unknown)},

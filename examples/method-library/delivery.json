@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "bindings": {
+    "/delivery/ideation": {
+      "skill": "./skills/madewell-ideating",
+      "input": "madewell.candidates.v1",
+      "output": "madewell.delivery.ideation.output.v1"
+    },
+    "/delivery/planning": {
+      "skill": "./skills/madewell-planning",
+      "input": "madewell.delivery.ideation.output.v1",
+      "output": "madewell.delivery.planning.output.v1"
+    },
+    "/delivery/implementation": {
+      "skill": "./skills/madewell-implementing",
+      "input": "madewell.delivery.planning.output.v1",
+      "output": "madewell.delivery.implementation.output.v1"
+    },
+    "/delivery/verification": {
+      "skill": "./skills/madewell-verifying",
+      "input": "madewell.delivery.implementation.output.v1",
+      "output": "madewell.result.v1"
+    }
+  }
+}

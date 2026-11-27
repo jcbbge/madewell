@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "bindings": {
+    "/discovery/declare": {
+      "skill": "./skills/madewell-declaring-intent",
+      "input": "madewell.material.v1",
+      "output": "madewell.discovery.declare.output.v1"
+    },
+    "/discovery/look-first": {
+      "skill": "./skills/madewell-looking-first",
+      "input": "madewell.discovery.declare.output.v1",
+      "output": "madewell.discovery.look-first.output.v1"
+    },
+    "/discovery/classify": {
+      "skill": "./skills/madewell-classifying",
+      "input": "madewell.discovery.look-first.output.v1",
+      "output": "madewell.discovery.classify.output.v1"
+    },
+    "/discovery/lenses": {
+      "skill": "./skills/madewell-applying-lenses",
+      "input": "madewell.discovery.classify.output.v1",
+      "output": "madewell.discovery.lenses.output.v1"
+    },
+    "/discovery/one-thing": {
+      "skill": "./skills/madewell-shaping-candidates",
+      "input": "madewell.discovery.lenses.output.v1",
+      "output": "madewell.discovery.one-thing.output.v1"
+    },
+    "/discovery/route": {
+      "skill": "./skills/madewell-routing",
+      "input": "madewell.discovery.one-thing.output.v1",
+      "output": "madewell.discovery.route.output.v1"
+    },
+    "/discovery/confirm": {
+      "skill": "./skills/madewell-confirming",
+      "input": "madewell.discovery.route.output.v1",
+      "output": "madewell.candidates.v1"
+    }
+  }
+}

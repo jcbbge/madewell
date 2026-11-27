@@ -49,8 +49,13 @@ function rejects(result: DiscoveryValidation<unknown>, code: string) {
 }
 
 test('negative control: the legacy nonempty result envelope accepts semantically broken routing', () => {
-	const legacy = validate(laneOf(GRAMMAR_PACK), 'route', JSON.stringify({ result: 'All work may prepare in parallel, but every later task waits for all earlier shipment.', sources: [], unknowns: ['No owner assigned.'], decisions: [] }))
+	const { discovery: strictDiscovery, ...legacyContracts } = GRAMMAR_PACK.contracts!
+	assert.equal(strictDiscovery, '2', 'The unchanged current pack selects strict discovery validation.')
+	const legacyPack = { ...GRAMMAR_PACK, contracts: legacyContracts }
+	const payload = { result: 'All work may prepare in parallel, but every later task waits for all earlier shipment.', sources: [], unknowns: ['No owner assigned.'], decisions: [] }
+	const legacy = validate(laneOf(legacyPack), 'route', JSON.stringify(payload))
 	assert.equal(legacy.ok, true, 'This records the actual legacy contract boundary, not strict semantic acceptance.')
+	assert.equal(validate(laneOf(GRAMMAR_PACK), 'route', JSON.stringify(payload)).ok, false, 'The unchanged strict pack rejects the same legacy envelope.')
 	assert.equal(usesDiscoveryContract({ result: 'Legacy evidence remains valid.' }), false)
 	rejects(parseDiscoveryContribution('route', { result: 'done', sources: [], unknowns: [], decisions: [] }), 'shape')
 })

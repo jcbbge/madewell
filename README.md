@@ -6,11 +6,134 @@ Read [Settled foundation](FOUNDATION.md#settled-foundation-operationalize-the-es
 
 **Cloud-agent implementation handoff:** [v7/README.md](v7/README.md) packages the actionable plan, MCP/skills research, delegated-judgment policy and reorientation contract. It separates settled requirements from proposed implementation and explicit release gates; it is not a runtime delivery receipt.
 
-**Brainstorm base jump-pack seed:** [brainstorm/README.md](brainstorm/README.md) supplies the approved 20-skill toolbox, supporting material, effort profiles, and cloud-agent assignment. Light is the free default; Focused and Deep are intended paid options. The source package does not implement the MCP integration or paywall.
+**Brainstorm seed:** [brainstorm/README.md](brainstorm/README.md) supplies the approved 20-skill toolbox and effort recipes. Light is the free default; managed Focused and Deep remain gated. The local product adapter below implements non-executing Light handoffs, not billing or native host activation.
 
-**Full method-library analysis and cloud assignment:** [dossiers/method-library/README.md](dossiers/method-library/README.md) preserves the complete ontology/topology, phase/tool/skill assessments and structured map. Its [HANDOFF.md](dossiers/method-library/HANDOFF.md) assigns the remaining Discovery/Delivery methods and shared guidance within v7, with canonical source ownership, independent acceptance and the unresolved Landing-content boundary. This is documentation, not delivery of those new methods or runtime integration.
+**Method-library content:** the complete [analysis](dossiers/method-library/ANALYSIS.md) and [cloud-agent handoff](dossiers/method-library/HANDOFF.md) extend v7 W2 with portable Discovery/Delivery methods and shared guidance. [Source bindings](examples/method-library/README.md) describe the local proposed upstream packages, resolver and explicit durable handoff operations. They do not claim published defaults, model acceptance, or Landing content.
 
 **Workflow names and sequences are opinionated defaults, not fixed engine stages.** Effort is adjustable composition and depth; Ground and Rumen are spanning processes in the illustrated delivery default. The governing model is [Bedrock: composition, spanning processes and effort dials](FOUNDATION.md#bedrock-composition-spanning-processes-and-effort-dials). The installed commands and packs described below remain implementation facts, not proof that every part of that model is implemented.
+
+## Local Light Brainstorm MCP server
+
+The product adapter is TypeScript with Effect services, traced operations and scoped resource lifetimes. The official MCP SDK supplies the stdio protocol boundary. It uses the existing SQLite work ledger and atomic revision/receipt machinery, not a second conversation database or a worker runtime.
+
+```sh
+node src/mcp.ts --root /absolute/project --store /absolute/disposable/madewell.db
+# Built distribution, from any working directory:
+node /absolute/package/dist/mcp.mjs --root /absolute/project --store /absolute/disposable/madewell.db
+```
+
+`--root` grants the explicit material scope; `--store` deliberately selects the durable ledger. Use a disposable store for testing. Connecting is not consent to run work. No provider credentials, collector, Docker, hosted endpoint or installed service is needed. Do not point acceptance at a live store.
+
+The Brainstorm tool catalog remains `catalog_brainstorm`, `capture_brainstorm`, `inspect_brainstorm`, `prepare_brainstorm` and `record_brainstorm`. The same server also exposes the seven explicit portable-work operations below. Tools return JSON text and structured content; refused operations return `isError:true` and the Made Well error envelope. Capture accepts a rough exact source, not a finished specification. Mutation requests carry a stable logical `requestId` and accountable `actor:{kind:"operator"|"agent",label}`; prepare/record additionally require the current work `revision` and `itemId`. Repeating an accepted logical request returns its saved receipt, including after restart; changed input under that ID conflicts. Keep the original ID after an uncertain response.
+
+The narrow Brainstorm operations support the shipped Brainstorm selection. Their new capture visibly refuses a project `.madewell/config.json` rather than ignoring its custom bindings, compositions, arguments or constraints. Use the explicit portable-work operations below for durable custom configuration, or the CLI for read-only resolution. Existing Brainstorm work continues from its saved pins. Local actor labels are attribution, not remote authentication.
+
+An authorized stale prepare/record retains the exact rejected draft and revision-conflict receipt atomically without changing accepted work. Retry its original request ID/body to recover that refusal after reconnect; inspect the current work before deliberately resubmitting revised intent with a new ID. Malformed, cross-root and unavailable paid requests are not retained as authorized work. An old result can be retained as a rejected draft without becoming the latest accepted result.
+
+Preparation pairs `brainstorm` with `ambitious-collaboration` by default. Optional `methods` selects additional shipped specialists rather than injecting the entire catalog into context. Optional `context` preserves this turn's exact user material separately from the original source and attributed method results. Absent effort resolves to `light`; explicit `focused` or `deep` is refused as unavailable managed access, never silently downgraded, purchased or simulated. Output-length preference is separate from effort. Prior user material, exact selected instructions and supporting material, identities, decisions and results are retained with the work. Later skill edits do not silently rewrite prepared material.
+
+Record requires the prepared `handoffId` and a result object containing `artifact`, `sources`, `decisions`, `unknowns`, `alternatives`, `nextMove` and `performedEffort:"light"`. The record is an attributed result, not independent acceptance, task completion, task promotion or execution permission. The next preparation carries the conversation forward. The Brainstorm operations do not promote work. No operation executes commands or activates billing. Paid activation, hosting, native Skills/Events support, and landing completeness are not delivered here. Ordinary public skill use remains entitlement-free.
+
+The runtime archive includes the ordinary skill bodies, supporting references/assets, source provenance and MIT notice, but excludes eval scenarios, reviews and development fixture implementations. `pack-design.json` remains design reference data, not a runnable configuration schema. Source snapshots retain their upstream bytes.
+
+### Protocol compatibility and optional Skills
+
+The SDK's `serveStdio(factory)` chooses the protocol era for each connection, including legacy initialize and modern discovery openings. Effect owns the wire lifetime and request scopes; a disposable SDK discovery probe does not end the connection. Continuity tools declare structured output schemas for work/revision identities, saved resources, selected packages, handoffs, attributed results and exact promotion selections. Natural artifacts and extensible method metadata remain open data; schemas do not confer independent acceptance.
+
+Add `--skills` to opt into the official SDK 2.4.0 Beta Skills extension. It exposes only the twenty approved shipped Brainstorm packages, acquired once from complete provenance-checked runtime inventories, not project roots, proposed methods, evals or filesystem scripts. `skills/list` and `skills/get` return metadata/manifests; instruction and supporting bytes come from `resources/read`. Manifests use `digest:"sha256:…"`. The catalog is an immutable connection snapshot; disk changes require restart and integrity checks. Ordinary files and all twelve core tools remain available without Skills. Attachment is experimental SDK support, not native-host certification.
+
+Catalog discovery, reading and activation are separate. The host must compare manifests and invalidate persisted content approval when bytes, digests, sizes, metadata or manifest membership change; nested skill activation needs separate consent. The server has no host approval store and never claims to grant tool, execution or publication authority from `allowed-tools` or a successful read. Resources use private, zero-TTL cache hints, never a shared user-work cache. Local tracing accepts only valid version-00 W3C `traceparent` identity from request `_meta`; baggage, tracestate and private parameters are not exported. Trace context does not activate remote telemetry. Events, Tasks, Apps UI, HTTP and webhooks are not implemented by this adapter.
+
+The designated non-maker runs `npm run --silent smoke:mcp:product` for actual SDK stdio, persistence/recovery and packaged-product probes, and `npm run --silent smoke:mcp` for the independent read-only fixture control. Neither smoke implies named native-client compatibility. Inspector can probe the product boundary directly:
+
+```sh
+npm run --silent inspect:mcp -- node src/mcp.ts --root /absolute/project --store /absolute/disposable/madewell.db --method tools/list --format json
+```
+
+## Explicit portable-work handoffs
+
+The same Effect/SDK stdio server provides `capture_work`, `inspect_work`, `prepare_work`, `record_work`, `preview_work`, `promote_work` and `replace_work`. These operations reuse the existing Store, never the runner. This is host-driven linear method continuity, not automatic execution, an independent acceptance service, or a complete NQ/private-track orchestration implementation.
+
+Capture requires the usual exact `source`, `actor` and `requestId`, plus an explicit resolver `component` (for example `/discovery` or `/delivery`) and optional root-relative `config`/`override` files. It pins the resolved occurrence tree, selected ordinary instruction/supporting bytes and external contracts. Explicit missing methods fail; full Work still requires actual Landing content. Discovery/Delivery proposals must be deliberately supplied in the granted root as described in the source-binding examples; they are not yet shipped canonical defaults. Brainstorm's unmodified default pair remains available through the resolver.
+
+This durable boundary accepts nested linear predecessor wiring only: independent sibling inputs/fan-out are refused before capture, not merged into one disclosed transcript. Recognized Discovery contracts must form one ordered prefix beginning with Declare; repeated contracts and standalone later Discovery consumers require scoped predecessor inputs this adapter does not yet support, so they fail upfront. These are explicit durable-adapter limits, not changes to the recursive read-only resolver or ordinary standalone skill use. Retained files carry `encoding:"utf8"|"base64"`; decode that encoding before checking the manifest's original byte count/hash, including binary assets.
+
+Prepare takes `itemId`, current `revision`, stable `requestId`, `actor`, optional exact `context`, `outputLength` and `effort`. Only free Light is supported. It saves one next leaf handoff with prior context/results and selected packages, without invoking a performer. Recover a pending handoff through inspect or retry; a new preparation cannot skip it. Record adds that `handoffId` and `result:{artifact,sources,decisions,unknowns,performedEffort:"light",contribution?}`. Natural Markdown remains in `artifact`; structured Discovery contributions use existing contract 2 and conservation checks selected by declared output contract, not method names. Confirmation creates durable candidates without selecting them. Contract acceptance is explicitly not independent verification or task completion.
+
+Preview takes `itemId` and a nonempty distinct `ids` array. It shows exactly those candidates, their revisions and prerequisite consequences. Promote additionally requires parent `revision`, `requestId`, `actor` and `candidateRevisions` keyed by the exact selected numeric IDs. It never adds prerequisites or dispatches work: selected tasks stay external even when executable installation defaults exist. Delivery is selected for each task, not inferred from promotion or split into phase-shaped candidates.
+
+Replace takes the mutation fields, a `reason` and optional explicit `config`/`override`. Before any preparation it permits compatible structural replacement; afterward it permits only never-prepared future method changes while prepared/current methods and enclosing contracts/wiring remain immutable. Historical packages, handoffs and results remain saved. Scoped resources are `madewell://work/items/{itemId}/{kind}`, with `kind` exactly `source`, `selection`, `packages`, `handoffs` or `results`. They read retained material, never fetch current filesystem content. Mutations are revision/receipt guarded; refused authorized drafts are retained without partial domain writes. Original receipt recovery survives target pruning; a fresh request cannot recreate missing work. Actor labels are local attribution, not authentication.
+
+## Inspect portable compositions and local skills
+
+`mw cartridges --inspect --root /absolute/project` inspects the portable grammar without opening the work store, creating files, running a method, or launching a worker. No repository registration or provider credentials are needed. This CLI inspection path is separate from the durable product MCP operations above.
+
+```sh
+mw cartridges --inspect --root /absolute/project
+mw cartridges --inspect --root /absolute/project --component /discovery
+mw cartridges --inspect --root /absolute/project --component /brainstorm
+mw cartridges --inspect --root /absolute/project --config selected.json --override experiment.json
+```
+
+The JSON result is `{schemaVersion:1,identity,complete,root,diagnostics}`. `complete` means every method in this selected inventory is available, **not** that any work ran or was accepted. The full default includes brainstorm → discovery → delivery → landing, with the existing discovery/delivery instructions retained. Brainstorm uses the shipped entrypoint with the `ambitious-collaboration` companion and Light default; landing still returns a `method_unavailable` diagnostic and the full tree remains `complete:false`, never a successful placeholder. Selecting `/brainstorm` or `/discovery` does not require filling the landing gap. Inspection itself succeeds with an incomplete inventory; invalid or unreadable selected material exits nonzero with a structured error.
+
+Each component reports its address, purpose, input/output contract identities, origin, content identity, effective constraints and either ordered children or a selected method. `confirm` is the discovery occurrence name; its builtin definition retains the original internal job `discover`. Builtin definitions describe existing methods, not installed execution authority.
+
+### Bind an ordinary skill without changing its format
+
+Supply a normal Agent Skill directory with `SKILL.md` and any supporting files. The standard YAML frontmatter, instruction text, licenses and supporting files remain unchanged. Made Well bindings live separately in optional `.madewell/config.json`:
+
+```json
+{
+  "schemaVersion": 1,
+  "bindings": {
+    "/brainstorm": {
+      "skill": "./skills/brainstorm",
+      "input": "madewell.material.v1",
+      "output": "madewell.material.v1"
+    }
+  }
+}
+```
+
+Here the example skill is `.madewell/skills/brainstorm`, relative to the declaring configuration. Skills elsewhere inside the explicitly granted root may be referenced without duplication. `--config` selects a different project configuration; `--override` adds a final configuration. Both paths resolve relative to `--root`; imported configurations and skill references resolve relative to their declaring file. Without configuration, inspection uses shipped defaults and writes nothing. It never searches parent directories or the network.
+
+A selected skill reports exact full `SKILL.md` text, parsed frontmatter and a sorted manifest of normalized relative paths, byte sizes and SHA-256 hashes, plus an identity incorporating its origin. Supporting-file bodies are not dumped into inspection output. The source service `readSkillFile(root,snapshot,path)` permits on-demand reads only through the retained manifest and refuses package content drift as `portable_stale`; a fresh inspection explicitly selects new bytes. Snapshots are local data, not persisted work records or restart receipts. Same-name skills from different origins have different identities.
+
+Scripts, `allowed-tools`, links to other skills and arbitrary instruction text grant no authority and execute nothing during loading. Paths must stay inside the root and package grants; symlinks and special files are refused. Secure directory traversal currently requires Linux descriptor paths or the corresponding macOS facility; unsupported hosts fail closed. Runtime compatibility beyond exercised hosts is not implied by ordinary skill-format compatibility.
+
+### Compose, replace and layer explicitly
+
+Portable configuration v1 accepts only `schemaVersion`, `uses`, `composition`, `replacements`, `bindings` and `constraints`. Unknown fields (including effort variants, commands or JSON Schema definitions) fail visibly. Input/output contracts in this increment are **nominal identity strings matched exactly**, not proof of semantic compatibility or general JSON Schema validation. A binding declares `{skill,input,output,args?}` and must match its component. Obtain the existing contract identities from inspection before overriding a default method.
+
+`composition` selects a complete tree. A component has `{id,purpose,input,output,children?,wiring?}`. IDs contain lowercase ASCII letters, digits and hyphens, starting with a letter. The root address is `/` regardless of root ID; descendants use occurrence addresses such as `/delivery/planning`. IDs need only be unique among siblings, so the same skill or local ID can occur in separate branches. A leaf needs a binding or known builtin definition; its name alone does not supply a method.
+
+A group has nonempty ordered children and explicit `wiring:{inputs:{childId:source},output:childId}`. Each input source is `$input` or an earlier sibling ID whose output contract matches the child's input. The selected output child's contract must match the group's output. Empty groups, cycles, forward/unknown references and contract mismatches are refused. These are data compositions, not new concurrent execution capabilities.
+
+`replacements` maps an existing occurrence address to a replacement component with the same ID and external contracts. For example, this replaces the missing brainstorm leaf with two nested occurrences; bind the two new leaves separately:
+
+```json
+{
+  "schemaVersion": 1,
+  "replacements": {
+    "/brainstorm": {
+      "id": "brainstorm", "purpose": "Explore and challenge possibilities",
+      "input": "madewell.material.v1", "output": "madewell.material.v1",
+      "children": [
+        { "id": "explore", "purpose": "Explore possibilities", "input": "madewell.material.v1", "output": "madewell.material.v1" },
+        { "id": "challenge", "purpose": "Challenge possibilities", "input": "madewell.material.v1", "output": "madewell.material.v1" }
+      ],
+      "wiring": { "inputs": { "explore": "$input", "challenge": "explore" }, "output": "challenge" }
+    }
+  }
+}
+```
+
+`uses` explicitly imports local configuration files. Imports have lower precedence than their importer; sibling imports at the same depth compete. Defaults are followed by shared imports, project configuration and the explicit override. Resolve the effective base composition and each replacement choice across all layers before applying replacements, parents before children. A higher binding replaces only its addressed method, not neighboring methods or the entire tree. Binding a group replaces that subtree with the selected method; simultaneous explicit bindings or nonempty constraints hidden beneath it are errors. An explicit replacement tree never acquires a builtin method merely from reusing its address or name.
+
+Equal-precedence competing methods, compositions or replacements require an explicit higher-layer choice, never filesystem order or concatenated instructions. `constraints` maps addresses to scalar key/value obligations with retained origins; enclosing obligations follow subtree selection. Contradictory constraints are errors even at different precedence. Cyclic imports are refused; shared reuse alone is not a cycle. Explicit unreadable overrides never silently fall back to defaults.
+
+The portable inspection schema is separate from executable `Pack` and per-item settings. Existing `cartridges --check`, `--update`, `builtin:grammar`, historical pins, runner restrictions and completion evidence retain their previous meaning. Inspection flags cannot be mixed with another action. The separate product MCP path provides local Light capture/prepare/record and exact external-only candidate selection; paid effort activation, native Skills/Events, hosting, installation and publication remain outside this increment.
 
 ## General work
 
@@ -479,6 +602,35 @@ Downstream `/qa` review clients can read `selection=all&format=json` for all lin
 ## Develop
 
 Node runs the TypeScript sources directly (`node src/cli.ts`). The install runs `dist/mw.mjs`, bundled with Effect. The implementer may maintain existing repository regression tests only when the accepted plan explicitly requires it and the files are within its scope; this is product work, not independent acceptance evidence. The test architect alone authors this item's independent acceptance checks outside the plan's scope. Neither maker runs tests or checks, including regression tests, typechecking or verification commands; Made Well executes them. For Made Well's verification, regenerate the package assets with `npm run bundle` before CLI checks, then run affected test files or focused test-name selections and relevant typechecking; this feature has no whole-suite gate. Commit only when explicitly requested.
+
+### Local MCP development tooling (not a product server)
+
+Pinned versions are the official split MCP TypeScript SDK (`@modelcontextprotocol/server` and `/client` 2.4.0), Inspector CLI 2.16.0, and OpenTelemetry API 1.10.0 / Node SDK 0.301.2 / trace and metrics SDKs 3.1.1. The server, Effect 4.0.5, Zod and telemetry exporters are now runtime dependencies for the product adapter; the SDK client and Inspector remain development dependencies. Inspector requires Node `^22.23.4 || ^24.22.1 || >=26.12.1`; this tooling requirement does not raise the packed product's Node `>=24.15` minimum. Use `npm ci` in a supported development runtime; no global tool installation, Docker, collector, provider account, or hosted service is needed.
+
+`test/tooling/mcp-server.ts` remains a stdio fixture exposing only `inspect_composition`, backed by the existing read-only resolver. Its root is fixed explicitly at startup; the optional `component` tool argument chooses a subtree. The fixture does not implement capture, prepare/record, promotion, native Skills/Events, a network endpoint, or a new `mw` command. Its implementation, Inspector and test client remain excluded from the product archive; it shares runtime libraries with the separate product adapter.
+
+The designated non-maker check executor can run the single JSON smoke entrypoint:
+
+```sh
+npm run --silent smoke:mcp
+```
+
+For a single Inspector probe of an explicitly granted local directory:
+
+```sh
+npm run --silent inspect:mcp -- node test/tooling/mcp-server.ts --root /absolute/project --method tools/list --format json
+npm run --silent inspect:mcp -- node test/tooling/mcp-server.ts --root /absolute/project --method tools/call --tool-name inspect_composition --tool-arg component=/delivery --format json
+```
+
+The fixture registers OpenTelemetry before importing MCP. **Current SDK documentation describes automatic instrumentation, but the installed MCP 2.4.0 runtime emitted no telemetry in independent request probes.** An OTel API positive control exported correctly. This fixture therefore explicitly observes incoming JSON-RPC requests through public stdio callbacks and ends spans/records elapsed duration when matching responses are sent. Its scope is honestly named `madewell.local-mcp-fixture`, not the SDK's scope. Tool errors, protocol errors and interrupted requests remain distinct failures; notifications are not measured as requests. These are local dispatch measurements, not model reasoning or business verification.
+
+Local exporters write JSONL to stderr, or to an explicit absolute `--telemetry-file /absolute/local-trace.jsonl` (append mode). Protocol stdout is reserved for JSON-RPC. The fixture ignores inherited `OTEL_*` configuration, disables propagation and resource auto-detection, and configures no remote exporters. Metrics flush after responses and telemetry shuts down on EOF/signals. This is live development telemetry, not the saved-Store OTLP projection in `src/otlp.ts`.
+
+Corrections to the initial sketch for these pinned versions: import `StdioServerTransport` from `@modelcontextprotocol/server/stdio`, not the server root; `await server.connect(new StdioServerTransport())` is supported. Current OTel exports `ConsoleSpanExporter` from `@opentelemetry/sdk-trace` and takes `metricReaders: [...]`, not singular `metricReader`. Its console exporters do not provide the JSONL/stderr contract here, so this fixture uses small local JSON exporters. `OTEL_TRACES_EXPORTER=otlp` does not replace explicit span processors/exporters; a future backend requires deliberately changing that configuration, not just setting endpoint variables.
+
+Inspector's `--format json` returns one `{result:...}` object; `--tool-arg` is repeatable and JSON-coerces values. A tool `isError:true` prints its result but exits 5, as does an unknown tool. Inspector also emits its own JSON error envelope on stderr. Do not use `--quiet` when inspecting stderr telemetry: it suppresses the child stream. Fixture spans omit tool arguments/results and error text, but protocol results/errors and future SDK instrumentation can contain sensitive data; treat local diagnostic files as confidential. A successful fixture round trip proves local protocol plumbing only, not native host skill activation or complete v7 delivery.
+
+References: [SDK telemetry](https://ts.sdk.modelcontextprotocol.io/v2/advanced/opentelemetry.md), [SDK clients](https://ts.sdk.modelcontextprotocol.io/v2/clients/connect.md), [Inspector CLI](https://modelcontextprotocol.io/docs/2026-07-28/tools/inspector/cli).
 
 ```sh
 npm install

@@ -20,6 +20,8 @@ import type { Resource, TeardownRecord } from './workspace.ts'
 import type { GateReceipt } from './rumen.ts'
 import { debugLayer, flagsFor, telemetry, tokensOf, toolEvents, type Facts, type Flag, type Tokens, type ToolEvent } from './telemetry.ts'
 import type { QaAccepted, QaCase, QaCaseRevision, QaCommand, QaConflict, QaLink, QaLinkView, QaObservation, QaOutcome, QaQuery, QaReadResult, QaRun, QaSnapshot } from './qa.ts'
+import type { BrainstormState } from './brainstorm.ts'
+import type { PortableState } from './portable-work.ts'
 
 type Status = 'open' | 'candidate' | 'queued' | 'running' | 'waiting-quota' | 'waiting-prerequisite' | 'held' | 'paused' | 'shipped' | 'completed' | 'discovered' | 'dropped'
 
@@ -92,6 +94,10 @@ export interface Provisioned extends Resource {
 }
 
 export interface Item extends LedgerFields {
+	/** Portable non-executing Brainstorm material and append-only host handoffs/results. */
+	readonly brainstorm?: BrainstormState
+	/** Explicitly selected portable methods; never an executable delivery pack. */
+	readonly portable?: PortableState
 	/** Mandatory work-owned Ground, Rumen and producer preparation; absent only on legacy records. */
 	readonly organs?: { readonly version: '1'; readonly origin?: { readonly item: number; readonly job: string; readonly outputHash: string; readonly target: 'delivery' | 'prerequisite' } }
 	readonly id: number
@@ -274,7 +280,12 @@ export function openStore(path: string, options: {readOnly?: boolean;now?:()=>nu
 	const emit = (t: string, record: Record<string, unknown>) => (pending ? pending.push([t, record]) : sink?.write(t, record))
 	const tx = <T>(fn: () => T): T => {
 		// A synchronous operator command can create/save several records and its receipt atomically.
-		if (pending) return fn()
+		if (pending) {
+			const buffered = pending.length
+			db.exec('SAVEPOINT nested_operation')
+			try { const value = fn(); db.exec('RELEASE nested_operation'); return value }
+			catch (cause) { db.exec('ROLLBACK TO nested_operation'); db.exec('RELEASE nested_operation'); pending.length = buffered; throw cause }
+		}
 		db.exec('BEGIN IMMEDIATE')
 		pending = []
 		try {

@@ -20,6 +20,7 @@ import { Store, defaultStorePath, readOnlyStoreLayer, storeLayer, type Item } fr
 import { harnessWorker } from './harness.ts'
 import { commandWorker } from './worker.ts'
 import { resolvePackSelection } from './pack-selection.ts'
+import { inspectComposition } from './composition.ts'
 import { laneOf } from './lane.ts'
 import { requestPackUpdate } from './functions.ts'
 import { lensOf } from './trace.ts'
@@ -34,7 +35,7 @@ const usage=(message:string)=>new MadeWellError({code:'usage',message,context:{c
 export const COMMANDS=[
  ['discover','--source-file <file> | --source <text> [--request-id <id>]'],['start','--objective <text> --source-file <file> | --source <text> [--request-id <id>]'],['settings','[--input-file <file>]'],['migrate','--preview | --apply <token> --writers-stopped | --status'],
  ...['progress','block','unblock','complete','configure-work','resolve-execution'].map(name=>[name,'<id> --input-file <file>']),
- ['promote','<discovery> [candidate ids] [--input-file <file>]'],['answer','<id> <text...> [--cause implementation|test|pre-existing] | <id> --input-file <file>'],['drop','<id> [--input-file <file>]'],['retry','<id>'],['go','<id>'],['run','[--watch]'],['status','[id]'],['show','<id>'],['context','<id>'],['trace','<id> [--lens ux|dx|ax]'],['holds',''],['cartridges','[--check <selector> | --update <selector> --item <id>]'],['ui','[--host <host> --port <port>]'],['watch','[--once]'],['export','<id> --out <directory>'],['replay','[--out <file>]'],['stats','[--dir <directory>]'],['prune','--before <ISO timestamp> [--dry-run]'],['eval','<job> [--card <card>]'],['context-fact','<id> [--input-file <file>]'],
+ ['promote','<discovery> [candidate ids] [--input-file <file>]'],['answer','<id> <text...> [--cause implementation|test|pre-existing] | <id> --input-file <file>'],['drop','<id> [--input-file <file>]'],['retry','<id>'],['go','<id>'],['run','[--watch]'],['status','[id]'],['show','<id>'],['context','<id>'],['trace','<id> [--lens ux|dx|ax]'],['holds',''],['cartridges','[--check <selector> | --update <selector> --item <id> | --inspect --root <directory> [--config <file>] [--override <file>] [--component <address>]]'],['ui','[--host <host> --port <port>]'],['watch','[--once]'],['export','<id> --out <directory>'],['replay','[--out <file>]'],['stats','[--dir <directory>]'],['prune','--before <ISO timestamp> [--dry-run]'],['eval','<job> [--card <card>]'],['context-fact','<id> [--input-file <file>]'],
  ...['qa-cases','qa-case','qa-runs','qa-run','qa-observations','qa-export','qa-case-create','qa-case-revise','qa-run-start','qa-observe','qa-verdict','qa-link'].map(name=>[name,'[ids] [--input-file <file>]']),
 ].map(([name,input])=>({name,input,...(name==='answer'?{summary:"Answer an item that waits on you: an agent's open questions, a failed check (with --cause), or, at a checkpoint, what should change."}:name==='stats'?{summary:'Metrics from the telemetry files of every machine in a directory (MW_TELEMETRY, or --dir): per host and store, items created, completed and held; lead time, NQ, calls, tokens, refusals and rule-break flags.'}:{})}))
 const view=(item:Item)=>({id:item.id,title:item.title,objective:item.objective,status:item.status,job:item.job,round:item.round,owner:item.progress.owner,progress:item.progress,conditions:item.conditions,blockers:item.blockers,execution:item.execution,...(item.kind?{kind:item.kind}:{}),...(item.discovery!==undefined?{discovery:item.discovery}:{}),...(item.hold?{hold:item.hold}:{}),...(item.completion?{completion:item.completion}:{}),next:nextFor(item)})
@@ -69,10 +70,15 @@ const sizeOf = (path: string): number => {
 
 const main=Effect.gen(function*(){
  const options:Record<string,{type:'string'|'boolean'}>={}
- for(const k of ['input-file','source-file','source','objective','title','request-id','autonomy','cartridges','check','update','item','lens','host','port','out','before','apply','card','brief','limit','selection','format','cause','dir']) options[k]={type:'string'}
- for(const k of ['preview','status','writers-stopped','watch','once','dry-run']) options[k]={type:'boolean'}
+ for(const k of ['input-file','source-file','source','objective','title','request-id','autonomy','cartridges','check','update','item','lens','host','port','out','before','apply','card','brief','limit','selection','format','cause','dir','root','config','override','component']) options[k]={type:'string'}
+ for(const k of ['preview','status','writers-stopped','watch','once','dry-run','inspect']) options[k]={type:'boolean'}
  const parsed=yield* Effect.try({try:()=>parseArgs({allowPositionals:true,options}),catch:e=>usage(String(e))})
  const [command,...args]=parsed.positionals,v=parsed.values as Record<string,string|boolean|undefined>,path=defaultStorePath()
+ const portableOptions=['inspect','root','config','override','component']
+ if(portableOptions.some(key=>v[key]!==undefined)){
+  if(command!=='cartridges'||v.inspect!==true||typeof v.root!=='string'||!v.root.trim()||args.length||Object.keys(v).some(key=>!portableOptions.includes(key))) return yield* usage('Use cartridges --inspect --root <directory> with only --config, --override or --component; do not mix inspection with another action.')
+  return yield* inspectComposition({root:v.root,config:v.config as string|undefined,override:v.override as string|undefined,component:v.component as string|undefined})
+ }
  const file=()=>{if(typeof v['input-file']!=='string') throw usage('--input-file is required.');return JSON.parse(readFileSync(v['input-file'],'utf8'))}
  const id=()=>{const n=Number(args[0]??v.item);if(!Number.isSafeInteger(n)||n<1) throw usage('A positive work item id is required.');return n}
  if(command==='init') return yield* usage('Project registration has been removed. Use mw settings or mw migrate; no configuration was written.')
