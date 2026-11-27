@@ -8,6 +8,7 @@ Josh approved the baseline analysis and requested that the analysis, assessments
 
 | File | Purpose |
 |---|---|
+| [CLOUD-PROMPT.md](CLOUD-PROMPT.md) | Copy-ready system/launch prompt for the cloud lead: source discovery, first assignments, ownership, verification and reporting boundaries. |
 | [ANALYSIS.md](ANALYSIS.md) | Full ontology/topology, phase contribution contracts, shared processes, current-code overlay, tool/skill reuse inventory, proposed effort recipes, next-work sequence and source register. |
 | [ontology.json](ontology.json) | Structured analysis: 54 concepts, 60 relationships and four diagram views. Includes the settled default composition and explicit Landing-content gap. **Not executable configuration or a new product schema.** |
 | [HANDOFF.md](HANDOFF.md) | Source-grounded cloud assignment: reuse/build boundaries, canonical-source custody, shared contracts, seven bounded responsibility units, file ownership, dependencies, eighteen acceptance cases, stop rules and reporting. |
@@ -36,6 +37,8 @@ New generic skill bodies follow the upstream-first ownership described in HANDOF
 This dossier adds documentation only. It does not deliver new method bodies, a skill loader, MCP server, paywall, behavioral passes, host activation or deployment. Its acceptance cases are requirements, not results. Source publication does not expand downstream implementation/publication authority.
 
 ## Copy-ready cloud assignment
+
+Use [CLOUD-PROMPT.md](CLOUD-PROMPT.md) for the full launch prompt. The short assignment below remains a summary.
 
 > Read `AGENTS.md`, the governing `FOUNDATION.md`, the complete `v7/PLAN.md`, and `dossiers/method-library/{README.md,ANALYSIS.md,HANDOFF.md}`. Use `brainstorm/` as the existing approved seed. Execute the assigned method-library scope through M0–M6: reconcile actual source/access/contracts first; extract Discovery, Delivery and shared guidance as portable ordinary skills; preserve canonical upstream ownership, effort/access boundaries and independent acceptance; hand accepted content to the existing v7 integration owners. Recover Landing's canonical source rather than inventing its behavior. Resolve inspectable choices yourself, retain named gates only on dependent slices, and report YES/NO with actual artifacts/evidence through this cloud assignment. Do not duplicate the runtime, dispatch work through selection, claim unperformed checks, publish packages, activate billing or change live systems without separate authority.
 
