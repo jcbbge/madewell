@@ -8,6 +8,8 @@
 > **Owner:** The receiving cloud agent leads implementation and reports to Josh in the conversation that assigns this document. It owns any agents it delegates to. No particular agent platform is required.
 > **Brainstorm supplement:** [brainstorm/README.md](../brainstorm/README.md) supplies the approved base-pack seed and [effort/access direction](../brainstorm/EFFORT-AND-ACCESS.md): free Light by default, paid Focused/Deep. It resolves Brainstorm content under U2; landing and the other release gates remain. It is not a runtime or billing delivery.
 
+> **Method-library supplement:** [dossiers/method-library/README.md](../dossiers/method-library/README.md) preserves the full ontology/topology and phase/tool/skill assessments. Its [HANDOFF.md](../dossiers/method-library/HANDOFF.md) supplies W2's remaining-method content assignment, upstream/snapshot ownership, dependencies and independent acceptance cases. It does not replace this plan's runtime ownership or resolve Landing by invention.
+
 ## 1. Executive Objective
 
 Operationalize Josh's established Made Well process so a person can use their chosen assistant and tools without repeatedly copying skills, source material, context, outputs, and handoffs between applications.
@@ -374,7 +376,7 @@ Do not silently resolve product-content or release-authority unknowns. See §18 
   1. Load standard `SKILL.md` packages and preserve frontmatter, instruction bytes, supporting-file relationships, and license notices.
   2. Implement the optional `.madewell/config.json` convention and explicit shared-config imports against W1's contract.
   3. Read only approved roots; refuse escaping references, symlinks crossing grants, missing files, corrupt manifests, and conflicting package identity.
-  4. Reuse the existing default discovery/delivery content and the approved `brainstorm/` seed, preserving free Light as the default and the explicit paid-effort boundary. Inventory missing landing content under U2; never ship successful no-op substitutes.
+  4. Reuse the existing default discovery/delivery content and the approved `brainstorm/` seed, preserving free Light as the default and the explicit paid-effort boundary. Follow the [method-library handoff](../dossiers/method-library/HANDOFF.md) for portable Discovery/Delivery extraction, shared guidance, canonical upstream custody and effort authoring; do not create competing W1/W3/W4 implementations. Inventory missing landing content under U2; never ship successful no-op substitutes.
   5. Supply a minimal author example showing an ordinary skill used outside Made Well and bound inside it, plus a composite pack that references methods without embedding a proprietary skill dialect.
   6. Add capability diagnostics for skill scripts/tools that the selected host cannot support. Loading does not execute them.
   7. Prepare the product asset allowlist for W5's packaging changes; do not ship all vendor/example files indiscriminately.

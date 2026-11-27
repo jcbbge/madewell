@@ -8,6 +8,8 @@ Read [Settled foundation](FOUNDATION.md#settled-foundation-operationalize-the-es
 
 **Brainstorm base jump-pack seed:** [brainstorm/README.md](brainstorm/README.md) supplies the approved 20-skill toolbox, supporting material, effort profiles, and cloud-agent assignment. Light is the free default; Focused and Deep are intended paid options. The source package does not implement the MCP integration or paywall.
 
+**Full method-library analysis and cloud assignment:** [dossiers/method-library/README.md](dossiers/method-library/README.md) preserves the complete ontology/topology, phase/tool/skill assessments and structured map. Its [HANDOFF.md](dossiers/method-library/HANDOFF.md) assigns the remaining Discovery/Delivery methods and shared guidance within v7, with canonical source ownership, independent acceptance and the unresolved Landing-content boundary. This is documentation, not delivery of those new methods or runtime integration.
+
 **Workflow names and sequences are opinionated defaults, not fixed engine stages.** Effort is adjustable composition and depth; Ground and Rumen are spanning processes in the illustrated delivery default. The governing model is [Bedrock: composition, spanning processes and effort dials](FOUNDATION.md#bedrock-composition-spanning-processes-and-effort-dials). The installed commands and packs described below remain implementation facts, not proof that every part of that model is implemented.
 
 ## General work

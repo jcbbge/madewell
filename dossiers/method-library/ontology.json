@@ -1,0 +1,1696 @@
+{
+  "kind": "made-well-ontology-analysis",
+  "schemaVersion": 1,
+  "status": "source-grounded analysis; not runnable configuration or runtime acceptance",
+  "kernel": "Made Well preserves the shape of work while replaceable methods transform its material; shared context, authority, evidence and handoffs connect those transformations.",
+  "report": "ANALYSIS.md",
+  "inspectedDateCT": "2026-11-26",
+  "revisions": {
+    "madewell": "4edce7b2706a73f90adad5ba601fd2fea3730d93",
+    "agentCore": "9addbffae9d600f40dd334ad97bb24c6b0a0c7b7"
+  },
+  "scope": "Product and contribution-contract ontology of inspected sources. Source-present does not mean installed or runtime-verified. No table, service, agent or skill per concept is implied.",
+  "sourceRoot": "MadeWell paths are relative to the repository root; upstream skill sources are immutable public URLs. performed and renderer describe the original assessment, not this publication or a cloud environment.",
+  "sources": {
+    "S1": [
+      "FOUNDATION.md"
+    ],
+    "S2": [
+      "v7/PLAN.md",
+      "v7/README.md"
+    ],
+    "S3": [
+      "src/grammar.ts",
+      "src/autonomy-pack.ts",
+      "src/discovery-contract.ts",
+      "examples/jump-pack-lab/packs/generic.json",
+      "examples/jump-pack-lab/packs/software.json",
+      "examples/jump-pack-lab/packs/marketing.json",
+      "examples/jump-pack-lab/packs/sales.json",
+      "examples/jump-pack-lab/packs/database.json"
+    ],
+    "S4": [
+      "src/organs.ts",
+      "src/rumen.ts",
+      "dossiers/2026-10-31-ground-rumen.md"
+    ],
+    "S5": [
+      "src/lane.ts",
+      "src/readiness.ts"
+    ],
+    "S6": [
+      "brainstorm/README.md",
+      "brainstorm/skills/brainstorm/references/methods.md",
+      "brainstorm/skills/brainstorm/references/effort.md",
+      "brainstorm/EFFORT-AND-ACCESS.md"
+    ],
+    "S7": [
+      "src/jump-packs.ts",
+      "src/settings.ts"
+    ],
+    "S8": [
+      "src/ledger.ts",
+      "src/store.ts",
+      "src/functions.ts",
+      "src/engine.ts",
+      "src/acceptance-contract.ts"
+    ],
+    "S9": [
+      "README.md",
+      "src/qa.ts",
+      "src/context-facts.ts"
+    ],
+    "S10": [
+      "src/nq-obligations.ts",
+      "src/handoff-history.ts",
+      "src/work-boundary.ts"
+    ],
+    "S11": [
+      "v7/REORIENTATION.md",
+      "v7/DELEGATED-JUDGMENT.md"
+    ],
+    "S12": [
+      "https://github.com/jcbbge/agent-core-public/tree/9addbffae9d600f40dd334ad97bb24c6b0a0c7b7/primitives/skills"
+    ],
+    "S13": [
+      "skills/vendor/jakubkrehel/README.md"
+    ]
+  },
+  "ontology": {
+    "groups": [
+      {
+        "id": "shape",
+        "label": "Work shape and method selection"
+      },
+      {
+        "id": "material",
+        "label": "Material and meaning"
+      },
+      {
+        "id": "continuity",
+        "label": "Coordination, continuity and evidence"
+      },
+      {
+        "id": "access",
+        "label": "Capabilities, access and presentation"
+      }
+    ],
+    "concepts": [
+      {
+        "id": "work",
+        "label": "Work",
+        "group": "shape",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "task",
+        "label": "Task",
+        "group": "shape",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "component-definition",
+        "label": "Component definition",
+        "group": "shape",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "component-occurrence",
+        "label": "Component occurrence",
+        "group": "shape",
+        "status": "proposed",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "id": "composition",
+        "label": "Composition",
+        "group": "shape",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "method",
+        "label": "Method / cartridge",
+        "group": "shape",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "skill-package",
+        "label": "Ordinary skill package",
+        "group": "shape",
+        "status": "seed",
+        "sourceRefs": [
+          "S6"
+        ]
+      },
+      {
+        "id": "binding",
+        "label": "Occurrence-to-method binding",
+        "group": "shape",
+        "status": "proposed",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "id": "pack",
+        "label": "Pack / library",
+        "group": "shape",
+        "status": "source-present",
+        "sourceRefs": [
+          "S7"
+        ]
+      },
+      {
+        "id": "domain-contribution",
+        "label": "Domain contribution",
+        "group": "shape",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "effort",
+        "label": "Work-effort recipe",
+        "group": "shape",
+        "status": "seed",
+        "sourceRefs": [
+          "S6"
+        ]
+      },
+      {
+        "id": "resolved-selection",
+        "label": "Pinned resolved selection",
+        "group": "shape",
+        "status": "proposed",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "id": "source-material",
+        "label": "Exact source material",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "source-reference",
+        "label": "Source identity / locator",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "intent",
+        "label": "Intent / outcome",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "observation",
+        "label": "Observation",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "requirement",
+        "label": "Requirement / constraint",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "intent-disposition",
+        "label": "Intent disposition",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "uncertainty",
+        "label": "Alternative / assumption / unknown",
+        "group": "material",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "decision",
+        "label": "Tradeoff / decision",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "candidate",
+        "label": "Candidate / to-do",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "artifact",
+        "label": "Artifact",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "condition",
+        "label": "Acceptance condition",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "participant",
+        "label": "Owner / participant / profile",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "dependency",
+        "label": "Task / artifact dependency",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "handoff",
+        "label": "Handoff / successor preparation",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S4"
+        ]
+      },
+      {
+        "id": "question",
+        "label": "Owned question",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "answer",
+        "label": "Answer / alias / reuse reference",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S10"
+        ]
+      },
+      {
+        "id": "invocation",
+        "label": "Invocation / attempt",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "result",
+        "label": "Actual returned result",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "contract-acceptance",
+        "label": "Contract acceptance",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "id": "check",
+        "label": "Check / evidence producer",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "evidence",
+        "label": "Evidence",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "completion",
+        "label": "Attributed completion",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "blocker",
+        "label": "Blocker / hold / checkpoint",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "revision",
+        "label": "Revision",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "receipt",
+        "label": "Logical-operation receipt",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "event",
+        "label": "Recorded event",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "id": "context-fact",
+        "label": "Scoped standing context fact",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "qa-case",
+        "label": "QA case",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "qa-run",
+        "label": "QA run",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "qa-observation",
+        "label": "QA observation / verdict",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "evaluation",
+        "label": "Evidence-preserving evaluation",
+        "group": "continuity",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "tool",
+        "label": "Tool capability",
+        "group": "access",
+        "status": "settled",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "id": "permission",
+        "label": "Work / data permission",
+        "group": "access",
+        "status": "settled",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "id": "entitlement",
+        "label": "Commercial entitlement",
+        "group": "access",
+        "status": "proposed",
+        "sourceRefs": [
+          "S6"
+        ]
+      },
+      {
+        "id": "performer",
+        "label": "Chosen performer / execution adapter",
+        "group": "access",
+        "status": "settled",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "id": "prescription",
+        "label": "Provider prescription",
+        "group": "access",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "view",
+        "label": "Read view / reorientation",
+        "group": "access",
+        "status": "source-present",
+        "sourceRefs": [
+          "S11"
+        ]
+      },
+      {
+        "id": "transport",
+        "label": "Transport / host integration",
+        "group": "access",
+        "status": "source-present",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "id": "spanning-process",
+        "label": "Spanning process",
+        "group": "shape",
+        "status": "settled",
+        "sourceRefs": [
+          "S1",
+          "S4"
+        ]
+      },
+      {
+        "id": "protocol",
+        "label": "Interaction protocol",
+        "group": "shape",
+        "status": "settled",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "id": "rumen-rule",
+        "label": "Rumen rule and evidence owner",
+        "group": "material",
+        "status": "source-present",
+        "sourceRefs": [
+          "S4"
+        ]
+      },
+      {
+        "id": "nq-exchange",
+        "label": "NQ exchange",
+        "group": "continuity",
+        "status": "source-present",
+        "sourceRefs": [
+          "S1",
+          "S8"
+        ]
+      }
+    ],
+    "relations": [
+      {
+        "from": "work",
+        "to": "task",
+        "label": "organizes",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "from": "task",
+        "to": "composition",
+        "label": "uses-selected",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "composition",
+        "to": "component-occurrence",
+        "label": "contains",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "component-occurrence",
+        "to": "component-definition",
+        "label": "instantiates",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "component-occurrence",
+        "to": "binding",
+        "label": "selects-through",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "binding",
+        "to": "method",
+        "label": "binds",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "method",
+        "to": "skill-package",
+        "label": "may-be-supplied-by",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "pack",
+        "to": "method",
+        "label": "collects",
+        "sourceRefs": [
+          "S7"
+        ]
+      },
+      {
+        "from": "domain-contribution",
+        "to": "method",
+        "label": "may-replace-with",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "domain-contribution",
+        "to": "requirement",
+        "label": "may-contribute",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "resolved-selection",
+        "to": "composition",
+        "label": "pins",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "resolved-selection",
+        "to": "method",
+        "label": "pins-origin-and-content-of",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "resolved-selection",
+        "to": "effort",
+        "label": "pins-declared-work-of",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "source-reference",
+        "to": "source-material",
+        "label": "locates",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "intent",
+        "to": "source-reference",
+        "label": "cites",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "observation",
+        "to": "source-reference",
+        "label": "cites",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "requirement",
+        "to": "intent",
+        "label": "accounts-for",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "intent-disposition",
+        "to": "intent",
+        "label": "accounts-for-with-explicit-reason",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "candidate",
+        "to": "requirement",
+        "label": "traces-to",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "candidate",
+        "to": "task",
+        "label": "becomes-only-by-explicit-selection-not-dispatch",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "candidate",
+        "to": "artifact",
+        "label": "may-promise",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "task",
+        "to": "condition",
+        "label": "is-accepted-against",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "task",
+        "to": "dependency",
+        "label": "has",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "dependency",
+        "to": "task",
+        "label": "names-producer-and-consumer",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "dependency",
+        "to": "artifact",
+        "label": "may-name-required-result",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "question",
+        "to": "participant",
+        "label": "has-answer-owner",
+        "sourceRefs": [
+          "S3"
+        ]
+      },
+      {
+        "from": "answer",
+        "to": "question",
+        "label": "answers-or-retains-alias-for",
+        "sourceRefs": [
+          "S10"
+        ]
+      },
+      {
+        "from": "handoff",
+        "to": "source-material",
+        "label": "includes-authorized-material-from",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "handoff",
+        "to": "answer",
+        "label": "reuses-scoped",
+        "sourceRefs": [
+          "S10"
+        ]
+      },
+      {
+        "from": "handoff",
+        "to": "permission",
+        "label": "is-limited-by",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "invocation",
+        "to": "resolved-selection",
+        "label": "uses",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "invocation",
+        "to": "result",
+        "label": "may-return",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "contract-acceptance",
+        "to": "result",
+        "label": "validates-declared-contract-of-not-truth",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "result",
+        "to": "artifact",
+        "label": "may-contain-or-reference",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "check",
+        "to": "evidence",
+        "label": "produces",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "evidence",
+        "to": "condition",
+        "label": "supports-with-attributed-observation",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "completion",
+        "to": "evidence",
+        "label": "cites-with-provenance-kind",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "completion",
+        "to": "participant",
+        "label": "is-attributed-to",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "blocker",
+        "to": "task",
+        "label": "may-prevent-progress-of",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "revision",
+        "to": "task",
+        "label": "identifies-saved-state-of",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "from": "event",
+        "to": "task",
+        "label": "records-occurrence-for",
+        "sourceRefs": [
+          "S8"
+        ]
+      },
+      {
+        "from": "receipt",
+        "to": "revision",
+        "label": "may-identify-accepted-operation-result-at",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "from": "context-fact",
+        "to": "handoff",
+        "label": "is-filtered-by-scope-before-inclusion-in",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "from": "qa-run",
+        "to": "qa-case",
+        "label": "pins-revision-of",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "from": "qa-observation",
+        "to": "qa-run",
+        "label": "belongs-to",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "from": "evaluation",
+        "to": "invocation",
+        "label": "compares-retained-baselines-and-authorized-variants",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "from": "performer",
+        "to": "method",
+        "label": "applies-when-authorized",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "performer",
+        "to": "tool",
+        "label": "may-use-when-authorized",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "prescription",
+        "to": "performer",
+        "label": "configures-agent-adapter-not-work-effort",
+        "sourceRefs": [
+          "S9"
+        ]
+      },
+      {
+        "from": "entitlement",
+        "to": "effort",
+        "label": "governs-protected-managed-operations-not-standalone-cognition",
+        "sourceRefs": [
+          "S6"
+        ]
+      },
+      {
+        "from": "permission",
+        "to": "tool",
+        "label": "limits-allowed-use-of",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "view",
+        "to": "work",
+        "label": "projects-without-advancing",
+        "sourceRefs": [
+          "S11"
+        ]
+      },
+      {
+        "from": "transport",
+        "to": "view",
+        "label": "exposes-scoped",
+        "sourceRefs": [
+          "S2"
+        ]
+      },
+      {
+        "from": "spanning-process",
+        "to": "component-occurrence",
+        "label": "spans-configured-contributions-not-added-serial-stages",
+        "sourceRefs": [
+          "S1",
+          "S4"
+        ]
+      },
+      {
+        "from": "protocol",
+        "to": "nq-exchange",
+        "label": "governs",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "from": "handoff",
+        "to": "nq-exchange",
+        "label": "is-provisioned-for-understanding-in",
+        "sourceRefs": [
+          "S1"
+        ]
+      },
+      {
+        "from": "nq-exchange",
+        "to": "participant",
+        "label": "binds-sender-and-receiver",
+        "sourceRefs": [
+          "S1",
+          "S8"
+        ]
+      },
+      {
+        "from": "nq-exchange",
+        "to": "question",
+        "label": "retains-owned",
+        "sourceRefs": [
+          "S1",
+          "S8"
+        ]
+      },
+      {
+        "from": "nq-exchange",
+        "to": "answer",
+        "label": "retains-and-reuses",
+        "sourceRefs": [
+          "S1",
+          "S8"
+        ]
+      },
+      {
+        "from": "rumen-rule",
+        "to": "evidence",
+        "label": "requires-applicable-accounting-from-declared-owner",
+        "sourceRefs": [
+          "S4"
+        ]
+      }
+    ]
+  },
+  "defaultOrder": {
+    "outer": [
+      "brainstorm",
+      "discovery",
+      "delivery",
+      "landing"
+    ],
+    "discovery": [
+      "Declare()",
+      "lookFirst()",
+      "classify()",
+      "Lenses()",
+      "oneThing()",
+      "route()",
+      "confirm()"
+    ],
+    "delivery": [
+      "ideation",
+      "planning",
+      "implementation",
+      "verification"
+    ],
+    "meaning": "Opinionated selectable defaults, not compulsory cardinalities or execution authority."
+  },
+  "unresolved": [
+    {
+      "id": "landing-content",
+      "component": "landing",
+      "known": "Settled existence and default placement",
+      "unknown": "Canonical method instructions, input/output obligations, supporting material and authored effort recipes",
+      "sourceRefs": [
+        "S2"
+      ]
+    }
+  ],
+  "views": [
+    {
+      "id": "default-containment",
+      "type": "containment",
+      "kernel": "The settled outer grammar contains independently replaceable components; Delivery and Discovery have their own default children.",
+      "omits": "Invocations, performers, tools, scheduling and the individual specialist library; this is definitions, not a live run.",
+      "entities": [
+        {
+          "id": "work",
+          "label": "work()",
+          "kind": "group",
+          "group": null,
+          "sourceRefs": [
+            "S1"
+          ]
+        },
+        {
+          "id": "brainstorm",
+          "label": "brainstorm()",
+          "kind": "component-group",
+          "group": "work",
+          "sourceRefs": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "id": "discovery",
+          "label": "discovery()",
+          "kind": "component-group",
+          "group": "work",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "delivery",
+          "label": "delivery()",
+          "kind": "component-group",
+          "group": "work",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "landing",
+          "label": "landing()",
+          "kind": "component",
+          "group": "work",
+          "status": "settled",
+          "methodStatus": "unknown",
+          "sourceRefs": [
+            "S1",
+            "S2"
+          ]
+        },
+        {
+          "id": "posture",
+          "label": "ambitious-collaboration",
+          "kind": "default-method",
+          "group": "brainstorm",
+          "sourceRefs": [
+            "S6"
+          ]
+        },
+        {
+          "id": "specialists",
+          "label": "Selected specialist methods; not a fixed sequence",
+          "kind": "method-library",
+          "group": "brainstorm",
+          "sourceRefs": [
+            "S6"
+          ]
+        },
+        {
+          "id": "discovery-1",
+          "label": "Declare()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "discovery-2",
+          "label": "lookFirst()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "discovery-3",
+          "label": "classify()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "discovery-4",
+          "label": "Lenses()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "discovery-5",
+          "label": "oneThing()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "discovery-6",
+          "label": "route()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "discovery-7",
+          "label": "confirm()",
+          "kind": "component",
+          "group": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "delivery-1",
+          "label": "ideation()",
+          "kind": "component",
+          "group": "delivery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "delivery-2",
+          "label": "planning()",
+          "kind": "component",
+          "group": "delivery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "delivery-3",
+          "label": "implementation()",
+          "kind": "component",
+          "group": "delivery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "id": "delivery-4",
+          "label": "verification()",
+          "kind": "component",
+          "group": "delivery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        }
+      ],
+      "connections": [
+        {
+          "from": "work",
+          "to": "brainstorm",
+          "label": "contains"
+        },
+        {
+          "from": "work",
+          "to": "discovery",
+          "label": "contains"
+        },
+        {
+          "from": "work",
+          "to": "delivery",
+          "label": "contains"
+        },
+        {
+          "from": "work",
+          "to": "landing",
+          "label": "contains"
+        },
+        {
+          "from": "brainstorm",
+          "to": "posture",
+          "label": "contains"
+        },
+        {
+          "from": "brainstorm",
+          "to": "specialists",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-1",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-2",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-3",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-4",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-5",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-6",
+          "label": "contains"
+        },
+        {
+          "from": "discovery",
+          "to": "discovery-7",
+          "label": "contains"
+        },
+        {
+          "from": "delivery",
+          "to": "delivery-1",
+          "label": "contains"
+        },
+        {
+          "from": "delivery",
+          "to": "delivery-2",
+          "label": "contains"
+        },
+        {
+          "from": "delivery",
+          "to": "delivery-3",
+          "label": "contains"
+        },
+        {
+          "from": "delivery",
+          "to": "delivery-4",
+          "label": "contains"
+        }
+      ]
+    },
+    {
+      "id": "delivery-spans",
+      "type": "containment",
+      "kernel": "Ground and Rumen span Delivery responsibilities rather than inserting serial stages.",
+      "omits": "Agent allocation and invocation order. Per-output Ground/Rumen accounting also applies to configured consumers, including Discovery.",
+      "entities": [
+        {
+          "id": "delivery",
+          "label": "Illustrated delivery composition",
+          "kind": "group",
+          "group": null
+        },
+        {
+          "id": "ideation",
+          "label": "ideation()",
+          "kind": "component",
+          "group": "delivery"
+        },
+        {
+          "id": "planning",
+          "label": "planning()",
+          "kind": "component",
+          "group": "delivery"
+        },
+        {
+          "id": "implementation",
+          "label": "implementation()",
+          "kind": "component",
+          "group": "delivery"
+        },
+        {
+          "id": "verification",
+          "label": "verification()",
+          "kind": "component",
+          "group": "delivery"
+        },
+        {
+          "id": "ground",
+          "label": "Ground",
+          "kind": "spanning-process",
+          "group": "delivery"
+        },
+        {
+          "id": "rumen",
+          "label": "Rumen",
+          "kind": "spanning-process",
+          "group": "delivery"
+        }
+      ],
+      "connections": [
+        {
+          "from": "ground",
+          "to": "ideation",
+          "label": "spans",
+          "sourceRefs": [
+            "S1"
+          ]
+        },
+        {
+          "from": "ground",
+          "to": "planning",
+          "label": "spans",
+          "sourceRefs": [
+            "S1"
+          ]
+        },
+        {
+          "from": "rumen",
+          "to": "implementation",
+          "label": "spans",
+          "sourceRefs": [
+            "S1"
+          ]
+        },
+        {
+          "from": "rumen",
+          "to": "verification",
+          "label": "spans",
+          "sourceRefs": [
+            "S1"
+          ]
+        }
+      ],
+      "sourceRefs": [
+        "S1",
+        "S4"
+      ]
+    },
+    {
+      "id": "material-flow",
+      "type": "data-flow",
+      "kernel": "Source becomes candidate work; explicit selection creates tasks without dispatch; actual results need distinct evidence.",
+      "omits": "Tool architecture, retries and detailed submethods. Landing follows Delivery in the default order, but its unknown payload contract is deliberately not invented.",
+      "entities": [
+        {
+          "id": "shaping",
+          "label": "Shaping possible work",
+          "kind": "group",
+          "group": null
+        },
+        {
+          "id": "delivery",
+          "label": "For each selected task; authorized performer",
+          "kind": "group",
+          "group": null
+        },
+        {
+          "id": "source",
+          "label": "Raw / existing source",
+          "kind": "material",
+          "group": "shaping"
+        },
+        {
+          "id": "lead",
+          "label": "Useful brainstorm result; may stop here",
+          "kind": "material",
+          "group": "shaping"
+        },
+        {
+          "id": "candidates",
+          "label": "Sourced candidates + conditions + dependencies",
+          "kind": "material",
+          "group": "shaping"
+        },
+        {
+          "id": "selected",
+          "label": "Explicitly selected external tasks; NOT dispatched",
+          "kind": "material",
+          "group": "delivery"
+        },
+        {
+          "id": "approach",
+          "label": "Grounded chosen approach",
+          "kind": "material",
+          "group": "delivery"
+        },
+        {
+          "id": "plan",
+          "label": "Fixed brief + evidence requirements",
+          "kind": "material",
+          "group": "delivery"
+        },
+        {
+          "id": "result",
+          "label": "Actual artifact / partial / failure",
+          "kind": "material",
+          "group": "delivery"
+        },
+        {
+          "id": "evidence",
+          "label": "Independent evidence against current conditions",
+          "kind": "material",
+          "group": "delivery"
+        }
+      ],
+      "connections": [
+        {
+          "from": "source",
+          "to": "lead",
+          "label": "brainstorm, if selected",
+          "sourceRefs": [
+            "S6"
+          ]
+        },
+        {
+          "from": "source",
+          "to": "candidates",
+          "label": "discovery",
+          "sourceRefs": [
+            "S1",
+            "S3"
+          ]
+        },
+        {
+          "from": "lead",
+          "to": "candidates",
+          "label": "discovery, if continued; preserve original source",
+          "sourceRefs": [
+            "S1",
+            "S6"
+          ]
+        },
+        {
+          "from": "candidates",
+          "to": "selected",
+          "label": "explicit promotion; no implied execution",
+          "status": "settled-product-contract",
+          "sourceRefs": [
+            "S2"
+          ]
+        },
+        {
+          "from": "selected",
+          "to": "approach",
+          "label": "ideation, when undertaken",
+          "sourceRefs": [
+            "S3"
+          ]
+        },
+        {
+          "from": "approach",
+          "to": "plan",
+          "label": "planning",
+          "sourceRefs": [
+            "S3"
+          ]
+        },
+        {
+          "from": "plan",
+          "to": "result",
+          "label": "implementation under actual authority",
+          "sourceRefs": [
+            "S3"
+          ]
+        },
+        {
+          "from": "result",
+          "to": "evidence",
+          "label": "verification against the plan and conditions",
+          "sourceRefs": [
+            "S3",
+            "S8"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ontology",
+      "type": "typed-concept-map",
+      "kernel": "Containment, provenance, dependency, permission and evidence are different relationships, not one workflow.",
+      "omits": "Every TypeScript field, database layout and physical deployment; this is not a proposed storage schema.",
+      "groups": [
+        "shape",
+        "material",
+        "continuity",
+        "access"
+      ],
+      "entities": [
+        "work",
+        "task",
+        "component-definition",
+        "component-occurrence",
+        "composition",
+        "method",
+        "skill-package",
+        "binding",
+        "pack",
+        "domain-contribution",
+        "effort",
+        "resolved-selection",
+        "source-material",
+        "source-reference",
+        "intent",
+        "observation",
+        "requirement",
+        "intent-disposition",
+        "uncertainty",
+        "decision",
+        "candidate",
+        "artifact",
+        "condition",
+        "participant",
+        "dependency",
+        "handoff",
+        "question",
+        "answer",
+        "invocation",
+        "result",
+        "contract-acceptance",
+        "check",
+        "evidence",
+        "completion",
+        "blocker",
+        "revision",
+        "receipt",
+        "event",
+        "context-fact",
+        "qa-case",
+        "qa-run",
+        "qa-observation",
+        "evaluation",
+        "tool",
+        "permission",
+        "entitlement",
+        "performer",
+        "prescription",
+        "view",
+        "transport",
+        "spanning-process",
+        "protocol",
+        "rumen-rule",
+        "nq-exchange"
+      ],
+      "connections": "ontology.relations"
+    }
+  ],
+  "renderer": {
+    "available": false,
+    "pngProduced": false,
+    "note": "eraser-diagrams was not on PATH; JSON is the portable diagram artifact. No substitute renderer was installed."
+  },
+  "performed": {
+    "sourceInspection": true,
+    "applicationTests": false,
+    "behavioralScenarios": false,
+    "nativeHostAcceptance": false,
+    "billingChecks": false,
+    "implementation": false,
+    "commit": false,
+    "push": false
+  }
+}

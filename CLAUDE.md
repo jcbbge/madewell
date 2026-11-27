@@ -5,3 +5,5 @@ Read [Settled foundation](FOUNDATION.md#settled-foundation-operationalize-the-es
 Read and follow [AGENTS.md](AGENTS.md), [FOUNDATION.md](FOUNDATION.md) and the task's complete packet. Use [OPERATIONS.md](OPERATIONS.md) for runtime paths and recovery. The task and configured function define authority; obey maker privacy and the no-self-check boundary. Historical guidance is evidence only.
 
 For the Brainstorm base jump pack, read [brainstorm/README.md](brainstorm/README.md) and its complete [HANDOFF.md](brainstorm/HANDOFF.md). The approved source seed uses free Light by default and paid Focused/Deep as the product direction; skills, effort, entitlement, and execution authority remain separate.
+
+For the complete ontology/topology and the remaining method packs, use [dossiers/method-library/README.md](dossiers/method-library/README.md), [ANALYSIS.md](dossiers/method-library/ANALYSIS.md), and the complete cloud-agent [HANDOFF.md](dossiers/method-library/HANDOFF.md). It extends v7 W2 without replacing the wider integration plan or inventing Landing content.

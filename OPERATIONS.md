@@ -6,6 +6,8 @@ Read FOUNDATION.md, AGENTS.md and this guide on entry. The durable object is a w
 
 The [Brainstorm seed](brainstorm/README.md) and [commercial effort notes](brainstorm/EFFORT-AND-ACCESS.md) describe approved content and product direction, not installed commands or active billing. Do not pass its `pack-design.json` to the legacy runtime as though it were an executable cartridge.
 
+The [method-library dossier](dossiers/method-library/README.md) contains the complete baseline analysis and cloud content assignment. Its `ontology.json` is diagram/analysis data, not an executable pack, installed configuration or live-state report. The dossier adds no runtime command or service.
+
 ## Identify the runtime
 
 Record the actual executable path/revision, selected MW_HOME/MW_STORE, MW_PRESCRIPTIONS and runner owner before operational changes. Use the current invocation environment and `mw status`, `mw context <id>`, `mw settings`, `mw migrate --status`; never infer paths from another lab. Source execution and packed runtime differ. Node 24.15 or later and the existing dependencies are required; ordinary ledger use requires no repository tool or model credentials. Harness authentication is required only for scheduled agent work. Do not put credentials in work input or prescriptions.
