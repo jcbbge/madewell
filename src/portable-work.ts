@@ -222,10 +222,11 @@ function effortRecipe(node: ResolvedComponent, packages: PortableState['packages
 	const brainstorm = method.bindingOrigin === 'builtin:brainstorm-seed'
 	const effort = brainstorm ? packages[method.package.identity]?.find(file => file.path === 'references/effort.md') : undefined
 	if (brainstorm && (!effort || effort.encoding !== 'utf8')) throw fail('Pinned Brainstorm effort instructions are unavailable.', { address: node.address })
+	const canonical = method.args.effortRecipes === undefined ? null : /^builtin:method-library@([a-f0-9]{40})$/.exec(method.bindingOrigin)
 	return resolveManagedEffort({ requested, bindingSelection: method.args.effort,
 		declaration: brainstorm ? brainstormEffortDeclaration(effort!.content) : method.args.effortRecipes,
 		methodIdentity: method.identity, occurrence: node.address,
-		sourceIdentity: brainstorm ? 'brainstorm:references/effort.md/1' : method.bindingOrigin,
+		sourceIdentity: brainstorm ? 'brainstorm:references/effort.md/1' : canonical ? `method-library:effort/1@${canonical[1]}` : method.bindingOrigin,
 		instructionBytes: brainstorm ? effort!.content : method.package.instructions,
 		expansions,
 	})
@@ -392,9 +393,12 @@ function operations(root: string) {
 		const store = yield* Store, at = new Date(yield* Clock.currentTimeMillis).toISOString()
 		return yield* attempt(() => request(store, root, i.requestId, 'replace_work', i.itemId, i, at, () => {
 			const current = scoped(store, root, i.itemId); mutable(current)
-			const selected = Effect.runSync(inspectComposition({ root, component: current.portable.selection.root.address, config: i.config, override: i.override }).pipe(Effect.match({ onSuccess: value => value, onFailure: error => { throw error } })))
-			const old = leaves(current.portable.selection.root), next = leaves(selected.root)
+			const old = leaves(current.portable.selection.root)
 			const attempted = new Set(current.portable.handoffs.map(h => h.node.address))
+			const selected = Effect.runSync(inspectComposition({ root, component: current.portable.selection.root.address, config: i.config, override: i.override,
+				legacyDefaults: old.filter(node => attempted.has(node.address)),
+			}).pipe(Effect.match({ onSuccess: value => value, onFailure: error => { throw error } })))
+			const next = leaves(selected.root)
 			const frozenEffort = (selection: CompositionInspection) => (selection.effort ?? []).filter(choice => [...attempted].some(address => choice.address === '/' || address === choice.address || address.startsWith(choice.address + '/')))
 			if (JSON.stringify(frozenEffort(selected)) !== JSON.stringify(frozenEffort(current.portable.selection))) throw fail('Replacement changes effort expansion governing an attempted occurrence; prepared work remains pinned.', { attempted: [...attempted] })
 			const enclosing = (node: ResolvedComponent): unknown => ({ address: node.address, input: node.input, output: node.output, constraints: node.constraints,
@@ -402,7 +406,14 @@ function operations(root: string) {
 			})
 			if (JSON.stringify(enclosing(selected.root)) !== JSON.stringify(enclosing(current.portable.selection.root)) || old.some((node, index) => attempted.has(node.address) && (next[index]?.identity !== node.identity || next[index]?.address !== node.address))) throw fail('Replacement changes an attempted occurrence or enclosing contract/wiring; historical inputs remain pinned.', { attempted: [...attempted] })
 			const packages = pin(selected, root)
-			return snapshot(store.transition(i.itemId, i.revision, 'portable-replaced', { input: i }, item => ({ ...item, portable: { ...current.portable, selection: retainSelection(selected, packages), packages: { ...current.portable.packages, ...packages } }, updated: at })) as PortableItem)
+			// Identity guards above must pass before preserving any old node. Do not
+			// retrofit its saved package projection or declaration during a future edit.
+			const preserve = (node: ResolvedComponent): ResolvedComponent => attempted.has(node.address) ? old.find(previous => previous.address === node.address)!
+				: node.children ? { ...node, children: node.children.map(preserve) } : node
+			const retained = retainSelection(selected, packages)
+			return snapshot(store.transition(i.itemId, i.revision, 'portable-replaced', { input: i }, item => ({ ...item, portable: { ...current.portable,
+				selection: { ...retained, root: preserve(retained.root) }, packages: { ...packages, ...current.portable.packages },
+			}, updated: at })) as PortableItem)
 		}))
 	})
 	const readResource = Effect.fn('mw.readPortableResource')(function*(uri: string) {

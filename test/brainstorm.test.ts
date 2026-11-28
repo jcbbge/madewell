@@ -128,6 +128,203 @@ test('M5: default Delivery ordinary instructions and exact reported result survi
 	} finally { await f.close() }
 })
 
+test('canonical effort adapter: trusted Focused planner and cumulative Deep pin source, declaration and receipts without new authority', async () => {
+	const f = await productFixture({ existingStore: false })
+	let store = openStore(f.storePath), allowed = true, decisions = 0
+	const access: ManagedEffortAccess['Service'] = { decide: binding => {
+		decisions++
+		return allowed ? { allowed: true, provenance: 'independent-canonical-effort-host/v1', binding } : { allowed: false, reason: 'Trusted host unavailable' }
+	} }
+	const invoke = (operation: 'capture' | 'prepare' | 'record' | 'inspect', input: unknown) => Effect.runPromise(Effect.gen(function* () {
+		return yield* (yield* PortableWork)[operation](input)
+	}).pipe(Effect.provide(portableWorkLayer({ root: f.project })), Effect.provideService(Store, store), Effect.provideService(ManagedEffortAccess, access)))
+	const source = '  Fixed approach — 雪 / e\u0301 / 🦉\r\nNo execution or publication.  \r\n'
+	const context = '  Keep settled C-1; proof unavailable is unknown.  \r\n'
+	// Compare the entire JSON value across the Store serialization boundary;
+	// YAML's intentionally null-prototype maps are not wire-level distinctions.
+	const json = (value: unknown): unknown => JSON.parse(JSON.stringify(value))
+	try {
+		// This is the pre-fix positive: host access is genuinely provisioned, but
+		// the old default resolver supplies no authored non-Light recipe.
+		const captured = object(await invoke('capture', { requestId: 'canonical-capture', actor, source, component: '/delivery/planning' }))
+		const prepareInput = { requestId: 'canonical-focused', ...handle(captured), actor, effort: 'focused', context, outputLength: 'short' }
+		const prepared = object(await invoke('prepare', prepareInput)), packet = handoff(prepared), recipe = object(packet.recipe)
+		const method = object(object(packet.node).method), pkg = object(method.package)
+		const body = readFileSync(join(repository, 'skills/method-library/madewell-planning/SKILL.md'), 'utf8')
+		const inventory = object(JSON.parse(readFileSync(join(repository, 'skills/method-library/PROVENANCE.json'), 'utf8')))
+		const pin = array(inventory.files).map(object).find(file => file.path === 'madewell-planning/SKILL.md')!
+		assert.equal(pin.sha256, digest(body)); assert.equal(pin.bytes, Buffer.byteLength(body))
+		assert.ok(text(method.bindingOrigin).includes(text(inventory.revision)))
+		assert.equal(recipe.sourceIdentity, `method-library:effort/1@${text(inventory.revision)}`)
+		assert.equal(object(packet.node).address, '/delivery/planning'); assert.equal(pkg.name, 'madewell-planning')
+		assert.equal(pkg.instructions, body); assert.equal(recipe.instructionBytes, body)
+		assert.equal(packet.source, source); assert.equal(packet.context, context); assert.equal(packet.outputLength, 'short')
+		assert.equal(packet.requestedEffort, 'focused'); assert.equal(packet.effectiveEffort, 'focused'); assert.equal(recipe.classification, 'protected')
+		assert.ok(text(recipe.instructions).includes('settle the smallest feasible fixed brief with all scope, inputs, conditions, proof owners/availability and recovery obligations.'))
+		assert.ok(text(recipe.instructions).includes('additionally inspect affected consumers and a material sequencing/contingency seam; show how actual findings change or support the brief.'))
+		assert.ok(!text(recipe.instructions).includes('additionally resolve difficult dependencies'), 'Focused is not Deep')
+		assert.ok(!text(recipe.instructions).includes('compare a material feasible alternative'), 'planner must not receive Ideation work')
+		assert.equal(recipe.declarationDigest, digest(text(recipe.declaration)))
+		const declaration = object(JSON.parse(text(recipe.declaration))), variants = object(declaration.variants)
+		assert.equal(declaration.version, 1); assert.equal(declaration.default, 'light')
+		assert.equal(object(variants.focused).instructions, recipe.instructions)
+		const args = object(method.args), raw = args.effortRecipes
+		assert.deepEqual(json(typeof raw === 'string' ? JSON.parse(raw) : raw), json(declaration), 'prepared recipe derives from captured explicit declaration')
+		assert.equal(recipe.methodIdentity, method.identity); assert.equal(recipe.occurrence, '/delivery/planning')
+		const authorization = object(packet.effortAuthorization), bound = object(authorization.binding)
+		assert.equal(authorization.provenance, 'independent-canonical-effort-host/v1')
+		assert.equal(bound.recipeDigest, recipe.digest); assert.equal(bound.sourceIdentity, recipe.sourceIdentity)
+		assert.equal(bound.methodIdentity, method.identity); assert.equal(bound.revision, captured.revision)
+		assert.equal(prepared.executionAuthorized, false); assert.ok(decisions > 0)
+		const saved = structuredClone(prepared), count = decisions
+		allowed = false; store.close(); store = openStore(f.storePath)
+		assert.deepEqual(json(await invoke('prepare', prepareInput)), json(saved), 'restart/outage recovers exact receipt before policy')
+		assert.equal(decisions, count)
+		const result = { artifact: 'Partial fixed brief — C-1\r\nNo checks run; proof owner still owes evidence.\r\n', sources: ['C-1'], decisions: [], unknowns: ['Live proof'], performedEffort: 'focused' }
+		const recordInput = { requestId: 'canonical-record', ...handle(prepared), actor: reporter, handoffId: packet.id, result }
+		const recorded = object(await invoke('record', recordInput))
+		assert.equal(object(recorded.recorded).validation, 'contract-accepted-not-independently-verified')
+		assert.deepEqual(json(object(recorded.recorded).result), json(result))
+		assert.deepEqual(json(await invoke('record', recordInput)), json(recorded))
+		const inspected = object(await invoke('inspect', { itemId: handle(captured).itemId }))
+		assert.deepEqual(json(object(inspected.portable).selection), json(object(captured.portable).selection))
+		retains(inspected, packet, 'accepted record never retrofits the prepared source/declaration/authorization')
+		assert.equal(decisions, count, 'record and receipts do not reauthorize already prepared work')
+		const deepCapture = object(await invoke('capture', { requestId: 'canonical-deep-capture', actor, source, component: '/delivery/planning' }))
+		const deepInput = { requestId: 'canonical-deep', ...handle(deepCapture), actor, effort: 'deep', outputLength: 'short' }
+		await assert.rejects(invoke('prepare', deepInput), /access|protected|unavailable/i)
+		assert.deepEqual(json(await invoke('inspect', { itemId: handle(deepCapture).itemId })), json(deepCapture), 'refusal evidence changes neither revision nor accepted selection/handoffs')
+		allowed = true
+		await assert.rejects(invoke('prepare', deepInput), /access|protected|unavailable/i, 'the saved denied receipt remains denied after host access changes')
+		const deep = handoff(await invoke('prepare', { ...deepInput, requestId: 'canonical-deep-authorized' })), deepRecipe = object(deep.recipe)
+		assert.equal(deep.effectiveEffort, 'deep'); assert.equal(deep.outputLength, 'short')
+		for (const wording of ['settle the smallest feasible fixed brief', 'additionally inspect affected consumers', 'additionally resolve difficult dependencies using accessible primary material and concrete failure/recovery examples before freezing the brief. Missing inputs remain owned gaps rather than fictional resolution.']) assert.ok(text(deepRecipe.instructions).includes(wording))
+		assert.equal(deepRecipe.instructionBytes, body); assert.equal(deepRecipe.declaration, recipe.declaration)
+		assert.notEqual(deepRecipe.digest, recipe.digest)
+		assert.deepEqual(json(await invoke('prepare', prepareInput)), json(saved), 'a later Deep preparation never rewrites a historical Focused receipt')
+		f.assertNoExecution()
+	} finally { store.close(); await f.close() }
+})
+
+test('canonical effort adapter: default stdio denies protected methods, Land stays Light and project names/prose cannot mint recipes', async () => {
+	const f = await productFixture(), local = join(f.project, 'canonical-spoof')
+	const work = async (name: string, input: Value) => {
+		const response = object(await f.call(name, input)), value = decoded(response)
+		assert.notEqual(response.isError, true, JSON.stringify(response)); assert.deepEqual(response.structuredContent, value)
+		assert.equal(value.executionAuthorized, false); assert.equal(value.independentlyVerified, false)
+		return value
+	}
+	try {
+		await f.connect({ file: true })
+		for (const component of ['/delivery/planning', '/discovery/declare', '/landing']) {
+			const captured = await work('capture_work', { requestId: `deny-capture-${component}`, actor, source: roughSource, component })
+			for (const effort of ['focused', 'deep']) {
+				const before = f.snapshot()
+				const error = failure(await f.call('prepare_work', { requestId: `deny-${component}-${effort}`, ...handle(captured), actor, effort }), component === '/landing' ? /does not author|requested effort|availableEffort/i : /protected|access|entitle|unavailable/i)
+				assert.equal(error.error, component === '/landing' ? 'portable_invalid' : 'brainstorm_entitlement_unavailable', 'authored-but-denied must differ from unsupported Landing effort')
+				assert.deepEqual(f.snapshot()!.items, before!.items, 'refused drafts/receipts may be retained, but never change accepted work or create a handoff')
+			}
+			const free = handoff(await work('prepare_work', { requestId: `free-${component}`, ...handle(captured), actor }))
+			assert.equal(free.effectiveEffort, 'light'); assert.equal(object(free.recipe).classification, 'free-light')
+			assert.equal(object(free.effortAuthorization).provenance, 'builtin:free-light/1')
+		}
+		const ordinary = readFileSync(join(repository, 'skills/method-library/madewell-planning/SKILL.md'), 'utf8')
+		for (const [name, body] of [['madewell-planning', ordinary], ['third-party', ordinary.replaceAll('madewell-planning', 'third-party')]]) {
+			mkdirSync(join(local, name!), { recursive: true })
+			writeFileSync(join(local, name!, 'SKILL.md'), body!)
+			const config = `canonical-spoof/${name}.json`
+			writeFileSync(join(f.project, config), JSON.stringify({ schemaVersion: 1, bindings: { '/delivery/planning': { skill: `./${name}`, input: 'madewell.delivery.ideation.output.v1', output: 'madewell.delivery.planning.output.v1' } } }))
+			const captured = await work('capture_work', { requestId: `spoof-${name}`, actor, source: roughSource, component: '/delivery/planning', config })
+			for (const effort of ['focused', 'deep']) {
+				const before = f.snapshot()
+				const error = failure(await f.call('prepare_work', { requestId: `spoof-${name}-${effort}`, ...handle(captured), actor, effort }), /does not author|requested effort|availableEffort/i)
+				assert.equal(error.error, 'portable_invalid', 'ordinary prose has no variants even before access is considered')
+				assert.deepEqual(f.snapshot()!.items, before!.items, 'refusal evidence never advances the accepted ordinary selection')
+			}
+			const prepared = await work('prepare_work', { requestId: `spoof-free-${name}`, ...handle(captured), actor })
+			assert.equal(object(handoff(prepared).recipe).declaration, null)
+			assert.equal(object(object(object(handoff(prepared).node).method).package).instructions, body)
+		}
+		rmSync(local, { recursive: true, force: true })
+		f.assertNoExecution()
+	} finally { rmSync(local, { recursive: true, force: true }); await f.close() }
+})
+
+test('canonical effort continuation: Implementation Deep retains an honestly lower report without relabeling authorization or inventing third-party ordering', async () => {
+	const f = await productFixture({ existingStore: false }), local = join(f.project, 'performed-effort')
+	let store = openStore(f.storePath), decisions = 0, allowed = true
+	const access: ManagedEffortAccess['Service'] = { decide: binding => {
+		decisions++
+		return allowed ? { allowed: true, provenance: 'independent-performed-effort-host/v1', binding } : { allowed: false, reason: 'Trusted access now unavailable' }
+	} }
+	const invoke = (operation: 'capture' | 'prepare' | 'record' | 'inspect', input: unknown) => Effect.runPromise(Effect.gen(function* () {
+		return yield* (yield* PortableWork)[operation](input)
+	}).pipe(Effect.provide(portableWorkLayer({ root: f.project })), Effect.provideService(Store, store), Effect.provideService(ManagedEffortAccess, access)))
+	const source = '  Fixed brief B-1 — 雪\r\nDraft two supplied lines only. No intermediate checkpoints, difficult transformation or failure/recovery exercise is included. Do not add work or publish.  \r\n'
+	const result = { artifact: 'First supplied line.\r\nSecond supplied line.\r\n', sources: ['B-1'], decisions: ['Follow B-1 without added exercises'], unknowns: ['No independent verification performed'], performedEffort: 'light', performedWork: 'Completed B-1 drafting only. No Focused checkpoints or Deep transformation/recovery exercise was included in B-1 or performed; no additional deeper work is established for this brief.' }
+	try {
+		const captured = object(await invoke('capture', { requestId: 'performed-capture', actor, source, component: '/delivery/implementation' }))
+		const prepareInput = { requestId: 'performed-deep', ...handle(captured), actor, effort: 'deep' }
+		const prepared = object(await invoke('prepare', prepareInput)), packet = handoff(prepared)
+		assert.equal(object(object(object(packet.node).method).package).name, 'madewell-implementing')
+		assert.equal(packet.requestedEffort, 'deep'); assert.equal(packet.effectiveEffort, 'deep')
+		assert.ok(text(object(packet.recipe).instructions).includes('Otherwise no distinct Deep implementation recipe exists'))
+		const originalPacketBytes = JSON.stringify(packet), originalSelectionBytes = JSON.stringify(object(prepared.portable).selection)
+		const recordInput = { requestId: 'performed-light-report', ...handle(prepared), actor: reporter, handoffId: packet.id, result }
+		const recorded = object(await invoke('record', recordInput))
+		assert.equal(JSON.stringify(object(recorded.recorded).result), JSON.stringify(result), 'honest actual work and explicit missing deeper work remain attributed reports')
+		assert.equal(object(recorded.recorded).validation, 'contract-accepted-not-independently-verified')
+		assert.equal(recorded.independentlyVerified, false); assert.equal(recorded.executionAuthorized, false)
+		assert.equal(JSON.stringify(array(object(recorded.portable).handoffs)[0]), originalPacketBytes, 'requested/effective/declaration/authorization bytes are never downgraded to the reported Light')
+		assert.equal(JSON.stringify(object(recorded.portable).selection), originalSelectionBytes)
+		const count = decisions, recordBytes = JSON.stringify(recorded), preparedBytes = JSON.stringify(prepared)
+		allowed = false; store.close(); store = openStore(f.storePath)
+		assert.equal(JSON.stringify(await invoke('record', recordInput)), recordBytes, 'exact record receipt survives restart and access outage')
+		assert.equal(JSON.stringify(await invoke('prepare', prepareInput)), preparedBytes)
+		const inspected = object(await invoke('inspect', { itemId: handle(captured).itemId }))
+		assert.equal(JSON.stringify(array(object(inspected.portable).handoffs)[0]), originalPacketBytes)
+		assert.equal(JSON.stringify(array(object(inspected.portable).results)[0]), JSON.stringify(recorded.recorded))
+		assert.equal(decisions, count, 'reporting lower actual work is not a new preparation, grant or billing decision')
+		allowed = true
+		for (const [effective, performed] of [['focused', 'light'], ['deep', 'focused']] as const) {
+			const brief = performed === 'focused' ? 'Fixed brief B-2: draft the supplied two lines and retain its specified intermediate checkpoint after line one. No difficult transformation or recovery exercise is included.' : source
+			const lowerResult = { ...result, performedEffort: performed, ...(performed === 'focused' ? { sources: ['B-2'], decisions: ['Follow only the B-2 specified checkpoint'], performedWork: 'Drafted both lines; retained the B-2 line-one intermediate checkpoint. No Deep transformation or failure/recovery exercise was specified or performed.' } : {}) }
+			const capture = object(await invoke('capture', { requestId: `lower-capture-${effective}`, actor, source: brief, component: '/delivery/implementation' }))
+			const ready = object(await invoke('prepare', { requestId: `lower-prepare-${effective}`, ...handle(capture), actor, effort: effective }))
+			const accepted = object(await invoke('record', { requestId: `lower-record-${effective}`, ...handle(ready), actor: reporter, handoffId: handoff(ready).id, result: lowerResult }))
+			assert.equal(object(object(accepted.recorded).result).performedEffort, performed)
+			assert.equal(JSON.stringify(array(object(accepted.portable).handoffs)[0]), JSON.stringify(handoff(ready)))
+			assert.equal(JSON.stringify(object(accepted.portable).selection), JSON.stringify(object(ready.portable).selection))
+			assert.equal(accepted.executionAuthorized, false); assert.equal(accepted.independentlyVerified, false)
+		}
+		for (const [effective, stronger] of [['light', 'focused'], ['focused', 'deep'], ['deep', 'invented-preset']] as const) {
+			const capture = object(await invoke('capture', { requestId: `stronger-capture-${effective}`, actor, source, component: '/delivery/implementation' }))
+			const prepared = object(await invoke('prepare', { requestId: `stronger-prepare-${effective}`, ...handle(capture), actor, effort: effective }))
+			const before = JSON.stringify(object(prepared.portable))
+			await assert.rejects(invoke('record', { requestId: `stronger-record-${effective}`, ...handle(prepared), actor: reporter, handoffId: handoff(prepared).id, result: { ...result, performedEffort: stronger } }), /performed|effort|supported|stronger/i)
+			const after = object(await invoke('inspect', { itemId: handle(prepared).itemId }))
+			assert.equal(after.revision, prepared.revision); assert.equal(JSON.stringify(after.portable), before)
+		}
+		// An explicit ordinary binding may author identical preset labels (or even
+		// identical upstream source/declaration), but it authors no preset ordering.
+		const body = readFileSync(join(repository, 'skills/method-library/madewell-implementing/SKILL.md'), 'utf8')
+		const recipes = JSON.parse(text(object(packet.recipe).declaration))
+		for (const name of ['third-party', 'madewell-implementing']) {
+			mkdirSync(join(local, name), { recursive: true })
+			writeFileSync(join(local, name, 'SKILL.md'), body.replaceAll('madewell-implementing', name))
+			writeFileSync(join(local, `${name}.json`), JSON.stringify({ schemaVersion: 1, bindings: { '/delivery/implementation': { skill: `./${name}`, input: 'madewell.delivery.planning.output.v1', output: 'madewell.delivery.implementation.output.v1', args: { effortRecipes: recipes } } } }))
+			const capture = object(await invoke('capture', { requestId: `ordinary-capture-${name}`, actor, source, component: '/delivery/implementation', config: `performed-effort/${name}.json` }))
+			const prepared = object(await invoke('prepare', { requestId: `ordinary-prepare-${name}`, ...handle(capture), actor, effort: 'deep' }))
+			await assert.rejects(invoke('record', { requestId: `ordinary-lower-${name}`, ...handle(prepared), actor: reporter, handoffId: handoff(prepared).id, result }), /performed|effort|supported/i)
+			const after = object(await invoke('inspect', { itemId: handle(prepared).itemId }))
+			assert.equal(after.revision, prepared.revision); assert.equal(JSON.stringify(after.portable), JSON.stringify(prepared.portable))
+			const exact = object(await invoke('record', { requestId: `ordinary-exact-${name}`, ...handle(prepared), actor: reporter, handoffId: handoff(prepared).id, result: { ...result, performedEffort: 'deep' } }))
+			assert.equal(object(object(exact.recorded).result).performedEffort, 'deep', 'control: the ordinary method can record its exact selected label')
+		}
+		rmSync(local, { recursive: true, force: true }); f.assertNoExecution()
+	} finally { store.close(); rmSync(local, { recursive: true, force: true }); await f.close() }
+})
+
 test('Landing: selected canonical bytes fail visibly on live corruption while captured ordinary pins and natural closure survive restart', async () => {
 	const original = join(repository, 'skills/method-library')
 	const body = readFileSync(join(original, 'madewell-landing/SKILL.md'))

@@ -124,6 +124,62 @@ test('no-config inventory preserves the complete settled defaults with canonical
 	} finally { f.close() }
 })
 
+test('canonical effort adapter: all eleven default leaves pin their own cumulative authored recipes, never ordinary lookalikes', async () => {
+	const f = fixture()
+	try {
+		const inventory = await f.inspect()
+		const methods = all(inventory.root).filter(node => node.address.startsWith('/discovery/') || node.address.startsWith('/delivery/'))
+		assert.equal(methods.length, 11)
+		const declarations = new Set<string>()
+		for (const node of methods) {
+			assert.equal(node.method?.kind, 'skill')
+			if (node.method?.kind !== 'skill') continue
+			const method = node.method, body = readFileSync(join(method.package.origin, 'SKILL.md'), 'utf8')
+			assert.equal(method.package.instructions, body, 'adaptation never edits ordinary source bytes')
+			assert.equal(method.args.effort, 'light')
+			const raw = method.args.effortRecipes
+			const declaration = (typeof raw === 'string' ? JSON.parse(raw) : raw) as { version: number; default: string; variants: Record<string, { instructions: string; stopping: string; evidence: string }> }
+			assert.ok(declaration, `${node.address}: default canonical binding must explicitly declare effortRecipes`)
+			assert.equal(declaration.version, 1); assert.equal(declaration.default, 'light')
+			assert.deepEqual(Object.keys(declaration.variants).sort(), ['deep', 'focused', 'light'])
+			declarations.add(JSON.stringify(declaration))
+			const levels = ['light', 'focused', 'deep']
+			const rows = ['Light — free default', 'Focused', 'Deep'].map(label => {
+				const row = body.split('\n').find(line => line.startsWith(`- **${label}:** `))
+				assert.ok(row, `independent source fixture has authored ${label}`)
+				return row.slice(row.indexOf(':** ') + 4)
+			})
+			const returned = body.split('## Return and boundary\n\n')[1]!.split('\n\n')[0]!
+			for (const [index, level] of levels.entries()) {
+				const recipe = declaration.variants[level]!
+				for (const required of rows.slice(0, index + 1)) assert.ok(recipe.instructions.includes(required), `${node.address}/${level}: exact cumulative authored work, not a generic ladder`)
+				for (const stronger of rows.slice(index + 1)) assert.ok(!recipe.instructions.includes(stronger), `${node.address}/${level}: no undeclared stronger work`)
+				assert.ok(recipe.stopping.includes(returned) || recipe.evidence.includes(returned), 'exact ordinary return obligations remain pinned, not invented stopping/evidence prose')
+			}
+			if (node.address === '/delivery/verification') for (const recipe of Object.values(declaration.variants)) {
+				assert.ok(recipe.instructions.includes('every applicable condition at its necessary rigor'), 'required proof remains baseline, including Light')
+			}
+			if (node.address === '/delivery/implementation') assert.ok(declaration.variants.deep!.instructions.includes('only when already included in the fixed brief'), 'Deep never grants redesign or scope')
+		}
+		assert.equal(declarations.size, 11, 'each method owns its actual authored work')
+		const landing = at(inventory.root, '/landing').method
+		assert.equal(landing?.kind, 'skill')
+		if (landing?.kind === 'skill' && landing.args.effortRecipes !== undefined) {
+			const raw = landing.args.effortRecipes
+			assert.deepEqual(Object.keys((typeof raw === 'string' ? JSON.parse(raw) : raw).variants), ['light'])
+		}
+		// Even exact upstream bytes and an upstream name are ordinary project material.
+		const planner = at(inventory.root, '/delivery/planning').method
+		assert.ok(planner?.kind === 'skill')
+		f.put('local/madewell-planning/SKILL.md', planner.package.instructions)
+		f.put('config.json', { schemaVersion: 1, bindings: { '/delivery/planning': binding('./local/madewell-planning', at(inventory.root, '/delivery/planning').input, at(inventory.root, '/delivery/planning').output) } })
+		const replaced = await f.inspect({ config: 'config.json', component: '/delivery/planning' })
+		assert.ok(replaced.root.method?.kind === 'skill')
+		assert.equal(replaced.root.method.args.effortRecipes, undefined, 'name/prose/address never confer distribution-owned adaptation')
+		assert.deepEqual(await f.inspect(), inventory, 'explicit project replacement does not mutate defaults')
+	} finally { f.close() }
+})
+
 test('project binding makes brainstorm standalone complete and leaves every unselected branch identical', async () => {
 	const f = fixture()
 	try {

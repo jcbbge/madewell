@@ -143,7 +143,7 @@ function configLayers(root: string, file: string, ancestors: ReadonlyArray<strin
 	return [...layers, [{ path, config }]]
 }
 
-function inspect(options: { root: string; config?: string; override?: string; component?: string }): CompositionInspection {
+function inspect(options: { root: string; config?: string; override?: string; component?: string; legacyDefaults?: ReadonlyArray<ResolvedComponent> }): CompositionInspection {
 	const root = validateGrantedRoot(resolve(options.root))
 	let layers: Located[][] = []
 	if (options.config === undefined) {
@@ -303,9 +303,16 @@ function inspect(options: { root: string; config?: string; override?: string; co
 					identity: hash({ method: skill.identity, posture: posture.identity }), package: skill, companions: [posture], args: { effort: 'light' } }
 			} else {
 				const selected = loadDefaultMethod(address)
+				// Internal replacement compatibility only: explicit bindings never reach
+				// this branch, and changed source/revision/constraints still fail the
+				// caller's attempted-occurrence guards. Fresh/future defaults use recipes.
+				const previous = options.legacyDefaults?.find(node => node.address === address && node.origin === 'builtin:grammar')?.method
+				const legacy = selected?.effortRecipes && previous?.kind === 'skill'
+					&& previous.bindingOrigin === `builtin:method-library@${selected.revision}` && previous.identity === selected.snapshot.identity
+					&& Object.keys(previous.args).length === 1 && previous.args.effort === 'light'
 				if (selected) method = { kind: 'skill', origin: selected.snapshot.origin,
 					bindingOrigin: `builtin:method-library@${selected.revision}`, identity: selected.snapshot.identity,
-					package: selected.snapshot, args: { effort: 'light' } }
+					package: selected.snapshot, args: legacy ? previous.args : { effort: 'light', ...(selected.effortRecipes ? { effortRecipes: selected.effortRecipes } : {}) } }
 			}
 		}
 		const children = !chosen && node.children ? node.children.map(child => visit(child, addressOf(address, child.id))) : undefined
@@ -321,7 +328,7 @@ function inspect(options: { root: string; config?: string; override?: string; co
 }
 
 /** Resolve explicit local material without opening storage, loading a worker or executing a method. */
-export const inspectComposition = Effect.fn('mw.inspectComposition')(function* (options: { root: string; config?: string; override?: string; component?: string }) {
+export const inspectComposition = Effect.fn('mw.inspectComposition')(function* (options: { root: string; config?: string; override?: string; component?: string; legacyDefaults?: ReadonlyArray<ResolvedComponent> }) {
 	return yield* Effect.try({ try: () => inspect(options), catch: cause => cause instanceof MadeWellError ? cause : new MadeWellError({
 		code: 'portable_invalid', message: 'Cannot resolve the portable composition.', context: { reason: String(cause) },
 		next: [{ run: 'mw cartridges --inspect --root <directory>', why: 'correct the selected material and inspect again' }],

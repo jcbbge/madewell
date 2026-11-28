@@ -2344,7 +2344,7 @@ function brainstormEffortDeclaration(content) {
 }
 function assertPerformedEffort(performed, effective, recipe) {
   if (performed === effective) return;
-  const authored = recipe?.sourceIdentity === "brainstorm:references/effort.md/1";
+  const authored = recipe?.sourceIdentity === "brainstorm:references/effort.md/1" || /^method-library:effort\/1@[a-f0-9]{40}$/.test(recipe?.sourceIdentity ?? "");
   const presets = ["light", "focused", "deep"];
   if (authored && presets.includes(performed) && presets.includes(effective) && presets.indexOf(performed) < presets.indexOf(effective)) return;
   throw fail("Reported performed effort is not supported by the prepared recipe; describe limitations without claiming stronger work.", { performedEffort: performed, effectiveEffort: effective, recipeDigest: recipe?.digest ?? null });
@@ -3071,7 +3071,27 @@ function loadDefaultMethod(address) {
     context: { address, name, revision: inventory.revision },
     next: [{ run: "mw cartridges --inspect --root <directory>", why: "Restore the intact distribution or explicitly bind a different ordinary skill; no builtin fallback was selected." }]
   });
-  return { snapshot: snapshot2, revision: inventory.revision };
+  let effortRecipes;
+  if (name !== "madewell-landing") {
+    const sections = snapshot2.instructions.split("\n## Effort\n");
+    const parts = sections[1]?.split("\n## Return and boundary\n");
+    const labels = ["- **Light \u2014 free default:** ", "- **Focused:** ", "- **Deep:** "];
+    const steps = labels.map((label) => parts?.[0]?.split("\n").find((line) => line.startsWith(label)));
+    if (sections.length !== 2 || parts?.length !== 2 || !parts[1]?.trim() || steps.some((step) => !step)) throw new MadeWellError({
+      code: "portable_invalid",
+      message: "The pinned default method does not match its versioned effort adapter.",
+      context: { address, name, revision: inventory.revision },
+      next: [{ run: "mw cartridges --inspect --root <directory>", why: "Reconcile the default binding with its published recipe; no variant was invented." }]
+    });
+    effortRecipes = { version: 1, default: "light", variants: Object.fromEntries(["light", "focused", "deep"].map((effort, index) => [effort, {
+      // "Additionally" retains the earlier authored work, including Light's
+      // complete correctness/evidence and Implementation's fixed-brief limits.
+      instructions: steps.slice(0, index + 1).join("\n"),
+      stopping: parts[1],
+      evidence: snapshot2.instructions
+    }])) };
+  }
+  return { snapshot: snapshot2, revision: inventory.revision, effortRecipes };
 }
 
 // src/composition.ts
@@ -3368,13 +3388,15 @@ function inspect(options) {
         };
       } else {
         const selected2 = loadDefaultMethod(address);
+        const previous = options.legacyDefaults?.find((node2) => node2.address === address && node2.origin === "builtin:grammar")?.method;
+        const legacy = selected2?.effortRecipes && previous?.kind === "skill" && previous.bindingOrigin === `builtin:method-library@${selected2.revision}` && previous.identity === selected2.snapshot.identity && Object.keys(previous.args).length === 1 && previous.args.effort === "light";
         if (selected2) method = {
           kind: "skill",
           origin: selected2.snapshot.origin,
           bindingOrigin: `builtin:method-library@${selected2.revision}`,
           identity: selected2.snapshot.identity,
           package: selected2.snapshot,
-          args: { effort: "light" }
+          args: legacy ? previous.args : { effort: "light", ...selected2.effortRecipes ? { effortRecipes: selected2.effortRecipes } : {} }
         };
       }
     }
@@ -3739,13 +3761,14 @@ function effortRecipe(node, packages, requested, selection2) {
   const brainstorm = method.bindingOrigin === "builtin:brainstorm-seed";
   const effort = brainstorm ? packages[method.package.identity]?.find((file) => file.path === "references/effort.md") : void 0;
   if (brainstorm && (!effort || effort.encoding !== "utf8")) throw fail5("Pinned Brainstorm effort instructions are unavailable.", { address: node.address });
+  const canonical2 = method.args.effortRecipes === void 0 ? null : /^builtin:method-library@([a-f0-9]{40})$/.exec(method.bindingOrigin);
   return resolveManagedEffort({
     requested,
     bindingSelection: method.args.effort,
     declaration: brainstorm ? brainstormEffortDeclaration(effort.content) : method.args.effortRecipes,
     methodIdentity: method.identity,
     occurrence: node.address,
-    sourceIdentity: brainstorm ? "brainstorm:references/effort.md/1" : method.bindingOrigin,
+    sourceIdentity: brainstorm ? "brainstorm:references/effort.md/1" : canonical2 ? `method-library:effort/1@${canonical2[1]}` : method.bindingOrigin,
     instructionBytes: brainstorm ? effort.content : method.package.instructions,
     expansions
   });
@@ -3944,11 +3967,18 @@ function operations2(root) {
     return yield* attempt2(() => request2(store, root, i.requestId, "replace_work", i.itemId, i, at, () => {
       const current = scoped(store, root, i.itemId);
       mutable2(current);
-      const selected = Effect13.runSync(inspectComposition({ root, component: current.portable.selection.root.address, config: i.config, override: i.override }).pipe(Effect13.match({ onSuccess: (value) => value, onFailure: (error) => {
+      const old = leaves(current.portable.selection.root);
+      const attempted = new Set(current.portable.handoffs.map((h) => h.node.address));
+      const selected = Effect13.runSync(inspectComposition({
+        root,
+        component: current.portable.selection.root.address,
+        config: i.config,
+        override: i.override,
+        legacyDefaults: old.filter((node) => attempted.has(node.address))
+      }).pipe(Effect13.match({ onSuccess: (value) => value, onFailure: (error) => {
         throw error;
       } })));
-      const old = leaves(current.portable.selection.root), next = leaves(selected.root);
-      const attempted = new Set(current.portable.handoffs.map((h) => h.node.address));
+      const next = leaves(selected.root);
       const frozenEffort = (selection2) => (selection2.effort ?? []).filter((choice) => [...attempted].some((address) => choice.address === "/" || address === choice.address || address.startsWith(choice.address + "/")));
       if (JSON.stringify(frozenEffort(selected)) !== JSON.stringify(frozenEffort(current.portable.selection))) throw fail5("Replacement changes effort expansion governing an attempted occurrence; prepared work remains pinned.", { attempted: [...attempted] });
       const enclosing = (node) => ({
@@ -3960,7 +3990,13 @@ function operations2(root) {
       });
       if (JSON.stringify(enclosing(selected.root)) !== JSON.stringify(enclosing(current.portable.selection.root)) || old.some((node, index) => attempted.has(node.address) && (next[index]?.identity !== node.identity || next[index]?.address !== node.address))) throw fail5("Replacement changes an attempted occurrence or enclosing contract/wiring; historical inputs remain pinned.", { attempted: [...attempted] });
       const packages = pin(selected, root);
-      return snapshot(store.transition(i.itemId, i.revision, "portable-replaced", { input: i }, (item) => ({ ...item, portable: { ...current.portable, selection: retainSelection(selected, packages), packages: { ...current.portable.packages, ...packages } }, updated: at })));
+      const preserve = (node) => attempted.has(node.address) ? old.find((previous) => previous.address === node.address) : node.children ? { ...node, children: node.children.map(preserve) } : node;
+      const retained = retainSelection(selected, packages);
+      return snapshot(store.transition(i.itemId, i.revision, "portable-replaced", { input: i }, (item) => ({ ...item, portable: {
+        ...current.portable,
+        selection: { ...retained, root: preserve(retained.root) },
+        packages: { ...packages, ...current.portable.packages }
+      }, updated: at })));
     }));
   });
   const readResource = Effect13.fn("mw.readPortableResource")(function* (uri) {

@@ -2,6 +2,7 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { MadeWellError } from './errors.ts'
+import type { EffortDeclaration } from './managed-effort.ts'
 import { loadSkillPackage, readGrantedFile } from './skill-package.ts'
 
 /** A distribution-owned grant, never a path supplied by project configuration. */
@@ -45,5 +46,24 @@ export function loadDefaultMethod(address: string) {
 		context: { address, name, revision: inventory.revision },
 		next: [{ run: 'mw cartridges --inspect --root <directory>', why: 'Restore the intact distribution or explicitly bind a different ordinary skill; no builtin fallback was selected.' }],
 	})
-	return { snapshot, revision: inventory.revision }
+	let effortRecipes: z.infer<typeof EffortDeclaration> | undefined
+	if (name !== 'madewell-landing') {
+		// Version-1 adapter for these inventory-validated default leaves only. Never
+		// infer managed variants from an arbitrary ordinary skill's name or prose.
+		const sections = snapshot.instructions.split('\n## Effort\n')
+		const parts = sections[1]?.split('\n## Return and boundary\n')
+		const labels = ['- **Light — free default:** ', '- **Focused:** ', '- **Deep:** ']
+		const steps = labels.map(label => parts?.[0]?.split('\n').find(line => line.startsWith(label)))
+		if (sections.length !== 2 || parts?.length !== 2 || !parts[1]?.trim() || steps.some(step => !step)) throw new MadeWellError({
+			code: 'portable_invalid', message: 'The pinned default method does not match its versioned effort adapter.',
+			context: { address, name, revision: inventory.revision },
+			next: [{ run: 'mw cartridges --inspect --root <directory>', why: 'Reconcile the default binding with its published recipe; no variant was invented.' }],
+		})
+		effortRecipes = { version: 1, default: 'light', variants: Object.fromEntries(['light', 'focused', 'deep'].map((effort, index) => [effort, {
+			// "Additionally" retains the earlier authored work, including Light's
+			// complete correctness/evidence and Implementation's fixed-brief limits.
+			instructions: steps.slice(0, index + 1).join('\n'), stopping: parts[1]!, evidence: snapshot.instructions,
+		}])) }
+	}
+	return { snapshot, revision: inventory.revision, effortRecipes }
 }

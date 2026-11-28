@@ -136,8 +136,10 @@ export function brainstormEffortDeclaration(content: string) {
 /** Performed labels are attributed reports, never entitlement or independent verification. */
 export function assertPerformedEffort(performed: string, effective: string, recipe?: ResolvedEffort): void {
 	if (performed === effective) return
-	// Only Brainstorm's authored presets have this known partial-work ordering.
+	// These saved, versioned built-in adapters author the partial-work ordering.
+	// Project declarations do not acquire it by copying names, presets or prose.
 	const authored = recipe?.sourceIdentity === 'brainstorm:references/effort.md/1'
+		|| /^method-library:effort\/1@[a-f0-9]{40}$/.test(recipe?.sourceIdentity ?? '')
 	const presets = ['light', 'focused', 'deep']
 	if (authored && presets.includes(performed) && presets.includes(effective) && presets.indexOf(performed) < presets.indexOf(effective)) return
 	throw fail('Reported performed effort is not supported by the prepared recipe; describe limitations without claiming stronger work.', { performedEffort: performed, effectiveEffort: effective, recipeDigest: recipe?.digest ?? null })

@@ -54856,7 +54856,27 @@ function loadDefaultMethod(address) {
     context: { address, name, revision: inventory.revision },
     next: [{ run: "mw cartridges --inspect --root <directory>", why: "Restore the intact distribution or explicitly bind a different ordinary skill; no builtin fallback was selected." }]
   });
-  return { snapshot: snapshot2, revision: inventory.revision };
+  let effortRecipes;
+  if (name !== "madewell-landing") {
+    const sections = snapshot2.instructions.split("\n## Effort\n");
+    const parts2 = sections[1]?.split("\n## Return and boundary\n");
+    const labels = ["- **Light \u2014 free default:** ", "- **Focused:** ", "- **Deep:** "];
+    const steps = labels.map((label3) => parts2?.[0]?.split("\n").find((line) => line.startsWith(label3)));
+    if (sections.length !== 2 || parts2?.length !== 2 || !parts2[1]?.trim() || steps.some((step) => !step)) throw new MadeWellError({
+      code: "portable_invalid",
+      message: "The pinned default method does not match its versioned effort adapter.",
+      context: { address, name, revision: inventory.revision },
+      next: [{ run: "mw cartridges --inspect --root <directory>", why: "Reconcile the default binding with its published recipe; no variant was invented." }]
+    });
+    effortRecipes = { version: 1, default: "light", variants: Object.fromEntries(["light", "focused", "deep"].map((effort, index2) => [effort, {
+      // "Additionally" retains the earlier authored work, including Light's
+      // complete correctness/evidence and Implementation's fixed-brief limits.
+      instructions: steps.slice(0, index2 + 1).join("\n"),
+      stopping: parts2[1],
+      evidence: snapshot2.instructions
+    }])) };
+  }
+  return { snapshot: snapshot2, revision: inventory.revision, effortRecipes };
 }
 
 // src/composition.ts
@@ -55153,13 +55173,15 @@ function inspect(options) {
         };
       } else {
         const selected2 = loadDefaultMethod(address);
+        const previous = options.legacyDefaults?.find((node3) => node3.address === address && node3.origin === "builtin:grammar")?.method;
+        const legacy = selected2?.effortRecipes && previous?.kind === "skill" && previous.bindingOrigin === `builtin:method-library@${selected2.revision}` && previous.identity === selected2.snapshot.identity && Object.keys(previous.args).length === 1 && previous.args.effort === "light";
         if (selected2) method = {
           kind: "skill",
           origin: selected2.snapshot.origin,
           bindingOrigin: `builtin:method-library@${selected2.revision}`,
           identity: selected2.snapshot.identity,
           package: selected2.snapshot,
-          args: { effort: "light" }
+          args: legacy ? previous.args : { effort: "light", ...selected2.effortRecipes ? { effortRecipes: selected2.effortRecipes } : {} }
         };
       }
     }
