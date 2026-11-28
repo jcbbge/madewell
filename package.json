@@ -2,6 +2,7 @@
   "name": "madewell",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "bin": {
     "mw": "dist/mw.mjs",
